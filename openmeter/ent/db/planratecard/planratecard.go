@@ -50,6 +50,8 @@ const (
 	FieldBillingCadence = "billing_cadence"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
+	// FieldCurrency holds the string denoting the currency field in the database.
+	FieldCurrency = "currency"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
 	// FieldUnitConfig holds the string denoting the unit_config field in the database.
@@ -108,6 +110,7 @@ var Columns = []string{
 	FieldTaxConfig,
 	FieldBillingCadence,
 	FieldPrice,
+	FieldCurrency,
 	FieldDiscounts,
 	FieldUnitConfig,
 	FieldPhaseID,
@@ -250,6 +253,11 @@ func ByBillingCadence(opts ...sql.OrderTermOption) OrderOption {
 // ByPrice orders the results by the price field.
 func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
+}
+
+// ByCurrency orders the results by the currency field.
+func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
 // ByDiscounts orders the results by the discounts field.

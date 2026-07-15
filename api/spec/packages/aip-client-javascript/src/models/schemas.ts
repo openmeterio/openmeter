@@ -19,6 +19,15 @@ export const currencyCode = z
     'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code. Custom three-letter currency codes are also supported for convenience.',
   )
 
+export const currencyCodeCustom = z
+  .string()
+  .min(4)
+  .max(24)
+
+  .describe(
+    'Custom currency code. It should be a unique code but not conflicting with any existing fiat currency codes.',
+  )
+
 export const numeric = z
   .string()
   .regex(new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$'))
@@ -1021,15 +1030,6 @@ export const currencyExpand = z
     "Expands for currencies. Values: - `cost_basis`: The currency's currently-active cost basis.",
   )
 
-export const currencyCodeCustom = z
-  .string()
-  .min(4)
-  .max(24)
-
-  .describe(
-    'Custom currency code. It should be a unique code but not conflicting with any existing fiat currency codes.',
-  )
-
 export const featureLlmTokenType = z
   .enum([
     'input',
@@ -1456,14 +1456,6 @@ export const appCustomerDataExternalInvoicing = z
   })
   .describe('External invoicing customer data.')
 
-export const billingCurrencyCode = z
-  .union([currencyCode])
-  .describe('Fiat or custom currency code.')
-
-export const createCurrencyCode = z
-  .union([currencyCode])
-  .describe('Fiat or custom currency code.')
-
 export const currencyFiat = z
   .object({
     type: z.literal('fiat').describe('The type of the currency.'),
@@ -1517,6 +1509,61 @@ export const listCostBasesParamsFilter = z
     fiatCode: currencyCode.optional(),
   })
   .describe('Filter options for listing cost bases.')
+
+export const billingCurrencyCode = z
+  .union([currencyCode, currencyCodeCustom])
+  .describe('Fiat or custom currency code.')
+
+export const createCurrencyCode = z
+  .union([currencyCode, currencyCodeCustom])
+  .describe('Fiat or custom currency code.')
+
+export const createCurrencyCustomRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    precision: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(4294967295)
+
+      .describe(
+        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
+      ),
+    decimalMark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousandSeparator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
+      ),
+    code: currencyCodeCustom,
+  })
+  .describe('CurrencyCustom create request.')
 
 export const currencyAmount = z
   .object({
@@ -3108,53 +3155,6 @@ export const listCurrenciesParamsFilter = z
     code: stringFieldFilter.optional(),
   })
   .describe('Filter options for listing currencies.')
-
-export const createCurrencyCustomRequest = z
-  .object({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-
-      .describe(
-        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
-      ),
-    symbol: z
-      .string()
-      .min(1)
-      .optional()
-
-      .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
-      ),
-    precision: z
-      .number()
-      .int()
-      .nonnegative()
-      .lte(4294967295)
-
-      .describe(
-        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
-      ),
-    decimalMark: z
-      .string()
-      .min(1)
-      .max(1)
-
-      .describe(
-        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
-      ),
-    thousandSeparator: z
-      .string()
-      .min(1)
-      .max(1)
-
-      .describe(
-        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
-      ),
-    code: currencyCodeCustom,
-  })
-  .describe('CurrencyCustom create request.')
 
 export const governanceQueryRequest = z
   .object({
@@ -5207,6 +5207,7 @@ export const rateCard = z
     labels: labels.optional(),
     key: resourceKey,
     feature: featureReference.optional(),
+    currency: billingCurrencyCode.optional(),
     billingCadence: iso8601Duration.optional(),
     price: price,
     unitConfig: unitConfig.optional(),
@@ -5685,7 +5686,7 @@ export const plan = z
       .describe(
         'Plans are versioned to allow you to make changes without affecting running subscriptions.',
       ),
-    currency: currencyCode,
+    currency: billingCurrencyCode,
     billingCadence: iso8601Duration,
     proRatingEnabled: z
       .boolean()
@@ -5730,7 +5731,7 @@ export const createPlanRequest = z
       ),
     labels: labels.optional(),
     key: resourceKey,
-    currency: currencyCode,
+    currency: billingCurrencyCode,
     billingCadence: iso8601Duration,
     proRatingEnabled: z
       .boolean()
@@ -6897,6 +6898,15 @@ export const currencyCodeWire = z
     'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code. Custom three-letter currency codes are also supported for convenience.',
   )
 
+export const currencyCodeCustomWire = z
+  .string()
+  .min(4)
+  .max(24)
+
+  .describe(
+    'Custom currency code. It should be a unique code but not conflicting with any existing fiat currency codes.',
+  )
+
 export const numericWire = z
   .string()
   .regex(new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$'))
@@ -7893,15 +7903,6 @@ export const currencyExpandWire = z
     "Expands for currencies. Values: - `cost_basis`: The currency's currently-active cost basis.",
   )
 
-export const currencyCodeCustomWire = z
-  .string()
-  .min(4)
-  .max(24)
-
-  .describe(
-    'Custom currency code. It should be a unique code but not conflicting with any existing fiat currency codes.',
-  )
-
 export const featureLlmTokenTypeWire = z
   .enum([
     'input',
@@ -8328,14 +8329,6 @@ export const appCustomerDataExternalInvoicingWire = z
   })
   .describe('External invoicing customer data.')
 
-export const billingCurrencyCodeWire = z
-  .union([currencyCodeWire])
-  .describe('Fiat or custom currency code.')
-
-export const createCurrencyCodeWire = z
-  .union([currencyCodeWire])
-  .describe('Fiat or custom currency code.')
-
 export const currencyFiatWire = z
   .strictObject({
     type: z.literal('fiat').describe('The type of the currency.'),
@@ -8389,6 +8382,61 @@ export const listCostBasesParamsFilterWire = z
     fiat_code: currencyCodeWire.optional(),
   })
   .describe('Filter options for listing cost bases.')
+
+export const billingCurrencyCodeWire = z
+  .union([currencyCodeWire, currencyCodeCustomWire])
+  .describe('Fiat or custom currency code.')
+
+export const createCurrencyCodeWire = z
+  .union([currencyCodeWire, currencyCodeCustomWire])
+  .describe('Fiat or custom currency code.')
+
+export const createCurrencyCustomRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    precision: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(4294967295)
+
+      .describe(
+        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
+      ),
+    decimal_mark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousand_separator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
+      ),
+    code: currencyCodeCustomWire,
+  })
+  .describe('CurrencyCustom create request.')
 
 export const currencyAmountWire = z
   .strictObject({
@@ -9963,53 +10011,6 @@ export const listCurrenciesParamsFilterWire = z
     code: stringFieldFilterWire.optional(),
   })
   .describe('Filter options for listing currencies.')
-
-export const createCurrencyCustomRequestWire = z
-  .strictObject({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-
-      .describe(
-        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
-      ),
-    symbol: z
-      .string()
-      .min(1)
-      .optional()
-
-      .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
-      ),
-    precision: z
-      .number()
-      .int()
-      .nonnegative()
-      .lte(4294967295)
-
-      .describe(
-        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
-      ),
-    decimal_mark: z
-      .string()
-      .min(1)
-      .max(1)
-
-      .describe(
-        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
-      ),
-    thousand_separator: z
-      .string()
-      .min(1)
-      .max(1)
-
-      .describe(
-        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
-      ),
-    code: currencyCodeCustomWire,
-  })
-  .describe('CurrencyCustom create request.')
 
 export const governanceQueryRequestWire = z
   .strictObject({
@@ -12068,6 +12069,7 @@ export const rateCardWire = z
     labels: labelsWire.optional(),
     key: resourceKeyWire,
     feature: featureReferenceWire.optional(),
+    currency: billingCurrencyCodeWire.optional(),
     billing_cadence: iso8601DurationWire.optional(),
     price: priceWire,
     unit_config: unitConfigWire.optional(),
@@ -12544,7 +12546,7 @@ export const planWire = z
       .describe(
         'Plans are versioned to allow you to make changes without affecting running subscriptions.',
       ),
-    currency: currencyCodeWire,
+    currency: billingCurrencyCodeWire,
     billing_cadence: iso8601DurationWire,
     pro_rating_enabled: z
       .boolean()
@@ -12588,7 +12590,7 @@ export const createPlanRequestWire = z
       ),
     labels: labelsWire.optional(),
     key: resourceKeyWire,
-    currency: currencyCodeWire,
+    currency: billingCurrencyCodeWire,
     billing_cadence: iso8601DurationWire,
     pro_rating_enabled: z
       .boolean()

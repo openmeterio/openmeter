@@ -6,6 +6,7 @@ import (
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -203,6 +204,47 @@ func TestPostgresAdapter(t *testing.T) {
 
 			assert.Equalf(t, productcatalog.CreditOnlySettlementMode, fetched.SettlementMode,
 				"persisted settlement mode mismatch: expected=%s, actual=%s", productcatalog.CreditOnlySettlementMode, fetched.SettlementMode)
+		})
+
+		t.Run("CreateWithCustomCurrencyOverride", func(t *testing.T) {
+			// given:
+			// - a USD plan with one rate card explicitly priced in a custom currency
+			// when:
+			// - the plan is persisted and loaded through the repository
+			// then:
+			// - the explicit rate-card currency is retained
+			custom := currency.Code("CREDITS")
+			input := pctestutils.NewTestPlan(
+				t,
+				namespace,
+				pctestutils.WithPlanPhases(productcatalog.Phase{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+					RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:      "credits",
+							Name:     "Credits",
+							Currency: &custom,
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      decimal.NewFromInt(25),
+								PaymentTerm: productcatalog.InAdvancePaymentTerm,
+							}),
+						},
+					}},
+				}),
+				func(t *testing.T, p *productcatalog.Plan) {
+					t.Helper()
+					p.Key = "custom-currency-override"
+				},
+			)
+
+			created, err := env.PlanRepository.CreatePlan(t.Context(), input)
+			require.NoError(t, err)
+
+			fetched, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+			})
+			require.NoError(t, err)
+			require.Equal(t, &custom, fetched.Phases[0].RateCards[0].AsMeta().Currency)
 		})
 
 		t.Run("Get", func(t *testing.T) {
@@ -489,6 +531,47 @@ func TestListPlansExcludeUnitConfig(t *testing.T) {
 		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
 		require.ElementsMatch(t, []string{"plain"}, keys)
 		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude the unit_config plan, not just the page slice")
+	})
+}
+
+func TestListPlansExcludeCurrencyOverrides(t *testing.T) {
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	plain := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("plain"))
+	_, err := env.PlanRepository.CreatePlan(t.Context(), plain)
+	require.NoError(t, err, "creating plain plan must not fail")
+
+	withOverride := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("with-override"))
+	overriddenRateCard, ok := withOverride.Phases[0].RateCards[0].(*productcatalog.FlatFeeRateCard)
+	require.True(t, ok, "default test plan rate card must be flat fee")
+	overriddenRateCard.Currency = lo.ToPtr(currency.Code("TOK"))
+	_, err = env.PlanRepository.CreatePlan(t.Context(), withOverride)
+	require.NoError(t, err, "creating plan with rate-card currency override must not fail")
+
+	t.Run("included when ExcludeCurrencyOverrides is false", func(t *testing.T) {
+		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+			Namespaces: []string{namespace},
+		})
+		require.NoError(t, err, "listing plans must not fail")
+
+		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
+		require.ElementsMatch(t, []string{"plain", "with-override"}, keys)
+		require.Equal(t, 2, list.TotalCount, "TotalCount must count both plans")
+	})
+
+	t.Run("excluded when ExcludeCurrencyOverrides is true, TotalCount stays consistent", func(t *testing.T) {
+		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+			Namespaces:               []string{namespace},
+			ExcludeCurrencyOverrides: true,
+		})
+		require.NoError(t, err, "listing plans must not fail")
+
+		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
+		require.ElementsMatch(t, []string{"plain"}, keys)
+		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude the plan with currency overrides")
 	})
 }
 

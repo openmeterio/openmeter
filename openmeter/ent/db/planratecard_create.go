@@ -189,6 +189,20 @@ func (_c *PlanRateCardCreate) SetPrice(v *productcatalog.Price) *PlanRateCardCre
 	return _c
 }
 
+// SetCurrency sets the "currency" field.
+func (_c *PlanRateCardCreate) SetCurrency(v string) *PlanRateCardCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
+}
+
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_c *PlanRateCardCreate) SetNillableCurrency(v *string) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetCurrency(*v)
+	}
+	return _c
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_c *PlanRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *PlanRateCardCreate {
 	_c.mutation.SetDiscounts(v)
@@ -499,6 +513,10 @@ func (_c *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec,
 		}
 		_spec.SetField(planratecard.FieldPrice, field.TypeString, vv)
 		_node.Price = value
+	}
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(planratecard.FieldCurrency, field.TypeString, value)
+		_node.Currency = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)
@@ -820,6 +838,24 @@ func (u *PlanRateCardUpsert) UpdatePrice() *PlanRateCardUpsert {
 // ClearPrice clears the value of the "price" field.
 func (u *PlanRateCardUpsert) ClearPrice() *PlanRateCardUpsert {
 	u.SetNull(planratecard.FieldPrice)
+	return u
+}
+
+// SetCurrency sets the "currency" field.
+func (u *PlanRateCardUpsert) SetCurrency(v string) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldCurrency, v)
+	return u
+}
+
+// UpdateCurrency sets the "currency" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateCurrency() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldCurrency)
+	return u
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (u *PlanRateCardUpsert) ClearCurrency() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldCurrency)
 	return u
 }
 
@@ -1184,6 +1220,27 @@ func (u *PlanRateCardUpsertOne) UpdatePrice() *PlanRateCardUpsertOne {
 func (u *PlanRateCardUpsertOne) ClearPrice() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearPrice()
+	})
+}
+
+// SetCurrency sets the "currency" field.
+func (u *PlanRateCardUpsertOne) SetCurrency(v string) *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetCurrency(v)
+	})
+}
+
+// UpdateCurrency sets the "currency" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateCurrency() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateCurrency()
+	})
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (u *PlanRateCardUpsertOne) ClearCurrency() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearCurrency()
 	})
 }
 
@@ -1729,6 +1786,27 @@ func (u *PlanRateCardUpsertBulk) UpdatePrice() *PlanRateCardUpsertBulk {
 func (u *PlanRateCardUpsertBulk) ClearPrice() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearPrice()
+	})
+}
+
+// SetCurrency sets the "currency" field.
+func (u *PlanRateCardUpsertBulk) SetCurrency(v string) *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetCurrency(v)
+	})
+}
+
+// UpdateCurrency sets the "currency" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateCurrency() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateCurrency()
+	})
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (u *PlanRateCardUpsertBulk) ClearCurrency() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearCurrency()
 	})
 }
 

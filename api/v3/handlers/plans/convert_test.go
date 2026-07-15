@@ -308,6 +308,25 @@ func TestFromPlanWithPhases(t *testing.T) {
 }
 
 func TestFromRateCard(t *testing.T) {
+	t.Run("custom currency override round trips", func(t *testing.T) {
+		custom := currency.Code("CREDITS")
+		rc := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:      "credits",
+				Name:     "Credits",
+				Currency: &custom,
+			},
+		}
+
+		apiRateCard, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+		require.Equal(t, lo.ToPtr(api.BillingCurrencyCode(custom)), apiRateCard.Currency)
+
+		domainRateCard, err := FromAPIBillingRateCard(apiRateCard)
+		require.NoError(t, err)
+		require.Equal(t, &custom, domainRateCard.AsMeta().Currency)
+	})
+
 	t.Run("flat fee — no price, no cadence (one-time free)", func(t *testing.T) {
 		rc := &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{

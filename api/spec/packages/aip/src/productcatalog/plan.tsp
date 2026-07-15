@@ -1,4 +1,5 @@
 import "../shared/index.tsp";
+import "../currencies/currency.tsp";
 import "./ratecard.tsp";
 
 namespace ProductCatalog;
@@ -51,7 +52,7 @@ model Plan {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
-  currency: Shared.CurrencyCode;
+  currency: Currencies.CurrencyCode;
 
   /**
    * The billing cadence for subscriptions using this plan.

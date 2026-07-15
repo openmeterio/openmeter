@@ -650,6 +650,9 @@ type RateCard struct {
 	Key         string            `json:"key"`
 	// The feature associated with the rate card.
 	Feature *FeatureReference `json:"feature,omitempty"`
+	// Overrides the containing plan or add-on currency for this rate card. When
+	// omitted, the containing resource currency applies.
+	Currency *BillingCurrencyCode `json:"currency,omitempty"`
 	// The billing cadence of the rate card. When null, the charge is one-time
 	// (non-recurring). Only valid for flat prices.
 	BillingCadence *string `json:"billing_cadence,omitempty"`
@@ -693,6 +696,9 @@ type RateCardInput struct {
 	Key         string             `json:"key"`
 	// The feature associated with the rate card.
 	Feature *FeatureReference `json:"feature,omitempty"`
+	// Overrides the containing plan or add-on currency for this rate card. When
+	// omitted, the containing resource currency applies.
+	Currency *BillingCurrencyCode `json:"currency,omitempty"`
 	// The billing cadence of the rate card. When null, the charge is one-time
 	// (non-recurring). Only valid for flat prices.
 	BillingCadence *string `json:"billing_cadence,omitempty"`

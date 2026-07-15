@@ -20,7 +20,7 @@ type CreatePlanRequest struct {
 	// number.
 	Key string `json:"key"`
 	// The currency code of the plan.
-	Currency string `json:"currency"`
+	Currency BillingCurrencyCode `json:"currency"`
 	// The billing cadence for subscriptions using this plan.
 	BillingCadence string `json:"billing_cadence"`
 	// Whether pro-rating is enabled for this plan.
@@ -56,7 +56,7 @@ type Plan struct {
 	// subscriptions.
 	Version int64 `json:"version"`
 	// The currency code of the plan.
-	Currency string `json:"currency"`
+	Currency BillingCurrencyCode `json:"currency"`
 	// The billing cadence for subscriptions using this plan.
 	BillingCadence string `json:"billing_cadence"`
 	// Whether pro-rating is enabled for this plan.

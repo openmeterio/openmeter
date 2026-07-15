@@ -99,6 +99,11 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		UnitConfig:          r.UnitConfig,
 	}
 
+	if r.Currency != nil {
+		currencyCode := currency.Code(*r.Currency)
+		meta.Currency = &currencyCode
+	}
+
 	if r.FeatureID != nil || r.FeatureKey != nil {
 		ratecardFeature, err := r.Edges.FeaturesOrErr()
 		//if err != nil {
@@ -315,6 +320,11 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		UnitConfig:          r.UnitConfig,
 	}
 
+	if r.Currency != nil {
+		currencyCode := currency.Code(*r.Currency)
+		meta.Currency = &currencyCode
+	}
+
 	// Map TaxCode if eagerly loaded.
 	taxCodeRow, err := r.Edges.TaxCodeOrErr()
 	if err == nil {
@@ -372,6 +382,10 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		Type:                r.Type(),
 		Discounts:           lo.EmptyableToPtr(meta.Discounts),
 		UnitConfig:          meta.UnitConfig,
+	}
+
+	if meta.Currency != nil {
+		ratecard.Currency = lo.ToPtr(meta.Currency.String())
 	}
 
 	if managed, ok := r.(addon.ManagedRateCard); ok {

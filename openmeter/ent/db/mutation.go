@@ -1691,6 +1691,7 @@ type AddonRateCardMutation struct {
 	tax_config           **productcatalog.TaxConfig
 	billing_cadence      *datetime.ISODurationString
 	price                **productcatalog.Price
+	currency             *string
 	discounts            **productcatalog.Discounts
 	unit_config          **unitconfig.UnitConfig
 	clearedFields        map[string]struct{}
@@ -2515,6 +2516,55 @@ func (m *AddonRateCardMutation) ResetPrice() {
 	delete(m.clearedFields, addonratecard.FieldPrice)
 }
 
+// SetCurrency sets the "currency" field.
+func (m *AddonRateCardMutation) SetCurrency(s string) {
+	m.currency = &s
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *AddonRateCardMutation) Currency() (r string, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the AddonRateCard entity.
+// If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonRateCardMutation) OldCurrency(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (m *AddonRateCardMutation) ClearCurrency() {
+	m.currency = nil
+	m.clearedFields[addonratecard.FieldCurrency] = struct{}{}
+}
+
+// CurrencyCleared returns if the "currency" field was cleared in this mutation.
+func (m *AddonRateCardMutation) CurrencyCleared() bool {
+	_, ok := m.clearedFields[addonratecard.FieldCurrency]
+	return ok
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *AddonRateCardMutation) ResetCurrency() {
+	m.currency = nil
+	delete(m.clearedFields, addonratecard.FieldCurrency)
+}
+
 // SetDiscounts sets the "discounts" field.
 func (m *AddonRateCardMutation) SetDiscounts(pr *productcatalog.Discounts) {
 	m.discounts = &pr
@@ -2826,7 +2876,7 @@ func (m *AddonRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AddonRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.namespace != nil {
 		fields = append(fields, addonratecard.FieldNamespace)
 	}
@@ -2874,6 +2924,9 @@ func (m *AddonRateCardMutation) Fields() []string {
 	}
 	if m.price != nil {
 		fields = append(fields, addonratecard.FieldPrice)
+	}
+	if m.currency != nil {
+		fields = append(fields, addonratecard.FieldCurrency)
 	}
 	if m.discounts != nil {
 		fields = append(fields, addonratecard.FieldDiscounts)
@@ -2927,6 +2980,8 @@ func (m *AddonRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case addonratecard.FieldPrice:
 		return m.Price()
+	case addonratecard.FieldCurrency:
+		return m.Currency()
 	case addonratecard.FieldDiscounts:
 		return m.Discounts()
 	case addonratecard.FieldUnitConfig:
@@ -2976,6 +3031,8 @@ func (m *AddonRateCardMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldBillingCadence(ctx)
 	case addonratecard.FieldPrice:
 		return m.OldPrice(ctx)
+	case addonratecard.FieldCurrency:
+		return m.OldCurrency(ctx)
 	case addonratecard.FieldDiscounts:
 		return m.OldDiscounts(ctx)
 	case addonratecard.FieldUnitConfig:
@@ -3105,6 +3162,13 @@ func (m *AddonRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPrice(v)
 		return nil
+	case addonratecard.FieldCurrency:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
 	case addonratecard.FieldDiscounts:
 		v, ok := value.(*productcatalog.Discounts)
 		if !ok {
@@ -3193,6 +3257,9 @@ func (m *AddonRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(addonratecard.FieldPrice) {
 		fields = append(fields, addonratecard.FieldPrice)
 	}
+	if m.FieldCleared(addonratecard.FieldCurrency) {
+		fields = append(fields, addonratecard.FieldCurrency)
+	}
 	if m.FieldCleared(addonratecard.FieldDiscounts) {
 		fields = append(fields, addonratecard.FieldDiscounts)
 	}
@@ -3245,6 +3312,9 @@ func (m *AddonRateCardMutation) ClearField(name string) error {
 		return nil
 	case addonratecard.FieldPrice:
 		m.ClearPrice()
+		return nil
+	case addonratecard.FieldCurrency:
+		m.ClearCurrency()
 		return nil
 	case addonratecard.FieldDiscounts:
 		m.ClearDiscounts()
@@ -3310,6 +3380,9 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 		return nil
 	case addonratecard.FieldPrice:
 		m.ResetPrice()
+		return nil
+	case addonratecard.FieldCurrency:
+		m.ResetCurrency()
 		return nil
 	case addonratecard.FieldDiscounts:
 		m.ResetDiscounts()
@@ -110293,6 +110366,7 @@ type PlanRateCardMutation struct {
 	tax_config           **productcatalog.TaxConfig
 	billing_cadence      *datetime.ISODurationString
 	price                **productcatalog.Price
+	currency             *string
 	discounts            **productcatalog.Discounts
 	unit_config          **unitconfig.UnitConfig
 	clearedFields        map[string]struct{}
@@ -111117,6 +111191,55 @@ func (m *PlanRateCardMutation) ResetPrice() {
 	delete(m.clearedFields, planratecard.FieldPrice)
 }
 
+// SetCurrency sets the "currency" field.
+func (m *PlanRateCardMutation) SetCurrency(s string) {
+	m.currency = &s
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *PlanRateCardMutation) Currency() (r string, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldCurrency(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (m *PlanRateCardMutation) ClearCurrency() {
+	m.currency = nil
+	m.clearedFields[planratecard.FieldCurrency] = struct{}{}
+}
+
+// CurrencyCleared returns if the "currency" field was cleared in this mutation.
+func (m *PlanRateCardMutation) CurrencyCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldCurrency]
+	return ok
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *PlanRateCardMutation) ResetCurrency() {
+	m.currency = nil
+	delete(m.clearedFields, planratecard.FieldCurrency)
+}
+
 // SetDiscounts sets the "discounts" field.
 func (m *PlanRateCardMutation) SetDiscounts(pr *productcatalog.Discounts) {
 	m.discounts = &pr
@@ -111428,7 +111551,7 @@ func (m *PlanRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.namespace != nil {
 		fields = append(fields, planratecard.FieldNamespace)
 	}
@@ -111476,6 +111599,9 @@ func (m *PlanRateCardMutation) Fields() []string {
 	}
 	if m.price != nil {
 		fields = append(fields, planratecard.FieldPrice)
+	}
+	if m.currency != nil {
+		fields = append(fields, planratecard.FieldCurrency)
 	}
 	if m.discounts != nil {
 		fields = append(fields, planratecard.FieldDiscounts)
@@ -111529,6 +111655,8 @@ func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case planratecard.FieldPrice:
 		return m.Price()
+	case planratecard.FieldCurrency:
+		return m.Currency()
 	case planratecard.FieldDiscounts:
 		return m.Discounts()
 	case planratecard.FieldUnitConfig:
@@ -111578,6 +111706,8 @@ func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldBillingCadence(ctx)
 	case planratecard.FieldPrice:
 		return m.OldPrice(ctx)
+	case planratecard.FieldCurrency:
+		return m.OldCurrency(ctx)
 	case planratecard.FieldDiscounts:
 		return m.OldDiscounts(ctx)
 	case planratecard.FieldUnitConfig:
@@ -111707,6 +111837,13 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPrice(v)
 		return nil
+	case planratecard.FieldCurrency:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
 	case planratecard.FieldDiscounts:
 		v, ok := value.(*productcatalog.Discounts)
 		if !ok {
@@ -111795,6 +111932,9 @@ func (m *PlanRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(planratecard.FieldPrice) {
 		fields = append(fields, planratecard.FieldPrice)
 	}
+	if m.FieldCleared(planratecard.FieldCurrency) {
+		fields = append(fields, planratecard.FieldCurrency)
+	}
 	if m.FieldCleared(planratecard.FieldDiscounts) {
 		fields = append(fields, planratecard.FieldDiscounts)
 	}
@@ -111847,6 +111987,9 @@ func (m *PlanRateCardMutation) ClearField(name string) error {
 		return nil
 	case planratecard.FieldPrice:
 		m.ClearPrice()
+		return nil
+	case planratecard.FieldCurrency:
+		m.ClearCurrency()
 		return nil
 	case planratecard.FieldDiscounts:
 		m.ClearDiscounts()
@@ -111912,6 +112055,9 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 		return nil
 	case planratecard.FieldPrice:
 		m.ResetPrice()
+		return nil
+	case planratecard.FieldCurrency:
+		m.ResetCurrency()
 		return nil
 	case planratecard.FieldDiscounts:
 		m.ResetDiscounts()
