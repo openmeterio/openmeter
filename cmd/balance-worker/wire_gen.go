@@ -126,7 +126,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	entitlementsConfiguration := conf.Entitlements
-	unitConfigConfiguration := conf.UnitConfig
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v3, cleanup7, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
@@ -208,7 +207,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, unitConfigConfiguration, connector, meterService, eventbusPublisher, locker, customerService)
+	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker, customerService)
 	if err != nil {
 		cleanup7()
 		cleanup6()

@@ -252,7 +252,6 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 		deps.CustomerService,
 		slog.Default(),
 		tracer,
-		false,
 	)
 
 	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{

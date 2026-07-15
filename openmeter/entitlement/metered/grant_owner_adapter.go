@@ -23,14 +23,13 @@ import (
 )
 
 type entitlementGrantOwner struct {
-	featureRepo       feature.FeatureRepo
-	entitlementRepo   entitlement.EntitlementRepo
-	usageResetRepo    UsageResetRepo
-	meterService      meter.Service
-	customerService   customer.Service
-	logger            *slog.Logger
-	tracer            trace.Tracer
-	unitConfigEnabled bool
+	featureRepo     feature.FeatureRepo
+	entitlementRepo entitlement.EntitlementRepo
+	usageResetRepo  UsageResetRepo
+	meterService    meter.Service
+	customerService customer.Service
+	logger          *slog.Logger
+	tracer          trace.Tracer
 }
 
 func NewEntitlementGrantOwnerAdapter(
@@ -41,17 +40,15 @@ func NewEntitlementGrantOwnerAdapter(
 	customerService customer.Service,
 	logger *slog.Logger,
 	tracer trace.Tracer,
-	unitConfigEnabled bool,
 ) grant.OwnerConnector {
 	return &entitlementGrantOwner{
-		featureRepo:       featureRepo,
-		entitlementRepo:   entitlementRepo,
-		usageResetRepo:    usageResetRepo,
-		meterService:      meterService,
-		customerService:   customerService,
-		logger:            logger,
-		tracer:            tracer,
-		unitConfigEnabled: unitConfigEnabled,
+		featureRepo:     featureRepo,
+		entitlementRepo: entitlementRepo,
+		usageResetRepo:  usageResetRepo,
+		meterService:    meterService,
+		customerService: customerService,
+		logger:          logger,
+		tracer:          tracer,
 	}
 }
 
@@ -136,11 +133,15 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		StreamingCustomer: streamingCustomer,
 	}
 
-	// Convert usage into the rate card's billing units for balance checks only when
-	// the unitConfig feature is on (OM-400). Off, or no snapshot, leaves UnitConfig
-	// nil → identity → balances byte-identical to before. Fail closed on an invalid
-	// snapshot rather than silently checking access in raw units.
-	if e.unitConfigEnabled && ent.UnitConfig != nil {
+	// Convert usage into the rate card's billing units for balance checks whenever the
+	// entitlement carries a unit_config snapshot (OM-400). The conversion regime is a
+	// property of this immutable snapshot, NOT the live unitConfig feature flag: a
+	// unit_config can only be authored while the flag is on, so an entitlement either
+	// converts for its whole life or never — which keeps persisted balance snapshots in
+	// a single unit system and makes a later flag flip a no-op for existing entitlements
+	// (no raw/converted mixing on resume). No snapshot → nil → identity → byte-identical.
+	// Fail closed on an invalid snapshot rather than silently checking access in raw units.
+	if ent.UnitConfig != nil {
 		if err := ent.UnitConfig.Validate(); err != nil {
 			return def, fmt.Errorf("invalid entitlement unit config: %w", err)
 		}

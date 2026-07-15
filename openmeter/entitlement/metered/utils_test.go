@@ -76,24 +76,7 @@ var (
 var m sync.Mutex
 
 // builds connector with mock streaming and real PG
-type setupConfig struct {
-	unitConfigEnabled bool
-}
-
-type setupOption func(*setupConfig)
-
-// withUnitConfigEnabled turns on UnitConfig conversion for the grant-owner adapter,
-// so metered balances are computed in the rate card's converted units (OM-400).
-func withUnitConfigEnabled() setupOption {
-	return func(c *setupConfig) { c.unitConfigEnabled = true }
-}
-
-func setupConnector(t *testing.T, opts ...setupOption) (meteredentitlement.Connector, *dependencies) {
-	var cfg setupConfig
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-
+func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) {
 	testLogger := testutils.NewLogger(t)
 	tracer := noop.NewTracerProvider().Tracer("test")
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
@@ -168,7 +151,6 @@ func setupConnector(t *testing.T, opts ...setupOption) (meteredentitlement.Conne
 		customerService,
 		testLogger,
 		tracer,
-		cfg.unitConfigEnabled,
 	)
 
 	transactionManager := enttx.NewCreator(dbClient)
