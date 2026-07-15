@@ -82815,6 +82815,7 @@ type EntitlementMutation struct {
 	is_soft_limit                 *bool
 	preserve_overage_at_reset     *bool
 	_config                       *string
+	unit_config                   *string
 	usage_period_interval         *datetime.ISODurationString
 	usage_period_anchor           *time.Time
 	current_usage_period_start    *time.Time
@@ -83730,6 +83731,55 @@ func (m *EntitlementMutation) ResetConfig() {
 	delete(m.clearedFields, entitlement.FieldConfig)
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (m *EntitlementMutation) SetUnitConfig(s string) {
+	m.unit_config = &s
+}
+
+// UnitConfig returns the value of the "unit_config" field in the mutation.
+func (m *EntitlementMutation) UnitConfig() (r string, exists bool) {
+	v := m.unit_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitConfig returns the old "unit_config" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldUnitConfig(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitConfig: %w", err)
+	}
+	return oldValue.UnitConfig, nil
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (m *EntitlementMutation) ClearUnitConfig() {
+	m.unit_config = nil
+	m.clearedFields[entitlement.FieldUnitConfig] = struct{}{}
+}
+
+// UnitConfigCleared returns if the "unit_config" field was cleared in this mutation.
+func (m *EntitlementMutation) UnitConfigCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldUnitConfig]
+	return ok
+}
+
+// ResetUnitConfig resets all changes to the "unit_config" field.
+func (m *EntitlementMutation) ResetUnitConfig() {
+	m.unit_config = nil
+	delete(m.clearedFields, entitlement.FieldUnitConfig)
+}
+
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
 func (m *EntitlementMutation) SetUsagePeriodInterval(dds datetime.ISODurationString) {
 	m.usage_period_interval = &dds
@@ -84279,7 +84329,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 23)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -84330,6 +84380,9 @@ func (m *EntitlementMutation) Fields() []string {
 	}
 	if m._config != nil {
 		fields = append(fields, entitlement.FieldConfig)
+	}
+	if m.unit_config != nil {
+		fields = append(fields, entitlement.FieldUnitConfig)
 	}
 	if m.usage_period_interval != nil {
 		fields = append(fields, entitlement.FieldUsagePeriodInterval)
@@ -84388,6 +84441,8 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.PreserveOverageAtReset()
 	case entitlement.FieldConfig:
 		return m.Config()
+	case entitlement.FieldUnitConfig:
+		return m.UnitConfig()
 	case entitlement.FieldUsagePeriodInterval:
 		return m.UsagePeriodInterval()
 	case entitlement.FieldUsagePeriodAnchor:
@@ -84441,6 +84496,8 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldPreserveOverageAtReset(ctx)
 	case entitlement.FieldConfig:
 		return m.OldConfig(ctx)
+	case entitlement.FieldUnitConfig:
+		return m.OldUnitConfig(ctx)
 	case entitlement.FieldUsagePeriodInterval:
 		return m.OldUsagePeriodInterval(ctx)
 	case entitlement.FieldUsagePeriodAnchor:
@@ -84579,6 +84636,13 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetConfig(v)
 		return nil
+	case entitlement.FieldUnitConfig:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitConfig(v)
+		return nil
 	case entitlement.FieldUsagePeriodInterval:
 		v, ok := value.(datetime.ISODurationString)
 		if !ok {
@@ -84701,6 +84765,9 @@ func (m *EntitlementMutation) ClearedFields() []string {
 	if m.FieldCleared(entitlement.FieldConfig) {
 		fields = append(fields, entitlement.FieldConfig)
 	}
+	if m.FieldCleared(entitlement.FieldUnitConfig) {
+		fields = append(fields, entitlement.FieldUnitConfig)
+	}
 	if m.FieldCleared(entitlement.FieldUsagePeriodInterval) {
 		fields = append(fields, entitlement.FieldUsagePeriodInterval)
 	}
@@ -84759,6 +84826,9 @@ func (m *EntitlementMutation) ClearField(name string) error {
 		return nil
 	case entitlement.FieldConfig:
 		m.ClearConfig()
+		return nil
+	case entitlement.FieldUnitConfig:
+		m.ClearUnitConfig()
 		return nil
 	case entitlement.FieldUsagePeriodInterval:
 		m.ClearUsagePeriodInterval()
@@ -84833,6 +84903,9 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldConfig:
 		m.ResetConfig()
+		return nil
+	case entitlement.FieldUnitConfig:
+		m.ResetUnitConfig()
 		return nil
 	case entitlement.FieldUsagePeriodInterval:
 		m.ResetUsagePeriodInterval()

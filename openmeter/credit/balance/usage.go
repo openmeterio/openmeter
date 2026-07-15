@@ -100,7 +100,7 @@ func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.Namespaced
 		vTo := alpacadecimal.NewFromFloat(valueTo)
 		vFrom := alpacadecimal.NewFromFloat(valueFrom)
 
-		return vTo.Sub(vFrom).InexactFloat64(), nil
+		return u.applyUnitConversion(owner, vTo.Sub(vFrom).InexactFloat64()), nil
 
 	// For other aggregation types we can simply query the meter
 	case meter.MeterAggregationSum, meter.MeterAggregationCount, meter.MeterAggregationLatest:
@@ -118,10 +118,31 @@ func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.Namespaced
 			return 0.0, fmt.Errorf("failed to query meter %s: %w", owner.Meter.Key, err)
 		}
 
-		return u.getValueFromRows(rows)
+		usage, err := u.getValueFromRows(rows)
+		if err != nil {
+			return 0.0, err
+		}
+
+		return u.applyUnitConversion(owner, usage), nil
 	default:
 		return 0.0, fmt.Errorf("unsupported aggregation %s", owner.Meter.Aggregation)
 	}
+}
+
+// applyUnitConversion converts raw metered usage into the unit the owner's
+// entitlement limit and grants are authored in, using the owner's UsageConverter
+// (the rate card's UnitConfig conversion — no rounding, so balance checks see the
+// precise value). When no converter is set — no unit_config, or the unitConfig
+// feature is disabled — it returns the raw value unchanged, keeping balances
+// byte-identical to pre-UnitConfig behavior. Both the engine's usage source and the
+// snapshot service's backfill querier route through here, so converted and raw
+// snapshots can never be mixed for a given owner.
+func (u *usageQuerier) applyUnitConversion(owner grant.Owner, raw float64) float64 {
+	if owner.UsageConverter == nil {
+		return raw
+	}
+
+	return owner.UsageConverter(raw)
 }
 
 func (u *usageQuerier) getValueFromRows(rows []meter.MeterQueryRow) (float64, error) {

@@ -99,6 +99,15 @@ type CreateEntitlementInputs struct {
 	UsagePeriod             *UsagePeriodInput      `json:"usagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`
 
+	// UnitConfig is the JSON-serialized productcatalog.UnitConfig snapshotted from
+	// the rate card at subscription time. It is stored as a string because the
+	// entitlement package sits below productcatalog in the import graph and cannot
+	// reference the typed struct; the metered grant-owner adapter parses it back
+	// into a typed UnitConfig to convert usage at balance-check time (OM-400). Only
+	// metered entitlements created from a unit_config rate card carry it; nil means
+	// balances are computed in raw metered units, as before.
+	UnitConfig *string `json:"unitConfig,omitempty"`
+
 	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
 }
 
@@ -183,6 +192,10 @@ func (c CreateEntitlementInputs) Equal(other CreateEntitlementInputs) bool {
 		return false
 	}
 
+	if !reflect.DeepEqual(c.UnitConfig, other.UnitConfig) {
+		return false
+	}
+
 	if c.SubscriptionManaged != other.SubscriptionManaged {
 		return false
 	}
@@ -250,6 +263,10 @@ type Entitlement struct {
 
 	// static
 	Config *string `json:"config,omitempty"`
+
+	// UnitConfig is the JSON-serialized productcatalog.UnitConfig snapshotted from
+	// the rate card (metered entitlements only). See CreateEntitlementInputs.UnitConfig.
+	UnitConfig *string `json:"unitConfig,omitempty"`
 }
 
 func (e Entitlement) AsCreateEntitlementInputs(cust customer.Customer) CreateEntitlementInputs {
@@ -267,6 +284,7 @@ func (e Entitlement) AsCreateEntitlementInputs(cust customer.Customer) CreateEnt
 		IssueAfterResetPriority: e.IssueAfterResetPriority,
 		IsSoftLimit:             e.IsSoftLimit,
 		Config:                  e.Config,
+		UnitConfig:              e.UnitConfig,
 		UsagePeriod:             e.UsagePeriod.GetOriginalValueAsUsagePeriodInput(),
 		PreserveOverageAtReset:  e.PreserveOverageAtReset,
 		Annotations:             e.Annotations,

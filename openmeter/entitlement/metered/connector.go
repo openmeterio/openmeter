@@ -211,6 +211,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		IssueAfterReset:         model.IssueAfterReset,
 		IssueAfterResetPriority: model.IssueAfterResetPriority,
 		IsSoftLimit:             model.IsSoftLimit,
+		UnitConfig:              model.UnitConfig,
 		UsagePeriod:             model.UsagePeriod,
 		CurrentUsagePeriod:      &currentPeriod,
 		PreserveOverageAtReset:  model.PreserveOverageAtReset,

@@ -58,6 +58,19 @@ func (Entitlement) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+		// unit_config snapshots the JSON-serialized productcatalog.UnitConfig from
+		// the rate card at subscription time (metered entitlements only). Stored as a
+		// plain jsonb string, not a typed GoType, because the entitlement domain
+		// package sits below productcatalog and cannot reference the struct; the
+		// metered grant-owner adapter parses it to convert usage at balance-check
+		// time. Immutable: it is a snapshot set once at create, like issue_after_reset.
+		field.String("unit_config").
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
 		field.String("usage_period_interval").GoType(datetime.ISODurationString("")).Optional().Nillable().Immutable(),
 		field.Time("usage_period_anchor").Optional().Nillable().Comment("Historically this field had been overwritten with each anchor reset, now we keep the original anchor time and the value is populated from the last reset which is queried dynamically"),
 		// TODO: get rid of current_usage_period in the db and make it calculated

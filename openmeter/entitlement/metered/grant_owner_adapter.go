@@ -2,10 +2,12 @@ package meteredentitlement
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -14,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -23,13 +26,14 @@ import (
 )
 
 type entitlementGrantOwner struct {
-	featureRepo     feature.FeatureRepo
-	entitlementRepo entitlement.EntitlementRepo
-	usageResetRepo  UsageResetRepo
-	meterService    meter.Service
-	customerService customer.Service
-	logger          *slog.Logger
-	tracer          trace.Tracer
+	featureRepo       feature.FeatureRepo
+	entitlementRepo   entitlement.EntitlementRepo
+	usageResetRepo    UsageResetRepo
+	meterService      meter.Service
+	customerService   customer.Service
+	logger            *slog.Logger
+	tracer            trace.Tracer
+	unitConfigEnabled bool
 }
 
 func NewEntitlementGrantOwnerAdapter(
@@ -40,15 +44,17 @@ func NewEntitlementGrantOwnerAdapter(
 	customerService customer.Service,
 	logger *slog.Logger,
 	tracer trace.Tracer,
+	unitConfigEnabled bool,
 ) grant.OwnerConnector {
 	return &entitlementGrantOwner{
-		featureRepo:     featureRepo,
-		entitlementRepo: entitlementRepo,
-		usageResetRepo:  usageResetRepo,
-		meterService:    meterService,
-		customerService: customerService,
-		logger:          logger,
-		tracer:          tracer,
+		featureRepo:       featureRepo,
+		entitlementRepo:   entitlementRepo,
+		usageResetRepo:    usageResetRepo,
+		meterService:      meterService,
+		customerService:   customerService,
+		logger:            logger,
+		tracer:            tracer,
+		unitConfigEnabled: unitConfigEnabled,
 	}
 }
 
@@ -123,6 +129,11 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 
 	queryParams.FilterCustomer = []streaming.Customer{streamingCustomer}
 
+	usageConverter, err := e.buildUsageConverter(ent.UnitConfig)
+	if err != nil {
+		return def, err
+	}
+
 	return grant.Owner{
 		NamespacedID:       id,
 		Meter:              met,
@@ -131,6 +142,34 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 			PreserveOverage: mEnt.PreserveOverageAtReset,
 		},
 		StreamingCustomer: streamingCustomer,
+		UsageConverter:    usageConverter,
+	}, nil
+}
+
+// buildUsageConverter turns the entitlement's snapshotted unit_config (JSON) into a
+// raw→converted usage function for balance checks (OM-400). It returns nil (identity,
+// raw units) when the unitConfig feature is disabled or the entitlement has no
+// snapshot — keeping balances byte-identical to pre-UnitConfig behavior. When the
+// feature is on and a snapshot is present it fails closed on a malformed or invalid
+// config rather than silently billing access in raw units. Conversion only, no
+// rounding: balances always use the precise converted value.
+func (e *entitlementGrantOwner) buildUsageConverter(unitConfigJSON *string) (func(float64) float64, error) {
+	if !e.unitConfigEnabled || unitConfigJSON == nil {
+		return nil, nil
+	}
+
+	var uc productcatalog.UnitConfig
+	if err := json.Unmarshal([]byte(*unitConfigJSON), &uc); err != nil {
+		return nil, fmt.Errorf("failed to parse entitlement unit config: %w", err)
+	}
+
+	if err := uc.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid entitlement unit config: %w", err)
+	}
+
+	return func(raw float64) float64 {
+		converted, _ := uc.Apply(alpacadecimal.NewFromFloat(raw))
+		return converted.InexactFloat64()
 	}, nil
 }
 

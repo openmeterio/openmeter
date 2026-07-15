@@ -39,6 +39,11 @@ type EntitlementOptions struct {
 	Publisher                 eventbus.Publisher
 	Tracer                    trace.Tracer
 	Locker                    *lockr.Locker
+	// UnitConfigEnabled gates the UnitConfig feature for entitlement balance checks:
+	// when true the grant-owner adapter converts metered usage into the rate card's
+	// billing units before burndown (OM-400). When false balances stay in raw metered
+	// units, byte-identical to pre-UnitConfig behavior.
+	UnitConfigEnabled bool
 }
 
 func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
@@ -59,6 +64,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 		opts.CustomerService,
 		opts.Logger,
 		opts.Tracer,
+		opts.UnitConfigEnabled,
 	)
 	transactionManager := enttx.NewCreator(opts.DatabaseClient)
 

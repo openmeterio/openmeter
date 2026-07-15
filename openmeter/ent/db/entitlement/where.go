@@ -141,6 +141,11 @@ func Config(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldConfig, v))
 }
 
+// UnitConfig applies equality check predicate on the "unit_config" field. It's identical to UnitConfigEQ.
+func UnitConfig(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldUnitConfig, v))
+}
+
 // UsagePeriodInterval applies equality check predicate on the "usage_period_interval" field. It's identical to UsagePeriodIntervalEQ.
 func UsagePeriodInterval(v datetime.ISODurationString) predicate.Entitlement {
 	vc := string(v)
@@ -945,6 +950,81 @@ func ConfigEqualFold(v string) predicate.Entitlement {
 // ConfigContainsFold applies the ContainsFold predicate on the "config" field.
 func ConfigContainsFold(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldContainsFold(FieldConfig, v))
+}
+
+// UnitConfigEQ applies the EQ predicate on the "unit_config" field.
+func UnitConfigEQ(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldUnitConfig, v))
+}
+
+// UnitConfigNEQ applies the NEQ predicate on the "unit_config" field.
+func UnitConfigNEQ(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldUnitConfig, v))
+}
+
+// UnitConfigIn applies the In predicate on the "unit_config" field.
+func UnitConfigIn(vs ...string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldUnitConfig, vs...))
+}
+
+// UnitConfigNotIn applies the NotIn predicate on the "unit_config" field.
+func UnitConfigNotIn(vs ...string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldUnitConfig, vs...))
+}
+
+// UnitConfigGT applies the GT predicate on the "unit_config" field.
+func UnitConfigGT(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldUnitConfig, v))
+}
+
+// UnitConfigGTE applies the GTE predicate on the "unit_config" field.
+func UnitConfigGTE(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldUnitConfig, v))
+}
+
+// UnitConfigLT applies the LT predicate on the "unit_config" field.
+func UnitConfigLT(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldUnitConfig, v))
+}
+
+// UnitConfigLTE applies the LTE predicate on the "unit_config" field.
+func UnitConfigLTE(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldUnitConfig, v))
+}
+
+// UnitConfigContains applies the Contains predicate on the "unit_config" field.
+func UnitConfigContains(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldContains(FieldUnitConfig, v))
+}
+
+// UnitConfigHasPrefix applies the HasPrefix predicate on the "unit_config" field.
+func UnitConfigHasPrefix(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldHasPrefix(FieldUnitConfig, v))
+}
+
+// UnitConfigHasSuffix applies the HasSuffix predicate on the "unit_config" field.
+func UnitConfigHasSuffix(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldHasSuffix(FieldUnitConfig, v))
+}
+
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldUnitConfig))
+}
+
+// UnitConfigEqualFold applies the EqualFold predicate on the "unit_config" field.
+func UnitConfigEqualFold(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEqualFold(FieldUnitConfig, v))
+}
+
+// UnitConfigContainsFold applies the ContainsFold predicate on the "unit_config" field.
+func UnitConfigContainsFold(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldContainsFold(FieldUnitConfig, v))
 }
 
 // UsagePeriodIntervalEQ applies the EQ predicate on the "usage_period_interval" field.

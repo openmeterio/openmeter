@@ -986,6 +986,24 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 			return def, true, fmt.Errorf("failed to get measure usage from time: %w", err)
 		}
 		scheduleInput.MeasureUsageFrom = mu
+
+		// Snapshot the rate card's UnitConfig onto the entitlement so balance checks
+		// interpret the quota in converted units (OM-400). Serialized to JSON here —
+		// the entitlement package sits below productcatalog and stores it as a string;
+		// the metered grant-owner adapter parses it back at balance-check time. Validate
+		// while the typed value is in hand, so a malformed config is rejected at write.
+		if meta.UnitConfig != nil {
+			if err := meta.UnitConfig.Validate(); err != nil {
+				return def, true, fmt.Errorf("invalid unit config for item %s: %w", s.ItemKey, err)
+			}
+
+			unitConfigJSON, err := json.Marshal(meta.UnitConfig)
+			if err != nil {
+				return def, true, fmt.Errorf("failed to marshal unit config for item %s: %w", s.ItemKey, err)
+			}
+
+			scheduleInput.UnitConfig = lo.ToPtr(string(unitConfigJSON))
+		}
 	default:
 		return def, true, fmt.Errorf("unsupported entitlement type %s", t)
 	}
