@@ -63,7 +63,7 @@ func (m *DiscountPercentage) getDiscount(discounts billing.Discounts) (*discount
 	}, nil
 }
 
-func (m *DiscountPercentage) getLineDiscount(lineTotal alpacadecimal.Decimal, currency currencyx.Calculator, discount discountWithChildReferenceID) (billing.AmountLineDiscountManaged, error) {
+func (m *DiscountPercentage) getLineDiscount(lineTotal alpacadecimal.Decimal, currency currencyx.Currency, discount discountWithChildReferenceID) (billing.AmountLineDiscountManaged, error) {
 	if discount.Percentage.GreaterThan(alpacadecimal.NewFromInt(100)) || discount.Percentage.LessThan(alpacadecimal.Zero) {
 		return billing.AmountLineDiscountManaged{}, errors.New("total discount percentage cannot be greater than 100 or less than 0")
 	}

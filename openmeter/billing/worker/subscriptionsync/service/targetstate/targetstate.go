@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -111,7 +112,9 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 			return State{}, fmt.Errorf("correcting period start for upcoming lines: %w", err)
 		}
 
-		currencyCalculator, err := subs.Subscription.Currency.Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(subs.Subscription.Currency).
+			Build()
 		if err != nil {
 			return State{}, fmt.Errorf("getting currency calculator: %w", err)
 		}
@@ -120,7 +123,7 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 			Items: lo.Map(inScopeLines, func(item SubscriptionItemWithPeriods, _ int) StateItem {
 				return StateItem{
 					SubscriptionItemWithPeriods:  item,
-					CurrencyCalculator:           currencyCalculator,
+					CurrencyCalculator:           currency,
 					Subscription:                 subs.Subscription,
 					SubscriptionEndProrationMode: input.SubscriptionEndProrationMode,
 				}

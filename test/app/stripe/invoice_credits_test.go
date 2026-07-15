@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stripe/stripe-go/v80"
@@ -19,7 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
+	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -184,13 +185,18 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 		s.NoError(err)
 		s.Len(partialInvoice.Lines.OrEmpty(), 1)
 
+		cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(currencyx.Code(currency.USD)).
+			Build()
+		s.NoError(err)
+
 		partialLine := partialInvoice.Lines.OrEmpty()[0]
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       5,
 			CreditsTotal: 5,
 			Total:        0,
 		}, partialLine.Totals)
-		s.Equal(float64(5), partialLine.CreditsApplied.SumAmount(lo.Must(currencyx.Code("USD").Calculator())).InexactFloat64())
+		s.Equal(float64(5), partialLine.CreditsApplied.SumAmount(cur).InexactFloat64())
 
 		s.expectStripeInvoiceCreate(stripeApp.GetID(), cust.GetID(), partialInvoice.ID, customerData.StripeCustomerID, "stripe-partial-invoice-id")
 		s.expectStripeInvoiceAddLines("stripe-partial-invoice-id", []expectedStripeInvoiceItem{
@@ -247,13 +253,18 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 		s.NoError(err)
 		s.Len(finalInvoice.Lines.OrEmpty(), 1)
 
+		cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(currencyx.Code(currency.USD)).
+			Build()
+		s.NoError(err)
+
 		finalLine := finalInvoice.Lines.OrEmpty()[0]
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       15,
 			CreditsTotal: 2,
 			Total:        13,
 		}, finalLine.Totals)
-		s.Equal(float64(2), finalLine.CreditsApplied.SumAmount(lo.Must(currencyx.Code("USD").Calculator())).InexactFloat64())
+		s.Equal(float64(2), finalLine.CreditsApplied.SumAmount(cur).InexactFloat64())
 
 		s.expectStripeInvoiceCreate(stripeApp.GetID(), cust.GetID(), finalInvoice.ID, customerData.StripeCustomerID, "stripe-final-invoice-id")
 		s.expectStripeInvoiceAddLines("stripe-final-invoice-id", []expectedStripeInvoiceItem{

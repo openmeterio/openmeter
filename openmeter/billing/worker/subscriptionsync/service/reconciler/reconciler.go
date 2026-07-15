@@ -82,7 +82,7 @@ func New(config Config) (*Service, error) {
 
 type PlanInput struct {
 	SubscriptionSettlementMode productcatalog.SettlementMode
-	Currency                   currencyx.Calculator
+	Currency                   currencyx.Currency
 	Target                     targetstate.State
 	Persisted                  persistedstate.State
 }
@@ -90,7 +90,7 @@ type PlanInput struct {
 type ApplyInput struct {
 	DryRun   bool
 	Customer customer.CustomerID
-	Currency currencyx.Calculator
+	Currency currencyx.Currency
 	Plan     *Plan
 }
 
@@ -103,8 +103,12 @@ func (i ApplyInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
 
-	if err := i.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency: %w", err))
+	if i.Currency == nil {
+		errs = append(errs, errors.New("currency is required"))
+	} else {
+		if err := i.Currency.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("currency: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }

@@ -18,7 +18,7 @@ import (
 type StateItem struct {
 	SubscriptionItemWithPeriods
 
-	CurrencyCalculator           currencyx.Calculator
+	CurrencyCalculator           currencyx.Currency
 	Subscription                 subscription.Subscription
 	SubscriptionEndProrationMode billing.SubscriptionEndProrationMode
 }
@@ -58,7 +58,7 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 				Description: r.Spec.RateCard.AsMeta().Description,
 			}),
 			ManagedBy:              billing.SubscriptionManagedLine,
-			Currency:               r.CurrencyCalculator.CurrencyCode(),
+			Currency:               r.CurrencyCalculator.Details().Code,
 			ChildUniqueReferenceID: &r.UniqueID,
 			TaxConfig:              r.Spec.RateCard.AsMeta().TaxConfig,
 			ServicePeriod:          r.GetServicePeriod(),

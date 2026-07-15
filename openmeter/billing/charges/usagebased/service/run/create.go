@@ -26,7 +26,7 @@ type CreateRatedRunInput struct {
 	LineID             *string
 	InvoiceID          *string
 	CreditAllocation   CreditAllocationMode
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 	// NoFiatTransactionRequired is set if either there's no fiat-based
 	// settlement is expected (credits_only) or if the run totals are zero.
 	NoFiatTransactionRequired bool
@@ -82,8 +82,14 @@ func (i CreateRatedRunInput) Validate() error {
 		return fmt.Errorf("credit allocation: %w", err)
 	}
 
-	if err := i.CurrencyCalculator.Validate(); err != nil {
-		return fmt.Errorf("currency calculator: %w", err)
+	if i.CurrencyCalculator == nil {
+		return fmt.Errorf("currency calculator is required")
+	}
+
+	if i.CurrencyCalculator != nil {
+		if err := i.CurrencyCalculator.Validate(); err != nil {
+			return fmt.Errorf("currency calculator: %w", err)
+		}
 	}
 
 	return nil

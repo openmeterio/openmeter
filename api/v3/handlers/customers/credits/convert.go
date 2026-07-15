@@ -103,11 +103,13 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 		}
 
 		costBasis := inv.CostBasis.String()
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(charge.Intent.Currency).
+			Build()
 		if err != nil {
 			return nil, fmt.Errorf("getting currency calculator: %w", err)
 		}
-		purchaseAmount := currencyCalculator.RoundToPrecision(charge.Intent.CreditAmount.Mul(inv.CostBasis))
+		purchaseAmount := currency.RoundToPrecision(charge.Intent.CreditAmount.Mul(inv.CostBasis))
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
 		if charge.Realizations.InvoiceSettlement != nil {
@@ -128,11 +130,13 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 		}
 
 		costBasis := ext.CostBasis.String()
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(charge.Intent.Currency).
+			Build()
 		if err != nil {
 			return nil, fmt.Errorf("getting currency calculator: %w", err)
 		}
-		purchaseAmount := currencyCalculator.RoundToPrecision(charge.Intent.CreditAmount.Mul(ext.CostBasis))
+		purchaseAmount := currency.RoundToPrecision(charge.Intent.CreditAmount.Mul(ext.CostBasis))
 		availPolicy, err := toAPIBillingCreditAvailabilityPolicy(ext.InitialStatus)
 		if err != nil {
 			return nil, fmt.Errorf("converting availability policy: %w", err)

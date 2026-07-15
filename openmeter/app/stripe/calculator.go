@@ -12,22 +12,24 @@ import (
 )
 
 // NewStripeCalculator creates a new StripeCalculator.
-func NewStripeCalculator(currency currencyx.Code) (StripeCalculator, error) {
-	calculator, err := currency.Calculator()
+func NewStripeCalculator(currencyCode currencyx.Code) (StripeCalculator, error) {
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyCode).
+		Build()
 	if err != nil {
 		return StripeCalculator{}, fmt.Errorf("failed to get stripe calculator: %w", err)
 	}
 
 	return StripeCalculator{
-		calculator: calculator,
+		currency:   currency,
 		printer:    message.NewPrinter(language.English),
-		multiplier: alpacadecimal.NewFromInt(10).Pow(alpacadecimal.NewFromInt(int64(calculator.CurrencyPrecision()))),
+		multiplier: alpacadecimal.NewFromInt(10).Pow(alpacadecimal.NewFromInt(int64(currency.Details().Precision))),
 	}, nil
 }
 
 // StripeCalculator provides a currency calculator object.
 type StripeCalculator struct {
-	calculator currencyx.Calculator
+	currency   currencyx.Currency
 	printer    *message.Printer
 	multiplier alpacadecimal.Decimal
 }
@@ -39,12 +41,14 @@ func (c StripeCalculator) RoundToAmount(amount alpacadecimal.Decimal) int64 {
 
 // FormatAmount formats the amount
 func (c StripeCalculator) FormatAmount(amount alpacadecimal.Decimal) string {
-	def := c.calculator.Definition()
+	def := c.currency.Definition()
+
 	if amount.IsInteger() {
 		return def.FormatAmount(num.MakeAmount(amount.IntPart(), 0))
 	}
 
 	am, _ := amount.Float64()
+
 	return def.FormatAmount(num.AmountFromFloat64(am, uint32(amount.NumDigits())))
 }
 

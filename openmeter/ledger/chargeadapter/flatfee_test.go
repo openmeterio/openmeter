@@ -220,10 +220,12 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 			intent.SettlementMode = productcatalog.CreditOnlySettlementMode
 		})
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(chargeWithRealizations.Intent.GetCurrency()).
+			Build()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -256,10 +258,12 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 			intent.SettlementMode = productcatalog.CreditOnlySettlementMode
 		})
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(chargeWithRealizations.Intent.GetCurrency()).
+			Build()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -290,10 +294,12 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 			intent.SettlementMode = productcatalog.CreditOnlySettlementMode
 		})
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(chargeWithRealizations.Intent.GetCurrency()).
+			Build()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -321,10 +327,12 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 
 		chargeWithRealizations := env.newChargeWithCreditRealizationsAndAccruedUsage(allocations, alpacadecimal.Zero)
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(chargeWithRealizations.Intent.GetCurrency()).
+			Build()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -355,10 +363,12 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(chargeWithRealizations.Intent.GetCurrency()).
+			Build()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -395,10 +405,12 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(chargeWithRealizations.Intent.GetCurrency()).
+			Build()
 		require.NoError(t, err)
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{

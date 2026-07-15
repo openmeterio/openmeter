@@ -85,7 +85,11 @@ func TestValidateTransactionInputEntryAmountPrecision(t *testing.T) {
 
 			attrs := issues[0].Attributes()
 			require.Equal(t, "amount_not_rounded_to_currency_precision", attrs["reason"])
-			require.Equal(t, tt.currency, attrs["currency"])
+
+			currencyCode, ok := (attrs["currency"]).(currencyx.Code)
+			require.True(t, ok, "expected currency to be a currencyx.Code, got %T", attrs["currency"])
+			require.Equal(t, tt.currency, currencyCode)
+
 			require.Equal(t, amount.String(), attrs["amount"])
 			require.NotEmpty(t, attrs["rounded_amount"])
 		})

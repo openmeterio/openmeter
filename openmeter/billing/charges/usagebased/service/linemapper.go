@@ -125,7 +125,9 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 		stdLine.UsageBased = &billing.UsageBasedLine{}
 	}
 
-	currencyCalculator, err := stdLine.Currency.Calculator()
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(stdLine.Currency).
+		Build()
 	if err != nil {
 		return fmt.Errorf("creating currency calculator: %w", err)
 	}
@@ -171,15 +173,15 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 
 	stdLine.CreditsApplied = creditsApplied
 
-	mappedDetailedLines, err := mapUsageBasedDetailedLines(stdLine, input.Run, currencyCalculator)
+	mappedDetailedLines, err := mapUsageBasedDetailedLines(stdLine, input.Run, cur)
 	if err != nil {
 		return fmt.Errorf("mapping run detailed lines: %w", err)
 	}
 
 	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(mappedDetailedLines)
-	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(currencyCalculator)
+	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(cur)
 
-	expectedTotals := input.Run.Totals.RoundToPrecision(currencyCalculator)
+	expectedTotals := input.Run.Totals.RoundToPrecision(cur)
 	if !stdLine.Totals.Equal(expectedTotals) {
 		return fmt.Errorf("mapped line totals do not match run totals [line_id=%s run_id=%s line_total=%s run_total=%s]",
 			stdLine.ID, input.Run.ID.ID, stdLine.Totals.Total.String(), expectedTotals.Total.String())
@@ -191,8 +193,12 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 func mapUsageBasedDetailedLines(
 	stdLine *billing.StandardLine,
 	run usagebased.RealizationRun,
-	currencyCalculator currencyx.Calculator,
+	currencyCalculator currencyx.Currency,
 ) (billing.DetailedLines, error) {
+	if currencyCalculator == nil {
+		return nil, fmt.Errorf("currency calculator is required")
+	}
+
 	if run.DetailedLines.IsAbsent() {
 		return nil, fmt.Errorf("run %s detailed lines must be expanded", run.ID.ID)
 	}

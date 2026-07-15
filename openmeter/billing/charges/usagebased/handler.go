@@ -72,15 +72,21 @@ func (i CreditsOnlyUsageAccruedCorrectionInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currencyCalculator currencyx.Calculator) error {
+func (i CreditsOnlyUsageAccruedCorrectionInput) ValidateWith(currency currencyx.Currency) error {
 	var errs []error
 
 	if err := i.Validate(); err != nil {
 		return err
 	}
 
-	if err := i.Corrections.ValidateWith(currencyCalculator); err != nil {
-		errs = append(errs, fmt.Errorf("corrections: %w", err))
+	if currency == nil {
+		errs = append(errs, fmt.Errorf("currency is required"))
+	}
+
+	if currency != nil {
+		if err := i.Corrections.ValidateWith(currency); err != nil {
+			errs = append(errs, fmt.Errorf("corrections: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

@@ -3,8 +3,13 @@ package currencyx
 import (
 	"errors"
 	"fmt"
+	"math"
+	"slices"
+	"strings"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/invopop/gobl/num"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -28,102 +33,381 @@ func (t CurrencyType) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type CurrencyFormatter interface {
+	FormatAmount(amount alpacadecimal.Decimal) string
+}
+
+type CurrencyCalculator interface {
+	RoundToPrecision(amount alpacadecimal.Decimal) alpacadecimal.Decimal
+	IsRoundedToPrecision(amount alpacadecimal.Decimal) bool
+
+	RoundUp(amount alpacadecimal.Decimal) alpacadecimal.Decimal
+	RoundDown(amount alpacadecimal.Decimal) alpacadecimal.Decimal
+
+	Unit() alpacadecimal.Decimal
+}
+
 type Currency interface {
-	CurrencyCode() Code
-	CurrencyType() CurrencyType
-	CurrencyPrecision() int32
-	CurrencyRoundingMode() RoundingMode
+	models.Validator
+	CurrencyCalculator
+	CurrencyFormatter
+
+	Type() CurrencyType
+	Details() CurrencyDetails
+
+	AsFiat() (*FiatCurrency, error)
+	AsCustom() (*CustomCurrency, error)
+
+	Definition() *currency.Def
 }
 
-// Code represents a fiat or custom currency code. Code values used directly as
-// Currency values are treated as fiat currencies for backwards compatibility.
-type Code currency.Code
-
-func (c Code) String() string {
-	return string(c)
+type CurrencyDetails struct {
+	Code               Code   `json:"code"`
+	Name               string `json:"name"`
+	Symbol             string `json:"symbol,omitempty"`
+	Precision          int32  `json:"precision"`
+	DecimalMark        string `json:"decimal_mark,omitempty"`
+	ThousandsSeparator string `json:"thousands_separator,omitempty"`
 }
 
-func (c Code) CurrencyCode() Code {
-	return c
+// formatCurrencyAmount renders amount using def's formatting rules, shared by every
+// type implementing Currency.
+func formatCurrencyAmount(def *currency.Def, amount alpacadecimal.Decimal) string {
+	abs := amount.Abs()
+
+	var formatted string
+
+	if abs.IsInteger() {
+		formatted = def.FormatAmount(num.MakeAmount(abs.IntPart(), 0))
+	} else {
+		numAmount := num.MakeAmount(abs.CoefficientInt64(), uint32(-abs.Exponent()))
+		formatted = def.FormatAmount(def.Rescale(numAmount))
+	}
+
+	if amount.IsNegative() {
+		return "-" + formatted
+	}
+
+	return formatted
 }
 
-func (c Code) CurrencyType() CurrencyType {
+// cloneDef returns a deep copy of def, so a caller can customize the copy (e.g.
+// override formatting fields) without mutating the shared, package-level
+// definitions returned by currency.Get. AlternateSymbols is the only reference
+// type on currency.Def, so it's the only field that needs an explicit clone.
+func cloneDef(def *currency.Def) *currency.Def {
+	if def == nil {
+		return nil
+	}
+
+	clone := *def
+	clone.AlternateSymbols = slices.Clone(def.AlternateSymbols)
+
+	return &clone
+}
+
+var (
+	_ models.Validator                 = (*FiatCurrency)(nil)
+	_ models.CustomValidator[Currency] = (*FiatCurrency)(nil)
+	_ Currency                         = (*FiatCurrency)(nil)
+)
+
+type FiatCurrency struct {
+	def *currency.Def
+}
+
+func (f *FiatCurrency) Definition() *currency.Def {
+	return cloneDef(f.def)
+}
+
+func (f *FiatCurrency) FormatAmount(amount alpacadecimal.Decimal) string {
+	return formatCurrencyAmount(f.def, amount)
+}
+
+func (f *FiatCurrency) Unit() alpacadecimal.Decimal {
+	return alpacadecimal.NewFromInt(1).Shift(-int32(f.def.Subunits))
+}
+
+func (f *FiatCurrency) RoundUp(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
+	return amount.RoundUp(int32(f.def.Subunits))
+}
+
+func (f *FiatCurrency) RoundDown(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
+	return amount.RoundDown(int32(f.def.Subunits))
+}
+
+func (f *FiatCurrency) IsRoundedToPrecision(amount alpacadecimal.Decimal) bool {
+	return amount.Equal(f.RoundToPrecision(amount))
+}
+
+func (f *FiatCurrency) RoundToPrecision(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
+	return amount.Round(int32(f.def.Subunits))
+}
+
+func (f *FiatCurrency) Type() CurrencyType {
 	return CurrencyTypeFiat
 }
 
-func (c Code) CurrencyPrecision() int32 {
-	def := currency.Get(currency.Code(c))
-	if def == nil {
-		return 0
+func (f *FiatCurrency) Details() CurrencyDetails {
+	return CurrencyDetails{
+		Code:               Code(f.def.ISOCode),
+		Name:               f.def.Name,
+		Symbol:             f.def.Symbol,
+		Precision:          int32(f.def.Subunits),
+		DecimalMark:        f.def.DecimalMark,
+		ThousandsSeparator: f.def.ThousandsSeparator,
+	}
+}
+
+func (f *FiatCurrency) AsFiat() (*FiatCurrency, error) {
+	return &FiatCurrency{
+		def: cloneDef(f.def),
+	}, nil
+}
+
+func (f *FiatCurrency) AsCustom() (*CustomCurrency, error) {
+	return nil, fmt.Errorf("cannot convert fiat to custom currency")
+}
+
+func (f *FiatCurrency) ValidateWith(v ...models.ValidatorFunc[Currency]) error {
+	return models.Validate[Currency](f, v...)
+}
+
+func (f *FiatCurrency) Validate() error {
+	if f == nil {
+		return errors.New("fiat currency is not initialized")
 	}
 
-	return int32(def.Subunits)
+	var errs []error
+
+	if f.def == nil || f.def.ISOCode == "" {
+		errs = append(errs, errors.New("invalid fiat currency: empty code"))
+	}
+
+	if f.def != nil {
+		if f.def.Name == "" {
+			errs = append(errs, errors.New("invalid fiat currency: empty name"))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (c Code) CurrencyRoundingMode() RoundingMode {
-	return RoundingModeHalfAwayFromZero
+func newFiatCurrency(code string) (Currency, error) {
+	definition := currency.Get(currency.Code(code))
+	if definition == nil || definition.ISONumeric == "" {
+		return nil, fmt.Errorf("invalid fiat currency code: %s", code)
+	}
+
+	if definition.Subunits > math.MaxInt32 {
+		return nil, fmt.Errorf("value %d overflows int32", definition.Subunits)
+	}
+
+	return &FiatCurrency{
+		def: definition,
+	}, nil
 }
+
+var (
+	_ models.Validator                 = (*CustomCurrency)(nil)
+	_ models.CustomValidator[Currency] = (*CustomCurrency)(nil)
+	_ Currency                         = (*CustomCurrency)(nil)
+)
 
 type CustomCurrency struct {
-	Code         Code
-	Precision    int32
-	RoundingMode RoundingMode
+	def *currency.Def
 }
 
-func NewCurrency(code Code, currencyType CurrencyType, precision int32) (Currency, error) {
-	switch currencyType {
-	case CurrencyTypeFiat:
-		return NewFiatCurrency(code)
-	case CurrencyTypeCustom:
-		return NewCustomCurrency(code, precision)
-	default:
-		return nil, currencyType.Validate()
-	}
+func (c *CustomCurrency) Definition() *currency.Def {
+	return cloneDef(c.def)
 }
 
-func NewFiatCurrency(code Code) (Code, error) {
-	def := currency.Get(currency.Code(code))
-	if def == nil || def.ISONumeric == "" {
-		return "", fmt.Errorf("fiat currency definition is required for %s", code)
-	}
-
-	if err := code.Validate(); err != nil {
-		return "", err
-	}
-
-	return code, nil
+func (c *CustomCurrency) FormatAmount(amount alpacadecimal.Decimal) string {
+	return formatCurrencyAmount(c.def, amount)
 }
 
-func NewCustomCurrency(code Code, precision int32) (CustomCurrency, error) {
-	return NewCustomCurrencyWithRounding(code, precision, RoundingModeBankers)
+func (c *CustomCurrency) Unit() alpacadecimal.Decimal {
+	return alpacadecimal.NewFromInt(1).Shift(-int32(c.def.Subunits))
 }
 
-func NewCustomCurrencyWithRounding(code Code, precision int32, roundingMode RoundingMode) (CustomCurrency, error) {
-	out := CustomCurrency{
-		Code:         code,
-		Precision:    precision,
-		RoundingMode: roundingMode,
-	}
-
-	return out, out.Validate()
+func (c *CustomCurrency) RoundUp(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
+	return amount.RoundUp(int32(c.def.Subunits))
 }
 
-func (c CustomCurrency) CurrencyCode() Code {
-	return c.Code
+func (c *CustomCurrency) RoundDown(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
+	return amount.RoundDown(int32(c.def.Subunits))
 }
 
-func (c CustomCurrency) CurrencyType() CurrencyType {
+func (c *CustomCurrency) IsRoundedToPrecision(amount alpacadecimal.Decimal) bool {
+	return amount.Equal(c.RoundToPrecision(amount))
+}
+
+func (c *CustomCurrency) RoundToPrecision(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
+	return amount.Round(int32(c.def.Subunits))
+}
+
+func (c *CustomCurrency) Type() CurrencyType {
 	return CurrencyTypeCustom
 }
 
-func (c CustomCurrency) CurrencyPrecision() int32 {
-	return c.Precision
+func (c *CustomCurrency) Details() CurrencyDetails {
+	return CurrencyDetails{
+		Code:               Code(c.def.ISOCode),
+		Name:               c.def.Name,
+		Symbol:             c.def.Symbol,
+		Precision:          int32(c.def.Subunits),
+		DecimalMark:        c.def.DecimalMark,
+		ThousandsSeparator: c.def.ThousandsSeparator,
+	}
 }
 
-func (c CustomCurrency) CurrencyRoundingMode() RoundingMode {
-	if c.RoundingMode == "" {
-		return RoundingModeBankers
+func (c *CustomCurrency) AsFiat() (*FiatCurrency, error) {
+	return nil, fmt.Errorf("cannot convert custom to fiat currency")
+}
+
+func (c *CustomCurrency) AsCustom() (*CustomCurrency, error) {
+	return &CustomCurrency{
+		def: cloneDef(c.def),
+	}, nil
+}
+
+func (c *CustomCurrency) ValidateWith(v ...models.ValidatorFunc[Currency]) error {
+	return models.Validate[Currency](c, v...)
+}
+
+const (
+	CustomCurrencyCodeMinLength = 3
+	CustomCurrencyCodeMaxLength = 24
+
+	CustomCurrencyMaxPrecision int32 = 12
+)
+
+func (c *CustomCurrency) Validate() error {
+	if c == nil {
+		return errors.New("custom currency is not initialized")
 	}
 
-	return c.RoundingMode
+	var errs []error
+
+	if c.def == nil {
+		errs = append(errs, errors.New("currency is not initialized"))
+	}
+
+	if c.def != nil {
+		if c.def.ISOCode == "" {
+			errs = append(errs, errors.New("code is required"))
+		}
+
+		if len(c.def.ISOCode) != len(strings.TrimSpace(c.def.ISOCode.String())) {
+			errs = append(errs, fmt.Errorf("invalid currency code: cannot contain leading or trailing spaces: %s", c.def.ISOCode))
+		}
+
+		if strings.Contains(c.def.ISOCode.String(), "|") {
+			errs = append(errs, fmt.Errorf("invalid currency code: cannot contain route delimiter: %s", c.def.ISOCode))
+		}
+
+		if fiatDef := currency.Get(c.def.ISOCode); fiatDef != nil {
+			errs = append(errs, fmt.Errorf("currency code %s is a fiat currency", c.def.ISOCode))
+		}
+
+		if cl := len(c.def.ISOCode); cl < CustomCurrencyCodeMinLength || cl > CustomCurrencyCodeMaxLength {
+			errs = append(errs, fmt.Errorf("invalid currency code: it must be between %d and %d characters", CustomCurrencyCodeMinLength, CustomCurrencyCodeMaxLength))
+		}
+
+		if c.def.Name == "" {
+			errs = append(errs, errors.New("name is required"))
+		}
+
+		if int32(c.def.Subunits) > CustomCurrencyMaxPrecision {
+			errs = append(errs, fmt.Errorf("invalid precision: it must be between 0 and %d", CustomCurrencyMaxPrecision))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func newCustomCurrency(def *currency.Def) (Currency, error) {
+	cc := CustomCurrency{
+		def: def,
+	}
+	if err := cc.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &cc, nil
+}
+
+type CurrencyBuilder struct {
+	t CurrencyType
+	d CurrencyDetails
+}
+
+func (b *CurrencyBuilder) WithCode(code Code) *CurrencyBuilder {
+	b.d.Code = code
+
+	return b
+}
+
+func (b *CurrencyBuilder) WithName(name string) *CurrencyBuilder {
+	b.d.Name = name
+
+	return b
+}
+
+func (b *CurrencyBuilder) WithSymbol(symbol string) *CurrencyBuilder {
+	b.d.Symbol = symbol
+
+	return b
+}
+
+func (b *CurrencyBuilder) WithPrecision(precision int32) *CurrencyBuilder {
+	b.d.Precision = precision
+
+	return b
+}
+
+func (b *CurrencyBuilder) WithDecimalMark(decimalMark string) *CurrencyBuilder {
+	b.d.DecimalMark = decimalMark
+
+	return b
+}
+
+func (b *CurrencyBuilder) WithThousandsSeparator(thousandsSeparator string) *CurrencyBuilder {
+	b.d.ThousandsSeparator = thousandsSeparator
+
+	return b
+}
+
+func (b *CurrencyBuilder) Build() (Currency, error) {
+	switch b.t {
+	case CurrencyTypeFiat:
+		return newFiatCurrency(b.d.Code.String())
+	case CurrencyTypeCustom:
+		if b.d.Precision < 0 || b.d.Precision > CustomCurrencyMaxPrecision {
+			return nil, fmt.Errorf("invalid precision: it must be between 0 and %d", CustomCurrencyMaxPrecision)
+		}
+
+		return newCustomCurrency(&currency.Def{
+			ISOCode:            currency.Code(b.d.Code.String()),
+			Name:               b.d.Name,
+			Symbol:             b.d.Symbol,
+			Subunits:           uint32(b.d.Precision),
+			Template:           currency.DefaultCurrencyTemplate,
+			DecimalMark:        b.d.DecimalMark,
+			ThousandsSeparator: b.d.ThousandsSeparator,
+			NumeralSystem:      num.NumeralWestern,
+		})
+	default:
+		return nil, fmt.Errorf("invalid currency type: %s", b.t)
+	}
+}
+
+func NewCurrencyBuilder(currencyType CurrencyType) *CurrencyBuilder {
+	return &CurrencyBuilder{
+		t: currencyType,
+		d: CurrencyDetails{
+			DecimalMark:        ".",
+			ThousandsSeparator: ",",
+		},
+	}
 }

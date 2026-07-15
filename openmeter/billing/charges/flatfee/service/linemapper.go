@@ -8,10 +8,13 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, run flatfee.RealizationRun) error {
-	currencyCalculator, err := stdLine.Currency.Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(stdLine.Currency).
+		Build()
 	if err != nil {
 		return fmt.Errorf("creating currency calculator: %w", err)
 	}
@@ -28,15 +31,15 @@ func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, run flatf
 		return fmt.Errorf("mapping run detailed lines: %w", err)
 	}
 
-	mappedDetailedLines, err = mappedDetailedLines.WithCreditsApplied(stdLine.CreditsApplied, currencyCalculator)
+	mappedDetailedLines, err = mappedDetailedLines.WithCreditsApplied(stdLine.CreditsApplied, currency)
 	if err != nil {
 		return fmt.Errorf("applying run credits to detailed lines: %w", err)
 	}
 
 	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(mappedDetailedLines)
-	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(currencyCalculator)
+	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(currency)
 
-	expectedTotals := run.Totals.RoundToPrecision(currencyCalculator)
+	expectedTotals := run.Totals.RoundToPrecision(currency)
 	if !stdLine.Totals.Equal(expectedTotals) {
 		return fmt.Errorf("mapped line totals do not match run totals [line_id=%s run_id=%s line_total=%s run_total=%s]",
 			stdLine.ID, run.ID.ID, stdLine.Totals.Total.String(), expectedTotals.Total.String())

@@ -15,6 +15,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -58,10 +59,12 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 	require.Len(t, allocations, 2) // two allocations: restricted source first, unrestricted source second.
 
 	realizations := realizationsFromAllocations(env, allocations)
-	currencyCalculator, err := env.Currency.Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(env.Currency).
+		Build()
 	require.NoError(t, err)
 
-	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currencyCalculator)
+	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 	require.Len(t, corrections, 2) // the 20 correction spans the unrestricted source and part of the restricted source.
 
@@ -131,10 +134,12 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	require.Empty(t, openPlans)
 
 	realizations := realizationsFromAllocations(env, allocations)
-	currencyCalculator, err := env.Currency.Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(env.Currency).
+		Build()
 	require.NoError(t, err)
 
-	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currencyCalculator)
+	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 
 	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
@@ -194,10 +199,12 @@ func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.
 	require.Len(t, allocations, 1) // one source produces one allocation and one release to reopen.
 
 	realizations := realizationsFromAllocations(env, allocations)
-	currencyCalculator, err := env.Currency.Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(env.Currency).
+		Build()
 	require.NoError(t, err)
 
-	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currencyCalculator)
+	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 
 	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
@@ -260,10 +267,12 @@ func TestCorrectCollectedAccruedPreservesSourceAndSpendBuckets(t *testing.T) {
 	require.Len(t, allocations, 1) // same-route sources coalesce into one ledger transaction allocation.
 
 	realizations := realizationsFromAllocations(env, allocations)
-	currencyCalculator, err := env.Currency.Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(env.Currency).
+		Build()
 	require.NoError(t, err)
 
-	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currencyCalculator)
+	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currency)
 	require.NoError(t, err)
 
 	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{

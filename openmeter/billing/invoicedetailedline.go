@@ -133,32 +133,36 @@ func (l DetailedLines) WithReversedCredits() DetailedLines {
 
 func (l DetailedLines) WithCreditsApplied(
 	creditsApplied CreditsApplied,
-	currencyCalculator currencyx.Calculator,
+	currency currencyx.Currency,
 ) (DetailedLines, error) {
+	if currency == nil {
+		return nil, fmt.Errorf("currency is required")
+	}
+
 	detailedLines := l.WithReversedCredits()
 
 	for _, creditToApply := range creditsApplied {
-		creditValueRemaining := currencyCalculator.RoundToPrecision(creditToApply.Amount)
+		creditValueRemaining := currency.RoundToPrecision(creditToApply.Amount)
 
 		for idx := range detailedLines {
 			if creditValueRemaining.IsZero() {
 				break
 			}
 
-			totalAmount := currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.Total)
+			totalAmount := currency.RoundToPrecision(detailedLines[idx].Totals.Total)
 			if !totalAmount.IsPositive() {
 				continue
 			}
 
 			if totalAmount.LessThanOrEqual(creditValueRemaining) {
-				creditValueRemaining = currencyCalculator.RoundToPrecision(creditValueRemaining.Sub(totalAmount))
+				creditValueRemaining = currency.RoundToPrecision(creditValueRemaining.Sub(totalAmount))
 				detailedLines[idx].CreditsApplied = append(detailedLines[idx].CreditsApplied, creditToApply.CloneWithAmount(totalAmount))
-				detailedLines[idx].Totals.CreditsTotal = currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(totalAmount))
-				detailedLines[idx].Totals.Total = currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(totalAmount))
+				detailedLines[idx].Totals.CreditsTotal = currency.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(totalAmount))
+				detailedLines[idx].Totals.Total = currency.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(totalAmount))
 			} else {
 				detailedLines[idx].CreditsApplied = append(detailedLines[idx].CreditsApplied, creditToApply.CloneWithAmount(creditValueRemaining))
-				detailedLines[idx].Totals.CreditsTotal = currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(creditValueRemaining))
-				detailedLines[idx].Totals.Total = currencyCalculator.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(creditValueRemaining))
+				detailedLines[idx].Totals.CreditsTotal = currency.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(creditValueRemaining))
+				detailedLines[idx].Totals.Total = currency.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(creditValueRemaining))
 				creditValueRemaining = alpacadecimal.Zero
 				break
 			}

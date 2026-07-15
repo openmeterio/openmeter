@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -803,7 +804,9 @@ func (e *LineEngine) deleteMutableStandardLineRealization(
 		return usagebased.Charge{}, fmt.Errorf("usage based standard line[%s] cannot be deleted because realization run[%s] has invoice accrued allocation", stdLine.ID, run.ID.ID)
 	}
 
-	currencyCalculator, err := charge.Intent.GetCurrency().Calculator()
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(charge.Intent.GetCurrency()).
+		Build()
 	if err != nil {
 		return usagebased.Charge{}, fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
 	}
@@ -813,7 +816,7 @@ func (e *LineEngine) deleteMutableStandardLineRealization(
 		Charge:             charge,
 		Run:                run,
 		AllocateAt:         run.ServicePeriodTo,
-		CurrencyCalculator: currencyCalculator,
+		CurrencyCalculator: cur,
 	}); err != nil {
 		return usagebased.Charge{}, fmt.Errorf("correcting credits for deleted usage based standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
 	}

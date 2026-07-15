@@ -26,7 +26,7 @@ type ReconcileCreditRealizationsInput struct {
 	// TargetAmount is the desired credited total for the run after reconciliation.
 	TargetAmount alpacadecimal.Decimal
 	// CurrencyCalculator defines the rounding rules applied to target/current amounts and deltas.
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 	// ExactAllocation requires the positive-delta allocation path to satisfy the requested amount exactly.
 	ExactAllocation bool
 }
@@ -48,8 +48,14 @@ func (i ReconcileCreditRealizationsInput) Validate() error {
 		return fmt.Errorf("target amount must be zero or positive")
 	}
 
-	if err := i.CurrencyCalculator.Validate(); err != nil {
-		return fmt.Errorf("currency calculator: %w", err)
+	if i.CurrencyCalculator == nil {
+		return fmt.Errorf("currency calculator is required")
+	}
+
+	if i.CurrencyCalculator != nil {
+		if err := i.CurrencyCalculator.Validate(); err != nil {
+			return fmt.Errorf("currency calculator: %w", err)
+		}
 	}
 
 	return nil
@@ -64,6 +70,10 @@ type ReconcileCreditRealizationsResult struct {
 // Positive deltas allocate additional credits, negative deltas create
 // correction realizations, and zero delta is a no-op.
 func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealizationsInput) (ReconcileCreditRealizationsResult, error) {
+	if err := in.Validate(); err != nil {
+		return ReconcileCreditRealizationsResult{}, err
+	}
+
 	in.TargetAmount = in.CurrencyCalculator.RoundToPrecision(in.TargetAmount)
 
 	if err := in.Validate(); err != nil {
@@ -136,7 +146,7 @@ type CorrectAllCreditRealizationsInput struct {
 	Charge             usagebased.Charge
 	Run                usagebased.RealizationRun
 	AllocateAt         time.Time
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 }
 
 func (i CorrectAllCreditRealizationsInput) Validate() error {
@@ -152,8 +162,14 @@ func (i CorrectAllCreditRealizationsInput) Validate() error {
 		return fmt.Errorf("allocate at is required")
 	}
 
-	if err := i.CurrencyCalculator.Validate(); err != nil {
-		return fmt.Errorf("currency calculator: %w", err)
+	if i.CurrencyCalculator == nil {
+		return fmt.Errorf("currency calculator is required")
+	}
+
+	if i.CurrencyCalculator != nil {
+		if err := i.CurrencyCalculator.Validate(); err != nil {
+			return fmt.Errorf("currency calculator: %w", err)
+		}
 	}
 
 	return nil

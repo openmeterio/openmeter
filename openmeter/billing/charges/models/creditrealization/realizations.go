@@ -71,7 +71,11 @@ func (r Realizations) AsCreditsApplied() (billing.CreditsApplied, error) {
 
 var ErrInsufficientFunds = models.NewGenericValidationError(errors.New("insufficient funds"))
 
-func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, currency currencyx.Calculator) (CorrectionRequest, error) {
+func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, currency currencyx.Currency) (CorrectionRequest, error) {
+	if currency == nil {
+		return nil, models.NewGenericValidationError(errors.New("currency is not initialized"))
+	}
+
 	if amount.IsPositive() {
 		return CorrectionRequest{}, models.NewGenericValidationError(errors.New("amount must not be positive"))
 	}
@@ -120,7 +124,11 @@ func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, curr
 	return out, nil
 }
 
-func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.Calculator, cb func(req CorrectionRequest) (CreateCorrectionInputs, error)) (CreateInputs, error) {
+func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.Currency, cb func(req CorrectionRequest) (CreateCorrectionInputs, error)) (CreateInputs, error) {
+	if currency == nil {
+		return nil, models.NewGenericValidationError(errors.New("currency is required"))
+	}
+
 	req, err := r.CreateCorrectionRequest(amount, currency)
 	if err != nil {
 		return nil, err
@@ -147,7 +155,11 @@ func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.C
 	return corrections.AsCreateInputs(r)
 }
 
-func (r Realizations) CorrectAll(currency currencyx.Calculator, cb func(req CorrectionRequest) (CreateCorrectionInputs, error)) (CreateInputs, error) {
+func (r Realizations) CorrectAll(currency currencyx.Currency, cb func(req CorrectionRequest) (CreateCorrectionInputs, error)) (CreateInputs, error) {
+	if currency == nil {
+		return nil, models.NewGenericValidationError(errors.New("currency is required"))
+	}
+
 	total := r.Sum()
 	if total.IsZero() {
 		return nil, nil

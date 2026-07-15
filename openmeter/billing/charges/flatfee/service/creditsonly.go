@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
@@ -90,12 +91,14 @@ func (s *CreditsOnlyStateMachine) AdvanceAfterBookedAt(ctx context.Context) erro
 }
 
 func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
-	currencyCalculator, err := s.Charge.Intent.GetCurrency().Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(s.Charge.Intent.GetCurrency()).
+		Build()
 	if err != nil {
 		return fmt.Errorf("get currency calculator: %w", err)
 	}
 
-	amount := currencyCalculator.RoundToPrecision(s.Charge.State.AmountAfterProration)
+	amount := currency.RoundToPrecision(s.Charge.State.AmountAfterProration)
 
 	if amount.IsNegative() {
 		return fmt.Errorf("charge total is negative [charge_id=%s, amount=%s]", s.Charge.ID, amount.String())
@@ -124,7 +127,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	result, err := s.Realizations.AllocateCreditsOnly(ctx, flatfeerealizations.AllocateCreditsOnlyInput{
 		Charge:             s.Charge,
 		Amount:             amount,
-		CurrencyCalculator: currencyCalculator,
+		CurrencyCalculator: currency,
 	})
 	if err != nil {
 		return fmt.Errorf("allocate credits: %w", err)
@@ -192,12 +195,14 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context
 		return nil
 	}
 
-	currencyCalculator, err := s.Charge.Intent.GetCurrency().Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(s.Charge.Intent.GetCurrency()).
+		Build()
 	if err != nil {
 		return fmt.Errorf("get currency calculator: %w", err)
 	}
 
-	amount = currencyCalculator.RoundToPrecision(amount)
+	amount = currency.RoundToPrecision(amount)
 	servicePeriod := s.Charge.Intent.GetEffectiveServicePeriod()
 	run := *currentRun
 	run.ServicePeriod = servicePeriod
@@ -207,7 +212,7 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context
 		Run:                run,
 		AllocateAt:         flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), servicePeriod),
 		TargetAmount:       amount,
-		CurrencyCalculator: currencyCalculator,
+		CurrencyCalculator: currency,
 	})
 	if err != nil {
 		return fmt.Errorf("reconcile credits for run %s: %w", run.ID.ID, err)
@@ -255,7 +260,9 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 	s.Charge.Status = flatfee.StatusDeleted
 
 	if patch.GetPolicy().CreditRefundPolicy == meta.CreditRefundPolicyCorrect && s.Charge.Realizations.CurrentRun != nil {
-		currencyCalculator, err := s.Charge.Intent.GetCurrency().Calculator()
+		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(s.Charge.Intent.GetCurrency()).
+			Build()
 		if err != nil {
 			return fmt.Errorf("get currency calculator: %w", err)
 		}
@@ -264,7 +271,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 			Charge:             s.Charge,
 			Run:                *s.Charge.Realizations.CurrentRun,
 			AllocateAt:         flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), s.Charge.Realizations.CurrentRun.ServicePeriod),
-			CurrencyCalculator: currencyCalculator,
+			CurrencyCalculator: currency,
 		}); err != nil {
 			return fmt.Errorf("correct credits: %w", err)
 		}

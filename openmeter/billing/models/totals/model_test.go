@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -13,7 +12,9 @@ import (
 func TestTotalsRoundToPrecision(t *testing.T) {
 	t.Parallel()
 
-	calc, err := currencyx.Code(currency.USD).Calculator()
+	calc, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code("USD")).
+		Build()
 	require.NoError(t, err)
 
 	in := Totals{

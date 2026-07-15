@@ -102,7 +102,7 @@ type TieredPriceCalculatorInput struct {
 	// ToQty is the quantity that we are going to bill for this tiered price (inclusive)
 	ToQty alpacadecimal.Decimal
 
-	Currency currencyx.Calculator
+	Currency currencyx.Currency
 
 	TierCallbackFn     func(TierCallbackInput) error
 	FinalizerFn        func(total alpacadecimal.Decimal) error
@@ -130,8 +130,8 @@ func (i TieredPriceCalculatorInput) Validate() error {
 		return fmt.Errorf("to quantity must be greater or equal to from quantity")
 	}
 
-	if i.Currency.CurrencyCode() == "" {
-		return fmt.Errorf("currency calculator is required")
+	if i.Currency == nil || i.Currency != nil && i.Currency.Details().Code == "" {
+		return fmt.Errorf("currency is required")
 	}
 
 	return nil

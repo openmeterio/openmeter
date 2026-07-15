@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -399,7 +400,9 @@ func TestCreditsMutator(t *testing.T) {
 }
 
 func TestCreditsMutatorSkipsNonPositiveDetailedLineTotals(t *testing.T) {
-	calc, err := currencyx.Code("USD").Calculator()
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code(currency.USD)).
+		Build()
 	require.NoError(t, err)
 
 	out, err := (&mutator.Credits{}).Mutate(rate.PricerCalculateInput{
@@ -412,7 +415,7 @@ func TestCreditsMutatorSkipsNonPositiveDetailedLineTotals(t *testing.T) {
 				},
 			},
 		},
-		CurrencyCalculator: calc,
+		CurrencyCalculator: cur,
 	}, rating.DetailedLines{
 		{
 			Name:                   "negative correction",
@@ -440,7 +443,9 @@ func TestCreditsMutatorSkipsNonPositiveDetailedLineTotals(t *testing.T) {
 }
 
 func TestCreditsMutatorAllocatesOnlyRemainingPayableAmount(t *testing.T) {
-	calc, err := currencyx.Code("USD").Calculator()
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code(currency.USD)).
+		Build()
 	require.NoError(t, err)
 
 	out, err := (&mutator.Credits{}).Mutate(rate.PricerCalculateInput{
@@ -453,7 +458,7 @@ func TestCreditsMutatorAllocatesOnlyRemainingPayableAmount(t *testing.T) {
 				},
 			},
 		},
-		CurrencyCalculator: calc,
+		CurrencyCalculator: cur,
 	}, rating.DetailedLines{
 		{
 			Name:                   "partially credited line",

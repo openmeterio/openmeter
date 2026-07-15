@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -71,25 +72,26 @@ func ValidateAddress(ctx context.Context, address PostingAddress) error {
 }
 
 func validateEntryAmountPrecision(entry EntryInput) error {
-	currency := entry.PostingAddress().Route().Route().Currency
-	calculator, err := currency.Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(entry.PostingAddress().Route().Route().Currency).
+		Build()
 	if err != nil {
 		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
-			"currency": currency,
+			"currency": entry.PostingAddress().Route().Route().Currency,
 			"error":    err,
 		})
 	}
 
 	amount := entry.Amount()
-	if calculator.IsRoundedToPrecision(amount) {
+	if currency.IsRoundedToPrecision(amount) {
 		return nil
 	}
 
 	return ErrTransactionAmountInvalid.WithAttrs(models.Attributes{
 		"reason":         "amount_not_rounded_to_currency_precision",
-		"currency":       currency,
+		"currency":       currency.Details().Code,
 		"amount":         amount.String(),
-		"rounded_amount": calculator.RoundToPrecision(amount).String(),
+		"rounded_amount": currency.RoundToPrecision(amount).String(),
 	})
 }
 

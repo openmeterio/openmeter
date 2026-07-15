@@ -60,8 +60,8 @@ type AmountAllocationInput[T any] struct {
 
 // AllocateByWeight allocates a currency amount across keys using their
 // weights and the largest remainder quota method at the currency precision.
-func AllocateByWeight[T any](calculator Calculator, input WeightedAllocationInput[T]) ([]WeightedAllocation[T], error) {
-	if err := validateWeightedAllocationInput(calculator, input); err != nil {
+func AllocateByWeight[T any](currency Currency, input WeightedAllocationInput[T]) ([]WeightedAllocation[T], error) {
+	if err := validateWeightedAllocationInput(currency, input); err != nil {
 		return nil, err
 	}
 
@@ -85,7 +85,7 @@ func AllocateByWeight[T any](calculator Calculator, input WeightedAllocationInpu
 	allocated := alpacadecimal.Zero
 	for i, item := range input.Items {
 		share := input.Amount.Mul(item.Weight).Div(totalWeight)
-		amount := calculator.RoundDown(share)
+		amount := currency.RoundDown(share)
 
 		candidates = append(candidates, allocationCandidate{
 			index:     i,
@@ -110,7 +110,7 @@ func AllocateByWeight[T any](calculator Calculator, input WeightedAllocationInpu
 		return cmp.Compare(left.index, right.index)
 	})
 
-	unit := currencyUnit(calculator)
+	unit := currency.Unit()
 	remaining := input.Amount.Sub(allocated)
 	for i := range candidates {
 		if remaining.LessThan(unit) {
@@ -143,8 +143,12 @@ func AllocateByWeight[T any](calculator Calculator, input WeightedAllocationInpu
 // AllocateByAmount allocates a currency amount across currency amount buckets
 // using the largest remainder quota method. Each item amount is both its
 // proportional weight and its allocation cap.
-func AllocateByAmount[T any](calculator Calculator, input AmountAllocationInput[T]) ([]AmountAllocation[T], error) {
-	if err := validateAmountAllocationInput(calculator, input); err != nil {
+func AllocateByAmount[T any](currency Currency, input AmountAllocationInput[T]) ([]AmountAllocation[T], error) {
+	if currency == nil {
+		return nil, errors.New("currency is required")
+	}
+
+	if err := validateAmountAllocationInput(currency, input); err != nil {
 		return nil, err
 	}
 
@@ -169,7 +173,7 @@ func AllocateByAmount[T any](calculator Calculator, input AmountAllocationInput[
 	allocated := alpacadecimal.Zero
 	for i, item := range input.Items {
 		share := input.Amount.Mul(item.Amount).Div(totalAmount)
-		floor := calculator.RoundDown(share)
+		floor := currency.RoundDown(share)
 
 		candidates = append(candidates, allocationCandidate{
 			index:     i,
@@ -195,7 +199,7 @@ func AllocateByAmount[T any](calculator Calculator, input AmountAllocationInput[
 		return cmp.Compare(left.index, right.index)
 	})
 
-	unit := currencyUnit(calculator)
+	unit := currency.Unit()
 	remaining := input.Amount.Sub(allocated)
 	for remaining.GreaterThanOrEqual(unit) {
 		distributed := false
@@ -239,19 +243,23 @@ func AllocateByAmount[T any](calculator Calculator, input AmountAllocationInput[
 	return allocations, nil
 }
 
-func validateWeightedAllocationInput[T any](calculator Calculator, input WeightedAllocationInput[T]) error {
+func validateWeightedAllocationInput[T any](currency Currency, input WeightedAllocationInput[T]) error {
+	if currency == nil {
+		return errors.New("currency is required")
+	}
+
 	var errs []error
 
-	if err := calculator.Validate(); err != nil {
-		return err
+	if err := currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid currency: %w", err))
+	}
+
+	if !currency.IsRoundedToPrecision(input.Amount) {
+		errs = append(errs, errors.New("amount must be rounded to currency precision"))
 	}
 
 	if input.Amount.Sign() < 0 {
 		errs = append(errs, errors.New("amount must be non-negative"))
-	}
-
-	if !calculator.IsRoundedToPrecision(input.Amount) {
-		errs = append(errs, errors.New("amount must be rounded to currency precision"))
 	}
 
 	if len(input.Items) == 0 && !input.Amount.IsZero() {
@@ -271,18 +279,18 @@ func validateWeightedAllocationInput[T any](calculator Calculator, input Weighte
 	return errors.Join(errs...)
 }
 
-func validateAmountAllocationInput[T any](calculator Calculator, input AmountAllocationInput[T]) error {
-	var errs []error
-
-	if err := calculator.Validate(); err != nil {
-		return err
+func validateAmountAllocationInput[T any](currency Currency, input AmountAllocationInput[T]) error {
+	if currency == nil {
+		return errors.New("currency is required")
 	}
+
+	var errs []error
 
 	if input.Amount.Sign() < 0 {
 		errs = append(errs, errors.New("amount must be non-negative"))
 	}
 
-	if !calculator.IsRoundedToPrecision(input.Amount) {
+	if !currency.IsRoundedToPrecision(input.Amount) {
 		errs = append(errs, errors.New("amount must be rounded to currency precision"))
 	}
 
@@ -297,7 +305,7 @@ func validateAmountAllocationInput[T any](calculator Calculator, input AmountAll
 			continue
 		}
 
-		if !calculator.IsRoundedToPrecision(item.Amount) {
+		if !currency.IsRoundedToPrecision(item.Amount) {
 			errs = append(errs, fmt.Errorf("items[%d].amount must be rounded to currency precision", i))
 		}
 
@@ -309,8 +317,4 @@ func validateAmountAllocationInput[T any](calculator Calculator, input AmountAll
 	}
 
 	return errors.Join(errs...)
-}
-
-func currencyUnit(calculator Calculator) alpacadecimal.Decimal {
-	return calculator.Unit()
 }

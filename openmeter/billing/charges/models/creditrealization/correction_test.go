@@ -18,13 +18,15 @@ import (
 )
 
 // testCurrency returns a USD calculator for tests.
-func testCurrency(t *testing.T) currencyx.Calculator {
+func testCurrency(t *testing.T) currencyx.Currency {
 	t.Helper()
 
-	calc, err := currencyx.Code("USD").Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code("USD")).
+		Build()
 	require.NoError(t, err)
 
-	return calc
+	return currency
 }
 
 var testServicePeriod = timeutil.ClosedPeriod{
