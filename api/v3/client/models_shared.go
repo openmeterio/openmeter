@@ -104,11 +104,11 @@ type CursorMetaPage struct {
 	// URI to the last page.
 	Last *string `json:"last,omitempty"`
 	// URI to the next page.
-	Next *string `json:"next,omitempty"`
+	Next Nullable[string] `json:"next"`
 	// URI to the previous page.
-	Previous *string `json:"previous,omitempty"`
+	Previous Nullable[string] `json:"previous"`
 	// Requested page size.
-	Size *int64 `json:"size,omitempty"`
+	Size int64 `json:"size"`
 }
 
 // Determines which page of the collection to retrieve.

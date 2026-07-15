@@ -87,7 +87,7 @@ func (s *EventsService) ListAll(ctx context.Context, params IngestedEventListPar
 			return nil, nil, nil, err
 		}
 
-		return resp.Data, resp.Meta.Page.Next, resp.Meta.Page.Previous, nil
+		return resp.Data, String(resp.Meta.Page.Next.GetOrEmpty()), String(resp.Meta.Page.Previous.GetOrEmpty()), nil
 	})
 }
 

@@ -372,12 +372,12 @@ func TestEventsListAllFollowsNextCursorOverHTTP(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch after := r.URL.Query().Get("page[after]"); after {
 		case "":
-			_, _ = io.WriteString(w, `{"data":[{"event":{"id":"e1"}},{"event":{"id":"e2"}}],"meta":{"page":{"next":"cur2"}}}`)
+			_, _ = io.WriteString(w, `{"data":[{"event":{"id":"e1"}},{"event":{"id":"e2"}}],"meta":{"page":{"size":2,"next":"cur2","previous":null}}}`)
 		case "cur2":
-			_, _ = io.WriteString(w, `{"data":[{"event":{"id":"e3"}}],"meta":{"page":{}}}`)
+			_, _ = io.WriteString(w, `{"data":[{"event":{"id":"e3"}}],"meta":{"page":{"size":2,"next":null,"previous":"cur1"}}}`)
 		default:
 			t.Errorf("unexpected page[after] %q requested", after)
-			_, _ = io.WriteString(w, `{"data":[],"meta":{"page":{}}}`)
+			_, _ = io.WriteString(w, `{"data":[],"meta":{"page":{"size":2,"next":null,"previous":null}}}`)
 		}
 	})
 
@@ -410,12 +410,12 @@ func TestEventsListAllFollowsPreviousCursorWithBefore(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch before := r.URL.Query().Get("page[before]"); before {
 		case "cur9":
-			_, _ = io.WriteString(w, `{"data":[{"event":{"id":"e9a"}},{"event":{"id":"e9b"}}],"meta":{"page":{"next":"cur10","previous":"cur8"}}}`)
+			_, _ = io.WriteString(w, `{"data":[{"event":{"id":"e9a"}},{"event":{"id":"e9b"}}],"meta":{"page":{"size":2,"next":"cur10","previous":"cur8"}}}`)
 		case "cur8":
-			_, _ = io.WriteString(w, `{"data":[{"event":{"id":"e8"}}],"meta":{"page":{"next":"cur9"}}}`)
+			_, _ = io.WriteString(w, `{"data":[{"event":{"id":"e8"}}],"meta":{"page":{"size":2,"next":"cur9","previous":null}}}`)
 		default:
 			t.Errorf("unexpected page[before] %q requested", before)
-			_, _ = io.WriteString(w, `{"data":[],"meta":{"page":{}}}`)
+			_, _ = io.WriteString(w, `{"data":[],"meta":{"page":{"size":2,"next":null,"previous":null}}}`)
 		}
 	})
 

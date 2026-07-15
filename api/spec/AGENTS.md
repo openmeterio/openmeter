@@ -264,6 +264,11 @@ avoids**: a strict wire schema rejects additive/unknown server fields and unknow
 enum values. It is opt-in defense-in-depth, not the default, precisely because the
 default contract must not break on additive fields.
 
+Models decorated with `@useRef` still need a local TypeSpec shape that matches the
+referenced OpenAPI schema. The TypeScript and Go emitters walk the local TypeSpec
+AST; `@useRef` only changes the emitted OpenAPI reference and does not import the
+referenced schema's requiredness or nullability into language-specific SDKs.
+
 ### Documented types: generated from TypeSpec, verified against zod
 
 **zod schemas and TypeScript types are separate artifacts with one source.** Both

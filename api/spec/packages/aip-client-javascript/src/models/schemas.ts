@@ -163,9 +163,11 @@ export const cursorMetaPage = z
   .object({
     first: z.string().optional().describe('URI to the first page.'),
     last: z.string().optional().describe('URI to the last page.'),
-    next: z.string().optional().describe('URI to the next page.'),
-    previous: z.string().optional().describe('URI to the previous page.'),
-    size: z.number().int().optional().describe('Requested page size.'),
+    next: z.union([z.string(), z.null()]).describe('URI to the next page.'),
+    previous: z
+      .union([z.string(), z.null()])
+      .describe('URI to the previous page.'),
+    size: z.number().int().describe('Requested page size.'),
   })
   .describe('Cursor pagination metadata.')
 
@@ -6722,9 +6724,11 @@ export const cursorMetaPageWire = z
   .strictObject({
     first: z.string().optional().describe('URI to the first page.'),
     last: z.string().optional().describe('URI to the last page.'),
-    next: z.string().optional().describe('URI to the next page.'),
-    previous: z.string().optional().describe('URI to the previous page.'),
-    size: z.number().int().optional().describe('Requested page size.'),
+    next: z.union([z.string(), z.null()]).describe('URI to the next page.'),
+    previous: z
+      .union([z.string(), z.null()])
+      .describe('URI to the previous page.'),
+    size: z.number().int().describe('Requested page size.'),
   })
   .describe('Cursor pagination metadata.')
 
