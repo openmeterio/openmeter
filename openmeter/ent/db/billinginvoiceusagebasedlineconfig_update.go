@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 // BillingInvoiceUsageBasedLineConfigUpdate is the builder for updating BillingInvoiceUsageBasedLineConfig entities.
@@ -110,7 +111,7 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ClearMeteredQuantity() *Bill
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetUnitConfig(v *unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }
@@ -327,7 +328,7 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearMeteredQuantity() *B
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetUnitConfig(v *unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }

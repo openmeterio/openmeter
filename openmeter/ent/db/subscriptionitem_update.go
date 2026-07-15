@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -366,7 +367,7 @@ func (_u *SubscriptionItemUpdate) ClearDiscounts() *SubscriptionItemUpdate {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *SubscriptionItemUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpdate {
+func (_u *SubscriptionItemUpdate) SetUnitConfig(v *unitconfig.UnitConfig) *SubscriptionItemUpdate {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }
@@ -1515,7 +1516,7 @@ func (_u *SubscriptionItemUpdateOne) ClearDiscounts() *SubscriptionItemUpdateOne
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *SubscriptionItemUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpdateOne {
+func (_u *SubscriptionItemUpdateOne) SetUnitConfig(v *unitconfig.UnitConfig) *SubscriptionItemUpdateOne {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }

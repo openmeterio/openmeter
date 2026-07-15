@@ -12,6 +12,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -58,13 +59,15 @@ func (Entitlement) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
-		// unit_config snapshots the JSON-serialized productcatalog.UnitConfig from
-		// the rate card at subscription time (metered entitlements only). Stored as a
-		// plain jsonb string, not a typed GoType, because the entitlement domain
-		// package sits below productcatalog and cannot reference the struct; the
-		// metered grant-owner adapter parses it to convert usage at balance-check
-		// time. Immutable: it is a snapshot set once at create, like issue_after_reset.
+		// unit_config snapshots the rate card's UnitConfig at subscription time
+		// (metered entitlements only). The metered grant-owner adapter uses it to
+		// convert usage at balance-check time. Typed jsonb via the shared
+		// UnitConfigValueScanner, matching the rate-card / invoice-line / subscription-
+		// item columns. Immutable: a snapshot set once at create, like
+		// issue_after_reset.
 		field.String("unit_config").
+			GoType(&productcatalog.UnitConfig{}).
+			ValueScanner(UnitConfigValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).

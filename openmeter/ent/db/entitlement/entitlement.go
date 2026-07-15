@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -174,6 +175,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all Entitlement fields.
 	ValueScanner struct {
+		UnitConfig  field.TypeValueScanner[*unitconfig.UnitConfig]
 		Annotations field.TypeValueScanner[models.Annotations]
 	}
 )

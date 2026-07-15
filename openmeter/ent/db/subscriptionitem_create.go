@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -284,7 +285,7 @@ func (_c *SubscriptionItemCreate) SetDiscounts(v *productcatalog.Discounts) *Sub
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_c *SubscriptionItemCreate) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemCreate {
+func (_c *SubscriptionItemCreate) SetUnitConfig(v *unitconfig.UnitConfig) *SubscriptionItemCreate {
 	_c.mutation.SetUnitConfig(v)
 	return _c
 }
@@ -1226,7 +1227,7 @@ func (u *SubscriptionItemUpsert) ClearDiscounts() *SubscriptionItemUpsert {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *SubscriptionItemUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpsert {
+func (u *SubscriptionItemUpsert) SetUnitConfig(v *unitconfig.UnitConfig) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldUnitConfig, v)
 	return u
 }
@@ -1703,7 +1704,7 @@ func (u *SubscriptionItemUpsertOne) ClearDiscounts() *SubscriptionItemUpsertOne 
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *SubscriptionItemUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpsertOne {
+func (u *SubscriptionItemUpsertOne) SetUnitConfig(v *unitconfig.UnitConfig) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetUnitConfig(v)
 	})
@@ -2353,7 +2354,7 @@ func (u *SubscriptionItemUpsertBulk) ClearDiscounts() *SubscriptionItemUpsertBul
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *SubscriptionItemUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpsertBulk {
+func (u *SubscriptionItemUpsertBulk) SetUnitConfig(v *unitconfig.UnitConfig) *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.SetUnitConfig(v)
 	})

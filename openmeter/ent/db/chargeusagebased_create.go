@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -350,7 +351,7 @@ func (_c *ChargeUsageBasedCreate) SetPrice(v *productcatalog.Price) *ChargeUsage
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_c *ChargeUsageBasedCreate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedCreate {
+func (_c *ChargeUsageBasedCreate) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedCreate {
 	_c.mutation.SetUnitConfig(v)
 	return _c
 }
@@ -1470,7 +1471,7 @@ func (u *ChargeUsageBasedUpsert) UpdatePrice() *ChargeUsageBasedUpsert {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *ChargeUsageBasedUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsert {
+func (u *ChargeUsageBasedUpsert) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldUnitConfig, v)
 	return u
 }
@@ -1958,7 +1959,7 @@ func (u *ChargeUsageBasedUpsertOne) UpdatePrice() *ChargeUsageBasedUpsertOne {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *ChargeUsageBasedUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsertOne {
+func (u *ChargeUsageBasedUpsertOne) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.SetUnitConfig(v)
 	})
@@ -2624,7 +2625,7 @@ func (u *ChargeUsageBasedUpsertBulk) UpdatePrice() *ChargeUsageBasedUpsertBulk {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *ChargeUsageBasedUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsertBulk {
+func (u *ChargeUsageBasedUpsertBulk) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.SetUnitConfig(v)
 	})
