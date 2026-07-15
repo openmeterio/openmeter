@@ -420,7 +420,7 @@ func ToAPIBillingUnitConfig(uc productcatalog.UnitConfig) apiv3.BillingUnitConfi
 func FromAPIBillingUnitConfig(uc apiv3.BillingUnitConfig) (*productcatalog.UnitConfig, error) {
 	conversionFactor, err := decimal.NewFromString(uc.ConversionFactor)
 	if err != nil {
-		return nil, fmt.Errorf("invalid conversion factor: %w", err)
+		return nil, models.NewGenericValidationError(fmt.Errorf("invalid conversion factor: %w", err))
 	}
 
 	out := &productcatalog.UnitConfig{

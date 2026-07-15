@@ -28,6 +28,7 @@ func (h *handler) CreateAddon() CreateAddonHandler {
 				return CreateAddonRequest{}, err
 			}
 
+			// NOTE: We gate the addon authoring behind this config flag. It is applied for both create and update and will be removed when unit config is feature complete.
 			if !h.unitConfigEnabled {
 				for _, rc := range body.RateCards {
 					if rc.UnitConfig != nil {

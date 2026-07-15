@@ -48,7 +48,10 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotat
 		if aMeta.Price != nil {
 			switch {
 			case tMeta.Price == nil:
+				// UnitConfig travels with Price here: it's meaningless without the price
+				// it converts, and the target has none of its own to preserve.
 				m.Price = aMeta.Price
+				m.UnitConfig = aMeta.UnitConfig
 			case tMeta.Price.Type() == productcatalog.FlatPriceType:
 				tFlat, _ := tMeta.Price.AsFlat()
 				aFlat, _ := aMeta.Price.AsFlat()
@@ -155,7 +158,9 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 					PaymentTerm: tFlat.PaymentTerm,
 				})
 			case instanceType == productcatalog.AddonInstanceTypeSingle:
+				// Clear UnitConfig with Price: it can't outlive the price it converts.
 				m.Price = nil
+				m.UnitConfig = nil
 			default:
 				return m, fmt.Errorf("not supported price type: %s", tMeta.Price.Type())
 			}
