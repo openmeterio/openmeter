@@ -91,9 +91,6 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 		return nil, fmt.Errorf("config: %w", err)
 	}
 
-	// TODO: remove normalization once we are in prod and we have an SQL migration to rewrite status_detailed.
-	charge := config.Charge.WithStatus(usagebased.NormalizeLegacyStatus(config.Charge.GetStatus()))
-
 	out := &stateMachine{
 		Logger:             lo.CoalesceOrEmpty(config.Logger, slog.Default()),
 		Adapter:            config.Adapter,
@@ -105,7 +102,7 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	}
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
-		Charge: charge,
+		Charge: config.Charge,
 		Persistence: chargestatemachine.Persistence[usagebased.Charge, usagebased.ChargeBase]{
 			UpdateBase: func(ctx context.Context, base usagebased.ChargeBase) (usagebased.ChargeBase, error) {
 				return out.Adapter.UpdateCharge(ctx, base)

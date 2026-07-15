@@ -644,7 +644,7 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 				FeatureKey:     "api_requests",
 				SettlementMode: settlementMode,
 			}.AsOverridableIntent(),
-			Status: chargeusagebased.StatusActiveFinalRealizationProcessing,
+			Status: chargeusagebased.StatusActiveRealizationProcessing,
 			State: chargeusagebased.State{
 				FeatureID:    featureID,
 				RatingEngine: chargeusagebased.RatingEngineDelta,
