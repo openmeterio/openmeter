@@ -181,7 +181,9 @@ model GetCreditBalanceParamsFilter {
 
   /**
    * Filter credit balance by feature key. Omit to return the total portfolio value.
-   * Use `exists=false` to return only unrestricted balance.
+   * Supports `eq` for a single feature and `oeq` for several: the balance covers
+   * unrestricted credit plus credit restricted to any of the requested features. Use
+   * `exists=false` to return only unrestricted balance.
    */
   feature_key?: Common.StringFieldFilter;
 }

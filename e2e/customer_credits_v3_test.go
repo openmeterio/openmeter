@@ -153,6 +153,94 @@ func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 	})
 }
 
+// TestV3CustomerCreditBalanceMultiFeatureFilter verifies that the balance
+// endpoint accepts several feature keys via oeq and returns the coverage
+// balance: unrestricted credit plus credit restricted to any requested key.
+func TestV3CustomerCreditBalanceMultiFeatureFilter(t *testing.T) {
+	c := newV3Client(t)
+	currency := v3sdk.BillingCurrencyCode("USD")
+
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:      uniqueKey("credit_balance_multi_feature"),
+		Name:     "Credit Balance Multi Feature Customer",
+		Currency: lo.ToPtr("USD"),
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, customer)
+	customerID := customer.ID
+
+	featureKeys := make([]string, 0, 2)
+	for range 2 {
+		valueProperty := "$.value"
+		m, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
+			Key:           uniqueKey("balance_filter_meter"),
+			Name:          "Balance Filter Meter",
+			Aggregation:   v3sdk.MeterAggregationSum,
+			EventType:     uniqueKey("balance_filter_event"),
+			ValueProperty: &valueProperty,
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, m)
+
+		featureKey := uniqueKey("balance_filter_feature")
+		f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+			Key:   featureKey,
+			Name:  "Balance Filter Feature " + featureKey,
+			Meter: &v3sdk.FeatureMeterReferenceInput{ID: m.ID},
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, f)
+
+		featureKeys = append(featureKeys, featureKey)
+	}
+	featureA, featureB := featureKeys[0], featureKeys[1]
+
+	grant := func(name string, amount v3sdk.Numeric, features []string) {
+		req := v3sdk.CreateCreditGrantRequest{
+			Name:          name,
+			Amount:        amount,
+			Currency:      currency,
+			FundingMethod: v3sdk.CreditFundingMethodNone,
+		}
+		if features != nil {
+			req.Filters = &v3sdk.CreateCreditGrantFilters{Features: &features}
+		}
+
+		created, err := c.Customers.Credits.Grants.Create(t.Context(), customerID, req)
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, created)
+	}
+
+	// given:
+	// - 40 unrestricted, 10 restricted to feature A, 20 restricted to feature B
+	grant("unrestricted", "40", nil)
+	grant("restricted to A", "10", []string{featureA})
+	grant("restricted to B", "20", []string{featureB})
+
+	settled := func(filter *v3sdk.StringFilter) string {
+		balances, err := c.Customers.Credits.Balance.Get(t.Context(), customerID, v3sdk.GetCustomerCreditBalanceParams{
+			Filter: &v3sdk.GetCustomerCreditBalanceFilter{FeatureKey: filter},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, balances)
+		require.Len(t, balances.Balances, 1)
+
+		return balances.Balances[0].Settled
+	}
+
+	t.Run("single feature covers unrestricted plus that feature", func(t *testing.T) {
+		assert.Equal(t, "50", settled(&v3sdk.StringFilter{Eq: &featureA}))
+	})
+
+	t.Run("multiple features cover unrestricted plus any requested feature", func(t *testing.T) {
+		assert.Equal(t, "70", settled(&v3sdk.StringFilter{Oeq: []string{featureA, featureB}}))
+	})
+
+	t.Run("a creditless extra key does not change the result", func(t *testing.T) {
+		assert.Equal(t, "50", settled(&v3sdk.StringFilter{Oeq: []string{featureA, "no-such-feature"}}))
+	})
+}
+
 func voidCreditGrantRaw(t testing.TB, c *v3Client, customerID, creditGrantID string, body any) (int, *v3sdk.CreditGrant, *v3Problem) {
 	t.Helper()
 

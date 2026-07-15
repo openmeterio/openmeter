@@ -74,7 +74,6 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 				Currency:      valid.Currency,
 				FeatureFilter: NewFeatureFilter([]string{"feature-a", "feature-b"}),
 			},
-			wantErr: true,
 		},
 		{
 			name: "invalid after cursor",
@@ -147,6 +146,17 @@ func TestGetBalanceServiceInputRoutes(t *testing.T) {
 	features, _ := unrestrictedRoute.Features.Get()
 	require.Empty(t, features)
 	require.Empty(t, unrestrictedRoute.MatchFeature)
+
+	// A multi-feature filter cannot be expressed on the route (MatchFeature is
+	// singular): the route carries no feature dimension and matching happens in
+	// Go via routeMatchesAnyFeature.
+	multiRoute := GetBalanceServiceInput{
+		Currency:      currencyx.Code("USD"),
+		FeatureFilter: NewFeatureFilter([]string{"feature-a", "feature-b"}),
+	}.bookedRoute()
+	require.Equal(t, currencyx.Code("USD"), multiRoute.Currency)
+	require.Empty(t, multiRoute.MatchFeature)
+	require.True(t, multiRoute.Features.IsAbsent())
 }
 
 func TestGetBalance(t *testing.T) {
@@ -564,6 +574,29 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 			filter: NewFeatureFilter([]string{"feature-c"}),
 			want:   100,
 		},
+		{
+			name:   "multi-feature filter includes unrestricted and any overlapping restricted routes",
+			filter: NewFeatureFilter([]string{"feature-a", "feature-b"}),
+			want:   120,
+		},
+		{
+			name:   "multi-feature filter matches the A-or-B route on either key",
+			filter: NewFeatureFilter([]string{"feature-b", "feature-c"}),
+			want:   110,
+		},
+		{
+			// Parity guard between the itemized multi-feature path and the
+			// aggregate single-feature route query: adding a key with no credit
+			// must not change the result of the single-key filter above.
+			name:   "multi-feature filter with a creditless key equals the single-key result",
+			filter: NewFeatureFilter([]string{"feature-a", "feature-c"}),
+			want:   120,
+		},
+		{
+			name:   "multi-feature filter with only unknown keys includes unrestricted routes only",
+			filter: NewFeatureFilter([]string{"feature-c", "feature-d"}),
+			want:   100,
+		},
 	}
 
 	for _, tt := range tests {
@@ -579,13 +612,6 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 			require.Equal(t, tt.want, balance.Live().InexactFloat64())
 		})
 	}
-
-	_, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
-		CustomerID:    env.CustomerID,
-		Currency:      env.Currency,
-		FeatureFilter: NewFeatureFilter([]string{"feature-a", "feature-b"}),
-	})
-	require.Error(t, err)
 
 	customerAccounts, err := env.Deps.ResolversService.GetCustomerAccounts(t.Context(), env.CustomerID)
 	require.NoError(t, err)
@@ -641,6 +667,18 @@ func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
 		{
 			name:        "non-matching feature filter excludes restricted charge impacts for other features",
 			filter:      NewFeatureFilter([]string{"storage"}),
+			wantSettled: 120,
+			wantLive:    115,
+		},
+		{
+			name:        "multi-feature filter includes impacts matching any requested key",
+			filter:      NewFeatureFilter([]string{testFeatureKey, "storage"}),
+			wantSettled: 130,
+			wantLive:    88,
+		},
+		{
+			name:        "multi-feature filter with a creditless key equals the single-key result",
+			filter:      NewFeatureFilter([]string{"storage", "no-such-feature"}),
 			wantSettled: 120,
 			wantLive:    115,
 		},

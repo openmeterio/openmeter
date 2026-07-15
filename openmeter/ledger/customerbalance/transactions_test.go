@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -26,6 +27,24 @@ func TestCreditTransactionLoaders_InvalidType(t *testing.T) {
 
 	_, err := s.creditTransactionLoaders(&invalid)
 	require.Error(t, err)
+}
+
+// The balance endpoint accepts multi-feature filters, but the transactions
+// running-balance path still assumes a single feature — the input validation
+// must keep rejecting multiple features until that path is lifted too.
+func TestListCreditTransactionsInputRejectsMultipleFeatures(t *testing.T) {
+	input := ListCreditTransactionsInput{
+		CustomerID:    customer.CustomerID{Namespace: "ns", ID: "customer-id"},
+		Limit:         10,
+		FeatureFilter: NewFeatureFilter([]string{"feature-a", "feature-b"}),
+	}
+
+	err := input.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "multiple features are not yet supported for transactions")
+
+	input.FeatureFilter = NewFeatureFilter([]string{"feature-a"})
+	require.NoError(t, input.Validate())
 }
 
 func TestCreditTransactionFromLedgerTransaction_UsesFBOEntry(t *testing.T) {

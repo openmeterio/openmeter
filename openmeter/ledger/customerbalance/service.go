@@ -339,11 +339,18 @@ func (s *service) getLiveBalanceSources(ctx context.Context, input GetBalanceSer
 	}
 
 	routeFilter := input.bookedRoute()
+	// The route filter's feature dimension is empty for multi-feature filters
+	// (RouteFilter.MatchFeature is singular), so those match routes in Go.
+	multiKeys, hasMultiKeys := multiFeatureKeys(normalizeFeatureFilter(input.FeatureFilter))
 	query := input.balanceQuery()
 	sources := make([]liveBalanceSource, 0, len(subAccounts))
 	for _, subAccount := range subAccounts {
 		route := subAccount.Route()
 		if !route.Matches(routeFilter) {
+			continue
+		}
+
+		if hasMultiKeys && !routeMatchesAnyFeature(route, multiKeys) {
 			continue
 		}
 
@@ -406,6 +413,24 @@ func (s *service) getSettledBalance(ctx context.Context, input GetBalanceService
 		return alpacadecimal.Zero, fmt.Errorf("get customer accounts: %w", err)
 	}
 
+	// A multi-feature filter cannot be pushed into the aggregate route query
+	// (ledger.RouteFilter.MatchFeature is singular), so itemize per sub-account
+	// instead. The default/single-feature request shape keeps the aggregate
+	// query below untouched.
+	if keys, ok := multiFeatureKeys(normalizeFeatureFilter(input.FeatureFilter)); ok {
+		bookedBalance, err := s.sumSubAccountBalancesForFeatures(ctx, customerAccounts.FBOAccount, input.bookedRoute(), query, keys)
+		if err != nil {
+			return alpacadecimal.Zero, fmt.Errorf("get booked balance: %w", err)
+		}
+
+		advanceBalance, err := s.sumSubAccountBalancesForFeatures(ctx, customerAccounts.ReceivableAccount, input.advanceRoute(), query, keys)
+		if err != nil {
+			return alpacadecimal.Zero, fmt.Errorf("get advance balance: %w", err)
+		}
+
+		return bookedBalance.Add(advanceBalance), nil
+	}
+
 	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, input.bookedRoute(), query)
 	if err != nil {
 		return alpacadecimal.Zero, fmt.Errorf("get booked balance: %w", err)
@@ -417,6 +442,45 @@ func (s *service) getSettledBalance(ctx context.Context, input GetBalanceService
 	}
 
 	return bookedBalance.Add(advanceBalance), nil
+}
+
+// sumSubAccountBalancesForFeatures itemizes an account balance per sub-account
+// so a multi-key feature filter can be applied in Go. Each ledger entry
+// belongs to exactly one sub-account route, so summing the matching
+// sub-account balances partitions the same entries the aggregate route query
+// would sum — routeFilter carries the non-feature dimensions (currency, cost
+// basis) and the feature dimension is matched via routeMatchesAnyFeature.
+func (s *service) sumSubAccountBalancesForFeatures(
+	ctx context.Context,
+	account ledger.Account,
+	routeFilter ledger.RouteFilter,
+	query ledger.BalanceQuery,
+	featureKeys []string,
+) (alpacadecimal.Decimal, error) {
+	subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+		Namespace: account.ID().Namespace,
+		AccountID: account.ID().ID,
+	})
+	if err != nil {
+		return alpacadecimal.Zero, fmt.Errorf("list sub accounts: %w", err)
+	}
+
+	total := alpacadecimal.Zero
+	for _, subAccount := range subAccounts {
+		route := subAccount.Route()
+		if !route.Matches(routeFilter) || !routeMatchesAnyFeature(route, featureKeys) {
+			continue
+		}
+
+		subAccountBalance, err := s.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, query)
+		if err != nil {
+			return alpacadecimal.Zero, fmt.Errorf("get sub account balance: %w", err)
+		}
+
+		total = total.Add(subAccountBalance)
+	}
+
+	return total, nil
 }
 
 func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencyx.Code, error) {
@@ -633,7 +697,9 @@ func featureFilterMatchesCreditPurchase(featureFilter mo.Option[creditpurchase.F
 		return true
 	}
 
-	return len(filterFeatures) == 1 && slices.Contains(grantFeatures, filterFeatures[0])
+	return slices.ContainsFunc(filterFeatures, func(key string) bool {
+		return slices.Contains(grantFeatures, key)
+	})
 }
 
 func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) ([]Impact, error) {
@@ -749,7 +815,7 @@ func featureFilterMatchesChargeFeatureKey(featureFilter mo.Option[creditpurchase
 		return true
 	}
 
-	return len(features) == 1 && features[0] == featureKey
+	return slices.Contains(features, featureKey)
 }
 
 func chargeHasStarted(charge charges.Charge) bool {

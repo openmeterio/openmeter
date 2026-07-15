@@ -34,9 +34,9 @@ func TestFromAPICustomerCreditFeatureFilter(t *testing.T) {
 			want:   customerbalance.NewFeatureFilter([]string{"feature-a"}),
 		},
 		{
-			name:    "multiple features are rejected",
-			filter:  &api.StringFieldFilter{Oeq: []string{"feature-a", "feature-b"}},
-			wantErr: true,
+			name:   "multiple features return a multi-key filter",
+			filter: &api.StringFieldFilter{Oeq: []string{"feature-a", "feature-b"}},
+			want:   customerbalance.NewFeatureFilter([]string{"feature-a", "feature-b"}),
 		},
 		{
 			name:   "exists false returns unrestricted",

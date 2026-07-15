@@ -96,6 +96,11 @@ func (i ListCreditTransactionsInput) Validate() error {
 
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
 		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	} else if _, ok := multiFeatureKeys(i.FeatureFilter); ok {
+		// TODO: lift alongside the balance endpoint once the transactions
+		// running-balance path uses the same itemized sub-account enumeration;
+		// silently accepting multiple features here would compute wrong numbers.
+		errs = append(errs, errors.New("feature filter: multiple features are not yet supported for transactions"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

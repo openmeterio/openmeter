@@ -64,7 +64,7 @@ func TestFeatureFiltersValidateAsFeatureFilter(t *testing.T) {
 	})
 
 	t.Run("multiple", func(t *testing.T) {
-		require.Error(t, FeatureFilters([]string{"api-calls", "storage"}).ValidateAsFeatureFilter())
+		require.NoError(t, FeatureFilters([]string{"api-calls", "storage"}).ValidateAsFeatureFilter())
 	})
 
 	t.Run("invalid feature", func(t *testing.T) {
