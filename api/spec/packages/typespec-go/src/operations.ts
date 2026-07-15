@@ -15,7 +15,6 @@ import {
 } from '@typespec/http'
 import '@typespec/http/experimental/typekit'
 import { getOperationId } from '@typespec/openapi'
-import { getQueryCodec } from '@openmeter/typespec-sdk'
 import { optionalTypeName } from './go-types.js'
 import { methodNameFromOperationName, methodNameOf } from './grouping.js'
 
@@ -158,13 +157,8 @@ export function classifyQueryParameter(
 ): GoQueryCodec {
   const typekit = $(program)
   const type = parameter.param.type
-  const sdkCodec = getQueryCodec(program, parameter.param)
-
-  if (sdkCodec) {
-    switch (sdkCodec.codec) {
-      case 'sort':
-        return { kind: 'sort' }
-    }
+  if (parameter.name === 'sort') {
+    return { kind: 'sort' }
   }
 
   if (type.kind === 'Model') {

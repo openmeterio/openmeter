@@ -14,9 +14,9 @@ import {
 import { $ } from '@typespec/compiler/typekit'
 import { getAllHttpServices } from '@typespec/http'
 import { getExtensions, getOperationId } from '@typespec/openapi'
-import { getQueryCodec, type QueryCodec } from '@openmeter/typespec-sdk'
 import { ZodSchema } from './components/ZodSchema.jsx'
 import { isSuccessStatus } from './http-status.js'
+import { queryCodecForParameter, type QueryCodec } from './query-codecs.js'
 import {
   callPart,
   CoerceContext,
@@ -221,7 +221,7 @@ export function operationSchemas(
       queryParams.push({
         name: param.name,
         prop: param.param,
-        codec: getQueryCodec(program, param.param),
+        codec: queryCodecForParameter(program, param.name),
       })
     }
     // headers are transport metadata; intentionally skipped.

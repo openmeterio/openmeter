@@ -31,6 +31,7 @@ generate: ## Generate OpenAPI spec
 test: ## Run AIP TypeScript SDK and emitter tests
 	$(call print-target)
 	pnpm --frozen-lockfile install
+	pnpm --filter @openmeter/api-spec-aip run test
 	pnpm run test:sdk:coverage
 	pnpm --filter @openmeter/typespec-typescript run check
 

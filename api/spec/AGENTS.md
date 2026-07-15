@@ -273,15 +273,12 @@ referenced schema's requiredness or nullability into language-specific SDKs.
 TypeSpec defaults belong only on public schemas. `toWire` reads the public schema to
 materialize required request defaults before wire validation; `…Wire` schemas must
 not use Zod `.default(...)`, because the same schema validates responses and a
-default wrapper would accept a required field the server omitted. Declare custom
-query codecs on the HTTP-bound model property with
-`@OpenMeter.Sdk.queryCodec("sort", string)`. This SDK-only TypeSpec metadata is the
-source of truth for both language emitters and is intentionally ignored by the
-OpenAPI emitter; do not infer a codec from a parameter or model name. The
-TypeScript emitter must validate the public property schema before encoding and
-the encoded value against the operation's wire schema afterward. Keeping the
-metadata on the property makes aliases work while an undecorated scalar or model
-named `sort` retains ordinary query behavior.
+default wrapper would accept a required field the server omitted. The query
+parameter name `sort` is reserved: it must use `Common.SortQuery` directly (not an
+alias), enforced by the AIP `sort-query-type` linter rule. Both SDK emitters select
+the sort codec from that validated HTTP parameter name. The TypeScript emitter must
+validate the public property schema before encoding and the encoded value against
+the operation's wire schema afterward.
 Generated path-parameter schemas are part of the same boundary: in strict mode,
 map path values to their transport representation, validate the mapped object,
 then interpolate and URL-encode it. Preserve path binding names during mapping;
@@ -675,9 +672,9 @@ not "correct" them to mainline ky.
   wire; the SDK accepts a `{by, order}` object and `encodeSort` flattens it. `by` is
   a **camelCase** field name in the SDK and is `toSnakeCase`-translated to the wire
   field name (the server validates snake field names; see
-  `api/v3/handlers/.../convert.go`). Every structured sort binding must carry
-  `@OpenMeter.Sdk.queryCodec("sort", string)` so both SDK emitters choose this
-  codec without coupling behavior to the binding or model name.
+  `api/v3/handlers/.../convert.go`). Every query parameter named `sort` must use
+  `Common.SortQuery` directly; the AIP `sort-query-type` rule protects the
+  name-based codec selection used by both SDK emitters.
 
 ## Tests
 

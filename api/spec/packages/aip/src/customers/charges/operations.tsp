@@ -59,7 +59,6 @@ namespace Charges {
        * - `billing_period.from`
        */
       @query(#{ name: "sort" })
-      @OpenMeter.Sdk.queryCodec("sort", string)
       sort?: Common.SortQuery,
 
       /**

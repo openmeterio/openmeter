@@ -45,7 +45,6 @@ interface CurrenciesOperations {
      * suffix is used to specify a descending order.
      */
     @query(#{ name: "sort" })
-    @OpenMeter.Sdk.queryCodec("sort", string)
     sort?: Common.SortQuery,
 
     /**

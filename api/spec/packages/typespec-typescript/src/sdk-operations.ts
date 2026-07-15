@@ -7,10 +7,10 @@ import {
 import { $ } from '@typespec/compiler/typekit'
 import { getAllHttpServices } from '@typespec/http'
 import { getOperationId } from '@typespec/openapi'
-import { getQueryCodec, type QueryCodecName } from '@openmeter/typespec-sdk'
 import { isSuccessStatus } from './http-status.js'
 import { reportDiagnostic } from './lib.js'
 import type { PaginationInfo } from './pagination.js'
+import { queryCodecForParameter, type QueryCodecName } from './query-codecs.js'
 import { operationBaseName } from './ZodOperations.jsx'
 import { jsdoc, shouldReference } from './utils.jsx'
 
@@ -151,9 +151,9 @@ export function sdkOperation(
       pathParams.push(param.name)
     } else if (param.type === 'query') {
       queryParams.push(param.name)
-      const codec = getQueryCodec(program, param.param)
+      const codec = queryCodecForParameter(program, param.name)
       if (codec) {
-        queryCodecs.push({ parameter: param.name, codec: codec.codec })
+        queryCodecs.push({ parameter: param.name, codec: codec.name })
       }
     }
   }
