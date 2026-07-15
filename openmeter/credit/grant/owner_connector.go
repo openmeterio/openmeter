@@ -17,6 +17,15 @@ type Owner struct {
 	DefaultQueryParams streaming.QueryParams
 	ResetBehavior      ResetBehavior
 	StreamingCustomer  streaming.Customer
+
+	// UsageConverter, when set, maps raw metered usage into the unit the owner's
+	// entitlement limit and grants are authored in — the rate card's UnitConfig
+	// conversion, applied without rounding so balance checks use the precise value.
+	// Nil means identity (no unit_config, or the unitConfig feature is disabled), in
+	// which case balances are byte-identical to pre-UnitConfig behavior. It is a
+	// plain function on purpose: the credit engine must stay agnostic of
+	// productcatalog, which sits above it in the import graph.
+	UsageConverter func(rawUsage float64) float64
 }
 
 type EndCurrentUsagePeriodParams struct {

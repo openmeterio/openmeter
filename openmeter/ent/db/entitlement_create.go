@@ -221,6 +221,20 @@ func (_c *EntitlementCreate) SetNillableConfig(v *string) *EntitlementCreate {
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *EntitlementCreate) SetUnitConfig(v string) *EntitlementCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
+// SetNillableUnitConfig sets the "unit_config" field if the given value is not nil.
+func (_c *EntitlementCreate) SetNillableUnitConfig(v *string) *EntitlementCreate {
+	if v != nil {
+		_c.SetUnitConfig(*v)
+	}
+	return _c
+}
+
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
 func (_c *EntitlementCreate) SetUsagePeriodInterval(v datetime.ISODurationString) *EntitlementCreate {
 	_c.mutation.SetUsagePeriodInterval(v)
@@ -558,6 +572,10 @@ func (_c *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec, e
 	if value, ok := _c.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
 		_node.Config = &value
+	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		_spec.SetField(entitlement.FieldUnitConfig, field.TypeString, value)
+		_node.UnitConfig = &value
 	}
 	if value, ok := _c.mutation.UsagePeriodInterval(); ok {
 		_spec.SetField(entitlement.FieldUsagePeriodInterval, field.TypeString, value)
@@ -941,6 +959,9 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.PreserveOverageAtReset(); exists {
 			s.SetIgnore(entitlement.FieldPreserveOverageAtReset)
+		}
+		if _, exists := u.create.mutation.UnitConfig(); exists {
+			s.SetIgnore(entitlement.FieldUnitConfig)
 		}
 		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
 			s.SetIgnore(entitlement.FieldUsagePeriodInterval)
@@ -1379,6 +1400,9 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.PreserveOverageAtReset(); exists {
 				s.SetIgnore(entitlement.FieldPreserveOverageAtReset)
+			}
+			if _, exists := b.mutation.UnitConfig(); exists {
+				s.SetIgnore(entitlement.FieldUnitConfig)
 			}
 			if _, exists := b.mutation.UsagePeriodInterval(); exists {
 				s.SetIgnore(entitlement.FieldUsagePeriodInterval)

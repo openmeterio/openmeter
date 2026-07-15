@@ -148,6 +148,19 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to describe owner: %w", err)
 	}
 
+	// History merges meter usage queried directly here with per-segment balances from
+	// the engine. The engine already returns balances in converted units (via the
+	// balance querier's UsageConverter), so the raw meter values queried below must be
+	// converted the same way or the running balance would mix units. Nil converter
+	// (no unit_config / feature off) leaves values raw — identical to before.
+	convertUsage := func(rawUsage float64) float64 {
+		if owner.UsageConverter == nil {
+			return rawUsage
+		}
+
+		return owner.UsageConverter(rawUsage)
+	}
+
 	// FIXME: remove truncation
 	fullPeriodTruncated := timeutil.ClosedPeriod{
 		From: params.From.Truncate(time.Minute),
@@ -227,7 +240,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		})
 
 		if ok {
-			row.Value = matchingRow.Value
+			row.Value = convertUsage(matchingRow.Value)
 			row.Subject = matchingRow.Subject
 			row.GroupBy = matchingRow.GroupBy
 		}
@@ -321,7 +334,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 			// We should have 1 row if there is usage data
 			if len(rows) == 1 {
-				usage = rows[0].Value
+				usage = convertUsage(rows[0].Value)
 			} else if len(rows) > 1 {
 				return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("expected at most 1 row, got %d", len(rows))
 			}

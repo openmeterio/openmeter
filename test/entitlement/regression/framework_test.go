@@ -156,6 +156,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		customerService,
 		log,
 		tracer,
+		false,
 	)
 
 	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{

@@ -3494,6 +3494,7 @@ var (
 		{Name: "is_soft_limit", Type: field.TypeBool, Nullable: true},
 		{Name: "preserve_overage_at_reset", Type: field.TypeBool, Nullable: true},
 		{Name: "config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "usage_period_interval", Type: field.TypeString, Nullable: true},
 		{Name: "usage_period_anchor", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_start", Type: field.TypeTime, Nullable: true},
@@ -3510,13 +3511,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "entitlements_customers_entitlements",
-				Columns:    []*schema.Column{EntitlementsColumns[21]},
+				Columns:    []*schema.Column{EntitlementsColumns[22]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "entitlements_features_entitlement",
-				Columns:    []*schema.Column{EntitlementsColumns[22]},
+				Columns:    []*schema.Column{EntitlementsColumns[23]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -3540,27 +3541,27 @@ var (
 			{
 				Name:    "entitlement_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[21]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[22]},
 			},
 			{
 				Name:    "entitlement_namespace_id_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[21]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[22]},
 			},
 			{
 				Name:    "entitlement_namespace_feature_id_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[22], EntitlementsColumns[0]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[23], EntitlementsColumns[0]},
 			},
 			{
 				Name:    "entitlement_namespace_current_usage_period_end",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[19]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[20]},
 			},
 			{
 				Name:    "entitlement_current_usage_period_end_deleted_at",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[19], EntitlementsColumns[5]},
+				Columns: []*schema.Column{EntitlementsColumns[20], EntitlementsColumns[5]},
 			},
 			{
 				Name:    "entitlement_created_at_id",

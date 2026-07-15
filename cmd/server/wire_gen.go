@@ -284,7 +284,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, service, eventbusPublisher, locker, customerService)
+	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, unitConfigConfiguration, connector, service, eventbusPublisher, locker, customerService)
 	if err != nil {
 		cleanup7()
 		cleanup6()

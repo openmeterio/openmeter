@@ -28,6 +28,7 @@ func NewEntitlementRegistry(
 	db *entdb.Client,
 	tracer trace.Tracer,
 	entitlementConfig config.EntitlementsConfiguration,
+	unitConfig config.UnitConfigConfiguration,
 	streamingConnector streaming.Connector,
 	meterService meter.Service,
 	eventPublisher eventbus.Publisher,
@@ -42,6 +43,7 @@ func NewEntitlementRegistry(
 		Logger:                    logger,
 		Publisher:                 eventPublisher,
 		EntitlementsConfiguration: entitlementConfig,
+		UnitConfigEnabled:         unitConfig.Enabled,
 		Tracer:                    tracer,
 		Locker:                    locker,
 	})
