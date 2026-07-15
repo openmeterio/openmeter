@@ -48,6 +48,37 @@ func fromAPICustomerCreditFeatureFilter(f *api.StringFieldFilter) (mo.Option[cre
 	return featureFilter, nil
 }
 
+// fromAPICreditGrantFeatureKeyFilter parses the grants-list feature_key filter.
+// It deliberately does not reuse fromAPICustomerCreditFeatureFilter: the
+// single-feature cap and exists=true rejection there are balance-specific
+// business rules, while a plain list filter supports any number of keys and
+// both exists polarities.
+func fromAPICreditGrantFeatureKeyFilter(f *api.StringFieldFilter) (*creditpurchase.FeatureKeyFilter, error) {
+	if f == nil {
+		return nil, nil
+	}
+
+	if f.Exists != nil {
+		return &creditpurchase.FeatureKeyFilter{Exists: f.Exists}, nil
+	}
+
+	if op := unsupportedCustomerCreditFeatureKeyOperator(f); op != "" {
+		return nil, fmt.Errorf("%s operator is not supported", op)
+	}
+
+	keys := make([]string, 0, 1+len(f.Oeq))
+	if f.Eq != nil {
+		keys = append(keys, *f.Eq)
+	}
+	keys = append(keys, f.Oeq...)
+
+	if len(keys) == 0 {
+		return nil, nil
+	}
+
+	return &creditpurchase.FeatureKeyFilter{In: keys}, nil
+}
+
 func unsupportedCustomerCreditFeatureKeyOperator(f *api.StringFieldFilter) string {
 	switch {
 	case f.Neq != nil:

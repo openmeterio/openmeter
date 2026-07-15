@@ -153,6 +153,111 @@ func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 	})
 }
 
+// TestV3CreditGrantFeatureKeyFilter verifies the grants-list feature_key
+// filter: keyed filters match grants whose feature restriction includes any of
+// the given keys (unrestricted grants stay out), and exists selects grants by
+// whether they carry a restriction at all.
+func TestV3CreditGrantFeatureKeyFilter(t *testing.T) {
+	c := newV3Client(t)
+	currency := v3sdk.BillingCurrencyCode("USD")
+
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:      uniqueKey("credit_grant_feature_filter"),
+		Name:     "Credit Grant Feature Filter Customer",
+		Currency: lo.ToPtr("USD"),
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, customer)
+	customerID := customer.ID
+
+	featureKeys := make([]string, 0, 2)
+	for range 2 {
+		meterKey := uniqueKey("grant_filter_meter")
+		valueProperty := "$.value"
+
+		m, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
+			Key:           meterKey,
+			Name:          "Grant Filter Meter " + meterKey,
+			Aggregation:   v3sdk.MeterAggregationSum,
+			EventType:     uniqueKey("grant_filter_event"),
+			ValueProperty: &valueProperty,
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, m)
+
+		featureKey := uniqueKey("grant_filter_feature")
+		f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+			Key:   featureKey,
+			Name:  "Grant Filter Feature " + featureKey,
+			Meter: &v3sdk.FeatureMeterReferenceInput{ID: m.ID},
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, f)
+
+		featureKeys = append(featureKeys, featureKey)
+	}
+	featureA, featureB := featureKeys[0], featureKeys[1]
+
+	grant := func(name string, features []string) string {
+		req := v3sdk.CreateCreditGrantRequest{
+			Name:          name,
+			Amount:        v3sdk.Numeric("10"),
+			Currency:      currency,
+			FundingMethod: v3sdk.CreditFundingMethodNone,
+		}
+		if features != nil {
+			req.Filters = &v3sdk.CreateCreditGrantFilters{Features: &features}
+		}
+
+		created, err := c.Customers.Credits.Grants.Create(t.Context(), customerID, req)
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, created)
+
+		return created.ID
+	}
+
+	restrictedToA := grant("restricted to A", []string{featureA})
+	restrictedToAB := grant("restricted to A and B", []string{featureA, featureB})
+	unrestricted := grant("unrestricted", nil)
+
+	listIDs := func(filter *v3sdk.StringFilter) []string {
+		list, err := c.Customers.Credits.Grants.List(t.Context(), customerID, v3sdk.CreditGrantListParams{
+			Filter: &v3sdk.CreditGrantFilter{FeatureKey: filter},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, list)
+
+		return lo.Map(list.Data, func(g v3sdk.CreditGrant, _ int) string { return g.ID })
+	}
+
+	t.Run("eq matches grants whose restriction includes the key", func(t *testing.T) {
+		assert.ElementsMatch(t, []string{restrictedToA, restrictedToAB}, listIDs(&v3sdk.StringFilter{Eq: &featureA}))
+	})
+
+	t.Run("oeq matches with any-of semantics", func(t *testing.T) {
+		assert.ElementsMatch(t, []string{restrictedToAB}, listIDs(&v3sdk.StringFilter{Oeq: []string{featureB, "no-such-feature"}}))
+	})
+
+	t.Run("exists=false returns only unrestricted grants", func(t *testing.T) {
+		assert.ElementsMatch(t, []string{unrestricted}, listIDs(&v3sdk.StringFilter{Exists: lo.ToPtr(false)}))
+	})
+
+	t.Run("exists=true returns only restricted grants", func(t *testing.T) {
+		assert.ElementsMatch(t, []string{restrictedToA, restrictedToAB}, listIDs(&v3sdk.StringFilter{Exists: lo.ToPtr(true)}))
+	})
+
+	t.Run("no match returns empty", func(t *testing.T) {
+		assert.Empty(t, listIDs(&v3sdk.StringFilter{Eq: lo.ToPtr("no-such-feature")}))
+	})
+
+	t.Run("unsupported operator is rejected", func(t *testing.T) {
+		_, err := c.Customers.Credits.Grants.List(t.Context(), customerID, v3sdk.CreditGrantListParams{
+			Filter: &v3sdk.CreditGrantFilter{FeatureKey: &v3sdk.StringFilter{Contains: lo.ToPtr("feature")}},
+		})
+		requireProblem(t, err, http.StatusBadRequest)
+	})
+}
+
 func voidCreditGrantRaw(t testing.TB, c *v3Client, customerID, creditGrantID string, body any) (int, *v3sdk.CreditGrant, *v3Problem) {
 	t.Helper()
 

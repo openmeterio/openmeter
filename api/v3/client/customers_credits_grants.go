@@ -21,6 +21,13 @@ type CreditGrantFilter struct {
 	Currency *string
 	// Filter credit grants by key.
 	Key *StringFilter
+	// Filter credit grants by feature key. Matches grants whose feature
+	// restriction includes any of the given keys. Unrestricted grants (usable by
+	// any feature) do not match a keyed filter, unlike the coverage-style
+	// feature_key filter on the balance and transaction endpoints. Use
+	// `exists=false` to return only unrestricted grants, or `exists=true` to
+	// return only grants restricted to specific features.
+	FeatureKey *StringFilter
 }
 
 type CreditGrantListParams struct {
@@ -41,6 +48,7 @@ func (p CreditGrantListParams) values() url.Values {
 			q.Set("filter[currency]", *p.Filter.Currency)
 		}
 		addStringFilter(q, "filter[key]", p.Filter.Key)
+		addStringFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
 	}
 
 	return q

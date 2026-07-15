@@ -34,6 +34,16 @@ model ListCreditGrantsParamsFilter {
    * Filter credit grants by key.
    */
   key?: Common.StringFieldFilter;
+
+  /**
+   * Filter credit grants by feature key. Matches grants whose feature restriction
+   * includes any of the given keys. Unrestricted grants (usable by any feature) do
+   * not match a keyed filter, unlike the coverage-style feature_key filter on the
+   * balance and transaction endpoints. Use `exists=false` to return only
+   * unrestricted grants, or `exists=true` to return only grants restricted to
+   * specific features.
+   */
+  feature_key?: Common.StringFieldFilter;
 }
 
 namespace Credits.Grants {

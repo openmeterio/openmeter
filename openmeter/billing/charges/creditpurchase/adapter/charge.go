@@ -228,6 +228,10 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 
 		query = filter.ApplyToQuery(query, input.Key, dbchargecreditpurchase.FieldKey)
 
+		if p := featureKeyFilterPredicate(input.FeatureKey); p != nil {
+			query = query.Where(p)
+		}
+
 		query = withExpands(query, input.Expands)
 
 		res, err := query.Paginate(ctx, input.Page)

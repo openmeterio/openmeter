@@ -208,9 +208,10 @@ type ListInput struct {
 	CustomerID string
 
 	// Optional filters
-	Status   *GrantStatus
-	Currency *currencyx.Code
-	Key      *filter.FilterString
+	Status     *GrantStatus
+	Currency   *currencyx.Code
+	Key        *filter.FilterString
+	FeatureKey *creditpurchase.FeatureKeyFilter
 }
 
 func (i ListInput) Validate() error {
@@ -239,6 +240,12 @@ func (i ListInput) Validate() error {
 	if i.Key != nil {
 		if err := i.Key.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("key: %w", err))
+		}
+	}
+
+	if i.FeatureKey != nil {
+		if err := i.FeatureKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature key: %w", err))
 		}
 	}
 

@@ -93,6 +93,12 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 					})
 				}
 				req.Key = key
+
+				featureKey, err := fromAPICreditGrantFeatureKeyFilter(args.Params.Filter.FeatureKey)
+				if err != nil {
+					return ListCreditGrantsRequest{}, newFeatureKeyFilterBadRequest(ctx, err)
+				}
+				req.FeatureKey = featureKey
 			}
 
 			return req, nil
