@@ -1,6 +1,7 @@
 import "@typespec/http";
 import "@typespec/openapi";
 import "@typespec/openapi3";
+import "@openmeter/typespec-sdk";
 
 using TypeSpec.OpenAPI;
 

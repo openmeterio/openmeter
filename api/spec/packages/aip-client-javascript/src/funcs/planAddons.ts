@@ -3,7 +3,7 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { toURLSearchParams } from '../lib/encodings.js'
 import { toWire, toPathWire, fromWire, assertValid } from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {

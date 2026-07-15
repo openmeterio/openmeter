@@ -41,7 +41,7 @@ export function listFeatures(
 ): Promise<Result<ListFeaturesResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.sortQuery, req.sort)
+      assertValid(schemas.listFeaturesQueryParams.shape.sort, req.sort)
     }
     const query = toWire(
       {

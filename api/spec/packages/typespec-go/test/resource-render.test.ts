@@ -1,6 +1,7 @@
 import { createTestHost, createTestRunner } from '@typespec/compiler/testing'
 import { HttpTestLibrary } from '@typespec/http/testing'
 import { OpenAPITestLibrary } from '@typespec/openapi/testing'
+import { TypeSpecSdkTestLibrary } from '@openmeter/typespec-sdk/testing'
 import { describe, expect, it } from 'vitest'
 import type { Program } from '@typespec/compiler'
 import {
@@ -20,12 +21,13 @@ async function compileResource(
   code: string,
 ): Promise<{ program: Program; operations: GoOperation[] }> {
   const host = await createTestHost({
-    libraries: [HttpTestLibrary, OpenAPITestLibrary],
+    libraries: [HttpTestLibrary, OpenAPITestLibrary, TypeSpecSdkTestLibrary],
   })
   const runner = await createTestRunner(host)
   await runner.compile(`
     import "@typespec/http";
     import "@typespec/openapi";
+    import "@openmeter/typespec-sdk";
     using TypeSpec.Http;
     using TypeSpec.OpenAPI;
     ${code}
@@ -85,6 +87,7 @@ describe('list params struct naming', () => {
             size?: integer;
             number?: integer;
           },
+          @OpenMeter.Sdk.queryCodec("sort", string)
           @query sort?: SortQuery,
         ): ItemPage;
 

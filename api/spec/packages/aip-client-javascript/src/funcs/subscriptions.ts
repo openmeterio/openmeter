@@ -72,7 +72,7 @@ export function listSubscriptions(
 ): Promise<Result<ListSubscriptionsResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.sortQuery, req.sort)
+      assertValid(schemas.listSubscriptionsQueryParams.shape.sort, req.sort)
     }
     const query = toWire(
       {
@@ -339,7 +339,10 @@ export function listSubscriptionAddons(
       return encodeURIComponent(String(pathParams.subscriptionId))
     })()}/addons`
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.sortQuery, req.sort)
+      assertValid(
+        schemas.listSubscriptionAddonsQueryParams.shape.sort,
+        req.sort,
+      )
     }
     const query = toWire(
       {

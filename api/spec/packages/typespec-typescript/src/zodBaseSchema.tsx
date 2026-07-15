@@ -264,14 +264,6 @@ function modelBaseType(type: Model) {
   const wire = useWireMode()
   const rkSym = activeRefkeySym(wire)
 
-  // SortQuery is an ergonomic public object (`{ by, order }`) with a custom
-  // query codec that sends one scalar (`created_at desc`). Its wire schema must
-  // describe that encoded string; otherwise strict validation rejects every
-  // valid sorted request after encodeSort has produced the actual payload.
-  if (wire && type.name === 'SortQuery') {
-    return zodMemberExpr(callPart('string'))
-  }
-
   // Closed objects are strict in the wire pass so a leaked-camelCase or unknown
   // wire key is rejected. Open models (record spread, `emitsAsIntersection`) stay
   // permissive — strict would defeat the record arm that exists to accept them.

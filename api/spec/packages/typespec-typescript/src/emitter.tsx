@@ -106,13 +106,6 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
     const base = baseName(context.program, type)
     return base ? (resolved.get(base) ?? base) : undefined
   }
-  const resolveSchema = (type: Type | undefined): string | undefined => {
-    if (!type) {
-      return undefined
-    }
-    const name = resolveName(type)
-    return name ? tsNamePolicy.getName(name, 'variable') : undefined
-  }
   const models = types.filter((t): t is Model => t.kind === 'Model')
   // A union can be declared in TypeSpec — and still picked up as a zod schema,
   // since `getAllDataTypes` walks the whole namespace tree — without anything
@@ -206,7 +199,6 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
         resource,
         resolveInterface,
         resolveRequestBody,
-        resolveSchema,
         bodyOverrides,
       ),
     )

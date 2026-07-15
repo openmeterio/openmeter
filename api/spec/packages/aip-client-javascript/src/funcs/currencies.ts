@@ -37,7 +37,7 @@ export function listCurrencies(
 ): Promise<Result<ListCurrenciesResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.sortQuery, req.sort)
+      assertValid(schemas.listCurrenciesQueryParams.shape.sort, req.sort)
     }
     const query = toWire(
       {

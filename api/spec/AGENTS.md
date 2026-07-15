@@ -256,8 +256,8 @@ leaked-camelCase wire field is **rejected, not silently stripped**. Open models
 would defeat the record arm that exists to accept them. The wire pass uses the same
 emitter walk as the camelCase pass (parameterized by direction + key-casing +
 strictness + a separate refkey namespace), but it must describe the value **after**
-transport encoding: date-time values are strings, `SortQuery` is one encoded string,
-and defaults are absent. A failure throws
+transport encoding: date-time values are strings, SDK-coded query parameters use
+their declared transport type, and defaults are absent. A failure throws
 `ValidationError`, which `request()` surfaces as `Result.error` (request validation
 runs _inside_ the `request()` closure so it does not throw synchronously).
 **Enabling `validate` re-introduces exactly the rejection the default policy
@@ -273,11 +273,15 @@ referenced schema's requiredness or nullability into language-specific SDKs.
 TypeSpec defaults belong only on public schemas. `toWire` reads the public schema to
 materialize required request defaults before wire validation; `…Wire` schemas must
 not use Zod `.default(...)`, because the same schema validates responses and a
-default wrapper would accept a required field the server omitted. For any custom
-public-to-wire codec (currently `SortQuery` object → query string), validate the
-public value before encoding and the encoded value against its wire schema after
-encoding. Do not classify a codec by the HTTP parameter name alone; verify its
-TypeSpec type so an unrelated scalar named `sort` keeps scalar behavior.
+default wrapper would accept a required field the server omitted. Declare custom
+query codecs on the HTTP-bound model property with
+`@OpenMeter.Sdk.queryCodec("sort", string)`. This SDK-only TypeSpec metadata is the
+source of truth for both language emitters and is intentionally ignored by the
+OpenAPI emitter; do not infer a codec from a parameter or model name. The
+TypeScript emitter must validate the public property schema before encoding and
+the encoded value against the operation's wire schema afterward. Keeping the
+metadata on the property makes aliases work while an undecorated scalar or model
+named `sort` retains ordinary query behavior.
 Generated path-parameter schemas are part of the same boundary: in strict mode,
 map path values to their transport representation, validate the mapped object,
 then interpolate and URL-encode it. Preserve path binding names during mapping;
@@ -671,7 +675,9 @@ not "correct" them to mainline ky.
   wire; the SDK accepts a `{by, order}` object and `encodeSort` flattens it. `by` is
   a **camelCase** field name in the SDK and is `toSnakeCase`-translated to the wire
   field name (the server validates snake field names; see
-  `api/v3/handlers/.../convert.go`).
+  `api/v3/handlers/.../convert.go`). Every structured sort binding must carry
+  `@OpenMeter.Sdk.queryCodec("sort", string)` so both SDK emitters choose this
+  codec without coupling behavior to the binding or model name.
 
 ## Tests
 

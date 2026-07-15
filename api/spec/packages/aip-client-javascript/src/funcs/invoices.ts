@@ -49,7 +49,7 @@ export function listInvoices(
 ): Promise<Result<ListInvoicesResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.sortQuery, req.sort)
+      assertValid(schemas.listInvoicesQueryParams.shape.sort, req.sort)
     }
     const query = toWire(
       {

@@ -27,6 +27,19 @@ function pathExpr(op: SdkOperation, source = 'req'): string {
   return `\`${path}\``
 }
 
+function encodedQueryValue(op: SdkOperation, parameter: string): string {
+  const key = toCamelCase(parameter)
+  const codec = op.queryCodecs.find((entry) => entry.parameter === parameter)
+  if (!codec) {
+    return `req.${key}`
+  }
+
+  switch (codec.codec) {
+    case 'sort':
+      return `encodeSort(req.${key}, toSnakeCase)`
+  }
+}
+
 function funcBody(op: SdkOperation): string {
   const reqType = `${op.base}Request`
   const resType = `${op.base}Response`
@@ -115,25 +128,22 @@ function funcBody(op: SdkOperation): string {
     : []
   const prepareQuery = hasQuery
     ? [
-        ...(op.hasSort
-          ? [
-              `    if (client._options.validate && req.sort !== undefined) {`,
-              `      assertValid(schemas.${op.sortSchema}, req.sort)`,
-              `    }`,
-            ]
-          : []),
-        // The query object is camelCase (sort pre-encoded to its wire string);
+        ...op.queryCodecs.flatMap(({ parameter }) => {
+          const key = toCamelCase(parameter)
+          return [
+            `    if (client._options.validate && req.${key} !== undefined) {`,
+            `      assertValid(schemas.${op.funcName}QueryParams.shape.${key}, req.${key})`,
+            `    }`,
+          ]
+        }),
+        // The query object is camelCase (SDK-coded values pre-encoded);
         // toWire snake-ifies the keys, including typed filter field names, against
         // the query schema. Record keys (label/dimension names) are preserved by
         // the walker.
         `    const query = toWire({`,
         ...op.queryParams.map((p) => {
           const key = toCamelCase(p)
-          // sort.by names a field in the public (camelCase) surface; the server
-          // expects the snake_case field name, so translate the value here.
-          return p === 'sort' && op.hasSort
-            ? `      sort: encodeSort(req.sort, toSnakeCase),`
-            : `      ${key}: req.${key},`
+          return `      ${key}: ${encodedQueryValue(op, p)},`
         }),
         `    }, schemas.${op.funcName}QueryParams)`,
         `    if (client._options.validate) {`,
@@ -260,7 +270,10 @@ export function funcsFile(tag: string, ops: SdkOperation[]): string {
   const usesFromWire = ops.some(
     (op) => op.hasResponse && !op.textResponseContentType,
   )
-  const usesSnake = ops.some((op) => op.hasSort)
+  const usesSort = ops.some((op) =>
+    op.queryCodecs.some((codec) => codec.codec === 'sort'),
+  )
+  const usesSnake = usesSort
   // assertValid runs (when the validate option is on) for any op with request
   // body/path/query data or a JSON response.
   const usesValidate = ops.some(
@@ -282,12 +295,16 @@ export function funcsFile(tag: string, ops: SdkOperation[]): string {
   // Path params are now inlined as template literals, so encodePath is no longer
   // imported; only query ops use the URL serializer and sort encoder.
   const hasAnyQuery = ops.some((op) => op.queryParams.length > 0)
+  const encodingNames = [
+    ...(hasAnyQuery ? ['toURLSearchParams'] : []),
+    ...(usesSort ? ['encodeSort'] : []),
+  ]
   const imports = [
     `import { type Client, http } from '../core.js'`,
     `import { type Result, type RequestOptions } from '../lib/types.js'`,
     `import { request } from '../lib/request.js'`,
-    ...(hasAnyQuery
-      ? [`import { toURLSearchParams, encodeSort } from '../lib/encodings.js'`]
+    ...(encodingNames.length > 0
+      ? [`import { ${encodingNames.join(', ')} } from '../lib/encodings.js'`]
       : []),
     ...(mapperNames.length > 0
       ? [`import { ${mapperNames.join(', ')} } from '../lib/wire.js'`]

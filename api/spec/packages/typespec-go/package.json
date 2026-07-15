@@ -20,6 +20,7 @@
   "dependencies": {
     "@alloy-js/core": "0.23.1",
     "@alloy-js/go": "0.3.0",
+    "@openmeter/typespec-sdk": "workspace:*",
     "@typespec/compiler": "1.11.0",
     "@typespec/emitter-framework": "0.17.0",
     "@typespec/http": "1.11.0",

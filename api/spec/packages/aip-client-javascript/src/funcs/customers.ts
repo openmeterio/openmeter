@@ -132,7 +132,7 @@ export function listCustomers(
 ): Promise<Result<ListCustomersResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.sortQuery, req.sort)
+      assertValid(schemas.listCustomersQueryParams.shape.sort, req.sort)
     }
     const query = toWire(
       {
@@ -940,7 +940,7 @@ export function listCustomerCharges(
       return encodeURIComponent(String(pathParams.customerId))
     })()}/charges`
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.sortQuery, req.sort)
+      assertValid(schemas.listCustomerChargesQueryParams.shape.sort, req.sort)
     }
     const query = toWire(
       {

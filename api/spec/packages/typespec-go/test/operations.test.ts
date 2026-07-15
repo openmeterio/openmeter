@@ -2,6 +2,7 @@ import type { Model, Program } from '@typespec/compiler'
 import { createTestHost, createTestRunner } from '@typespec/compiler/testing'
 import { HttpTestLibrary } from '@typespec/http/testing'
 import { OpenAPITestLibrary } from '@typespec/openapi/testing'
+import { TypeSpecSdkTestLibrary } from '@openmeter/typespec-sdk/testing'
 import { describe, expect, it } from 'vitest'
 import {
   collectHttpOperations,
@@ -21,12 +22,13 @@ import {
 
 async function compileProgram(code: string): Promise<Program> {
   const host = await createTestHost({
-    libraries: [HttpTestLibrary, OpenAPITestLibrary],
+    libraries: [HttpTestLibrary, OpenAPITestLibrary, TypeSpecSdkTestLibrary],
   })
   const runner = await createTestRunner(host)
   await runner.compile(`
     import "@typespec/http";
     import "@typespec/openapi";
+    import "@openmeter/typespec-sdk";
     using TypeSpec.Http;
     using TypeSpec.OpenAPI;
     ${code}
@@ -51,6 +53,8 @@ describe('operation HTTP IR', () => {
         order?: "asc" | "desc";
       }
 
+      model SortAlias is SortQuery;
+
       model ItemFilter {
         key?: string;
       }
@@ -64,11 +68,16 @@ describe('operation HTTP IR', () => {
             size?: integer;
             number?: integer;
           },
-          @query sort?: SortQuery,
+          @OpenMeter.Sdk.queryCodec("sort", string)
+          @query sort?: SortAlias,
           @query(#{ style: "deepObject", explode: true }) filter?: ItemFilter,
           @query(#{ explode: true }) expand?: string[],
           @query timestamp?: utcDateTime,
         ): string[];
+
+        @get
+        @route("/raw-sort")
+        op rawSort(@query sort?: SortQuery): string[];
 
         @get
         @route("/cursor")
@@ -101,6 +110,11 @@ describe('operation HTTP IR', () => {
       timestamp: { kind: 'scalar' },
     })
     expect(list.pagination).toBe('page')
+
+    const rawSort = operations.find(
+      (operation) => operation.operation.name === 'rawSort',
+    )!
+    expect(rawSort.queryParams[0]?.queryCodec).toEqual({ kind: 'scalar' })
 
     const cursor = operations.find(
       (operation) => operation.operation.name === 'cursor',

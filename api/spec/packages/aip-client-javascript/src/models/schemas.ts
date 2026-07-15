@@ -6694,7 +6694,13 @@ export const dateTimeWire = z
   )
 
 export const sortQueryWire = z
-  .string()
+  .strictObject({
+    by: z.string().describe('The attribute to sort by.'),
+    order: z
+      .union([z.literal('asc'), z.literal('desc')])
+      .optional()
+      .describe('The sort order. `asc` for ascending, `desc` for descending.'),
+  })
 
   .describe(
     'Sort query. The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
@@ -12192,7 +12198,13 @@ export const invoicePagePaginatedResponseWire = z
 export const listMeteringEventsQueryParamsWire = z.object({
   page: cursorPaginationQueryPageWire.optional(),
   filter: listEventsParamsFilterWire.optional(),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort events returned in the response. Supported sort attributes are: - `time` (default) - `ingested_at` - `stored_at` When omitted, events are sorted by `time desc` (most recent first). When a sort field is provided without a suffix, it sorts descending. Append the `asc` suffix to sort ascending, or the `desc` suffix to sort descending.',
+    ),
 })
 
 export const listMeteringEventsResponseWire = z.strictObject({
@@ -12227,7 +12239,13 @@ export const listMetersQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort meters returned in the response. Supported sort attributes are: - `key` - `name` - `aggregation` - `created_at` (default) - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
   filter: listMetersParamsFilterWire.optional(),
 })
 
@@ -12286,7 +12304,13 @@ export const listCustomersQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort customers returned in the response. Supported sort attributes are: - `id` - `name` (default) - `created_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
   filter: listCustomersParamsFilterWire.optional(),
 })
 
@@ -12465,7 +12489,13 @@ export const listCustomerChargesQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort charges returned in the response. Supported sort attributes are: - `id` - `created_at` - `service_period.from` - `billing_period.from`',
+    ),
   filter: listChargesParamsFilterWire.optional(),
   expand: z
     .array(chargesExpandWire)
@@ -12505,7 +12535,13 @@ export const listSubscriptionsQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort subscriptions returned in the response. Supported sort attributes are: - `id` - `active_from` (default) - `active_to` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
   filter: listSubscriptionsParamsFilterWire.optional(),
 })
 
@@ -12567,7 +12603,13 @@ export const listSubscriptionAddonsQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort subscription addons returned in the response. Supported sort attributes are: - `id` - `created_at` (default) - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
 })
 
 export const listSubscriptionAddonsResponseWire = z.strictObject({
@@ -12660,7 +12702,13 @@ export const listInvoicesQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort invoices returned in the response. Supported sort attributes: - `issued_at` - `created_at` (default) - `service_period_start` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
   filter: listInvoicesParamsFilterWire.optional(),
 })
 
@@ -12768,7 +12816,13 @@ export const listCurrenciesQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort currencies returned in the response. Supported sort attributes are: - `code` (default) - `name` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
   filter: listCurrenciesParamsFilterWire.optional(),
 })
 
@@ -12825,7 +12879,13 @@ export const listFeaturesQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort features returned in the response. Supported sort attributes are: - `key` - `name` - `created_at` (default) - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
   filter: listFeatureParamsFilterWire.optional(),
 })
 
@@ -12866,7 +12926,13 @@ export const queryFeatureCostResponseWire = featureCostQueryResultWire
 
 export const listLlmCostPricesQueryParamsWire = z.object({
   filter: listLlmCostPricesParamsFilterWire.optional(),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort prices returned in the response. Supported sort attributes are: - `id` - `provider.id` - `model.id` (default) - `effective_from` - `effective_to` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
   page: z
     .strictObject({
       size: z.coerce
@@ -12931,7 +12997,13 @@ export const listPlansQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort plans returned in the response. Supported sort attributes are: - `id` - `key` - `version` - `created_at` (default) - `updated_at`',
+    ),
   filter: listPlansParamsFilterWire.optional(),
 })
 
@@ -12986,7 +13058,13 @@ export const listAddonsQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  sort: sortQueryWire.optional(),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort add-ons returned in the response. Supported sort attributes are: - `id` - `key` - `name` - `created_at` (default) - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
   filter: listAddonsParamsFilterWire.optional(),
 })
 

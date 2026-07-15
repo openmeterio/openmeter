@@ -14,6 +14,7 @@ import {
 import { $ } from '@typespec/compiler/typekit'
 import { getAllHttpServices } from '@typespec/http'
 import { getExtensions, getOperationId } from '@typespec/openapi'
+import { getQueryCodec, type QueryCodec } from '@openmeter/typespec-sdk'
 import { ZodSchema } from './components/ZodSchema.jsx'
 import { isSuccessStatus } from './http-status.js'
 import {
@@ -152,6 +153,7 @@ export function operationBaseName(program: Program, op: Operation): string {
 interface ParamLeaf {
   name: string
   prop: ModelProperty
+  codec?: QueryCodec
 }
 
 function paramObject(
@@ -163,7 +165,8 @@ function paramObject(
   // emitter.tsx's `…Wire` re-render) must keep the raw wire name so a
   // `*QueryParamsWire` schema actually matches the querystring sent on the
   // wire — otherwise it silently describes the wrong (camelCase) shape.
-  const camelize = camelizeInCamelPass && !useWireMode()
+  const wire = useWireMode()
+  const camelize = camelizeInCamelPass && !wire
   return (
     <CoerceContext.Provider value={true}>
       {zodMemberExpr(
@@ -173,7 +176,17 @@ function paramObject(
             <For each={params} comma hardline enderPunctuation>
               {(p) => (
                 <ObjectProperty name={camelize ? toCamelCase(p.name) : p.name}>
-                  <ZodSchema type={p.prop} nested />
+                  {wire && p.codec ? (
+                    <CoerceContext.Provider value={false}>
+                      <ZodSchema
+                        type={p.prop}
+                        valueType={p.codec.wireType}
+                        nested
+                      />
+                    </CoerceContext.Provider>
+                  ) : (
+                    <ZodSchema type={p.prop} nested />
+                  )}
                 </ObjectProperty>
               )}
             </For>
@@ -205,7 +218,11 @@ export function operationSchemas(
     if (param.type === 'path') {
       pathParams.push({ name: param.name, prop: param.param })
     } else if (param.type === 'query') {
-      queryParams.push({ name: param.name, prop: param.param })
+      queryParams.push({
+        name: param.name,
+        prop: param.param,
+        codec: getQueryCodec(program, param.param),
+      })
     }
     // headers are transport metadata; intentionally skipped.
   }

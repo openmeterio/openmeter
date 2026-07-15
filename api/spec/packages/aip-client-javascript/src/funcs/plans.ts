@@ -43,7 +43,7 @@ export function listPlans(
 ): Promise<Result<ListPlansResponse>> {
   return request(() => {
     if (client._options.validate && req.sort !== undefined) {
-      assertValid(schemas.sortQuery, req.sort)
+      assertValid(schemas.listPlansQueryParams.shape.sort, req.sort)
     }
     const query = toWire(
       {

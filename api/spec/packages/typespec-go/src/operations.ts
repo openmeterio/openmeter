@@ -15,6 +15,7 @@ import {
 } from '@typespec/http'
 import '@typespec/http/experimental/typekit'
 import { getOperationId } from '@typespec/openapi'
+import { getQueryCodec } from '@openmeter/typespec-sdk'
 import { optionalTypeName } from './go-types.js'
 import { methodNameFromOperationName, methodNameOf } from './grouping.js'
 
@@ -157,6 +158,14 @@ export function classifyQueryParameter(
 ): GoQueryCodec {
   const typekit = $(program)
   const type = parameter.param.type
+  const sdkCodec = getQueryCodec(program, parameter.param)
+
+  if (sdkCodec) {
+    switch (sdkCodec.codec) {
+      case 'sort':
+        return { kind: 'sort' }
+    }
+  }
 
   if (type.kind === 'Model') {
     if (typekit.array.is(type)) {
@@ -189,10 +198,6 @@ export function classifyQueryParameter(
         `typespec-go: query parameter page on ${operation.name} has properties {${[...properties].join(', ')}} matching neither page pagination {size, number} nor cursor pagination {size, after, before}; rename the parameter or align it with a pagination shape before emitting it`,
       )
     }
-  }
-
-  if (optionalTypeName(program, type) === 'SortQuery') {
-    return { kind: 'sort' }
   }
 
   return { kind: 'scalar' }

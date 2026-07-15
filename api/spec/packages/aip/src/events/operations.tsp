@@ -99,6 +99,7 @@ interface EventsOperations {
      * to sort ascending, or the `desc` suffix to sort descending.
      */
     @query
+    @OpenMeter.Sdk.queryCodec("sort", string)
     sort?: Common.SortQuery,
   ): Shared.CursorPaginatedResponse<IngestedEvent> | Common.ErrorResponses;
 

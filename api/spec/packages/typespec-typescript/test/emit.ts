@@ -10,6 +10,7 @@ const Tester = createTester(packageRoot, {
   libraries: [
     '@typespec/http',
     '@typespec/openapi',
+    '@openmeter/typespec-sdk',
     '@openmeter/typespec-typescript',
   ],
 })

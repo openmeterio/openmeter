@@ -41,6 +41,9 @@ importers:
       '@openmeter/typespec-go':
         specifier: workspace:*
         version: link:../typespec-go
+      '@openmeter/typespec-sdk':
+        specifier: workspace:*
+        version: link:../typespec-sdk
       '@openmeter/typespec-typescript':
         specifier: workspace:*
         version: link:../typespec-typescript
@@ -138,6 +141,9 @@ importers:
       '@alloy-js/go':
         specifier: 0.3.0
         version: 0.3.0
+      '@openmeter/typespec-sdk':
+        specifier: workspace:*
+        version: link:../typespec-sdk
       '@typespec/compiler':
         specifier: 1.11.0
         version: 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.9.2)
@@ -164,6 +170,12 @@ importers:
         specifier: 4.1.8
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@25.9.2)(@vitest/coverage-v8@4.1.8)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(tsx@4.21.0)(yaml@2.9.0))
 
+  packages/typespec-sdk:
+    dependencies:
+      '@typespec/compiler':
+        specifier: 1.11.0
+        version: 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.9.2)
+
   packages/typespec-typescript:
     dependencies:
       '@alloy-js/core':
@@ -172,6 +184,9 @@ importers:
       '@alloy-js/typescript':
         specifier: 0.23.0
         version: 0.23.0
+      '@openmeter/typespec-sdk':
+        specifier: workspace:*
+        version: link:../typespec-sdk
       '@typespec/compiler':
         specifier: 1.11.0
         version: 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.9.2)
