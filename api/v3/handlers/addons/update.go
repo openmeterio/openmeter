@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -26,6 +27,14 @@ func (h *handler) UpdateAddon() UpdateAddonHandler {
 			body := apiv3.UpsertAddonRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateAddonRequest{}, err
+			}
+
+			if !h.unitConfigEnabled {
+				for _, rc := range body.RateCards {
+					if rc.UnitConfig != nil {
+						return UpdateAddonRequest{}, models.NewGenericValidationError(fmt.Errorf("unit_config is not enabled on this deployment of OpenMeter"))
+					}
+				}
 			}
 
 			ns, err := h.resolveNamespace(ctx)
