@@ -265,11 +265,10 @@ func TestV3AddonV1PriceReadFallback(t *testing.T) {
 	}
 }
 
-// TestV3AddonUnitConfigRejectedByV1Read proves the OM-409 guard that add-on
-// unit_config authoring unblocks: once an add-on can carry a stored unit_config
-// (v3 authoring, above), the v1 add-on read surface — which cannot represent it
-// — must reject it. Author + publish a unit_config add-on via v3, then GET it
-// through the v1 API and expect a 400 unit_config_not_representable.
+// TestV3AddonUnitConfigRejectedByV1Read proves that once an add-on carries a
+// stored unit_config (v3 authoring, above), the v1 read surface — which can't
+// represent it — rejects it. Author + publish via v3, then GET via v1 and
+// expect a 400 unit_config_not_representable.
 func TestV3AddonUnitConfigRejectedByV1Read(t *testing.T) {
 	c := newV3Client(t)
 	v1 := initClient(t)

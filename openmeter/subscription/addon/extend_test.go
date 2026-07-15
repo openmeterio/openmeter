@@ -463,6 +463,39 @@ func TestExtendApply(t *testing.T) {
 		require.Equal(t, 200.0, *me.IssueAfterReset)
 	})
 
+	t.Run("Should propagate addon UnitConfig to target when target has no price", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromInt(1),
+		})
+		meta.UnitConfig = &productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationDivide,
+			ConversionFactor: alpacadecimal.NewFromInt(1_000_000_000),
+			Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		}
+
+		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
+		})
+
+		targetMeta := meta.Clone()
+		targetMeta.Price = nil
+		targetMeta.UnitConfig = nil
+
+		target := &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   targetMeta,
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
+		}
+
+		err := rc.Apply(target, models.Annotations{})
+
+		require.NoError(t, err)
+		require.NotNil(t, target.AsMeta().UnitConfig, "addon's UnitConfig must travel with its Price onto a previously priceless target")
+		require.Equal(t, productcatalog.UnitConfigOperationDivide, target.AsMeta().UnitConfig.Operation)
+		require.Equal(t, alpacadecimal.NewFromInt(1_000_000_000).InexactFloat64(), target.AsMeta().UnitConfig.ConversionFactor.InexactFloat64())
+	})
+
 	t.Run("Should add Usage Discounts from UsageBasedRateCard to target with UnitPrice", func(t *testing.T) {
 		meta := someMeta.Clone()
 		meta.Price = nil
@@ -800,6 +833,35 @@ func TestExtendRestore(t *testing.T) {
 		me, err := target.AsMeta().EntitlementTemplate.AsMetered()
 		require.NoError(t, err)
 		require.Equal(t, 0.0, *me.IssueAfterReset)
+	})
+
+	t.Run("Should clear UnitConfig when restoring a single-instance addon's price to nil", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.EntitlementTemplate = nil
+		meta.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: alpacadecimal.NewFromInt(1),
+		})
+		meta.UnitConfig = &productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationDivide,
+			ConversionFactor: alpacadecimal.NewFromInt(1_000_000_000),
+			Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		}
+
+		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
+		})
+
+		target := &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   meta.Clone(),
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
+		}
+
+		err := rc.Restore(target, models.Annotations{}, productcatalog.AddonInstanceTypeSingle)
+
+		require.NoError(t, err)
+		require.Nil(t, target.AsMeta().Price)
+		require.Nil(t, target.AsMeta().UnitConfig, "tearing down the addon's price must also clear the UnitConfig it carried in, or the target is left with a UnitConfig and no price to convert")
 	})
 
 	t.Run("Should error if trying to restore Usage Discount when one is not present on target", func(t *testing.T) {

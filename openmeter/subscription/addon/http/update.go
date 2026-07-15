@@ -69,13 +69,10 @@ func (h *handler) UpdateSubscriptionAddon() UpdateSubscriptionAddonHandler {
 			}, nil
 		},
 		func(ctx context.Context, request UpdateSubscriptionAddonRequest) (UpdateSubscriptionAddonResponse, error) {
-			// v1 cannot represent a unit_config add-on. Reject BEFORE the quantity
-			// change so a request we are going to reject never persists a mutation.
-			// We guard here in the v1 handler, not inside ChangeAddonQuantity: that is
-			// a domain workflow (shared with the create path) whose result IS
-			// representable in v3, so the "v1-only" restriction belongs on the v1 read
-			// surface. Guard the served add-on only, never the subscription's plan
-			// (per OM-399).
+			// Reject before the quantity change so a rejected request never persists a
+			// mutation. Guarded here, not in ChangeAddonQuantity, since that workflow's
+			// result is representable in v3; only the v1 surface needs the restriction.
+			// Checks the served add-on only, never the subscription's plan.
 			served, err := h.SubscriptionAddonService.Get(ctx, subscriptionaddon.GetSubscriptionAddonInput{
 				NamespacedID: request.WorkflowInput.SubscriptionAddonID,
 			})

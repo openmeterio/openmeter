@@ -53,6 +53,9 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 				return nil, err
 			}
 
+			// Deliberately fails the whole list, not just the unrepresentable item: this is
+			// an actual-state surface (what the customer is billed for), which rejects,
+			// unlike catalog-list endpoints such as ListAddons, which omit instead.
 			return slicesx.MapWithErr(res.Items, func(item subscriptionaddon.SubscriptionAddon) (api.SubscriptionAddon, error) {
 				if item.Addon.AsProductCatalogAddon().HasUnitConfig() {
 					return api.SubscriptionAddon{}, productcatalog.ErrUnitConfigNotRepresentable
