@@ -141,7 +141,7 @@ func (f *FiatCurrency) IsRoundedToPrecision(amount alpacadecimal.Decimal) bool {
 }
 
 func (f *FiatCurrency) RoundToPrecision(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
-	return amount.RoundBank(int32(f.def.Subunits))
+	return amount.Round(int32(f.def.Subunits))
 }
 
 func (f *FiatCurrency) Type() CurrencyType {
@@ -243,7 +243,7 @@ func (c *CustomCurrency) IsRoundedToPrecision(amount alpacadecimal.Decimal) bool
 }
 
 func (c *CustomCurrency) RoundToPrecision(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
-	return amount.RoundBank(int32(c.def.Subunits))
+	return amount.Round(int32(c.def.Subunits))
 }
 
 func (c *CustomCurrency) Type() CurrencyType {
