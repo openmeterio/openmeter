@@ -343,7 +343,7 @@ describe('paginateCursor (cursor pagination)', () => {
   it('throws PaginationLimitExceededError instead of looping forever on a server that never stops returning a next cursor', async () => {
     let calls = 0
     const fetchPage = async (): Promise<
-      Result<{ data: unknown[]; meta: { page: { next?: string } } }>
+      Result<{ data: unknown[]; meta: { page: { next: string | null } } }>
     > => {
       calls++
       return {

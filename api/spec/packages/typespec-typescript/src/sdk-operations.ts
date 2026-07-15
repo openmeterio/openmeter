@@ -22,6 +22,8 @@ export interface SdkOperation {
   pathParams: string[]
   queryParams: string[]
   hasSort: boolean
+  /** Zod schema for the public SortQuery object, validated before wire encoding. */
+  sortSchema?: string
   hasBody: boolean
   hasResponse: boolean
   /** Documented interface name for the success body, when it is a named model. */
@@ -60,6 +62,9 @@ export type ResolveInterface = (type: Type | undefined) => string | undefined
  * the input variant when the body diverges on input, else the output interface.
  */
 export type ResolveRequestBody = (type: Type | undefined) => string | undefined
+
+/** Resolves a named TypeSpec type to its emitted Zod schema variable. */
+export type ResolveSchema = (type: Type | undefined) => string | undefined
 
 function lowerFirst(name: string): string {
   const m = name.match(/^([A-Z]{2,})([A-Z][a-z].*)$/)
@@ -126,6 +131,7 @@ export function sdkOperation(
   resource: string,
   resolveInterface: ResolveInterface,
   resolveRequestBody: ResolveRequestBody,
+  resolveSchema: ResolveSchema,
   bodyOverrides: Map<string, Type>,
 ): SdkOperation {
   const tk = $(program)
@@ -139,11 +145,19 @@ export function sdkOperation(
 
   const pathParams: string[] = []
   const queryParams: string[] = []
+  let sortSchema: string | undefined
   for (const param of httpOp.parameters.parameters) {
     if (param.type === 'path') {
       pathParams.push(param.name)
     } else if (param.type === 'query') {
       queryParams.push(param.name)
+      if (
+        param.name === 'sort' &&
+        param.param.type.kind === 'Model' &&
+        param.param.type.name === 'SortQuery'
+      ) {
+        sortSchema = resolveSchema(param.param.type)
+      }
     }
   }
 
@@ -173,7 +187,8 @@ export function sdkOperation(
     pathParams,
     queryParams,
     nestPath,
-    hasSort: queryParams.includes('sort'),
+    hasSort: sortSchema !== undefined,
+    sortSchema,
     hasBody:
       httpOp.parameters.body?.type !== undefined || bodyOverrides.has(base),
     hasResponse: responseBody !== undefined,

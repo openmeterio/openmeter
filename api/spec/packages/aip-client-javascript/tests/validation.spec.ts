@@ -119,6 +119,95 @@ describe('strict request validation uses the effective JSON payload', () => {
     expect(result.ok).toBe(true)
     expect(fetchMock.callHistory.calls()).toHaveLength(1)
   })
+
+  it('materializes required defaults before strict wire validation', async () => {
+    let sentBody: unknown
+    fetchMock.route('*', async ({ options }) => {
+      sentBody = JSON.parse(options!.body as string)
+      return 204
+    })
+
+    const result = await funcs.ingestMeteringEvents(client(true), {
+      id: 'event-with-default',
+      source: 'https://example.com/service',
+      type: 'api-request',
+      subject: 'customer-1',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(sentBody).toMatchObject({ specversion: '1.0' })
+  })
+})
+
+describe('strict sort validation follows the public and wire shapes', () => {
+  const eventsPage = {
+    data: [ingestedEvent],
+    meta: { page: { size: 1, next: null, previous: null } },
+  }
+
+  it('accepts a valid public sort object and validates its encoded string', async () => {
+    fetchMock.route('*', json(eventsPage))
+
+    const result = await funcs.listMeteringEvents(client(true), {
+      sort: { by: 'ingestedAt', order: 'desc' },
+    })
+
+    expect(result.ok).toBe(true)
+    const query = new URL(fetchMock.callHistory.lastCall()!.url).searchParams
+    expect(query.get('sort')).toBe('ingested_at desc')
+  })
+
+  it('rejects an invalid public sort before encoding or sending', async () => {
+    fetchMock.route('*', json(eventsPage))
+
+    const result = await funcs.listMeteringEvents(client(true), {
+      sort: { by: 'ingestedAt', order: 'sideways' as never },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBeInstanceOf(ValidationError)
+    expect(fetchMock.callHistory.calls()).toHaveLength(0)
+  })
+
+  it('keeps the existing sort behavior when validate is false', async () => {
+    fetchMock.route('*', json(eventsPage))
+
+    const result = await funcs.listMeteringEvents(client(false), {
+      sort: { by: 'ingestedAt', order: 'sideways' as never },
+    })
+
+    expect(result.ok).toBe(true)
+    const query = new URL(fetchMock.callHistory.lastCall()!.url).searchParams
+    expect(query.get('sort')).toBe('ingested_at')
+  })
+})
+
+describe('strict path validation uses generated path schemas', () => {
+  it('rejects an invalid constrained path value before sending', async () => {
+    fetchMock.route('*', json({}))
+
+    const result = await funcs.getMeter(client(true), {
+      meterId: 'not-a-ulid',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBeInstanceOf(ValidationError)
+    expect(fetchMock.callHistory.calls()).toHaveLength(0)
+  })
+
+  it('keeps path validation disabled when validate is false', async () => {
+    fetchMock.route('*', json({}))
+
+    const result = await funcs.getMeter(client(false), {
+      meterId: 'not-a-ulid',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(fetchMock.callHistory.calls()).toHaveLength(1)
+    expect(fetchMock.callHistory.lastCall()!.url).toContain(
+      '/openmeter/meters/not-a-ulid',
+    )
+  })
 })
 
 describe('nullable cursor response validation', () => {
@@ -164,6 +253,23 @@ describe('nullable cursor response validation', () => {
       json({
         data: [ingestedEvent],
         meta: { page: { size: 1, next: null, previous: 42 } },
+      }),
+    )
+
+    const result = await funcs.listMeteringEvents(client(true), {})
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBeInstanceOf(ValidationError)
+  })
+
+  it('rejects a response missing a required field that has a request default', async () => {
+    const { specversion: _specversion, ...eventWithoutSpecversion } =
+      ingestedEvent.event
+    fetchMock.route(
+      '*',
+      json({
+        data: [{ ...ingestedEvent, event: eventWithoutSpecversion }],
+        meta: { page: { size: 1, next: null, previous: null } },
       }),
     )
 

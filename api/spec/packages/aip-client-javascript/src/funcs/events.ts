@@ -26,6 +26,9 @@ export function listMeteringEvents(
   options?: RequestOptions,
 ): Promise<Result<ListMeteringEventsResponse>> {
   return request(() => {
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(schemas.sortQuery, req.sort)
+    }
     const query = toWire(
       {
         page: req.page,

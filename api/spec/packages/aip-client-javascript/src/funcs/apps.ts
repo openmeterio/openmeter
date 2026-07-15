@@ -4,7 +4,7 @@ import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
 import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
-import { toWire, fromWire, assertValid } from '../lib/wire.js'
+import { toWire, toPathWire, fromWire, assertValid } from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   ListAppsRequest,
@@ -61,11 +61,20 @@ export function getApp(
   options?: RequestOptions,
 ): Promise<Result<GetAppResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      appId: req.appId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getAppPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getAppPathParamsWire, pathParams)
+    }
     const path = `openmeter/apps/${(() => {
-      if (req.appId === undefined) {
+      if (pathParams.appId === undefined) {
         throw new Error('missing path parameter: appId')
       }
-      return encodeURIComponent(String(req.appId))
+      return encodeURIComponent(String(pathParams.appId))
     })()}`
     return http(client)
       .get(path, options)

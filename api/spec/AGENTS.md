@@ -253,10 +253,11 @@ second time in a `snake_case` "wire" pass (`WireModeContext` in the emitter), ke
 the raw JSON wire name and made `z.strictObject`, so a wrong-shaped or
 leaked-camelCase wire field is **rejected, not silently stripped**. Open models
 (record spread, `emitsAsIntersection`, e.g. `baseError`) stay non-strict — strict
-would defeat the record arm that exists to accept them. Because the wire pass is the
-same emitter walk as the camelCase pass (parameterized by key-casing + strictness +
-a separate refkey namespace), the two are structurally identical except for casing,
-**by construction** — no runtime schema derivation. A failure throws
+would defeat the record arm that exists to accept them. The wire pass uses the same
+emitter walk as the camelCase pass (parameterized by direction + key-casing +
+strictness + a separate refkey namespace), but it must describe the value **after**
+transport encoding: date-time values are strings, `SortQuery` is one encoded string,
+and defaults are absent. A failure throws
 `ValidationError`, which `request()` surfaces as `Result.error` (request validation
 runs _inside_ the `request()` closure so it does not throw synchronously).
 **Enabling `validate` re-introduces exactly the rejection the default policy
@@ -268,6 +269,20 @@ Models decorated with `@useRef` still need a local TypeSpec shape that matches t
 referenced OpenAPI schema. The TypeScript and Go emitters walk the local TypeSpec
 AST; `@useRef` only changes the emitted OpenAPI reference and does not import the
 referenced schema's requiredness or nullability into language-specific SDKs.
+
+TypeSpec defaults belong only on public schemas. `toWire` reads the public schema to
+materialize required request defaults before wire validation; `…Wire` schemas must
+not use Zod `.default(...)`, because the same schema validates responses and a
+default wrapper would accept a required field the server omitted. For any custom
+public-to-wire codec (currently `SortQuery` object → query string), validate the
+public value before encoding and the encoded value against its wire schema after
+encoding. Do not classify a codec by the HTTP parameter name alone; verify its
+TypeSpec type so an unrelated scalar named `sort` keeps scalar behavior.
+Generated path-parameter schemas are part of the same boundary: in strict mode,
+map path values to their transport representation, validate the mapped object,
+then interpolate and URL-encode it. Preserve path binding names during mapping;
+unlike JSON object keys, they must not be snake-cased. Keep mapping conditional so
+`validate: false` retains its established runtime behavior.
 
 ### Documented types: generated from TypeSpec, verified against zod
 

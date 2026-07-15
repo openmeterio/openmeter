@@ -479,6 +479,14 @@ const toWireDirection: Direction = {
   omitUndefinedObjectEntries: true,
 }
 
+// Path binding names are transport metadata, not JSON object member names, so
+// they must remain exactly as declared while their values receive the same
+// Date/bigint/default mapping used by request bodies and query parameters.
+const toPathWireDirection: Direction = {
+  ...toWireDirection,
+  rename: (key) => key,
+}
+
 const fromWireDirection: Direction = {
   rename: toCamelCase,
   discriminatorKey: (camelKey) => toSnakeCase(camelKey),
@@ -502,6 +510,13 @@ const fromWireDirection: Direction = {
 // straight into `json:`/`toURLSearchParams`, both of which accept any object).
 export function toWire<T>(data: T, schema: ZodType): T {
   return walk(data, schema, toWireDirection) as T
+}
+
+// Rewrite path-parameter values to their transport representation without
+// renaming the path binding keys. The returned object is subsequently validated
+// against the generated `…PathParamsWire` schema and URL-encoded by the func.
+export function toPathWire<T>(data: T, schema: ZodType): T {
+  return walk(data, schema, toPathWireDirection) as T
 }
 
 // Rewrite a response body from the snake_case wire shape to the camelCase public

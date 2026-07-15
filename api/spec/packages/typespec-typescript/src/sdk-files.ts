@@ -8,7 +8,7 @@ import {
 import type { RequestTypes } from './request-types.js'
 import { toCamelCase } from './casing.js'
 
-function pathExpr(op: SdkOperation): string {
+function pathExpr(op: SdkOperation, source = 'req'): string {
   // Inline the path as a template literal: each `{param}` becomes the
   // URL-encoded request field. Path params are typed as required strings, but
   // that only holds under the TS compiler — a caller on `any`/plain JS, or one
@@ -22,7 +22,7 @@ function pathExpr(op: SdkOperation): string {
     .replace(
       /\{(\w+)\}/g,
       (_, p: string) =>
-        `\${(() => { if (req.${p} === undefined) { throw new Error('missing path parameter: ${p}') } return encodeURIComponent(String(req.${p})) })()}`,
+        `\${(() => { if (${source}.${p} === undefined) { throw new Error('missing path parameter: ${p}') } return encodeURIComponent(String(${source}.${p})) })()}`,
     )
   return `\`${path}\``
 }
@@ -38,7 +38,9 @@ function funcBody(op: SdkOperation): string {
       ? `req: ${reqType} = {}`
       : `req: ${reqType}`
 
-  const url = hasPath ? pathExpr(op) : `'${op.path.replace(/^\//, '')}'`
+  const url = hasPath
+    ? pathExpr(op, 'pathParams')
+    : `'${op.path.replace(/^\//, '')}'`
 
   const kyOpts: string[] = []
   if (hasQuery) {
@@ -81,7 +83,23 @@ function funcBody(op: SdkOperation): string {
   // above it), so a missing required path param throws from within the wrapped
   // callback and surfaces as Result.error, the same as a body/query validation
   // failure — not a synchronous throw out of the func call itself.
-  const preparePath = hasPath ? [`    const path = ${url}`] : []
+  const preparePath = hasPath
+    ? [
+        `    const pathParamsInput = {`,
+        ...op.pathParams.map((p) => `      ${p}: req.${p},`),
+        `    }`,
+        // Preserve the validation-disabled runtime path exactly. In strict mode,
+        // map values such as Date/bigint into their actual transport form first,
+        // then validate the same values that path interpolation will stringify.
+        `    const pathParams = client._options.validate`,
+        `      ? toPathWire(pathParamsInput, schemas.${op.funcName}PathParams)`,
+        `      : pathParamsInput`,
+        `    if (client._options.validate) {`,
+        `      assertValid(schemas.${op.funcName}PathParamsWire, pathParams)`,
+        `    }`,
+        `    const path = ${url}`,
+      ]
+    : []
   // Maps the request body/query object to the wire and, when validation is on,
   // checks the actual snake_case payload against the strict wire schema before
   // sending. Runs inside the request() closure so a failure becomes Result.error,
@@ -97,6 +115,13 @@ function funcBody(op: SdkOperation): string {
     : []
   const prepareQuery = hasQuery
     ? [
+        ...(op.hasSort
+          ? [
+              `    if (client._options.validate && req.sort !== undefined) {`,
+              `      assertValid(schemas.${op.sortSchema}, req.sort)`,
+              `    }`,
+            ]
+          : []),
         // The query object is camelCase (sort pre-encoded to its wire string);
         // toWire snake-ifies the keys, including typed filter field names, against
         // the query schema. Record keys (label/dimension names) are preserved by
@@ -106,7 +131,7 @@ function funcBody(op: SdkOperation): string {
           const key = toCamelCase(p)
           // sort.by names a field in the public (camelCase) surface; the server
           // expects the snake_case field name, so translate the value here.
-          return p === 'sort'
+          return p === 'sort' && op.hasSort
             ? `      sort: encodeSort(req.sort, toSnakeCase),`
             : `      ${key}: req.${key},`
         }),
@@ -227,24 +252,27 @@ export function operationsAssertFile(
 
 export function funcsFile(tag: string, ops: SdkOperation[]): string {
   const file = namespaceFile(tag)
-  // toWire maps request bodies and query objects to the wire; fromWire maps JSON
-  // responses back. Both reference per-op schema values, so the schema namespace
-  // is imported whenever either is used.
+  // The request mappers convert bodies, query objects, and path values to their
+  // transport form; fromWire maps JSON responses back. They reference per-op
+  // schema values, so the schema namespace is imported whenever one is used.
   const usesToWire = ops.some((op) => op.hasBody || op.queryParams.length > 0)
+  const usesPathWire = ops.some((op) => op.pathParams.length > 0)
   const usesFromWire = ops.some(
     (op) => op.hasResponse && !op.textResponseContentType,
   )
   const usesSnake = ops.some((op) => op.hasSort)
-  // assertValid runs (when the validate option is on) for any op with a request
-  // body, query params, or a JSON response.
+  // assertValid runs (when the validate option is on) for any op with request
+  // body/path/query data or a JSON response.
   const usesValidate = ops.some(
     (op) =>
       op.hasBody ||
+      op.pathParams.length > 0 ||
       op.queryParams.length > 0 ||
       (op.hasResponse && !op.textResponseContentType),
   )
   const mapperNames = [
     ...(usesToWire ? ['toWire'] : []),
+    ...(usesPathWire ? ['toPathWire'] : []),
     ...(usesFromWire ? ['fromWire'] : []),
     ...(usesValidate ? ['assertValid'] : []),
     ...(usesSnake ? ['toSnakeCase'] : []),

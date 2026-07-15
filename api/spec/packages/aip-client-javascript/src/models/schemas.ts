@@ -6694,14 +6694,7 @@ export const dateTimeWire = z
   )
 
 export const sortQueryWire = z
-  .strictObject({
-    by: z.string().describe('The attribute to sort by.'),
-    order: z
-      .union([z.literal('asc'), z.literal('desc')])
-      .optional()
-      .default('asc')
-      .describe('The sort order. `asc` for ascending, `desc` for descending.'),
-  })
+  .string()
 
   .describe(
     'Sort query. The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
@@ -6788,7 +6781,6 @@ export const baseErrorWire = z
     z.object({
       type: z
         .string()
-        .default('about:blank')
         .describe('Type contains a URI that identifies the problem type.'),
       status: z
         .number()
@@ -7323,7 +7315,6 @@ export const workflowPaymentSendInvoiceSettingsWire = z
     due_after: z
       .string()
       .optional()
-      .default('P30D')
 
       .describe(
         "The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method.",
@@ -7401,7 +7392,6 @@ export const invoiceWorkflowInvoicingSettingsWire = z
     auto_advance: z
       .boolean()
       .optional()
-      .default(true)
 
       .describe(
         'Whether to automatically issue the invoice after the draft_period has passed.',
@@ -7409,7 +7399,6 @@ export const invoiceWorkflowInvoicingSettingsWire = z
     draft_period: z
       .string()
       .optional()
-      .default('P0D')
 
       .describe(
         'The period for the invoice to be kept in draft status for manual reviews.',
@@ -7459,7 +7448,6 @@ export const updateBillingInvoiceWorkflowInvoicingSettingsWire = z
     auto_advance: z
       .boolean()
       .optional()
-      .default(true)
 
       .describe(
         'Whether to automatically issue the invoice after the draft_period has passed.',
@@ -7467,7 +7455,6 @@ export const updateBillingInvoiceWorkflowInvoicingSettingsWire = z
     draft_period: z
       .string()
       .optional()
-      .default('P0D')
 
       .describe(
         'The period for the invoice to be kept in draft status for manual reviews.',
@@ -7497,7 +7484,6 @@ export const updateBillingWorkflowPaymentSendInvoiceSettingsWire = z
     due_after: z
       .string()
       .optional()
-      .default('P30D')
 
       .describe(
         "The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method.",
@@ -8321,7 +8307,6 @@ export const eventWire = z
     specversion: z
       .string()
       .min(1)
-      .default('1.0')
 
       .describe(
         'The version of the CloudEvents specification which the event uses.',
@@ -9018,15 +9003,11 @@ export const updateAddressWire = z
 
 export const appStripeCreateCheckoutSessionCustomerUpdateWire = z
   .strictObject({
-    address: appStripeCreateCheckoutSessionCustomerUpdateBehaviorWire
-      .optional()
-      .default('never'),
-    name: appStripeCreateCheckoutSessionCustomerUpdateBehaviorWire
-      .optional()
-      .default('never'),
-    shipping: appStripeCreateCheckoutSessionCustomerUpdateBehaviorWire
-      .optional()
-      .default('never'),
+    address:
+      appStripeCreateCheckoutSessionCustomerUpdateBehaviorWire.optional(),
+    name: appStripeCreateCheckoutSessionCustomerUpdateBehaviorWire.optional(),
+    shipping:
+      appStripeCreateCheckoutSessionCustomerUpdateBehaviorWire.optional(),
   })
 
   .describe(
@@ -9046,11 +9027,9 @@ export const appStripeCreateCheckoutSessionTaxIdCollectionWire = z
     enabled: z
       .boolean()
       .optional()
-      .default(false)
       .describe('Enable tax ID collection during checkout. Defaults to false.'),
-    required: appStripeCreateCheckoutSessionTaxIdCollectionRequiredWire
-      .optional()
-      .default('never'),
+    required:
+      appStripeCreateCheckoutSessionTaxIdCollectionRequiredWire.optional(),
   })
   .describe('Tax ID collection configuration for checkout sessions.')
 
@@ -9161,10 +9140,8 @@ export const entitlementAccessResultWire = z
 export const createCreditGrantPurchaseWire = z
   .strictObject({
     currency: currencyCodeWire,
-    per_unit_cost_basis: numericWire.optional().default('1.0'),
-    availability_policy: creditAvailabilityPolicyWire
-      .optional()
-      .default('on_creation'),
+    per_unit_cost_basis: numericWire.optional(),
+    availability_policy: creditAvailabilityPolicyWire.optional(),
   })
   .describe('Purchase and payment terms of the grant.')
 
@@ -9176,7 +9153,6 @@ export const rateCardMeteredEntitlementWire = z
     is_soft_limit: z
       .boolean()
       .optional()
-      .default(false)
 
       .describe(
         'If soft limit is true, the subject can use the feature even if the entitlement is exhausted; access remains granted.',
@@ -9203,11 +9179,9 @@ export const recurringPeriodWire = z
 export const creditGrantPurchaseWire = z
   .strictObject({
     currency: currencyCodeWire,
-    per_unit_cost_basis: numericWire.optional().default('1.0'),
+    per_unit_cost_basis: numericWire.optional(),
     amount: numericWire,
-    availability_policy: creditAvailabilityPolicyWire
-      .optional()
-      .default('on_creation'),
+    availability_policy: creditAvailabilityPolicyWire.optional(),
     settlement_status: creditPurchasePaymentSettlementStatusWire.optional(),
   })
   .describe('Purchase and payment terms of the grant.')
@@ -9253,9 +9227,7 @@ export const listPlansParamsFilterWire = z
 
 export const voidCreditGrantRequestWire = z
   .strictObject({
-    payment_adjustment: creditGrantVoidPaymentAdjustmentWire
-      .optional()
-      .default('none'),
+    payment_adjustment: creditGrantVoidPaymentAdjustmentWire.optional(),
   })
   .describe('Request body for voiding a credit grant.')
 
@@ -9319,12 +9291,11 @@ export const unitConfigWire = z
   .strictObject({
     operation: unitConfigOperationWire,
     conversion_factor: numericWire,
-    rounding: unitConfigRoundingModeWire.optional().default('none'),
+    rounding: unitConfigRoundingModeWire.optional(),
     precision: z
       .number()
       .int()
       .optional()
-      .default(0)
 
       .describe(
         'The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers).',
@@ -9383,7 +9354,6 @@ export const workflowInvoicingSettingsWire = z
     auto_advance: z
       .boolean()
       .optional()
-      .default(true)
 
       .describe(
         'Whether to automatically issue the invoice after the draftPeriod has passed.',
@@ -9391,7 +9361,6 @@ export const workflowInvoicingSettingsWire = z
     draft_period: z
       .string()
       .optional()
-      .default('P0D')
 
       .describe(
         'The period for the invoice to be kept in draft status for manual reviews.',
@@ -9399,12 +9368,9 @@ export const workflowInvoicingSettingsWire = z
     progressive_billing: z
       .boolean()
       .optional()
-      .default(true)
       .describe('Should progressive billing be allowed for this workflow?'),
     subscription_end_proration_mode:
-      workflowInvoicingSubscriptionEndProrationModeWire
-        .optional()
-        .default('bill_actual_period'),
+      workflowInvoicingSubscriptionEndProrationModeWire.optional(),
   })
   .describe('Invoice settings for a billing workflow.')
 
@@ -9554,7 +9520,6 @@ export const governanceQueryRequestWire = z
     include_credits: z
       .boolean()
       .optional()
-      .default(false)
 
       .describe(
         'Whether to include credit balance availability for each resolved customer. When true, each feature evaluation includes credit balance checks. Defaults to `false`.',
@@ -10355,7 +10320,7 @@ export const subscriptionChangeResponseWire = z
 
 export const subscriptionCancelWire = z
   .strictObject({
-    timing: subscriptionEditTimingWire.optional().default('immediate'),
+    timing: subscriptionEditTimingWire.optional(),
   })
   .describe('Request for canceling a subscription.')
 
@@ -10814,7 +10779,6 @@ export const createCreditGrantRequestWire = z
       .gte(1)
       .lte(1000)
       .optional()
-      .default(10)
 
       .describe(
         'Draw-down priority of the grant. Lower values have higher priority.',
@@ -10858,7 +10822,6 @@ export const creditGrantWire = z
       .gte(1)
       .lte(1000)
       .optional()
-      .default(10)
 
       .describe(
         'Draw-down priority of the grant. Lower values have higher priority.',
@@ -10918,7 +10881,6 @@ export const workflowTaxSettingsWire = z
     enabled: z
       .boolean()
       .optional()
-      .default(true)
 
       .describe(
         'Enable automatic tax calculation when tax is supported by the app. For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.',
@@ -10926,7 +10888,6 @@ export const workflowTaxSettingsWire = z
     enforced: z
       .boolean()
       .optional()
-      .default(false)
 
       .describe(
         'Enforce tax calculation when tax is supported by the app. When enabled, the billing system will not allow to create an invoice without tax calculation. Enforcement is different per apps, for example, Stripe app requires customer to have a tax location when starting a paid subscription.',
@@ -10962,7 +10923,6 @@ export const meterQueryRequestWire = z
     time_zone: z
       .string()
       .optional()
-      .default('UTC')
 
       .describe(
         'The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones). The time zone is used to determine the start and end of the time buckets. If not specified, the UTC timezone will be used.',
@@ -11029,9 +10989,7 @@ export const updateSupplierWire = z
 export const appStripeCreateCheckoutSessionRequestOptionsWire = z
   .strictObject({
     billing_address_collection:
-      appStripeCreateCheckoutSessionBillingAddressCollectionWire
-        .optional()
-        .default('auto'),
+      appStripeCreateCheckoutSessionBillingAddressCollectionWire.optional(),
     cancel_url: z
       .string()
       .optional()
@@ -11089,7 +11047,7 @@ export const appStripeCreateCheckoutSessionRequestOptionsWire = z
       .describe(
         'Success URL to redirect customers after completing payment or setup. Not allowed when ui_mode is "embedded". See: https://docs.stripe.com/payments/checkout/custom-success-page',
       ),
-    ui_mode: appStripeCheckoutSessionUiModeWire.optional().default('hosted'),
+    ui_mode: appStripeCheckoutSessionUiModeWire.optional(),
     payment_method_types: z
       .array(z.string())
       .optional()
@@ -11165,7 +11123,7 @@ export const invoiceDetailedLineWire = z
     deleted_at: dateTimeWire.optional(),
     service_period: closedPeriodWire,
     totals: totalsWire,
-    category: invoiceDetailedLineCostCategoryWire.default('regular'),
+    category: invoiceDetailedLineCostCategoryWire,
     discounts: invoiceLineDiscountsWire.optional(),
     credits_applied: z
       .array(invoiceLineCreditsAppliedWire)
@@ -11371,13 +11329,10 @@ export const customerStripeCreateCheckoutSessionRequestWire = z
 
 export const workflowCollectionSettingsWire = z
   .strictObject({
-    alignment: workflowCollectionAlignmentWire.optional().default({
-      type: 'subscription',
-    }),
+    alignment: workflowCollectionAlignmentWire.optional(),
     interval: z
       .string()
       .optional()
-      .default('PT1H')
 
       .describe(
         'This grace period can be used to delay the collection of the pending line items specified in alignment. This is useful, in case of multiple subscriptions having slightly different billing periods.',
@@ -11549,7 +11504,7 @@ export const rateCardWire = z
     billing_cadence: iso8601DurationWire.optional(),
     price: priceWire,
     unit_config: unitConfigWire.optional(),
-    payment_term: pricePaymentTermWire.optional().default('in_arrears'),
+    payment_term: pricePaymentTermWire.optional(),
     commitments: spendCommitmentsWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
     tax_config: rateCardTaxConfigWire.optional(),
@@ -11708,7 +11663,6 @@ export const addonWire = z
       .number()
       .int()
       .gte(1)
-      .default(1)
 
       .describe(
         'Version of the add-on. Incremented when the add-on is updated.',
@@ -11996,7 +11950,6 @@ export const planWire = z
       .number()
       .int()
       .gte(1)
-      .default(1)
 
       .describe(
         'Plans are versioned to allow you to make changes without affecting running subscriptions.',
@@ -12006,7 +11959,6 @@ export const planWire = z
     pro_rating_enabled: z
       .boolean()
       .optional()
-      .default(true)
       .describe('Whether pro-rating is enabled for this plan.'),
     effective_from: dateTimeWire.optional(),
     effective_to: dateTimeWire.optional(),
@@ -12018,9 +11970,7 @@ export const planWire = z
       .describe(
         'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
-    settlement_mode: settlementModeWire
-      .optional()
-      .default('credit_then_invoice'),
+    settlement_mode: settlementModeWire.optional(),
     validation_errors: z
       .array(productCatalogValidationErrorWire)
       .optional()
@@ -12053,7 +12003,6 @@ export const createPlanRequestWire = z
     pro_rating_enabled: z
       .boolean()
       .optional()
-      .default(true)
       .describe('Whether pro-rating is enabled for this plan.'),
     phases: z
       .array(planPhaseWire)
@@ -12084,7 +12033,6 @@ export const upsertPlanRequestWire = z
     pro_rating_enabled: z
       .boolean()
       .optional()
-      .default(true)
       .describe('Whether pro-rating is enabled for this plan.'),
     phases: z
       .array(planPhaseWire)

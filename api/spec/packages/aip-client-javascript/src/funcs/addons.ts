@@ -4,7 +4,13 @@ import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
 import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
-import { toWire, fromWire, assertValid, toSnakeCase } from '../lib/wire.js'
+import {
+  toWire,
+  toPathWire,
+  fromWire,
+  assertValid,
+  toSnakeCase,
+} from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   ListAddonsRequest,
@@ -36,6 +42,9 @@ export function listAddons(
   options?: RequestOptions,
 ): Promise<Result<ListAddonsResponse>> {
   return request(() => {
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(schemas.sortQuery, req.sort)
+    }
     const query = toWire(
       {
         page: req.page,
@@ -102,11 +111,20 @@ export function updateAddon(
   options?: RequestOptions,
 ): Promise<Result<UpdateAddonResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      addonId: req.addonId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.updateAddonPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.updateAddonPathParamsWire, pathParams)
+    }
     const path = `openmeter/addons/${(() => {
-      if (req.addonId === undefined) {
+      if (pathParams.addonId === undefined) {
         throw new Error('missing path parameter: addonId')
       }
-      return encodeURIComponent(String(req.addonId))
+      return encodeURIComponent(String(pathParams.addonId))
     })()}`
     const body = toWire(req.body, schemas.updateAddonBody)
     if (client._options.validate) {
@@ -137,11 +155,20 @@ export function getAddon(
   options?: RequestOptions,
 ): Promise<Result<GetAddonResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      addonId: req.addonId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getAddonPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getAddonPathParamsWire, pathParams)
+    }
     const path = `openmeter/addons/${(() => {
-      if (req.addonId === undefined) {
+      if (pathParams.addonId === undefined) {
         throw new Error('missing path parameter: addonId')
       }
-      return encodeURIComponent(String(req.addonId))
+      return encodeURIComponent(String(pathParams.addonId))
     })()}`
     return http(client)
       .get(path, options)
@@ -168,11 +195,20 @@ export function deleteAddon(
   options?: RequestOptions,
 ): Promise<Result<DeleteAddonResponse>> {
   return request(async () => {
+    const pathParamsInput = {
+      addonId: req.addonId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.deleteAddonPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.deleteAddonPathParamsWire, pathParams)
+    }
     const path = `openmeter/addons/${(() => {
-      if (req.addonId === undefined) {
+      if (pathParams.addonId === undefined) {
         throw new Error('missing path parameter: addonId')
       }
-      return encodeURIComponent(String(req.addonId))
+      return encodeURIComponent(String(pathParams.addonId))
     })()}`
     await http(client).delete(path, options)
   })
@@ -191,11 +227,20 @@ export function archiveAddon(
   options?: RequestOptions,
 ): Promise<Result<ArchiveAddonResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      addonId: req.addonId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.archiveAddonPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.archiveAddonPathParamsWire, pathParams)
+    }
     const path = `openmeter/addons/${(() => {
-      if (req.addonId === undefined) {
+      if (pathParams.addonId === undefined) {
         throw new Error('missing path parameter: addonId')
       }
-      return encodeURIComponent(String(req.addonId))
+      return encodeURIComponent(String(pathParams.addonId))
     })()}/archive`
     return http(client)
       .post(path, options)
@@ -222,11 +267,20 @@ export function publishAddon(
   options?: RequestOptions,
 ): Promise<Result<PublishAddonResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      addonId: req.addonId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.publishAddonPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.publishAddonPathParamsWire, pathParams)
+    }
     const path = `openmeter/addons/${(() => {
-      if (req.addonId === undefined) {
+      if (pathParams.addonId === undefined) {
         throw new Error('missing path parameter: addonId')
       }
-      return encodeURIComponent(String(req.addonId))
+      return encodeURIComponent(String(pathParams.addonId))
     })()}/publish`
     return http(client)
       .post(path, options)
