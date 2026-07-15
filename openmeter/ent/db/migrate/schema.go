@@ -1879,9 +1879,9 @@ var (
 				Columns: []*schema.Column{ChargeCreditPurchasesColumns[34]},
 			},
 			{
-				Name:    "chargecreditpurchase_namespace_key",
+				Name:    "chargecreditpurchase_namespace_customer_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[28]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[30], ChargeCreditPurchasesColumns[28]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "key IS NOT NULL AND deleted_at IS NULL",
 				},
