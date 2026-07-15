@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -269,7 +270,7 @@ func (_u *ChargeUsageBasedOverrideUpdate) SetDiscounts(v *billing.Discounts) *Ch
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *ChargeUsageBasedOverrideUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdate {
+func (_u *ChargeUsageBasedOverrideUpdate) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedOverrideUpdate {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }
@@ -741,7 +742,7 @@ func (_u *ChargeUsageBasedOverrideUpdateOne) SetDiscounts(v *billing.Discounts) 
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *ChargeUsageBasedOverrideUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdateOne {
+func (_u *ChargeUsageBasedOverrideUpdateOne) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedOverrideUpdateOne {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 const (
@@ -271,7 +272,7 @@ var (
 	ValueScanner struct {
 		Discounts  field.TypeValueScanner[*billing.Discounts]
 		Price      field.TypeValueScanner[*productcatalog.Price]
-		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
+		UnitConfig field.TypeValueScanner[*unitconfig.UnitConfig]
 	}
 )
 

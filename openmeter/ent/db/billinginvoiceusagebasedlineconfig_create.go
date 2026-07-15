@@ -14,6 +14,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 // BillingInvoiceUsageBasedLineConfigCreate is the builder for creating a BillingInvoiceUsageBasedLineConfig entity.
@@ -99,7 +100,7 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillableMeteredQuantity(v
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigCreate {
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetUnitConfig(v *unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigCreate {
 	_c.mutation.SetUnitConfig(v)
 	return _c
 }
@@ -400,7 +401,7 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsert) ClearMeteredQuantity() *Billi
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpsert {
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetUnitConfig(v *unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpsert {
 	u.Set(billinginvoiceusagebasedlineconfig.FieldUnitConfig, v)
 	return u
 }
@@ -563,7 +564,7 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) ClearMeteredQuantity() *Bi
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpsertOne {
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetUnitConfig(v *unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.SetUnitConfig(v)
 	})
@@ -899,7 +900,7 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) ClearMeteredQuantity() *B
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetUnitConfig(v *unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.SetUnitConfig(v)
 	})

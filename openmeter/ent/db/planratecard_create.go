@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -195,7 +196,7 @@ func (_c *PlanRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *PlanRat
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_c *PlanRateCardCreate) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardCreate {
+func (_c *PlanRateCardCreate) SetUnitConfig(v *unitconfig.UnitConfig) *PlanRateCardCreate {
 	_c.mutation.SetUnitConfig(v)
 	return _c
 }
@@ -841,7 +842,7 @@ func (u *PlanRateCardUpsert) ClearDiscounts() *PlanRateCardUpsert {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *PlanRateCardUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpsert {
+func (u *PlanRateCardUpsert) SetUnitConfig(v *unitconfig.UnitConfig) *PlanRateCardUpsert {
 	u.Set(planratecard.FieldUnitConfig, v)
 	return u
 }
@@ -1208,7 +1209,7 @@ func (u *PlanRateCardUpsertOne) ClearDiscounts() *PlanRateCardUpsertOne {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *PlanRateCardUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpsertOne {
+func (u *PlanRateCardUpsertOne) SetUnitConfig(v *unitconfig.UnitConfig) *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetUnitConfig(v)
 	})
@@ -1753,7 +1754,7 @@ func (u *PlanRateCardUpsertBulk) ClearDiscounts() *PlanRateCardUpsertBulk {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *PlanRateCardUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpsertBulk {
+func (u *PlanRateCardUpsertBulk) SetUnitConfig(v *unitconfig.UnitConfig) *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.SetUnitConfig(v)
 	})

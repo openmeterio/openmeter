@@ -1,7 +1,6 @@
 package meteredentitlement_test
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -34,11 +33,10 @@ func TestGetEntitlementBalanceWithUnitConfig(t *testing.T) {
 	defer deps.Teardown()
 
 	// divide-by-1e9 converts raw bytes into GB for the entitlement quota.
-	unitConfigJSON, err := json.Marshal(productcatalog.UnitConfig{
+	unitCfg := &productcatalog.UnitConfig{
 		Operation:        productcatalog.UnitConfigOperationDivide,
 		ConversionFactor: alpacadecimal.NewFromInt(1_000_000_000),
-	})
-	require.NoError(t, err)
+	}
 
 	feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
 		Namespace:           namespace,
@@ -68,7 +66,7 @@ func TestGetEntitlementBalanceWithUnitConfig(t *testing.T) {
 		EntitlementType:  entitlement.EntitlementTypeMetered,
 		IssueAfterReset:  convert.ToPointer(0.0),
 		IsSoftLimit:      convert.ToPointer(false),
-		UnitConfig:       lo.ToPtr(string(unitConfigJSON)),
+		UnitConfig:       unitCfg,
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 			Anchor:   getAnchor(t),
 			Interval: timeutil.RecurrencePeriodYear,
