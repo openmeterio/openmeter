@@ -1773,9 +1773,12 @@ export interface VoidCreditGrantRequest {
   /**
    * How voiding adjusts payment state related to the grant.
    *
-   * Currently only `none` is supported: voiding does not adjust invoices, payment
-   * authorization, settlement, payment intents, or external collection state. If
-   * payment later completes, the original invoiced amount may still be collected.
+   * Currently only `none` is supported, and it is the intended default going
+   * forward: voiding does not adjust invoices, payment authorization,
+   * settlement, payment intents, or external collection state. If payment
+   * later completes, the original invoiced amount may still be collected.
+   * Settlement-adjusting modes may be introduced as additional enum values
+   * without changing the behavior of `none`.
    */
   paymentAdjustment: 'none'
 }
@@ -5645,9 +5648,12 @@ export interface VoidCreditGrantRequestInput {
   /**
    * How voiding adjusts payment state related to the grant.
    *
-   * Currently only `none` is supported: voiding does not adjust invoices, payment
-   * authorization, settlement, payment intents, or external collection state. If
-   * payment later completes, the original invoiced amount may still be collected.
+   * Currently only `none` is supported, and it is the intended default going
+   * forward: voiding does not adjust invoices, payment authorization,
+   * settlement, payment intents, or external collection state. If payment
+   * later completes, the original invoiced amount may still be collected.
+   * Settlement-adjusting modes may be introduced as additional enum values
+   * without changing the behavior of `none`.
    */
   paymentAdjustment?: 'none'
 }

@@ -97,6 +97,9 @@ enum CreditGrantStatus {
  *
  * - `none`: Voiding does not adjust invoices, payment authorization, settlement,
  *   payment intents, or external collection state.
+ *
+ * Settlement-adjusting modes may be added as new values over time; clients should
+ * treat unknown values as additive rather than assuming this set is final.
  */
 @friendlyName("BillingCreditGrantVoidPaymentAdjustment")
 @summary("Credit grant void payment adjustment")

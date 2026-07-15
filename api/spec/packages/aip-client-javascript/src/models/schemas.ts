@@ -575,7 +575,7 @@ export const creditGrantVoidPaymentAdjustment = z
   .enum(['none'])
 
   .describe(
-    'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
+    'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state. Settlement-adjusting modes may be added as new values over time; clients should treat unknown values as additive rather than assuming this set is final.',
   )
 
 export const creditTransactionType = z
@@ -7111,7 +7111,7 @@ export const creditGrantVoidPaymentAdjustmentWire = z
   .enum(['none'])
 
   .describe(
-    'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
+    'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state. Settlement-adjusting modes may be added as new values over time; clients should treat unknown values as additive rather than assuming this set is final.',
   )
 
 export const creditTransactionTypeWire = z

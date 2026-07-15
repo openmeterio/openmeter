@@ -1344,6 +1344,10 @@ type CreditGrantTaxConfig struct {
 //
 // - `none`: Voiding does not adjust invoices, payment authorization, settlement,
 // payment intents, or external collection state.
+//
+// Settlement-adjusting modes may be added as new values over time; clients
+// should treat unknown values as additive rather than assuming this set is
+// final.
 type CreditGrantVoidPaymentAdjustment string
 
 const (
@@ -1571,8 +1575,11 @@ type UpsertCustomerRequest struct {
 type VoidCreditGrantRequest struct {
 	// How voiding adjusts payment state related to the grant.
 	//
-	// Currently only `none` is supported: voiding does not adjust invoices, payment
-	// authorization, settlement, payment intents, or external collection state. If
-	// payment later completes, the original invoiced amount may still be collected.
+	// Currently only `none` is supported, and it is the intended default going
+	// forward: voiding does not adjust invoices, payment authorization,
+	// settlement, payment intents, or external collection state. If payment
+	// later completes, the original invoiced amount may still be collected.
+	// Settlement-adjusting modes may be introduced as additional enum values
+	// without changing the behavior of `none`.
 	PaymentAdjustment *CreditGrantVoidPaymentAdjustment `json:"payment_adjustment,omitempty"`
 }
