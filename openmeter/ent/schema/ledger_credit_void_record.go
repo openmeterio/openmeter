@@ -41,10 +41,7 @@ func (LedgerCreditVoidRecord) Fields() []ent.Field {
 		field.String("currency").
 			GoType(currencyx.Code("")).
 			NotEmpty().
-			Immutable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
-			}),
+			Immutable(),
 		field.Time("voided_at").
 			Immutable(),
 		field.String("source_charge_id").

@@ -18,13 +18,32 @@ import (
 )
 
 type IntegrationEnv struct {
-	Namespace        string
-	CustomerID       customer.CustomerID
-	Currency         currencyx.Code
+	Namespace  string
+	CustomerID customer.CustomerID
+	Currency   currencyx.Code
+	// CustomCurrency is the managed identity used whenever Currency is a
+	// custom currency. Tests that set Currency to a custom code get a
+	// deterministic fixture identity by default; set this explicitly to
+	// override (e.g. to exercise a specific precision).
+	CustomCurrency   *ledger.CustomCurrencyIdentity
 	DB               *entdb.Client
 	CustomerAccounts ledger.CustomerAccounts
 	BusinessAccounts ledger.BusinessAccounts
 	Deps             Deps
+}
+
+// CustomCurrencyForRoute resolves the CustomCurrencyIdentity to attach to a
+// route for the given currency: the explicit override if set, a deterministic
+// fixture identity for custom currencies otherwise, or nil for fiat.
+func (e *IntegrationEnv) CustomCurrencyForRoute(currency currencyx.Code) *ledger.CustomCurrencyIdentity {
+	if e.CustomCurrency != nil {
+		return e.CustomCurrency
+	}
+	if !currency.IsCustom() {
+		return nil
+	}
+
+	return &ledger.CustomCurrencyIdentity{ID: "test-custom-currency-" + string(currency), Precision: 4}
 }
 
 func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
@@ -84,6 +103,7 @@ func (e *IntegrationEnv) FBOSubAccount(t *testing.T, priority int) ledger.SubAcc
 
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       e.Currency,
+		CustomCurrency: e.CustomCurrencyForRoute(e.Currency),
 		CreditPriority: priority,
 	})
 	require.NoError(t, err)
@@ -114,6 +134,7 @@ func (e *IntegrationEnv) ReceivableSubAccountWithCostBasisAndStatus(t *testing.T
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       e.Currency,
+		CustomCurrency:                 e.CustomCurrencyForRoute(e.Currency),
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: status,
 	})
@@ -138,9 +159,10 @@ func (e *IntegrationEnv) AccruedSubAccountWithCostBasisAndTaxCode(t *testing.T, 
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:  e.Currency,
-		TaxCode:   taxCode,
-		CostBasis: costBasis,
+		Currency:       e.Currency,
+		CustomCurrency: e.CustomCurrencyForRoute(e.Currency),
+		TaxCode:        taxCode,
+		CostBasis:      costBasis,
 	})
 	require.NoError(t, err)
 
@@ -157,8 +179,9 @@ func (e *IntegrationEnv) WashSubAccountWithCostBasis(t *testing.T, costBasis *al
 	t.Helper()
 
 	subAccount, err := e.BusinessAccounts.WashAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  e.Currency,
-		CostBasis: costBasis,
+		Currency:       e.Currency,
+		CustomCurrency: e.CustomCurrencyForRoute(e.Currency),
+		CostBasis:      costBasis,
 	})
 	require.NoError(t, err)
 
@@ -181,9 +204,10 @@ func (e *IntegrationEnv) EarningsSubAccountWithCostBasisAndTaxCode(t *testing.T,
 	t.Helper()
 
 	subAccount, err := e.BusinessAccounts.EarningsAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  e.Currency,
-		CostBasis: costBasis,
-		TaxCode:   taxCode,
+		Currency:       e.Currency,
+		CustomCurrency: e.CustomCurrencyForRoute(e.Currency),
+		CostBasis:      costBasis,
+		TaxCode:        taxCode,
 	})
 	require.NoError(t, err)
 
@@ -194,7 +218,8 @@ func (e *IntegrationEnv) BrokerageSubAccount(t *testing.T) ledger.SubAccount {
 	t.Helper()
 
 	subAccount, err := e.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency: e.Currency,
+		Currency:       e.Currency,
+		CustomCurrency: e.CustomCurrencyForRoute(e.Currency),
 	})
 	require.NoError(t, err)
 
@@ -205,8 +230,9 @@ func (e *IntegrationEnv) BreakageSubAccountWithCostBasis(t *testing.T, costBasis
 	t.Helper()
 
 	subAccount, err := e.BusinessAccounts.BreakageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  e.Currency,
-		CostBasis: costBasis,
+		Currency:       e.Currency,
+		CustomCurrency: e.CustomCurrencyForRoute(e.Currency),
+		CostBasis:      costBasis,
 	})
 	require.NoError(t, err)
 

@@ -6,6 +6,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/lib/pq"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgersubaccount "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -85,12 +86,20 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetRoutingKeyVersion(routeKey.Version()).
 		SetRoutingKey(routeKey.Value()).
 		SetCurrency(string(normalizedRoute.Currency)).
+		SetNillableExchangeSourceCurrency(normalizedRoute.ExchangeSourceCurrency).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
 		SetFeatures(pq.StringArray(normalizedRoute.Features)).
 		SetNillableCostBasis(normalizedRoute.CostBasis).
 		SetNillableCreditPriority(normalizedRoute.CreditPriority).
 		SetNillableTransactionAuthorizationStatus(normalizedRoute.TransactionAuthorizationStatus)
+
+	if normalizedRoute.CustomCurrency != nil {
+		create = create.
+			SetCustomCurrencyID(normalizedRoute.CustomCurrency.ID).
+			SetCustomCurrencyPrecision(uint32(normalizedRoute.CustomCurrency.Precision)).
+			SetCustomCurrencyVersion(uint32(normalizedRoute.CustomCurrency.Version))
+	}
 
 	err = create.
 		OnConflict(
@@ -155,9 +164,17 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			return nil, fmt.Errorf("failed to normalize route filter: %w", err)
 		}
 
-		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 7)
+		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 8)
 		if normalizedRoute.Currency != "" {
 			routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(normalizedRoute.Currency)))
+		}
+		if normalizedRoute.ExchangeSourceCurrency.IsPresent() {
+			exchangeSourceCurrency, _ := normalizedRoute.ExchangeSourceCurrency.Get()
+			if exchangeSourceCurrency != nil {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.ExchangeSourceCurrency(*exchangeSourceCurrency))
+			} else {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.ExchangeSourceCurrencyIsNil())
+			}
 		}
 		if normalizedRoute.CreditPriority != nil {
 			routePredicates = append(routePredicates,
@@ -249,6 +266,15 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 
 	dbRoute := entity.Edges.Route
 
+	var customCurrency *ledger.CustomCurrencyIdentity
+	if dbRoute.CustomCurrencyID != nil {
+		customCurrency = &ledger.CustomCurrencyIdentity{
+			ID:        *dbRoute.CustomCurrencyID,
+			Precision: int(lo.FromPtrOr(dbRoute.CustomCurrencyPrecision, 0)),
+			Version:   int(lo.FromPtrOr(dbRoute.CustomCurrencyVersion, ledger.CustomCurrencyIdentityVersionV1)),
+		}
+	}
+
 	return ledgeraccount.SubAccountData{
 		ID:          entity.ID,
 		Namespace:   entity.Namespace,
@@ -258,6 +284,8 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 		AccountType: entity.Edges.Account.AccountType,
 		Route: ledger.Route{
 			Currency:                       currencyx.Code(dbRoute.Currency),
+			CustomCurrency:                 customCurrency,
+			ExchangeSourceCurrency:         dbRoute.ExchangeSourceCurrency,
 			TaxCode:                        dbRoute.TaxCode,
 			TaxBehavior:                    dbRoute.TaxBehavior,
 			Features:                       []string(dbRoute.Features),

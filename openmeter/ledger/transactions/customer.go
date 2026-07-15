@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,52 +11,60 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // IssueCustomerReceivableTemplate is a transaction increasing the customer's balance against an outstanding receivable account
 type IssueCustomerReceivableTemplate struct {
-	At             time.Time
-	Amount         alpacadecimal.Decimal
-	Currency       currencyx.Code
-	TaxCode        *string
-	CostBasis      *alpacadecimal.Decimal
-	Features       []string
-	SourceChargeID *string
-	SpendChargeID  *string
+	At                     time.Time
+	Amount                 alpacadecimal.Decimal
+	Currency               currencyx.Code
+	CustomCurrency         *ledger.CustomCurrencyIdentity
+	ExchangeSourceCurrency *currencyx.Code
+	TaxCode                *string
+	CostBasis              *alpacadecimal.Decimal
+	Features               []string
+	SourceChargeID         *string
+	SpendChargeID          *string
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
 }
 
 func (t IssueCustomerReceivableTemplate) Validate() error {
+	var errs []error
+
 	if t.Amount.IsNegative() {
-		return fmt.Errorf("amount must be positive")
+		errs = append(errs, errors.New("amount must be positive"))
 	}
 
 	if t.Amount.IsZero() {
-		return fmt.Errorf("amount must be non-zero")
+		errs = append(errs, errors.New("amount must be non-zero"))
 	}
 
 	if t.At.IsZero() {
-		return fmt.Errorf("at is required")
+		errs = append(errs, errors.New("at is required"))
 	}
 
 	if err := ledger.ValidateCurrency(t.Currency); err != nil {
-		return fmt.Errorf("currency: %w", err)
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+	if err := ledger.ValidateExchangeSourceCurrency(t.Currency, t.ExchangeSourceCurrency, t.CostBasis); err != nil {
+		errs = append(errs, fmt.Errorf("exchange source currency: %w", err))
 	}
 
 	if t.CostBasis != nil {
 		if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
-			return fmt.Errorf("cost basis: %w", err)
+			errs = append(errs, fmt.Errorf("cost basis: %w", err))
 		}
 	}
 
 	if t.CreditPriority != nil {
 		if err := ledger.ValidateCreditPriority(*t.CreditPriority); err != nil {
-			return fmt.Errorf("credit priority: %w", err)
+			errs = append(errs, fmt.Errorf("credit priority: %w", err))
 		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (t IssueCustomerReceivableTemplate) typeGuard() guard {
@@ -133,10 +142,12 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       t.Currency,
-		CostBasis:      t.CostBasis,
-		Features:       t.Features,
-		CreditPriority: priority,
+		Currency:               t.Currency,
+		CustomCurrency:         t.CustomCurrency,
+		ExchangeSourceCurrency: t.ExchangeSourceCurrency,
+		CostBasis:              t.CostBasis,
+		Features:               t.Features,
+		CreditPriority:         priority,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get FBO sub-account: %w", err)
@@ -144,6 +155,8 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		CustomCurrency:                 t.CustomCurrency,
+		ExchangeSourceCurrency:         t.ExchangeSourceCurrency,
 		Features:                       t.Features,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -178,36 +191,44 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 // SettleCustomerReceivableFromPaymentTemplate records settled payment funds by
 // clearing authorized receivable from wash.
 type SettleCustomerReceivableFromPaymentTemplate struct {
-	At             time.Time
-	Amount         alpacadecimal.Decimal
-	Currency       currencyx.Code
-	TaxCode        *string
-	CostBasis      *alpacadecimal.Decimal
-	Features       []string
-	SourceChargeID *string
-	SpendChargeID  *string
+	At                     time.Time
+	Amount                 alpacadecimal.Decimal
+	Currency               currencyx.Code
+	CustomCurrency         *ledger.CustomCurrencyIdentity
+	ExchangeSourceCurrency *currencyx.Code
+	TaxCode                *string
+	CostBasis              *alpacadecimal.Decimal
+	Features               []string
+	SourceChargeID         *string
+	SpendChargeID          *string
 }
 
 func (t SettleCustomerReceivableFromPaymentTemplate) Validate() error {
+	var errs []error
+
 	if t.At.IsZero() {
-		return fmt.Errorf("at is required")
+		errs = append(errs, fmt.Errorf("at is required"))
 	}
 
 	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
-		return fmt.Errorf("amount: %w", err)
+		errs = append(errs, fmt.Errorf("amount: %w", err))
 	}
 
 	if err := ledger.ValidateCurrency(t.Currency); err != nil {
-		return fmt.Errorf("currency: %w", err)
+		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
 	if t.CostBasis != nil {
 		if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
-			return fmt.Errorf("cost basis: %w", err)
+			errs = append(errs, fmt.Errorf("cost basis: %w", err))
 		}
 	}
 
-	return nil
+	if err := ledger.ValidateExchangeSourceCurrency(t.Currency, t.ExchangeSourceCurrency, t.CostBasis); err != nil {
+		errs = append(errs, fmt.Errorf("exchange source currency: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ CustomerTransactionTemplate = (SettleCustomerReceivableFromPaymentTemplate{})
@@ -232,6 +253,8 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		CustomCurrency:                 t.CustomCurrency,
+		ExchangeSourceCurrency:         t.ExchangeSourceCurrency,
 		Features:                       t.Features,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
@@ -246,8 +269,10 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 	}
 
 	wash, err := businessAccounts.WashAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency:  t.Currency,
-		CostBasis: t.CostBasis,
+		Currency:               t.Currency,
+		CustomCurrency:         t.CustomCurrency,
+		ExchangeSourceCurrency: t.ExchangeSourceCurrency,
+		CostBasis:              t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get wash sub-account: %w", err)
@@ -279,36 +304,44 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 // AuthorizeCustomerReceivablePaymentTemplate moves open receivable into the
 // authorized receivable route without moving funds across the external cash boundary.
 type AuthorizeCustomerReceivablePaymentTemplate struct {
-	At             time.Time
-	Amount         alpacadecimal.Decimal
-	Currency       currencyx.Code
-	TaxCode        *string
-	CostBasis      *alpacadecimal.Decimal
-	Features       []string
-	SourceChargeID *string
-	SpendChargeID  *string
+	At                     time.Time
+	Amount                 alpacadecimal.Decimal
+	Currency               currencyx.Code
+	CustomCurrency         *ledger.CustomCurrencyIdentity
+	ExchangeSourceCurrency *currencyx.Code
+	TaxCode                *string
+	CostBasis              *alpacadecimal.Decimal
+	Features               []string
+	SourceChargeID         *string
+	SpendChargeID          *string
 }
 
 func (t AuthorizeCustomerReceivablePaymentTemplate) Validate() error {
+	var errs []error
+
 	if t.At.IsZero() {
-		return fmt.Errorf("at is required")
+		errs = append(errs, fmt.Errorf("at is required"))
 	}
 
 	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
-		return fmt.Errorf("amount: %w", err)
+		errs = append(errs, fmt.Errorf("amount: %w", err))
 	}
 
 	if err := ledger.ValidateCurrency(t.Currency); err != nil {
-		return fmt.Errorf("currency: %w", err)
+		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
 	if t.CostBasis != nil {
 		if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
-			return fmt.Errorf("cost basis: %w", err)
+			errs = append(errs, fmt.Errorf("cost basis: %w", err))
 		}
 	}
 
-	return nil
+	if err := ledger.ValidateExchangeSourceCurrency(t.Currency, t.ExchangeSourceCurrency, t.CostBasis); err != nil {
+		errs = append(errs, fmt.Errorf("exchange source currency: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (t AuthorizeCustomerReceivablePaymentTemplate) typeGuard() guard {
@@ -333,6 +366,8 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 	authorizedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		CustomCurrency:                 t.CustomCurrency,
+		ExchangeSourceCurrency:         t.ExchangeSourceCurrency,
 		Features:                       t.Features,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
@@ -343,6 +378,8 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 	openReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		CustomCurrency:                 t.CustomCurrency,
+		ExchangeSourceCurrency:         t.ExchangeSourceCurrency,
 		Features:                       t.Features,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -377,39 +414,45 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 // AttributeCustomerAdvanceReceivableCostBasisTemplate attributes existing open advance
 // receivable (`cost_basis=nil`) into a known purchase cost-basis bucket.
 type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
-	At                 time.Time
-	Amount             alpacadecimal.Decimal
-	Currency           currencyx.Code
-	TaxCode            *string
-	CostBasis          *alpacadecimal.Decimal
-	AdvanceFeatures    []string
-	AttributedFeatures []string
-	SourceChargeID     *string
-	SpendChargeID      *string
+	At                     time.Time
+	Amount                 alpacadecimal.Decimal
+	Currency               currencyx.Code
+	CustomCurrency         *ledger.CustomCurrencyIdentity
+	ExchangeSourceCurrency *currencyx.Code
+	TaxCode                *string
+	CostBasis              *alpacadecimal.Decimal
+	AdvanceFeatures        []string
+	AttributedFeatures     []string
+	SourceChargeID         *string
+	SpendChargeID          *string
 }
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
+	var errs []error
+
 	if t.At.IsZero() {
-		return fmt.Errorf("at is required")
+		errs = append(errs, fmt.Errorf("at is required"))
 	}
 
 	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
-		return fmt.Errorf("amount: %w", err)
+		errs = append(errs, fmt.Errorf("amount: %w", err))
 	}
 
 	if err := ledger.ValidateCurrency(t.Currency); err != nil {
-		return fmt.Errorf("currency: %w", err)
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := ledger.ValidateExchangeSourceCurrency(t.Currency, t.ExchangeSourceCurrency, t.CostBasis); err != nil {
+		errs = append(errs, fmt.Errorf("exchange source currency: %w", err))
 	}
 
 	if t.CostBasis == nil {
-		return fmt.Errorf("cost basis is required")
+		errs = append(errs, fmt.Errorf("cost basis is required"))
+	} else if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
+		errs = append(errs, fmt.Errorf("cost basis: %w", err))
 	}
 
-	if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
-		return fmt.Errorf("cost basis: %w", err)
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) typeGuard() guard {
@@ -486,6 +529,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		CustomCurrency:                 t.CustomCurrency,
 		Features:                       t.AdvanceFeatures,
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -496,6 +540,8 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	attributedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		CustomCurrency:                 t.CustomCurrency,
+		ExchangeSourceCurrency:         t.ExchangeSourceCurrency,
 		Features:                       t.AttributedFeatures,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -528,40 +574,43 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 // CoverCustomerReceivableTemplate covers a customer receivable account from FBO account
 type CoverCustomerReceivableTemplate struct {
-	At        time.Time
-	Amount    alpacadecimal.Decimal
-	Currency  currencyx.Code
-	CostBasis *alpacadecimal.Decimal
+	At             time.Time
+	Amount         alpacadecimal.Decimal
+	Currency       currencyx.Code
+	CustomCurrency *ledger.CustomCurrencyIdentity
+	CostBasis      *alpacadecimal.Decimal
 	// Optional, defaults to 100.
 	CreditPriority *int
 }
 
 func (t CoverCustomerReceivableTemplate) Validate() error {
+	var errs []error
+
 	if t.At.IsZero() {
-		return fmt.Errorf("at is required")
+		errs = append(errs, errors.New("at is required"))
 	}
 
 	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
-		return fmt.Errorf("amount: %w", err)
+		errs = append(errs, fmt.Errorf("amount: %w", err))
 	}
 
 	if err := ledger.ValidateCurrency(t.Currency); err != nil {
-		return fmt.Errorf("currency: %w", err)
+		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
 	if t.CostBasis != nil {
 		if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
-			return fmt.Errorf("cost basis: %w", err)
+			errs = append(errs, fmt.Errorf("cost basis: %w", err))
 		}
 	}
 
 	if t.CreditPriority != nil {
 		if err := ledger.ValidateCreditPriority(*t.CreditPriority); err != nil {
-			return fmt.Errorf("credit priority: %w", err)
+			errs = append(errs, fmt.Errorf("credit priority: %w", err))
 		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (t CoverCustomerReceivableTemplate) typeGuard() guard {
@@ -588,6 +637,7 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
+		CustomCurrency: t.CustomCurrency,
 		CostBasis:      t.CostBasis,
 		CreditPriority: priority,
 	})
@@ -597,6 +647,7 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		CustomCurrency:                 t.CustomCurrency,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})

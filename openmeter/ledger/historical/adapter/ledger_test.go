@@ -1,7 +1,9 @@
 package adapter
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -52,6 +54,60 @@ func TestRepo_CreateTransactionGroup(t *testing.T) {
 		Only(ctx)
 	require.NoError(t, err)
 	require.Equal(t, annotations, entity.Annotations)
+}
+
+func TestRepo_TransactionGroupIdempotencyPersistence(t *testing.T) {
+	// given:
+	// - a namespace-scoped key and canonical financial fingerprint
+	// when:
+	// - the group is stored, reloaded by key, and inserted again
+	// then:
+	// - the fields round-trip and only the duplicate namespace/key is rejected
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	key := "adapter:key"
+	fingerprint := "v1:" + strings.Repeat("a", 64)
+	created, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace:        namespace,
+		IdempotencyKey:   &key,
+		InputFingerprint: &fingerprint,
+	})
+	require.NoError(t, err)
+
+	loaded, err := env.repo.GetTransactionGroupByIdempotencyKey(ctx, namespace, key)
+	require.NoError(t, err)
+	require.NotNil(t, loaded)
+	require.Equal(t, created.ID, loaded.ID().ID)
+
+	entity, err := env.client.LedgerTransactionGroup.Query().
+		Where(
+			ledgertransactiongroupdb.Namespace(namespace),
+			ledgertransactiongroupdb.IdempotencyKey(key),
+		).
+		Only(ctx)
+	require.NoError(t, err)
+	require.Equal(t, &key, entity.IdempotencyKey)
+	require.Equal(t, &fingerprint, entity.InputFingerprint)
+
+	_, err = env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace:        namespace,
+		IdempotencyKey:   &key,
+		InputFingerprint: &fingerprint,
+	})
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ledgerhistorical.ErrTransactionGroupIdempotencyKeyAlreadyExists))
+
+	_, err = env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace:        "other-" + namespace,
+		IdempotencyKey:   &key,
+		InputFingerprint: &fingerprint,
+	})
+	require.NoError(t, err)
 }
 
 func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {

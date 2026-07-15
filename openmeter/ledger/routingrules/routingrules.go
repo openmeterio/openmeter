@@ -175,7 +175,10 @@ func allEntriesNegative(entries []EntryView) bool {
 type RouteField string
 
 const (
-	RouteFieldCurrency                       RouteField = "currency"
+	RouteFieldCurrency RouteField = "currency"
+	// RouteFieldExchangeSourceCurrency is the fiat currency a custom currency's
+	// cost basis is denominated in (the route's cost_basis_currency).
+	RouteFieldExchangeSourceCurrency         RouteField = "exchange_source_currency"
 	RouteFieldTaxCode                        RouteField = "tax_code"
 	RouteFieldTaxBehavior                    RouteField = "tax_behavior"
 	RouteFieldFeatures                       RouteField = "features"
@@ -263,6 +266,8 @@ func sameRouteField(left ledger.Route, right ledger.Route, field RouteField) (bo
 	switch field {
 	case RouteFieldCurrency:
 		return left.Currency == right.Currency, nil
+	case RouteFieldExchangeSourceCurrency:
+		return optionalCurrencyCodeEqual(left.ExchangeSourceCurrency, right.ExchangeSourceCurrency), nil
 	case RouteFieldTaxCode:
 		return optionalStringEqual(left.TaxCode, right.TaxCode), nil
 	case RouteFieldTaxBehavior:

@@ -18,6 +18,7 @@ var DefaultValidator = Validator{
 				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeWash},
 				{ledger.AccountTypeCustomerAccrued, ledger.AccountTypeEarnings},
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeBrokerage},
+				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeBrokerage},
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeBreakage},
 			},
 		},
@@ -59,6 +60,7 @@ var DefaultValidator = Validator{
 				RouteFieldCurrency,
 				RouteFieldFeatures,
 				RouteFieldCostBasis,
+				RouteFieldExchangeSourceCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -67,6 +69,7 @@ var DefaultValidator = Validator{
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,
+				RouteFieldExchangeSourceCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -75,6 +78,7 @@ var DefaultValidator = Validator{
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,
+				RouteFieldExchangeSourceCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -85,6 +89,7 @@ var DefaultValidator = Validator{
 				RouteFieldTaxCode,
 				RouteFieldTaxBehavior,
 				RouteFieldCostBasis,
+				RouteFieldExchangeSourceCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -93,6 +98,7 @@ var DefaultValidator = Validator{
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,
+				RouteFieldExchangeSourceCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -101,6 +107,7 @@ var DefaultValidator = Validator{
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,
+				RouteFieldExchangeSourceCurrency,
 			},
 		},
 	},

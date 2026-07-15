@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // LedgerSubAccountRoute is the model entity for the LedgerSubAccountRoute schema.
@@ -37,6 +38,14 @@ type LedgerSubAccountRoute struct {
 	RoutingKey string `json:"routing_key,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency string `json:"currency,omitempty"`
+	// ExchangeSourceCurrency holds the value of the "exchange_source_currency" field.
+	ExchangeSourceCurrency *currencyx.Code `json:"exchange_source_currency,omitempty"`
+	// CustomCurrencyID holds the value of the "custom_currency_id" field.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
+	// CustomCurrencyPrecision holds the value of the "custom_currency_precision" field.
+	CustomCurrencyPrecision *uint32 `json:"custom_currency_precision,omitempty"`
+	// CustomCurrencyVersion holds the value of the "custom_currency_version" field.
+	CustomCurrencyVersion *uint32 `json:"custom_currency_version,omitempty"`
 	// TaxCode holds the value of the "tax_code" field.
 	TaxCode *string `json:"tax_code,omitempty"`
 	// TaxBehavior holds the value of the "tax_behavior" field.
@@ -95,9 +104,9 @@ func (*LedgerSubAccountRoute) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case ledgersubaccountroute.FieldFeatures:
 			values[i] = new(pq.StringArray)
-		case ledgersubaccountroute.FieldCreditPriority:
+		case ledgersubaccountroute.FieldCustomCurrencyPrecision, ledgersubaccountroute.FieldCustomCurrencyVersion, ledgersubaccountroute.FieldCreditPriority:
 			values[i] = new(sql.NullInt64)
-		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTaxBehavior, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldExchangeSourceCurrency, ledgersubaccountroute.FieldCustomCurrencyID, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTaxBehavior, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
 			values[i] = new(sql.NullString)
 		case ledgersubaccountroute.FieldCreatedAt, ledgersubaccountroute.FieldUpdatedAt, ledgersubaccountroute.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -170,6 +179,34 @@ func (_m *LedgerSubAccountRoute) assignValues(columns []string, values []any) er
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = value.String
+			}
+		case ledgersubaccountroute.FieldExchangeSourceCurrency:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field exchange_source_currency", values[i])
+			} else if value.Valid {
+				_m.ExchangeSourceCurrency = new(currencyx.Code)
+				*_m.ExchangeSourceCurrency = currencyx.Code(value.String)
+			}
+		case ledgersubaccountroute.FieldCustomCurrencyID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyID = new(string)
+				*_m.CustomCurrencyID = value.String
+			}
+		case ledgersubaccountroute.FieldCustomCurrencyPrecision:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_precision", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyPrecision = new(uint32)
+				*_m.CustomCurrencyPrecision = uint32(value.Int64)
+			}
+		case ledgersubaccountroute.FieldCustomCurrencyVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_version", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyVersion = new(uint32)
+				*_m.CustomCurrencyVersion = uint32(value.Int64)
 			}
 		case ledgersubaccountroute.FieldTaxCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -283,6 +320,26 @@ func (_m *LedgerSubAccountRoute) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(_m.Currency)
+	builder.WriteString(", ")
+	if v := _m.ExchangeSourceCurrency; v != nil {
+		builder.WriteString("exchange_source_currency=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyID; v != nil {
+		builder.WriteString("custom_currency_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyPrecision; v != nil {
+		builder.WriteString("custom_currency_precision=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyVersion; v != nil {
+		builder.WriteString("custom_currency_version=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.TaxCode; v != nil {
 		builder.WriteString("tax_code=")

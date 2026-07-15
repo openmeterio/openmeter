@@ -94,6 +94,19 @@ func GroupInputs(namespace string, annotations models.Annotations, inputs ...led
 	}
 }
 
+// WithIdempotencyKey provides replay protection only when callers reuse the
+// same namespace and key with identical transaction semantics, including
+// BookedAt. GroupInputs remains non-idempotent, and reusing a key with
+// different transaction semantics returns an idempotency conflict.
+func WithIdempotencyKey(key string, input ledger.TransactionGroupInput) ledger.TransactionGroupInput {
+	return &TransactionGroupInput{
+		namespace:      input.Namespace(),
+		transactions:   input.Transactions(),
+		annotations:    input.Annotations(),
+		idempotencyKey: lo.ToPtr(key),
+	}
+}
+
 func WithAnnotations(input ledger.TransactionInput, annotations models.Annotations) ledger.TransactionInput {
 	merged := make(models.Annotations, len(input.Annotations())+len(annotations))
 
@@ -123,9 +136,10 @@ func (a *annotatedTransactionInput) Annotations() models.Annotations {
 }
 
 type TransactionGroupInput struct {
-	namespace    string
-	transactions []ledger.TransactionInput
-	annotations  models.Annotations
+	namespace      string
+	transactions   []ledger.TransactionInput
+	annotations    models.Annotations
+	idempotencyKey *string
 }
 
 var _ ledger.TransactionGroupInput = (*TransactionGroupInput)(nil)
@@ -144,4 +158,8 @@ func (t *TransactionGroupInput) Annotations() models.Annotations {
 
 func (t *TransactionGroupInput) Namespace() string {
 	return t.namespace
+}
+
+func (t *TransactionGroupInput) IdempotencyKey() *string {
+	return t.idempotencyKey
 }

@@ -2,6 +2,7 @@ package historical
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -66,6 +67,11 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 		return nil, ledger.ErrTransactionGroupEmpty
 	}
 
+	idempotencyKey := group.IdempotencyKey()
+	if err := validateTransactionGroupIdempotencyKey(idempotencyKey); err != nil {
+		return nil, fmt.Errorf("failed to validate transaction group idempotency key: %w", err)
+	}
+
 	// 1. Validate each transaction sequentially
 	for idx, txInput := range txInputs {
 		if err := ledger.ValidateTransactionInputWith(ctx, txInput, l.routingValidator); err != nil {
@@ -73,7 +79,24 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 		}
 	}
 
-	return transaction.Run(ctx, l.repo, func(ctx context.Context) (*TransactionGroup, error) {
+	var inputFingerprint *string
+	if idempotencyKey != nil {
+		fingerprint, err := transactionGroupFingerprint(group)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fingerprint transaction group: %w", err)
+		}
+		inputFingerprint = &fingerprint
+
+		existing, err := l.repo.GetTransactionGroupByIdempotencyKey(ctx, group.Namespace(), *idempotencyKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to look up transaction group by idempotency key: %w", err)
+		}
+		if existing != nil {
+			return reconcileTransactionGroupReplay(existing, fingerprint)
+		}
+	}
+
+	result, err := transaction.Run(ctx, l.repo, func(ctx context.Context) (*TransactionGroup, error) {
 		// 1.1  (lock everything preemptively, not by sub-txs)
 		if err := l.lockAccountsForTransactionInputs(ctx, group.Namespace(), txInputs); err != nil {
 			return nil, fmt.Errorf("failed to lock accounts for transaction inputs: %w", err)
@@ -88,8 +111,10 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 
 		// 3. Create the transactions & the group
 		txG, err := l.repo.CreateTransactionGroup(ctx, CreateTransactionGroupInput{
-			Namespace:   group.Namespace(),
-			Annotations: group.Annotations(),
+			Namespace:        group.Namespace(),
+			Annotations:      group.Annotations(),
+			IdempotencyKey:   idempotencyKey,
+			InputFingerprint: inputFingerprint,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create transaction group: %w", err)
@@ -110,6 +135,31 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 
 		return txGroup, nil
 	})
+	if err == nil {
+		return result, nil
+	}
+
+	if idempotencyKey == nil || !errors.Is(err, ErrTransactionGroupIdempotencyKeyAlreadyExists) {
+		return nil, err
+	}
+
+	existing, lookupErr := l.repo.GetTransactionGroupByIdempotencyKey(ctx, group.Namespace(), *idempotencyKey)
+	if lookupErr != nil {
+		return nil, errors.Join(err, fmt.Errorf("failed to reconcile transaction group idempotency race: %w", lookupErr))
+	}
+	if existing == nil {
+		return nil, fmt.Errorf("failed to reconcile transaction group idempotency race: %w", err)
+	}
+
+	return reconcileTransactionGroupReplay(existing, *inputFingerprint)
+}
+
+func reconcileTransactionGroupReplay(existing *TransactionGroup, inputFingerprint string) (ledger.TransactionGroup, error) {
+	if existing.data.InputFingerprint == nil || *existing.data.InputFingerprint != inputFingerprint {
+		return nil, &ledger.TransactionGroupIdempotencyConflictError{}
+	}
+
+	return existing, nil
 }
 
 func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace string, txInputs []ledger.TransactionInput) error {

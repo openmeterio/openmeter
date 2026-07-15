@@ -154,6 +154,26 @@ func TestFacadeGetBalancesWithInvalidExplicitCurrency(t *testing.T) {
 	require.ErrorContains(t, err, "not supported by ledger")
 }
 
+func TestFacadeGetBalancesWithExplicitCustomCurrency(t *testing.T) {
+	env := newTestEnv(t)
+
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+
+	balances, err := facade.GetBalances(t.Context(), GetBalancesInput{
+		CustomerID: env.CustomerID,
+		Currencies: CurrencyFilter{
+			Codes: []currencyx.Code{"CUSTOM"},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, balances, 1)
+	require.Equal(t, currencyx.Code("CUSTOM"), balances[0].Currency)
+	require.True(t, balances[0].Balance.Settled().IsZero())
+	require.True(t, balances[0].Balance.Live().IsZero())
+	require.True(t, balances[0].Balance.Pending().IsZero())
+}
+
 func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {
 	env := newTestEnv(t)
 	facade, err := NewFacade(env.Service)
@@ -257,6 +277,132 @@ func TestFacadeGetBalanceAsOfIncludesBreakageExpiry(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, balanceAtExpiry.Equal(alpacadecimal.Zero), "balance at expiry: %s", balanceAtExpiry)
 
+	clock.FreezeTime(beforeExpiry)
+	currentBeforeExpiry, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+	})
+	require.NoError(t, err)
+	require.True(t, currentBeforeExpiry.Equal(amount), "current balance before expiry: %s", currentBeforeExpiry)
+
+	clock.FreezeTime(expiresAt)
+	currentAtExpiry, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+	})
+	require.NoError(t, err)
+	require.True(t, currentAtExpiry.Equal(alpacadecimal.Zero), "current balance at expiry: %s", currentAtExpiry)
+}
+
+// TestFacadeGetBalanceAsOfIncludesBreakageExpiry_CustomCurrency mirrors the
+// fiat breakage-expiry case for a custom-currency credit_only balance. Unused
+// custom credit expires into breakage exactly like fiat: the balance reads the
+// full amount right up to the expiry instant and drops to zero at expiry,
+// whether queried historically (AsOf) or against the current clock. This pins
+// that the expiry/breakage path preserves the custom currency route dimension
+// end to end (booking, breakage plan, and balance readback all agree on the
+// same custom sub-account).
+func TestFacadeGetBalanceAsOfIncludesBreakageExpiry_CustomCurrency(t *testing.T) {
+	env := newTestEnv(t)
+	env.Currency = currencyx.Code("ACME")
+	customCurrency := env.CustomCurrencyForRoute(env.Currency)
+
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+
+	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	expiresAt := issuedAt.Add(time.Hour)
+	beforeExpiry := expiresAt.Add(-time.Nanosecond)
+
+	clock.FreezeTime(issuedAt)
+	defer clock.UnFreeze()
+	defer clock.ResetTime()
+
+	amount := alpacadecimal.NewFromInt(100)
+
+	// given:
+	// - a funded 100 ACME custom-currency credit sitting in FBO (issued and
+	//   settled through wash, so no outstanding receivable remains)
+	bookingInputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		transactions.IssueCustomerReceivableTemplate{
+			At:             env.Now(),
+			Amount:         amount,
+			Currency:       env.Currency,
+			CustomCurrency: customCurrency,
+		},
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
+			At:             env.Now(),
+			Amount:         amount,
+			Currency:       env.Currency,
+			CustomCurrency: customCurrency,
+		},
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
+			At:             env.Now(),
+			Amount:         amount,
+			Currency:       env.Currency,
+			CustomCurrency: customCurrency,
+		},
+	)
+	require.NoError(t, err)
+	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, bookingInputs...))
+	require.NoError(t, err)
+
+	fbo := env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)
+	breakage := env.BreakageSubAccountWithCostBasis(t, nil)
+
+	// when:
+	// - the unused custom credit is planned to expire into breakage at expiresAt
+	breakageInputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		transactions.PlanCustomerFBOBreakageTemplate{
+			At:              expiresAt,
+			Amount:          amount,
+			FBOAddress:      fbo.Address(),
+			BreakageAddress: breakage.Address(),
+		},
+	)
+	require.NoError(t, err)
+	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, breakageInputs...))
+	require.NoError(t, err)
+
+	// then:
+	// - the historical balance is the full amount right up to expiry and zero at expiry
+	balanceBeforeExpiry, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+		AsOf:       &beforeExpiry,
+	})
+	require.NoError(t, err)
+	require.True(t, balanceBeforeExpiry.Equal(amount), "balance before expiry: %s", balanceBeforeExpiry)
+
+	balanceAtExpiry, err := facade.GetBalance(t.Context(), GetBalanceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+		AsOf:       &expiresAt,
+	})
+	require.NoError(t, err)
+	require.True(t, balanceAtExpiry.Equal(alpacadecimal.Zero), "balance at expiry: %s", balanceAtExpiry)
+
+	// - the same holds for the live balance against the current clock
 	clock.FreezeTime(beforeExpiry)
 	currentBeforeExpiry, err := facade.GetBalance(t.Context(), GetBalanceInput{
 		CustomerID: env.CustomerID,

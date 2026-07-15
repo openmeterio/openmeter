@@ -17,6 +17,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -404,6 +405,41 @@ func TestCollectToAccruedCreditThenInvoiceOnlyCollectsAvailableCredit(t *testing
 	})
 }
 
+func TestCollectToAccruedCustomCurrencyCreditThenInvoiceDoesNotCreateExposure(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-custom-credit-then-invoice")
+	env.Currency = currencyx.Code("ACME")
+	collector := newTestAccrualCollector(env)
+
+	// given:
+	// - 40 source-less ACME credits are available
+	// when:
+	// - a credit-then-invoice charge asks the ledger to collect 70 ACME
+	// then:
+	// - only the available 40 is collected and the uncovered slice is left to billing
+	// - the ledger does not create custom-currency advance exposure
+	sourceCharge := testChargeID(1)
+	spendCharge := testChargeID(2)
+	fundSourceCharge(t, env, sourceCharge, 1, 40)
+
+	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+		env,
+		spendCharge,
+		alpacadecimal.NewFromInt(70),
+		productcatalog.CreditThenInvoiceSettlementMode,
+	))
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+	require.Equal(t, float64(40), allocations[0].Amount.InexactFloat64())
+
+	require.Equal(t, float64(0), env.SumBalance(t, env.FBOSubAccount(t, 1)).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
+	require.Equal(t, float64(40), env.SumBalance(t, env.AccruedSubAccount(t)).InexactFloat64())
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, &spendCharge): 40,
+	})
+	requireReceivableBalanceBuckets(t, env, map[string]float64{})
+}
+
 func newTestAccrualCollector(env *ledgertestutils.IntegrationEnv) *accrualCollector {
 	return &accrualCollector{
 		ledger: env.Deps.HistoricalLedger,
@@ -523,6 +559,7 @@ func fundPriorityWithCostBasisAndFeatures(
 
 	subAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       env.Currency,
+		CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
 		CostBasis:      costBasis,
 		CreditPriority: priority,
 		Features:       features,
@@ -544,23 +581,26 @@ func fundPriorityWithCostBasisAndFeatures(
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       env.Currency,
+			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
 			CostBasis:      costBasis,
 			CreditPriority: &priority,
 			Features:       features,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:        env.Now(),
-			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  env.Currency,
-			CostBasis: costBasis,
-			Features:  features,
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       env.Currency,
+			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
+			CostBasis:      costBasis,
+			Features:       features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:        env.Now(),
-			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  env.Currency,
-			CostBasis: costBasis,
-			Features:  features,
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       env.Currency,
+			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
+			CostBasis:      costBasis,
+			Features:       features,
 		},
 	)
 	require.NoError(t, err)
@@ -576,6 +616,7 @@ func fundSourceCharge(t *testing.T, env *ledgertestutils.IntegrationEnv, sourceC
 
 	subAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       env.Currency,
+		CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
 		CreditPriority: priority,
 	})
 	require.NoError(t, err)
@@ -595,6 +636,7 @@ func fundSourceCharge(t *testing.T, env *ledgertestutils.IntegrationEnv, sourceC
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       env.Currency,
+			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
 			SourceChargeID: &sourceChargeID,
 			CreditPriority: &priority,
 		},
@@ -602,12 +644,14 @@ func fundSourceCharge(t *testing.T, env *ledgertestutils.IntegrationEnv, sourceC
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       env.Currency,
+			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
 			SourceChargeID: &sourceChargeID,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       env.Currency,
+			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
 			SourceChargeID: &sourceChargeID,
 		},
 	)
@@ -632,6 +676,7 @@ func collectToAccruedInputForTest(
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
 		Currency:          env.Currency,
+		CustomCurrency:    env.CustomCurrencyForRoute(env.Currency),
 		SettlementMode:    settlementMode,
 		ServicePeriod: timeutil.ClosedPeriod{
 			From: env.Now().Add(-time.Hour),

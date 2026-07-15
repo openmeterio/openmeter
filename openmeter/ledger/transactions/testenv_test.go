@@ -8,7 +8,25 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
+
+// testCustomCurrencyIdentity deterministically maps a custom currency code to
+// a fixture managed identity, so route/routing-key resolution stays
+// consistent across the many test helpers that resolve the same code.
+func testCustomCurrencyIdentity(code currencyx.Code) *ledger.CustomCurrencyIdentity {
+	return &ledger.CustomCurrencyIdentity{ID: "test-custom-currency-" + string(code), Precision: 2}
+}
+
+// testCustomCurrencyIdentityIfCustom returns testCustomCurrencyIdentity(code)
+// when code is a custom currency, or nil for fiat codes.
+func testCustomCurrencyIdentityIfCustom(code currencyx.Code) *ledger.CustomCurrencyIdentity {
+	if !code.IsCustom() {
+		return nil
+	}
+
+	return testCustomCurrencyIdentity(code)
+}
 
 type transactionsTestEnv struct {
 	*ledgertestutils.IntegrationEnv

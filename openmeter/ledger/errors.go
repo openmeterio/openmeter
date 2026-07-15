@@ -1,6 +1,10 @@
 package ledger
 
-import "github.com/openmeterio/openmeter/pkg/models"
+import (
+	"errors"
+
+	"github.com/openmeterio/openmeter/pkg/models"
+)
 
 // TODO: Better names and codes
 
@@ -129,6 +133,25 @@ var ErrTransactionGroupEmpty = models.NewValidationIssue(
 	ErrCodeTransactionGroupEmpty,
 	"ledger transaction group must contain at least one transaction",
 )
+
+const ErrCodeTransactionGroupIdempotencyKeyInvalid models.ErrorCode = "ledger_transaction_group_idempotency_key_invalid"
+
+var ErrTransactionGroupIdempotencyKeyInvalid = models.NewValidationIssue(
+	ErrCodeTransactionGroupIdempotencyKeyInvalid,
+	"ledger transaction group idempotency key is invalid",
+)
+
+type TransactionGroupIdempotencyConflictError struct{}
+
+func (e *TransactionGroupIdempotencyConflictError) Error() string {
+	return "ledger transaction group idempotency key was already used with different financial inputs"
+}
+
+func IsTransactionGroupIdempotencyConflict(err error) bool {
+	var conflict *TransactionGroupIdempotencyConflictError
+
+	return errors.As(err, &conflict)
+}
 
 const ErrCodeRoutingRuleViolated models.ErrorCode = "ledger_routing_rule_violated"
 

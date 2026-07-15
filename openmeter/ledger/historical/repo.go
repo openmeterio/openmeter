@@ -2,6 +2,7 @@ package historical
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -20,6 +21,9 @@ type Repo interface {
 
 	// Get a transaction group with hydrated transactions and entries.
 	GetTransactionGroup(ctx context.Context, id models.NamespacedID) (*TransactionGroup, error)
+
+	// Get a transaction group by its namespace-scoped idempotency key.
+	GetTransactionGroupByIdempotencyKey(ctx context.Context, namespace string, key string) (*TransactionGroup, error)
 
 	// Book a transaction
 	BookTransaction(ctx context.Context, groupID models.NamespacedID, transaction ledger.TransactionInput) (*Transaction, error)
@@ -65,16 +69,22 @@ type CreateTransactionInput struct {
 type CreateTransactionGroupInput struct {
 	Namespace string
 
-	Annotations models.Annotations
+	Annotations      models.Annotations
+	IdempotencyKey   *string
+	InputFingerprint *string
 }
 
 type TransactionGroupData struct {
-	ID        string
-	Namespace string
-	CreatedAt time.Time
+	ID               string
+	Namespace        string
+	CreatedAt        time.Time
+	IdempotencyKey   *string
+	InputFingerprint *string
 
 	Annotations models.Annotations
 }
+
+var ErrTransactionGroupIdempotencyKeyAlreadyExists = errors.New("transaction group idempotency key already exists")
 
 type TransactionData struct {
 	ID          string

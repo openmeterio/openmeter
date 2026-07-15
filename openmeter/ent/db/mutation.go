@@ -98258,6 +98258,12 @@ type LedgerSubAccountRouteMutation struct {
 	routing_key_version              *ledger.RoutingKeyVersion
 	routing_key                      *string
 	currency                         *string
+	exchange_source_currency         *currencyx.Code
+	custom_currency_id               *string
+	custom_currency_precision        *uint32
+	addcustom_currency_precision     *int32
+	custom_currency_version          *uint32
+	addcustom_currency_version       *int32
 	tax_code                         *string
 	tax_behavior                     *ledger.TaxBehavior
 	features                         *pq.StringArray
@@ -98679,6 +98685,244 @@ func (m *LedgerSubAccountRouteMutation) OldCurrency(ctx context.Context) (v stri
 // ResetCurrency resets all changes to the "currency" field.
 func (m *LedgerSubAccountRouteMutation) ResetCurrency() {
 	m.currency = nil
+}
+
+// SetExchangeSourceCurrency sets the "exchange_source_currency" field.
+func (m *LedgerSubAccountRouteMutation) SetExchangeSourceCurrency(c currencyx.Code) {
+	m.exchange_source_currency = &c
+}
+
+// ExchangeSourceCurrency returns the value of the "exchange_source_currency" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) ExchangeSourceCurrency() (r currencyx.Code, exists bool) {
+	v := m.exchange_source_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExchangeSourceCurrency returns the old "exchange_source_currency" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldExchangeSourceCurrency(ctx context.Context) (v *currencyx.Code, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExchangeSourceCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExchangeSourceCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExchangeSourceCurrency: %w", err)
+	}
+	return oldValue.ExchangeSourceCurrency, nil
+}
+
+// ClearExchangeSourceCurrency clears the value of the "exchange_source_currency" field.
+func (m *LedgerSubAccountRouteMutation) ClearExchangeSourceCurrency() {
+	m.exchange_source_currency = nil
+	m.clearedFields[ledgersubaccountroute.FieldExchangeSourceCurrency] = struct{}{}
+}
+
+// ExchangeSourceCurrencyCleared returns if the "exchange_source_currency" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) ExchangeSourceCurrencyCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldExchangeSourceCurrency]
+	return ok
+}
+
+// ResetExchangeSourceCurrency resets all changes to the "exchange_source_currency" field.
+func (m *LedgerSubAccountRouteMutation) ResetExchangeSourceCurrency() {
+	m.exchange_source_currency = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldExchangeSourceCurrency)
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (m *LedgerSubAccountRouteMutation) SetCustomCurrencyID(s string) {
+	m.custom_currency_id = &s
+}
+
+// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) CustomCurrencyID() (r string, exists bool) {
+	v := m.custom_currency_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldCustomCurrencyID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
+	}
+	return oldValue.CustomCurrencyID, nil
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (m *LedgerSubAccountRouteMutation) ClearCustomCurrencyID() {
+	m.custom_currency_id = nil
+	m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyIDCleared returns if the "custom_currency_id" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) CustomCurrencyIDCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyID]
+	return ok
+}
+
+// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
+func (m *LedgerSubAccountRouteMutation) ResetCustomCurrencyID() {
+	m.custom_currency_id = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldCustomCurrencyID)
+}
+
+// SetCustomCurrencyPrecision sets the "custom_currency_precision" field.
+func (m *LedgerSubAccountRouteMutation) SetCustomCurrencyPrecision(u uint32) {
+	m.custom_currency_precision = &u
+	m.addcustom_currency_precision = nil
+}
+
+// CustomCurrencyPrecision returns the value of the "custom_currency_precision" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) CustomCurrencyPrecision() (r uint32, exists bool) {
+	v := m.custom_currency_precision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyPrecision returns the old "custom_currency_precision" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldCustomCurrencyPrecision(ctx context.Context) (v *uint32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyPrecision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyPrecision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyPrecision: %w", err)
+	}
+	return oldValue.CustomCurrencyPrecision, nil
+}
+
+// AddCustomCurrencyPrecision adds u to the "custom_currency_precision" field.
+func (m *LedgerSubAccountRouteMutation) AddCustomCurrencyPrecision(u int32) {
+	if m.addcustom_currency_precision != nil {
+		*m.addcustom_currency_precision += u
+	} else {
+		m.addcustom_currency_precision = &u
+	}
+}
+
+// AddedCustomCurrencyPrecision returns the value that was added to the "custom_currency_precision" field in this mutation.
+func (m *LedgerSubAccountRouteMutation) AddedCustomCurrencyPrecision() (r int32, exists bool) {
+	v := m.addcustom_currency_precision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCustomCurrencyPrecision clears the value of the "custom_currency_precision" field.
+func (m *LedgerSubAccountRouteMutation) ClearCustomCurrencyPrecision() {
+	m.custom_currency_precision = nil
+	m.addcustom_currency_precision = nil
+	m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyPrecision] = struct{}{}
+}
+
+// CustomCurrencyPrecisionCleared returns if the "custom_currency_precision" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) CustomCurrencyPrecisionCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyPrecision]
+	return ok
+}
+
+// ResetCustomCurrencyPrecision resets all changes to the "custom_currency_precision" field.
+func (m *LedgerSubAccountRouteMutation) ResetCustomCurrencyPrecision() {
+	m.custom_currency_precision = nil
+	m.addcustom_currency_precision = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldCustomCurrencyPrecision)
+}
+
+// SetCustomCurrencyVersion sets the "custom_currency_version" field.
+func (m *LedgerSubAccountRouteMutation) SetCustomCurrencyVersion(u uint32) {
+	m.custom_currency_version = &u
+	m.addcustom_currency_version = nil
+}
+
+// CustomCurrencyVersion returns the value of the "custom_currency_version" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) CustomCurrencyVersion() (r uint32, exists bool) {
+	v := m.custom_currency_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyVersion returns the old "custom_currency_version" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldCustomCurrencyVersion(ctx context.Context) (v *uint32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyVersion: %w", err)
+	}
+	return oldValue.CustomCurrencyVersion, nil
+}
+
+// AddCustomCurrencyVersion adds u to the "custom_currency_version" field.
+func (m *LedgerSubAccountRouteMutation) AddCustomCurrencyVersion(u int32) {
+	if m.addcustom_currency_version != nil {
+		*m.addcustom_currency_version += u
+	} else {
+		m.addcustom_currency_version = &u
+	}
+}
+
+// AddedCustomCurrencyVersion returns the value that was added to the "custom_currency_version" field in this mutation.
+func (m *LedgerSubAccountRouteMutation) AddedCustomCurrencyVersion() (r int32, exists bool) {
+	v := m.addcustom_currency_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCustomCurrencyVersion clears the value of the "custom_currency_version" field.
+func (m *LedgerSubAccountRouteMutation) ClearCustomCurrencyVersion() {
+	m.custom_currency_version = nil
+	m.addcustom_currency_version = nil
+	m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyVersion] = struct{}{}
+}
+
+// CustomCurrencyVersionCleared returns if the "custom_currency_version" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) CustomCurrencyVersionCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyVersion]
+	return ok
+}
+
+// ResetCustomCurrencyVersion resets all changes to the "custom_currency_version" field.
+func (m *LedgerSubAccountRouteMutation) ResetCustomCurrencyVersion() {
+	m.custom_currency_version = nil
+	m.addcustom_currency_version = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldCustomCurrencyVersion)
 }
 
 // SetTaxCode sets the "tax_code" field.
@@ -99111,7 +99355,7 @@ func (m *LedgerSubAccountRouteMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerSubAccountRouteMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, ledgersubaccountroute.FieldNamespace)
 	}
@@ -99135,6 +99379,18 @@ func (m *LedgerSubAccountRouteMutation) Fields() []string {
 	}
 	if m.currency != nil {
 		fields = append(fields, ledgersubaccountroute.FieldCurrency)
+	}
+	if m.exchange_source_currency != nil {
+		fields = append(fields, ledgersubaccountroute.FieldExchangeSourceCurrency)
+	}
+	if m.custom_currency_id != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyID)
+	}
+	if m.custom_currency_precision != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyPrecision)
+	}
+	if m.custom_currency_version != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyVersion)
 	}
 	if m.tax_code != nil {
 		fields = append(fields, ledgersubaccountroute.FieldTaxCode)
@@ -99178,6 +99434,14 @@ func (m *LedgerSubAccountRouteMutation) Field(name string) (ent.Value, bool) {
 		return m.RoutingKey()
 	case ledgersubaccountroute.FieldCurrency:
 		return m.Currency()
+	case ledgersubaccountroute.FieldExchangeSourceCurrency:
+		return m.ExchangeSourceCurrency()
+	case ledgersubaccountroute.FieldCustomCurrencyID:
+		return m.CustomCurrencyID()
+	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
+		return m.CustomCurrencyPrecision()
+	case ledgersubaccountroute.FieldCustomCurrencyVersion:
+		return m.CustomCurrencyVersion()
 	case ledgersubaccountroute.FieldTaxCode:
 		return m.TaxCode()
 	case ledgersubaccountroute.FieldTaxBehavior:
@@ -99215,6 +99479,14 @@ func (m *LedgerSubAccountRouteMutation) OldField(ctx context.Context, name strin
 		return m.OldRoutingKey(ctx)
 	case ledgersubaccountroute.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case ledgersubaccountroute.FieldExchangeSourceCurrency:
+		return m.OldExchangeSourceCurrency(ctx)
+	case ledgersubaccountroute.FieldCustomCurrencyID:
+		return m.OldCustomCurrencyID(ctx)
+	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
+		return m.OldCustomCurrencyPrecision(ctx)
+	case ledgersubaccountroute.FieldCustomCurrencyVersion:
+		return m.OldCustomCurrencyVersion(ctx)
 	case ledgersubaccountroute.FieldTaxCode:
 		return m.OldTaxCode(ctx)
 	case ledgersubaccountroute.FieldTaxBehavior:
@@ -99292,6 +99564,34 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetCurrency(v)
 		return nil
+	case ledgersubaccountroute.FieldExchangeSourceCurrency:
+		v, ok := value.(currencyx.Code)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExchangeSourceCurrency(v)
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyID(v)
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
+		v, ok := value.(uint32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyPrecision(v)
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyVersion:
+		v, ok := value.(uint32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyVersion(v)
+		return nil
 	case ledgersubaccountroute.FieldTaxCode:
 		v, ok := value.(string)
 		if !ok {
@@ -99342,6 +99642,12 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 // this mutation.
 func (m *LedgerSubAccountRouteMutation) AddedFields() []string {
 	var fields []string
+	if m.addcustom_currency_precision != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyPrecision)
+	}
+	if m.addcustom_currency_version != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyVersion)
+	}
 	if m.addcredit_priority != nil {
 		fields = append(fields, ledgersubaccountroute.FieldCreditPriority)
 	}
@@ -99353,6 +99659,10 @@ func (m *LedgerSubAccountRouteMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *LedgerSubAccountRouteMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
+		return m.AddedCustomCurrencyPrecision()
+	case ledgersubaccountroute.FieldCustomCurrencyVersion:
+		return m.AddedCustomCurrencyVersion()
 	case ledgersubaccountroute.FieldCreditPriority:
 		return m.AddedCreditPriority()
 	}
@@ -99364,6 +99674,20 @@ func (m *LedgerSubAccountRouteMutation) AddedField(name string) (ent.Value, bool
 // type.
 func (m *LedgerSubAccountRouteMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCustomCurrencyPrecision(v)
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyVersion:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCustomCurrencyVersion(v)
+		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		v, ok := value.(int)
 		if !ok {
@@ -99381,6 +99705,18 @@ func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
 	var fields []string
 	if m.FieldCleared(ledgersubaccountroute.FieldDeletedAt) {
 		fields = append(fields, ledgersubaccountroute.FieldDeletedAt)
+	}
+	if m.FieldCleared(ledgersubaccountroute.FieldExchangeSourceCurrency) {
+		fields = append(fields, ledgersubaccountroute.FieldExchangeSourceCurrency)
+	}
+	if m.FieldCleared(ledgersubaccountroute.FieldCustomCurrencyID) {
+		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyID)
+	}
+	if m.FieldCleared(ledgersubaccountroute.FieldCustomCurrencyPrecision) {
+		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyPrecision)
+	}
+	if m.FieldCleared(ledgersubaccountroute.FieldCustomCurrencyVersion) {
+		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyVersion)
 	}
 	if m.FieldCleared(ledgersubaccountroute.FieldTaxCode) {
 		fields = append(fields, ledgersubaccountroute.FieldTaxCode)
@@ -99416,6 +99752,18 @@ func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
 	switch name {
 	case ledgersubaccountroute.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case ledgersubaccountroute.FieldExchangeSourceCurrency:
+		m.ClearExchangeSourceCurrency()
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyID:
+		m.ClearCustomCurrencyID()
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
+		m.ClearCustomCurrencyPrecision()
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyVersion:
+		m.ClearCustomCurrencyVersion()
 		return nil
 	case ledgersubaccountroute.FieldTaxCode:
 		m.ClearTaxCode()
@@ -99466,6 +99814,18 @@ func (m *LedgerSubAccountRouteMutation) ResetField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case ledgersubaccountroute.FieldExchangeSourceCurrency:
+		m.ResetExchangeSourceCurrency()
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyID:
+		m.ResetCustomCurrencyID()
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
+		m.ResetCustomCurrencyPrecision()
+		return nil
+	case ledgersubaccountroute.FieldCustomCurrencyVersion:
+		m.ResetCustomCurrencyVersion()
 		return nil
 	case ledgersubaccountroute.FieldTaxCode:
 		m.ResetTaxCode()
@@ -100604,6 +100964,9 @@ type LedgerTransactionGroupMutation struct {
 	created_at                     *time.Time
 	updated_at                     *time.Time
 	deleted_at                     *time.Time
+	idempotency_scope              *string
+	idempotency_key                *string
+	input_fingerprint              *string
 	clearedFields                  map[string]struct{}
 	transactions                   map[string]struct{}
 	removedtransactions            map[string]struct{}
@@ -100929,6 +101292,153 @@ func (m *LedgerTransactionGroupMutation) ResetDeletedAt() {
 	delete(m.clearedFields, ledgertransactiongroup.FieldDeletedAt)
 }
 
+// SetIdempotencyScope sets the "idempotency_scope" field.
+func (m *LedgerTransactionGroupMutation) SetIdempotencyScope(s string) {
+	m.idempotency_scope = &s
+}
+
+// IdempotencyScope returns the value of the "idempotency_scope" field in the mutation.
+func (m *LedgerTransactionGroupMutation) IdempotencyScope() (r string, exists bool) {
+	v := m.idempotency_scope
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdempotencyScope returns the old "idempotency_scope" field's value of the LedgerTransactionGroup entity.
+// If the LedgerTransactionGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerTransactionGroupMutation) OldIdempotencyScope(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdempotencyScope is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdempotencyScope requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdempotencyScope: %w", err)
+	}
+	return oldValue.IdempotencyScope, nil
+}
+
+// ClearIdempotencyScope clears the value of the "idempotency_scope" field.
+func (m *LedgerTransactionGroupMutation) ClearIdempotencyScope() {
+	m.idempotency_scope = nil
+	m.clearedFields[ledgertransactiongroup.FieldIdempotencyScope] = struct{}{}
+}
+
+// IdempotencyScopeCleared returns if the "idempotency_scope" field was cleared in this mutation.
+func (m *LedgerTransactionGroupMutation) IdempotencyScopeCleared() bool {
+	_, ok := m.clearedFields[ledgertransactiongroup.FieldIdempotencyScope]
+	return ok
+}
+
+// ResetIdempotencyScope resets all changes to the "idempotency_scope" field.
+func (m *LedgerTransactionGroupMutation) ResetIdempotencyScope() {
+	m.idempotency_scope = nil
+	delete(m.clearedFields, ledgertransactiongroup.FieldIdempotencyScope)
+}
+
+// SetIdempotencyKey sets the "idempotency_key" field.
+func (m *LedgerTransactionGroupMutation) SetIdempotencyKey(s string) {
+	m.idempotency_key = &s
+}
+
+// IdempotencyKey returns the value of the "idempotency_key" field in the mutation.
+func (m *LedgerTransactionGroupMutation) IdempotencyKey() (r string, exists bool) {
+	v := m.idempotency_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdempotencyKey returns the old "idempotency_key" field's value of the LedgerTransactionGroup entity.
+// If the LedgerTransactionGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerTransactionGroupMutation) OldIdempotencyKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdempotencyKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdempotencyKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdempotencyKey: %w", err)
+	}
+	return oldValue.IdempotencyKey, nil
+}
+
+// ClearIdempotencyKey clears the value of the "idempotency_key" field.
+func (m *LedgerTransactionGroupMutation) ClearIdempotencyKey() {
+	m.idempotency_key = nil
+	m.clearedFields[ledgertransactiongroup.FieldIdempotencyKey] = struct{}{}
+}
+
+// IdempotencyKeyCleared returns if the "idempotency_key" field was cleared in this mutation.
+func (m *LedgerTransactionGroupMutation) IdempotencyKeyCleared() bool {
+	_, ok := m.clearedFields[ledgertransactiongroup.FieldIdempotencyKey]
+	return ok
+}
+
+// ResetIdempotencyKey resets all changes to the "idempotency_key" field.
+func (m *LedgerTransactionGroupMutation) ResetIdempotencyKey() {
+	m.idempotency_key = nil
+	delete(m.clearedFields, ledgertransactiongroup.FieldIdempotencyKey)
+}
+
+// SetInputFingerprint sets the "input_fingerprint" field.
+func (m *LedgerTransactionGroupMutation) SetInputFingerprint(s string) {
+	m.input_fingerprint = &s
+}
+
+// InputFingerprint returns the value of the "input_fingerprint" field in the mutation.
+func (m *LedgerTransactionGroupMutation) InputFingerprint() (r string, exists bool) {
+	v := m.input_fingerprint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInputFingerprint returns the old "input_fingerprint" field's value of the LedgerTransactionGroup entity.
+// If the LedgerTransactionGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerTransactionGroupMutation) OldInputFingerprint(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInputFingerprint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInputFingerprint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInputFingerprint: %w", err)
+	}
+	return oldValue.InputFingerprint, nil
+}
+
+// ClearInputFingerprint clears the value of the "input_fingerprint" field.
+func (m *LedgerTransactionGroupMutation) ClearInputFingerprint() {
+	m.input_fingerprint = nil
+	m.clearedFields[ledgertransactiongroup.FieldInputFingerprint] = struct{}{}
+}
+
+// InputFingerprintCleared returns if the "input_fingerprint" field was cleared in this mutation.
+func (m *LedgerTransactionGroupMutation) InputFingerprintCleared() bool {
+	_, ok := m.clearedFields[ledgertransactiongroup.FieldInputFingerprint]
+	return ok
+}
+
+// ResetInputFingerprint resets all changes to the "input_fingerprint" field.
+func (m *LedgerTransactionGroupMutation) ResetInputFingerprint() {
+	m.input_fingerprint = nil
+	delete(m.clearedFields, ledgertransactiongroup.FieldInputFingerprint)
+}
+
 // AddTransactionIDs adds the "transactions" edge to the LedgerTransaction entity by ids.
 func (m *LedgerTransactionGroupMutation) AddTransactionIDs(ids ...string) {
 	if m.transactions == nil {
@@ -101125,7 +101635,7 @@ func (m *LedgerTransactionGroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerTransactionGroupMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, ledgertransactiongroup.FieldNamespace)
 	}
@@ -101140,6 +101650,15 @@ func (m *LedgerTransactionGroupMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, ledgertransactiongroup.FieldDeletedAt)
+	}
+	if m.idempotency_scope != nil {
+		fields = append(fields, ledgertransactiongroup.FieldIdempotencyScope)
+	}
+	if m.idempotency_key != nil {
+		fields = append(fields, ledgertransactiongroup.FieldIdempotencyKey)
+	}
+	if m.input_fingerprint != nil {
+		fields = append(fields, ledgertransactiongroup.FieldInputFingerprint)
 	}
 	return fields
 }
@@ -101159,6 +101678,12 @@ func (m *LedgerTransactionGroupMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case ledgertransactiongroup.FieldDeletedAt:
 		return m.DeletedAt()
+	case ledgertransactiongroup.FieldIdempotencyScope:
+		return m.IdempotencyScope()
+	case ledgertransactiongroup.FieldIdempotencyKey:
+		return m.IdempotencyKey()
+	case ledgertransactiongroup.FieldInputFingerprint:
+		return m.InputFingerprint()
 	}
 	return nil, false
 }
@@ -101178,6 +101703,12 @@ func (m *LedgerTransactionGroupMutation) OldField(ctx context.Context, name stri
 		return m.OldUpdatedAt(ctx)
 	case ledgertransactiongroup.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case ledgertransactiongroup.FieldIdempotencyScope:
+		return m.OldIdempotencyScope(ctx)
+	case ledgertransactiongroup.FieldIdempotencyKey:
+		return m.OldIdempotencyKey(ctx)
+	case ledgertransactiongroup.FieldInputFingerprint:
+		return m.OldInputFingerprint(ctx)
 	}
 	return nil, fmt.Errorf("unknown LedgerTransactionGroup field %s", name)
 }
@@ -101222,6 +101753,27 @@ func (m *LedgerTransactionGroupMutation) SetField(name string, value ent.Value) 
 		}
 		m.SetDeletedAt(v)
 		return nil
+	case ledgertransactiongroup.FieldIdempotencyScope:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdempotencyScope(v)
+		return nil
+	case ledgertransactiongroup.FieldIdempotencyKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdempotencyKey(v)
+		return nil
+	case ledgertransactiongroup.FieldInputFingerprint:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInputFingerprint(v)
+		return nil
 	}
 	return fmt.Errorf("unknown LedgerTransactionGroup field %s", name)
 }
@@ -101258,6 +101810,15 @@ func (m *LedgerTransactionGroupMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgertransactiongroup.FieldDeletedAt) {
 		fields = append(fields, ledgertransactiongroup.FieldDeletedAt)
 	}
+	if m.FieldCleared(ledgertransactiongroup.FieldIdempotencyScope) {
+		fields = append(fields, ledgertransactiongroup.FieldIdempotencyScope)
+	}
+	if m.FieldCleared(ledgertransactiongroup.FieldIdempotencyKey) {
+		fields = append(fields, ledgertransactiongroup.FieldIdempotencyKey)
+	}
+	if m.FieldCleared(ledgertransactiongroup.FieldInputFingerprint) {
+		fields = append(fields, ledgertransactiongroup.FieldInputFingerprint)
+	}
 	return fields
 }
 
@@ -101277,6 +101838,15 @@ func (m *LedgerTransactionGroupMutation) ClearField(name string) error {
 		return nil
 	case ledgertransactiongroup.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case ledgertransactiongroup.FieldIdempotencyScope:
+		m.ClearIdempotencyScope()
+		return nil
+	case ledgertransactiongroup.FieldIdempotencyKey:
+		m.ClearIdempotencyKey()
+		return nil
+	case ledgertransactiongroup.FieldInputFingerprint:
+		m.ClearInputFingerprint()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerTransactionGroup nullable field %s", name)
@@ -101300,6 +101870,15 @@ func (m *LedgerTransactionGroupMutation) ResetField(name string) error {
 		return nil
 	case ledgertransactiongroup.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case ledgertransactiongroup.FieldIdempotencyScope:
+		m.ResetIdempotencyScope()
+		return nil
+	case ledgertransactiongroup.FieldIdempotencyKey:
+		m.ResetIdempotencyKey()
+		return nil
+	case ledgertransactiongroup.FieldInputFingerprint:
+		m.ResetInputFingerprint()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerTransactionGroup field %s", name)

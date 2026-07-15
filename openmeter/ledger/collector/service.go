@@ -68,6 +68,7 @@ type CollectToAccruedInput struct {
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
 	Currency          currencyx.Code
+	CustomCurrency    *ledger.CustomCurrencyIdentity
 	FeatureKey        string
 	SettlementMode    productcatalog.SettlementMode
 	ServicePeriod     timeutil.ClosedPeriod

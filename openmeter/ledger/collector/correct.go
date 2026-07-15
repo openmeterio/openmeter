@@ -343,13 +343,15 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 			Namespace: input.Namespace,
 		},
 		transactions.IssueCustomerReceivableTemplate{
-			At:             input.AllocateAt,
-			Amount:         amount,
-			Currency:       route.currency,
-			CostBasis:      route.costBasis,
-			Features:       route.features,
-			CreditPriority: route.creditPriority,
-			SourceChargeID: route.sourceChargeID,
+			At:                     input.AllocateAt,
+			Amount:                 amount,
+			Currency:               route.currency,
+			CustomCurrency:         route.customCurrency,
+			ExchangeSourceCurrency: route.exchangeSourceCurrency,
+			CostBasis:              route.costBasis,
+			Features:               route.features,
+			CreditPriority:         route.creditPriority,
+			SourceChargeID:         route.sourceChargeID,
 		},
 	)
 	if err != nil {
@@ -721,11 +723,13 @@ func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.Transaction
 }
 
 type backfilledCreditReissueRouteResult struct {
-	currency       currencyx.Code
-	costBasis      *alpacadecimal.Decimal
-	creditPriority *int
-	features       []string
-	sourceChargeID *string
+	currency               currencyx.Code
+	customCurrency         *ledger.CustomCurrencyIdentity
+	exchangeSourceCurrency *currencyx.Code
+	costBasis              *alpacadecimal.Decimal
+	creditPriority         *int
+	features               []string
+	sourceChargeID         *string
 }
 
 func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.TransactionGroup) (backfilledCreditReissueRouteResult, error) {
@@ -735,6 +739,8 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	// the customer credit collection priority. Fully backfilled purchases may
 	// only have the known cost basis on receivable/accrued attribution entries.
 	var fallbackCurrency currencyx.Code
+	var fallbackCustomCurrency *ledger.CustomCurrencyIdentity
+	var fallbackExchangeSourceCurrency *currencyx.Code
 	var fallbackCostBasis *alpacadecimal.Decimal
 	var fallbackFeatures []string
 	var sourceChargeID *string
@@ -752,16 +758,20 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 
 			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
 				return backfilledCreditReissueRouteResult{
-					currency:       route.Currency,
-					costBasis:      route.CostBasis,
-					creditPriority: route.CreditPriority,
-					features:       route.Features,
-					sourceChargeID: sourceChargeID,
+					currency:               route.Currency,
+					customCurrency:         route.CustomCurrency,
+					exchangeSourceCurrency: route.ExchangeSourceCurrency,
+					costBasis:              route.CostBasis,
+					creditPriority:         route.CreditPriority,
+					features:               route.Features,
+					sourceChargeID:         sourceChargeID,
 				}, nil
 			}
 
 			if fallbackCostBasis == nil {
 				fallbackCurrency = route.Currency
+				fallbackCustomCurrency = route.CustomCurrency
+				fallbackExchangeSourceCurrency = route.ExchangeSourceCurrency
 				fallbackCostBasis = route.CostBasis
 				fallbackFeatures = route.Features
 			}
@@ -770,10 +780,12 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 
 	if fallbackCostBasis != nil {
 		return backfilledCreditReissueRouteResult{
-			currency:       fallbackCurrency,
-			costBasis:      fallbackCostBasis,
-			features:       fallbackFeatures,
-			sourceChargeID: sourceChargeID,
+			currency:               fallbackCurrency,
+			customCurrency:         fallbackCustomCurrency,
+			exchangeSourceCurrency: fallbackExchangeSourceCurrency,
+			costBasis:              fallbackCostBasis,
+			features:               fallbackFeatures,
+			sourceChargeID:         sourceChargeID,
 		}, nil
 	}
 

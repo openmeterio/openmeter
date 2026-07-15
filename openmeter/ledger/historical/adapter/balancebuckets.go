@@ -25,6 +25,10 @@ type balanceBucketRow struct {
 	RoutingKeyVersion              string
 	RoutingKey                     string
 	Currency                       string
+	CustomCurrencyID               stdsql.NullString
+	CustomCurrencyPrecision        stdsql.NullInt64
+	CustomCurrencyVersion          stdsql.NullInt64
+	ExchangeSourceCurrency         stdsql.NullString
 	TaxCode                        stdsql.NullString
 	TaxBehavior                    stdsql.NullString
 	Features                       pq.StringArray
@@ -78,6 +82,10 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.RoutingKeyVersion,
 		&r.RoutingKey,
 		&r.Currency,
+		&r.CustomCurrencyID,
+		&r.CustomCurrencyPrecision,
+		&r.CustomCurrencyVersion,
+		&r.ExchangeSourceCurrency,
 		&r.TaxCode,
 		&r.TaxBehavior,
 		&r.Features,
@@ -103,11 +111,26 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s cost basis: %w", r.SubAccountID, err)
 	}
 
+	var customCurrency *ledger.CustomCurrencyIdentity
+	if r.CustomCurrencyID.Valid {
+		version := ledger.CustomCurrencyIdentityVersionV1
+		if r.CustomCurrencyVersion.Valid {
+			version = int(r.CustomCurrencyVersion.Int64)
+		}
+		customCurrency = &ledger.CustomCurrencyIdentity{
+			ID:        r.CustomCurrencyID.String,
+			Precision: int(r.CustomCurrencyPrecision.Int64),
+			Version:   version,
+		}
+	}
+
 	address, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
 		SubAccountID: r.SubAccountID,
 		AccountType:  ledger.AccountType(r.AccountType),
 		Route: ledger.Route{
 			Currency:                       currencyx.Code(r.Currency),
+			CustomCurrency:                 customCurrency,
+			ExchangeSourceCurrency:         nullableCurrencyCode(r.ExchangeSourceCurrency),
 			TaxCode:                        nullableStringValue(r.TaxCode),
 			TaxBehavior:                    nullableTaxBehavior(r.TaxBehavior),
 			Features:                       []string(r.Features),
@@ -151,6 +174,14 @@ func nullableStringValue(value stdsql.NullString) *string {
 	}
 
 	return lo.ToPtr(value.String)
+}
+
+func nullableCurrencyCode(value stdsql.NullString) *currencyx.Code {
+	if !value.Valid {
+		return nil
+	}
+
+	return lo.ToPtr(currencyx.Code(value.String))
 }
 
 func nullableTaxBehavior(value stdsql.NullString) *ledger.TaxBehavior {

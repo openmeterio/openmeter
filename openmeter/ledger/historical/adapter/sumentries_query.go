@@ -136,9 +136,17 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 		})
 	}
 
-	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 7)
+	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 8)
 	if normalizedRoute.Currency != "" {
 		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(normalizedRoute.Currency)))
+	}
+	if normalizedRoute.ExchangeSourceCurrency.IsPresent() {
+		exchangeSourceCurrency, _ := normalizedRoute.ExchangeSourceCurrency.Get()
+		if exchangeSourceCurrency != nil {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.ExchangeSourceCurrency(*exchangeSourceCurrency))
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.ExchangeSourceCurrencyIsNil())
+		}
 	}
 	if normalizedRoute.CreditPriority != nil {
 		routePredicates = append(routePredicates,
