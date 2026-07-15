@@ -94,13 +94,20 @@ func (t *statusCapturingTransport) last() int {
 //
 // Both are parsed so a single response type can drive either assertion.
 type v3Problem struct {
-	Type              string               `json:"type"`
-	Title             string               `json:"title"`
-	Status            int                  `json:"status"`
-	Detail            string               `json:"detail"`
-	Instance          string               `json:"instance"`
-	Extensions        map[string]any       `json:"extensions"`
-	InvalidParameters []v3InvalidParameter `json:"invalid_parameters"`
+	Type                string                 `json:"type"`
+	Title               string                 `json:"title"`
+	Status              int                    `json:"status"`
+	Detail              string                 `json:"detail"`
+	Instance            string                 `json:"instance"`
+	Extensions          map[string]any         `json:"extensions"`
+	InvalidParameters   []v3InvalidParameter   `json:"invalid_parameters"`
+	ConflictingResource *v3ConflictingResource `json:"conflicting_resource"`
+}
+
+type v3ConflictingResource struct {
+	Type       string `json:"type"`
+	ID         string `json:"id"`
+	CustomerID string `json:"customer_id"`
 }
 
 type v3InvalidParameter struct {

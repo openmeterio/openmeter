@@ -12844,6 +12844,23 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Gone
+    ConflictingResource:
+      type: object
+      description: Identifies the existing resource that caused the conflict, when the server could resolve it.
+      properties:
+        type:
+          type: string
+          description: Type of the conflicting resource.
+          example: credit_grant
+        id:
+          type: string
+          description: ID of the conflicting resource.
+        customer_id:
+          type: string
+          description: ID of the customer that owns the conflicting resource, when the resource is customer-scoped.
+      required:
+        - type
+        - id
     ConflictError:
       allOf:
         - $ref: '#/components/schemas/BaseError'
@@ -12854,11 +12871,13 @@ components:
             title:
               example: Conflict
             type:
-              example: https://httpstatuses.com/409
+              example: https://kongapi.info/konnect/resource-conflict
             instance:
               example: kong:trace:1234567890
             detail:
               example: Conflict
+            conflicting_resource:
+              $ref: '#/components/schemas/ConflictingResource'
     CursorMetaPage:
       type: object
       required:

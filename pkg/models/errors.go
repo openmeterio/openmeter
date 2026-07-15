@@ -69,10 +69,29 @@ func NewGenericConflictError(err error) error {
 	return &GenericConflictError{err: err}
 }
 
+// ConflictingResource identifies the existing resource a request collided
+// with, so callers can converge to it from the conflict response instead of
+// looking it up out of band.
+type ConflictingResource struct {
+	// Type is the resource type slug, e.g. "credit_grant".
+	Type string
+	// ID is the identifier of the existing resource.
+	ID string
+	// CustomerID is set when the resource is customer-scoped.
+	CustomerID string
+}
+
+// NewGenericConflictErrorWithResource returns a GenericConflictError carrying
+// the identity of the existing resource the request conflicted with.
+func NewGenericConflictErrorWithResource(err error, resource ConflictingResource) error {
+	return &GenericConflictError{err: err, resource: &resource}
+}
+
 var _ GenericError = &GenericConflictError{}
 
 type GenericConflictError struct {
-	err error
+	err      error
+	resource *ConflictingResource
 }
 
 func (e *GenericConflictError) Error() string {
@@ -81,6 +100,12 @@ func (e *GenericConflictError) Error() string {
 
 func (e *GenericConflictError) Unwrap() error {
 	return e.err
+}
+
+// Resource returns the conflicting resource details, or nil when they were
+// not resolved.
+func (e *GenericConflictError) Resource() *ConflictingResource {
+	return e.resource
 }
 
 // IsGenericConflictError returns true if the error is a GenericConflictError.

@@ -14,6 +14,7 @@ import (
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -92,7 +93,13 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 
 		dbCreditPurchase, err := create.Save(ctx)
 		if err != nil {
-			return creditpurchase.Charge{}, metaadapter.MapChargeConstraintError(err)
+			mapped := metaadapter.MapChargeConstraintError(err)
+			// The idempotency key index is this table's only unique index, so a
+			// unique violation on a keyed insert is unambiguously a key conflict.
+			if models.IsGenericConflictError(mapped) && in.Intent.Key != nil {
+				return creditpurchase.Charge{}, creditpurchase.NewChargeKeyConflictError(in.Namespace, in.Intent.CustomerID, *in.Intent.Key)
+			}
+			return creditpurchase.Charge{}, mapped
 		}
 
 		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{

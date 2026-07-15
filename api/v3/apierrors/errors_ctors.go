@@ -269,8 +269,19 @@ func NewRateLimitError(ctx context.Context) *BaseAPIError {
 	}
 }
 
-func NewConflictError(ctx context.Context, err error, detail string) *BaseAPIError {
-	return &BaseAPIError{
+// ConflictOption customizes a conflict error built by NewConflictError.
+type ConflictOption func(*BaseAPIError)
+
+// WithConflictingResource attaches the identity of the existing resource the
+// request collided with to the 409 response body.
+func WithConflictingResource(resource ConflictingResource) ConflictOption {
+	return func(e *BaseAPIError) {
+		e.ConflictingResource = &resource
+	}
+}
+
+func NewConflictError(ctx context.Context, err error, detail string, opts ...ConflictOption) *BaseAPIError {
+	e := &BaseAPIError{
 		Type:            ConflictType,
 		Status:          http.StatusConflict,
 		Title:           ConflictTitle,
@@ -279,6 +290,12 @@ func NewConflictError(ctx context.Context, err error, detail string) *BaseAPIErr
 		UnderlyingError: err,
 		ctx:             ctx,
 	}
+
+	for _, opt := range opts {
+		opt(e)
+	}
+
+	return e
 }
 
 func NewEmptySetResponse(ctx context.Context, cursorPagination bool) *BaseAPIError {

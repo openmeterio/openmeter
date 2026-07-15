@@ -113,15 +113,22 @@ func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 		}
 	}
 
-	t.Run("reusing a key for the same customer returns 409", func(t *testing.T) {
+	t.Run("reusing a key for the same customer returns 409 naming the existing grant", func(t *testing.T) {
 		customerID := createCustomer("credit_grant_idem_conflict")
 		key := ulid.Make().String()
 
-		_, err := c.Customers.Credits.Grants.Create(t.Context(), customerID, grant(&key))
+		existing, err := c.Customers.Credits.Grants.Create(t.Context(), customerID, grant(&key))
 		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, existing)
 
 		_, err = c.Customers.Credits.Grants.Create(t.Context(), customerID, grant(&key))
-		requireProblem(t, err, http.StatusConflict)
+		problem := requireProblem(t, err, http.StatusConflict)
+
+		assert.Equal(t, "https://kongapi.info/konnect/resource-conflict", problem.Type)
+		require.NotNil(t, problem.ConflictingResource, "conflict body should name the existing grant, problem: %+v", problem)
+		assert.Equal(t, "credit_grant", problem.ConflictingResource.Type)
+		assert.Equal(t, existing.ID, problem.ConflictingResource.ID)
+		assert.Equal(t, customerID, problem.ConflictingResource.CustomerID)
 	})
 
 	t.Run("omitting the key allows duplicates", func(t *testing.T) {

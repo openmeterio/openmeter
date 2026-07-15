@@ -61,6 +61,8 @@ model NotFound extends BaseError {
  */
 #suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
 @error
+// The wire schema (including conflicting_resource) is sourced from errors.yaml
+// via @useRef, not from this model's body — extend the schema there.
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/Conflict")
 @friendlyName("Conflict")
 model Conflict extends BaseError {

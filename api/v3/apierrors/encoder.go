@@ -6,8 +6,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
 )
@@ -20,8 +18,15 @@ func GenericErrorEncoder() encoder.ErrorEncoder {
 			return true
 		}
 
-		return commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[*meter.MeterNotFoundError](ctx, http.StatusNotFound, err, w) ||
-			commonhttp.HandleIssueIfHTTPStatusKnown(ctx, err, w)
+		if mapped := mapGenericError(ctx, err); mapped != nil {
+			mapped.HandleAPIError(w, r)
+			return true
+		}
+
+		// Legacy fallback for errors mapGenericError does not recognize, e.g.
+		// validation issues carrying an HTTP status apiErrorFromHTTPStatus
+		// cannot map. Kept so unrecognized errors retain their old shape
+		// instead of degrading to a 500.
+		return commonhttp.HandleIssueIfHTTPStatusKnown(ctx, err, w)
 	}
 }

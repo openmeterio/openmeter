@@ -42,6 +42,10 @@ type BaseAPIError struct {
 	// results (rule) are provided.
 	InvalidParameters InvalidParameters `json:"invalid_parameters,omitempty"`
 
+	// ConflictingResource identifies the existing resource a request collided
+	// with, when the server could resolve it. Only set on 409 responses.
+	ConflictingResource *ConflictingResource `json:"conflicting_resource,omitempty"`
+
 	// UnderlyingError is the underlying error stack to be logged.
 	// NOTE: this should not be returned to callers.
 	UnderlyingError error `json:"-"`
@@ -52,6 +56,19 @@ type BaseAPIError struct {
 
 // InvalidParameters is a collection of fields that failed input validation.
 type InvalidParameters []InvalidParameter
+
+// ConflictingResource identifies the existing resource that caused a 409
+// response, when the server could resolve it.
+type ConflictingResource struct {
+	// Type is the resource type slug, e.g. "credit_grant".
+	Type string `json:"type"`
+
+	// ID is the identifier of the existing resource.
+	ID string `json:"id"`
+
+	// CustomerID is set when the resource is customer-scoped.
+	CustomerID string `json:"customer_id,omitempty"`
+}
 
 type InvalidParameterSource uint8
 

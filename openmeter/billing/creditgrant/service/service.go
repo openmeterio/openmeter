@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -136,6 +137,10 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 		Intents:   charges.ChargeIntents{charges.NewChargeIntent(intent)},
 	})
 	if err != nil {
+		var keyConflict *creditpurchase.ChargeKeyConflictError
+		if errors.As(err, &keyConflict) {
+			return creditpurchase.Charge{}, fmt.Errorf("create credit grant charge: %w", s.enrichKeyConflict(ctx, keyConflict))
+		}
 		return creditpurchase.Charge{}, fmt.Errorf("create credit grant charge: %w", err)
 	}
 
@@ -153,6 +158,33 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 		CustomerID: input.CustomerID,
 		ChargeID:   createdChargeID.ID,
 	})
+}
+
+// enrichKeyConflict resolves the charge holding the conflicting idempotency
+// key so API callers can converge to the existing grant from the 409 response
+// alone. The lookup is best-effort and runs after the failed create has fully
+// rolled back: any miss (the winning row was deleted meanwhile, or belongs to
+// another customer) degrades to the plain conflict instead of masking the 409
+// with a lookup failure.
+func (s *service) enrichKeyConflict(ctx context.Context, conflict *creditpurchase.ChargeKeyConflictError) error {
+	result, err := s.creditPurchaseService.List(ctx, creditpurchase.ListChargesInput{
+		Namespace:   conflict.Namespace,
+		CustomerIDs: []string{conflict.CustomerID},
+		Key:         &filter.FilterString{Eq: lo.ToPtr(conflict.Key)},
+		Page:        pagination.NewPage(1, 1),
+	})
+	if err != nil || len(result.Items) != 1 {
+		return conflict
+	}
+
+	return models.NewGenericConflictErrorWithResource(
+		fmt.Errorf("credit grant with key %q already exists", conflict.Key),
+		models.ConflictingResource{
+			Type:       "credit_grant",
+			ID:         result.Items[0].ID,
+			CustomerID: conflict.CustomerID,
+		},
+	)
 }
 
 func (s *service) Get(ctx context.Context, input creditgrant.GetInput) (creditpurchase.Charge, error) {

@@ -8,10 +8,9 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-const httpStatusCodeErrorAttribute = "openmeter.http.status_code"
 
 // NewV3ErrorHandlerFunc returns an oapi-codegen ChiServerOptions.ErrorHandlerFunc implementation.
 //
@@ -179,15 +178,9 @@ func singularHTTPStatusFromValidationIssues(err error) (int, bool) {
 	// if multiple status codes are present, we don't map.
 	codes := make(map[int]struct{}, 1)
 	for _, issue := range issues {
-		raw, ok := issue.Attributes()[httpStatusCodeErrorAttribute]
-		if !ok {
-			continue
+		if c, ok := commonhttp.HTTPStatusCodeFromIssue(issue); ok {
+			codes[c] = struct{}{}
 		}
-		c, ok := raw.(int)
-		if !ok {
-			continue
-		}
-		codes[c] = struct{}{}
 	}
 
 	if len(codes) != 1 {
@@ -203,7 +196,8 @@ func singularHTTPStatusFromValidationIssues(err error) (int, bool) {
 func apiErrorFromHTTPStatus(ctx context.Context, status int, err error) *BaseAPIError {
 	switch status {
 	case http.StatusBadRequest:
-		return NewBadRequestError(ctx, err, nil)
+		issues, _ := models.AsValidationIssues(err)
+		return NewBadRequestError(ctx, err, InvalidParametersFromValidationIssues(issues))
 	case http.StatusUnauthorized:
 		return NewUnauthenticatedError(ctx, err)
 	case http.StatusForbidden:

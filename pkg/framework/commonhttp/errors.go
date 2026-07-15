@@ -83,6 +83,20 @@ func WithHTTPStatusCodeAttribute(code int) models.ValidationIssueOption {
 	return models.WithAttribute(httpStatusCodeErrorAttribute, code)
 }
 
+// HTTPStatusCodeFromIssue returns the HTTP status code attached to the issue
+// via WithHTTPStatusCodeAttribute. The attribute key is an unexported typed
+// constant, so this accessor is the only way to read it outside this package.
+func HTTPStatusCodeFromIssue(issue models.ValidationIssue) (int, bool) {
+	raw, ok := issue.Attributes()[httpStatusCodeErrorAttribute]
+	if !ok {
+		return 0, false
+	}
+
+	code, ok := raw.(int)
+
+	return code, ok
+}
+
 // Options for the Handler methods
 type handleIssueIfHTTPStatusKnownOptions struct {
 	statusPriorizationBehavior HTTPStatusAttributePriorizationBehavior
