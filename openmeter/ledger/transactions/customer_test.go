@@ -4,10 +4,30 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestIssueCustomerReceivableTemplateValidate(t *testing.T) {
+	err := (IssueCustomerReceivableTemplate{
+		Amount:                 alpacadecimal.NewFromInt(-1),
+		Currency:               currencyx.Code("AC|ME"),
+		ExchangeSourceCurrency: lo.ToPtr(currencyx.Code("POINTS")),
+		CostBasis:              lo.ToPtr(alpacadecimal.NewFromInt(-1)),
+		CreditPriority:         lo.ToPtr(-1),
+	}).Validate()
+	require.True(t, models.IsGenericValidationError(err))
+	require.ErrorContains(t, err, "amount must be positive")
+	require.ErrorContains(t, err, "at is required")
+	require.ErrorContains(t, err, "currency:")
+	require.ErrorContains(t, err, "exchange source currency:")
+	require.ErrorContains(t, err, "cost basis:")
+	require.ErrorContains(t, err, "credit priority:")
+}
 
 func TestIssueCustomerReceivableTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)

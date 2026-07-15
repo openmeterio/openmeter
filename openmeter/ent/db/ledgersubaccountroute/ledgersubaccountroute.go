@@ -30,6 +30,8 @@ const (
 	FieldRoutingKey = "routing_key"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldExchangeSourceCurrency holds the string denoting the exchange_source_currency field in the database.
+	FieldExchangeSourceCurrency = "exchange_source_currency"
 	// FieldTaxCode holds the string denoting the tax_code field in the database.
 	FieldTaxCode = "tax_code"
 	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
@@ -75,6 +77,7 @@ var Columns = []string{
 	FieldRoutingKeyVersion,
 	FieldRoutingKey,
 	FieldCurrency,
+	FieldExchangeSourceCurrency,
 	FieldTaxCode,
 	FieldTaxBehavior,
 	FieldFeatures,
@@ -152,6 +155,11 @@ func ByRoutingKey(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByExchangeSourceCurrency orders the results by the exchange_source_currency field.
+func ByExchangeSourceCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExchangeSourceCurrency, opts...).ToFunc()
 }
 
 // ByTaxCode orders the results by the tax_code field.

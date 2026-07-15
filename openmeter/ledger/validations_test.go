@@ -12,88 +12,49 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestValidateTransactionInputEntryAmountPrecision(t *testing.T) {
-	tests := []struct {
-		name     string
-		currency currencyx.Code
-		amount   string
-		wantErr  bool
-	}{
-		{
-			name:     "USD accepts cents",
-			currency: currencyx.Code("USD"),
-			amount:   "10.01",
-		},
-		{
-			name:     "USD rejects sub-cent amount",
-			currency: currencyx.Code("USD"),
-			amount:   "10.001",
-			wantErr:  true,
-		},
-		{
-			name:     "USD accepts negative cents",
-			currency: currencyx.Code("USD"),
-			amount:   "-10.01",
-		},
-		{
-			name:     "JPY accepts whole amount",
-			currency: currencyx.Code("JPY"),
-			amount:   "10",
-		},
-		{
-			name:     "JPY rejects fractional amount",
-			currency: currencyx.Code("JPY"),
-			amount:   "10.1",
-			wantErr:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			amount := mustDecimal(t, tt.amount)
-			address := mustPostingAddress(t, tt.currency)
-			txInput := &testutils.AnyTransactionInput{
-				BookedAtValue: time.Now(),
-				EntryInputsValues: []*testutils.AnyEntryInput{
-					{
-						Address:     address,
-						AmountValue: amount,
-					},
-					{
-						Address:     address,
-						AmountValue: amount.Neg(),
-					},
+func TestValidateTransactionInputCurrencyAccounting(t *testing.T) {
+	t.Run("preserves caller materialized precision", func(t *testing.T) {
+		amount := mustDecimal(t, "10.001")
+		address := mustPostingAddress(t, currencyx.Code("USD"))
+		txInput := &testutils.AnyTransactionInput{
+			BookedAtValue: time.Now(),
+			EntryInputsValues: []*testutils.AnyEntryInput{
+				{
+					Address:     address,
+					AmountValue: amount,
 				},
-			}
+				{
+					Address:     address,
+					AmountValue: amount.Neg(),
+				},
+			},
+		}
 
-			err := ledger.ValidateTransactionInput(t.Context(), txInput)
-			if !tt.wantErr {
-				require.NoError(t, err)
-				return
-			}
+		require.NoError(t, ledger.ValidateTransactionInput(t.Context(), txInput))
+	})
 
-			require.Error(t, err)
-			require.ErrorIs(t, err, ledger.ErrTransactionAmountInvalid)
+	t.Run("rejects a globally balanced transaction that is unbalanced by currency", func(t *testing.T) {
+		amount := mustDecimal(t, "25")
+		txInput := &testutils.AnyTransactionInput{
+			BookedAtValue: time.Now(),
+			EntryInputsValues: []*testutils.AnyEntryInput{
+				{
+					Address:     mustPostingAddress(t, currencyx.Code("USD")),
+					AmountValue: amount,
+				},
+				{
+					Address:     mustPostingAddress(t, currencyx.Code("ACME")),
+					AmountValue: amount.Neg(),
+				},
+			},
+		}
 
-			issues, issueErr := models.AsValidationIssues(err)
-			require.NoError(t, issueErr)
-			require.Len(t, issues, 1)
-			require.Equal(t, ledger.ErrCodeTransactionAmountInvalid, issues[0].Code())
-
-			attrs := issues[0].Attributes()
-			require.Equal(t, "amount_not_rounded_to_currency_precision", attrs["reason"])
-
-			currencyCode, ok := (attrs["currency"]).(currencyx.Code)
-			require.True(t, ok, "expected currency to be a currencyx.Code, got %T", attrs["currency"])
-			require.Equal(t, tt.currency, currencyCode)
-
-			require.Equal(t, amount.String(), attrs["amount"])
-			require.NotEmpty(t, attrs["rounded_amount"])
-		})
-	}
+		err := ledger.ValidateTransactionInput(t.Context(), txInput)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ledger.ErrInvalidTransactionTotal)
+	})
 }
 
 func TestListTransactionsInputValidateRouteFilter(t *testing.T) {

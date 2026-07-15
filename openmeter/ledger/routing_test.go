@@ -35,6 +35,68 @@ func TestBuildRoutingKeyV1_Nulls(t *testing.T) {
 	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }
 
+func TestBuildRoutingKeyExchangeSourceCurrency(t *testing.T) {
+	key, err := BuildRoutingKey(Route{
+		Currency:               currencyx.Code("ACME"),
+		ExchangeSourceCurrency: lo.ToPtr(currencyx.Code("USD")),
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV3, key.Version())
+	require.Contains(t, key.Value(), "currency:ACME|exchange_source_currency:USD|")
+}
+
+func TestBuildRoutingKeyEmptyExchangeSourceCurrency(t *testing.T) {
+	key, err := BuildRoutingKey(Route{
+		Currency:               currencyx.Code("USD"),
+		ExchangeSourceCurrency: lo.ToPtr(currencyx.Code("")),
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV1, key.Version())
+	require.NotContains(t, key.Value(), "exchange_source_currency:")
+}
+
+func TestRouteValidateExchangeSourceCurrency(t *testing.T) {
+	tests := []struct {
+		name                   string
+		currency               currencyx.Code
+		exchangeSourceCurrency *currencyx.Code
+		wantErr                bool
+	}{
+		{name: "fiat without source", currency: currencyx.Code("USD")},
+		{name: "fiat with empty source", currency: currencyx.Code("USD"), exchangeSourceCurrency: lo.ToPtr(currencyx.Code(""))},
+		{name: "custom without source", currency: currencyx.Code("ACME")},
+		{name: "custom with fiat source", currency: currencyx.Code("ACME"), exchangeSourceCurrency: lo.ToPtr(currencyx.Code("USD"))},
+		{name: "fiat with source", currency: currencyx.Code("USD"), exchangeSourceCurrency: lo.ToPtr(currencyx.Code("EUR")), wantErr: true},
+		{name: "custom with custom source", currency: currencyx.Code("ACME"), exchangeSourceCurrency: lo.ToPtr(currencyx.Code("POINTS")), wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := (Route{
+				Currency:               tt.currency,
+				ExchangeSourceCurrency: tt.exchangeSourceCurrency,
+			}).Validate()
+			if tt.wantErr {
+				require.ErrorIs(t, err, ErrCurrencyInvalid)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestRouteFilterExchangeSourceCurrency(t *testing.T) {
+	exchangeSourceCurrency := lo.ToPtr(currencyx.Code("USD"))
+	route := Route{
+		Currency:               currencyx.Code("ACME"),
+		ExchangeSourceCurrency: exchangeSourceCurrency,
+	}
+
+	require.True(t, route.Matches(RouteFilter{ExchangeSourceCurrency: mo.Some(exchangeSourceCurrency)}))
+	require.False(t, route.Matches(RouteFilter{ExchangeSourceCurrency: mo.Some(lo.ToPtr(currencyx.Code("EUR")))}))
+	require.False(t, route.Matches(RouteFilter{ExchangeSourceCurrency: mo.Some[*currencyx.Code](nil)}))
+}
+
 func TestBuildRoutingKeyV1_SameLiterals_SameKey(t *testing.T) {
 	priority := 100
 	input := Route{

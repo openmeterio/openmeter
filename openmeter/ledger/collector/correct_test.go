@@ -6,12 +6,14 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -352,6 +354,65 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	requireAccruedBalanceBuckets(t, env, map[string]float64{
 		sourceSpendChargeKey(nil, &chargeID): float64(remainingAdvance), // accrued keeps the uncorrected 20 under spend provenance with no source.
 	})
+}
+
+func TestBackfilledCreditReissueRoutePreservesExchangeSourceCurrency(t *testing.T) {
+	// given:
+	// - a custom-currency FBO route funded through a USD exchange
+	// when:
+	// - a correction resolves the route for reissuing backfilled credit
+	// then:
+	// - the reissued route keeps the original fiat source
+	now := time.Now().UTC()
+	costBasis := alpacadecimal.NewFromFloat(0.25)
+	priority := 1
+	exchangeSourceCurrency := lo.ToPtr(currencyx.Code("USD"))
+	route := ledger.Route{
+		Currency:               currencyx.Code("ACME"),
+		ExchangeSourceCurrency: exchangeSourceCurrency,
+		CostBasis:              &costBasis,
+		CreditPriority:         &priority,
+	}
+	key, err := ledger.BuildRoutingKey(route)
+	require.NoError(t, err)
+
+	transaction, err := ledgerhistorical.NewTransactionFromData(
+		ledgerhistorical.TransactionData{
+			ID:        "tx-1",
+			Namespace: "ns",
+			CreatedAt: now,
+			BookedAt:  now,
+		},
+		[]ledgerhistorical.EntryData{
+			{
+				ID:            "entry-1",
+				Namespace:     "ns",
+				CreatedAt:     now,
+				SubAccountID:  "subaccount-1",
+				AccountType:   ledger.AccountTypeCustomerFBO,
+				Route:         route,
+				RouteID:       "route-1",
+				RouteKey:      key.Value(),
+				RouteKeyVer:   key.Version(),
+				Amount:        alpacadecimal.NewFromInt(10),
+				TransactionID: "tx-1",
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	group := ledgerhistorical.NewTransactionGroupFromData(
+		ledgerhistorical.TransactionGroupData{
+			ID:        "group-1",
+			Namespace: "ns",
+			CreatedAt: now,
+		},
+		[]*ledgerhistorical.Transaction{transaction},
+	)
+
+	resolved, err := (&accrualCorrector{}).backfilledCreditReissueRoute(group)
+	require.NoError(t, err)
+	require.Equal(t, exchangeSourceCurrency, resolved.exchangeSourceCurrency)
 }
 
 func newTestAccrualCorrector(
