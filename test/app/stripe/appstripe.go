@@ -64,31 +64,24 @@ func (s *AppHandlerTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	defer s.Env.StripeClient().Restore()
 
 	// Create a stripe app
-	createApp, err := s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		InstallAppInput: app.InstallAppInput{
-			MarketplaceListingID: app.MarketplaceListingID{
-				Type: app.AppTypeStripe,
-			},
-
-			Namespace: s.namespace,
+	createApp, err := s.Env.App().InstallApp(ctx, app.InstallAppV3Input{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
-
-		APIKey: TestStripeAPIKey,
+		Namespace: s.namespace,
+		APIKey:    lo.ToPtr(TestStripeAPIKey),
 	})
 
 	require.NoError(t, err, "Create stripe app must not return error")
-	require.NotNil(t, createApp, "Create stripe app must return app")
+	require.NotNil(t, createApp.App, "Create stripe app must return app")
 
 	// Create with same Stripe account ID should return conflict
-	_, err = s.Env.App().InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		InstallAppInput: app.InstallAppInput{
-			MarketplaceListingID: app.MarketplaceListingID{
-				Type: app.AppTypeStripe,
-			},
-			Namespace: s.namespace,
+	_, err = s.Env.App().InstallApp(ctx, app.InstallAppV3Input{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
-
-		APIKey: TestStripeAPIKey,
+		Namespace: s.namespace,
+		APIKey:    lo.ToPtr(TestStripeAPIKey),
 	})
 
 	require.True(t, models.IsGenericConflictError(err), "Create stripe app must return conflict error with same Stripe account ID")

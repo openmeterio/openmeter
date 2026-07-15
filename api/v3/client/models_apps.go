@@ -113,6 +113,40 @@ func AppFromAppExternalInvoicing(value AppExternalInvoicing) (App, error) {
 	return result, nil
 }
 
+// App capability describes a function that an App can perform.
+type AppCapability struct {
+	// Type of the capability.
+	Type AppCapabilityType `json:"type"`
+	// Key of the capability.
+	Key string `json:"key"`
+	// Name of the capability.
+	Name string `json:"name"`
+	// Description of the capability.
+	Description string `json:"description"`
+}
+
+// Supported capability types for an App.
+//
+// Each capability defines an integration function that an App can perform.
+type AppCapabilityType string
+
+const (
+	AppCapabilityTypeReportUsage      AppCapabilityType = "report_usage"
+	AppCapabilityTypeReportEvents     AppCapabilityType = "report_events"
+	AppCapabilityTypeCalculateTax     AppCapabilityType = "calculate_tax"
+	AppCapabilityTypeInvoiceCustomers AppCapabilityType = "invoice_customers"
+	AppCapabilityTypeCollectPayments  AppCapabilityType = "collect_payments"
+)
+
+func (value AppCapabilityType) Valid() bool {
+	switch value {
+	case AppCapabilityTypeReportUsage, AppCapabilityTypeReportEvents, AppCapabilityTypeCalculateTax, AppCapabilityTypeInvoiceCustomers, AppCapabilityTypeCollectPayments:
+		return true
+	default:
+		return false
+	}
+}
+
 // Available apps for billing integrations to connect with third-party services.
 // Apps can have various capabilities like syncing data from or to external
 // systems, integrating with third-party services for tax calculation, delivery of
@@ -124,6 +158,16 @@ type AppCatalogItem struct {
 	Name string `json:"name"`
 	// Description of the app.
 	Description string `json:"description"`
+	// Capabilities of the app.
+	Capabilities []AppCapability `json:"capabilities"`
+	// Available install methods of the app.
+	InstallMethods []AppInstallMethods `json:"install_methods"`
+}
+
+// Page paginated response.
+type AppCatalogItemPagePaginatedResponse struct {
+	Data []AppCatalogItem `json:"data"`
+	Meta PaginatedMeta    `json:"meta"`
 }
 
 // External Invoicing app enables integration with third-party invoicing or payment
@@ -186,6 +230,24 @@ type AppExternalInvoicing struct {
 	// When disabled, invoices automatically progress through the issuing state and are
 	// immediately marked as issued.
 	EnableIssuingSyncHook bool `json:"enable_issuing_sync_hook"`
+}
+
+// Supported installation methods for an app.
+type AppInstallMethods string
+
+const (
+	AppInstallMethodsWithOAuth2            AppInstallMethods = "with_oauth2"
+	AppInstallMethodsWithAPIKey            AppInstallMethods = "with_api_key"
+	AppInstallMethodsNoCredentialsRequired AppInstallMethods = "no_credentials_required"
+)
+
+func (value AppInstallMethods) Valid() bool {
+	switch value {
+	case AppInstallMethodsWithOAuth2, AppInstallMethodsWithAPIKey, AppInstallMethodsNoCredentialsRequired:
+		return true
+	default:
+		return false
+	}
 }
 
 // Page paginated response.
@@ -267,4 +329,150 @@ type AppStripe struct {
 	Livemode bool `json:"livemode"`
 	// The masked Stripe API key that only exposes the first and last few characters.
 	MaskedAPIKey string `json:"masked_api_key"`
+}
+
+// Base model for installing an app from the catalog.
+type InstallAppExternalInvoicing struct {
+	// Type of the app.
+	Type AppType `json:"type"`
+	// Name of the app.
+	Name string `json:"name"`
+	// If true, a billing profile will be created for the app. The Stripe app will be
+	// also set as the default billing profile if the current default is a Sandbox app.
+	CreateBillingProfile bool `json:"create_billing_profile"`
+}
+
+// Request to install an app from the catalog.
+//
+// InstallAppRequest is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the InstallAppRequestFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type InstallAppRequest struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *InstallAppRequest) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u InstallAppRequest) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u InstallAppRequest) AsInstallAppStripeWithAPIKey() (*InstallAppStripeWithAPIKey, error) {
+	if u.Type != "stripe" {
+		return nil, fmt.Errorf("InstallAppRequest: expected type %q, got %q", "stripe", u.Type)
+	}
+	var value InstallAppStripeWithAPIKey
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func InstallAppRequestFromInstallAppStripeWithAPIKey(value InstallAppStripeWithAPIKey) (InstallAppRequest, error) {
+	value.Type = "stripe"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return InstallAppRequest{}, err
+	}
+	var result InstallAppRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return InstallAppRequest{}, err
+	}
+	return result, nil
+}
+
+func (u InstallAppRequest) AsInstallAppSandbox() (*InstallAppSandbox, error) {
+	if u.Type != "sandbox" {
+		return nil, fmt.Errorf("InstallAppRequest: expected type %q, got %q", "sandbox", u.Type)
+	}
+	var value InstallAppSandbox
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func InstallAppRequestFromInstallAppSandbox(value InstallAppSandbox) (InstallAppRequest, error) {
+	value.Type = "sandbox"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return InstallAppRequest{}, err
+	}
+	var result InstallAppRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return InstallAppRequest{}, err
+	}
+	return result, nil
+}
+
+func (u InstallAppRequest) AsInstallAppExternalInvoicing() (*InstallAppExternalInvoicing, error) {
+	if u.Type != "external_invoicing" {
+		return nil, fmt.Errorf("InstallAppRequest: expected type %q, got %q", "external_invoicing", u.Type)
+	}
+	var value InstallAppExternalInvoicing
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func InstallAppRequestFromInstallAppExternalInvoicing(value InstallAppExternalInvoicing) (InstallAppRequest, error) {
+	value.Type = "external_invoicing"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return InstallAppRequest{}, err
+	}
+	var result InstallAppRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return InstallAppRequest{}, err
+	}
+	return result, nil
+}
+
+// Response of the app install.
+type InstallAppResponse struct {
+	App                       App                 `json:"app"`
+	DefaultForCapabilityTypes []AppCapabilityType `json:"default_for_capability_types"`
+}
+
+// Base model for installing an app from the catalog.
+type InstallAppSandbox struct {
+	// Type of the app.
+	Type AppType `json:"type"`
+	// Name of the app.
+	Name string `json:"name"`
+	// If true, a billing profile will be created for the app. The Stripe app will be
+	// also set as the default billing profile if the current default is a Sandbox app.
+	CreateBillingProfile bool `json:"create_billing_profile"`
+}
+
+// Model for installing an app from the catalog with an API key.
+type InstallAppStripeWithAPIKey struct {
+	// Type of the app.
+	Type AppType `json:"type"`
+	// Name of the app.
+	Name string `json:"name"`
+	// If true, a billing profile will be created for the app. The Stripe app will be
+	// also set as the default billing profile if the current default is a Sandbox app.
+	CreateBillingProfile bool `json:"create_billing_profile"`
+	// API key for the app.
+	APIKey string `json:"api_key"`
 }

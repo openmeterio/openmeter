@@ -323,10 +323,13 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Apps
 
-| Method             | HTTP                          | Description           |
-| ------------------ | ----------------------------- | --------------------- |
-| `client.apps.list` | `GET /openmeter/apps`         | List installed apps.  |
-| `client.apps.get`  | `GET /openmeter/apps/{appId}` | Get an installed app. |
+| Method                       | HTTP                                   | Description                      |
+| ---------------------------- | -------------------------------------- | -------------------------------- |
+| `client.apps.list`           | `GET /openmeter/apps`                  | List installed apps.             |
+| `client.apps.get`            | `GET /openmeter/apps/{appId}`          | Get an installed app.            |
+| `client.apps.listCatalog`    | `GET /openmeter/app-catalog`           | List available apps.             |
+| `client.apps.getCatalogItem` | `GET /openmeter/app-catalog/{appType}` | Get an app catalog item by type. |
+| `client.apps.install`        | `POST /openmeter/app-catalog/install`  | Install an app from the catalog. |
 
 ### Billing
 

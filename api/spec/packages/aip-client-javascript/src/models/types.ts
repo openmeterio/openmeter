@@ -199,6 +199,47 @@ export interface RateCardBooleanEntitlement {
   type: 'boolean'
 }
 
+/** Model for installing an app from the catalog with an API key. */
+export interface InstallAppStripeWithApiKey {
+  /** Type of the app. */
+  type: 'stripe'
+  /** Name of the app. */
+  name: string
+  /**
+   * If true, a billing profile will be created for the app. The Stripe app will be
+   * also set as the default billing profile if the current default is a Sandbox app.
+   */
+  createBillingProfile: boolean
+  /** API key for the app. */
+  apiKey: string
+}
+
+/** Base model for installing an app from the catalog. */
+export interface InstallAppSandbox {
+  /** Type of the app. */
+  type: 'sandbox'
+  /** Name of the app. */
+  name: string
+  /**
+   * If true, a billing profile will be created for the app. The Stripe app will be
+   * also set as the default billing profile if the current default is a Sandbox app.
+   */
+  createBillingProfile: boolean
+}
+
+/** Base model for installing an app from the catalog. */
+export interface InstallAppExternalInvoicing {
+  /** Type of the app. */
+  type: 'external_invoicing'
+  /** Name of the app. */
+  name: string
+  /**
+   * If true, a billing profile will be created for the app. The Stripe app will be
+   * also set as the default billing profile if the current default is a Sandbox app.
+   */
+  createBillingProfile: boolean
+}
+
 /**
  * BillingWorkflowCollectionAlignmentSubscription specifies the alignment for
  * collecting the pending line items into an invoice.
@@ -1915,27 +1956,29 @@ export interface UnitConfig {
   displayUnit?: string
 }
 
-/**
- * Available apps for billing integrations to connect with third-party services.
- * Apps can have various capabilities like syncing data from or to external
- * systems, integrating with third-party services for tax calculation, delivery of
- * invoices, collection of payments, etc.
- */
-export interface AppCatalogItem {
-  /** Type of the app. */
-  type: 'sandbox' | 'stripe' | 'external_invoicing'
-  /** Name of the app. */
-  name: string
-  /** Description of the app. */
-  description: string
-}
-
 /** Mapping of app types to tax codes. */
 export interface TaxCodeAppMapping {
   /** The app type that the tax code is associated with. */
   appType: 'sandbox' | 'stripe' | 'external_invoicing'
   /** Tax code. */
   taxCode: string
+}
+
+/** App capability describes a function that an App can perform. */
+export interface AppCapability {
+  /** Type of the capability. */
+  type:
+    | 'report_usage'
+    | 'report_events'
+    | 'calculate_tax'
+    | 'invoice_customers'
+    | 'collect_payments'
+  /** Key of the capability. */
+  key: string
+  /** Name of the capability. */
+  name: string
+  /** Description of the capability. */
+  description: string
 }
 
 /**
@@ -3074,144 +3117,6 @@ export interface InvoiceUsageQuantityDetail {
   appliedUnitConfig: UnitConfig
 }
 
-/** Stripe app. */
-export interface AppStripe {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The app type. */
-  type: 'stripe'
-  /** The app catalog definition that this installed app is based on. */
-  definition: AppCatalogItem
-  /** Status of the app connection. */
-  status: 'ready' | 'unauthorized'
-  /** The Stripe account ID associated with the connected Stripe account. */
-  accountId: string
-  /** Indicates whether the app is connected to a live Stripe account. */
-  livemode: boolean
-  /** The masked Stripe API key that only exposes the first and last few characters. */
-  maskedApiKey: string
-}
-
-/** Sandbox app can be used for testing billing features. */
-export interface AppSandbox {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The app type. */
-  type: 'sandbox'
-  /** The app catalog definition that this installed app is based on. */
-  definition: AppCatalogItem
-  /** Status of the app connection. */
-  status: 'ready' | 'unauthorized'
-}
-
-/**
- * External Invoicing app enables integration with third-party invoicing or payment
- * system.
- *
- * The app supports a bi-directional synchronization pattern where OpenMeter
- * Billing manages the invoice lifecycle while the external system handles invoice
- * presentation and payment collection.
- *
- * Integration workflow:
- *
- * 1. The billing system creates invoices and transitions them through lifecycle
- * states (draft → issuing → issued)
- * 2. The integration receives webhook notifications about invoice state changes
- * 3. The integration calls back to provide external system IDs and metadata
- * 4. The integration reports payment events back via the payment status API
- *
- * State synchronization is controlled by hooks that pause invoice progression
- * until the external system confirms synchronization via API callbacks.
- */
-export interface AppExternalInvoicing {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The app type. */
-  type: 'external_invoicing'
-  /** The app catalog definition that this installed app is based on. */
-  definition: AppCatalogItem
-  /** Status of the app connection. */
-  status: 'ready' | 'unauthorized'
-  /**
-   * Enable draft synchronization hook.
-   *
-   * When enabled, invoices will pause at the draft state and wait for the
-   * integration to call the draft synchronized endpoint before progressing to the
-   * issuing state. This allows the external system to validate and prepare the
-   * invoice data.
-   *
-   * When disabled, invoices automatically progress through the draft state based on
-   * the configured workflow timing.
-   */
-  enableDraftSyncHook: boolean
-  /**
-   * Enable issuing synchronization hook.
-   *
-   * When enabled, invoices will pause at the issuing state and wait for the
-   * integration to call the issuing synchronized endpoint before progressing to the
-   * issued state. This ensures the external invoicing system has successfully
-   * created and finalized the invoice before it is marked as issued.
-   *
-   * When disabled, invoices automatically progress through the issuing state and are
-   * immediately marked as issued.
-   */
-  enableIssuingSyncHook: boolean
-}
-
 /** TaxCode create request. */
 export interface CreateTaxCodeRequest {
   /**
@@ -3276,6 +3181,25 @@ export interface UpsertTaxCodeRequest {
   labels?: Labels
   /** Mapping of app types to tax codes. */
   appMappings: TaxCodeAppMapping[]
+}
+
+/**
+ * Available apps for billing integrations to connect with third-party services.
+ * Apps can have various capabilities like syncing data from or to external
+ * systems, integrating with third-party services for tax calculation, delivery of
+ * invoices, collection of payments, etc.
+ */
+export interface AppCatalogItem {
+  /** Type of the app. */
+  type: 'sandbox' | 'stripe' | 'external_invoicing'
+  /** Name of the app. */
+  name: string
+  /** Description of the app. */
+  description: string
+  /** Capabilities of the app. */
+  capabilities: AppCapability[]
+  /** Available install methods of the app. */
+  installMethods: ('with_oauth2' | 'with_api_key' | 'no_credentials_required')[]
 }
 
 /**
@@ -3858,6 +3782,150 @@ export interface TaxCodePagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/** Stripe app. */
+export interface AppStripe {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The app type. */
+  type: 'stripe'
+  /** The app catalog definition that this installed app is based on. */
+  definition: AppCatalogItem
+  /** Status of the app connection. */
+  status: 'ready' | 'unauthorized'
+  /** The Stripe account ID associated with the connected Stripe account. */
+  accountId: string
+  /** Indicates whether the app is connected to a live Stripe account. */
+  livemode: boolean
+  /** The masked Stripe API key that only exposes the first and last few characters. */
+  maskedApiKey: string
+}
+
+/** Sandbox app can be used for testing billing features. */
+export interface AppSandbox {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The app type. */
+  type: 'sandbox'
+  /** The app catalog definition that this installed app is based on. */
+  definition: AppCatalogItem
+  /** Status of the app connection. */
+  status: 'ready' | 'unauthorized'
+}
+
+/**
+ * External Invoicing app enables integration with third-party invoicing or payment
+ * system.
+ *
+ * The app supports a bi-directional synchronization pattern where OpenMeter
+ * Billing manages the invoice lifecycle while the external system handles invoice
+ * presentation and payment collection.
+ *
+ * Integration workflow:
+ *
+ * 1. The billing system creates invoices and transitions them through lifecycle
+ * states (draft → issuing → issued)
+ * 2. The integration receives webhook notifications about invoice state changes
+ * 3. The integration calls back to provide external system IDs and metadata
+ * 4. The integration reports payment events back via the payment status API
+ *
+ * State synchronization is controlled by hooks that pause invoice progression
+ * until the external system confirms synchronization via API callbacks.
+ */
+export interface AppExternalInvoicing {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The app type. */
+  type: 'external_invoicing'
+  /** The app catalog definition that this installed app is based on. */
+  definition: AppCatalogItem
+  /** Status of the app connection. */
+  status: 'ready' | 'unauthorized'
+  /**
+   * Enable draft synchronization hook.
+   *
+   * When enabled, invoices will pause at the draft state and wait for the
+   * integration to call the draft synchronized endpoint before progressing to the
+   * issuing state. This allows the external system to validate and prepare the
+   * invoice data.
+   *
+   * When disabled, invoices automatically progress through the draft state based on
+   * the configured workflow timing.
+   */
+  enableDraftSyncHook: boolean
+  /**
+   * Enable issuing synchronization hook.
+   *
+   * When enabled, invoices will pause at the issuing state and wait for the
+   * integration to call the issuing synchronized endpoint before progressing to the
+   * issued state. This ensures the external invoicing system has successfully
+   * created and finalized the invoice before it is marked as issued.
+   *
+   * When disabled, invoices automatically progress through the issuing state and are
+   * immediately marked as issued.
+   */
+  enableIssuingSyncHook: boolean
+}
+
+/** Page paginated response. */
+export interface AppCatalogItemPagePaginatedResponse {
+  data: AppCatalogItem[]
+  meta: PaginatedMeta
+}
+
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
 export interface InvoiceWorkflowSettings {
   /** The apps that will be used to orchestrate the invoice's workflow. */
@@ -4143,22 +4211,6 @@ export interface WorkflowCollectionSettings {
   interval: string
 }
 
-/** Page paginated response. */
-export interface AppPagePaginatedResponse {
-  data: App[]
-  meta: PaginatedMeta
-}
-
-/** Applications used by a billing profile. */
-export interface ProfileApps {
-  /** The tax app used for this workflow. */
-  tax: App
-  /** The invoicing app used for this workflow. */
-  invoicing: App
-  /** The payment app used for this workflow. */
-  payment: App
-}
-
 /** Response of the governance query. */
 export interface GovernanceQueryResponse {
   /** Access evaluation results, one entry per resolved customer. */
@@ -4426,6 +4478,34 @@ export interface Workflow {
   payment?: WorkflowPaymentSettings
   /** The tax settings for this workflow */
   tax?: WorkflowTaxSettings
+}
+
+/** Page paginated response. */
+export interface AppPagePaginatedResponse {
+  data: App[]
+  meta: PaginatedMeta
+}
+
+/** Response of the app install. */
+export interface BillingInstallAppResponse {
+  app: App
+  defaultForCapabilityTypes: (
+    | 'report_usage'
+    | 'report_events'
+    | 'calculate_tax'
+    | 'invoice_customers'
+    | 'collect_payments'
+  )[]
+}
+
+/** Applications used by a billing profile. */
+export interface ProfileApps {
+  /** The tax app used for this workflow. */
+  tax: App
+  /** The invoicing app used for this workflow. */
+  invoicing: App
+  /** The payment app used for this workflow. */
+  payment: App
 }
 
 /** A usage-based charge for a customer. */
@@ -5271,6 +5351,12 @@ export type DateTimeFieldFilter =
  */
 export type SubscriptionEditTiming = 'immediate' | 'next_billing_cycle' | Date
 
+/** Request to install an app from the catalog. */
+export type InstallAppRequest =
+  | InstallAppStripeWithApiKey
+  | InstallAppSandbox
+  | InstallAppExternalInvoicing
+
 /** Payment settings for a billing workflow. */
 export type WorkflowPaymentSettings =
   | WorkflowPaymentChargeAutomaticallySettings
@@ -5318,9 +5404,6 @@ export type WorkflowCollectionAlignment =
   | WorkflowCollectionAlignmentSubscription
   | WorkflowCollectionAlignmentAnchored
 
-/** Installed application. */
-export type App = AppStripe | AppSandbox | AppExternalInvoicing
-
 /** Price. */
 export type Price =
   | PriceFree
@@ -5336,6 +5419,9 @@ export type UpdatePrice =
   | UpdatePriceUnit
   | UpdatePriceGraduated
   | UpdatePriceVolume
+
+/** Installed application. */
+export type App = AppStripe | AppSandbox | AppExternalInvoicing
 
 /** Customer charge. */
 export type CreateChargeRequest =

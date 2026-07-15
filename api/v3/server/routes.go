@@ -150,6 +150,18 @@ func (s *Server) GetApp(w http.ResponseWriter, r *http.Request, appId api.ULID) 
 	s.appsHandler.GetApp().With(appId).ServeHTTP(w, r)
 }
 
+func (s *Server) ListAppCatalog(w http.ResponseWriter, r *http.Request, params api.ListAppCatalogParams) {
+	s.appsHandler.ListAppCatalog().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetAppCatalogItem(w http.ResponseWriter, r *http.Request, pType api.BillingAppType) {
+	s.appsHandler.GetAppCatalog().With(pType).ServeHTTP(w, r)
+}
+
+func (s *Server) InstallApp(w http.ResponseWriter, r *http.Request) {
+	s.appsHandler.InstallApp().ServeHTTP(w, r)
+}
+
 // Billing Profiles
 
 func (s *Server) ListBillingProfiles(w http.ResponseWriter, r *http.Request, params api.ListBillingProfilesParams) {

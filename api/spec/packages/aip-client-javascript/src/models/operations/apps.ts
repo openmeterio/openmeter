@@ -3,7 +3,14 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
 import type { AcceptDateStrings } from '../../lib/wire.js'
-import type { App, AppPagePaginatedResponse } from '../types.js'
+import type {
+  App,
+  AppCatalogItem,
+  AppCatalogItemPagePaginatedResponse,
+  AppPagePaginatedResponse,
+  BillingInstallAppResponse,
+  InstallAppRequest as InstallAppRequestBody,
+} from '../types.js'
 
 export interface ListAppsQuery {
   /** Determines which page of the collection to retrieve. */
@@ -17,3 +24,19 @@ export type GetAppRequest = {
   appId: string
 }
 export type GetAppResponse = App
+
+export interface ListAppCatalogQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+}
+
+export type ListAppCatalogRequest = AcceptDateStrings<ListAppCatalogQuery>
+export type ListAppCatalogResponse = AppCatalogItemPagePaginatedResponse
+
+export type GetAppCatalogItemRequest = {
+  appType: string
+}
+export type GetAppCatalogItemResponse = AppCatalogItem
+
+export type InstallAppRequest = AcceptDateStrings<InstallAppRequestBody>
+export type InstallAppResponse = BillingInstallAppResponse

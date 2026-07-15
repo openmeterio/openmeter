@@ -35,7 +35,7 @@ func TestApp(t *testing.T) {
 
 func (s *CustomInvoicingTestSuite) setupDefaultBillingProfile(ctx context.Context, namespace string, customInvoicingConfig appcustominvoicing.Configuration) {
 	// Install custom invoicing app
-	customInvoicingApp, err := s.AppService.InstallMarketplaceListing(ctx, app.InstallAppInput{
+	customInvoicingApp, err := s.AppService.InstallApp(ctx, app.InstallAppV3Input{
 		MarketplaceListingID: app.MarketplaceListingID{
 			Type: app.AppTypeCustomInvoicing,
 		},
@@ -46,14 +46,14 @@ func (s *CustomInvoicingTestSuite) setupDefaultBillingProfile(ctx context.Contex
 
 	// Let's set up the custom invoicing config
 	_, err = s.AppService.UpdateApp(ctx, app.UpdateAppInput{
-		AppID:           customInvoicingApp.GetID(),
-		Name:            customInvoicingApp.GetName(),
+		AppID:           customInvoicingApp.App.GetID(),
+		Name:            customInvoicingApp.App.GetName(),
 		AppConfigUpdate: customInvoicingConfig,
 	})
 	s.NoError(err, "failed to upsert custom invoicing config")
 
 	// Create billing profile
-	s.ProvisionBillingProfile(ctx, namespace, customInvoicingApp.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+	s.ProvisionBillingProfile(ctx, namespace, customInvoicingApp.App.GetID(), billingtest.WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		profile.WorkflowConfig.Invoicing.DraftPeriod = lo.Must(datetime.ISODurationString("P0D").Parse())
 	}))
 }

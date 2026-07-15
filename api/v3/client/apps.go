@@ -26,6 +26,18 @@ func (p AppListParams) values() url.Values {
 	return q
 }
 
+type AppCatalogItemListParams struct {
+	Page *PageParams
+}
+
+func (p AppCatalogItemListParams) values() url.Values {
+	q := url.Values{}
+
+	addPageParams(q, p.Page)
+
+	return q
+}
+
 // List installed apps.
 func (s *AppsService) List(ctx context.Context, params AppListParams) (*AppPagePaginatedResponse, error) {
 	path := "/openmeter/apps"
@@ -74,6 +86,78 @@ func (s *AppsService) Get(ctx context.Context, appID string) (*App, error) {
 	}
 
 	var out App
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// List available apps.
+func (s *AppsService) ListCatalog(ctx context.Context, params AppCatalogItemListParams) (*AppCatalogItemPagePaginatedResponse, error) {
+	path := "/openmeter/app-catalog"
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out AppCatalogItemPagePaginatedResponse
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// ListCatalogAll returns an iterator over all AppCatalogItem results, fetching pages of ListCatalog transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *AppsService) ListCatalogAll(ctx context.Context, params AppCatalogItemListParams) iter.Seq2[AppCatalogItem, error] {
+	return paginate(params.Page, func(page, size int) ([]AppCatalogItem, int, error) {
+		pageParams := params
+		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
+
+		resp, err := s.ListCatalog(ctx, pageParams)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		return resp.Data, resp.Meta.Page.Total, nil
+	})
+}
+
+// Get an app catalog item by type.
+func (s *AppsService) GetCatalogItem(ctx context.Context, appType string) (*AppCatalogItem, error) {
+	if appType == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "appType", ErrEmptyID)
+	}
+
+	path := "/openmeter/app-catalog/{appType}"
+
+	path = replacePathParam(path, "appType", appType)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out AppCatalogItem
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Install an app from the catalog.
+func (s *AppsService) Install(ctx context.Context, request InstallAppRequest) (*InstallAppResponse, error) {
+	path := "/openmeter/app-catalog/install"
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out InstallAppResponse
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}

@@ -1279,12 +1279,8 @@ func (n NoopAppService) ListMarketplaceListings(ctx context.Context, input app.M
 	return pagination.Result[app.RegistryItem]{}, nil
 }
 
-func (n NoopAppService) InstallMarketplaceListingWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
-	return appstripe.App{}, nil
-}
-
-func (n NoopAppService) InstallMarketplaceListing(ctx context.Context, input app.InstallAppInput) (app.App, error) {
-	return appstripe.App{}, nil
+func (n *NoopAppService) InstallApp(ctx context.Context, input app.InstallAppV3Input) (app.InstallAppV3Output, error) {
+	return app.InstallAppV3Output{}, nil
 }
 
 func (n NoopAppService) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input app.GetOauth2InstallURLInput) (app.GetOauth2InstallURLOutput, error) {
