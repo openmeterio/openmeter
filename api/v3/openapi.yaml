@@ -514,7 +514,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: The request has succeeded.
+          description: The updated invoice after advancing to the next state.
           content:
             application/json:
               schema:
@@ -556,7 +556,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: The request has succeeded.
+          description: The updated invoice after sending to the customer.
           content:
             application/json:
               schema:
@@ -593,7 +593,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: The request has succeeded.
+          description: The updated invoice after retrying the action.
           content:
             application/json:
               schema:
@@ -631,7 +631,9 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: The request has succeeded.
+          description: |-
+            The updated invoice with the snapshot quantities for usage based line
+            items.
           content:
             application/json:
               schema:

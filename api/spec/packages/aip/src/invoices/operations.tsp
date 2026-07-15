@@ -158,6 +158,8 @@ interface InvoicesOperations {
    * Advances the invoice to the next workflow state. The next state is determined by
    * the invoice's current status and workflow configuration. Only invoices in draft
    * or issued status can be advanced.
+   *
+   * @returns The updated invoice after advancing to the next state.
    */
   @post
   @route("/{invoiceId}/advance")
@@ -183,6 +185,8 @@ interface InvoicesOperations {
    *   issued
    * - manual_approval_needed: the invoice will be sent to the customer, the invoice
    *   state becomes issued
+   *
+   * @returns The updated invoice after sending to the customer.
    */
   @post
   @route("/{invoiceId}/approve")
@@ -203,6 +207,8 @@ interface InvoicesOperations {
    *
    * The action can be called when the invoice's statusDetails' actions field contain
    * the "retry" action.
+   *
+   * @returns The updated invoice after retrying the action.
    */
   @post
   @route("/{invoiceId}/retry")
@@ -224,6 +230,9 @@ interface InvoicesOperations {
    *
    * This call is only valid in draft.waiting_for_collection status, where the
    * collection period can be skipped using this action.
+   *
+   * @returns The updated invoice with the snapshot quantities for usage based line
+   * items.
    */
   @post
   @route("/{invoiceId}/snapshot-quantities")
