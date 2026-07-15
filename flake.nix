@@ -96,6 +96,7 @@
 
               golangci-lint
               goreleaser
+              gotestsum
               air
 
               curl

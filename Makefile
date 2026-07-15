@@ -9,6 +9,8 @@ SVIX_JWT_SECRET = DUMMY_JWT_SECRET
 GO_BUILD_FLAGS = -tags=dynamic
 GO_TEST_PACKAGE_PARALLELISM ?= 128
 GO_TEST_FLAGS = -p ${GO_TEST_PACKAGE_PARALLELISM} -parallel 16 ${GO_BUILD_FLAGS}
+GOTESTSUM_FLAGS ?= --format pkgname-and-test-fails --hide-summary=skipped
+GO_TEST = gotestsum ${GOTESTSUM_FLAGS} --
 GO_LINT_PATH ?= ./...
 
 .PHONY: up
@@ -231,25 +233,25 @@ etoe-slow: ## Run e2e tests with slow tests enabled
 test: ## Run tests
 	$(call print-target)
 	PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres postgres -c "SELECT version();" || (echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!" && false)
-	POSTGRES_HOST=127.0.0.1 go test ${GO_TEST_FLAGS} ./...
+	POSTGRES_HOST=127.0.0.1 ${GO_TEST} ${GO_TEST_FLAGS} ./...
 
 .PHONY: test-nocache
 test-nocache: ## Run tests without cache
 	$(call print-target)
 	PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres postgres -c "SELECT version();" || (echo "!!! Postgres is not running. Please start it with 'docker compose up -d postgres' !!!" && false)
-	POSTGRES_HOST=127.0.0.1 go test ${GO_TEST_FLAGS} -count=1 ./...
+	POSTGRES_HOST=127.0.0.1 ${GO_TEST} ${GO_TEST_FLAGS} -count=1 ./...
 
 .PHONY: test-all
 test-all: ## Run tests with svix dependencies, bypassing the test cache
 	$(call print-target)
 	docker compose up -d postgres svix redis
 	./tools/wait-for-compose.sh postgres svix redis
-	SVIX_HOST="localhost" SVIX_JWT_SECRET="$(SVIX_JWT_SECRET)" go test ${GO_TEST_FLAGS} -count=1 ./...
+	SVIX_HOST="localhost" SVIX_JWT_SECRET="$(SVIX_JWT_SECRET)" ${GO_TEST} ${GO_TEST_FLAGS} -count=1 ./...
 
 .PHONY: test-go-sdk
 test-go-sdk: ## Build, vet, and test the v3 Go SDK module (api/v3/client)
 	$(call print-target)
-	cd api/v3/client && go build ./... && go vet ./... && go test ./...
+	cd api/v3/client && go build ./... && go vet ./... && ${GO_TEST} ./...
 
 .PHONY: lint
 lint: lint-go lint-api-spec lint-openapi lint-helm ## Run linters
