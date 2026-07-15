@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,27 +34,54 @@ func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.Nam
 			// if no snapshot is found we have to calculate from start of time on all grants and usage
 			m.Logger.Debug("no saved balance found for owner, calculating from start of time", "owner", owner.ID, "at", at)
 
-			startOfMeasurement, err := m.OwnerConnector.GetStartOfMeasurement(ctx, owner)
-			if err != nil {
-				return bal, err
-			}
-
-			grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
-			if err != nil {
-				return bal, err
-			}
-
-			bal = balance.Snapshot{
-				At:       startOfMeasurement,
-				Balances: balance.NewStartingMap(grants, startOfMeasurement),
-				Overage:  0.0, // There cannot be overage at the start of measurement
-			}
-		} else {
-			return bal, fmt.Errorf("failed to get latest valid grant balance at %s for owner %s: %w", at, owner.ID, err)
+			return m.startOfMeasurementSnapshot(ctx, owner, at)
 		}
+
+		return bal, fmt.Errorf("failed to get latest valid grant balance at %s for owner %s: %w", at, owner.ID, err)
+	}
+
+	// OM-400: only resume from a snapshot computed under the owner's CURRENT conversion
+	// regime. If they differ — e.g. a future backfill set the entitlement's unit_config
+	// after raw-unit snapshots already existed — resuming would combine raw baseline
+	// state with converted incremental usage. Recompute from the start of measurement in
+	// the current regime instead. This is the enforced invariant behind Option A's
+	// "an entitlement converts for its whole life or never" (it also covers a flag flip).
+	regime, err := m.OwnerConnector.DescribeOwner(ctx, owner)
+	if err != nil {
+		return bal, fmt.Errorf("failed to describe owner %s: %w", owner.ID, err)
+	}
+
+	if !bal.UnitConfig.Equal(regime.UnitConfig) {
+		m.Logger.WarnContext(ctx, "balance snapshot unit_config regime does not match owner; recomputing from start of measurement",
+			"owner", owner.ID, "at", at)
+
+		return m.startOfMeasurementSnapshot(ctx, owner, at)
 	}
 
 	return bal, nil
+}
+
+// startOfMeasurementSnapshot builds a fresh zero snapshot at the owner's start of
+// measurement, used when no usable snapshot exists (none saved, or the latest one was
+// computed under a different unit_config regime — see GetLastValidSnapshotAt). Its
+// UnitConfig is left nil because it carries no usage yet; the recomputed result saved
+// afterwards is stamped with the current regime (see saveSnapshot / snapshotParams).
+func (m *connector) startOfMeasurementSnapshot(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
+	startOfMeasurement, err := m.OwnerConnector.GetStartOfMeasurement(ctx, owner)
+	if err != nil {
+		return balance.Snapshot{}, err
+	}
+
+	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
+	if err != nil {
+		return balance.Snapshot{}, err
+	}
+
+	return balance.Snapshot{
+		At:       startOfMeasurement,
+		Balances: balance.NewStartingMap(grants, startOfMeasurement),
+		Overage:  0.0, // There cannot be overage at the start of measurement
+	}, nil
 }
 
 func (m *connector) runEngineInSpan(ctx context.Context, eng engine.Engine, runParams engine.RunParams) (engine.RunResult, error) {
@@ -170,6 +198,9 @@ type snapshotParams struct {
 	owner models.NamespacedID
 	// Snapshot is saved if the segment is not after this time & the start of the current usage period (at time of snapshot)
 	notAfter time.Time
+	// unitConfig is the owner's current conversion regime, stamped onto the saved
+	// snapshot so the resume path can detect a later regime change (OM-400). Nil = raw.
+	unitConfig *unitconfig.UnitConfig
 }
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
@@ -227,6 +258,10 @@ func (m *connector) saveSnapshot(ctx context.Context, params snapshotParams, sna
 	if err := m.removeInactiveGrantsFromSnapshotAt(&snap, params.grants, snap.At); err != nil {
 		return snap, fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
 	}
+
+	// Stamp the regime this snapshot was computed under so the resume path can reject it
+	// if the owner's unit_config later changes (OM-400).
+	snap.UnitConfig = params.unitConfig
 
 	if err := m.BalanceSnapshotService.Save(ctx, params.owner, []balance.Snapshot{snap}); err != nil {
 		return snap, fmt.Errorf("failed to save snapshot: %w", err)

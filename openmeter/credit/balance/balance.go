@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 func NewStartingMap(grants []grant.Grant, at time.Time) Map {
@@ -82,6 +83,13 @@ type Snapshot struct {
 	Balances Map
 	Overage  float64
 	At       time.Time
+
+	// UnitConfig records the conversion regime this snapshot's Usage/Balances were
+	// computed under (OM-400). The resume path only reuses a snapshot whose UnitConfig
+	// matches the owner's current one; a mismatch (e.g. a future backfill that sets an
+	// entitlement's unit_config after raw-unit snapshots already exist) forces a
+	// recompute rather than mixing raw and converted units. Nil = raw (no conversion).
+	UnitConfig *unitconfig.UnitConfig
 }
 
 func (g Snapshot) Balance() float64 {

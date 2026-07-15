@@ -69,6 +69,12 @@ func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedI
 				SetGrantBalances(balance.Balances).
 				SetOverage(balance.Overage).
 				SetUsage(&balance.Usage)
+			// Record the conversion regime this snapshot was computed under (OM-400) so
+			// the resume path can refuse to reuse it under a different regime. Pointer
+			// GoType has no SetNillable*, so nil-guard the set (nil = raw).
+			if balance.UnitConfig != nil {
+				command = command.SetUnitConfig(balance.UnitConfig)
+			}
 			commands = append(commands, command)
 		}
 		_, err := rep.db.BalanceSnapshot.CreateBulk(commands...).Save(ctx)
@@ -84,6 +90,9 @@ func mapBalanceSnapshotEntity(entity *db.BalanceSnapshot) balance.Snapshot {
 	}
 	if entity.Usage != nil {
 		s.Usage = *entity.Usage
+	}
+	if entity.UnitConfig != nil {
+		s.UnitConfig = entity.UnitConfig
 	}
 	return s
 }

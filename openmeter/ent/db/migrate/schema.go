@@ -454,6 +454,7 @@ var (
 		{Name: "balance", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "overage", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "at", Type: field.TypeTime},
+		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BalanceSnapshotsTable holds the schema information for the "balance_snapshots" table.
@@ -464,7 +465,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "balance_snapshots_entitlements_balance_snapshot",
-				Columns:    []*schema.Column{BalanceSnapshotsColumns[10]},
+				Columns:    []*schema.Column{BalanceSnapshotsColumns[11]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -478,7 +479,7 @@ var (
 			{
 				Name:    "balancesnapshot_namespace_owner_id_at",
 				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[10], BalanceSnapshotsColumns[9]},
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[11], BalanceSnapshotsColumns[9]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
