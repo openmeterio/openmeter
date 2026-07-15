@@ -306,8 +306,8 @@ paths:
       summary: Install app from the catalog
       description: Install an app from the catalog.
       responses:
-        '200':
-          description: InstallAppResponse response.
+        '201':
+          description: InstallAppResponse created response.
           content:
             application/json:
               schema:
@@ -339,7 +339,7 @@ paths:
             $ref: '#/components/schemas/BillingAppType'
       responses:
         '200':
-          description: The request has succeeded.
+          description: AppCatalogItem response.
           content:
             application/json:
               schema:

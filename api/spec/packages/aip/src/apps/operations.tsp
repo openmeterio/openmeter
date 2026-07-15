@@ -57,18 +57,20 @@ interface AppCatalogOperations {
   @operationId("get-app-catalog-item")
   @summary("Get app catalog item by type")
   get(@path appType: AppType):
-    | AppCatalogItem
+    | Shared.GetResponse<AppCatalogItem>
     | Common.NotFound
     | Common.ErrorResponses;
 
   /**
    * Install an app from the catalog.
+   *
+   * @returns App installed successfully.
    */
   @post
   @route("/install")
   @operationId("install-app")
   @summary("Install app from the catalog")
   install(@body body: InstallAppRequest):
-    | Shared.GetResponse<InstallAppResponse>
+    | Shared.CreateResponse<InstallAppResponse>
     | Common.ErrorResponses;
 }
