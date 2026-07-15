@@ -170,7 +170,6 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			customerService,
 			testLogger,
 			tracer,
-			false,
 		)
 
 		balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{

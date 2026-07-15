@@ -28,8 +28,9 @@ import (
 func TestGetEntitlementBalanceWithUnitConfig(t *testing.T) {
 	namespace := "ns1"
 
-	// UnitConfig enabled: the grant-owner adapter converts metered usage before burndown.
-	connector, deps := setupConnector(t, withUnitConfigEnabled())
+	// The entitlement carries a unit_config snapshot, so the grant-owner adapter
+	// converts metered usage before burndown regardless of the (authoring-only) flag.
+	connector, deps := setupConnector(t)
 	defer deps.Teardown()
 
 	// divide-by-1e9 converts raw bytes into GB for the entitlement quota.
@@ -72,7 +73,7 @@ func TestGetEntitlementBalanceWithUnitConfig(t *testing.T) {
 			Interval: timeutil.RecurrencePeriodYear,
 		})),
 	}
-	currentUsagePeriod, err := inp.UsagePeriod.GetValue().GetPeriodAt(time.Now())
+	currentUsagePeriod, err := inp.UsagePeriod.GetValue().GetPeriodAt(startTime)
 	require.NoError(t, err)
 	inp.CurrentUsagePeriod = &currentUsagePeriod
 

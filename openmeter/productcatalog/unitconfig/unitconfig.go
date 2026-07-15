@@ -116,7 +116,7 @@ func (c *UnitConfig) Validate() error {
 	var errs []error
 
 	if err := c.Operation.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("operation: %w", err))
 	}
 
 	if c.ConversionFactor.Sign() <= 0 {
@@ -124,7 +124,7 @@ func (c *UnitConfig) Validate() error {
 	}
 
 	if err := c.Rounding.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("rounding: %w", err))
 	}
 
 	// Precision is ignored when no rounding is applied, so only enforce it when
