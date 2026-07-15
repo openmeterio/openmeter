@@ -167,7 +167,7 @@ interface InvoicesOperations {
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
   advance(@path invoiceId: Shared.ULID):
-    | Shared.GetResponse<Invoice>
+    | Invoice
     | Common.NotFound
     | Common.ErrorResponses;
 
@@ -192,7 +192,7 @@ interface InvoicesOperations {
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
   approve(@path invoiceId: Shared.ULID):
-    | Shared.GetResponse<Invoice>
+    | Invoice
     | Common.NotFound
     | Common.ErrorResponses;
 
@@ -212,7 +212,7 @@ interface InvoicesOperations {
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
   retry(@path invoiceId: Shared.ULID):
-    | Shared.GetResponse<Invoice>
+    | Invoice
     | Common.NotFound
     | Common.ErrorResponses;
 
@@ -233,7 +233,7 @@ interface InvoicesOperations {
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
   snapshotQuantities(@path invoiceId: Shared.ULID):
-    | Shared.GetResponse<Invoice>
+    | Invoice
     | Common.NotFound
     | Common.ErrorResponses;
 }

@@ -514,7 +514,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: Invoice response.
+          description: The request has succeeded.
           content:
             application/json:
               schema:
@@ -556,7 +556,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: Invoice response.
+          description: The request has succeeded.
           content:
             application/json:
               schema:
@@ -593,7 +593,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: Invoice response.
+          description: The request has succeeded.
           content:
             application/json:
               schema:
@@ -631,7 +631,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: Invoice response.
+          description: The request has succeeded.
           content:
             application/json:
               schema:
