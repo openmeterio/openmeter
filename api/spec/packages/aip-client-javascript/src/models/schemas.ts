@@ -6149,6 +6149,30 @@ export const deleteInvoicePathParams = z.object({
   invoiceId: ulid,
 })
 
+export const advanceInvoicePathParams = z.object({
+  invoiceId: ulid,
+})
+
+export const advanceInvoiceResponse = invoice
+
+export const approveInvoicePathParams = z.object({
+  invoiceId: ulid,
+})
+
+export const approveInvoiceResponse = invoice
+
+export const retryInvoicePathParams = z.object({
+  invoiceId: ulid,
+})
+
+export const retryInvoiceResponse = invoice
+
+export const snapshotQuantitiesInvoicePathParams = z.object({
+  invoiceId: ulid,
+})
+
+export const snapshotQuantitiesInvoiceResponse = invoice
+
 export const createTaxCodeBody = createTaxCodeRequest
 
 export const createTaxCodeResponse = taxCode
@@ -12710,6 +12734,30 @@ export const updateInvoiceResponseWire = invoiceWire
 export const deleteInvoicePathParamsWire = z.object({
   invoiceId: ulidWire,
 })
+
+export const advanceInvoicePathParamsWire = z.object({
+  invoiceId: ulidWire,
+})
+
+export const advanceInvoiceResponseWire = invoiceWire
+
+export const approveInvoicePathParamsWire = z.object({
+  invoiceId: ulidWire,
+})
+
+export const approveInvoiceResponseWire = invoiceWire
+
+export const retryInvoicePathParamsWire = z.object({
+  invoiceId: ulidWire,
+})
+
+export const retryInvoiceResponseWire = invoiceWire
+
+export const snapshotQuantitiesInvoicePathParamsWire = z.object({
+  invoiceId: ulidWire,
+})
+
+export const snapshotQuantitiesInvoiceResponseWire = invoiceWire
 
 export const createTaxCodeBodyWire = createTaxCodeRequestWire
 

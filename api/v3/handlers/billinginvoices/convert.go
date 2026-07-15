@@ -30,32 +30,34 @@ import (
 
 // ToAPIBillingInvoice converts a billing.Invoice domain union to the v3 API type.
 func ToAPIBillingInvoice(inv billing.Invoice) (api.BillingInvoice, error) {
-	var out api.BillingInvoice
-
 	switch inv.Type() {
 	case billing.InvoiceTypeStandard:
 		std, err := inv.AsStandardInvoice()
 		if err != nil {
-			return out, fmt.Errorf("reading standard invoice: %w", err)
+			return api.BillingInvoice{}, fmt.Errorf("reading standard invoice: %w", err)
 		}
 
-		stdAPI, err := toAPIStandardInvoice(std)
-		if err != nil {
-			return out, err
-		}
-
-		if err := out.FromBillingInvoiceStandard(stdAPI); err != nil {
-			return out, fmt.Errorf("setting standard invoice union: %w", err)
-		}
-
+		return ToAPIStandardInvoice(std)
 	default:
 		genericInv, _ := inv.AsGenericInvoice()
 
-		return out, billing.NotFoundError{
+		return api.BillingInvoice{}, billing.NotFoundError{
 			ID:     genericInv.GetID(),
 			Entity: billing.EntityInvoice,
 			Err:    fmt.Errorf("unsupported invoice type %q", inv.Type()),
 		}
+	}
+}
+
+func ToAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoice, error) {
+	var out api.BillingInvoice
+	stdAPI, err := toAPIStandardInvoice(std)
+	if err != nil {
+		return out, err
+	}
+
+	if err := out.FromBillingInvoiceStandard(stdAPI); err != nil {
+		return out, fmt.Errorf("setting standard invoice union: %w", err)
 	}
 
 	return out, nil
