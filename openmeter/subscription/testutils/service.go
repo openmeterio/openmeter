@@ -197,12 +197,12 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	currencyService, err := currencyservice.New(currencyAdapter)
 	require.NoError(t, err)
 
-	planCurrencyResolver, err := currencyresolver.New(currencyService)
+	currencyResolver, err := currencyresolver.New(currencyService)
 	require.NoError(t, err)
 
 	planService, err := planservice.New(planservice.Config{
 		FeatureResolver:  featureResolver,
-		CurrencyResolver: planCurrencyResolver,
+		CurrencyResolver: currencyResolver,
 		Logger:           logger,
 		Adapter:          planRepo,
 		Publisher:        publisher,
@@ -238,11 +238,12 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:         addonRepo,
-		Logger:          logger,
-		Publisher:       publisher,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
+		Adapter:          addonRepo,
+		Logger:           logger,
+		Publisher:        publisher,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -253,11 +254,12 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 
 	planAddonService, err := planaddonservice.New(planaddonservice.Config{
-		Adapter:   planAddonRepo,
-		Logger:    logger,
-		Plan:      planService,
-		Addon:     addonService,
-		Publisher: publisher,
+		Adapter:          planAddonRepo,
+		Logger:           logger,
+		Plan:             planService,
+		Addon:            addonService,
+		CurrencyResolver: currencyResolver,
+		Publisher:        publisher,
 	})
 	require.NoError(t, err)
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbDeps.DBClient)

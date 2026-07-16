@@ -56,8 +56,10 @@ func (h *handler) ListAddons() ListAddonsHandler {
 				KeyVersions:    lo.FromPtr(params.KeyVersion),
 				IncludeDeleted: lo.FromPtr(params.IncludeDeleted),
 				Status:         statusFilter,
-				// The v1 API cannot represent unit_config; exclude such add-ons from the v1 list at the query layer.
-				ExcludeUnitConfig: true,
+				// The v1 API cannot represent unit_config or rate card currency overrides;
+				// exclude such add-ons at the query layer.
+				ExcludeUnitConfig:        true,
+				ExcludeCurrencyOverrides: true,
 			}
 
 			if params.Id != nil {
@@ -188,6 +190,7 @@ func (h *handler) UpdateAddon() UpdateAddonHandler {
 			req.IgnoreNonCriticalIssues = true
 
 			req.RejectUnitConfig = true
+			req.RejectCurrencyOverrides = true
 
 			return req, nil
 		},
@@ -294,6 +297,9 @@ func (h *handler) GetAddon() GetAddonHandler {
 			if a.AsProductCatalogAddon().HasUnitConfig() {
 				return GetAddonResponse{}, productcatalog.ErrUnitConfigNotRepresentable
 			}
+			if a.AsProductCatalogAddon().HasCurrencyOverrides() {
+				return GetAddonResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
 
 			return FromAddon(*a)
 		},
@@ -330,7 +336,8 @@ func (h *handler) PublishAddon() PublishAddonHandler {
 				EffectivePeriod: productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(clock.Now()),
 				},
-				RejectUnitConfig: true,
+				RejectUnitConfig:        true,
+				RejectCurrencyOverrides: true,
 			}
 
 			return req, nil
@@ -375,7 +382,8 @@ func (h *handler) ArchiveAddon() ArchiveAddonHandler {
 				},
 				EffectiveTo: clock.Now(),
 				// The v1 API cannot represent unit_config; reject archiving such an add-on.
-				RejectUnitConfig: true,
+				RejectUnitConfig:        true,
+				RejectCurrencyOverrides: true,
 			}
 
 			return req, nil

@@ -1,11 +1,14 @@
 package productcatalog
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -98,10 +101,6 @@ func (c PlanAddon) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if c.Addon.Currency != c.Plan.Currency {
-		errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanAddonCurrencyMismatch))
-	}
-
 	_, fromPhaseIdx, ok := lo.FindIndexOf(c.Plan.Phases, func(item Phase) bool {
 		return item.Key == c.FromPlanPhase
 	})
@@ -115,11 +114,175 @@ func (c PlanAddon) Validate() error {
 				errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, err))
 			}
 		}
+
+		if err := ValidatePlanAddonRateCardCurrencies()(c); err != nil {
+			errs = append(errs, err)
+		}
 	} else {
 		errs = append(errs, ErrPlanAddonUnknownPlanPhaseKey)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ValidatePlanAddonRateCardCurrencies validates effective rate card currencies
+// starting at FromPlanPhase and for every subsequent phase where the add-on
+// remains applied. Full assignment validation remains responsible for rejecting
+// an unknown starting phase.
+func ValidatePlanAddonRateCardCurrencies() models.ValidatorFunc[PlanAddon] {
+	return func(pa PlanAddon) error {
+		var errs []error
+		addonPrefix := models.NewFieldSelectorGroup(models.NewFieldSelector("addon"))
+
+		if currencyx.Code(pa.Plan.Currency).IsFiat() &&
+			currencyx.Code(pa.Addon.Currency).IsFiat() &&
+			pa.Plan.Currency != pa.Addon.Currency {
+			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanMultipleFiatCurrencies))
+		}
+
+		_, fromPhaseIdx, ok := lo.FindIndexOf(pa.Plan.Phases, func(item Phase) bool {
+			return item.Key == pa.FromPlanPhase
+		})
+		if !ok {
+			return errors.Join(errs...)
+		}
+
+		for _, phase := range pa.Plan.Phases[fromPhaseIdx:] {
+			if err := phase.ValidateWith(
+				ValidatePlanPhaseAndAddonRateCardCurrencies(pa.Plan.Currency, pa.Addon),
+			); err != nil {
+				errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, err))
+			}
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
+// ValidatePlanPhaseAndAddonRateCardCurrencies ensures an add-on cannot change
+// the currency of an existing priced rate card and that newly priced rate
+// cards preserve the plan's single-fiat constraint.
+func ValidatePlanPhaseAndAddonRateCardCurrencies(planCurrency currency.Code, addon Addon) models.ValidatorFunc[Phase] {
+	return func(p Phase) error {
+		var errs []error
+
+		phaseRateCardsByKey := lo.SliceToMap(p.RateCards, func(item RateCard) (string, RateCard) {
+			return item.Key(), item
+		})
+
+		for _, addonRateCard := range addon.RateCards {
+			addonMeta := addonRateCard.AsMeta()
+			if addonMeta.Price == nil {
+				continue
+			}
+
+			fieldSelector := models.NewFieldSelectorGroup(
+				models.NewFieldSelector("ratecards").
+					WithExpression(models.NewFieldAttrValue("key", addonRateCard.Key())),
+				models.NewFieldSelector("currency"),
+			)
+			addonCurrency := addonMeta.EffectiveCurrency(addon.Currency)
+
+			planRateCard, found := phaseRateCardsByKey[addonRateCard.Key()]
+			if found && planRateCard.AsMeta().Price != nil {
+				planRateCardCurrency := planRateCard.AsMeta().EffectiveCurrency(planCurrency)
+				if addonCurrency != planRateCardCurrency {
+					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrPlanAddonCurrencyMismatch))
+				}
+
+				continue
+			}
+
+			switch {
+			case !currencyx.Code(planCurrency).IsFiat() && addonCurrency != planCurrency:
+				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardCurrencyOverrideNotAllowed))
+			case currencyx.Code(planCurrency).IsFiat() && currencyx.Code(addonCurrency).IsFiat() && addonCurrency != planCurrency:
+				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrPlanMultipleFiatCurrencies))
+			}
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
+// ValidatePlanAddonWithCurrencies validates the managed currencies introduced
+// by an add-on against the plan's invoice fiat. Structural compatibility is
+// handled by PlanAddon.Validate.
+func ValidatePlanAddonWithCurrencies(ctx context.Context, namespace string, resolver CurrencyResolver) models.ValidatorFunc[PlanAddon] {
+	return func(pa PlanAddon) error {
+		if resolver == nil {
+			return errors.New("currency resolver is required")
+		}
+
+		planCurrency, err := resolver.Resolve(ctx, namespace, pa.Plan.Currency)
+		if err != nil {
+			if models.IsGenericNotFoundError(err) {
+				return models.ErrorWithFieldPrefix(
+					models.NewFieldSelectorGroup(
+						models.NewFieldSelector("plan"),
+						models.NewFieldSelector("currency"),
+					),
+					ErrCurrencyNotFound,
+				)
+			}
+
+			return fmt.Errorf("resolving plan currency: %w", err)
+		}
+
+		resolved := map[currency.Code]ResolvedCurrency{pa.Plan.Currency: planCurrency}
+		costBasisAvailable := map[currency.Code]bool{}
+		var errs []error
+
+		for _, rateCard := range pa.Addon.RateCards {
+			meta := rateCard.AsMeta()
+			if meta.Price == nil {
+				continue
+			}
+
+			code := meta.EffectiveCurrency(pa.Addon.Currency)
+			fieldSelector := models.NewFieldSelectorGroup(
+				models.NewFieldSelector("addon"),
+				models.NewFieldSelector("ratecards").
+					WithExpression(models.NewFieldAttrValue("key", rateCard.Key())),
+				models.NewFieldSelector("currency"),
+			)
+
+			resolvedCurrency, ok := resolved[code]
+			if !ok {
+				resolvedCurrency, err = resolver.Resolve(ctx, namespace, code)
+				if err != nil {
+					if models.IsGenericNotFoundError(err) {
+						errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrCurrencyNotFound))
+						continue
+					}
+
+					return fmt.Errorf("resolving add-on rate card currency %q: %w", code, err)
+				}
+
+				resolved[code] = resolvedCurrency
+			}
+
+			if planCurrency.Type != currencyx.CurrencyTypeFiat || resolvedCurrency.Type != currencyx.CurrencyTypeCustom {
+				continue
+			}
+
+			hasCostBasis, ok := costBasisAvailable[code]
+			if !ok {
+				hasCostBasis, err = resolver.HasCostBasis(ctx, namespace, resolvedCurrency, pa.Plan.Currency)
+				if err != nil {
+					return fmt.Errorf("checking cost basis for currency %q: %w", code, err)
+				}
+
+				costBasisAvailable[code] = hasCostBasis
+			}
+
+			if !hasCostBasis {
+				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrCurrencyCostBasisNotFound))
+			}
+		}
+
+		return errors.Join(errs...)
+	}
 }
 
 func ValidateAddonBillingCadenceAreAlignedWithPlan(addonRateCards RateCards) models.ValidatorFunc[Plan] {

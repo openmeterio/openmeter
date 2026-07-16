@@ -291,7 +291,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create currency service: %w", err)
 	}
 
-	planCurrencyResolver, err := currencyresolver.New(currencyService)
+	currencyResolver, err := currencyresolver.New(currencyService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create currency resolver: %w", err)
 	}
@@ -299,7 +299,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	planService, err := planservice.New(planservice.Config{
 		Adapter:          planAdapter,
 		FeatureResolver:  featureResolver,
-		CurrencyResolver: planCurrencyResolver,
+		CurrencyResolver: currencyResolver,
 		TaxCode:          taxCodeService,
 		Logger:           logger.WithGroup("plan"),
 		Publisher:        publisher,
@@ -360,11 +360,12 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	require.NoError(t, err)
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:         addonRepo,
-		Logger:          logger,
-		Publisher:       publisher,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
+		Adapter:          addonRepo,
+		Logger:           logger,
+		Publisher:        publisher,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -375,11 +376,12 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	require.NoError(t, err)
 
 	planAddonService, err := planaddonservice.New(planaddonservice.Config{
-		Adapter:   planAddonRepo,
-		Logger:    logger,
-		Plan:      planService,
-		Addon:     addonService,
-		Publisher: publisher,
+		Adapter:          planAddonRepo,
+		Logger:           logger,
+		Plan:             planService,
+		Addon:            addonService,
+		CurrencyResolver: currencyResolver,
+		Publisher:        publisher,
 	})
 	require.NoError(t, err)
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbDeps.DBClient)

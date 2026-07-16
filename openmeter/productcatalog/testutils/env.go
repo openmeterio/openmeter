@@ -118,7 +118,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	currencyService, err := currencyservice.New(currencyAdapter)
 	require.NoErrorf(t, err, "initializing currency service must not fail")
 
-	planCurrencyResolver, err := currencyresolver.New(currencyService)
+	currencyResolver, err := currencyresolver.New(currencyService)
 	require.NoErrorf(t, err, "initializing currency resolver must not fail")
 
 	// Init plan service
@@ -132,7 +132,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	planService, err := planservice.New(planservice.Config{
 		Adapter:          planAdapter,
 		FeatureResolver:  featureResolver,
-		CurrencyResolver: planCurrencyResolver,
+		CurrencyResolver: currencyResolver,
 		TaxCode:          taxCodeService,
 		Logger:           logger,
 		Publisher:        publisher,
@@ -149,11 +149,12 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, addonAdapter, "addon adapter must not be nil")
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:         addonAdapter,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
-		Logger:          logger,
-		Publisher:       publisher,
+		Adapter:          addonAdapter,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
+		Logger:           logger,
+		Publisher:        publisher,
 	})
 	require.NoErrorf(t, err, "initializing addon service must not fail")
 	require.NotNilf(t, addonService, "addon service must not be nil")
@@ -167,11 +168,12 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, addonAdapter, "planaddon adapter must not be nil")
 
 	planAddonService, err := planaddonservice.New(planaddonservice.Config{
-		Adapter:   planAddonAdapter,
-		Plan:      planService,
-		Addon:     addonService,
-		Logger:    logger,
-		Publisher: publisher,
+		Adapter:          planAddonAdapter,
+		Plan:             planService,
+		Addon:            addonService,
+		CurrencyResolver: currencyResolver,
+		Logger:           logger,
+		Publisher:        publisher,
 	})
 	require.NoErrorf(t, err, "initializing planaddon service must not fail")
 	require.NotNilf(t, addonService, "planaddon service must not be nil")

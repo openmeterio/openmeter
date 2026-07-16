@@ -48,7 +48,7 @@ const ErrCodePlanAddonCurrencyMismatch models.ErrorCode = "plan_addon_currency_m
 
 var ErrPlanAddonCurrencyMismatch = models.NewValidationIssue(
 	ErrCodePlanAddonCurrencyMismatch,
-	"currency of the plan and addon must match",
+	"add-on cannot change an existing rate card's currency",
 	models.WithFieldString("currency"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
@@ -266,7 +266,7 @@ const ErrCodeRateCardCurrencyOverrideNotAllowed models.ErrorCode = "rate_card_cu
 
 var ErrRateCardCurrencyOverrideNotAllowed = models.NewValidationIssue(
 	ErrCodeRateCardCurrencyOverrideNotAllowed,
-	"currency override is not allowed when the plan currency is custom",
+	"currency override is not allowed when the default currency is custom",
 	models.WithFieldString("currency"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
@@ -276,7 +276,7 @@ const ErrCodeRateCardCurrencyOverrideRedundant models.ErrorCode = "rate_card_cur
 
 var ErrRateCardCurrencyOverrideRedundant = models.NewValidationIssue(
 	ErrCodeRateCardCurrencyOverrideRedundant,
-	"currency override must differ from the plan currency",
+	"currency override must differ from the default currency",
 	models.WithFieldString("currency"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
@@ -296,7 +296,7 @@ const ErrCodePlanMultipleFiatCurrencies models.ErrorCode = "plan_multiple_fiat_c
 
 var ErrPlanMultipleFiatCurrencies = models.NewValidationIssue(
 	ErrCodePlanMultipleFiatCurrencies,
-	"a plan cannot contain more than one fiat currency",
+	"a catalog resource cannot contain more than one fiat currency",
 	models.WithFieldString("currency"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
@@ -316,7 +316,7 @@ const ErrCodeCurrencyCostBasisNotFound models.ErrorCode = "currency_cost_basis_n
 
 var ErrCurrencyCostBasisNotFound = models.NewValidationIssue(
 	ErrCodeCurrencyCostBasisNotFound,
-	"custom currency has no cost basis for the plan fiat currency",
+	"custom currency has no cost basis for the default fiat currency",
 	models.WithFieldString("currency"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
