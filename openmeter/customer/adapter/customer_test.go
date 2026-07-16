@@ -545,6 +545,39 @@ func TestGetCustomerByUsageAttribution(t *testing.T) {
 		assert.Equal(t, id, got.ID)
 	})
 
+	t.Run("CustomerDeletedInFutureIncluded", func(t *testing.T) {
+		// given:
+		// - a customer whose own deleted_at is future-dated, set directly via Ent (the adapter can
+		//   only ever stamp clock.Now()); the customer-level analog of SubjectDeletedInFutureIncluded.
+		// then:
+		// - the customer resolves via both its own key and its subject key, because the deleted_at
+		//   grace window (deleted_at IS NULL OR > at) now applies to the owning customer on both the
+		//   key branch and the subject branch identically.
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		id := env.seedCustomerWithKey(ns, "cust-key", "subj-1")
+		now := freezeTime(t, time.Now())
+
+		_, err := env.db.Customer.Update().
+			Where(
+				customerdb.Namespace(ns),
+				customerdb.ID(id),
+			).
+			SetDeletedAt(now.Add(time.Minute)).
+			Save(t.Context())
+		require.NoError(t, err)
+
+		for _, key := range []string{"cust-key", "subj-1"} {
+			got, err := env.adapter.GetCustomerByUsageAttribution(t.Context(), customer.GetCustomerByUsageAttributionInput{
+				Namespace: ns,
+				Key:       key,
+			})
+			require.NoErrorf(t, err, "key %q", key)
+			require.NotNil(t, got)
+			assert.Equalf(t, id, got.ID, "key %q", key)
+		}
+	})
+
 	t.Run("NamespaceIsolation", func(t *testing.T) {
 		env := newTestEnv(t)
 		nsA := ulid.Make().String()
@@ -662,6 +695,35 @@ func TestGetCustomersByUsageAttribution(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Empty(t, customerIDs(got), "soft-deleted customer must not be returned")
+	})
+
+	t.Run("CustomerDeletedInFutureIncluded", func(t *testing.T) {
+		// given:
+		// - a customer whose own deleted_at is future-dated, set directly via Ent; the bulk analog
+		//   of the single-key CustomerDeletedInFutureIncluded.
+		// then:
+		// - the customer is returned once for a key set covering both its own key and its subject key,
+		//   because the deleted_at grace window now applies to the owning customer on both branches.
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		id := env.seedCustomerWithKey(ns, "key-a", "subj-a")
+		now := freezeTime(t, time.Now())
+
+		_, err := env.db.Customer.Update().
+			Where(
+				customerdb.Namespace(ns),
+				customerdb.ID(id),
+			).
+			SetDeletedAt(now.Add(time.Minute)).
+			Save(t.Context())
+		require.NoError(t, err)
+
+		got, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      []string{"key-a", "subj-a"},
+		})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{id}, customerIDs(got))
 	})
 
 	t.Run("SoftDeletedSubjectExcludedButCustomerKeyStillMatches", func(t *testing.T) {

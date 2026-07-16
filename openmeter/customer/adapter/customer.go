@@ -514,7 +514,6 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 		query := repo.db.Customer.Query().
 			Where(
 				customerdb.Namespace(input.Namespace),
-				customerdb.DeletedAtIsNil(),
 				customerMatchesUsageAttributionKey(input.Namespace, input.Key, now),
 			)
 		query = WithSubjects(query, now)
@@ -552,7 +551,7 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 //	        FROM customers AS c
 //	        WHERE c.namespace = $1
 //	          AND c.key = $2
-//	          AND c.deleted_at IS NULL
+//	          AND (c.deleted_at IS NULL OR c.deleted_at > $3)
 //
 //	        UNION ALL
 //
@@ -563,7 +562,7 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 //	          AND cs.subject_key = $2
 //	          AND (cs.deleted_at IS NULL OR cs.deleted_at > $3)
 //	          AND c.namespace = $1
-//	          AND c.deleted_at IS NULL
+//	          AND (c.deleted_at IS NULL OR c.deleted_at > $3)
 //	    ) AS matches
 //	    ORDER BY matches.lookup_priority
 //	    LIMIT 1
@@ -577,7 +576,10 @@ func customerMatchesUsageAttributionKey(namespace, key string, at time.Time) pre
 			Where(sql.And(
 				sql.EQ(keyCustomerTable.C(customerdb.FieldNamespace), namespace),
 				sql.EQ(keyCustomerTable.C(customerdb.FieldKey), key),
-				sql.IsNull(keyCustomerTable.C(customerdb.FieldDeletedAt)),
+				sql.Or(
+					sql.IsNull(keyCustomerTable.C(customerdb.FieldDeletedAt)),
+					sql.GT(keyCustomerTable.C(customerdb.FieldDeletedAt), at),
+				),
 			))
 
 		customerSubjectsTable := sql.Table(customersubjectsdb.Table).As("customer_subjects")
@@ -598,7 +600,10 @@ func customerMatchesUsageAttributionKey(namespace, key string, at time.Time) pre
 					sql.GT(customerSubjectsTable.C(customersubjectsdb.FieldDeletedAt), at),
 				),
 				sql.EQ(subjectCustomerTable.C(customerdb.FieldNamespace), namespace),
-				sql.IsNull(subjectCustomerTable.C(customerdb.FieldDeletedAt)),
+				sql.Or(
+					sql.IsNull(subjectCustomerTable.C(customerdb.FieldDeletedAt)),
+					sql.GT(subjectCustomerTable.C(customerdb.FieldDeletedAt), at),
+				),
 			))
 
 		candidates := customerKeyMatch.
@@ -623,16 +628,20 @@ func customerMatchesUsageAttributionKey(namespace, key string, at time.Time) pre
 //
 //	WHERE customers.id IN (
 //	    SELECT c.id FROM customers AS c
-//	    WHERE c.namespace = $1 AND c.key IN (...) AND c.deleted_at IS NULL
+//	    WHERE c.namespace = $1
+//	      AND c.key IN (...)
+//	      AND (c.deleted_at IS NULL OR c.deleted_at > $2)
 //
 //	    UNION ALL
 //
 //	    SELECT c.id
 //	    FROM customer_subjects AS cs
 //	    JOIN customers AS c ON c.id = cs.customer_id
-//	    WHERE cs.namespace = $1 AND cs.subject_key IN (...)
+//	    WHERE cs.namespace = $1
+//	      AND cs.subject_key IN (...)
 //	      AND (cs.deleted_at IS NULL OR cs.deleted_at > $2)
-//	      AND c.namespace = $1 AND c.deleted_at IS NULL
+//	      AND c.namespace = $1
+//	      AND (c.deleted_at IS NULL OR c.deleted_at > $2)
 //	)
 func customersMatchUsageAttributionKeys(namespace string, keys []string, at time.Time) predicate.Customer {
 	return func(s *sql.Selector) {
@@ -644,7 +653,10 @@ func customersMatchUsageAttributionKeys(namespace string, keys []string, at time
 			Where(sql.And(
 				sql.EQ(keyCustomerTable.C(customerdb.FieldNamespace), namespace),
 				sql.In(keyCustomerTable.C(customerdb.FieldKey), keyValues...),
-				sql.IsNull(keyCustomerTable.C(customerdb.FieldDeletedAt)),
+				sql.Or(
+					sql.IsNull(keyCustomerTable.C(customerdb.FieldDeletedAt)),
+					sql.GT(keyCustomerTable.C(customerdb.FieldDeletedAt), at),
+				),
 			))
 
 		customerSubjectsTable := sql.Table(customersubjectsdb.Table).As("customer_subjects")
@@ -664,7 +676,10 @@ func customersMatchUsageAttributionKeys(namespace string, keys []string, at time
 					sql.GT(customerSubjectsTable.C(customersubjectsdb.FieldDeletedAt), at),
 				),
 				sql.EQ(subjectCustomerTable.C(customerdb.FieldNamespace), namespace),
-				sql.IsNull(subjectCustomerTable.C(customerdb.FieldDeletedAt)),
+				sql.Or(
+					sql.IsNull(subjectCustomerTable.C(customerdb.FieldDeletedAt)),
+					sql.GT(subjectCustomerTable.C(customerdb.FieldDeletedAt), at),
+				),
 			))
 
 		candidates := customerKeyMatch.UnionAll(subjectKeyMatch)
@@ -691,7 +706,6 @@ func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input cust
 		query := repo.db.Customer.Query().
 			Where(
 				customerdb.Namespace(input.Namespace),
-				customerdb.DeletedAtIsNil(),
 				customersMatchUsageAttributionKeys(input.Namespace, input.Keys, now),
 			)
 
