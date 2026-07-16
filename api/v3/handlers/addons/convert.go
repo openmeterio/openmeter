@@ -346,7 +346,101 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (apiv3.BillingRateCard, er
 		return result, fmt.Errorf("unsupported rate card type: %s", rc.Type())
 	}
 
+	if meta.UnitConfig != nil {
+		result.UnitConfig = lo.ToPtr(ToAPIBillingUnitConfig(*meta.UnitConfig))
+	} else {
+		unitConfig, err := ToAPIBillingRateCardUnitConfig(meta.Price)
+		if err != nil {
+			return result, fmt.Errorf("failed to convert unit config: %w", err)
+		}
+
+		result.UnitConfig = unitConfig
+	}
+
 	return result, nil
+}
+
+// ToAPIBillingRateCardUnitConfig synthesizes a v3 unit config from a v1 dynamic or package price
+func ToAPIBillingRateCardUnitConfig(p *productcatalog.Price) (*apiv3.BillingUnitConfig, error) {
+	if p == nil {
+		return nil, nil
+	}
+
+	switch p.Type() {
+	case productcatalog.DynamicPriceType:
+		dynamic, err := p.AsDynamic()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read dynamic price: %w", err)
+		}
+
+		return &apiv3.BillingUnitConfig{
+			Operation:        apiv3.BillingUnitConfigOperationMultiply,
+			ConversionFactor: dynamic.Multiplier.String(),
+		}, nil
+
+	case productcatalog.PackagePriceType:
+		pkg, err := p.AsPackage()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read package price: %w", err)
+		}
+
+		return &apiv3.BillingUnitConfig{
+			Operation:        apiv3.BillingUnitConfigOperationDivide,
+			ConversionFactor: pkg.QuantityPerPackage.String(),
+			Rounding:         lo.ToPtr(apiv3.BillingUnitConfigRoundingModeCeiling),
+		}, nil
+
+	default:
+		return nil, nil
+	}
+}
+
+// ToAPIBillingUnitConfig maps a stored domain unit config to its API
+// representation. Rounding and Precision are omitted when no rounding is applied,
+// mirroring the domain semantics where both are inert for the "none" mode.
+func ToAPIBillingUnitConfig(uc productcatalog.UnitConfig) apiv3.BillingUnitConfig {
+	out := apiv3.BillingUnitConfig{
+		Operation:        apiv3.BillingUnitConfigOperation(uc.Operation),
+		ConversionFactor: uc.ConversionFactor.String(),
+		DisplayUnit:      uc.DisplayUnit,
+	}
+
+	if !uc.Rounding.IsNone() {
+		out.Rounding = lo.ToPtr(apiv3.BillingUnitConfigRoundingMode(uc.Rounding))
+		out.Precision = lo.ToPtr(uc.Precision)
+	}
+
+	return out
+}
+
+// FromAPIBillingUnitConfig maps the API unit config to the domain type. The enum
+// values are identical across the two layers, so operation and rounding are direct
+// casts; UnitConfig.Validate (run via RateCardMeta.Validate) rejects unknown enum
+// values and a non-positive conversion factor.
+func FromAPIBillingUnitConfig(uc apiv3.BillingUnitConfig) (*productcatalog.UnitConfig, error) {
+	conversionFactor, err := decimal.NewFromString(uc.ConversionFactor)
+	if err != nil {
+		return nil, models.NewGenericValidationError(fmt.Errorf("invalid conversion factor: %w", err))
+	}
+
+	out := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperation(uc.Operation),
+		ConversionFactor: conversionFactor,
+		DisplayUnit:      uc.DisplayUnit,
+	}
+
+	if uc.Rounding != nil {
+		out.Rounding = productcatalog.UnitConfigRoundingMode(*uc.Rounding)
+	}
+
+	// Precision is inert without rounding; only carry it when rounding is active so
+	// it round-trips consistently with ToAPIBillingUnitConfig, which omits Precision
+	// in the "none" case.
+	if !out.Rounding.IsNone() {
+		out.Precision = lo.FromPtr(uc.Precision)
+	}
+
+	return out, nil
 }
 
 func ToAPIBillingPrice(price productcatalog.Price) (apiv3.BillingPrice, *apiv3.BillingSpendCommitments, *apiv3.BillingPricePaymentTerm, error) {
@@ -414,6 +508,38 @@ func ToAPIBillingPrice(price productcatalog.Price) (apiv3.BillingPrice, *apiv3.B
 			}
 		default:
 			return apiPrice, nil, nil, fmt.Errorf("unsupported tiered price mode: %s", tieredPrice.Mode)
+		}
+
+	case productcatalog.DynamicPriceType:
+		// Dynamic prices are surfaced in v3 as a unit price of amount 1; the
+		// multiplier is carried separately on the rate card's unit config (see
+		// ToAPIBillingRateCardUnitConfig). This lets a v1-authored add-on read back
+		// through the v3 API rather than erroring on an unrepresentable price type.
+		c := price.GetCommitments()
+		commitments = ToAPIBillingSpendCommitments(c.MinimumAmount, c.MaximumAmount)
+
+		if err := apiPrice.FromBillingPriceUnit(apiv3.BillingPriceUnit{
+			Type:   apiv3.BillingPriceUnitTypeUnit,
+			Amount: "1",
+		}); err != nil {
+			return apiPrice, nil, nil, fmt.Errorf("failed to encode unit price for dynamic price: %w", err)
+		}
+
+	case productcatalog.PackagePriceType:
+		// Package prices are surfaced in v3 as a unit price of the per-unit amount;
+		// the package size is carried separately on the rate card's unit config.
+		pkg, err := price.AsPackage()
+		if err != nil {
+			return apiPrice, nil, nil, fmt.Errorf("failed to cast PackagePrice: %w", err)
+		}
+
+		commitments = ToAPIBillingSpendCommitments(pkg.MinimumAmount, pkg.MaximumAmount)
+
+		if err := apiPrice.FromBillingPriceUnit(apiv3.BillingPriceUnit{
+			Type:   apiv3.BillingPriceUnitTypeUnit,
+			Amount: pkg.Amount.String(),
+		}); err != nil {
+			return apiPrice, nil, nil, fmt.Errorf("failed to encode unit price for package price: %w", err)
 		}
 
 	default:
@@ -726,6 +852,21 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 		}
 
 		meta.EntitlementTemplate = tmpl
+	}
+
+	// Set the unit config up front: meta is copied by value into both the flat and
+	// usage-based rate cards below, so it must be populated before the price switch.
+	// We do not branch on price type here; the price-type restriction lives in
+	// RateCardMeta.Validate as a publish-blocking warning, so an invalid combination
+	// (e.g. unit_config on a flat price) is mapped through and surfaces as a
+	// validation issue on the draft rather than being rejected at create/update.
+	if rc.UnitConfig != nil {
+		unitConfig, err := FromAPIBillingUnitConfig(*rc.UnitConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert unit config: %w", err)
+		}
+
+		meta.UnitConfig = unitConfig
 	}
 
 	priceDiscriminator, err := rc.Price.Discriminator()

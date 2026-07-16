@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -25,6 +26,15 @@ func (h *handler) CreateAddon() CreateAddonHandler {
 			body := apiv3.CreateAddonRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateAddonRequest{}, err
+			}
+
+			// NOTE: We gate the addon authoring behind this config flag. It is applied for both create and update and will be removed when unit config is feature complete.
+			if !h.unitConfigEnabled {
+				for _, rc := range body.RateCards {
+					if rc.UnitConfig != nil {
+						return CreateAddonRequest{}, models.NewGenericValidationError(fmt.Errorf("unit_config is not enabled on this deployment of OpenMeter"))
+					}
+				}
 			}
 
 			ns, err := h.resolveNamespace(ctx)

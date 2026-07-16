@@ -303,7 +303,7 @@ func NewServer(config *Config) (*Server, error) {
 		return ns, nil
 	}
 
-	addonHandler := addonshandler.New(resolveNamespace, config.AddonService, httptransport.WithErrorHandler(config.ErrorHandler))
+	addonHandler := addonshandler.New(resolveNamespace, config.AddonService, config.UnitConfig.Enabled, httptransport.WithErrorHandler(config.ErrorHandler))
 	appsHandler := appshandler.New(resolveNamespace, config.AppService, config.BillingService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, config.MeterEventService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
