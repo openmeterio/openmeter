@@ -107,10 +107,10 @@ func TestPlanHookPreDelete(t *testing.T) {
 			NamespacedID: models.NamespacedID{Namespace: ns, ID: referenced.ID},
 		})
 
-		// then: an error is returned and it is a TaxCodeReferencedByPlan error
+		// then: an error is returned and it is a TaxCodeReferencedByRateCard error
 		require.Error(t, err)
-		require.True(t, taxcode.IsTaxCodeReferencedByPlanError(err),
-			"expected TaxCodeReferencedByPlan error, got: %v", err)
+		require.True(t, taxcode.IsTaxCodeReferencedByRateCardError(err),
+			"expected TaxCodeReferencedByRateCard error, got: %v", err)
 	})
 
 	t.Run("allows deletion when no plan references the tax code", func(t *testing.T) {

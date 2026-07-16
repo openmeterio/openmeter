@@ -2,9 +2,8 @@ package hooks
 
 import (
 	"context"
+	"errors"
 	"fmt"
-
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -73,12 +72,24 @@ func (e *planHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) error {
 		return fmt.Errorf("failed to list plans: %w", err)
 	}
 
-	if len(affectedPlans.Items) > 0 {
-		planIDs := lo.Map(affectedPlans.Items, func(item plan.Plan, _ int) string {
-			return item.ID
-		})
-		return taxcode.NewTaxCodeReferencedByPlanError(tc.ID, planIDs)
+	var errs []error
+
+	for _, affectedPlan := range affectedPlans.Items {
+		for _, phase := range affectedPlan.Phases {
+			for _, rateCard := range phase.RateCards {
+				taxCodeID := rateCard.AsMeta().TaxCodeReference()
+				if taxCodeID == nil || *taxCodeID != tc.ID {
+					continue
+				}
+
+				errs = append(errs, taxcode.NewTaxCodeReferencedByRateCardError(tc.ID, rateCard.Key()))
+			}
+		}
 	}
 
-	return nil
+	if len(affectedPlans.Items) > 0 && len(errs) == 0 {
+		return fmt.Errorf("plan %s matched tax code filter but no rate card references tax code %s", affectedPlans.Items[0].ID, tc.ID)
+	}
+
+	return errors.Join(errs...)
 }
