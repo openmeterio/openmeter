@@ -44,6 +44,7 @@ func (a *adapter) GetGatheringLinesForSubscription(ctx context.Context, in billi
 				billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering),
 			)).
 			Where(billinginvoiceline.ParentLineIDIsNil()).
+			Where(billinginvoiceline.SplitLineGroupIDIsNil()).
 			Where(
 				billinginvoiceline.Or(
 					billinginvoiceline.DeletedAtIsNil(),
@@ -72,6 +73,7 @@ func (a *adapter) GetGatheringLinesForSubscription(ctx context.Context, in billi
 			Where(billinggatheringinvoiceline.HasBillingInvoiceWith(
 				billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering),
 			)).
+			Where(billinggatheringinvoiceline.SplitLineGroupIDIsNil()).
 			Where(
 				billinggatheringinvoiceline.Or(
 					billinggatheringinvoiceline.DeletedAtIsNil(),
