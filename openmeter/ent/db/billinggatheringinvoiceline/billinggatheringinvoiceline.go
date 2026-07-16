@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 const (
@@ -209,7 +210,7 @@ var (
 	// ValueScanner of all BillingGatheringInvoiceLine fields.
 	ValueScanner struct {
 		Price             field.TypeValueScanner[*productcatalog.Price]
-		UnitConfig        field.TypeValueScanner[*productcatalog.UnitConfig]
+		UnitConfig        field.TypeValueScanner[*unitconfig.UnitConfig]
 		RatecardDiscounts field.TypeValueScanner[*billing.Discounts]
 	}
 )

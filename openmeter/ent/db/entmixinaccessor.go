@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -338,7 +339,7 @@ func (e *BillingGatheringInvoiceLine) GetPrice() *productcatalog.Price {
 	return e.Price
 }
 
-func (e *BillingGatheringInvoiceLine) GetUnitConfig() *productcatalog.UnitConfig {
+func (e *BillingGatheringInvoiceLine) GetUnitConfig() *unitconfig.UnitConfig {
 	return e.UnitConfig
 }
 

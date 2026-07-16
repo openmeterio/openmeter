@@ -12061,7 +12061,7 @@ type BillingGatheringInvoiceLineMutation struct {
 	price_type                       *productcatalog.PriceType
 	feature_key                      *string
 	price                            **productcatalog.Price
-	unit_config                      **productcatalog.UnitConfig
+	unit_config                      **unitconfig.UnitConfig
 	ratecard_discounts               **billing.Discounts
 	child_unique_reference_id        *string
 	subscription_billing_period_from *time.Time
@@ -12813,12 +12813,12 @@ func (m *BillingGatheringInvoiceLineMutation) ResetPrice() {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (m *BillingGatheringInvoiceLineMutation) SetUnitConfig(pc *productcatalog.UnitConfig) {
-	m.unit_config = &pc
+func (m *BillingGatheringInvoiceLineMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
 }
 
 // UnitConfig returns the value of the "unit_config" field in the mutation.
-func (m *BillingGatheringInvoiceLineMutation) UnitConfig() (r *productcatalog.UnitConfig, exists bool) {
+func (m *BillingGatheringInvoiceLineMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
 	v := m.unit_config
 	if v == nil {
 		return
@@ -12829,7 +12829,7 @@ func (m *BillingGatheringInvoiceLineMutation) UnitConfig() (r *productcatalog.Un
 // OldUnitConfig returns the old "unit_config" field's value of the BillingGatheringInvoiceLine entity.
 // If the BillingGatheringInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingGatheringInvoiceLineMutation) OldUnitConfig(ctx context.Context) (v *productcatalog.UnitConfig, err error) {
+func (m *BillingGatheringInvoiceLineMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
 	}
@@ -14130,7 +14130,7 @@ func (m *BillingGatheringInvoiceLineMutation) SetField(name string, value ent.Va
 		m.SetPrice(v)
 		return nil
 	case billinggatheringinvoiceline.FieldUnitConfig:
-		v, ok := value.(*productcatalog.UnitConfig)
+		v, ok := value.(*unitconfig.UnitConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
