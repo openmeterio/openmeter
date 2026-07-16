@@ -49,7 +49,6 @@ func TestPlanHookPreDelete(t *testing.T) {
 	// Setup real services backed by Postgres.
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 
 	// Register the plan hook on the real taxcode service.
 	planHook, err := hooks.NewPlanHook(hooks.PlanHookConfig{PlanService: env.Plan})

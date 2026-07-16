@@ -891,7 +891,6 @@ func TestPlanPublishRejectsDeletedTaxCode(t *testing.T) {
 
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 
 	namespace := pctestutils.NewTestNamespace(t)
 
