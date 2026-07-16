@@ -76,6 +76,8 @@ func (Subscription) Edges() []ent.Edge {
 			OnDelete: entsql.Cascade,
 		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
+		edge.To("billing_gathering_invoice_lines", BillingGatheringInvoiceLine.Type).
+			StorageKey(edge.Symbol("billing_gathering_line_subscription_fk")),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 		edge.To("charges_usage_based", ChargeUsageBased.Type),
 		edge.To("charges_credit_purchase", ChargeCreditPurchase.Type),
@@ -131,6 +133,8 @@ func (SubscriptionPhase) Edges() []ent.Edge {
 			OnDelete: entsql.Cascade,
 		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
+		edge.To("billing_gathering_invoice_lines", BillingGatheringInvoiceLine.Type).
+			StorageKey(edge.Symbol("billing_gathering_line_subscription_phase_fk")),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 		edge.To("charges_usage_based", ChargeUsageBased.Type),
 		edge.To("charges_credit_purchase", ChargeCreditPurchase.Type),
@@ -239,6 +243,8 @@ func (SubscriptionItem) Edges() []ent.Edge {
 			OnDelete: entsql.Cascade,
 		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
+		edge.To("billing_gathering_invoice_lines", BillingGatheringInvoiceLine.Type).
+			StorageKey(edge.Symbol("billing_gathering_line_subscription_item_fk")),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 		edge.To("charges_usage_based", ChargeUsageBased.Type),
 		edge.To("charges_credit_purchase", ChargeCreditPurchase.Type),

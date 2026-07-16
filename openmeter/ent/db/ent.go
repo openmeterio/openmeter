@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -171,6 +172,7 @@ func checkColumn(t, c string) error {
 			balancesnapshot.Table:                                  balancesnapshot.ValidColumn,
 			billingcustomerlock.Table:                              billingcustomerlock.ValidColumn,
 			billingcustomeroverride.Table:                          billingcustomeroverride.ValidColumn,
+			billinggatheringinvoiceline.Table:                      billinggatheringinvoiceline.ValidColumn,
 			billinginvoice.Table:                                   billinginvoice.ValidColumn,
 			billinginvoiceflatfeelineconfig.Table:                  billinginvoiceflatfeelineconfig.ValidColumn,
 			billinginvoiceline.Table:                               billinginvoiceline.ValidColumn,

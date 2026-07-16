@@ -75,6 +75,8 @@ type BillingInvoiceSplitLineGroup struct {
 type BillingInvoiceSplitLineGroupEdges struct {
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
+	// BillingGatheringInvoiceLines holds the value of the billing_gathering_invoice_lines edge.
+	BillingGatheringInvoiceLines []*BillingGatheringInvoiceLine `json:"billing_gathering_invoice_lines,omitempty"`
 	// Subscription holds the value of the subscription edge.
 	Subscription *Subscription `json:"subscription,omitempty"`
 	// SubscriptionPhase holds the value of the subscription_phase edge.
@@ -85,7 +87,7 @@ type BillingInvoiceSplitLineGroupEdges struct {
 	Charge *Charge `json:"charge,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // BillingInvoiceLinesOrErr returns the BillingInvoiceLines value or an error if the edge
@@ -97,12 +99,21 @@ func (e BillingInvoiceSplitLineGroupEdges) BillingInvoiceLinesOrErr() ([]*Billin
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
 }
 
+// BillingGatheringInvoiceLinesOrErr returns the BillingGatheringInvoiceLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceSplitLineGroupEdges) BillingGatheringInvoiceLinesOrErr() ([]*BillingGatheringInvoiceLine, error) {
+	if e.loadedTypes[1] {
+		return e.BillingGatheringInvoiceLines, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_gathering_invoice_lines"}
+}
+
 // SubscriptionOrErr returns the Subscription value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e BillingInvoiceSplitLineGroupEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -113,7 +124,7 @@ func (e BillingInvoiceSplitLineGroupEdges) SubscriptionOrErr() (*Subscription, e
 func (e BillingInvoiceSplitLineGroupEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -124,7 +135,7 @@ func (e BillingInvoiceSplitLineGroupEdges) SubscriptionPhaseOrErr() (*Subscripti
 func (e BillingInvoiceSplitLineGroupEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -135,7 +146,7 @@ func (e BillingInvoiceSplitLineGroupEdges) SubscriptionItemOrErr() (*Subscriptio
 func (e BillingInvoiceSplitLineGroupEdges) ChargeOrErr() (*Charge, error) {
 	if e.Charge != nil {
 		return e.Charge, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
@@ -325,6 +336,11 @@ func (_m *BillingInvoiceSplitLineGroup) Value(name string) (ent.Value, error) {
 // QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the BillingInvoiceSplitLineGroup entity.
 func (_m *BillingInvoiceSplitLineGroup) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
 	return NewBillingInvoiceSplitLineGroupClient(_m.config).QueryBillingInvoiceLines(_m)
+}
+
+// QueryBillingGatheringInvoiceLines queries the "billing_gathering_invoice_lines" edge of the BillingInvoiceSplitLineGroup entity.
+func (_m *BillingInvoiceSplitLineGroup) QueryBillingGatheringInvoiceLines() *BillingGatheringInvoiceLineQuery {
+	return NewBillingInvoiceSplitLineGroupClient(_m.config).QueryBillingGatheringInvoiceLines(_m)
 }
 
 // QuerySubscription queries the "subscription" edge of the BillingInvoiceSplitLineGroup entity.

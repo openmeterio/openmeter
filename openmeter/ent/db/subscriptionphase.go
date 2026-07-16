@@ -55,6 +55,8 @@ type SubscriptionPhaseEdges struct {
 	Items []*SubscriptionItem `json:"items,omitempty"`
 	// BillingLines holds the value of the billing_lines edge.
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
+	// BillingGatheringInvoiceLines holds the value of the billing_gathering_invoice_lines edge.
+	BillingGatheringInvoiceLines []*BillingGatheringInvoiceLine `json:"billing_gathering_invoice_lines,omitempty"`
 	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
 	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
 	// ChargesUsageBased holds the value of the charges_usage_based edge.
@@ -65,7 +67,7 @@ type SubscriptionPhaseEdges struct {
 	ChargesFlatFee []*ChargeFlatFee `json:"charges_flat_fee,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // SubscriptionOrErr returns the Subscription value or an error if the edge
@@ -97,10 +99,19 @@ func (e SubscriptionPhaseEdges) BillingLinesOrErr() ([]*BillingInvoiceLine, erro
 	return nil, &NotLoadedError{edge: "billing_lines"}
 }
 
+// BillingGatheringInvoiceLinesOrErr returns the BillingGatheringInvoiceLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionPhaseEdges) BillingGatheringInvoiceLinesOrErr() ([]*BillingGatheringInvoiceLine, error) {
+	if e.loadedTypes[3] {
+		return e.BillingGatheringInvoiceLines, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_gathering_invoice_lines"}
+}
+
 // BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionPhaseEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.BillingSplitLineGroups, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
@@ -109,7 +120,7 @@ func (e SubscriptionPhaseEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoice
 // ChargesUsageBasedOrErr returns the ChargesUsageBased value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionPhaseEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.ChargesUsageBased, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_usage_based"}
@@ -118,7 +129,7 @@ func (e SubscriptionPhaseEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, e
 // ChargesCreditPurchaseOrErr returns the ChargesCreditPurchase value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionPhaseEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPurchase, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.ChargesCreditPurchase, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_credit_purchase"}
@@ -127,7 +138,7 @@ func (e SubscriptionPhaseEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPur
 // ChargesFlatFeeOrErr returns the ChargesFlatFee value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionPhaseEdges) ChargesFlatFeeOrErr() ([]*ChargeFlatFee, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.ChargesFlatFee, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_flat_fee"}
@@ -264,6 +275,11 @@ func (_m *SubscriptionPhase) QueryItems() *SubscriptionItemQuery {
 // QueryBillingLines queries the "billing_lines" edge of the SubscriptionPhase entity.
 func (_m *SubscriptionPhase) QueryBillingLines() *BillingInvoiceLineQuery {
 	return NewSubscriptionPhaseClient(_m.config).QueryBillingLines(_m)
+}
+
+// QueryBillingGatheringInvoiceLines queries the "billing_gathering_invoice_lines" edge of the SubscriptionPhase entity.
+func (_m *SubscriptionPhase) QueryBillingGatheringInvoiceLines() *BillingGatheringInvoiceLineQuery {
+	return NewSubscriptionPhaseClient(_m.config).QueryBillingGatheringInvoiceLines(_m)
 }
 
 // QueryBillingSplitLineGroups queries the "billing_split_line_groups" edge of the SubscriptionPhase entity.

@@ -61,6 +61,20 @@ type BillingCustomerLock func(*sql.Selector)
 // BillingCustomerOverride is the predicate function for billingcustomeroverride builders.
 type BillingCustomerOverride func(*sql.Selector)
 
+// BillingGatheringInvoiceLine is the predicate function for billinggatheringinvoiceline builders.
+type BillingGatheringInvoiceLine func(*sql.Selector)
+
+// BillingGatheringInvoiceLineOrErr calls the predicate only if the error is not nit.
+func BillingGatheringInvoiceLineOrErr(p BillingGatheringInvoiceLine, err error) BillingGatheringInvoiceLine {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // BillingInvoice is the predicate function for billinginvoice builders.
 type BillingInvoice func(*sql.Selector)
 

@@ -273,6 +273,110 @@ func (e *BillingCustomerOverride) GetTaxBehavior() *productcatalog.TaxBehavior {
 	return e.TaxBehavior
 }
 
+func (e *BillingGatheringInvoiceLine) GetID() string {
+	return e.ID
+}
+
+func (e *BillingGatheringInvoiceLine) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *BillingGatheringInvoiceLine) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *BillingGatheringInvoiceLine) GetMetadata() map[string]string {
+	return e.Metadata
+}
+
+func (e *BillingGatheringInvoiceLine) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *BillingGatheringInvoiceLine) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *BillingGatheringInvoiceLine) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *BillingGatheringInvoiceLine) GetName() string {
+	return e.Name
+}
+
+func (e *BillingGatheringInvoiceLine) GetDescription() *string {
+	return e.Description
+}
+
+func (e *BillingGatheringInvoiceLine) GetCurrency() currencyx.Code {
+	return e.Currency
+}
+
+func (e *BillingGatheringInvoiceLine) GetServicePeriodStart() time.Time {
+	return e.ServicePeriodStart
+}
+
+func (e *BillingGatheringInvoiceLine) GetServicePeriodEnd() time.Time {
+	return e.ServicePeriodEnd
+}
+
+func (e *BillingGatheringInvoiceLine) GetTaxConfig() billing.TaxConfig {
+	return e.TaxConfig
+}
+
+func (e *BillingGatheringInvoiceLine) GetPriceType() productcatalog.PriceType {
+	return e.PriceType
+}
+
+func (e *BillingGatheringInvoiceLine) GetFeatureKey() *string {
+	return e.FeatureKey
+}
+
+func (e *BillingGatheringInvoiceLine) GetPrice() *productcatalog.Price {
+	return e.Price
+}
+
+func (e *BillingGatheringInvoiceLine) GetUnitConfig() *productcatalog.UnitConfig {
+	return e.UnitConfig
+}
+
+func (e *BillingGatheringInvoiceLine) GetRatecardDiscounts() *billing.Discounts {
+	return e.RatecardDiscounts
+}
+
+func (e *BillingGatheringInvoiceLine) GetChildUniqueReferenceID() *string {
+	return e.ChildUniqueReferenceID
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionID() *string {
+	return e.SubscriptionID
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionPhaseID() *string {
+	return e.SubscriptionPhaseID
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionItemID() *string {
+	return e.SubscriptionItemID
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionBillingPeriodFrom() *time.Time {
+	return e.SubscriptionBillingPeriodFrom
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionBillingPeriodTo() *time.Time {
+	return e.SubscriptionBillingPeriodTo
+}
+
+func (e *BillingGatheringInvoiceLine) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *BillingGatheringInvoiceLine) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
+}
+
 func (e *BillingInvoice) GetID() string {
 	return e.ID
 }

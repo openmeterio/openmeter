@@ -15,6 +15,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
@@ -723,6 +724,21 @@ func (_c *BillingInvoiceCreate) AddBillingInvoiceLines(v ...*BillingInvoiceLine)
 	return _c.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_c *BillingInvoiceCreate) AddBillingGatheringInvoiceLineIDs(ids ...string) *BillingInvoiceCreate {
+	_c.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
+	return _c
+}
+
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_c *BillingInvoiceCreate) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *BillingInvoiceCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBillingGatheringInvoiceLineIDs(ids...)
+}
+
 // AddBillingInvoiceDetailedLineIDs adds the "billing_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by IDs.
 func (_c *BillingInvoiceCreate) AddBillingInvoiceDetailedLineIDs(ids ...string) *BillingInvoiceCreate {
 	_c.mutation.AddBillingInvoiceDetailedLineIDs(ids...)
@@ -1305,6 +1321,22 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingGatheringInvoiceLinesTable,
+			Columns: []string{billinginvoice.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

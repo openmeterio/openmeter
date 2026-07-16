@@ -621,6 +621,258 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDefaultTaxConfig(val
 	return u.SetInvoiceDefaultTaxConfig(*value)
 }
 
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearAnnotations(value *models.Annotations) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearDeletedAt(value *time.Time) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearDescription(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearDescription(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearFeatureKey(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearFeatureKey(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearRatecardDiscounts()
+	}
+	return u.SetRatecardDiscounts(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearRatecardDiscounts()
+	}
+	return u.SetRatecardDiscounts(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionID()
+	}
+	return u.SetSubscriptionID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionID()
+	}
+	return u.SetSubscriptionID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionPhaseID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionPhaseID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionItemID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionItemID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionBillingPeriodFrom(value *time.Time) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionBillingPeriodFrom()
+	}
+	return u.SetSubscriptionBillingPeriodFrom(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionBillingPeriodFrom(value *time.Time) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionBillingPeriodFrom()
+	}
+	return u.SetSubscriptionBillingPeriodFrom(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionBillingPeriodTo(value *time.Time) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionBillingPeriodTo()
+	}
+	return u.SetSubscriptionBillingPeriodTo(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionBillingPeriodTo(value *time.Time) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionBillingPeriodTo()
+	}
+	return u.SetSubscriptionBillingPeriodTo(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearTaxCodeID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearTaxCodeID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSplitLineGroupID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSplitLineGroupID()
+	}
+	return u.SetSplitLineGroupID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSplitLineGroupID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSplitLineGroupID()
+	}
+	return u.SetSplitLineGroupID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearChargeID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearChargeID()
+	}
+	return u.SetChargeID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearChargeID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearChargeID()
+	}
+	return u.SetChargeID(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearMetadata()

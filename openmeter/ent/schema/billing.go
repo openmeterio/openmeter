@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -304,6 +305,94 @@ func (InvoiceLineBaseMixin) Fields() []ent.Field {
 	}
 }
 
+// StandardInvoiceLineIntentMixin contains the line fields that survive gathering-line
+// realization into a standard invoice line. Scheduling fields such as invoice_at belong
+// to gathering lines and must not be added to this shared shape.
+//
+// This schema-local definition is temporary. Move it to openmeter/billing/models when
+// gathering and standard lines share the line-intent domain model.
+type StandardInvoiceLineIntentMixin struct {
+	mixin.Schema
+}
+
+func (StandardInvoiceLineIntentMixin) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"child_unique_reference_id_not_empty": `child_unique_reference_id <> ''`,
+		}),
+	}
+}
+
+func (StandardInvoiceLineIntentMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("currency").
+			GoType(currencyx.Code("")).
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "varchar(3)",
+			}),
+
+		field.Time("service_period_start"),
+		field.Time("service_period_end"),
+
+		field.JSON("tax_config", billing.TaxConfig{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
+
+		field.Enum("price_type").
+			GoType(productcatalog.PriceType("")),
+		field.String("feature_key").
+			Optional().
+			Nillable(),
+		field.String("price").
+			GoType(&productcatalog.Price{}).
+			ValueScanner(PriceValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
+		field.String("unit_config").
+			GoType(&productcatalog.UnitConfig{}).
+			ValueScanner(UnitConfigValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
+
+		field.String("ratecard_discounts").
+			GoType(&billing.Discounts{}).
+			ValueScanner(BillingDiscountsValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
+
+		field.String("child_unique_reference_id").
+			Optional().
+			Nillable(),
+
+		field.String("subscription_id").
+			Optional().
+			Nillable(),
+		field.String("subscription_phase_id").
+			Optional().
+			Nillable(),
+		field.String("subscription_item_id").
+			Optional().
+			Nillable(),
+		field.Time("subscription_billing_period_from").
+			Optional().
+			Nillable(),
+		field.Time("subscription_billing_period_to").
+			Optional().
+			Nillable(),
+	}
+}
+
 type BillingInvoiceLine struct {
 	ent.Schema
 }
@@ -498,6 +587,96 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("tax_code", TaxCode.Type).
 			Ref("billing_invoice_lines").
+			Field("tax_code_id").
+			Unique(),
+	}
+}
+
+type BillingGatheringInvoiceLine struct {
+	ent.Schema
+}
+
+func (BillingGatheringInvoiceLine) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.AnnotationsMixin{},
+		entutils.ResourceMixin{},
+		StandardInvoiceLineIntentMixin{},
+		TaxMixin{},
+	}
+}
+
+func (BillingGatheringInvoiceLine) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("invoice_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.Time("invoice_at"),
+		field.Enum("managed_by").
+			GoType(billing.InvoiceLineManagedBy("")),
+		field.Enum("engine").
+			GoType(billing.LineEngineType("")).
+			Default(string(billing.LineEngineTypeInvoice)),
+		field.String("split_line_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
+	}
+}
+
+func (BillingGatheringInvoiceLine) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "invoice_id"),
+		index.Fields("namespace", "split_line_group_id"),
+		index.Fields("namespace", "charge_id"),
+		index.Fields("namespace", "invoice_id", "child_unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).
+			StorageKey("billinggatheringline_ns_invoice_child_id").
+			Unique(),
+		index.Fields("namespace", "subscription_id", "subscription_phase_id", "subscription_item_id").
+			StorageKey("billinggatheringline_ns_subscription_ref"),
+	}
+}
+
+func (BillingGatheringInvoiceLine) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("billing_invoice", BillingInvoice.Type).
+			Ref("billing_gathering_invoice_lines").
+			Field("invoice_id").
+			Unique().
+			Required(),
+		edge.From("split_line_group", BillingInvoiceSplitLineGroup.Type).
+			Ref("billing_gathering_invoice_lines").
+			Field("split_line_group_id").
+			Unique(),
+		edge.From("subscription", Subscription.Type).
+			Ref("billing_gathering_invoice_lines").
+			Field("subscription_id").
+			Unique(),
+		edge.From("subscription_phase", SubscriptionPhase.Type).
+			Ref("billing_gathering_invoice_lines").
+			Field("subscription_phase_id").
+			Unique(),
+		edge.From("subscription_item", SubscriptionItem.Type).
+			Ref("billing_gathering_invoice_lines").
+			Field("subscription_item_id").
+			Unique(),
+		edge.From("charge", Charge.Type).
+			Ref("billing_gathering_invoice_lines").
+			Field("charge_id").
+			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_gathering_invoice_lines").
 			Field("tax_code_id").
 			Unique(),
 	}
@@ -711,6 +890,8 @@ func (BillingInvoiceSplitLineGroup) Indexes() []ent.Index {
 func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
+		edge.To("billing_gathering_invoice_lines", BillingGatheringInvoiceLine.Type).
+			StorageKey(edge.Symbol("billing_gathering_line_split_group_fk")),
 		edge.From("subscription", Subscription.Type).
 			Ref("billing_split_line_groups").
 			Field("subscription_id").
@@ -1173,6 +1354,9 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("billing_gathering_invoice_lines", BillingGatheringInvoiceLine.Type).
+			StorageKey(edge.Symbol("billing_gathering_line_invoice_fk")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_invoice_detailed_lines", BillingStandardInvoiceDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
