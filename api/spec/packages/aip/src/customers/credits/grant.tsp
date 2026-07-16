@@ -209,8 +209,9 @@ model CreditGrant {
   /**
    * Idempotency key for the credit grant creation request.
    *
-   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
-   * creating a duplicate grant, which makes create requests safe to retry.
+   * Unique per customer: reusing the same key for the same customer returns an HTTP
+   * 409 Conflict instead of creating a duplicate grant, which makes create requests
+   * safe to retry. The same key may be reused across different customers.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   key?: Shared.ExternalResourceKey;

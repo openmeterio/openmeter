@@ -134,14 +134,18 @@ func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 		c.requireStatus(http.StatusCreated, err)
 	})
 
-	t.Run("the same key conflicts across different customers in a namespace", func(t *testing.T) {
+	t.Run("the same key is allowed across different customers", func(t *testing.T) {
 		key := ulid.Make().String()
 
-		_, err := c.Customers.Credits.Grants.Create(t.Context(), createCustomer("credit_grant_idem_cust_a"), grant(&key))
+		grantA, err := c.Customers.Credits.Grants.Create(t.Context(), createCustomer("credit_grant_idem_cust_a"), grant(&key))
 		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, grantA)
 
-		_, err = c.Customers.Credits.Grants.Create(t.Context(), createCustomer("credit_grant_idem_cust_b"), grant(&key))
-		requireProblem(t, err, http.StatusConflict)
+		grantB, err := c.Customers.Credits.Grants.Create(t.Context(), createCustomer("credit_grant_idem_cust_b"), grant(&key))
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, grantB)
+
+		require.NotEqual(t, grantA.ID, grantB.ID)
 	})
 
 	t.Run("an over-length key is rejected with 400", func(t *testing.T) {
@@ -331,8 +335,8 @@ func TestV3VoidCreditGrantPaymentAdjustmentNone(t *testing.T) {
 
 // TestV3CreditGrantKeyReadAndFilter verifies that the idempotency key is exposed
 // on the get/list read responses and that list credit grants can be filtered by
-// key. The key column carries a unique partial index per namespace, so an
-// equality filter targets at most one grant.
+// key. The key column carries a unique partial index per namespace and customer,
+// so a customer-scoped equality filter targets at most one grant.
 func TestV3CreditGrantKeyReadAndFilter(t *testing.T) {
 	c := newV3Client(t)
 	currency := v3sdk.BillingCurrencyCode("USD")
