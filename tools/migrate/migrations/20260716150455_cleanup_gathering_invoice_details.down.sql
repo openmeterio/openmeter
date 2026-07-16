@@ -1,0 +1,1 @@
+-- Removed gathering-invoice detailed rows cannot be safely restored automatically.
