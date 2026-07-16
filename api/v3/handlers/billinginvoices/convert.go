@@ -338,6 +338,10 @@ func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, er
 		TaxConfig:  addons.ToAPIBillingRateCardTaxConfig(line.TaxConfig.ToProductCatalog()),
 	}
 
+	if uc := line.GetUnitConfig(); uc != nil {
+		rc.UnitConfig = lo.ToPtr(plans.ToAPIBillingUnitConfig(*uc))
+	}
+
 	return rc, nil
 }
 

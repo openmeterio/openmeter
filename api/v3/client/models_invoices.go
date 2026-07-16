@@ -306,6 +306,9 @@ type InvoiceLineRateCard struct {
 	FeatureKey *string `json:"feature_key,omitempty"`
 	// Discount configuration from the rate card.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
+	// Unit config snapshot applied when this line was billed, converting the raw
+	// metered quantity into the billed quantity. Frozen at billing time; read-only.
+	UnitConfig *UnitConfig `json:"unit_config,omitempty"`
 }
 
 // Line item type discriminator.
@@ -715,6 +718,18 @@ func UpdateInvoiceLineFromUpdateInvoiceStandardLine(value UpdateInvoiceStandardL
 	return result, nil
 }
 
+// Rate card configuration snapshot for a usage-based invoice line.
+type UpdateInvoiceLineRateCard struct {
+	// The price definition used to calculate charges for this line.
+	Price Price `json:"price"`
+	// Tax configuration snapshot for this line.
+	TaxConfig *RateCardTaxConfig `json:"tax_config,omitempty"`
+	// The feature key associated with this line's rate card.
+	FeatureKey *string `json:"feature_key,omitempty"`
+	// Discount configuration from the rate card.
+	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
+}
+
 // UpdateInvoiceRequest update request.
 //
 // UpdateInvoiceRequest is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the UpdateInvoiceRequestFrom* constructors.
@@ -802,7 +817,7 @@ type UpdateInvoiceStandardLine struct {
 	// equal to `to`.
 	ServicePeriod ClosedPeriod `json:"service_period"`
 	// The rate card configuration snapshot used to price this line item.
-	RateCard InvoiceLineRateCard `json:"rate_card"`
+	RateCard UpdateInvoiceLineRateCard `json:"rate_card"`
 }
 
 // InvoiceStandard update request.

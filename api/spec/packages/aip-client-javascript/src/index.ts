@@ -410,6 +410,7 @@ export type {
   CustomerStripeCreateCheckoutSessionRequestInput,
   WorkflowCollectionSettingsInput,
   RateCardInput,
+  InvoiceLineRateCardInput,
   WorkflowInput,
   SubscriptionAddonRateCardInput,
   PlanPhaseInput,

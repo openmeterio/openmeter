@@ -6595,6 +6595,14 @@ components:
             - $ref: '#/components/schemas/BillingRateCardDiscounts'
           description: Discount configuration from the rate card.
           title: Discounts
+        unit_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingUnitConfig'
+          description: |-
+            Unit config snapshot applied when this line was billed, converting the raw
+            metered quantity into the billed quantity. Frozen at billing time; read-only.
+          title: Unit config
+          readOnly: true
       additionalProperties: false
       description: Rate card configuration snapshot for a usage-based invoice line.
     BillingInvoiceLineUsageDiscount:
