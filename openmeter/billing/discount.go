@@ -109,15 +109,21 @@ func (d Discounts) IsEmpty() bool {
 }
 
 func (d Discounts) ValidateForPrice(price *productcatalog.Price) error {
+	var errs []error
+
 	if d.Percentage != nil {
-		return d.Percentage.ValidateForPrice(price)
+		if err := d.Percentage.ValidateForPrice(price); err != nil {
+			errs = append(errs, fmt.Errorf("percentage: %w", err))
+		}
 	}
 
 	if d.Usage != nil {
-		return d.Usage.ValidateForPrice(price)
+		if err := d.Usage.ValidateForPrice(price); err != nil {
+			errs = append(errs, fmt.Errorf("usage: %w", err))
+		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (d Discounts) Equal(other Discounts) bool {
