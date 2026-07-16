@@ -50,11 +50,11 @@ From `openmeter/testutils/`:
 
 | Utility | Usage |
 |---------|-------|
-| `testutils.InitPostgresDB(t, state)` | Provisions a fresh Postgres DB per test from a cached, pre-migrated template; skips if `POSTGRES_HOST` not set |
+| `testutils.InitPostgresDB(t, state)` | Provisions a fresh Postgres DB per test, cloned from a cached template in the requested `state`; skips if `POSTGRES_HOST` not set |
 | `testutils.NewDiscardLogger(t)` | Silent logger for tests |
 | `testutils.NewLogger(t)` | Default slog logger for tests |
 
-`InitPostgresDB` takes a `testutils.PostgresDBState` selecting how the template DB is migrated. The template is cached and cloned per test, so the returned DB is **already migrated** — do not run schema migration yourself in `NewTestEnv` or tests:
+`InitPostgresDB` takes a `testutils.PostgresDBState` selecting how the template DB is prepared, then clones it per test. The `EntMigrated` and `AtlasMigrated` states return an **already-migrated** DB, so do not run schema migration yourself in `NewTestEnv` or tests; `Empty` intentionally returns a schemaless DB:
 
 | State | Meaning |
 |-------|---------|
