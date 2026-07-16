@@ -142,11 +142,20 @@ export function getAppCatalogItem(
   options?: RequestOptions,
 ): Promise<Result<GetAppCatalogItemResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      appType: req.appType,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getAppCatalogItemPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getAppCatalogItemPathParamsWire, pathParams)
+    }
     const path = `openmeter/app-catalog/${(() => {
-      if (req.appType === undefined) {
+      if (pathParams.appType === undefined) {
         throw new Error('missing path parameter: appType')
       }
-      return encodeURIComponent(String(req.appType))
+      return encodeURIComponent(String(pathParams.appType))
     })()}`
     return http(client)
       .get(path, options)
