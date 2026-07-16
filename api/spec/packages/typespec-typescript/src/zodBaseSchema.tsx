@@ -263,6 +263,7 @@ function modelBaseType(type: Model) {
   const { $ } = useTsp()
   const wire = useWireMode()
   const rkSym = activeRefkeySym(wire)
+
   // Closed objects are strict in the wire pass so a leaked-camelCase or unknown
   // wire key is rejected. Open models (record spread, `emitsAsIntersection`) stay
   // permissive — strict would defeat the record arm that exists to accept them.

@@ -51,9 +51,11 @@ function operationNamed(operations: GoOperation[], name: string): GoOperation {
 const pageFixturePreamble = `
   @service namespace Test;
 
-  model SortQuery {
-    by: string;
-    order?: "asc" | "desc";
+  namespace Common {
+    model SortQuery {
+      by: string;
+      order?: "asc" | "desc";
+    }
   }
 
   model Item {
@@ -85,7 +87,7 @@ describe('list params struct naming', () => {
             size?: integer;
             number?: integer;
           },
-          @query sort?: SortQuery,
+          @query sort?: Common.SortQuery,
         ): ItemPage;
 
         @get

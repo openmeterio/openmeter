@@ -297,7 +297,7 @@ function CursorListAllMethod({
             return nil, nil, nil, err
           }
 
-          return resp.Data, resp.Meta.Page.Next, resp.Meta.Page.Previous, nil
+          return resp.Data, String(resp.Meta.Page.Next.GetOrEmpty()), String(resp.Meta.Page.Previous.GetOrEmpty()), nil
         })
       `}
     </go.FunctionDeclaration>

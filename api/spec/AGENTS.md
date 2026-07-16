@@ -253,16 +253,37 @@ second time in a `snake_case` "wire" pass (`WireModeContext` in the emitter), ke
 the raw JSON wire name and made `z.strictObject`, so a wrong-shaped or
 leaked-camelCase wire field is **rejected, not silently stripped**. Open models
 (record spread, `emitsAsIntersection`, e.g. `baseError`) stay non-strict — strict
-would defeat the record arm that exists to accept them. Because the wire pass is the
-same emitter walk as the camelCase pass (parameterized by key-casing + strictness +
-a separate refkey namespace), the two are structurally identical except for casing,
-**by construction** — no runtime schema derivation. A failure throws
+would defeat the record arm that exists to accept them. The wire pass uses the same
+emitter walk as the camelCase pass (parameterized by direction + key-casing +
+strictness + a separate refkey namespace), but it must describe the value **after**
+transport encoding: date-time values are strings, SDK-coded query parameters use
+their declared transport type, and defaults are absent. A failure throws
 `ValidationError`, which `request()` surfaces as `Result.error` (request validation
 runs _inside_ the `request()` closure so it does not throw synchronously).
 **Enabling `validate` re-introduces exactly the rejection the default policy
 avoids**: a strict wire schema rejects additive/unknown server fields and unknown
 enum values. It is opt-in defense-in-depth, not the default, precisely because the
 default contract must not break on additive fields.
+
+Models decorated with `@useRef` still need a local TypeSpec shape that matches the
+referenced OpenAPI schema. The TypeScript and Go emitters walk the local TypeSpec
+AST; `@useRef` only changes the emitted OpenAPI reference and does not import the
+referenced schema's requiredness or nullability into language-specific SDKs.
+
+TypeSpec defaults belong only on public schemas. `toWire` reads the public schema to
+materialize required request defaults before wire validation; `…Wire` schemas must
+not use Zod `.default(...)`, because the same schema validates responses and a
+default wrapper would accept a required field the server omitted. The query
+parameter name `sort` is reserved: it must use `Common.SortQuery` directly (not an
+alias), enforced by the AIP `sort-query-type` linter rule. Both SDK emitters select
+the sort codec from that validated HTTP parameter name. The TypeScript emitter must
+validate the public property schema before encoding and the encoded value against
+the operation's wire schema afterward.
+Generated path-parameter schemas are part of the same boundary: in strict mode,
+map path values to their transport representation, validate the mapped object,
+then interpolate and URL-encode it. Preserve path binding names during mapping;
+unlike JSON object keys, they must not be snake-cased. Keep mapping conditional so
+`validate: false` retains its established runtime behavior.
 
 ### Documented types: generated from TypeSpec, verified against zod
 
@@ -651,7 +672,9 @@ not "correct" them to mainline ky.
   wire; the SDK accepts a `{by, order}` object and `encodeSort` flattens it. `by` is
   a **camelCase** field name in the SDK and is `toSnakeCase`-translated to the wire
   field name (the server validates snake field names; see
-  `api/v3/handlers/.../convert.go`).
+  `api/v3/handlers/.../convert.go`). Every query parameter named `sort` must use
+  `Common.SortQuery` directly; the AIP `sort-query-type` rule protects the
+  name-based codec selection used by both SDK emitters.
 
 ## Tests
 

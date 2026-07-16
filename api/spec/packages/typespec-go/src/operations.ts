@@ -157,6 +157,9 @@ export function classifyQueryParameter(
 ): GoQueryCodec {
   const typekit = $(program)
   const type = parameter.param.type
+  if (parameter.name === 'sort') {
+    return { kind: 'sort' }
+  }
 
   if (type.kind === 'Model') {
     if (typekit.array.is(type)) {
@@ -189,10 +192,6 @@ export function classifyQueryParameter(
         `typespec-go: query parameter page on ${operation.name} has properties {${[...properties].join(', ')}} matching neither page pagination {size, number} nor cursor pagination {size, after, before}; rename the parameter or align it with a pagination shape before emitting it`,
       )
     }
-  }
-
-  if (optionalTypeName(program, type) === 'SortQuery') {
-    return { kind: 'sort' }
   }
 
   return { kind: 'scalar' }

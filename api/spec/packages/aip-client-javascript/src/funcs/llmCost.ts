@@ -4,7 +4,13 @@ import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
 import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
-import { toWire, fromWire, assertValid, toSnakeCase } from '../lib/wire.js'
+import {
+  toWire,
+  toPathWire,
+  fromWire,
+  assertValid,
+  toSnakeCase,
+} from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   ListLlmCostPricesRequest,
@@ -32,6 +38,9 @@ export function listLlmCostPrices(
   options?: RequestOptions,
 ): Promise<Result<ListLlmCostPricesResponse>> {
   return request(() => {
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(schemas.listLlmCostPricesQueryParams.shape.sort, req.sort)
+    }
     const query = toWire(
       {
         filter: req.filter,
@@ -70,11 +79,20 @@ export function getLlmCostPrice(
   options?: RequestOptions,
 ): Promise<Result<GetLlmCostPriceResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      priceId: req.priceId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getLlmCostPricePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getLlmCostPricePathParamsWire, pathParams)
+    }
     const path = `openmeter/llm-cost/prices/${(() => {
-      if (req.priceId === undefined) {
+      if (pathParams.priceId === undefined) {
         throw new Error('missing path parameter: priceId')
       }
-      return encodeURIComponent(String(req.priceId))
+      return encodeURIComponent(String(pathParams.priceId))
     })()}`
     return http(client)
       .get(path, options)
@@ -166,11 +184,20 @@ export function deleteLlmCostOverride(
   options?: RequestOptions,
 ): Promise<Result<DeleteLlmCostOverrideResponse>> {
   return request(async () => {
+    const pathParamsInput = {
+      priceId: req.priceId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.deleteLlmCostOverridePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.deleteLlmCostOverridePathParamsWire, pathParams)
+    }
     const path = `openmeter/llm-cost/overrides/${(() => {
-      if (req.priceId === undefined) {
+      if (pathParams.priceId === undefined) {
         throw new Error('missing path parameter: priceId')
       }
-      return encodeURIComponent(String(req.priceId))
+      return encodeURIComponent(String(pathParams.priceId))
     })()}`
     await http(client).delete(path, options)
   })

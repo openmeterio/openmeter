@@ -4,7 +4,13 @@ import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
 import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
-import { toWire, fromWire, assertValid, toSnakeCase } from '../lib/wire.js'
+import {
+  toWire,
+  toPathWire,
+  fromWire,
+  assertValid,
+  toSnakeCase,
+} from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   ListCurrenciesRequest,
@@ -30,6 +36,9 @@ export function listCurrencies(
   options?: RequestOptions,
 ): Promise<Result<ListCurrenciesResponse>> {
   return request(() => {
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(schemas.listCurrenciesQueryParams.shape.sort, req.sort)
+    }
     const query = toWire(
       {
         page: req.page,
@@ -98,11 +107,20 @@ export function listCostBases(
   options?: RequestOptions,
 ): Promise<Result<ListCostBasesResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      currencyId: req.currencyId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.listCostBasesPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.listCostBasesPathParamsWire, pathParams)
+    }
     const path = `openmeter/currencies/custom/${(() => {
-      if (req.currencyId === undefined) {
+      if (pathParams.currencyId === undefined) {
         throw new Error('missing path parameter: currencyId')
       }
-      return encodeURIComponent(String(req.currencyId))
+      return encodeURIComponent(String(pathParams.currencyId))
     })()}/cost-bases`
     const query = toWire(
       {
@@ -140,11 +158,20 @@ export function createCostBasis(
   options?: RequestOptions,
 ): Promise<Result<CreateCostBasisResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      currencyId: req.currencyId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.createCostBasisPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.createCostBasisPathParamsWire, pathParams)
+    }
     const path = `openmeter/currencies/custom/${(() => {
-      if (req.currencyId === undefined) {
+      if (pathParams.currencyId === undefined) {
         throw new Error('missing path parameter: currencyId')
       }
-      return encodeURIComponent(String(req.currencyId))
+      return encodeURIComponent(String(pathParams.currencyId))
     })()}/cost-bases`
     const body = toWire(req.body, schemas.createCostBasisBody)
     if (client._options.validate) {

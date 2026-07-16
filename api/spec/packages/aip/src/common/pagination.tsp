@@ -81,19 +81,21 @@ model CursorMetaPage {
   /**
    * URI to the next page.
    */
+  #suppress "@openmeter/api-spec-aip/no-nullable" "the server returns null when there is no next page"
   @format("uri")
-  next?: string;
+  next: string | null;
 
   /**
    * URI to the previous page.
    */
+  #suppress "@openmeter/api-spec-aip/no-nullable" "the server returns null when there is no previous page"
   @format("uri")
-  previous?: string;
+  previous: string | null;
 
   /**
    * Requested page size.
    */
-  size?: integer;
+  size: integer;
 }
 
 /**

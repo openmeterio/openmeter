@@ -3,7 +3,7 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { fromWire, assertValid } from '../lib/wire.js'
+import { toPathWire, fromWire, assertValid } from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   ListCustomerEntitlementAccessRequest,
@@ -21,11 +21,26 @@ export function listCustomerEntitlementAccess(
   options?: RequestOptions,
 ): Promise<Result<ListCustomerEntitlementAccessResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      customerId: req.customerId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.listCustomerEntitlementAccessPathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.listCustomerEntitlementAccessPathParamsWire,
+        pathParams,
+      )
+    }
     const path = `openmeter/customers/${(() => {
-      if (req.customerId === undefined) {
+      if (pathParams.customerId === undefined) {
         throw new Error('missing path parameter: customerId')
       }
-      return encodeURIComponent(String(req.customerId))
+      return encodeURIComponent(String(pathParams.customerId))
     })()}/entitlement-access`
     return http(client)
       .get(path, options)

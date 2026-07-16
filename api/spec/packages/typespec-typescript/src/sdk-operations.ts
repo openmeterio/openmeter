@@ -10,6 +10,7 @@ import { getOperationId } from '@typespec/openapi'
 import { isSuccessStatus } from './http-status.js'
 import { reportDiagnostic } from './lib.js'
 import type { PaginationInfo } from './pagination.js'
+import { queryCodecForParameter, type QueryCodecName } from './query-codecs.js'
 import { operationBaseName } from './ZodOperations.jsx'
 import { jsdoc, shouldReference } from './utils.jsx'
 
@@ -21,7 +22,7 @@ export interface SdkOperation {
   path: string
   pathParams: string[]
   queryParams: string[]
-  hasSort: boolean
+  queryCodecs: SdkQueryCodec[]
   hasBody: boolean
   hasResponse: boolean
   /** Documented interface name for the success body, when it is a named model. */
@@ -50,6 +51,11 @@ export interface SdkOperation {
    * the matching runtime helper (see `pagination.ts`, `sdk-files.ts`).
    */
   pagination?: PaginationInfo
+}
+
+export interface SdkQueryCodec {
+  parameter: string
+  codec: QueryCodecName
 }
 
 /** Resolves a type to its documented interface name (for response wiring). */
@@ -139,11 +145,16 @@ export function sdkOperation(
 
   const pathParams: string[] = []
   const queryParams: string[] = []
+  const queryCodecs: SdkQueryCodec[] = []
   for (const param of httpOp.parameters.parameters) {
     if (param.type === 'path') {
       pathParams.push(param.name)
     } else if (param.type === 'query') {
       queryParams.push(param.name)
+      const codec = queryCodecForParameter(program, param.name)
+      if (codec) {
+        queryCodecs.push({ parameter: param.name, codec: codec.name })
+      }
     }
   }
 
@@ -172,8 +183,8 @@ export function sdkOperation(
     path: httpOp.path,
     pathParams,
     queryParams,
+    queryCodecs,
     nestPath,
-    hasSort: queryParams.includes('sort'),
     hasBody:
       httpOp.parameters.body?.type !== undefined || bodyOverrides.has(base),
     hasResponse: responseBody !== undefined,

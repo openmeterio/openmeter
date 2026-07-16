@@ -206,6 +206,12 @@ type Direction = {
   // contract, while responses are reported as the server sent them — fromWire
   // fabricating fields would mask genuine contract violations.
   applyDefaults: boolean
+  // JSON.stringify omits object properties and record entries whose value is
+  // undefined. True only public→wire so validation sees the effective JSON
+  // payload instead of an intermediate object that the transport cannot send.
+  // Array entries are deliberately unaffected: JSON serializes undefined array
+  // values as null rather than omitting them.
+  omitUndefinedObjectEntries: boolean
 }
 
 // A handful of schemas are genuinely self-referential (e.g. the `and`/`or`
@@ -298,6 +304,9 @@ function walk(
     const valueSchema = needsWalk(d.valueType) ? d.valueType : undefined
     const out: Record<string, unknown> = Object.create(null)
     for (const [key, value] of Object.entries(record)) {
+      if (dir.omitUndefinedObjectEntries && value === undefined) {
+        continue
+      }
       out[key] = valueSchema ? walk(value, valueSchema, dir, depth + 1) : value
     }
     Object.setPrototypeOf(out, Object.prototype)
@@ -322,6 +331,9 @@ function walk(
     // loop reassigning `out`'s own prototype instead of adding a visible key.
     const out: Record<string, unknown> = Object.create(null)
     for (const [key, value] of Object.entries(record)) {
+      if (dir.omitUndefinedObjectEntries && value === undefined) {
+        continue
+      }
       const fieldSchema = fieldFor(shape, key)
       // Keys the schema does not declare are dropped, so the result matches the
       // typed shape exactly (a server-added field has no place in the type).
@@ -464,6 +476,15 @@ const toWireDirection: Direction = {
     return Number(value)
   },
   applyDefaults: true,
+  omitUndefinedObjectEntries: true,
+}
+
+// Path binding names are transport metadata, not JSON object member names, so
+// they must remain exactly as declared while their values receive the same
+// Date/bigint/default mapping used by request bodies and query parameters.
+const toPathWireDirection: Direction = {
+  ...toWireDirection,
+  rename: (key) => key,
 }
 
 const fromWireDirection: Direction = {
@@ -475,18 +496,27 @@ const fromWireDirection: Direction = {
       ? BigInt(value)
       : value,
   applyDefaults: false,
+  omitUndefinedObjectEntries: false,
 }
 
 // Rewrite a request body or query object from the camelCase public shape to the
 // snake_case wire shape, driven by its schema. Record keys (label/dimension names)
 // are preserved; `Date` values serialize to RFC 3339 strings; `bigint` values
 // (int64 fields) become JSON numbers; omitted required-with-default fields are
-// filled with their declared default (see requiredDefault). The return is typed
-// as the input `T` so call sites stay cast-free (the runtime object has snake keys
-// and wire-encoded dates, but the value is write-only — it flows straight into
-// `json:`/`toURLSearchParams`, both of which accept any object).
+// filled with their declared default (see requiredDefault); explicit undefined
+// object/record entries are omitted just as JSON.stringify would omit them. The
+// return is typed as the input `T` so call sites stay cast-free (the runtime object
+// has snake keys and wire-encoded dates, but the value is write-only — it flows
+// straight into `json:`/`toURLSearchParams`, both of which accept any object).
 export function toWire<T>(data: T, schema: ZodType): T {
   return walk(data, schema, toWireDirection) as T
+}
+
+// Rewrite path-parameter values to their transport representation without
+// renaming the path binding keys. The returned object is subsequently validated
+// against the generated `…PathParamsWire` schema and URL-encoded by the func.
+export function toPathWire<T>(data: T, schema: ZodType): T {
+  return walk(data, schema, toPathWireDirection) as T
 }
 
 // Rewrite a response body from the snake_case wire shape to the camelCase public

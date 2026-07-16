@@ -46,9 +46,11 @@ describe('operation HTTP IR', () => {
     const operations = await compileOperations(`
       @service namespace Test;
 
-      model SortQuery {
-        by: string;
-        order?: "asc" | "desc";
+      namespace Common {
+        model SortQuery {
+          by: string;
+          order?: "asc" | "desc";
+        }
       }
 
       model ItemFilter {
@@ -64,7 +66,7 @@ describe('operation HTTP IR', () => {
             size?: integer;
             number?: integer;
           },
-          @query sort?: SortQuery,
+          @query sort?: Common.SortQuery,
           @query(#{ style: "deepObject", explode: true }) filter?: ItemFilter,
           @query(#{ explode: true }) expand?: string[],
           @query timestamp?: utcDateTime,

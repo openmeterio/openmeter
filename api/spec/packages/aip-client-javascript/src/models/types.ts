@@ -49,11 +49,11 @@ export interface CursorMetaPage {
   /** URI to the last page. */
   last?: string
   /** URI to the next page. */
-  next?: string
+  next: string | null
   /** URI to the previous page. */
-  previous?: string
+  previous: string | null
   /** Requested page size. */
-  size?: number
+  size: number
 }
 
 /** Standard error response. */

@@ -3,8 +3,8 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
-import { toWire, fromWire, assertValid } from '../lib/wire.js'
+import { toURLSearchParams } from '../lib/encodings.js'
+import { toWire, toPathWire, fromWire, assertValid } from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   CreateTaxCodeRequest,
@@ -57,11 +57,20 @@ export function getTaxCode(
   options?: RequestOptions,
 ): Promise<Result<GetTaxCodeResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      taxCodeId: req.taxCodeId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getTaxCodePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getTaxCodePathParamsWire, pathParams)
+    }
     const path = `openmeter/tax-codes/${(() => {
-      if (req.taxCodeId === undefined) {
+      if (pathParams.taxCodeId === undefined) {
         throw new Error('missing path parameter: taxCodeId')
       }
-      return encodeURIComponent(String(req.taxCodeId))
+      return encodeURIComponent(String(pathParams.taxCodeId))
     })()}`
     return http(client)
       .get(path, options)
@@ -120,11 +129,20 @@ export function upsertTaxCode(
   options?: RequestOptions,
 ): Promise<Result<UpsertTaxCodeResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      taxCodeId: req.taxCodeId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.upsertTaxCodePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.upsertTaxCodePathParamsWire, pathParams)
+    }
     const path = `openmeter/tax-codes/${(() => {
-      if (req.taxCodeId === undefined) {
+      if (pathParams.taxCodeId === undefined) {
         throw new Error('missing path parameter: taxCodeId')
       }
-      return encodeURIComponent(String(req.taxCodeId))
+      return encodeURIComponent(String(pathParams.taxCodeId))
     })()}`
     const body = toWire(req.body, schemas.upsertTaxCodeBody)
     if (client._options.validate) {
@@ -153,11 +171,20 @@ export function deleteTaxCode(
   options?: RequestOptions,
 ): Promise<Result<DeleteTaxCodeResponse>> {
   return request(async () => {
+    const pathParamsInput = {
+      taxCodeId: req.taxCodeId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.deleteTaxCodePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.deleteTaxCodePathParamsWire, pathParams)
+    }
     const path = `openmeter/tax-codes/${(() => {
-      if (req.taxCodeId === undefined) {
+      if (pathParams.taxCodeId === undefined) {
         throw new Error('missing path parameter: taxCodeId')
       }
-      return encodeURIComponent(String(req.taxCodeId))
+      return encodeURIComponent(String(pathParams.taxCodeId))
     })()}`
     await http(client).delete(path, options)
   })

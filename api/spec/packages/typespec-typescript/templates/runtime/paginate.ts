@@ -60,7 +60,7 @@ export async function* paginatePages<TItem, TReq extends PageNumberRequest>(
 
 interface CursorEnvelope<TItem> {
   data: TItem[]
-  meta: { page: { next?: string } }
+  meta: { page: { next: string | null } }
 }
 
 interface CursorRequest {

@@ -4,7 +4,13 @@ import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
 import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
-import { toWire, fromWire, assertValid, toSnakeCase } from '../lib/wire.js'
+import {
+  toWire,
+  toPathWire,
+  fromWire,
+  assertValid,
+  toSnakeCase,
+} from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
   ListFeaturesRequest,
@@ -34,6 +40,9 @@ export function listFeatures(
   options?: RequestOptions,
 ): Promise<Result<ListFeaturesResponse>> {
   return request(() => {
+    if (client._options.validate && req.sort !== undefined) {
+      assertValid(schemas.listFeaturesQueryParams.shape.sort, req.sort)
+    }
     const query = toWire(
       {
         page: req.page,
@@ -100,11 +109,20 @@ export function getFeature(
   options?: RequestOptions,
 ): Promise<Result<GetFeatureResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      featureId: req.featureId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getFeaturePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getFeaturePathParamsWire, pathParams)
+    }
     const path = `openmeter/features/${(() => {
-      if (req.featureId === undefined) {
+      if (pathParams.featureId === undefined) {
         throw new Error('missing path parameter: featureId')
       }
-      return encodeURIComponent(String(req.featureId))
+      return encodeURIComponent(String(pathParams.featureId))
     })()}`
     return http(client)
       .get(path, options)
@@ -131,11 +149,20 @@ export function updateFeature(
   options?: RequestOptions,
 ): Promise<Result<UpdateFeatureResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      featureId: req.featureId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.updateFeaturePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.updateFeaturePathParamsWire, pathParams)
+    }
     const path = `openmeter/features/${(() => {
-      if (req.featureId === undefined) {
+      if (pathParams.featureId === undefined) {
         throw new Error('missing path parameter: featureId')
       }
-      return encodeURIComponent(String(req.featureId))
+      return encodeURIComponent(String(pathParams.featureId))
     })()}`
     const body = toWire(req.body, schemas.updateFeatureBody)
     if (client._options.validate) {
@@ -166,11 +193,20 @@ export function deleteFeature(
   options?: RequestOptions,
 ): Promise<Result<DeleteFeatureResponse>> {
   return request(async () => {
+    const pathParamsInput = {
+      featureId: req.featureId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.deleteFeaturePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.deleteFeaturePathParamsWire, pathParams)
+    }
     const path = `openmeter/features/${(() => {
-      if (req.featureId === undefined) {
+      if (pathParams.featureId === undefined) {
         throw new Error('missing path parameter: featureId')
       }
-      return encodeURIComponent(String(req.featureId))
+      return encodeURIComponent(String(pathParams.featureId))
     })()}`
     await http(client).delete(path, options)
   })
@@ -189,11 +225,20 @@ export function queryFeatureCost(
   options?: RequestOptions,
 ): Promise<Result<QueryFeatureCostResponse>> {
   return request(() => {
+    const pathParamsInput = {
+      featureId: req.featureId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.queryFeatureCostPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.queryFeatureCostPathParamsWire, pathParams)
+    }
     const path = `openmeter/features/${(() => {
-      if (req.featureId === undefined) {
+      if (pathParams.featureId === undefined) {
         throw new Error('missing path parameter: featureId')
       }
-      return encodeURIComponent(String(req.featureId))
+      return encodeURIComponent(String(pathParams.featureId))
     })()}/cost/query`
     const body = toWire(req.body, schemas.queryFeatureCostBody)
     if (client._options.validate) {
