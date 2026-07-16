@@ -1,0 +1,1 @@
+-- Migrated invoice data cannot be safely restored to schema level 1.
