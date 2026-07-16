@@ -17,9 +17,47 @@ func init() {
 		v3AppPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
 		return v3AppPagePaginatedResponse
 	}
+	ToAPIBillingAppCapabilityTypeFromCapabilityType = func(source app.CapabilityType) (v3.BillingAppCapabilityType, error) {
+		var v3BillingAppCapabilityType v3.BillingAppCapabilityType
+		switch source {
+		case app.CapabilityTypeCalculateTax:
+			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeCalculateTax
+		case app.CapabilityTypeCollectPayments:
+			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeCollectPayments
+		case app.CapabilityTypeInvoiceCustomers:
+			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeInvoiceCustomers
+		case app.CapabilityTypeReportEvents:
+			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeReportEvents
+		case app.CapabilityTypeReportUsage:
+			v3BillingAppCapabilityType = v3.BillingAppCapabilityTypeReportUsage
+		default:
+			return v3BillingAppCapabilityType, fmt.Errorf("unexpected enum element: %v", source)
+		}
+		return v3BillingAppCapabilityType, nil
+	}
 	ToAPIBillingAppCatalogItem = func(source app.MarketplaceListing) (v3.BillingAppCatalogItem, error) {
 		var v3BillingAppCatalogItem v3.BillingAppCatalogItem
+		if source.Capabilities != nil {
+			v3BillingAppCatalogItem.Capabilities = make([]v3.BillingAppCapability, len(source.Capabilities))
+			for i := 0; i < len(source.Capabilities); i++ {
+				v3BillingAppCapability, err := appCapabilityToV3BillingAppCapability(source.Capabilities[i])
+				if err != nil {
+					return v3BillingAppCatalogItem, err
+				}
+				v3BillingAppCatalogItem.Capabilities[i] = v3BillingAppCapability
+			}
+		}
 		v3BillingAppCatalogItem.Description = source.Description
+		if source.InstallMethods != nil {
+			v3BillingAppCatalogItem.InstallMethods = make([]v3.BillingAppInstallMethods, len(source.InstallMethods))
+			for j := 0; j < len(source.InstallMethods); j++ {
+				v3BillingAppInstallMethods, err := ToAPIBillingAppInstallMethodsFromInstallMethod(source.InstallMethods[j])
+				if err != nil {
+					return v3BillingAppCatalogItem, err
+				}
+				v3BillingAppCatalogItem.InstallMethods[j] = v3BillingAppInstallMethods
+			}
+		}
 		v3BillingAppCatalogItem.Name = source.Name
 		v3BillingAppType, err := ToAPIBillingAppTypeFromDomain(source.Type)
 		if err != nil {
@@ -27,6 +65,20 @@ func init() {
 		}
 		v3BillingAppCatalogItem.Type = v3BillingAppType
 		return v3BillingAppCatalogItem, nil
+	}
+	ToAPIBillingAppInstallMethodsFromInstallMethod = func(source app.InstallMethod) (v3.BillingAppInstallMethods, error) {
+		var v3BillingAppInstallMethods v3.BillingAppInstallMethods
+		switch source {
+		case app.InstallMethodAPIKey:
+			v3BillingAppInstallMethods = v3.BillingAppInstallMethodsWithApiKey
+		case app.InstallMethodNoCredentials:
+			v3BillingAppInstallMethods = v3.BillingAppInstallMethodsNoCredentialsRequired
+		case app.InstallMethodOAuth2:
+			v3BillingAppInstallMethods = v3.BillingAppInstallMethodsWithOauth2
+		default:
+			return v3BillingAppInstallMethods, fmt.Errorf("unexpected enum element: %v", source)
+		}
+		return v3BillingAppInstallMethods, nil
 	}
 	ToAPIBillingAppTypeFromDomain = func(source app.AppType) (v3.BillingAppType, error) {
 		var v3BillingAppType v3.BillingAppType
@@ -56,6 +108,32 @@ func init() {
 		}
 		return v3BillingAppList, nil
 	}
+	ToDomainAppTypeFromAPIBillingAppType = func(source v3.BillingAppType) (app.AppType, error) {
+		var appAppType app.AppType
+		switch source {
+		case v3.BillingAppTypeExternalInvoicing:
+			appAppType = app.AppTypeCustomInvoicing
+		case v3.BillingAppTypeSandbox:
+			appAppType = app.AppTypeSandbox
+		case v3.BillingAppTypeStripe:
+			appAppType = app.AppTypeStripe
+		default:
+			return appAppType, fmt.Errorf("unexpected enum element: %v", source)
+		}
+		return appAppType, nil
+	}
+}
+func appCapabilityToV3BillingAppCapability(source app.Capability) (v3.BillingAppCapability, error) {
+	var v3BillingAppCapability v3.BillingAppCapability
+	v3BillingAppCapability.Description = source.Description
+	v3BillingAppCapability.Key = source.Key
+	v3BillingAppCapability.Name = source.Name
+	v3BillingAppCapabilityType, err := ToAPIBillingAppCapabilityTypeFromCapabilityType(source.Type)
+	if err != nil {
+		return v3BillingAppCapability, err
+	}
+	v3BillingAppCapability.Type = v3BillingAppCapabilityType
+	return v3BillingAppCapability, nil
 }
 func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {
 	var v3PageMeta v3.PageMeta

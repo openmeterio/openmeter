@@ -142,6 +142,10 @@ interface SubscriptionAddonEndpoints
 @tag(Shared.AppsTag)
 interface AppsEndpoints extends Apps.AppsOperations {}
 
+@route("/openmeter/app-catalog")
+@tag(Shared.AppsTag)
+interface AppCatalogEndpoints extends Apps.AppCatalogOperations {}
+
 @route("/openmeter/profiles")
 @tag(Shared.BillingTag)
 interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}

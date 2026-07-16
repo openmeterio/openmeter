@@ -278,6 +278,82 @@ paths:
       tags:
         - OpenMeter Product Catalog
       x-unstable: true
+  /openmeter/app-catalog:
+    get:
+      operationId: list-app-catalog
+      summary: List app catalog
+      description: List available apps.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppCatalogItemPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+  /openmeter/app-catalog/install:
+    post:
+      operationId: install-app
+      summary: Install app from the catalog
+      description: Install an app from the catalog.
+      responses:
+        '201':
+          description: InstallAppResponse created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInstallAppResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingInstallAppRequest'
+  /openmeter/app-catalog/{appType}:
+    get:
+      operationId: get-app-catalog-item
+      summary: Get app catalog item by type
+      description: Get an app catalog item by type.
+      parameters:
+        - name: appType
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/BillingAppType'
+      responses:
+        '200':
+          description: AppCatalogItem response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingAppCatalogItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Apps
   /openmeter/apps:
     get:
       operationId: list-apps
@@ -3593,6 +3669,20 @@ components:
           title: Phone Number
       additionalProperties: false
       description: Address
+    AppCatalogItemPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCatalogItem'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
     AppPagePaginatedResponse:
       type: object
       required:
@@ -3620,12 +3710,55 @@ components:
           sandbox: '#/components/schemas/BillingAppSandbox'
           external_invoicing: '#/components/schemas/BillingAppExternalInvoicing'
       description: Installed application.
+    BillingAppCapability:
+      type: object
+      required:
+        - type
+        - key
+        - name
+        - description
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCapabilityType'
+          description: Type of the capability.
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: Key of the capability.
+        name:
+          type: string
+          description: Name of the capability.
+        description:
+          type: string
+          description: Description of the capability.
+      additionalProperties: false
+      description: App capability describes a function that an App can perform.
+      example:
+        type: collect_payments
+        key: stripe_collect_payment
+        name: Collect Payments
+        description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+    BillingAppCapabilityType:
+      type: string
+      enum:
+        - report_usage
+        - report_events
+        - calculate_tax
+        - invoice_customers
+        - collect_payments
+      description: |-
+        Supported capability types for an App.
+
+        Each capability defines an integration function that an App can perform.
     BillingAppCatalogItem:
       type: object
       required:
         - type
         - name
         - description
+        - capabilities
+        - install_methods
       properties:
         type:
           allOf:
@@ -3640,6 +3773,18 @@ components:
           type: string
           description: Description of the app.
           readOnly: true
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCapability'
+          description: Capabilities of the app.
+          readOnly: true
+        install_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppInstallMethods'
+          description: Available install methods of the app.
+          readOnly: true
       additionalProperties: false
       description: |-
         Available apps for billing integrations to connect with third-party services.
@@ -3650,6 +3795,22 @@ components:
         type: stripe
         name: Stripe
         description: Stripe integration allows you to collect payments with Stripe.
+        capabilities:
+          - type: calculate_tax
+            key: stripe_calculate_tax
+            name: Calculate Tax
+            description: Stripe Tax calculates tax portion of the invoices.
+          - type: invoice_customers
+            key: stripe_invoice_customers
+            name: Invoice Customers
+            description: Stripe invoices customers with due amount.
+          - type: collect_payments
+            key: stripe_collect_payments
+            name: Collect Payments
+            description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+        install_methods:
+          - with_oauth2
+          - with_api_key
     BillingAppCustomerData:
       type: object
       properties:
@@ -3803,6 +3964,13 @@ components:
 
         State synchronization is controlled by hooks that pause invoice progression
         until the external system confirms synchronization via API callbacks.
+    BillingAppInstallMethods:
+      type: string
+      enum:
+        - with_oauth2
+        - with_api_key
+        - no_credentials_required
+      description: Supported installation methods for an app.
     BillingAppReference:
       type: object
       required:
@@ -5967,6 +6135,106 @@ components:
       description: |-
         Per-unit cost configuration for a feature. Either a fixed manual amount or a
         dynamic LLM cost lookup.
+    BillingInstallAppExternalInvoicing:
+      type: object
+      required:
+        - type
+        - name
+        - create_billing_profile
+      properties:
+        type:
+          type: string
+          enum:
+            - external_invoicing
+          description: Type of the app.
+        name:
+          type: string
+          description: Name of the app.
+        create_billing_profile:
+          type: boolean
+          description: |-
+            If true, a billing profile will be created for the app. The Stripe app will be
+            also set as the default billing profile if the current default is a Sandbox app.
+      additionalProperties: false
+      description: Base model for installing an app from the catalog.
+    BillingInstallAppRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingInstallAppStripeWithApiKey'
+        - $ref: '#/components/schemas/BillingInstallAppSandbox'
+        - $ref: '#/components/schemas/BillingInstallAppExternalInvoicing'
+      discriminator:
+        propertyName: type
+        mapping:
+          stripe: '#/components/schemas/BillingInstallAppStripeWithApiKey'
+          sandbox: '#/components/schemas/BillingInstallAppSandbox'
+          external_invoicing: '#/components/schemas/BillingInstallAppExternalInvoicing'
+      description: Request to install an app from the catalog.
+    BillingInstallAppResponse:
+      type: object
+      required:
+        - app
+        - default_for_capability_types
+      properties:
+        app:
+          allOf:
+            - $ref: '#/components/schemas/BillingApp'
+          readOnly: true
+        default_for_capability_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCapabilityType'
+          readOnly: true
+      additionalProperties: false
+      description: Response of the app install.
+    BillingInstallAppSandbox:
+      type: object
+      required:
+        - type
+        - name
+        - create_billing_profile
+      properties:
+        type:
+          type: string
+          enum:
+            - sandbox
+          description: Type of the app.
+        name:
+          type: string
+          description: Name of the app.
+        create_billing_profile:
+          type: boolean
+          description: |-
+            If true, a billing profile will be created for the app. The Stripe app will be
+            also set as the default billing profile if the current default is a Sandbox app.
+      additionalProperties: false
+      description: Base model for installing an app from the catalog.
+    BillingInstallAppStripeWithApiKey:
+      type: object
+      required:
+        - type
+        - name
+        - create_billing_profile
+        - api_key
+      properties:
+        type:
+          type: string
+          enum:
+            - stripe
+          description: Type of the app.
+        name:
+          type: string
+          description: Name of the app.
+        create_billing_profile:
+          type: boolean
+          description: |-
+            If true, a billing profile will be created for the app. The Stripe app will be
+            also set as the default billing profile if the current default is a Sandbox app.
+        api_key:
+          type: string
+          description: API key for the app.
+      additionalProperties: false
+      description: Model for installing an app from the catalog with an API key.
     BillingInvoice:
       type: object
       oneOf:

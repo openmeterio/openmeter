@@ -716,9 +716,66 @@ export const appType = z
   .enum(['sandbox', 'stripe', 'external_invoicing'])
   .describe('The type of the app.')
 
+export const appCapabilityType = z
+  .enum([
+    'report_usage',
+    'report_events',
+    'calculate_tax',
+    'invoice_customers',
+    'collect_payments',
+  ])
+
+  .describe(
+    'Supported capability types for an App. Each capability defines an integration function that an App can perform.',
+  )
+
+export const appInstallMethods = z
+  .enum(['with_oauth2', 'with_api_key', 'no_credentials_required'])
+  .describe('Supported installation methods for an app.')
+
 export const appStatus = z
   .enum(['ready', 'unauthorized'])
   .describe('Connection status of an installed app.')
+
+export const installAppStripeWithApiKey = z
+  .object({
+    type: z.literal('stripe').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    createBillingProfile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+    apiKey: z.string().describe('API key for the app.'),
+  })
+  .describe('Model for installing an app from the catalog with an API key.')
+
+export const installAppSandbox = z
+  .object({
+    type: z.literal('sandbox').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    createBillingProfile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+  })
+  .describe('Base model for installing an app from the catalog.')
+
+export const installAppExternalInvoicing = z
+  .object({
+    type: z.literal('external_invoicing').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    createBillingProfile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+  })
+  .describe('Base model for installing an app from the catalog.')
 
 export const taxIdentificationCode = z
   .string()
@@ -2778,23 +2835,29 @@ export const unitConfig = z
     'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
   )
 
-export const appCatalogItem = z
-  .object({
-    type: appType,
-    name: z.string().describe('Name of the app.'),
-    description: z.string().describe('Description of the app.'),
-  })
-
-  .describe(
-    'Available apps for billing integrations to connect with third-party services. Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.',
-  )
-
 export const taxCodeAppMapping = z
   .object({
     appType: appType,
     taxCode: z.string().describe('Tax code.'),
   })
   .describe('Mapping of app types to tax codes.')
+
+export const appCapability = z
+  .object({
+    type: appCapabilityType,
+    key: resourceKey,
+    name: z.string().describe('Name of the capability.'),
+    description: z.string().describe('Description of the capability.'),
+  })
+  .describe('App capability describes a function that an App can perform.')
+
+export const installAppRequest = z
+  .discriminatedUnion('type', [
+    installAppStripeWithApiKey,
+    installAppSandbox,
+    installAppExternalInvoicing,
+  ])
+  .describe('Request to install an app from the catalog.')
 
 export const partyTaxIdentity = z
   .object({
@@ -3856,117 +3919,6 @@ export const invoiceUsageQuantityDetail = z
     'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
   )
 
-export const appStripe = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    type: z.literal('stripe').describe('The app type.'),
-    definition: appCatalogItem,
-    status: appStatus,
-    accountId: z
-      .string()
-
-      .describe(
-        'The Stripe account ID associated with the connected Stripe account.',
-      ),
-    livemode: z
-      .boolean()
-
-      .describe(
-        'Indicates whether the app is connected to a live Stripe account.',
-      ),
-    maskedApiKey: z
-      .string()
-
-      .describe(
-        'The masked Stripe API key that only exposes the first and last few characters.',
-      ),
-  })
-  .describe('Stripe app.')
-
-export const appSandbox = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    type: z.literal('sandbox').describe('The app type.'),
-    definition: appCatalogItem,
-    status: appStatus,
-  })
-  .describe('Sandbox app can be used for testing billing features.')
-
-export const appExternalInvoicing = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    type: z.literal('external_invoicing').describe('The app type.'),
-    definition: appCatalogItem,
-    status: appStatus,
-    enableDraftSyncHook: z
-      .boolean()
-
-      .describe(
-        'Enable draft synchronization hook. When enabled, invoices will pause at the draft state and wait for the integration to call the draft synchronized endpoint before progressing to the issuing state. This allows the external system to validate and prepare the invoice data. When disabled, invoices automatically progress through the draft state based on the configured workflow timing.',
-      ),
-    enableIssuingSyncHook: z
-      .boolean()
-
-      .describe(
-        'Enable issuing synchronization hook. When enabled, invoices will pause at the issuing state and wait for the integration to call the issuing synchronized endpoint before progressing to the issued state. This ensures the external invoicing system has successfully created and finalized the invoice before it is marked as issued. When disabled, invoices automatically progress through the issuing state and are immediately marked as issued.',
-      ),
-  })
-
-  .describe(
-    'External Invoicing app enables integration with third-party invoicing or payment system. The app supports a bi-directional synchronization pattern where OpenMeter Billing manages the invoice lifecycle while the external system handles invoice presentation and payment collection. Integration workflow: 1. The billing system creates invoices and transitions them through lifecycle states (draft → issuing → issued) 2. The integration receives webhook notifications about invoice state changes 3. The integration calls back to provide external system IDs and metadata 4. The integration reports payment events back via the payment status API State synchronization is controlled by hooks that pause invoice progression until the external system confirms synchronization via API callbacks.',
-  )
-
 export const createTaxCodeRequest = z
   .object({
     name: z
@@ -4038,6 +3990,21 @@ export const upsertTaxCodeRequest = z
       .describe('Mapping of app types to tax codes.'),
   })
   .describe('TaxCode upsert request.')
+
+export const appCatalogItem = z
+  .object({
+    type: appType,
+    name: z.string().describe('Name of the app.'),
+    description: z.string().describe('Description of the app.'),
+    capabilities: z.array(appCapability).describe('Capabilities of the app.'),
+    installMethods: z
+      .array(appInstallMethods)
+      .describe('Available install methods of the app.'),
+  })
+
+  .describe(
+    'Available apps for billing integrations to connect with third-party services. Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.',
+  )
 
 export const invoiceWorkflow = z
   .object({
@@ -4545,13 +4512,127 @@ export const workflowCollectionAlignment = z
     'The alignment for collecting the pending line items into an invoice. Defaults to subscription, which means that we are to create a new invoice every time the a subscription period starts (for in advance items) or ends (for in arrears items).',
   )
 
-export const app = z
-  .discriminatedUnion('type', [appStripe, appSandbox, appExternalInvoicing])
-  .describe('Installed application.')
-
 export const taxCodePagePaginatedResponse = z
   .object({
     data: z.array(taxCode),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
+export const appStripe = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('stripe').describe('The app type.'),
+    definition: appCatalogItem,
+    status: appStatus,
+    accountId: z
+      .string()
+
+      .describe(
+        'The Stripe account ID associated with the connected Stripe account.',
+      ),
+    livemode: z
+      .boolean()
+
+      .describe(
+        'Indicates whether the app is connected to a live Stripe account.',
+      ),
+    maskedApiKey: z
+      .string()
+
+      .describe(
+        'The masked Stripe API key that only exposes the first and last few characters.',
+      ),
+  })
+  .describe('Stripe app.')
+
+export const appSandbox = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('sandbox').describe('The app type.'),
+    definition: appCatalogItem,
+    status: appStatus,
+  })
+  .describe('Sandbox app can be used for testing billing features.')
+
+export const appExternalInvoicing = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('external_invoicing').describe('The app type.'),
+    definition: appCatalogItem,
+    status: appStatus,
+    enableDraftSyncHook: z
+      .boolean()
+
+      .describe(
+        'Enable draft synchronization hook. When enabled, invoices will pause at the draft state and wait for the integration to call the draft synchronized endpoint before progressing to the issuing state. This allows the external system to validate and prepare the invoice data. When disabled, invoices automatically progress through the draft state based on the configured workflow timing.',
+      ),
+    enableIssuingSyncHook: z
+      .boolean()
+
+      .describe(
+        'Enable issuing synchronization hook. When enabled, invoices will pause at the issuing state and wait for the integration to call the issuing synchronized endpoint before progressing to the issued state. This ensures the external invoicing system has successfully created and finalized the invoice before it is marked as issued. When disabled, invoices automatically progress through the issuing state and are immediately marked as issued.',
+      ),
+  })
+
+  .describe(
+    'External Invoicing app enables integration with third-party invoicing or payment system. The app supports a bi-directional synchronization pattern where OpenMeter Billing manages the invoice lifecycle while the external system handles invoice presentation and payment collection. Integration workflow: 1. The billing system creates invoices and transitions them through lifecycle states (draft → issuing → issued) 2. The integration receives webhook notifications about invoice state changes 3. The integration calls back to provide external system IDs and metadata 4. The integration reports payment events back via the payment status API State synchronization is controlled by hooks that pause invoice progression until the external system confirms synchronization via API callbacks.',
+  )
+
+export const appCatalogItemPagePaginatedResponse = z
+  .object({
+    data: z.array(appCatalogItem),
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
@@ -4808,20 +4889,9 @@ export const workflowCollectionSettings = z
     'Workflow collection specifies how to collect the pending line items for an invoice.',
   )
 
-export const appPagePaginatedResponse = z
-  .object({
-    data: z.array(app),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
-
-export const profileApps = z
-  .object({
-    tax: app,
-    invoicing: app,
-    payment: app,
-  })
-  .describe('Applications used by a billing profile.')
+export const app = z
+  .discriminatedUnion('type', [appStripe, appSandbox, appExternalInvoicing])
+  .describe('Installed application.')
 
 export const governanceQueryResponse = z
   .object({
@@ -5013,6 +5083,28 @@ export const workflow = z
     tax: workflowTaxSettings.optional(),
   })
   .describe('Billing workflow settings.')
+
+export const appPagePaginatedResponse = z
+  .object({
+    data: z.array(app),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
+export const billingInstallAppResponse = z
+  .object({
+    app: app,
+    defaultForCapabilityTypes: z.array(appCapabilityType),
+  })
+  .describe('Response of the app install.')
+
+export const profileApps = z
+  .object({
+    tax: app,
+    invoicing: app,
+    payment: app,
+  })
+  .describe('Applications used by a billing profile.')
 
 export const chargeUsageBased = z
   .object({
@@ -6070,6 +6162,35 @@ export const getAppPathParams = z.object({
 })
 
 export const getAppResponse = app
+
+export const listAppCatalogQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+})
+
+export const listAppCatalogResponse = z.object({
+  data: z.array(appCatalogItem),
+  meta: paginatedMeta,
+})
+
+export const getAppCatalogItemPathParams = z.object({
+  appType: appType,
+})
+
+export const getAppCatalogItemResponse = appCatalogItem
+
+export const installAppBody = installAppRequest
+
+export const installAppResponse = billingInstallAppResponse
 
 export const listBillingProfilesQueryParams = z.object({
   page: z
@@ -7276,9 +7397,66 @@ export const appTypeWire = z
   .enum(['sandbox', 'stripe', 'external_invoicing'])
   .describe('The type of the app.')
 
+export const appCapabilityTypeWire = z
+  .enum([
+    'report_usage',
+    'report_events',
+    'calculate_tax',
+    'invoice_customers',
+    'collect_payments',
+  ])
+
+  .describe(
+    'Supported capability types for an App. Each capability defines an integration function that an App can perform.',
+  )
+
+export const appInstallMethodsWire = z
+  .enum(['with_oauth2', 'with_api_key', 'no_credentials_required'])
+  .describe('Supported installation methods for an app.')
+
 export const appStatusWire = z
   .enum(['ready', 'unauthorized'])
   .describe('Connection status of an installed app.')
+
+export const installAppStripeWithApiKeyWire = z
+  .strictObject({
+    type: z.literal('stripe').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    create_billing_profile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+    api_key: z.string().describe('API key for the app.'),
+  })
+  .describe('Model for installing an app from the catalog with an API key.')
+
+export const installAppSandboxWire = z
+  .strictObject({
+    type: z.literal('sandbox').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    create_billing_profile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+  })
+  .describe('Base model for installing an app from the catalog.')
+
+export const installAppExternalInvoicingWire = z
+  .strictObject({
+    type: z.literal('external_invoicing').describe('Type of the app.'),
+    name: z.string().describe('Name of the app.'),
+    create_billing_profile: z
+      .boolean()
+
+      .describe(
+        'If true, a billing profile will be created for the app. The Stripe app will be also set as the default billing profile if the current default is a Sandbox app.',
+      ),
+  })
+  .describe('Base model for installing an app from the catalog.')
 
 export const taxIdentificationCodeWire = z
   .string()
@@ -9319,23 +9497,29 @@ export const unitConfigWire = z
     'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
   )
 
-export const appCatalogItemWire = z
-  .strictObject({
-    type: appTypeWire,
-    name: z.string().describe('Name of the app.'),
-    description: z.string().describe('Description of the app.'),
-  })
-
-  .describe(
-    'Available apps for billing integrations to connect with third-party services. Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.',
-  )
-
 export const taxCodeAppMappingWire = z
   .strictObject({
     app_type: appTypeWire,
     tax_code: z.string().describe('Tax code.'),
   })
   .describe('Mapping of app types to tax codes.')
+
+export const appCapabilityWire = z
+  .strictObject({
+    type: appCapabilityTypeWire,
+    key: resourceKeyWire,
+    name: z.string().describe('Name of the capability.'),
+    description: z.string().describe('Description of the capability.'),
+  })
+  .describe('App capability describes a function that an App can perform.')
+
+export const installAppRequestWire = z
+  .discriminatedUnion('type', [
+    installAppStripeWithApiKeyWire,
+    installAppSandboxWire,
+    installAppExternalInvoicingWire,
+  ])
+  .describe('Request to install an app from the catalog.')
 
 export const partyTaxIdentityWire = z
   .strictObject({
@@ -10392,117 +10576,6 @@ export const invoiceUsageQuantityDetailWire = z
     'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
   )
 
-export const appStripeWire = z
-  .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    type: z.literal('stripe').describe('The app type.'),
-    definition: appCatalogItemWire,
-    status: appStatusWire,
-    account_id: z
-      .string()
-
-      .describe(
-        'The Stripe account ID associated with the connected Stripe account.',
-      ),
-    livemode: z
-      .boolean()
-
-      .describe(
-        'Indicates whether the app is connected to a live Stripe account.',
-      ),
-    masked_api_key: z
-      .string()
-
-      .describe(
-        'The masked Stripe API key that only exposes the first and last few characters.',
-      ),
-  })
-  .describe('Stripe app.')
-
-export const appSandboxWire = z
-  .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    type: z.literal('sandbox').describe('The app type.'),
-    definition: appCatalogItemWire,
-    status: appStatusWire,
-  })
-  .describe('Sandbox app can be used for testing billing features.')
-
-export const appExternalInvoicingWire = z
-  .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    type: z.literal('external_invoicing').describe('The app type.'),
-    definition: appCatalogItemWire,
-    status: appStatusWire,
-    enable_draft_sync_hook: z
-      .boolean()
-
-      .describe(
-        'Enable draft synchronization hook. When enabled, invoices will pause at the draft state and wait for the integration to call the draft synchronized endpoint before progressing to the issuing state. This allows the external system to validate and prepare the invoice data. When disabled, invoices automatically progress through the draft state based on the configured workflow timing.',
-      ),
-    enable_issuing_sync_hook: z
-      .boolean()
-
-      .describe(
-        'Enable issuing synchronization hook. When enabled, invoices will pause at the issuing state and wait for the integration to call the issuing synchronized endpoint before progressing to the issued state. This ensures the external invoicing system has successfully created and finalized the invoice before it is marked as issued. When disabled, invoices automatically progress through the issuing state and are immediately marked as issued.',
-      ),
-  })
-
-  .describe(
-    'External Invoicing app enables integration with third-party invoicing or payment system. The app supports a bi-directional synchronization pattern where OpenMeter Billing manages the invoice lifecycle while the external system handles invoice presentation and payment collection. Integration workflow: 1. The billing system creates invoices and transitions them through lifecycle states (draft → issuing → issued) 2. The integration receives webhook notifications about invoice state changes 3. The integration calls back to provide external system IDs and metadata 4. The integration reports payment events back via the payment status API State synchronization is controlled by hooks that pause invoice progression until the external system confirms synchronization via API callbacks.',
-  )
-
 export const createTaxCodeRequestWire = z
   .strictObject({
     name: z
@@ -10574,6 +10647,23 @@ export const upsertTaxCodeRequestWire = z
       .describe('Mapping of app types to tax codes.'),
   })
   .describe('TaxCode upsert request.')
+
+export const appCatalogItemWire = z
+  .strictObject({
+    type: appTypeWire,
+    name: z.string().describe('Name of the app.'),
+    description: z.string().describe('Description of the app.'),
+    capabilities: z
+      .array(appCapabilityWire)
+      .describe('Capabilities of the app.'),
+    install_methods: z
+      .array(appInstallMethodsWire)
+      .describe('Available install methods of the app.'),
+  })
+
+  .describe(
+    'Available apps for billing integrations to connect with third-party services. Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.',
+  )
 
 export const invoiceWorkflowWire = z
   .strictObject({
@@ -11081,17 +11171,127 @@ export const workflowCollectionAlignmentWire = z
     'The alignment for collecting the pending line items into an invoice. Defaults to subscription, which means that we are to create a new invoice every time the a subscription period starts (for in advance items) or ends (for in arrears items).',
   )
 
-export const appWire = z
-  .discriminatedUnion('type', [
-    appStripeWire,
-    appSandboxWire,
-    appExternalInvoicingWire,
-  ])
-  .describe('Installed application.')
-
 export const taxCodePagePaginatedResponseWire = z
   .strictObject({
     data: z.array(taxCodeWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
+
+export const appStripeWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('stripe').describe('The app type.'),
+    definition: appCatalogItemWire,
+    status: appStatusWire,
+    account_id: z
+      .string()
+
+      .describe(
+        'The Stripe account ID associated with the connected Stripe account.',
+      ),
+    livemode: z
+      .boolean()
+
+      .describe(
+        'Indicates whether the app is connected to a live Stripe account.',
+      ),
+    masked_api_key: z
+      .string()
+
+      .describe(
+        'The masked Stripe API key that only exposes the first and last few characters.',
+      ),
+  })
+  .describe('Stripe app.')
+
+export const appSandboxWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('sandbox').describe('The app type.'),
+    definition: appCatalogItemWire,
+    status: appStatusWire,
+  })
+  .describe('Sandbox app can be used for testing billing features.')
+
+export const appExternalInvoicingWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('external_invoicing').describe('The app type.'),
+    definition: appCatalogItemWire,
+    status: appStatusWire,
+    enable_draft_sync_hook: z
+      .boolean()
+
+      .describe(
+        'Enable draft synchronization hook. When enabled, invoices will pause at the draft state and wait for the integration to call the draft synchronized endpoint before progressing to the issuing state. This allows the external system to validate and prepare the invoice data. When disabled, invoices automatically progress through the draft state based on the configured workflow timing.',
+      ),
+    enable_issuing_sync_hook: z
+      .boolean()
+
+      .describe(
+        'Enable issuing synchronization hook. When enabled, invoices will pause at the issuing state and wait for the integration to call the issuing synchronized endpoint before progressing to the issued state. This ensures the external invoicing system has successfully created and finalized the invoice before it is marked as issued. When disabled, invoices automatically progress through the issuing state and are immediately marked as issued.',
+      ),
+  })
+
+  .describe(
+    'External Invoicing app enables integration with third-party invoicing or payment system. The app supports a bi-directional synchronization pattern where OpenMeter Billing manages the invoice lifecycle while the external system handles invoice presentation and payment collection. Integration workflow: 1. The billing system creates invoices and transitions them through lifecycle states (draft → issuing → issued) 2. The integration receives webhook notifications about invoice state changes 3. The integration calls back to provide external system IDs and metadata 4. The integration reports payment events back via the payment status API State synchronization is controlled by hooks that pause invoice progression until the external system confirms synchronization via API callbacks.',
+  )
+
+export const appCatalogItemPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(appCatalogItemWire),
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
@@ -11349,20 +11549,13 @@ export const workflowCollectionSettingsWire = z
     'Workflow collection specifies how to collect the pending line items for an invoice.',
   )
 
-export const appPagePaginatedResponseWire = z
-  .strictObject({
-    data: z.array(appWire),
-    meta: paginatedMetaWire,
-  })
-  .describe('Page paginated response.')
-
-export const profileAppsWire = z
-  .strictObject({
-    tax: appWire,
-    invoicing: appWire,
-    payment: appWire,
-  })
-  .describe('Applications used by a billing profile.')
+export const appWire = z
+  .discriminatedUnion('type', [
+    appStripeWire,
+    appSandboxWire,
+    appExternalInvoicingWire,
+  ])
+  .describe('Installed application.')
 
 export const governanceQueryResponseWire = z
   .strictObject({
@@ -11554,6 +11747,28 @@ export const workflowWire = z
     tax: workflowTaxSettingsWire.optional(),
   })
   .describe('Billing workflow settings.')
+
+export const appPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(appWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
+
+export const billingInstallAppResponseWire = z
+  .strictObject({
+    app: appWire,
+    default_for_capability_types: z.array(appCapabilityTypeWire),
+  })
+  .describe('Response of the app install.')
+
+export const profileAppsWire = z
+  .strictObject({
+    tax: appWire,
+    invoicing: appWire,
+    payment: appWire,
+  })
+  .describe('Applications used by a billing profile.')
 
 export const chargeUsageBasedWire = z
   .strictObject({
@@ -12648,6 +12863,35 @@ export const getAppPathParamsWire = z.object({
 })
 
 export const getAppResponseWire = appWire
+
+export const listAppCatalogQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+})
+
+export const listAppCatalogResponseWire = z.strictObject({
+  data: z.array(appCatalogItemWire),
+  meta: paginatedMetaWire,
+})
+
+export const getAppCatalogItemPathParamsWire = z.object({
+  appType: appTypeWire,
+})
+
+export const getAppCatalogItemResponseWire = appCatalogItemWire
+
+export const installAppBodyWire = installAppRequestWire
+
+export const installAppResponseWire = billingInstallAppResponseWire
 
 export const listBillingProfilesQueryParamsWire = z.object({
   page: z

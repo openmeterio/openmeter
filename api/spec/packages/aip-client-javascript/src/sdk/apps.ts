@@ -3,14 +3,26 @@
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
-import { listApps, getApp } from '../funcs/apps.js'
+import {
+  listApps,
+  getApp,
+  listAppCatalog,
+  getAppCatalogItem,
+  installApp,
+} from '../funcs/apps.js'
 import type {
   ListAppsRequest,
   ListAppsResponse,
   GetAppRequest,
   GetAppResponse,
+  ListAppCatalogRequest,
+  ListAppCatalogResponse,
+  GetAppCatalogItemRequest,
+  GetAppCatalogItemResponse,
+  InstallAppRequest,
+  InstallAppResponse,
 } from '../models/operations/apps.js'
-import type { App } from '../models/types.js'
+import type { App, AppCatalogItem } from '../models/types.js'
 
 export class Apps {
   constructor(private readonly _client: Client) {}
@@ -61,5 +73,67 @@ export class Apps {
     options?: RequestOptions,
   ): Promise<GetAppResponse> {
     return unwrap(await getApp(this._client, request, options))
+  }
+
+  /**
+   * List app catalog
+   *
+   * List available apps.
+   *
+   * GET /openmeter/app-catalog
+   */
+  async listCatalog(
+    request?: ListAppCatalogRequest,
+    options?: RequestOptions,
+  ): Promise<ListAppCatalogResponse> {
+    return unwrap(await listAppCatalog(this._client, request, options))
+  }
+
+  /**
+   * List app catalog
+   *
+   * List available apps.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/app-catalog
+   */
+  listCatalogAll(
+    request?: ListAppCatalogRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<AppCatalogItem> {
+    return paginatePages(
+      (req, opts) => listAppCatalog(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get app catalog item by type
+   *
+   * Get an app catalog item by type.
+   *
+   * GET /openmeter/app-catalog/{appType}
+   */
+  async getCatalogItem(
+    request: GetAppCatalogItemRequest,
+    options?: RequestOptions,
+  ): Promise<GetAppCatalogItemResponse> {
+    return unwrap(await getAppCatalogItem(this._client, request, options))
+  }
+
+  /**
+   * Install app from the catalog
+   *
+   * Install an app from the catalog.
+   *
+   * POST /openmeter/app-catalog/install
+   */
+  async install(
+    request: InstallAppRequest,
+    options?: RequestOptions,
+  ): Promise<InstallAppResponse> {
+    return unwrap(await installApp(this._client, request, options))
   }
 }

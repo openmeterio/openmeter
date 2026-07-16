@@ -37,3 +37,40 @@ interface AppsOperations {
     | Common.NotFound
     | Common.ErrorResponses;
 }
+
+interface AppCatalogOperations {
+  /**
+   * List available apps.
+   */
+  @get
+  @operationId("list-app-catalog")
+  @summary("List app catalog")
+  list(...Common.PagePaginationQuery):
+    | Shared.PagePaginatedResponse<AppCatalogItem>
+    | Common.ErrorResponses;
+
+  /**
+   * Get an app catalog item by type.
+   */
+  @get
+  @route("/{appType}")
+  @operationId("get-app-catalog-item")
+  @summary("Get app catalog item by type")
+  get(@path appType: AppType):
+    | Shared.GetResponse<AppCatalogItem>
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Install an app from the catalog.
+   *
+   * @returns App installed successfully.
+   */
+  @post
+  @route("/install")
+  @operationId("install-app")
+  @summary("Install app from the catalog")
+  install(@body body: InstallAppRequest):
+    | Shared.CreateResponse<InstallAppResponse>
+    | Common.ErrorResponses;
+}

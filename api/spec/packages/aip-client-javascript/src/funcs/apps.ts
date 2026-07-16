@@ -11,6 +11,12 @@ import type {
   ListAppsResponse,
   GetAppRequest,
   GetAppResponse,
+  ListAppCatalogRequest,
+  ListAppCatalogResponse,
+  GetAppCatalogItemRequest,
+  GetAppCatalogItemResponse,
+  InstallAppRequest,
+  InstallAppResponse,
 } from '../models/operations/apps.js'
 
 /**
@@ -84,6 +90,110 @@ export function getApp(
           assertValid(schemas.getAppResponseWire, data)
         }
         return fromWire(data, schemas.getAppResponse)
+      })
+  })
+}
+
+/**
+ * List app catalog
+ *
+ * List available apps.
+ *
+ * GET /openmeter/app-catalog
+ */
+export function listAppCatalog(
+  client: Client,
+  req: ListAppCatalogRequest = {},
+  options?: RequestOptions,
+): Promise<Result<ListAppCatalogResponse>> {
+  return request(() => {
+    const query = toWire(
+      {
+        page: req.page,
+      },
+      schemas.listAppCatalogQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listAppCatalogQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get('openmeter/app-catalog', { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listAppCatalogResponseWire, data)
+        }
+        return fromWire(data, schemas.listAppCatalogResponse)
+      })
+  })
+}
+
+/**
+ * Get app catalog item by type
+ *
+ * Get an app catalog item by type.
+ *
+ * GET /openmeter/app-catalog/{appType}
+ */
+export function getAppCatalogItem(
+  client: Client,
+  req: GetAppCatalogItemRequest,
+  options?: RequestOptions,
+): Promise<Result<GetAppCatalogItemResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      appType: req.appType,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getAppCatalogItemPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getAppCatalogItemPathParamsWire, pathParams)
+    }
+    const path = `openmeter/app-catalog/${(() => {
+      if (pathParams.appType === undefined) {
+        throw new Error('missing path parameter: appType')
+      }
+      return encodeURIComponent(String(pathParams.appType))
+    })()}`
+    return http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getAppCatalogItemResponseWire, data)
+        }
+        return fromWire(data, schemas.getAppCatalogItemResponse)
+      })
+  })
+}
+
+/**
+ * Install app from the catalog
+ *
+ * Install an app from the catalog.
+ *
+ * POST /openmeter/app-catalog/install
+ */
+export function installApp(
+  client: Client,
+  req: InstallAppRequest,
+  options?: RequestOptions,
+): Promise<Result<InstallAppResponse>> {
+  return request(() => {
+    const body = toWire(req, schemas.installAppBody)
+    if (client._options.validate) {
+      assertValid(schemas.installAppBodyWire, body)
+    }
+    return http(client)
+      .post('openmeter/app-catalog/install', { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.installAppResponseWire, data)
+        }
+        return fromWire(data, schemas.installAppResponse)
       })
   })
 }

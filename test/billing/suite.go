@@ -776,7 +776,7 @@ func (s *BaseSuite) SetupCustomInvoicing(namespace string, opts ...setupCustomIn
 	}
 
 	// Install custom invoicing app
-	customInvoicingApp, err := s.AppService.InstallMarketplaceListing(ctx, app.InstallAppInput{
+	customInvoicingApp, err := s.AppService.InstallApp(ctx, app.InstallAppV3Input{
 		MarketplaceListingID: app.MarketplaceListingID{
 			Type: app.AppTypeCustomInvoicing,
 		},
@@ -787,14 +787,14 @@ func (s *BaseSuite) SetupCustomInvoicing(namespace string, opts ...setupCustomIn
 
 	// Let's set up the custom invoicing config
 	_, err = s.AppService.UpdateApp(ctx, app.UpdateAppInput{
-		AppID:           customInvoicingApp.GetID(),
-		Name:            customInvoicingApp.GetName(),
+		AppID:           customInvoicingApp.App.GetID(),
+		Name:            customInvoicingApp.App.GetName(),
 		AppConfigUpdate: provisionOpts.config,
 	})
 	s.NoError(err, "failed to upsert custom invoicing config")
 
 	return SetupCustomInvoicingResponse{
-		App: customInvoicingApp,
+		App: customInvoicingApp.App,
 	}
 }
 

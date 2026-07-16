@@ -15,8 +15,7 @@ type AppService interface {
 	RegisterMarketplaceListing(input RegisterMarketplaceListingInput) error
 	GetMarketplaceListing(ctx context.Context, input MarketplaceGetInput) (RegistryItem, error)
 	ListMarketplaceListings(ctx context.Context, input MarketplaceListInput) (pagination.Result[RegistryItem], error)
-	InstallMarketplaceListingWithAPIKey(ctx context.Context, input InstallAppWithAPIKeyInput) (App, error)
-	InstallMarketplaceListing(ctx context.Context, input InstallAppInput) (App, error)
+	InstallApp(ctx context.Context, input InstallAppV3Input) (InstallAppV3Output, error)
 	GetMarketplaceListingOauth2InstallURL(ctx context.Context, input GetOauth2InstallURLInput) (GetOauth2InstallURLOutput, error)
 	AuthorizeMarketplaceListingOauth2Install(ctx context.Context, input AuthorizeOauth2InstallInput) error
 
