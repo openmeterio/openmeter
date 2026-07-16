@@ -147,6 +147,12 @@ func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardIte
 			}
 		}
 
+		if err := discounts.ValidateForPrice(price); err != nil {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("invalid rateCard.discounts: %w", err),
+			}
+		}
+
 		discounts = discounts.UpsertCorrelationIDs()
 	}
 

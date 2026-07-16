@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -204,6 +206,64 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.NoError(err)
 		s.Len(invoice.ValidationIssues, 0)
 	})
+}
+
+func (s *DiscountsTestSuite) TestFlatPriceUsageDiscountIsNotPersisted() {
+	// given:
+	// - a customer and a flat-priced pending line
+	// - the line has a valid percentage discount and an invalid usage discount
+	namespace := s.GetUniqueNamespace("ns-discounts-flat-price-usage")
+	ctx := s.T().Context()
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+	now := time.Now()
+
+	// when:
+	// - the pending line is created
+	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []billing.GatheringLine{
+			{
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: namespace,
+						Name:      "invalid flat-price discount line",
+					}),
+					ServicePeriod: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour)},
+					InvoiceAt:     now.Add(time.Hour),
+					ManagedBy:     billing.ManuallyManagedLine,
+					RateCardDiscounts: billing.Discounts{
+						Percentage: &billing.PercentageDiscount{
+							PercentageDiscount: productcatalog.PercentageDiscount{Percentage: models.NewPercentage(50)},
+						},
+						Usage: &billing.UsageDiscount{
+							UsageDiscount: productcatalog.UsageDiscount{Quantity: alpacadecimal.NewFromInt(1)},
+						},
+					},
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(100),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					})),
+				},
+			},
+		},
+	})
+
+	// then:
+	// - validation rejects it before creating either an invoice or an invoice line
+	s.ErrorIs(err, productcatalog.ErrUsageDiscountWithFlatPrice)
+
+	lineCount, countErr := s.DBClient.BillingInvoiceLine.Query().
+		Where(billinginvoiceline.Namespace(namespace)).
+		Count(ctx)
+	s.NoError(countErr)
+	s.Zero(lineCount)
+
+	invoiceCount, countErr := s.DBClient.BillingInvoice.Query().
+		Where(billinginvoice.Namespace(namespace)).
+		Count(ctx)
+	s.NoError(countErr)
+	s.Zero(invoiceCount)
 }
 
 func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
