@@ -50,9 +50,17 @@ From `openmeter/testutils/`:
 
 | Utility | Usage |
 |---------|-------|
-| `testutils.InitPostgresDB(t)` | Provisions fresh Postgres DB per test; skips if `POSTGRES_HOST` not set |
+| `testutils.InitPostgresDB(t, state)` | Provisions a fresh Postgres DB per test from a cached, pre-migrated template; skips if `POSTGRES_HOST` not set |
 | `testutils.NewDiscardLogger(t)` | Silent logger for tests |
 | `testutils.NewLogger(t)` | Default slog logger for tests |
+
+`InitPostgresDB` takes a `testutils.PostgresDBState` selecting how the template DB is migrated. The template is cached and cloned per test, so the returned DB is **already migrated** — do not run schema migration yourself in `NewTestEnv` or tests:
+
+| State | Meaning |
+|-------|---------|
+| `PostgresDBStateEmpty` | No schema; empty database |
+| `PostgresDBStateEntMigrated` | Schema created from the Ent client (`Schema.Create`); use this for service/adapter tests |
+| `PostgresDBStateAtlasMigrated` | Schema built by replaying Atlas migrations; use when a test must exercise real migration output |
 
 From `openmeter/watermill/eventbus/`:
 
@@ -91,13 +99,6 @@ type TestEnv struct {
     close   sync.Once
 }
 
-func (e *TestEnv) DBSchemaMigrate(t *testing.T) {
-    t.Helper()
-    require.NotNilf(t, e.db, "database must be initialized")
-    err := e.db.EntDriver.Client().Schema.Create(t.Context())
-    require.NoErrorf(t, err, "schema migration must not fail")
-}
-
 func (e *TestEnv) Close(t *testing.T) {
     t.Helper()
     e.close.Do(func() {
@@ -122,8 +123,8 @@ func NewTestEnv(t *testing.T) *TestEnv {
 
     logger := testutils.NewDiscardLogger(t)
 
-    // Init database
-    db := testutils.InitPostgresDB(t)
+    // Init database (returns an already-migrated DB cloned from a cached template)
+    db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
     client := db.EntDriver.Client()
 
     // Init event publisher
@@ -159,7 +160,6 @@ func NewTestEnv(t *testing.T) *TestEnv {
 func TestCreate<Resource>(t *testing.T) {
     env := testutils.NewTestEnv(t)
     t.Cleanup(func() { env.Close(t) })
-    env.DBSchemaMigrate(t)
 
     ns := testutils.NewTestNamespace(t) // generates a random ULID namespace
 
@@ -253,7 +253,6 @@ type <Domain>Suite struct {
 
 func (s *<Domain>Suite) SetupSuite() {
     s.env = testutils.NewTestEnv(s.T())
-    s.env.DBSchemaMigrate(s.T())
 }
 
 func (s *<Domain>Suite) TearDownSuite() {
