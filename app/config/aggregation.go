@@ -24,6 +24,11 @@ type AggregationConfiguration struct {
 	// Setting true can cause silent errors that you need to monitor separately.
 	AsyncInsertWait bool
 
+	// InsertTimeout bounds synchronous batch inserts when the caller's context has no
+	// deadline. The native batch path arms connection read deadlines only from the
+	// context, so without it a half-open connection could hang an insert indefinitely.
+	InsertTimeout time.Duration
+
 	// See https://clickhouse.com/docs/en/operations/settings/settings
 	// For example, you can set the `max_insert_threads` setting to control the number of threads
 	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
@@ -55,6 +60,10 @@ func (c AggregationConfiguration) Validate() error {
 
 	if c.AsyncInsertWait && !c.AsyncInsert {
 		return errors.New("async insert wait is set but async insert is not")
+	}
+
+	if c.InsertTimeout <= 0 {
+		return errors.New("insert timeout must be greater than 0")
 	}
 
 	return nil
@@ -199,6 +208,7 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.eventsTableName", "om_events")
 	v.SetDefault("aggregation.asyncInsert", false)
 	v.SetDefault("aggregation.asyncInsertWait", false)
+	v.SetDefault("aggregation.insertTimeout", "1m")
 
 	v.SetDefault("aggregation.clickhouse.address", "127.0.0.1:9000")
 	v.SetDefault("aggregation.clickhouse.tls", false)
