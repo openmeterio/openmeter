@@ -39,7 +39,8 @@ CREATE TABLE "billing_gathering_invoice_lines" (
   CONSTRAINT "billing_gathering_line_subscription_fk" FOREIGN KEY ("subscription_id") REFERENCES "subscriptions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
   CONSTRAINT "billing_gathering_line_subscription_item_fk" FOREIGN KEY ("subscription_item_id") REFERENCES "subscription_items" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
   CONSTRAINT "billing_gathering_line_subscription_phase_fk" FOREIGN KEY ("subscription_phase_id") REFERENCES "subscription_phases" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
-  CONSTRAINT "billing_gathering_line_tax_code_fk" FOREIGN KEY ("tax_code_id") REFERENCES "tax_codes" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
+  CONSTRAINT "billing_gathering_line_tax_code_fk" FOREIGN KEY ("tax_code_id") REFERENCES "tax_codes" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+  CONSTRAINT "child_unique_reference_id_not_empty" CHECK ((child_unique_reference_id)::text <> ''::text)
 );
 -- create index "billinggatheringinvoiceline_annotations" to table: "billing_gathering_invoice_lines"
 CREATE INDEX "billinggatheringinvoiceline_annotations" ON "billing_gathering_invoice_lines" USING gin ("annotations");

@@ -5685,6 +5685,10 @@ func init() {
 	BillingGatheringInvoiceLinesTable.ForeignKeys[4].RefTable = SubscriptionItemsTable
 	BillingGatheringInvoiceLinesTable.ForeignKeys[5].RefTable = SubscriptionPhasesTable
 	BillingGatheringInvoiceLinesTable.ForeignKeys[6].RefTable = TaxCodesTable
+	BillingGatheringInvoiceLinesTable.Annotation = &entsql.Annotation{}
+	BillingGatheringInvoiceLinesTable.Annotation.Checks = map[string]string{
+		"child_unique_reference_id_not_empty": "child_unique_reference_id <> ''",
+	}
 	BillingInvoicesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingInvoicesTable.ForeignKeys[1].RefTable = AppsTable
 	BillingInvoicesTable.ForeignKeys[2].RefTable = AppsTable

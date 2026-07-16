@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -312,6 +313,14 @@ func (InvoiceLineBaseMixin) Fields() []ent.Field {
 // gathering and standard lines share the line-intent domain model.
 type StandardInvoiceLineIntentMixin struct {
 	mixin.Schema
+}
+
+func (StandardInvoiceLineIntentMixin) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"child_unique_reference_id_not_empty": `child_unique_reference_id <> ''`,
+		}),
+	}
 }
 
 func (StandardInvoiceLineIntentMixin) Fields() []ent.Field {
