@@ -201,7 +201,8 @@ namespace Credits.Balance {
       /**
        * Return the credit balance as of this timestamp.
        *
-       * Defaults to the current time.
+       * Defaults to the current time. Historical responses return `live` as zero because
+       * live charge impacts are only available for current balances.
        */
       @query
       timestamp?: Shared.DateTime,

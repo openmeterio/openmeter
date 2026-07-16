@@ -2313,7 +2313,12 @@ export interface CreditAdjustment {
 /** The credit balance by currency. */
 export interface CreditBalance {
   currency: BillingCurrencyCode
-  /** Credits available after applying currently live charge impacts. */
+  /**
+   * Credits available after applying currently live charge impacts.
+   *
+   * Always zero for historical balance queries using the `timestamp` parameter
+   * because live charge impacts cannot be reconstructed historically.
+   */
   live: string
   /** Credits that have been booked on the ledger as of the balance timestamp. */
   settled: string

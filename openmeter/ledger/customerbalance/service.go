@@ -279,16 +279,20 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 		return nil, err
 	}
 
-	// Live balance remains a current projection from open charges.
-	// Historical cursor/as-of filtering only affects the booked/available side for now.
-	impacts, err := s.getChargeLiveBalanceImpacts(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter))
-	if err != nil {
-		return nil, fmt.Errorf("get charge live balance impacts: %w", err)
-	}
+	live := alpacadecimal.Zero
+	// Open-charge state is only available as a current projection. Historical
+	// queries return zero instead of mixing current impacts with a past ledger
+	// balance that never represented one coherent point in time.
+	if input.BalanceQuery.AsOf == nil {
+		impacts, err := s.getChargeLiveBalanceImpacts(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter))
+		if err != nil {
+			return nil, fmt.Errorf("get charge live balance impacts: %w", err)
+		}
 
-	live, err := s.calculateLiveBalance(ctx, input, settled, impacts)
-	if err != nil {
-		return nil, fmt.Errorf("calculate live balance: %w", err)
+		live, err = s.calculateLiveBalance(ctx, input, settled, impacts)
+		if err != nil {
+			return nil, fmt.Errorf("calculate live balance: %w", err)
+		}
 	}
 
 	pending, err := s.getPendingGrantAmount(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter), input.pendingGrantAsOf())
