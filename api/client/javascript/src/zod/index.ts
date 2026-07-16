@@ -155,7 +155,7 @@ export const createAddonBodyRateCardsItemOnePriceOneAmountOneRegExp =
 export const createAddonBodyRateCardsItemOnePriceOnePaymentTermDefault =
   'in_advance'
 export const createAddonBodyRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemTwoKeyMax = 64
 
 export const createAddonBodyRateCardsItemTwoKeyRegExp =
@@ -216,7 +216,7 @@ export const createAddonBodyRateCardsItemTwoPriceOneFiveMinimumAmountOneRegExp =
 export const createAddonBodyRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 
 export const CreateAddonBody = zod
   .object({
@@ -306,10 +306,10 @@ export const CreateAddonBody = zod
                             createAddonBodyRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp,
                           )
                           .describe(
-                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                            'Numeric represents an arbitrary precision number.',
                           )
                           .describe(
-                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                            'The quantity of the usage discount.\n\nMust be positive.',
                           ),
                       })
                       .describe(
@@ -571,10 +571,10 @@ export const CreateAddonBody = zod
                             createAddonBodyRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp,
                           )
                           .describe(
-                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                            'Numeric represents an arbitrary precision number.',
                           )
                           .describe(
-                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                            'The quantity of the usage discount.\n\nMust be positive.',
                           ),
                       })
                       .describe(
@@ -1102,7 +1102,7 @@ export const updateAddonBodyRateCardsItemOnePriceOneAmountOneRegExp =
 export const updateAddonBodyRateCardsItemOnePriceOnePaymentTermDefault =
   'in_advance'
 export const updateAddonBodyRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemTwoKeyMax = 64
 
 export const updateAddonBodyRateCardsItemTwoKeyRegExp =
@@ -1163,7 +1163,7 @@ export const updateAddonBodyRateCardsItemTwoPriceOneFiveMinimumAmountOneRegExp =
 export const updateAddonBodyRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 
 export const UpdateAddonBody = zod
   .object({
@@ -1237,10 +1237,10 @@ export const UpdateAddonBody = zod
                             updateAddonBodyRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp,
                           )
                           .describe(
-                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                            'Numeric represents an arbitrary precision number.',
                           )
                           .describe(
-                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                            'The quantity of the usage discount.\n\nMust be positive.',
                           ),
                       })
                       .describe(
@@ -1502,10 +1502,10 @@ export const UpdateAddonBody = zod
                             updateAddonBodyRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp,
                           )
                           .describe(
-                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                            'Numeric represents an arbitrary precision number.',
                           )
                           .describe(
-                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                            'The quantity of the usage discount.\n\nMust be positive.',
                           ),
                       })
                       .describe(
@@ -2752,7 +2752,7 @@ export const createPendingInvoiceLineBodyLinesItemRateCardOnePriceOneFiveMaximum
 export const createPendingInvoiceLineBodyLinesItemRateCardOneDiscountsOnePercentageOneCorrelationIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createPendingInvoiceLineBodyLinesItemRateCardOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const createPendingInvoiceLineBodyLinesItemRateCardOneDiscountsOneUsageOneCorrelationIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 
@@ -3120,10 +3120,10 @@ export const CreatePendingInvoiceLineBody = zod
                             createPendingInvoiceLineBodyLinesItemRateCardOneDiscountsOneUsageOneQuantityOneRegExp,
                           )
                           .describe(
-                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                            'Numeric represents an arbitrary precision number.',
                           )
                           .describe(
-                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                            'The quantity of the usage discount.\n\nMust be positive.',
                           ),
                       })
                       .describe('A usage discount.')
@@ -3660,7 +3660,7 @@ export const simulateInvoiceBodyLinesItemRateCardOnePriceOneFiveMaximumAmountOne
 export const simulateInvoiceBodyLinesItemRateCardOneDiscountsOnePercentageOneCorrelationIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const simulateInvoiceBodyLinesItemRateCardOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const simulateInvoiceBodyLinesItemRateCardOneDiscountsOneUsageOneCorrelationIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const simulateInvoiceBodyLinesItemQuantityOneRegExp =
@@ -4056,10 +4056,10 @@ export const SimulateInvoiceBody = zod
                             simulateInvoiceBodyLinesItemRateCardOneDiscountsOneUsageOneQuantityOneRegExp,
                           )
                           .describe(
-                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                            'Numeric represents an arbitrary precision number.',
                           )
                           .describe(
-                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                            'The quantity of the usage discount.\n\nMust be positive.',
                           ),
                       })
                       .describe('A usage discount.')
@@ -4841,7 +4841,7 @@ export const updateInvoiceBodyLinesItemRateCardOnePriceOneFiveMaximumAmountOneRe
 export const updateInvoiceBodyLinesItemRateCardOneDiscountsOnePercentageOneCorrelationIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updateInvoiceBodyLinesItemRateCardOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const updateInvoiceBodyLinesItemRateCardOneDiscountsOneUsageOneCorrelationIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const updateInvoiceBodyLinesItemIdRegExp =
@@ -5310,10 +5310,10 @@ export const UpdateInvoiceBody = zod
                             updateInvoiceBodyLinesItemRateCardOneDiscountsOneUsageOneQuantityOneRegExp,
                           )
                           .describe(
-                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                            'Numeric represents an arbitrary precision number.',
                           )
                           .describe(
-                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                            'The quantity of the usage discount.\n\nMust be positive.',
                           ),
                       })
                       .describe('A usage discount.')
@@ -10490,7 +10490,7 @@ export const createPlanBodyPhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
 export const createPlanBodyPhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
   'in_advance'
 export const createPlanBodyPhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemTwoKeyMax = 64
 
 export const createPlanBodyPhasesItemRateCardsItemTwoKeyRegExp =
@@ -10552,7 +10552,7 @@ export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneFiveMinimumAmountOn
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 
 export const CreatePlanBody = zod
   .object({
@@ -10688,10 +10688,10 @@ export const CreatePlanBody = zod
                                     createPlanBodyPhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp,
                                   )
                                   .describe(
-                                    'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                    'Numeric represents an arbitrary precision number.',
                                   )
                                   .describe(
-                                    'The quantity of the usage discount.\n\nMust be non-negative.',
+                                    'The quantity of the usage discount.\n\nMust be positive.',
                                   ),
                               })
                               .describe(
@@ -10973,10 +10973,10 @@ export const CreatePlanBody = zod
                                     createPlanBodyPhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp,
                                   )
                                   .describe(
-                                    'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                    'Numeric represents an arbitrary precision number.',
                                   )
                                   .describe(
-                                    'The quantity of the usage discount.\n\nMust be non-negative.',
+                                    'The quantity of the usage discount.\n\nMust be positive.',
                                   ),
                               })
                               .describe(
@@ -11598,7 +11598,7 @@ export const updatePlanBodyPhasesItemRateCardsItemOnePriceOneAmountOneRegExp =
 export const updatePlanBodyPhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
   'in_advance'
 export const updatePlanBodyPhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoKeyMax = 64
 
 export const updatePlanBodyPhasesItemRateCardsItemTwoKeyRegExp =
@@ -11660,7 +11660,7 @@ export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneFiveMinimumAmountOn
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 
 export const UpdatePlanBody = zod
   .object({
@@ -11780,10 +11780,10 @@ export const UpdatePlanBody = zod
                                     updatePlanBodyPhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp,
                                   )
                                   .describe(
-                                    'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                    'Numeric represents an arbitrary precision number.',
                                   )
                                   .describe(
-                                    'The quantity of the usage discount.\n\nMust be non-negative.',
+                                    'The quantity of the usage discount.\n\nMust be positive.',
                                   ),
                               })
                               .describe(
@@ -12065,10 +12065,10 @@ export const UpdatePlanBody = zod
                                     updatePlanBodyPhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp,
                                   )
                                   .describe(
-                                    'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                    'Numeric represents an arbitrary precision number.',
                                   )
                                   .describe(
-                                    'The quantity of the usage discount.\n\nMust be non-negative.',
+                                    'The quantity of the usage discount.\n\nMust be positive.',
                                   ),
                               })
                               .describe(
@@ -14383,7 +14383,7 @@ export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOne
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
   'in_advance'
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyMax = 64
 
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyRegExp =
@@ -14445,7 +14445,7 @@ export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwo
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 
 export const createSubscriptionBodyTwoTimingDefault = 'immediate'
 export const createSubscriptionBodyTwoCustomerIdRegExp =
@@ -14716,10 +14716,10 @@ export const CreateSubscriptionBody = zod
                                             createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp,
                                           )
                                           .describe(
-                                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                            'Numeric represents an arbitrary precision number.',
                                           )
                                           .describe(
-                                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                                            'The quantity of the usage discount.\n\nMust be positive.',
                                           ),
                                       })
                                       .describe(
@@ -15024,10 +15024,10 @@ export const CreateSubscriptionBody = zod
                                             createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp,
                                           )
                                           .describe(
-                                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                            'Numeric represents an arbitrary precision number.',
                                           )
                                           .describe(
-                                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                                            'The quantity of the usage discount.\n\nMust be positive.',
                                           ),
                                       })
                                       .describe(
@@ -15711,7 +15711,7 @@ export const editSubscriptionBodyCustomizationsItemOneRateCardOnePriceOneAmountO
 export const editSubscriptionBodyCustomizationsItemOneRateCardOnePriceOnePaymentTermDefault =
   'in_advance'
 export const editSubscriptionBodyCustomizationsItemOneRateCardOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoKeyMax = 64
 
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoKeyRegExp =
@@ -15773,9 +15773,9 @@ export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneFiveMin
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemThreePhaseDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemThreePhaseKeyMax = 64
 
 export const editSubscriptionBodyCustomizationsItemThreePhaseKeyRegExp =
@@ -15833,10 +15833,10 @@ export const EditSubscriptionBody = zod
                                     editSubscriptionBodyCustomizationsItemOneRateCardOneDiscountsOneUsageOneQuantityOneRegExp,
                                   )
                                   .describe(
-                                    'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                    'Numeric represents an arbitrary precision number.',
                                   )
                                   .describe(
-                                    'The quantity of the usage discount.\n\nMust be non-negative.',
+                                    'The quantity of the usage discount.\n\nMust be positive.',
                                   ),
                               })
                               .describe(
@@ -16122,10 +16122,10 @@ export const EditSubscriptionBody = zod
                                     editSubscriptionBodyCustomizationsItemOneRateCardTwoDiscountsOneUsageOneQuantityOneRegExp,
                                   )
                                   .describe(
-                                    'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                    'Numeric represents an arbitrary precision number.',
                                   )
                                   .describe(
-                                    'The quantity of the usage discount.\n\nMust be non-negative.',
+                                    'The quantity of the usage discount.\n\nMust be positive.',
                                   ),
                               })
                               .describe(
@@ -16673,10 +16673,10 @@ export const EditSubscriptionBody = zod
                                 editSubscriptionBodyCustomizationsItemThreePhaseDiscountsOneUsageOneQuantityOneRegExp,
                               )
                               .describe(
-                                'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                'Numeric represents an arbitrary precision number.',
                               )
                               .describe(
-                                'The quantity of the usage discount.\n\nMust be non-negative.',
+                                'The quantity of the usage discount.\n\nMust be positive.',
                               ),
                           })
                           .describe(
@@ -17082,7 +17082,7 @@ export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOne
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOnePriceOnePaymentTermDefault =
   'in_advance'
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyMax = 64
 
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoKeyRegExp =
@@ -17144,7 +17144,7 @@ export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwo
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
-  /^[0-9]+(\.[0-9]+)?$/
+  /^-?[0-9]+(\.[0-9]+)?$/
 
 export const ChangeSubscriptionBody = zod
   .union([
@@ -17383,10 +17383,10 @@ export const ChangeSubscriptionBody = zod
                                             changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemOneDiscountsOneUsageOneQuantityOneRegExp,
                                           )
                                           .describe(
-                                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                            'Numeric represents an arbitrary precision number.',
                                           )
                                           .describe(
-                                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                                            'The quantity of the usage discount.\n\nMust be positive.',
                                           ),
                                       })
                                       .describe(
@@ -17691,10 +17691,10 @@ export const ChangeSubscriptionBody = zod
                                             changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp,
                                           )
                                           .describe(
-                                            'NonNegativeNumeric represents a non-negative arbitrary precision number.',
+                                            'Numeric represents an arbitrary precision number.',
                                           )
                                           .describe(
-                                            'The quantity of the usage discount.\n\nMust be non-negative.',
+                                            'The quantity of the usage discount.\n\nMust be positive.',
                                           ),
                                       })
                                       .describe(

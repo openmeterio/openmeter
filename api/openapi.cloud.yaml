@@ -13489,11 +13489,11 @@ components:
       properties:
         quantity:
           allOf:
-            - $ref: '#/components/schemas/NonNegativeNumeric'
+            - $ref: '#/components/schemas/Numeric'
           description: |-
             The quantity of the usage discount.
 
-            Must be non-negative.
+            Must be positive.
           title: Usage
         correlationId:
           type: string
@@ -15591,11 +15591,11 @@ components:
             - ratecard_usage
         quantity:
           allOf:
-            - $ref: '#/components/schemas/NonNegativeNumeric'
+            - $ref: '#/components/schemas/Numeric'
           description: |-
             The quantity of the usage discount.
 
-            Must be non-negative.
+            Must be positive.
           title: Usage
         correlationId:
           type: string
@@ -15617,11 +15617,11 @@ components:
       properties:
         quantity:
           allOf:
-            - $ref: '#/components/schemas/NonNegativeNumeric'
+            - $ref: '#/components/schemas/Numeric'
           description: |-
             The quantity of the usage discount.
 
-            Must be non-negative.
+            Must be positive.
           title: Usage
       description: |-
         Usage discount.
@@ -20522,10 +20522,6 @@ components:
         groupBy:
           model: $.model
           type: $.type
-    NonNegativeNumeric:
-      type: string
-      pattern: ^[0-9]+(\.[0-9]+)?$
-      description: NonNegativeNumeric represents a non-negative arbitrary precision number.
     NotFoundProblemResponse:
       type: object
       allOf:

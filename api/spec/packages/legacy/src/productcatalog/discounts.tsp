@@ -46,10 +46,10 @@ model DiscountUsage {
   /**
    * The quantity of the usage discount.
    *
-   * Must be non-negative.
+   * Must be positive.
    */
   @summary("Usage")
-  quantity: NonNegativeNumeric;
+  quantity: Numeric;
 }
 
 /**

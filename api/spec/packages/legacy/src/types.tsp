@@ -422,13 +422,6 @@ scalar Numeric extends string;
 alias Money = Numeric;
 
 /**
- * NonNegativeNumeric represents a non-negative arbitrary precision number.
- */
-@pattern("^[0-9]+(\\.[0-9]+)?$")
-@friendlyName("NonNegativeNumeric")
-scalar NonNegativeNumeric extends string;
-
-/**
  * Numeric representation of a percentage
  *
  * 50% is represented as 50

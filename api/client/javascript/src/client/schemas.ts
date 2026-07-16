@@ -2909,9 +2909,9 @@ export interface components {
        * Usage
        * @description The quantity of the usage discount.
        *
-       *     Must be non-negative.
+       *     Must be positive.
        */
-      quantity: components['schemas']['NonNegativeNumeric']
+      quantity: components['schemas']['Numeric']
       /**
        * @description Correlation ID for the discount.
        *
@@ -4523,9 +4523,9 @@ export interface components {
        * Usage
        * @description The quantity of the usage discount.
        *
-       *     Must be non-negative.
+       *     Must be positive.
        */
-      quantity: components['schemas']['NonNegativeNumeric']
+      quantity: components['schemas']['Numeric']
       /**
        * @description Correlation ID for the discount.
        *
@@ -4550,9 +4550,9 @@ export interface components {
        * Usage
        * @description The quantity of the usage discount.
        *
-       *     Must be non-negative.
+       *     Must be positive.
        */
-      quantity: components['schemas']['NonNegativeNumeric']
+      quantity: components['schemas']['Numeric']
     }
     /** @description Discount by type on a price */
     Discounts: {
@@ -8383,8 +8383,6 @@ export interface components {
         [key: string]: string
       }
     }
-    /** @description NonNegativeNumeric represents a non-negative arbitrary precision number. */
-    NonNegativeNumeric: string
     /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
     NotFoundProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The server does not support the functionality required to fulfill the request. */
@@ -12820,7 +12818,6 @@ export type MeterQueryRequest = components['schemas']['MeterQueryRequest']
 export type MeterQueryResult = components['schemas']['MeterQueryResult']
 export type MeterQueryRow = components['schemas']['MeterQueryRow']
 export type MeterUpdate = components['schemas']['MeterUpdate']
-export type NonNegativeNumeric = components['schemas']['NonNegativeNumeric']
 export type NotFoundProblemResponse =
   components['schemas']['NotFoundProblemResponse']
 export type NotImplementedProblemResponse =
