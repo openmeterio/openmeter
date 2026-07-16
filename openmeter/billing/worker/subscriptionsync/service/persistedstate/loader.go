@@ -17,7 +17,8 @@ import (
 )
 
 type billingService interface {
-	GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error)
+	GetStandardLinesForSubscription(ctx context.Context, input billing.GetStandardLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error)
+	GetGatheringLinesForSubscription(ctx context.Context, input billing.GetGatheringLinesForSubscriptionInput) (billing.GatheringLines, error)
 	ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error)
 }
 
@@ -38,7 +39,7 @@ func NewLoader(billingService billingService, chargeService chargeService) Loade
 }
 
 func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subscription) (State, error) {
-	lines, err := l.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
+	standardLines, err := l.billingService.GetStandardLinesForSubscription(ctx, billing.GetStandardLinesForSubscriptionInput{
 		Namespace:      subs.Namespace,
 		SubscriptionID: subs.ID,
 		CustomerID:     subs.CustomerId,
@@ -47,8 +48,23 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		IncludeChargeManaged: false,
 	})
 	if err != nil {
-		return State{}, fmt.Errorf("getting existing lines: %w", err)
+		return State{}, fmt.Errorf("getting existing standard lines: %w", err)
 	}
+
+	gatheringLines, err := l.billingService.GetGatheringLinesForSubscription(ctx, billing.GetGatheringLinesForSubscriptionInput{
+		Namespace:      subs.Namespace,
+		SubscriptionID: subs.ID,
+		// Charge-managed invoice lines are edited through charge patches, so subscription sync loads the
+		// charge entities instead of reconciling those lines directly.
+		IncludeChargeManaged: false,
+	})
+	if err != nil {
+		return State{}, fmt.Errorf("getting existing gathering lines: %w", err)
+	}
+
+	lines := append(standardLines, lo.Map(gatheringLines, func(line billing.GatheringLine, _ int) billing.LineOrHierarchy {
+		return billing.NewLineOrHierarchy(line)
+	})...)
 
 	lines, err = slicesx.MapWithErr(lines, normalizePersistedLineOrHierarchy)
 	if err != nil {

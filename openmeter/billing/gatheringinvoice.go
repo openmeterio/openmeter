@@ -727,8 +727,32 @@ func (i gatheringInvoiceLineGenericWrapper) AsGenericInvoiceLine() GenericInvoic
 type GatheringLine struct {
 	GatheringLineBase `json:",inline"`
 
-	DBState            *GatheringLine      `json:"-"`
-	SplitLineHierarchy *SplitLineHierarchy `json:"splitLineHierarchy,omitempty"`
+	DBState            *GatheringLineDBState `json:"-"`
+	SplitLineHierarchy *SplitLineHierarchy   `json:"splitLineHierarchy,omitempty"`
+}
+
+type GatheringLineTable string
+
+const (
+	GatheringLineTableInvoiceLines          GatheringLineTable = "billing_invoice_lines"
+	GatheringLineTableGatheringInvoiceLines GatheringLineTable = "billing_gathering_invoice_lines"
+)
+
+func (t GatheringLineTable) Validate() error {
+	switch t {
+	case GatheringLineTableInvoiceLines, GatheringLineTableGatheringInvoiceLines:
+		return nil
+	default:
+		return fmt.Errorf("invalid gathering line table: %s", t)
+	}
+}
+
+// GatheringLineDBState captures both the persisted line and the table that owns it.
+// Source ownership is needed while gathering lines can be read from both the legacy
+// invoice-line table and the dedicated gathering-line table.
+type GatheringLineDBState struct {
+	Source GatheringLineTable
+	Line   GatheringLine
 }
 
 func (g GatheringLine) Clone() (GatheringLine, error) {
@@ -771,6 +795,24 @@ func (g GatheringLine) WithoutDBState() (GatheringLine, error) {
 
 	clone.DBState = nil
 	return clone, nil
+}
+
+func (g *GatheringLine) SaveDBSnapshot(source GatheringLineTable) error {
+	if err := source.Validate(); err != nil {
+		return err
+	}
+
+	clone, err := g.WithoutDBState()
+	if err != nil {
+		return fmt.Errorf("cloning gathering line for DB snapshot: %w", err)
+	}
+
+	g.DBState = &GatheringLineDBState{
+		Source: source,
+		Line:   clone,
+	}
+
+	return nil
 }
 
 func (g GatheringLine) WithNormalizedValues() (GatheringLine, error) {

@@ -1073,3 +1073,145 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() 
 		s.Error(err)
 	})
 }
+
+func (s *BillingAdapterTestSuite) TestDedicatedGatheringInvoiceLineReadCompatibility() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-adapter-dedicated-gathering-lines")
+	featureKey := "dedicated-gathering-line"
+
+	// given:
+	// - a customer with a gathering invoice containing two legacy lines
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+	lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      featureKey,
+		Key:       featureKey,
+	}))
+
+	periodStart := time.Now().Add(-time.Hour)
+	periodEnd := time.Now().Add(time.Hour)
+	created, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []billing.GatheringLine{
+			{
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: namespace,
+						Name:      "dedicated line",
+					}),
+					ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+					InvoiceAt:     periodEnd,
+					ManagedBy:     billing.ManuallyManagedLine,
+					Currency:      currencyx.Code(currency.USD),
+					FeatureKey:    featureKey,
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					})),
+				},
+			},
+			{
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: namespace,
+						Name:      "legacy line",
+					}),
+					ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+					InvoiceAt:     periodEnd,
+					ManagedBy:     billing.ManuallyManagedLine,
+					Currency:      currencyx.Code(currency.USD),
+					FeatureKey:    featureKey,
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					})),
+				},
+			},
+		},
+	})
+	s.Require().NoError(err)
+
+	lines := created.Invoice.Lines.OrEmpty()
+	s.Require().Len(lines, 2)
+	dedicatedLine := lines[0]
+	legacyLine := lines[1]
+
+	// when:
+	// - one line is moved to the dedicated table outside the application write path
+	err = s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, created.Invoice.GetInvoiceID(), []string{dedicatedLine.ID})
+	s.Require().NoError(err)
+	createDedicatedGatheringLine(s.T(), s.DBClient, dedicatedLine)
+
+	// then:
+	// - the adapter returns both sources with their ownership recorded in DBState
+	reloaded, err := s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: created.Invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(reloaded.Lines.OrEmpty(), 2)
+
+	reloadedByID := lo.SliceToMap(reloaded.Lines.OrEmpty(), func(line billing.GatheringLine) (string, billing.GatheringLine) {
+		return line.ID, line
+	})
+	s.Equal(billing.GatheringLineTableGatheringInvoiceLines, reloadedByID[dedicatedLine.ID].DBState.Source)
+	s.Equal(billing.GatheringLineTableInvoiceLines, reloadedByID[legacyLine.ID].DBState.Source)
+
+	// and:
+	// - writes remain disabled for invoices containing dedicated-table lines
+	_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice:      created.Invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceSystem,
+		EditFn:       func(*billing.GatheringInvoice) error { return nil },
+	})
+	s.ErrorContains(err, "writing gathering lines from table billing_gathering_invoice_lines is not supported")
+
+	// and:
+	// - duplicate IDs across the two tables fail instead of being resolved implicitly
+	createDedicatedGatheringLine(s.T(), s.DBClient, legacyLine)
+	_, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: created.Invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+	})
+	s.ErrorContains(err, "gathering line exists in multiple tables")
+}
+
+func createDedicatedGatheringLine(t *testing.T, client *db.Client, line billing.GatheringLine) {
+	t.Helper()
+
+	create := client.BillingGatheringInvoiceLine.Create().
+		SetID(line.ID).
+		SetNamespace(line.Namespace).
+		SetName(line.Name).
+		SetNillableDescription(line.Description).
+		SetCurrency(line.Currency).
+		SetServicePeriodStart(line.ServicePeriod.From).
+		SetServicePeriodEnd(line.ServicePeriod.To).
+		SetPriceType(line.Price.Type()).
+		SetFeatureKey(line.FeatureKey).
+		SetPrice(lo.ToPtr(line.Price)).
+		SetInvoiceID(line.InvoiceID).
+		SetInvoiceAt(line.InvoiceAt).
+		SetManagedBy(line.ManagedBy).
+		SetEngine(line.Engine).
+		SetNillableSplitLineGroupID(line.SplitLineGroupID).
+		SetNillableChargeID(line.ChargeID).
+		SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID)
+
+	if line.Subscription != nil {
+		create = create.
+			SetSubscriptionID(line.Subscription.SubscriptionID).
+			SetSubscriptionPhaseID(line.Subscription.PhaseID).
+			SetSubscriptionItemID(line.Subscription.ItemID).
+			SetSubscriptionBillingPeriodFrom(line.Subscription.BillingPeriod.From).
+			SetSubscriptionBillingPeriodTo(line.Subscription.BillingPeriod.To)
+	}
+
+	if line.UnitConfig != nil {
+		create = create.SetUnitConfig(line.UnitConfig)
+	}
+
+	_, err := create.Save(t.Context())
+	require.NoError(t, err)
+}

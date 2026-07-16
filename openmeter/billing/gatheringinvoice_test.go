@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestGatheringInvoiceLineInvoiceAtAccessor(t *testing.T) {
@@ -89,4 +90,31 @@ func TestGatheringLineUnitConfigSnapshotPropagation(t *testing.T) {
 		cloned.UnitConfig.ConversionFactor = decimal.NewFromInt(1)
 		require.True(t, unitConfig.Equal(base.UnitConfig), "clone must not share the pointer with the original")
 	})
+}
+
+func TestGatheringLineSaveDBSnapshot(t *testing.T) {
+	line := GatheringLine{
+		GatheringLineBase: GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				ID:   "line-id",
+				Name: "original",
+			}),
+		},
+	}
+
+	err := line.SaveDBSnapshot(GatheringLineTableGatheringInvoiceLines)
+	require.NoError(t, err)
+	require.Equal(t, GatheringLineTableGatheringInvoiceLines, line.DBState.Source)
+	require.Nil(t, line.DBState.Line.DBState)
+
+	line.Name = "updated"
+	require.Equal(t, "original", line.DBState.Line.Name)
+
+	withoutDBState, err := line.WithoutDBState()
+	require.NoError(t, err)
+	require.Nil(t, withoutDBState.DBState)
+	require.NotNil(t, line.DBState)
+
+	err = line.SaveDBSnapshot(GatheringLineTable("unknown"))
+	require.ErrorContains(t, err, "invalid gathering line table")
 }
