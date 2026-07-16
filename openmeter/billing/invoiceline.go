@@ -41,14 +41,14 @@ func (InvoiceLineManagedBy) Values() []string {
 	}
 }
 
-type GetLinesForSubscriptionInput struct {
+type GetStandardLinesForSubscriptionInput struct {
 	Namespace            string
 	SubscriptionID       string
 	CustomerID           string
 	IncludeChargeManaged bool
 }
 
-func (i GetLinesForSubscriptionInput) Validate() error {
+func (i GetStandardLinesForSubscriptionInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
@@ -59,6 +59,24 @@ func (i GetLinesForSubscriptionInput) Validate() error {
 
 	if i.CustomerID == "" {
 		return errors.New("customer id is required")
+	}
+
+	return nil
+}
+
+type GetGatheringLinesForSubscriptionInput struct {
+	Namespace            string
+	SubscriptionID       string
+	IncludeChargeManaged bool
+}
+
+func (i GetGatheringLinesForSubscriptionInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	if i.SubscriptionID == "" {
+		return errors.New("subscription id is required")
 	}
 
 	return nil

@@ -131,6 +131,12 @@ func (a *adapter) GetSplitLineGroup(ctx context.Context, input billing.GetSplitL
 					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
 				})
 			}).
+			WithBillingGatheringInvoiceLines(func(q *db.BillingGatheringInvoiceLineQuery) {
+				q.WithTaxCode().
+					WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
+						q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
+					})
+			}).
 			First(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -207,7 +213,11 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 		return empty, err
 	}
 
-	mappedLines, err := a.mapSplitLineHierarchyLinesFromDB(ctx, dbSplitLineGroup.Edges.BillingInvoiceLines)
+	mappedLines, err := a.mapSplitLineHierarchyLinesFromDB(
+		ctx,
+		dbSplitLineGroup.Edges.BillingInvoiceLines,
+		dbSplitLineGroup.Edges.BillingGatheringInvoiceLines,
+	)
 	if err != nil {
 		return empty, err
 	}
@@ -218,8 +228,12 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 	}, nil
 }
 
-func (a *adapter) mapSplitLineHierarchyLinesFromDB(ctx context.Context, dbLines []*db.BillingInvoiceLine) ([]billing.LineWithInvoiceHeader, error) {
-	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+func (a *adapter) mapSplitLineHierarchyLinesFromDB(
+	ctx context.Context,
+	dbStandardLines []*db.BillingInvoiceLine,
+	dbGatheringLines []*db.BillingGatheringInvoiceLine,
+) ([]billing.LineWithInvoiceHeader, error) {
+	standardLines, err := slicesx.MapWithErr(dbStandardLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
 		if dbLine.Edges.BillingInvoice == nil {
 			return billing.LineWithInvoiceHeader{}, fmt.Errorf("billing invoice must be expanded when mapping split line hierarchy lines [id=%s]", dbLine.ID)
 		}
@@ -231,6 +245,29 @@ func (a *adapter) mapSplitLineHierarchyLinesFromDB(ctx context.Context, dbLines 
 			return a.mapSplitLineHierarchyStandardLineFromDB(ctx, dbLine)
 		}
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	dedicatedGatheringLines, err := slicesx.MapWithErr(dbGatheringLines, func(dbLine *db.BillingGatheringInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+		return a.mapSplitLineHierarchyGatheringLineFromDedicatedTable(ctx, dbLine)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	lines := lo.Flatten([][]billing.LineWithInvoiceHeader{standardLines, dedicatedGatheringLines})
+	linesByID := lo.GroupBy(lines, func(line billing.LineWithInvoiceHeader) string {
+		return line.Line.GetID()
+	})
+
+	for lineID, lines := range linesByID {
+		if len(lines) > 1 {
+			return nil, fmt.Errorf("split line hierarchy line exists in multiple tables [line_id=%s]", lineID)
+		}
+	}
+
+	return lines, nil
 }
 
 func (a *adapter) mapSplitLineHierarchyStandardLineFromDB(ctx context.Context, dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
@@ -251,7 +288,28 @@ func (a *adapter) mapSplitLineHierarchyStandardLineFromDB(ctx context.Context, d
 }
 
 func (a *adapter) mapSplitLineHierarchyGatheringLineFromDB(ctx context.Context, dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-	line, err := a.mapGatheringInvoiceLineFromDB(dbLine.Edges.BillingInvoice.SchemaLevel, dbLine)
+	line, err := a.fromDBBillingInvoiceLine(dbLine)
+	if err != nil {
+		return billing.LineWithInvoiceHeader{}, err
+	}
+
+	invoice, err := a.mapGatheringInvoiceFromDB(ctx, dbLine.Edges.BillingInvoice, billing.GatheringInvoiceExpands{})
+	if err != nil {
+		return billing.LineWithInvoiceHeader{}, err
+	}
+
+	return billing.NewLineWithInvoiceHeader(billing.GatheringLineWithInvoiceHeader{
+		Line:    line,
+		Invoice: invoice,
+	}), nil
+}
+
+func (a *adapter) mapSplitLineHierarchyGatheringLineFromDedicatedTable(ctx context.Context, dbLine *db.BillingGatheringInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+	if dbLine.Edges.BillingInvoice == nil {
+		return billing.LineWithInvoiceHeader{}, fmt.Errorf("billing invoice must be expanded when mapping split line hierarchy gathering line [id=%s]", dbLine.ID)
+	}
+
+	line, err := a.fromDBBillingGatheringInvoiceLine(dbLine)
 	if err != nil {
 		return billing.LineWithInvoiceHeader{}, err
 	}
@@ -337,6 +395,12 @@ func (a *adapter) fetchAllSplitLineGroups(ctx context.Context, namespace string,
 			q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
 				q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
 			}) // TODO[later]: we can consider loading this in a separate query, might be more efficient
+		}).
+		WithBillingGatheringInvoiceLines(func(q *db.BillingGatheringInvoiceLineQuery) {
+			q.WithTaxCode().
+				WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
+					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
+				})
 		})
 
 	dbSplitLineGroups, err := query.All(ctx)

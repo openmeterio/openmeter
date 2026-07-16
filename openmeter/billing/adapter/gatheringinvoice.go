@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -19,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -343,7 +345,7 @@ func (a *adapter) DeleteGatheringInvoice(ctx context.Context, input billing.Dele
 }
 
 func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand billing.GatheringInvoiceExpands) *db.BillingInvoiceQuery {
-	return q.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+	q = q.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
 		if !expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
 			q = q.Where(billinginvoiceline.DeletedAtIsNil())
 		}
@@ -353,6 +355,14 @@ func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand 
 			Where(billinginvoiceline.ParentLineIDIsNil()).                              // Only include top-level lines (there are some detailed lines existing for gathering invoices)
 			WithUsageBasedLine().
 			WithTaxCode()
+	})
+
+	return q.WithBillingGatheringInvoiceLines(func(q *db.BillingGatheringInvoiceLineQuery) {
+		if !expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
+			q.Where(billinggatheringinvoiceline.DeletedAtIsNil())
+		}
+
+		q.WithTaxCode()
 	})
 }
 
@@ -428,7 +438,17 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 	}
 
 	if expand.Has(billing.GatheringInvoiceExpandLines) {
-		mappedLines, err := a.mapGatheringInvoiceLinesFromDB(invoice.SchemaLevel, invoice.Edges.BillingInvoiceLines)
+		legacyLines, err := slicesx.MapWithErr(invoice.Edges.BillingInvoiceLines, a.fromDBBillingInvoiceLine)
+		if err != nil {
+			return billing.GatheringInvoice{}, err
+		}
+
+		gatheringLines, err := slicesx.MapWithErr(invoice.Edges.BillingGatheringInvoiceLines, a.fromDBBillingGatheringInvoiceLine)
+		if err != nil {
+			return billing.GatheringInvoice{}, err
+		}
+
+		mappedLines, err := mergeGatheringLines(legacyLines, gatheringLines)
 		if err != nil {
 			return billing.GatheringInvoice{}, err
 		}

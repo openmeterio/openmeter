@@ -18,6 +18,18 @@ import (
 
 var _ billing.GatheringInvoiceService = (*Service)(nil)
 
+func (s *Service) GetGatheringLinesForSubscription(ctx context.Context, input billing.GetGatheringLinesForSubscriptionInput) (billing.GatheringLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.GatheringLines, error) {
+		return s.adapter.GetGatheringLinesForSubscription(ctx, input)
+	})
+}
+
 func (s *Service) ListGatheringInvoices(ctx context.Context, input billing.ListGatheringInvoicesInput) (pagination.Result[billing.GatheringInvoice], error) {
 	if err := input.Validate(); err != nil {
 		return pagination.Result[billing.GatheringInvoice]{}, err

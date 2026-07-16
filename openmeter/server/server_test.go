@@ -1835,7 +1835,6 @@ func (n NoopBillingService) ListCustomerOverrides(ctx context.Context, input bil
 	return billing.ListCustomerOverridesResult{}, nil
 }
 
-// InvoiceLineService methods
 func (n NoopBillingService) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	return nil, nil
 }
@@ -1860,8 +1859,12 @@ func (n NoopBillingService) OnUnsupportedCreditNote(ctx context.Context, input b
 	return nil
 }
 
-func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
+func (n NoopBillingService) GetStandardLinesForSubscription(ctx context.Context, input billing.GetStandardLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
 	return []billing.LineOrHierarchy{}, nil
+}
+
+func (n NoopBillingService) GetGatheringLinesForSubscription(ctx context.Context, input billing.GetGatheringLinesForSubscriptionInput) (billing.GatheringLines, error) {
+	return billing.GatheringLines{}, nil
 }
 
 func (n NoopBillingService) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.StandardLine, error) {
