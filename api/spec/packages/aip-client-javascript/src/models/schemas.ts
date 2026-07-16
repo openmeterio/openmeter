@@ -163,10 +163,8 @@ export const cursorMetaPage = z
   .object({
     first: z.string().optional().describe('URI to the first page.'),
     last: z.string().optional().describe('URI to the last page.'),
-    next: z.union([z.string(), z.null()]).describe('URI to the next page.'),
-    previous: z
-      .union([z.string(), z.null()])
-      .describe('URI to the previous page.'),
+    next: z.string().nullable().describe('URI to the next page.'),
+    previous: z.string().nullable().describe('URI to the previous page.'),
     size: z.number().int().describe('Requested page size.'),
   })
   .describe('Cursor pagination metadata.')
@@ -1829,14 +1827,16 @@ export const event = z
         'Contains a value describing the type of event related to the originating occurrence.',
       ),
     datacontenttype: z
-      .union([z.literal('application/json'), z.null()])
+      .literal('application/json')
+      .nullable()
       .optional()
 
       .describe(
         'Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.',
       ),
     dataschema: z
-      .union([z.string(), z.null()])
+      .string()
+      .nullable()
       .optional()
       .describe('Identifies the schema that data adheres to.'),
     subject: z
@@ -1846,15 +1846,16 @@ export const event = z
       .describe(
         'Describes the subject of the event in the context of the event producer (identified by source).',
       ),
-    time: z
-      .union([dateTime, z.null()])
+    time: dateTime
+      .nullable()
       .optional()
 
       .describe(
         'Timestamp of when the occurrence happened. Must adhere to RFC 3339.',
       ),
     data: z
-      .union([z.record(z.string(), z.unknown()), z.null()])
+      .record(z.string(), z.unknown())
+      .nullable()
       .optional()
 
       .describe(
@@ -1978,8 +1979,8 @@ export const createCostBasisRequest = z
 export const featureCostQueryRow = z
   .object({
     usage: numeric,
-    cost: z
-      .union([numeric, z.null()])
+    cost: numeric
+      .nullable()
 
       .describe(
         'The computed cost amount (usage × unit cost). Null when pricing is not available for the given combination of dimensions.',
@@ -4797,8 +4798,8 @@ export const createFeatureRequest = z
 
 export const updateFeatureRequest = z
   .object({
-    unitCost: z
-      .union([featureUnitCost, z.null()])
+    unitCost: featureUnitCost
+      .nullable()
       .optional()
 
       .describe(
@@ -6844,10 +6845,8 @@ export const cursorMetaPageWire = z
   .strictObject({
     first: z.string().optional().describe('URI to the first page.'),
     last: z.string().optional().describe('URI to the last page.'),
-    next: z.union([z.string(), z.null()]).describe('URI to the next page.'),
-    previous: z
-      .union([z.string(), z.null()])
-      .describe('URI to the previous page.'),
+    next: z.string().nullable().describe('URI to the next page.'),
+    previous: z.string().nullable().describe('URI to the previous page.'),
     size: z.number().int().describe('Requested page size.'),
   })
   .describe('Cursor pagination metadata.')
@@ -8503,14 +8502,16 @@ export const eventWire = z
         'Contains a value describing the type of event related to the originating occurrence.',
       ),
     datacontenttype: z
-      .union([z.literal('application/json'), z.null()])
+      .literal('application/json')
+      .nullable()
       .optional()
 
       .describe(
         'Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP.',
       ),
     dataschema: z
-      .union([z.string(), z.null()])
+      .string()
+      .nullable()
       .optional()
       .describe('Identifies the schema that data adheres to.'),
     subject: z
@@ -8520,15 +8521,16 @@ export const eventWire = z
       .describe(
         'Describes the subject of the event in the context of the event producer (identified by source).',
       ),
-    time: z
-      .union([dateTimeWire, z.null()])
+    time: dateTimeWire
+      .nullable()
       .optional()
 
       .describe(
         'Timestamp of when the occurrence happened. Must adhere to RFC 3339.',
       ),
     data: z
-      .union([z.record(z.string(), z.unknown()), z.null()])
+      .record(z.string(), z.unknown())
+      .nullable()
       .optional()
 
       .describe(
@@ -8652,8 +8654,8 @@ export const createCostBasisRequestWire = z
 export const featureCostQueryRowWire = z
   .strictObject({
     usage: numericWire,
-    cost: z
-      .union([numericWire, z.null()])
+    cost: numericWire
+      .nullable()
 
       .describe(
         'The computed cost amount (usage × unit cost). Null when pricing is not available for the given combination of dimensions.',
@@ -11460,8 +11462,8 @@ export const createFeatureRequestWire = z
 
 export const updateFeatureRequestWire = z
   .strictObject({
-    unit_cost: z
-      .union([featureUnitCostWire, z.null()])
+    unit_cost: featureUnitCostWire
+      .nullable()
       .optional()
 
       .describe(
