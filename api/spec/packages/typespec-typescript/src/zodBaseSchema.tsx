@@ -216,10 +216,16 @@ function scalarBaseType($: Typekit, type: Scalar) {
  * pass types them `z.date()` (the SDK surface takes and returns `Date`; the
  * runtime wire mapper converts at the request/response boundary), while the
  * wire pass keeps the RFC 3339 string the JSON payload actually carries.
+ *
+ * `offset: true` because RFC 3339 permits a numeric UTC offset, not just `Z`,
+ * and the API emits them; zod's default rejects everything but `Z`.
  */
 function dateTimeBaseType() {
   if (useWireMode()) {
-    return zodMemberExpr(callPart('string'), callPart('datetime'))
+    return zodMemberExpr(
+      callPart('string'),
+      callPart('datetime', '{ offset: true }'),
+    )
   }
   return zodMemberExpr(callPart('date'))
 }
