@@ -384,6 +384,42 @@ function unionBaseType(type: Union) {
 
   const discriminated = $.union.getDiscriminatedUnion(type)
 
+  if ($.union.isExpression(type)) {
+    const variants = Array.from(type.variants.values())
+    const nonNullVariants = variants.filter(
+      (variant) =>
+        variant.type.kind !== 'Intrinsic' || variant.type.name !== 'null',
+    )
+
+    if (
+      nonNullVariants.length > 0 &&
+      nonNullVariants.length < variants.length
+    ) {
+      const inner =
+        nonNullVariants.length === 1 ? (
+          <ZodSchema type={nonNullVariants[0]!.type} nested />
+        ) : (
+          zodMemberExpr(
+            callPart(
+              'union',
+              <ArrayExpression>
+                <For each={nonNullVariants} comma line>
+                  {(variant) => <ZodSchema type={variant.type} nested />}
+                </For>
+              </ArrayExpression>,
+            ),
+          )
+        )
+
+      return (
+        <MemberExpression>
+          <MemberExpression.Part>{inner}</MemberExpression.Part>
+          {callPart('nullable')}
+        </MemberExpression>
+      )
+    }
+  }
+
   if ($.union.isExpression(type) || !discriminated) {
     return zodMemberExpr(
       callPart(

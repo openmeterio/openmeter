@@ -27,10 +27,15 @@ export class Client {
         beforeRequest: [
           ...(options.hooks?.beforeRequest ?? []),
           async ({ request }) => {
-            // Browsers treat User-Agent as a forbidden header and silently drop
-            // it; that's fine here, this is only observable server-side (e.g.
-            // request logs) and Node/server callers get it.
-            if (!request.headers.has('User-Agent')) {
+            // User-Agent is settable on the web but is not CORS-safelisted, so
+            // setting it would preflight otherwise-simple cross-origin requests.
+            // Gate on a positive Node check, not `window`: workers are also
+            // CORS-bound yet have no `window`.
+            if (
+              typeof process !== 'undefined' &&
+              process.versions?.node != null &&
+              !request.headers.has('User-Agent')
+            ) {
               request.headers.set('User-Agent', `openmeter-node/${SDK_VERSION}`)
             }
 

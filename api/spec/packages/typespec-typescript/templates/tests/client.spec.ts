@@ -1,5 +1,5 @@
 import fetchMock from '@fetch-mock/vitest'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OpenMeter, ServerList } from '../src/index.js'
 import { SDK_VERSION } from '../src/lib/version.js'
 
@@ -128,6 +128,10 @@ describe('option clobbering is prevented', () => {
 })
 
 describe('SDK telemetry headers', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('sets a default User-Agent header', async () => {
     mockMeter()
     const sdk = new OpenMeter({
@@ -140,6 +144,48 @@ describe('SDK telemetry headers', () => {
   })
 
   it('does not overwrite a caller-provided User-Agent', async () => {
+    mockMeter()
+    const sdk = new OpenMeter({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      headers: { 'User-Agent': 'custom-agent/1.0' },
+      fetch,
+    })
+    await sdk.meters.get({ meterId: 'm' })
+    expect(lastUserAgent()).toBe('custom-agent/1.0')
+  })
+
+  it('does not set a default User-Agent in browsers', async () => {
+    vi.stubGlobal('window', {})
+    vi.stubGlobal('process', undefined)
+    mockMeter()
+    const sdk = new OpenMeter({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      fetch,
+    })
+    await sdk.meters.get({ meterId: 'm' })
+    expect(lastUserAgent()).toBeNull()
+  })
+
+  // Workers are CORS-bound but have no `window`, so a `window`-based gate would
+  // leak the header here and preflight the request.
+  it('does not set a default User-Agent in workers', async () => {
+    vi.stubGlobal('self', {})
+    vi.stubGlobal('process', undefined)
+    mockMeter()
+    const sdk = new OpenMeter({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      fetch,
+    })
+    await sdk.meters.get({ meterId: 'm' })
+    expect(lastUserAgent()).toBeNull()
+  })
+
+  it('honors a caller-provided User-Agent in browsers', async () => {
+    vi.stubGlobal('window', {})
+    vi.stubGlobal('process', undefined)
     mockMeter()
     const sdk = new OpenMeter({
       baseUrl: 'https://eu.api.konghq.com/v3',
