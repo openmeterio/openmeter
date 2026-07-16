@@ -293,3 +293,79 @@ describe('nullable cursor response validation', () => {
     expect(result.value?.meta.page.previous).toBe(42)
   })
 })
+
+// RFC 3339 permits a numeric UTC offset, not just `Z`, and the API emits them.
+describe('strict validation accepts RFC 3339 numeric UTC offsets', () => {
+  it('accepts meter query rows whose from/to carry a numeric offset', async () => {
+    fetchMock.route(
+      '*',
+      json({
+        data: [
+          {
+            value: '10',
+            from: '2024-01-01T00:00:00+02:00',
+            to: '2024-01-02T00:00:00-07:00',
+            dimensions: { subject: 'customer-1' },
+          },
+        ],
+      }),
+    )
+
+    const result = await funcs.queryMeter(client(true), { meterId, body: {} })
+
+    expect(result.error).toBeUndefined()
+    expect(result.ok).toBe(true)
+    expect(result.value?.data[0]?.value).toBe('10')
+    // the offset is a real instant, not a UTC wall-clock reading
+    expect(result.value?.data[0]?.from?.toISOString()).toBe(
+      '2023-12-31T22:00:00.000Z',
+    )
+    expect(result.value?.data[0]?.to?.toISOString()).toBe(
+      '2024-01-02T07:00:00.000Z',
+    )
+  })
+
+  it('still accepts a plain Z timestamp', async () => {
+    fetchMock.route(
+      '*',
+      json({
+        data: [
+          {
+            value: '10',
+            from: '2024-01-01T00:00:00Z',
+            to: '2024-01-02T00:00:00Z',
+            dimensions: { subject: 'customer-1' },
+          },
+        ],
+      }),
+    )
+
+    const result = await funcs.queryMeter(client(true), { meterId, body: {} })
+
+    expect(result.ok).toBe(true)
+    expect(result.value?.data[0]?.from?.toISOString()).toBe(
+      '2024-01-01T00:00:00.000Z',
+    )
+  })
+
+  it('still rejects a genuinely malformed timestamp', async () => {
+    fetchMock.route(
+      '*',
+      json({
+        data: [
+          {
+            value: '10',
+            from: 'not-a-timestamp',
+            to: '2024-01-02T00:00:00Z',
+            dimensions: { subject: 'customer-1' },
+          },
+        ],
+      }),
+    )
+
+    const result = await funcs.queryMeter(client(true), { meterId, body: {} })
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBeInstanceOf(ValidationError)
+  })
+})

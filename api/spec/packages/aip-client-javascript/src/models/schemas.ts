@@ -6809,7 +6809,7 @@ export const ulidWire = z
 
 export const dateTimeWire = z
   .string()
-  .datetime()
+  .datetime({ offset: true })
 
   .describe(
     '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.',
