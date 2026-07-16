@@ -98,6 +98,9 @@ type ListAddonsInput struct {
 
 	// ExcludeUnitConfig omits add-ons carrying a unit_config conversion on any of their rate cards.
 	ExcludeUnitConfig bool
+
+	// ExcludeCurrencyOverrides omits add-ons carrying an explicit currency on any rate card.
+	ExcludeCurrencyOverrides bool
 }
 
 func (i ListAddonsInput) Validate() error {
@@ -182,6 +185,10 @@ func (i CreateAddonInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
+func (i CreateAddonInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver) error {
+	return validateCurrencies(ctx, i.Namespace, i.Addon, resolver, i.IgnoreNonCriticalIssues)
+}
+
 var (
 	_ models.Validator      = (*UpdateAddonInput)(nil)
 	_ models.Equaler[Addon] = (*UpdateAddonInput)(nil)
@@ -216,6 +223,10 @@ type UpdateAddonInput struct {
 	// rewrites rate cards from a body that has no such field, so proceeding would silently
 	// drop the conversion. v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides makes mutation validation reject an add-on that carries an explicit
+	// currency on any rate card. The v1 API cannot represent these overrides.
+	RejectCurrencyOverrides bool
 
 	inputOptions
 }
@@ -301,6 +312,31 @@ func (i UpdateAddonInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
+func (i UpdateAddonInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver, a productcatalog.Addon) error {
+	if i.RateCards != nil {
+		a.RateCards = *i.RateCards
+	}
+
+	return validateCurrencies(ctx, i.Namespace, a, resolver, i.IgnoreNonCriticalIssues)
+}
+
+func validateCurrencies(ctx context.Context, namespace string, a productcatalog.Addon, resolver productcatalog.CurrencyResolver, ignoreNonCriticalIssues bool) error {
+	err := a.ValidateWith(
+		productcatalog.ValidateAddonRateCardCurrencies(),
+		productcatalog.ValidateAddonWithCurrencies(ctx, namespace, resolver),
+	)
+	issues, conversionErr := models.AsValidationIssues(err)
+	if conversionErr != nil {
+		return err
+	}
+
+	if ignoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
+}
+
 type ExpandFields struct {
 	PlanAddons bool `json:"plans,omitempty"`
 }
@@ -363,6 +399,10 @@ type PublishAddonInput struct {
 	// RejectUnitConfig rejects the operation when the target add-on carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the target add-on carries an explicit
+	// currency on any rate card. The v1 API cannot represent these overrides.
+	RejectCurrencyOverrides bool
 }
 
 func (i PublishAddonInput) Validate() error {
@@ -415,6 +455,10 @@ type ArchiveAddonInput struct {
 	// RejectUnitConfig rejects the operation when the target add-on carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the target add-on carries an explicit
+	// currency on any rate card. The v1 API cannot represent these overrides.
+	RejectCurrencyOverrides bool
 }
 
 func (i ArchiveAddonInput) Validate() error {
@@ -451,6 +495,10 @@ type NextAddonInput struct {
 	// Version is the version of the Addon.
 	// If not set the latest version is assumed.
 	Version int `json:"version,omitempty"`
+
+	// RejectCurrencyOverrides rejects the operation when the source add-on carries an explicit
+	// currency on any rate card. The v1 API cannot represent these overrides.
+	RejectCurrencyOverrides bool
 }
 
 func (i NextAddonInput) Validate() error {

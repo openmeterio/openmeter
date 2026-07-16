@@ -138,12 +138,12 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	currencyService, err := currencyservice.New(currencyAdapter)
 	require.NoError(t, err)
 
-	planCurrencyResolver, err := currencyresolver.New(currencyService)
+	currencyResolver, err := currencyresolver.New(currencyService)
 	require.NoError(t, err)
 
 	planService, err := planservice.New(planservice.Config{
 		FeatureResolver:  featureResolver,
-		CurrencyResolver: planCurrencyResolver,
+		CurrencyResolver: currencyResolver,
 		Adapter:          planAdapter,
 		TaxCode:          taxCodeService,
 		Logger:           slog.Default(),
@@ -190,11 +190,12 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	require.NoError(t, err)
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:         addonRepo,
-		Logger:          slog.Default(),
-		Publisher:       publisher,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
+		Adapter:          addonRepo,
+		Logger:           slog.Default(),
+		Publisher:        publisher,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -205,11 +206,12 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	require.NoError(t, err)
 
 	planAddonService, err := planaddonservice.New(planaddonservice.Config{
-		Adapter:   planAddonRepo,
-		Logger:    slog.Default(),
-		Plan:      planService,
-		Addon:     addonService,
-		Publisher: publisher,
+		Adapter:          planAddonRepo,
+		Logger:           slog.Default(),
+		Plan:             planService,
+		Addon:            addonService,
+		CurrencyResolver: currencyResolver,
+		Publisher:        publisher,
 	})
 	require.NoError(t, err)
 

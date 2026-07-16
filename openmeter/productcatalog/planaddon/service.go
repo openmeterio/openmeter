@@ -108,6 +108,10 @@ type CreatePlanAddonInput struct {
 
 	// RejectUnitConfig rejects the operation when the referenced plan carries a unit_config conversion
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the referenced plan or add-on carries an
+	// explicit rate card currency. The v1 API cannot represent these overrides.
+	RejectCurrencyOverrides bool
 }
 
 func (i CreatePlanAddonInput) Validate() error {
@@ -159,6 +163,10 @@ type UpdatePlanAddonInput struct {
 
 	// RejectUnitConfig rejects the operation when the referenced plan carries a unit_config conversion
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the referenced plan or add-on carries an
+	// explicit rate card currency. The v1 API cannot represent these overrides.
+	RejectCurrencyOverrides bool
 }
 
 func (i UpdatePlanAddonInput) Equal(p PlanAddon) bool {

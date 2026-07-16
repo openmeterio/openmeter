@@ -334,7 +334,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	addonService, err := common.NewAddonService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
+	addonService, err := common.NewAddonService(logger, client, featureResolver, currencyResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -345,7 +345,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	planaddonService, err := common.NewPlanAddonService(logger, client, planService, addonService, eventbusPublisher)
+	planaddonService, err := common.NewPlanAddonService(logger, client, planService, addonService, currencyResolver, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()

@@ -57,6 +57,13 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 			)))
 		}
 
+		if params.ExcludeCurrencyOverrides {
+			query = query.Where(addondb.Not(addondb.HasRatecardsWith(
+				addonratecarddb.CurrencyNotNil(),
+				addonratecarddb.DeletedAtIsNil(),
+			)))
+		}
+
 		if !params.IncludeDeleted {
 			query = query.Where(addondb.DeletedAtIsNil())
 		}
