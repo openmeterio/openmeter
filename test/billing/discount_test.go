@@ -36,7 +36,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customerEntity)

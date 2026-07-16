@@ -23,8 +23,7 @@ import (
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
-	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
@@ -35,6 +34,7 @@ type TestEnv struct {
 	Meter               *meteradapter.TestAdapter
 	Feature             feature.FeatureConnector
 	TaxCode             taxcode.Service
+	TaxCodeEnv          *taxcodetestutils.TestEnv
 	Plan                plan.Service
 	PlanRepository      plan.Repository
 	PlanAddon           planaddon.Service
@@ -95,20 +95,9 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
 
 	// Init tax code service
-	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
-		Client: client,
-		Logger: logger,
-	})
-	require.NoErrorf(t, err, "initializing tax code adapter must not fail")
-	require.NotNilf(t, taxCodeAdapter, "tax code adapter must not be nil")
+	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, client, logger)
 
-	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
-		Adapter: taxCodeAdapter,
-		Logger:  logger,
-	})
-	require.NoErrorf(t, err, "initializing tax code service must not fail")
-
-	taxCodeResolver, err := taxcoderesolver.New(taxCodeService)
+	taxCodeResolver, err := taxcoderesolver.New(taxCodeEnv.Service)
 	require.NoErrorf(t, err, "failed to create tax code resolver: %v", err)
 
 	// Init plan service
@@ -123,7 +112,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Adapter:         planAdapter,
 		FeatureResolver: featureResolver,
 		TaxCodeResolver: taxCodeResolver,
-		TaxCode:         taxCodeService,
+		TaxCode:         taxCodeEnv.Service,
 		Logger:          logger,
 		Publisher:       publisher,
 	})
@@ -142,7 +131,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Adapter:         addonAdapter,
 		FeatureResolver: featureResolver,
 		TaxCodeResolver: taxCodeResolver,
-		TaxCode:         taxCodeService,
+		TaxCode:         taxCodeEnv.Service,
 		Logger:          logger,
 		Publisher:       publisher,
 	})
@@ -172,7 +161,8 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Publisher:           publisher,
 		Meter:               meterAdapter,
 		Feature:             featureService,
-		TaxCode:             taxCodeService,
+		TaxCode:             taxCodeEnv.Service,
+		TaxCodeEnv:          taxCodeEnv,
 		Plan:                planService,
 		PlanRepository:      planAdapter,
 		PlanAddon:           planAddonService,

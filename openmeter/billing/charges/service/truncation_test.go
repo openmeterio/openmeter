@@ -40,7 +40,7 @@ func (s *ChargeTimestampTruncationTestSuite) TearDownTest() {
 func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAndProrationInputs() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-truncation-flatfee")
-	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaultTaxCodes := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
@@ -105,7 +105,7 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersistedCalculationTimestamps() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-truncation-usagebased")
-	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaultTaxCodes := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)

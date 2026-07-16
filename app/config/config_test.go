@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
@@ -467,12 +468,12 @@ func TestComplete(t *testing.T) {
 		TaxCode: TaxCodeConfiguration{
 			Seeds: []TaxCodeSeed{
 				{
-					Key:              "default",
+					Key:              taxcode.ProviderDefaultTaxCodeKey,
 					Name:             "Provider default",
 					DefaultInvoicing: true,
 				},
 				{
-					Key:                "nontaxable",
+					Key:                taxcode.CreditGrantTaxCodeKey,
 					Name:               "Nontaxable",
 					DefaultCreditGrant: true,
 					AppMappings: []TaxCodeAppMapping{

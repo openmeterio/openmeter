@@ -103,7 +103,7 @@ func ConfigureTaxCode(v *viper.Viper) {
 			"defaultInvoicing": true,
 		},
 		{
-			"key":                "nontaxable",
+			"key":                taxcode.CreditGrantTaxCodeKey,
 			"name":               "Nontaxable",
 			"defaultCreditGrant": true,
 			"appMappings": []map[string]any{

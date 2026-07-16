@@ -69,7 +69,9 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 }
 
 // validateTaxCodesExist verifies every distinct non-empty tax code referenced by the intents
-// exists.
+// exists and is not soft-deleted. GetTaxCode returns soft-deleted rows by ID (so billing can
+// still resolve frozen Stripe mappings for existing charges), so a deleted code must be rejected
+// explicitly here to prevent it from being used on a newly created charge.
 func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, intents charges.ChargeIntents) error {
 	seen := make(map[string]struct{}, len(intents))
 
@@ -88,7 +90,7 @@ func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, i
 		}
 		seen[taxCodeID] = struct{}{}
 
-		_, err = s.taxCodeService.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+		tc, err := s.taxCodeService.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
 			NamespacedID: models.NamespacedID{Namespace: namespace, ID: taxCodeID},
 		})
 		if err != nil {
@@ -100,6 +102,13 @@ func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, i
 			}
 
 			return err
+		}
+
+		if tc.IsDeleted() {
+			return models.NewGenericValidationError(
+				models.NewValidationError("tax_code_not_found", fmt.Sprintf("referenced tax code %q does not exist", taxCodeID)).
+					WithPathString("tax_config", "tax_code"),
+			)
 		}
 	}
 

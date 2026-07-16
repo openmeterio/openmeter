@@ -5,14 +5,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 func TestTaxCodeConfigurationValidate(t *testing.T) {
 	validBase := func() TaxCodeConfiguration {
 		return TaxCodeConfiguration{
 			Seeds: []TaxCodeSeed{
-				{Key: "default", Name: "Provider default", DefaultInvoicing: true},
-				{Key: "nontaxable", Name: "Nontaxable", DefaultCreditGrant: true, AppMappings: []TaxCodeAppMapping{
+				{Key: taxcode.ProviderDefaultTaxCodeKey, Name: "Provider default", DefaultInvoicing: true},
+				{Key: taxcode.CreditGrantTaxCodeKey, Name: "Nontaxable", DefaultCreditGrant: true, AppMappings: []TaxCodeAppMapping{
 					{AppType: "stripe", TaxCode: "txcd_00000000"},
 				}},
 			},

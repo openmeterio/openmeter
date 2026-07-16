@@ -700,7 +700,7 @@ func (s *VoidGrantTestSuite) TestConcurrentVoidsDoNotDoubleBook() {
 func (s *VoidGrantTestSuite) setupVoidTestCustomer(ctx context.Context, ns string) *customer.Customer {
 	s.T().Helper()
 
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(),
@@ -715,7 +715,7 @@ func (s *VoidGrantTestSuite) setupVoidTestCustomer(ctx context.Context, ns strin
 func (s *VoidGrantTestSuite) setupInvoiceFundedVoidGrant(ctx context.Context, ns string, issuedAt time.Time, amount, costBasis alpacadecimal.Decimal) (*customer.Customer, creditpurchase.Charge, billing.StandardInvoice) {
 	s.T().Helper()
 
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),

@@ -53,8 +53,7 @@ import (
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
-	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -90,6 +89,7 @@ type BaseSuite struct {
 	SandboxApp *appsandbox.MockableFactory
 
 	TaxCodeService taxcode.Service
+	TaxCodeEnv     *taxcodetestutils.TestEnv
 }
 
 func (s *BaseSuite) TearDownTest() {
@@ -108,6 +108,7 @@ func (b *BaseSuite) GetSubscriptionMixInDependencies() SubscriptionMixInDependen
 		FeatureRepo:            b.FeatureRepo,
 		FeatureService:         b.FeatureService,
 		CustomerService:        b.CustomerService,
+		TaxCodeService:         b.TaxCodeService,
 		MeterAdapter:           b.MeterAdapter,
 		MockStreamingConnector: b.MockStreamingConnector,
 	}
@@ -201,18 +202,8 @@ func (s *BaseSuite) setupSuite() {
 	s.AppService = appService
 
 	// TaxCode
-	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
-		Client: dbClient,
-		Logger: slog.Default(),
-	})
-	require.NoError(t, err)
-
-	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
-		Adapter: taxCodeAdapter,
-		Logger:  slog.Default(),
-	})
-	require.NoError(t, err)
-	s.TaxCodeService = taxCodeService
+	s.TaxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, dbClient, slog.Default())
+	s.TaxCodeService = s.TaxCodeEnv.Service
 
 	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
@@ -249,7 +240,7 @@ func (s *BaseSuite) setupSuite() {
 		Publisher:                    publisher,
 		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
-		TaxCodeService:               taxCodeService,
+		TaxCodeService:               s.TaxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -640,7 +631,7 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 // code deprecation gate (InvoicingConfig.EnforceTaxCodeDeprecation). This simulates legacy
 // rows that were created before tax codes on billing profiles were deprecated.
 //
-// The tax config is resolved in place exactly like the pre-deprecation service path
+// The tax config is resolved exactly like the pre-deprecation service path
 // (productcatalog.ResolveTaxConfig cross-populates TaxCodeID and Stripe.Code), then
 // persisted via the adapter so the JSON column, tax_code_id FK and tax_behavior columns
 // are written by the production adapter code path. Returns the re-read profile so tests
@@ -648,7 +639,11 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, profileID billing.ProfileID, taxConfig *productcatalog.TaxConfig) *billing.AdapterGetProfileResponse {
 	s.T().Helper()
 
-	s.Require().NoError(productcatalog.ResolveTaxConfig(ctx, s.TaxCodeService, profileID.Namespace, taxConfig))
+	resolvedTaxConfig, err := productcatalog.ResolveTaxConfig(ctx, s.TaxCodeService, productcatalog.ResolveTaxConfigInput{
+		Namespace: profileID.Namespace,
+		Cfg:       taxConfig,
+	})
+	s.Require().NoError(err)
 
 	adapterProfile, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: profileID})
 	s.Require().NoError(err)
@@ -656,7 +651,7 @@ func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, p
 	targetState := adapterProfile.BaseProfile
 	// Mirror the service update path: app references are never part of the update target state.
 	targetState.AppReferences = nil
-	targetState.WorkflowConfig.Invoicing.DefaultTaxConfig = taxConfig
+	targetState.WorkflowConfig.Invoicing.DefaultTaxConfig = resolvedTaxConfig
 
 	_, err = s.BillingAdapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
 		TargetState:      targetState,
@@ -668,60 +663,6 @@ func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, p
 	s.Require().NoError(err)
 
 	return updatedProfile
-}
-
-// ProvisionDefaultTaxCodes creates the invoicing and credit-grant tax codes for the
-// namespace and stores them as the organization defaults. Tests that create charges
-// via the real charges service must call this for the namespace, because charge
-// creation auto-stamps the namespace's default tax code when the caller's TaxConfig
-// has no TaxCodeID.
-func (s *BaseSuite) ProvisionDefaultTaxCodes(ctx context.Context, ns string) taxcode.OrganizationDefaultTaxCodes {
-	s.T().Helper()
-
-	invoicing := s.ProvisionProviderDefaultTaxCode(ctx, ns)
-	creditGrant := s.getOrCreateTaxCodeByKey(ctx, ns, "default-credit-grant", "Default Credit Grant")
-
-	defaults, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
-		Namespace:            ns,
-		InvoicingTaxCodeID:   invoicing.ID,
-		CreditGrantTaxCodeID: creditGrant.ID,
-	})
-	s.Require().NoError(err, "upserting organization default tax codes")
-	return defaults
-}
-
-// ProvisionProviderDefaultTaxCode creates the tax code used when an invoicing app
-// omits an app-specific provider code. This is distinct from organization default
-// tax-code settings: API invoice edit diffing needs the provider-default tax code
-// row to resolve empty provider tax config, but it must not imply that the
-// namespace has configured org-level default tax codes.
-func (s *BaseSuite) ProvisionProviderDefaultTaxCode(ctx context.Context, ns string) taxcode.TaxCode {
-	s.T().Helper()
-
-	return s.getOrCreateTaxCodeByKey(ctx, ns, taxcode.ProviderDefaultTaxCodeKey, "Provider Default")
-}
-
-func (s *BaseSuite) getOrCreateTaxCodeByKey(ctx context.Context, ns string, key string, name string) taxcode.TaxCode {
-	s.T().Helper()
-
-	taxCode, err := s.TaxCodeService.GetTaxCodeByKey(ctx, taxcode.GetTaxCodeByKeyInput{
-		Namespace: ns,
-		Key:       key,
-	})
-	if err == nil {
-		return taxCode
-	}
-
-	s.Require().True(taxcode.IsTaxCodeNotFoundError(err), "getting tax code by key should either succeed or return not found")
-
-	taxCode, err = s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       key,
-		Name:      name,
-	})
-	s.Require().NoError(err, "creating tax code")
-
-	return taxCode
 }
 
 type SetupCustomInvoicingResponse struct {
