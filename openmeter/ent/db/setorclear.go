@@ -706,14 +706,14 @@ func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearFeatureKey(value *strin
 	return u.SetFeatureKey(*value)
 }
 
-func (u *BillingGatheringInvoiceLineUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpdate {
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpdateOne {
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}

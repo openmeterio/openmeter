@@ -482,7 +482,7 @@ func init() {
 	billinggatheringinvoiceline.ValueScanner.Price = billinggatheringinvoicelineDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// billinggatheringinvoicelineDescUnitConfig is the schema descriptor for unit_config field.
 	billinggatheringinvoicelineDescUnitConfig := billinggatheringinvoicelineMixinFields2[7].Descriptor()
-	billinggatheringinvoiceline.ValueScanner.UnitConfig = billinggatheringinvoicelineDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
+	billinggatheringinvoiceline.ValueScanner.UnitConfig = billinggatheringinvoicelineDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	// billinggatheringinvoicelineDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
 	billinggatheringinvoicelineDescRatecardDiscounts := billinggatheringinvoicelineMixinFields2[8].Descriptor()
 	billinggatheringinvoiceline.ValueScanner.RatecardDiscounts = billinggatheringinvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
