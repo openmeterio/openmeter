@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -447,6 +448,44 @@ func init() {
 	billingcustomeroverrideDescID := billingcustomeroverrideMixinFields0[0].Descriptor()
 	// billingcustomeroverride.DefaultID holds the default value on creation for the id field.
 	billingcustomeroverride.DefaultID = billingcustomeroverrideDescID.Default.(func() string)
+	billinggatheringinvoicelineMixin := schema.BillingGatheringInvoiceLine{}.Mixin()
+	billinggatheringinvoicelineMixinFields1 := billinggatheringinvoicelineMixin[1].Fields()
+	_ = billinggatheringinvoicelineMixinFields1
+	billinggatheringinvoicelineMixinFields2 := billinggatheringinvoicelineMixin[2].Fields()
+	_ = billinggatheringinvoicelineMixinFields2
+	billinggatheringinvoicelineFields := schema.BillingGatheringInvoiceLine{}.Fields()
+	_ = billinggatheringinvoicelineFields
+	// billinggatheringinvoicelineDescNamespace is the schema descriptor for namespace field.
+	billinggatheringinvoicelineDescNamespace := billinggatheringinvoicelineMixinFields1[1].Descriptor()
+	// billinggatheringinvoiceline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billinggatheringinvoiceline.NamespaceValidator = billinggatheringinvoicelineDescNamespace.Validators[0].(func(string) error)
+	// billinggatheringinvoicelineDescCreatedAt is the schema descriptor for created_at field.
+	billinggatheringinvoicelineDescCreatedAt := billinggatheringinvoicelineMixinFields1[3].Descriptor()
+	// billinggatheringinvoiceline.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billinggatheringinvoiceline.DefaultCreatedAt = billinggatheringinvoicelineDescCreatedAt.Default.(func() time.Time)
+	// billinggatheringinvoicelineDescUpdatedAt is the schema descriptor for updated_at field.
+	billinggatheringinvoicelineDescUpdatedAt := billinggatheringinvoicelineMixinFields1[4].Descriptor()
+	// billinggatheringinvoiceline.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billinggatheringinvoiceline.DefaultUpdatedAt = billinggatheringinvoicelineDescUpdatedAt.Default.(func() time.Time)
+	// billinggatheringinvoiceline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billinggatheringinvoiceline.UpdateDefaultUpdatedAt = billinggatheringinvoicelineDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billinggatheringinvoicelineDescCurrency is the schema descriptor for currency field.
+	billinggatheringinvoicelineDescCurrency := billinggatheringinvoicelineMixinFields2[0].Descriptor()
+	// billinggatheringinvoiceline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	billinggatheringinvoiceline.CurrencyValidator = billinggatheringinvoicelineDescCurrency.Validators[0].(func(string) error)
+	// billinggatheringinvoicelineDescPrice is the schema descriptor for price field.
+	billinggatheringinvoicelineDescPrice := billinggatheringinvoicelineMixinFields2[6].Descriptor()
+	billinggatheringinvoiceline.ValueScanner.Price = billinggatheringinvoicelineDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// billinggatheringinvoicelineDescUnitConfig is the schema descriptor for unit_config field.
+	billinggatheringinvoicelineDescUnitConfig := billinggatheringinvoicelineMixinFields2[7].Descriptor()
+	billinggatheringinvoiceline.ValueScanner.UnitConfig = billinggatheringinvoicelineDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
+	// billinggatheringinvoicelineDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
+	billinggatheringinvoicelineDescRatecardDiscounts := billinggatheringinvoicelineMixinFields2[8].Descriptor()
+	billinggatheringinvoiceline.ValueScanner.RatecardDiscounts = billinggatheringinvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
+	// billinggatheringinvoicelineDescID is the schema descriptor for id field.
+	billinggatheringinvoicelineDescID := billinggatheringinvoicelineMixinFields1[0].Descriptor()
+	// billinggatheringinvoiceline.DefaultID holds the default value on creation for the id field.
+	billinggatheringinvoiceline.DefaultID = billinggatheringinvoicelineDescID.Default.(func() string)
 	billinginvoiceMixin := schema.BillingInvoice{}.Mixin()
 	billinginvoiceMixinFields0 := billinginvoiceMixin[0].Fields()
 	_ = billinginvoiceMixinFields0

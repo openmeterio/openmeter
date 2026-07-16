@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
@@ -30,21 +31,22 @@ import (
 // SubscriptionQuery is the builder for querying Subscription entities.
 type SubscriptionQuery struct {
 	config
-	ctx                        *QueryContext
-	order                      []subscription.OrderOption
-	inters                     []Interceptor
-	predicates                 []predicate.Subscription
-	withPlan                   *PlanQuery
-	withCustomer               *CustomerQuery
-	withPhases                 *SubscriptionPhaseQuery
-	withBillingLines           *BillingInvoiceLineQuery
-	withBillingSplitLineGroups *BillingInvoiceSplitLineGroupQuery
-	withChargesUsageBased      *ChargeUsageBasedQuery
-	withChargesCreditPurchase  *ChargeCreditPurchaseQuery
-	withChargesFlatFee         *ChargeFlatFeeQuery
-	withAddons                 *SubscriptionAddonQuery
-	withBillingSyncState       *SubscriptionBillingSyncStateQuery
-	modifiers                  []func(*sql.Selector)
+	ctx                              *QueryContext
+	order                            []subscription.OrderOption
+	inters                           []Interceptor
+	predicates                       []predicate.Subscription
+	withPlan                         *PlanQuery
+	withCustomer                     *CustomerQuery
+	withPhases                       *SubscriptionPhaseQuery
+	withBillingLines                 *BillingInvoiceLineQuery
+	withBillingGatheringInvoiceLines *BillingGatheringInvoiceLineQuery
+	withBillingSplitLineGroups       *BillingInvoiceSplitLineGroupQuery
+	withChargesUsageBased            *ChargeUsageBasedQuery
+	withChargesCreditPurchase        *ChargeCreditPurchaseQuery
+	withChargesFlatFee               *ChargeFlatFeeQuery
+	withAddons                       *SubscriptionAddonQuery
+	withBillingSyncState             *SubscriptionBillingSyncStateQuery
+	modifiers                        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -162,6 +164,28 @@ func (_q *SubscriptionQuery) QueryBillingLines() *BillingInvoiceLineQuery {
 			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscription.BillingLinesTable, subscription.BillingLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingGatheringInvoiceLines chains the current query on the "billing_gathering_invoice_lines" edge.
+func (_q *SubscriptionQuery) QueryBillingGatheringInvoiceLines() *BillingGatheringInvoiceLineQuery {
+	query := (&BillingGatheringInvoiceLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
+			sqlgraph.To(billinggatheringinvoiceline.Table, billinggatheringinvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.BillingGatheringInvoiceLinesTable, subscription.BillingGatheringInvoiceLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -488,21 +512,22 @@ func (_q *SubscriptionQuery) Clone() *SubscriptionQuery {
 		return nil
 	}
 	return &SubscriptionQuery{
-		config:                     _q.config,
-		ctx:                        _q.ctx.Clone(),
-		order:                      append([]subscription.OrderOption{}, _q.order...),
-		inters:                     append([]Interceptor{}, _q.inters...),
-		predicates:                 append([]predicate.Subscription{}, _q.predicates...),
-		withPlan:                   _q.withPlan.Clone(),
-		withCustomer:               _q.withCustomer.Clone(),
-		withPhases:                 _q.withPhases.Clone(),
-		withBillingLines:           _q.withBillingLines.Clone(),
-		withBillingSplitLineGroups: _q.withBillingSplitLineGroups.Clone(),
-		withChargesUsageBased:      _q.withChargesUsageBased.Clone(),
-		withChargesCreditPurchase:  _q.withChargesCreditPurchase.Clone(),
-		withChargesFlatFee:         _q.withChargesFlatFee.Clone(),
-		withAddons:                 _q.withAddons.Clone(),
-		withBillingSyncState:       _q.withBillingSyncState.Clone(),
+		config:                           _q.config,
+		ctx:                              _q.ctx.Clone(),
+		order:                            append([]subscription.OrderOption{}, _q.order...),
+		inters:                           append([]Interceptor{}, _q.inters...),
+		predicates:                       append([]predicate.Subscription{}, _q.predicates...),
+		withPlan:                         _q.withPlan.Clone(),
+		withCustomer:                     _q.withCustomer.Clone(),
+		withPhases:                       _q.withPhases.Clone(),
+		withBillingLines:                 _q.withBillingLines.Clone(),
+		withBillingGatheringInvoiceLines: _q.withBillingGatheringInvoiceLines.Clone(),
+		withBillingSplitLineGroups:       _q.withBillingSplitLineGroups.Clone(),
+		withChargesUsageBased:            _q.withChargesUsageBased.Clone(),
+		withChargesCreditPurchase:        _q.withChargesCreditPurchase.Clone(),
+		withChargesFlatFee:               _q.withChargesFlatFee.Clone(),
+		withAddons:                       _q.withAddons.Clone(),
+		withBillingSyncState:             _q.withBillingSyncState.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -550,6 +575,17 @@ func (_q *SubscriptionQuery) WithBillingLines(opts ...func(*BillingInvoiceLineQu
 		opt(query)
 	}
 	_q.withBillingLines = query
+	return _q
+}
+
+// WithBillingGatheringInvoiceLines tells the query-builder to eager-load the nodes that are connected to
+// the "billing_gathering_invoice_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionQuery) WithBillingGatheringInvoiceLines(opts ...func(*BillingGatheringInvoiceLineQuery)) *SubscriptionQuery {
+	query := (&BillingGatheringInvoiceLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingGatheringInvoiceLines = query
 	return _q
 }
 
@@ -697,11 +733,12 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*Subscription{}
 		_spec       = _q.querySpec()
-		loadedTypes = [10]bool{
+		loadedTypes = [11]bool{
 			_q.withPlan != nil,
 			_q.withCustomer != nil,
 			_q.withPhases != nil,
 			_q.withBillingLines != nil,
+			_q.withBillingGatheringInvoiceLines != nil,
 			_q.withBillingSplitLineGroups != nil,
 			_q.withChargesUsageBased != nil,
 			_q.withChargesCreditPurchase != nil,
@@ -754,6 +791,15 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		if err := _q.loadBillingLines(ctx, query, nodes,
 			func(n *Subscription) { n.Edges.BillingLines = []*BillingInvoiceLine{} },
 			func(n *Subscription, e *BillingInvoiceLine) { n.Edges.BillingLines = append(n.Edges.BillingLines, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingGatheringInvoiceLines; query != nil {
+		if err := _q.loadBillingGatheringInvoiceLines(ctx, query, nodes,
+			func(n *Subscription) { n.Edges.BillingGatheringInvoiceLines = []*BillingGatheringInvoiceLine{} },
+			func(n *Subscription, e *BillingGatheringInvoiceLine) {
+				n.Edges.BillingGatheringInvoiceLines = append(n.Edges.BillingGatheringInvoiceLines, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -914,6 +960,39 @@ func (_q *SubscriptionQuery) loadBillingLines(ctx context.Context, query *Billin
 	}
 	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(subscription.BillingLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SubscriptionID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "subscription_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "subscription_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SubscriptionQuery) loadBillingGatheringInvoiceLines(ctx context.Context, query *BillingGatheringInvoiceLineQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *BillingGatheringInvoiceLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Subscription)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinggatheringinvoiceline.FieldSubscriptionID)
+	}
+	query.Where(predicate.BillingGatheringInvoiceLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscription.BillingGatheringInvoiceLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

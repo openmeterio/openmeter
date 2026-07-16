@@ -36,6 +36,8 @@ type Tx struct {
 	BillingCustomerLock *BillingCustomerLockClient
 	// BillingCustomerOverride is the client for interacting with the BillingCustomerOverride builders.
 	BillingCustomerOverride *BillingCustomerOverrideClient
+	// BillingGatheringInvoiceLine is the client for interacting with the BillingGatheringInvoiceLine builders.
+	BillingGatheringInvoiceLine *BillingGatheringInvoiceLineClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
 	BillingInvoice *BillingInvoiceClient
 	// BillingInvoiceFlatFeeLineConfig is the client for interacting with the BillingInvoiceFlatFeeLineConfig builders.
@@ -322,6 +324,7 @@ func (tx *Tx) init() {
 	tx.BalanceSnapshot = NewBalanceSnapshotClient(tx.config)
 	tx.BillingCustomerLock = NewBillingCustomerLockClient(tx.config)
 	tx.BillingCustomerOverride = NewBillingCustomerOverrideClient(tx.config)
+	tx.BillingGatheringInvoiceLine = NewBillingGatheringInvoiceLineClient(tx.config)
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
 	tx.BillingInvoiceFlatFeeLineConfig = NewBillingInvoiceFlatFeeLineConfigClient(tx.config)
 	tx.BillingInvoiceLine = NewBillingInvoiceLineClient(tx.config)

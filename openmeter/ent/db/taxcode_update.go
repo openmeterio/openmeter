@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
@@ -181,6 +182,21 @@ func (_u *TaxCodeUpdate) AddBillingInvoiceLines(v ...*BillingInvoiceLine) *TaxCo
 		ids[i] = v[i].ID
 	}
 	return _u.AddBillingInvoiceLineIDs(ids...)
+}
+
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_u *TaxCodeUpdate) AddBillingGatheringInvoiceLineIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
+	return _u
+}
+
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *TaxCodeUpdate) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
@@ -399,6 +415,27 @@ func (_u *TaxCodeUpdate) RemoveBillingInvoiceLines(v ...*BillingInvoiceLine) *Ta
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearBillingGatheringInvoiceLines clears all "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *TaxCodeUpdate) ClearBillingGatheringInvoiceLines() *TaxCodeUpdate {
+	_u.mutation.ClearBillingGatheringInvoiceLines()
+	return _u
+}
+
+// RemoveBillingGatheringInvoiceLineIDs removes the "billing_gathering_invoice_lines" edge to BillingGatheringInvoiceLine entities by IDs.
+func (_u *TaxCodeUpdate) RemoveBillingGatheringInvoiceLineIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.RemoveBillingGatheringInvoiceLineIDs(ids...)
+	return _u
+}
+
+// RemoveBillingGatheringInvoiceLines removes "billing_gathering_invoice_lines" edges to BillingGatheringInvoiceLine entities.
+func (_u *TaxCodeUpdate) RemoveBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // ClearSubscriptionItems clears all "subscription_items" edges to the SubscriptionItem entity.
@@ -824,6 +861,51 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BillingGatheringInvoiceLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBillingGatheringInvoiceLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingGatheringInvoiceLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1442,6 +1524,21 @@ func (_u *TaxCodeUpdateOne) AddBillingInvoiceLines(v ...*BillingInvoiceLine) *Ta
 	return _u.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_u *TaxCodeUpdateOne) AddBillingGatheringInvoiceLineIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
+	return _u
+}
+
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *TaxCodeUpdateOne) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBillingGatheringInvoiceLineIDs(ids...)
+}
+
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
 func (_u *TaxCodeUpdateOne) AddSubscriptionItemIDs(ids ...string) *TaxCodeUpdateOne {
 	_u.mutation.AddSubscriptionItemIDs(ids...)
@@ -1658,6 +1755,27 @@ func (_u *TaxCodeUpdateOne) RemoveBillingInvoiceLines(v ...*BillingInvoiceLine) 
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearBillingGatheringInvoiceLines clears all "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *TaxCodeUpdateOne) ClearBillingGatheringInvoiceLines() *TaxCodeUpdateOne {
+	_u.mutation.ClearBillingGatheringInvoiceLines()
+	return _u
+}
+
+// RemoveBillingGatheringInvoiceLineIDs removes the "billing_gathering_invoice_lines" edge to BillingGatheringInvoiceLine entities by IDs.
+func (_u *TaxCodeUpdateOne) RemoveBillingGatheringInvoiceLineIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.RemoveBillingGatheringInvoiceLineIDs(ids...)
+	return _u
+}
+
+// RemoveBillingGatheringInvoiceLines removes "billing_gathering_invoice_lines" edges to BillingGatheringInvoiceLine entities.
+func (_u *TaxCodeUpdateOne) RemoveBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // ClearSubscriptionItems clears all "subscription_items" edges to the SubscriptionItem entity.
@@ -2113,6 +2231,51 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BillingGatheringInvoiceLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBillingGatheringInvoiceLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingGatheringInvoiceLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -166,6 +166,8 @@ func (Charge) Edges() []ent.Edge {
 			Unique(),
 		// Billing
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
+		edge.To("billing_gathering_invoice_lines", BillingGatheringInvoiceLine.Type).
+			StorageKey(edge.Symbol("billing_gathering_line_charge_fk")),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 		edge.To("credit_realization_lineages", CreditRealizationLineage.Type),
 	}

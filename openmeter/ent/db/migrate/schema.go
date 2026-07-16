@@ -588,6 +588,151 @@ var (
 			},
 		},
 	}
+	// BillingGatheringInvoiceLinesColumns holds the columns for the "billing_gathering_invoice_lines" table.
+	BillingGatheringInvoiceLinesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "service_period_start", Type: field.TypeTime},
+		{Name: "service_period_end", Type: field.TypeTime},
+		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "price_type", Type: field.TypeEnum, Enums: []string{"flat", "unit", "tiered", "dynamic", "package"}},
+		{Name: "feature_key", Type: field.TypeString, Nullable: true},
+		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "ratecard_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "child_unique_reference_id", Type: field.TypeString, Nullable: true},
+		{Name: "subscription_billing_period_from", Type: field.TypeTime, Nullable: true},
+		{Name: "subscription_billing_period_to", Type: field.TypeTime, Nullable: true},
+		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
+		{Name: "invoice_at", Type: field.TypeTime},
+		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
+		{Name: "engine", Type: field.TypeEnum, Enums: []string{"invoicing", "charge_flatfee", "charge_usagebased", "charge_creditpurchase"}, Default: "invoicing"},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "split_line_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingGatheringInvoiceLinesTable holds the schema information for the "billing_gathering_invoice_lines" table.
+	BillingGatheringInvoiceLinesTable = &schema.Table{
+		Name:       "billing_gathering_invoice_lines",
+		Columns:    BillingGatheringInvoiceLinesColumns,
+		PrimaryKey: []*schema.Column{BillingGatheringInvoiceLinesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_gathering_line_invoice_fk",
+				Columns:    []*schema.Column{BillingGatheringInvoiceLinesColumns[25]},
+				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "billing_gathering_line_split_group_fk",
+				Columns:    []*schema.Column{BillingGatheringInvoiceLinesColumns[26]},
+				RefColumns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_gathering_line_charge_fk",
+				Columns:    []*schema.Column{BillingGatheringInvoiceLinesColumns[27]},
+				RefColumns: []*schema.Column{ChargesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_gathering_line_subscription_fk",
+				Columns:    []*schema.Column{BillingGatheringInvoiceLinesColumns[28]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_gathering_line_subscription_item_fk",
+				Columns:    []*schema.Column{BillingGatheringInvoiceLinesColumns[29]},
+				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_gathering_line_subscription_phase_fk",
+				Columns:    []*schema.Column{BillingGatheringInvoiceLinesColumns[30]},
+				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_gathering_line_tax_code_fk",
+				Columns:    []*schema.Column{BillingGatheringInvoiceLinesColumns[31]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billinggatheringinvoiceline_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[1]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "billinggatheringinvoiceline_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[0]},
+			},
+			{
+				Name:    "billinggatheringinvoiceline_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[2]},
+			},
+			{
+				Name:    "billinggatheringinvoiceline_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[2], BillingGatheringInvoiceLinesColumns[0]},
+			},
+			{
+				Name:    "billinggatheringinvoiceline_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[31]},
+			},
+			{
+				Name:    "billinggatheringinvoiceline_namespace_invoice_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[2], BillingGatheringInvoiceLinesColumns[25]},
+			},
+			{
+				Name:    "billinggatheringinvoiceline_namespace_split_line_group_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[2], BillingGatheringInvoiceLinesColumns[26]},
+			},
+			{
+				Name:    "billinggatheringinvoiceline_namespace_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[2], BillingGatheringInvoiceLinesColumns[27]},
+			},
+			{
+				Name:    "billinggatheringline_ns_invoice_child_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[2], BillingGatheringInvoiceLinesColumns[25], BillingGatheringInvoiceLinesColumns[18]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "billinggatheringline_ns_subscription_ref",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[2], BillingGatheringInvoiceLinesColumns[28], BillingGatheringInvoiceLinesColumns[30], BillingGatheringInvoiceLinesColumns[29]},
+			},
+		},
+	}
 	// BillingInvoicesColumns holds the columns for the "billing_invoices" table.
 	BillingInvoicesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -5440,6 +5585,7 @@ var (
 		BalanceSnapshotsTable,
 		BillingCustomerLocksTable,
 		BillingCustomerOverridesTable,
+		BillingGatheringInvoiceLinesTable,
 		BillingInvoicesTable,
 		BillingInvoiceFlatFeeLineConfigsTable,
 		BillingInvoiceLinesTable,
@@ -5532,6 +5678,13 @@ func init() {
 	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable
 	BillingCustomerOverridesTable.ForeignKeys[2].RefTable = TaxCodesTable
+	BillingGatheringInvoiceLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
+	BillingGatheringInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceSplitLineGroupsTable
+	BillingGatheringInvoiceLinesTable.ForeignKeys[2].RefTable = ChargesTable
+	BillingGatheringInvoiceLinesTable.ForeignKeys[3].RefTable = SubscriptionsTable
+	BillingGatheringInvoiceLinesTable.ForeignKeys[4].RefTable = SubscriptionItemsTable
+	BillingGatheringInvoiceLinesTable.ForeignKeys[5].RefTable = SubscriptionPhasesTable
+	BillingGatheringInvoiceLinesTable.ForeignKeys[6].RefTable = TaxCodesTable
 	BillingInvoicesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingInvoicesTable.ForeignKeys[1].RefTable = AppsTable
 	BillingInvoicesTable.ForeignKeys[2].RefTable = AppsTable

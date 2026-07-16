@@ -75,6 +75,8 @@ type SubscriptionEdges struct {
 	Phases []*SubscriptionPhase `json:"phases,omitempty"`
 	// BillingLines holds the value of the billing_lines edge.
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
+	// BillingGatheringInvoiceLines holds the value of the billing_gathering_invoice_lines edge.
+	BillingGatheringInvoiceLines []*BillingGatheringInvoiceLine `json:"billing_gathering_invoice_lines,omitempty"`
 	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
 	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
 	// ChargesUsageBased holds the value of the charges_usage_based edge.
@@ -89,7 +91,7 @@ type SubscriptionEdges struct {
 	BillingSyncState *SubscriptionBillingSyncState `json:"billing_sync_state,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [10]bool
+	loadedTypes [11]bool
 }
 
 // PlanOrErr returns the Plan value or an error if the edge
@@ -132,10 +134,19 @@ func (e SubscriptionEdges) BillingLinesOrErr() ([]*BillingInvoiceLine, error) {
 	return nil, &NotLoadedError{edge: "billing_lines"}
 }
 
+// BillingGatheringInvoiceLinesOrErr returns the BillingGatheringInvoiceLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionEdges) BillingGatheringInvoiceLinesOrErr() ([]*BillingGatheringInvoiceLine, error) {
+	if e.loadedTypes[4] {
+		return e.BillingGatheringInvoiceLines, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_gathering_invoice_lines"}
+}
+
 // BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.BillingSplitLineGroups, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
@@ -144,7 +155,7 @@ func (e SubscriptionEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplit
 // ChargesUsageBasedOrErr returns the ChargesUsageBased value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.ChargesUsageBased, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_usage_based"}
@@ -153,7 +164,7 @@ func (e SubscriptionEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, error)
 // ChargesCreditPurchaseOrErr returns the ChargesCreditPurchase value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPurchase, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.ChargesCreditPurchase, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_credit_purchase"}
@@ -162,7 +173,7 @@ func (e SubscriptionEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPurchase
 // ChargesFlatFeeOrErr returns the ChargesFlatFee value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionEdges) ChargesFlatFeeOrErr() ([]*ChargeFlatFee, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[8] {
 		return e.ChargesFlatFee, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_flat_fee"}
@@ -171,7 +182,7 @@ func (e SubscriptionEdges) ChargesFlatFeeOrErr() ([]*ChargeFlatFee, error) {
 // AddonsOrErr returns the Addons value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionEdges) AddonsOrErr() ([]*SubscriptionAddon, error) {
-	if e.loadedTypes[8] {
+	if e.loadedTypes[9] {
 		return e.Addons, nil
 	}
 	return nil, &NotLoadedError{edge: "addons"}
@@ -182,7 +193,7 @@ func (e SubscriptionEdges) AddonsOrErr() ([]*SubscriptionAddon, error) {
 func (e SubscriptionEdges) BillingSyncStateOrErr() (*SubscriptionBillingSyncState, error) {
 	if e.BillingSyncState != nil {
 		return e.BillingSyncState, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: subscriptionbillingsyncstate.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_sync_state"}
@@ -363,6 +374,11 @@ func (_m *Subscription) QueryPhases() *SubscriptionPhaseQuery {
 // QueryBillingLines queries the "billing_lines" edge of the Subscription entity.
 func (_m *Subscription) QueryBillingLines() *BillingInvoiceLineQuery {
 	return NewSubscriptionClient(_m.config).QueryBillingLines(_m)
+}
+
+// QueryBillingGatheringInvoiceLines queries the "billing_gathering_invoice_lines" edge of the Subscription entity.
+func (_m *Subscription) QueryBillingGatheringInvoiceLines() *BillingGatheringInvoiceLineQuery {
+	return NewSubscriptionClient(_m.config).QueryBillingGatheringInvoiceLines(_m)
 }
 
 // QueryBillingSplitLineGroups queries the "billing_split_line_groups" edge of the Subscription entity.

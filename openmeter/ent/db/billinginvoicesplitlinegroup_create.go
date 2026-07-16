@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
@@ -276,6 +277,21 @@ func (_c *BillingInvoiceSplitLineGroupCreate) AddBillingInvoiceLines(v ...*Billi
 	return _c.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_c *BillingInvoiceSplitLineGroupCreate) AddBillingGatheringInvoiceLineIDs(ids ...string) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
+	return _c
+}
+
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_c *BillingInvoiceSplitLineGroupCreate) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *BillingInvoiceSplitLineGroupCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBillingGatheringInvoiceLineIDs(ids...)
+}
+
 // SetSubscription sets the "subscription" edge to the Subscription entity.
 func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscription(v *Subscription) *BillingInvoiceSplitLineGroupCreate {
 	return _c.SetSubscriptionID(v.ID)
@@ -511,6 +527,22 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoicesplitlinegroup.BillingGatheringInvoiceLinesTable,
+			Columns: []string{billinginvoicesplitlinegroup.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
