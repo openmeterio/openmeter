@@ -1,4 +1,4 @@
-h1:Ux/p2BEXeTyc2T6f49M3OT6jB++9XJGWcF2xgvB1ikw=
+h1:pD8amlaJqQ4l47KWTH/dmX/J0xSjGUAoxkQ0ZxOjFTk=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -233,4 +233,6 @@ h1:Ux/p2BEXeTyc2T6f49M3OT6jB++9XJGWcF2xgvB1ikw=
 20260714144104_consolidate_usage_based_realization_statuses.up.sql h1:ihKrZw9u8mv3TxideKQB5ZeakiKVfjf6UeLidLGPRoU=
 20260716092057_create_billing_gathering_invoice_lines.up.sql h1:mdYbF8T8Y/i9RX1R3CIHEk31QtRINRQZK1yYT7wi4/U=
 20260716121405_repair_flat_price_usage_discounts.up.sql h1:d6LekUgFwwqDpNVQHJokrIoiu3ic6p40rfcQxshMTn8=
-20260716150455_cleanup_gathering_invoice_details.up.sql h1:yPyofY9Xoud1vYVlHjsWJ3I/J7D62TIfCDKJS5h7sBU=
+20260716150454_create_gathering_detail_cleanup_indexes.up.sql h1:5d1aWsv+0mzERisQ5Ht29pbjsiOrK2Qpou6x9BgCli4=
+20260716150455_cleanup_gathering_invoice_details.up.sql h1:W4u33tHXJy+GfryC8j46bHi2SiQwDk6brBOex/fQ4rw=
+20260716150456_drop_gathering_detail_cleanup_indexes.up.sql h1:IJ6P54dqEy/LFG9hID2T9yBoN29FRTH/iLTSSTkdpDQ=

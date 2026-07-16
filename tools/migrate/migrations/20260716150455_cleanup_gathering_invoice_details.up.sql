@@ -1,26 +1,12 @@
 BEGIN;
 
-CREATE INDEX om_mig_bil_fee_cfg_id_idx
-    ON billing_invoice_lines (fee_line_config_id);
-CREATE INDEX om_mig_bil_ubp_cfg_id_idx
-    ON billing_invoice_lines (usage_based_line_config_id);
-CREATE INDEX om_mig_bil_parent_id_idx
-    ON billing_invoice_lines (parent_line_id);
-CREATE INDEX om_mig_bild_line_id_idx
-    ON billing_invoice_line_discounts (line_id);
-CREATE INDEX om_mig_biuld_line_id_idx
-    ON billing_invoice_line_usage_discounts (line_id);
-CREATE INDEX om_mig_bsidl_parent_id_idx
-    ON billing_standard_invoice_detailed_lines (parent_line_id);
-CREATE INDEX om_mig_bsidlad_line_id_idx
-    ON billing_standard_invoice_detailed_line_amount_discounts (line_id);
-
-CREATE TABLE om_migration_backup_20260716150455_gathering_details (
+CREATE TABLE IF NOT EXISTS om_migration_backup_20260716150455_gathering_details (
+    backed_up_at TIMESTAMPTZ NOT NULL DEFAULT transaction_timestamp(),
     id VARCHAR NOT NULL,
     namespace VARCHAR NOT NULL,
     source_table TEXT NOT NULL,
     row_data JSONB NOT NULL,
-    PRIMARY KEY (source_table, namespace, id)
+    PRIMARY KEY (backed_up_at, source_table, namespace, id)
 );
 
 INSERT INTO om_migration_backup_20260716150455_gathering_details (id, namespace, source_table, row_data)
@@ -158,7 +144,8 @@ WHERE
 DELETE FROM billing_standard_invoice_detailed_line_amount_discounts d
 USING om_migration_backup_20260716150455_gathering_details b
 WHERE
-    b.source_table = 'billing_standard_invoice_detailed_line_amount_discounts'
+    b.backed_up_at = transaction_timestamp()
+    AND b.source_table = 'billing_standard_invoice_detailed_line_amount_discounts'
     AND d.id = b.id
     AND d.namespace = b.namespace;
 
@@ -170,7 +157,9 @@ BEGIN
         JOIN billing_standard_invoice_detailed_line_amount_discounts d
             ON d.line_id = b.id
             AND d.namespace = b.namespace
-        WHERE b.source_table = 'billing_standard_invoice_detailed_lines'
+        WHERE
+            b.backed_up_at = transaction_timestamp()
+            AND b.source_table = 'billing_standard_invoice_detailed_lines'
     ) THEN
         RAISE EXCEPTION 'deleting gathering invoice standard details would cascade to amount discounts';
     END IF;
@@ -180,21 +169,24 @@ $$;
 DELETE FROM billing_standard_invoice_detailed_lines dl
 USING om_migration_backup_20260716150455_gathering_details b
 WHERE
-    b.source_table = 'billing_standard_invoice_detailed_lines'
+    b.backed_up_at = transaction_timestamp()
+    AND b.source_table = 'billing_standard_invoice_detailed_lines'
     AND dl.id = b.id
     AND dl.namespace = b.namespace;
 
 DELETE FROM billing_invoice_line_discounts d
 USING om_migration_backup_20260716150455_gathering_details b
 WHERE
-    b.source_table = 'billing_invoice_line_discounts'
+    b.backed_up_at = transaction_timestamp()
+    AND b.source_table = 'billing_invoice_line_discounts'
     AND d.id = b.id
     AND d.namespace = b.namespace;
 
 DELETE FROM billing_invoice_line_usage_discounts d
 USING om_migration_backup_20260716150455_gathering_details b
 WHERE
-    b.source_table = 'billing_invoice_line_usage_discounts'
+    b.backed_up_at = transaction_timestamp()
+    AND b.source_table = 'billing_invoice_line_usage_discounts'
     AND d.id = b.id
     AND d.namespace = b.namespace;
 
@@ -206,7 +198,9 @@ BEGIN
         JOIN billing_invoice_line_discounts d
             ON d.line_id = b.id
             AND d.namespace = b.namespace
-        WHERE b.source_table = 'billing_invoice_lines'
+        WHERE
+            b.backed_up_at = transaction_timestamp()
+            AND b.source_table = 'billing_invoice_lines'
     ) THEN
         RAISE EXCEPTION 'deleting gathering invoice details would cascade to billing_invoice_line_discounts';
     END IF;
@@ -217,7 +211,9 @@ BEGIN
         JOIN billing_invoice_line_usage_discounts d
             ON d.line_id = b.id
             AND d.namespace = b.namespace
-        WHERE b.source_table = 'billing_invoice_lines'
+        WHERE
+            b.backed_up_at = transaction_timestamp()
+            AND b.source_table = 'billing_invoice_lines'
     ) THEN
         RAISE EXCEPTION 'deleting gathering invoice details would cascade to billing_invoice_line_usage_discounts';
     END IF;
@@ -228,7 +224,9 @@ BEGIN
         JOIN billing_standard_invoice_detailed_lines dl
             ON dl.parent_line_id = b.id
             AND dl.namespace = b.namespace
-        WHERE b.source_table = 'billing_invoice_lines'
+        WHERE
+            b.backed_up_at = transaction_timestamp()
+            AND b.source_table = 'billing_invoice_lines'
     ) THEN
         RAISE EXCEPTION 'deleting gathering invoice details would cascade to billing_standard_invoice_detailed_lines';
     END IF;
@@ -239,7 +237,9 @@ BEGIN
         JOIN charge_credit_purchase_invoiced_payments p
             ON p.line_id = b.id
             AND p.namespace = b.namespace
-        WHERE b.source_table = 'billing_invoice_lines'
+        WHERE
+            b.backed_up_at = transaction_timestamp()
+            AND b.source_table = 'billing_invoice_lines'
     ) THEN
         RAISE EXCEPTION 'deleting gathering invoice details would cascade to charge_credit_purchase_invoiced_payments';
     END IF;
@@ -250,7 +250,9 @@ BEGIN
         JOIN billing_invoice_lines dl
             ON dl.parent_line_id = b.id
             AND dl.namespace = b.namespace
-        WHERE b.source_table = 'billing_invoice_lines'
+        WHERE
+            b.backed_up_at = transaction_timestamp()
+            AND b.source_table = 'billing_invoice_lines'
     ) THEN
         RAISE EXCEPTION 'gathering invoice detail selected for deletion is not a leaf line';
     END IF;
@@ -260,7 +262,8 @@ $$;
 DELETE FROM billing_invoice_lines dl
 USING om_migration_backup_20260716150455_gathering_details b
 WHERE
-    b.source_table = 'billing_invoice_lines'
+    b.backed_up_at = transaction_timestamp()
+    AND b.source_table = 'billing_invoice_lines'
     AND dl.id = b.id
     AND dl.namespace = b.namespace;
 
@@ -272,7 +275,9 @@ BEGIN
         JOIN billing_invoice_lines l
             ON l.fee_line_config_id = b.id
             AND l.namespace = b.namespace
-        WHERE b.source_table = 'billing_invoice_flat_fee_line_configs'
+        WHERE
+            b.backed_up_at = transaction_timestamp()
+            AND b.source_table = 'billing_invoice_flat_fee_line_configs'
     ) THEN
         RAISE EXCEPTION 'deleting gathering invoice flat-fee configs would cascade to billing_invoice_lines';
     END IF;
@@ -283,7 +288,9 @@ BEGIN
         JOIN billing_invoice_lines l
             ON l.usage_based_line_config_id = b.id
             AND l.namespace = b.namespace
-        WHERE b.source_table = 'billing_invoice_usage_based_line_configs'
+        WHERE
+            b.backed_up_at = transaction_timestamp()
+            AND b.source_table = 'billing_invoice_usage_based_line_configs'
     ) THEN
         RAISE EXCEPTION 'deleting gathering invoice usage-based configs would cascade to billing_invoice_lines';
     END IF;
@@ -293,24 +300,17 @@ $$;
 DELETE FROM billing_invoice_flat_fee_line_configs c
 USING om_migration_backup_20260716150455_gathering_details b
 WHERE
-    b.source_table = 'billing_invoice_flat_fee_line_configs'
+    b.backed_up_at = transaction_timestamp()
+    AND b.source_table = 'billing_invoice_flat_fee_line_configs'
     AND c.id = b.id
     AND c.namespace = b.namespace;
 
 DELETE FROM billing_invoice_usage_based_line_configs c
 USING om_migration_backup_20260716150455_gathering_details b
 WHERE
-    b.source_table = 'billing_invoice_usage_based_line_configs'
+    b.backed_up_at = transaction_timestamp()
+    AND b.source_table = 'billing_invoice_usage_based_line_configs'
     AND c.id = b.id
     AND c.namespace = b.namespace;
-
-DROP INDEX
-    om_mig_bil_fee_cfg_id_idx,
-    om_mig_bil_ubp_cfg_id_idx,
-    om_mig_bil_parent_id_idx,
-    om_mig_bild_line_id_idx,
-    om_mig_biuld_line_id_idx,
-    om_mig_bsidl_parent_id_idx,
-    om_mig_bsidlad_line_id_idx;
 
 COMMIT;
