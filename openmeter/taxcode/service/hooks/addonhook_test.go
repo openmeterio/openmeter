@@ -19,7 +19,6 @@ func TestAddonHookPreDelete(t *testing.T) {
 	// Setup real services backed by Postgres.
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 
 	// Register the addon hook on the real taxcode service.
 	addonHook, err := hooks.NewAddonHook(hooks.AddonHookConfig{AddonService: env.Addon})
