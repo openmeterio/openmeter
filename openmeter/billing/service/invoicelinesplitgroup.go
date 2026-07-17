@@ -8,6 +8,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
+// TODO[later]: refactor split-line-group operations to be used only by the legacy billing engine.
+// Split-line groups are a progressive-billing compatibility model and should not remain part of the generic billing service.
 func (s *Service) DeleteSplitLineGroup(ctx context.Context, input billing.DeleteSplitLineGroupInput) error {
 	if err := input.Validate(); err != nil {
 		return billing.ValidationError{

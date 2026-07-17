@@ -835,17 +835,12 @@ func (a *adapter) GetStandardLinesForSubscription(ctx context.Context, in billin
 			return nil, fmt.Errorf("mapping standard lines: %w", err)
 		}
 
-		dbGroups, err := tx.db.BillingInvoiceSplitLineGroup.Query().
+		groupQuery := tx.db.BillingInvoiceSplitLineGroup.Query().
 			Where(billinginvoicesplitlinegroup.Namespace(in.Namespace)).
 			Where(billinginvoicesplitlinegroup.SubscriptionID(in.SubscriptionID)).
-			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-				tx.expandLineItems(q)
-				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
-				})
-			}).
-			Where(billinginvoicesplitlinegroup.DeletedAtIsNil()).
-			All(ctx)
+			Where(billinginvoicesplitlinegroup.DeletedAtIsNil())
+
+		dbGroups, err := tx.expandSplitLineGroupLines(groupQuery).All(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fetching split line groups: %w", err)
 		}
@@ -856,7 +851,11 @@ func (a *adapter) GetStandardLinesForSubscription(ctx context.Context, in billin
 				return billing.SplitLineHierarchy{}, err
 			}
 
-			lines, err := tx.mapSplitLineHierarchyLinesFromDB(ctx, dbGroup.Edges.BillingInvoiceLines)
+			lines, err := tx.mapSplitLineHierarchyLinesFromDB(
+				ctx,
+				dbGroup.Edges.BillingInvoiceLines,
+				dbGroup.Edges.BillingGatheringInvoiceLines,
+			)
 			if err != nil {
 				return billing.SplitLineHierarchy{}, err
 			}
