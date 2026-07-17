@@ -17,11 +17,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesearchv1"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -127,7 +126,7 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 		// Let's add required edges for mapping
 		newInvoice.Edges.BillingWorkflowConfig = clonedWorkflowConfig
 
-		return tx.mapGatheringInvoiceFromDB(ctx, newInvoice, billing.GatheringInvoiceExpands{})
+		return tx.mapGatheringInvoiceFromDB(newInvoice, billing.GatheringInvoiceExpands{})
 	})
 }
 
@@ -243,13 +242,7 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 		query := tx.db.BillingInvoiceSearchV1.Query().
 			Where(billinginvoicesearchv1.InvoiceTypeEQ(billing.InvoiceTypeGathering))
 
-		if len(input.Namespaces) > 0 {
-			query = query.Where(billinginvoicesearchv1.NamespaceIn(input.Namespaces...))
-		}
-
-		if len(input.ExcludedNamespaces) > 0 {
-			query = query.Where(billinginvoicesearchv1.NamespaceNotIn(input.ExcludedNamespaces...))
-		}
+		query = query.Where(billinginvoicesearchv1.Namespace(input.Namespace))
 
 		if len(input.Customers) > 0 {
 			query = query.Where(billinginvoicesearchv1.CustomerIDIn(input.Customers...))
@@ -264,7 +257,6 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			order = entutils.GetOrdering(input.Order)
 		}
 
-		query = filter.ApplyToQuery(query, &input.CollectionAt, billinginvoicesearchv1.FieldCollectionAt)
 		if len(input.IDs) > 0 {
 			query = query.Where(billinginvoicesearchv1.IDIn(input.IDs...))
 		}
@@ -308,8 +300,7 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			return hit.StorageTable, hit.ID
 		})
 
-		// Downstream list operations can be permissive about namespace filtering because
-		// response assembly only accepts invoices matching a search hit by namespace and ID.
+		// Hydrate each search result from its storage table within the requested namespace.
 		hydrated := make(map[models.NamespacedID]billing.GatheringInvoice, len(paged.Items))
 		for storageTable, ids := range invoicesToBeLoaded {
 			var invoices []billing.GatheringInvoice
@@ -318,14 +309,14 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			switch storageTable {
 			case billinginvoicesearchv1.StorageTableBillingInvoice:
 				invoices, err = tx.listGatheringInvoices(ctx, listGatheringInvoicesInput{
-					Namespaces:     input.Namespaces,
+					Namespace:      input.Namespace,
 					IDs:            ids,
 					Expand:         input.Expand,
 					IncludeDeleted: true,
 				})
 			case billinginvoicesearchv1.StorageTableBillingGatheringInvoice:
 				invoices, err = tx.listDedicatedGatheringInvoices(ctx, listGatheringInvoicesInput{
-					Namespaces:     input.Namespaces,
+					Namespace:      input.Namespace,
 					IDs:            ids,
 					Expand:         input.Expand,
 					IncludeDeleted: true,
@@ -333,6 +324,7 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			default:
 				return response, fmt.Errorf("unsupported gathering invoice storage table [storage_table=%s]", storageTable)
 			}
+
 			if err != nil {
 				return response, fmt.Errorf("listing gathering invoices for search hydration [storage_table=%s]: %w", storageTable, err)
 			}
@@ -352,6 +344,13 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 		})
 		if err != nil {
 			return response, err
+		}
+
+		if input.Expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
+			result, err = tx.loadSplitLineHierarchiesForGatheringInvoices(ctx, result)
+			if err != nil {
+				return response, err
+			}
 		}
 
 		response.TotalCount = paged.TotalCount
@@ -436,6 +435,45 @@ func (a *adapter) ListCustomerIDsPendingCollection(ctx context.Context, input bi
 	})
 }
 
+func (a *adapter) loadSplitLineHierarchiesForGatheringInvoices(ctx context.Context, invoices []billing.GatheringInvoice) ([]billing.GatheringInvoice, error) {
+	linesByInvoice := lo.Map(invoices, func(invoice billing.GatheringInvoice, _ int) billing.GatheringLines {
+		return invoice.Lines.OrEmpty()
+	})
+	linePointersByNamespace := lo.GroupBy(
+		lo.FlatMap(linesByInvoice, func(lines billing.GatheringLines, _ int) []*billing.GatheringLine {
+			return lo.Map(lines, func(_ billing.GatheringLine, lineIndex int) *billing.GatheringLine {
+				return &lines[lineIndex]
+			})
+		}),
+		func(line *billing.GatheringLine) string {
+			return line.Namespace
+		},
+	)
+
+	for namespace, linePointers := range linePointersByNamespace {
+		lines := billing.GatheringLines(lo.Map(linePointers, func(line *billing.GatheringLine, _ int) billing.GatheringLine {
+			return *line
+		}))
+
+		hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, namespace, lines.AsGenericLines())
+		if err != nil {
+			return nil, fmt.Errorf("loading gathering invoice split line hierarchies [namespace=%s]: %w", namespace, err)
+		}
+
+		if _, err := withSplitLineHierarchyForLines(linePointers, hierarchyByLineID); err != nil {
+			return nil, fmt.Errorf("assigning gathering invoice split line hierarchies [namespace=%s]: %w", namespace, err)
+		}
+	}
+
+	return lo.Map(invoices, func(invoice billing.GatheringInvoice, invoiceIndex int) billing.GatheringInvoice {
+		if invoice.Lines.IsPresent() {
+			invoice.Lines = billing.NewGatheringInvoiceLines(linesByInvoice[invoiceIndex])
+		}
+
+		return invoice
+	}), nil
+}
+
 func (a *adapter) validateUpdateGatheringInvoiceRequest(req billing.GatheringInvoice, existing *db.BillingInvoice) error {
 	if req.Currency != existing.Currency {
 		return billing.ValidationError{
@@ -513,13 +551,14 @@ func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand 
 	})
 }
 
-func (a *adapter) expandDedicatedGatheringInvoiceLines(q *db.BillingGatheringInvoiceQuery, expand billing.GatheringInvoiceExpands) *db.BillingGatheringInvoiceQuery {
+func (a *adapter) expandDedicatedGatheringInvoiceLines(q *db.BillingGatheringInvoiceQuery, expand billing.GatheringInvoiceExpands, namespace string) *db.BillingGatheringInvoiceQuery {
 	return q.WithBillingGatheringInvoiceLines(func(q *db.BillingGatheringInvoiceLineQuery) {
+		q.Where(billinggatheringinvoiceline.Namespace(namespace))
 		if !expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
 			q = q.Where(billinggatheringinvoiceline.DeletedAtIsNil())
 		}
 
-		q.WithTaxCode()
+		q.WithTaxCode(taxCodeInNamespace(namespace))
 	})
 }
 
@@ -586,7 +625,21 @@ func (a *adapter) getGatheringInvoiceById(ctx context.Context, input billing.Get
 			return billing.GatheringInvoice{}, err
 		}
 
-		return tx.mapGatheringInvoiceFromDB(ctx, invoice, input.Expand)
+		mapped, err := tx.mapGatheringInvoiceFromDB(invoice, input.Expand)
+		if err != nil {
+			return billing.GatheringInvoice{}, err
+		}
+
+		if input.Expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
+			invoices, err := tx.loadSplitLineHierarchiesForGatheringInvoices(ctx, []billing.GatheringInvoice{mapped})
+			if err != nil {
+				return billing.GatheringInvoice{}, err
+			}
+
+			mapped = invoices[0]
+		}
+
+		return mapped, nil
 	})
 }
 
@@ -597,7 +650,7 @@ func (a *adapter) getDedicatedGatheringInvoiceById(ctx context.Context, input bi
 			Where(billinggatheringinvoice.Namespace(input.Invoice.Namespace))
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
-			query = tx.expandDedicatedGatheringInvoiceLines(query, input.Expand)
+			query = tx.expandDedicatedGatheringInvoiceLines(query, input.Expand, input.Invoice.Namespace)
 		}
 
 		invoice, err := query.Only(ctx)
@@ -611,11 +664,25 @@ func (a *adapter) getDedicatedGatheringInvoiceById(ctx context.Context, input bi
 			return billing.GatheringInvoice{}, err
 		}
 
-		return tx.fromDBBillingGatheringInvoice(invoice, input.Expand)
+		mapped, err := tx.fromDBBillingGatheringInvoice(invoice, input.Expand)
+		if err != nil {
+			return billing.GatheringInvoice{}, err
+		}
+
+		if input.Expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
+			invoices, err := tx.loadSplitLineHierarchiesForGatheringInvoices(ctx, []billing.GatheringInvoice{mapped})
+			if err != nil {
+				return billing.GatheringInvoice{}, err
+			}
+
+			mapped = invoices[0]
+		}
+
+		return mapped, nil
 	})
 }
 
-func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
+func (a *adapter) mapGatheringInvoiceFromDB(invoice *db.BillingInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
 	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return billing.GatheringInvoice{}, fmt.Errorf("invoice is not a gathering invoice [id=%s]", invoice.ID)
 	}
@@ -661,24 +728,6 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 		mappedLines, err := a.mapGatheringInvoiceLinesFromDB(invoice.SchemaLevel, invoice.Edges.BillingInvoiceLines)
 		if err != nil {
 			return billing.GatheringInvoice{}, err
-		}
-
-		if expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
-			hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines.AsGenericLines())
-			if err != nil {
-				return billing.GatheringInvoice{}, err
-			}
-
-			mappedLinePtrs, err := withSplitLineHierarchyForLines(lo.Map(mappedLines, func(_ billing.GatheringLine, idx int) *billing.GatheringLine {
-				return &mappedLines[idx]
-			}), hierarchyByLineID)
-			if err != nil {
-				return billing.GatheringInvoice{}, err
-			}
-
-			mappedLines = lo.Map(mappedLinePtrs, func(line *billing.GatheringLine, _ int) billing.GatheringLine {
-				return *line
-			})
 		}
 
 		res.Lines = billing.NewGatheringInvoiceLines(mappedLines)
@@ -729,6 +778,7 @@ func (a *adapter) fromDBBillingGatheringInvoice(invoice *db.BillingGatheringInvo
 			if err != nil {
 				return billing.GatheringInvoice{}, fmt.Errorf("mapping gathering invoice line [id=%s]: %w", dbLine.ID, err)
 			}
+
 			lines = append(lines, line)
 		}
 
@@ -739,7 +789,7 @@ func (a *adapter) fromDBBillingGatheringInvoice(invoice *db.BillingGatheringInvo
 }
 
 type listGatheringInvoicesInput struct {
-	Namespaces     []string
+	Namespace      string
 	IDs            []string
 	Expand         billing.GatheringInvoiceExpands
 	IncludeDeleted bool
@@ -749,14 +799,13 @@ func (a *adapter) listGatheringInvoices(ctx context.Context, input listGathering
 	query := a.db.BillingInvoice.Query().
 		Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering)).
 		Where(billinginvoice.IDIn(input.IDs...))
-	if len(input.Namespaces) > 0 {
-		query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
-	}
+	query = query.Where(billinginvoice.Namespace(input.Namespace))
 	if !input.IncludeDeleted {
 		query = query.Where(billinginvoice.DeletedAtIsNil())
 	}
+
 	if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
-		query = a.expandGatheringInvoiceLines(query, input.Expand)
+		query = a.expandGatheringInvoiceLines(query, input.Expand, input.Namespace)
 	}
 
 	invoices, err := query.All(ctx)
@@ -766,10 +815,11 @@ func (a *adapter) listGatheringInvoices(ctx context.Context, input listGathering
 
 	result := make([]billing.GatheringInvoice, 0, len(invoices))
 	for _, invoice := range invoices {
-		mapped, err := a.mapGatheringInvoiceFromDB(ctx, invoice, input.Expand)
+		mapped, err := a.mapGatheringInvoiceFromDB(invoice, input.Expand)
 		if err != nil {
 			return nil, fmt.Errorf("mapping gathering invoice [namespace=%s, id=%s]: %w", invoice.Namespace, invoice.ID, err)
 		}
+
 		result = append(result, mapped)
 	}
 
@@ -779,14 +829,13 @@ func (a *adapter) listGatheringInvoices(ctx context.Context, input listGathering
 func (a *adapter) listDedicatedGatheringInvoices(ctx context.Context, input listGatheringInvoicesInput) ([]billing.GatheringInvoice, error) {
 	query := a.db.BillingGatheringInvoice.Query().
 		Where(billinggatheringinvoice.IDIn(input.IDs...))
-	if len(input.Namespaces) > 0 {
-		query = query.Where(billinggatheringinvoice.NamespaceIn(input.Namespaces...))
-	}
+	query = query.Where(billinggatheringinvoice.Namespace(input.Namespace))
 	if !input.IncludeDeleted {
 		query = query.Where(billinggatheringinvoice.DeletedAtIsNil())
 	}
+
 	if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
-		query = a.expandDedicatedGatheringInvoiceLines(query, input.Expand)
+		query = a.expandDedicatedGatheringInvoiceLines(query, input.Expand, input.Namespace)
 	}
 
 	invoices, err := query.All(ctx)
@@ -800,6 +849,7 @@ func (a *adapter) listDedicatedGatheringInvoices(ctx context.Context, input list
 		if err != nil {
 			return nil, fmt.Errorf("mapping gathering invoice [namespace=%s, id=%s]: %w", invoice.Namespace, invoice.ID, err)
 		}
+
 		result = append(result, mapped)
 	}
 

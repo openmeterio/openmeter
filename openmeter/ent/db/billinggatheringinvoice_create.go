@@ -113,7 +113,7 @@ func (_c *BillingGatheringInvoiceCreate) SetCustomerID(v string) *BillingGatheri
 }
 
 // SetCurrency sets the "currency" field.
-func (_c *BillingGatheringInvoiceCreate) SetCurrency(v currencyx.Code) *BillingGatheringInvoiceCreate {
+func (_c *BillingGatheringInvoiceCreate) SetCurrency(v currencyx.FiatCode) *BillingGatheringInvoiceCreate {
 	_c.mutation.SetCurrency(v)
 	return _c
 }

@@ -27,7 +27,7 @@ type BillingInvoiceSearchV1 struct {
 	// CustomerName holds the value of the "customer_name" field.
 	CustomerName string `json:"customer_name,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	Currency currencyx.FiatCode `json:"currency,omitempty"`
 	// StorageTable holds the value of the "storage_table" field.
 	StorageTable billinginvoicesearchv1.StorageTable `json:"storage_table,omitempty"`
 	// InvoiceType holds the value of the "invoice_type" field.
@@ -119,7 +119,7 @@ func (_m *BillingInvoiceSearchV1) assignValues(columns []string, values []any) e
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.Currency = currencyx.FiatCode(value.String)
 			}
 		case billinginvoicesearchv1.FieldStorageTable:
 			if value, ok := values[i].(*sql.NullString); !ok {

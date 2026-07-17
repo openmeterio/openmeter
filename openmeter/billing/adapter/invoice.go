@@ -46,9 +46,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.ListInvoicesResponse, error) {
 		query := tx.db.BillingInvoiceSearchV1.Query()
 
-		if len(input.Namespaces) > 0 {
-			query = query.Where(billinginvoicesearchv1.NamespaceIn(input.Namespaces...))
-		}
+		query = query.Where(billinginvoicesearchv1.Namespace(input.Namespace))
 
 		query = filter.ApplyToQuery(query, input.CustomerID, billinginvoicesearchv1.FieldCustomerID)
 		query = filter.ApplyToQuery(query, input.IssuedAt, billinginvoicesearchv1.FieldIssuedAt)
@@ -177,14 +175,13 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 			SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.GatheringInvoiceExpandLines).
 			SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.GatheringInvoiceExpandDeletedLines)
 
-		// Downstream list operations can be permissive about namespace filtering because
-		// response assembly only accepts invoices matching a search hit by namespace and ID.
+		// Hydrate each search result from its storage table within the requested namespace.
 		hydrated := make(map[models.NamespacedID]billing.Invoice, len(paged.Items))
 		for target, ids := range invoicesToBeLoaded {
 			switch {
 			case target.Type == billing.InvoiceTypeStandard && target.StorageTable == billinginvoicesearchv1.StorageTableBillingInvoice:
 				invoices, err := tx.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-					Namespaces:     input.Namespaces,
+					Namespace:      input.Namespace,
 					IDs:            ids,
 					Expand:         standardExpand,
 					IncludeDeleted: true,
@@ -192,12 +189,13 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 				if err != nil {
 					return response, fmt.Errorf("listing standard invoices for search hydration: %w", err)
 				}
+
 				for _, invoice := range invoices.Items {
 					hydrated[models.NamespacedID{Namespace: invoice.Namespace, ID: invoice.ID}] = billing.NewInvoice(invoice)
 				}
 			case target.Type == billing.InvoiceTypeGathering && target.StorageTable == billinginvoicesearchv1.StorageTableBillingInvoice:
 				invoices, err := tx.listGatheringInvoices(ctx, listGatheringInvoicesInput{
-					Namespaces:     input.Namespaces,
+					Namespace:      input.Namespace,
 					IDs:            ids,
 					Expand:         gatheringExpand,
 					IncludeDeleted: true,
@@ -205,12 +203,13 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 				if err != nil {
 					return response, fmt.Errorf("listing legacy gathering invoices for search hydration: %w", err)
 				}
+
 				for _, invoice := range invoices {
 					hydrated[models.NamespacedID{Namespace: invoice.Namespace, ID: invoice.ID}] = billing.NewInvoice(invoice)
 				}
 			case target.Type == billing.InvoiceTypeGathering && target.StorageTable == billinginvoicesearchv1.StorageTableBillingGatheringInvoice:
 				invoices, err := tx.listDedicatedGatheringInvoices(ctx, listGatheringInvoicesInput{
-					Namespaces:     input.Namespaces,
+					Namespace:      input.Namespace,
 					IDs:            ids,
 					Expand:         gatheringExpand,
 					IncludeDeleted: true,
@@ -218,6 +217,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 				if err != nil {
 					return response, fmt.Errorf("listing dedicated gathering invoices for search hydration: %w", err)
 				}
+
 				for _, invoice := range invoices {
 					hydrated[models.NamespacedID{Namespace: invoice.Namespace, ID: invoice.ID}] = billing.NewInvoice(invoice)
 				}

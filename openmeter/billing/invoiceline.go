@@ -44,6 +44,7 @@ func (InvoiceLineManagedBy) Values() []string {
 type GetLinesForSubscriptionInput struct {
 	Namespace            string
 	SubscriptionID       string
+	CustomerID           string
 	IncludeChargeManaged bool
 }
 
@@ -54,6 +55,10 @@ func (i GetLinesForSubscriptionInput) Validate() error {
 
 	if i.SubscriptionID == "" {
 		return errors.New("subscription id is required")
+	}
+
+	if i.CustomerID == "" {
+		return errors.New("customer id is required")
 	}
 
 	return nil

@@ -653,7 +653,7 @@ func (BillingGatheringInvoice) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}),
 		field.String("currency").
-			GoType(currencyx.Code("")).
+			GoType(currencyx.FiatCode("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{

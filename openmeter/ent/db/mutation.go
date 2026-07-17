@@ -12651,7 +12651,7 @@ type BillingGatheringInvoiceMutation struct {
 	name                                   *string
 	description                            *string
 	number                                 *string
-	currency                               *currencyx.Code
+	currency                               *currencyx.FiatCode
 	service_period_start                   *time.Time
 	service_period_end                     *time.Time
 	next_collection_at                     *time.Time
@@ -13136,12 +13136,12 @@ func (m *BillingGatheringInvoiceMutation) ResetCustomerID() {
 }
 
 // SetCurrency sets the "currency" field.
-func (m *BillingGatheringInvoiceMutation) SetCurrency(c currencyx.Code) {
-	m.currency = &c
+func (m *BillingGatheringInvoiceMutation) SetCurrency(cc currencyx.FiatCode) {
+	m.currency = &cc
 }
 
 // Currency returns the value of the "currency" field in the mutation.
-func (m *BillingGatheringInvoiceMutation) Currency() (r currencyx.Code, exists bool) {
+func (m *BillingGatheringInvoiceMutation) Currency() (r currencyx.FiatCode, exists bool) {
 	v := m.currency
 	if v == nil {
 		return
@@ -13152,7 +13152,7 @@ func (m *BillingGatheringInvoiceMutation) Currency() (r currencyx.Code, exists b
 // OldCurrency returns the old "currency" field's value of the BillingGatheringInvoice entity.
 // If the BillingGatheringInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingGatheringInvoiceMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
+func (m *BillingGatheringInvoiceMutation) OldCurrency(ctx context.Context) (v currencyx.FiatCode, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
 	}
@@ -13678,7 +13678,7 @@ func (m *BillingGatheringInvoiceMutation) SetField(name string, value ent.Value)
 		m.SetCustomerID(v)
 		return nil
 	case billinggatheringinvoice.FieldCurrency:
-		v, ok := value.(currencyx.Code)
+		v, ok := value.(currencyx.FiatCode)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

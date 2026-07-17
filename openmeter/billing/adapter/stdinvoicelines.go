@@ -848,8 +848,8 @@ func (a *adapter) GetStandardLinesForSubscription(ctx context.Context, in billin
 		}
 
 		invoiceSchemaLevelByID := lo.SliceToMap(dbLines, func(line *db.BillingInvoiceLine) (string, int) {
-            return line.Edges.BillingInvoice.ID, line.Edges.BillingInvoice.SchemaLevel
-        })
+			return line.Edges.BillingInvoice.ID, line.Edges.BillingInvoice.SchemaLevel
+		})
 
 		standardLines, err := tx.mapStandardInvoiceLinesFromDB(invoiceSchemaLevelByID, dbLines)
 		if err != nil {

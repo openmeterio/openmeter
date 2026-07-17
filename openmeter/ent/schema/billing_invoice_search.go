@@ -170,7 +170,7 @@ func (BillingInvoiceSearchV1) Fields() []ent.Field {
 			}),
 		field.String("customer_name"),
 		field.String("currency").
-			GoType(currencyx.Code("")).
+			GoType(currencyx.FiatCode("")).
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(3)",
 			}),

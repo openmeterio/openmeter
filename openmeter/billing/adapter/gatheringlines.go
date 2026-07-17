@@ -521,6 +521,7 @@ func (a *adapter) fromDBBillingGatheringInvoiceLine(dbLine *db.BillingGatheringI
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("cloning line: %w", err)
 	}
+
 	line.DBState = lo.ToPtr(cloned)
 
 	return line, nil
@@ -552,6 +553,7 @@ func mergeGatheringLines(lineGroups ...billing.GatheringLines) (billing.Gatherin
 			errs = append(errs, fmt.Errorf("gathering line exists in multiple tables [line_id=%s]", lineID))
 		}
 	}
+
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
