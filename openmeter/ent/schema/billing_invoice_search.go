@@ -47,6 +47,7 @@ func (BillingInvoiceSearchV1) buildStandardInvoiceTableSelector(s *sql.Selector)
 			invoices.C("customer_name"),
 			invoices.C("currency"),
 		).
+		AppendSelectExprAs(sql.Raw("'billing_invoice'"), "storage_table").
 		AppendSelectAs(invoices.C("type"), "invoice_type").
 		AppendSelect(
 			invoices.C("status"),
@@ -92,6 +93,7 @@ func (BillingInvoiceSearchV1) buildLegacyGatheringInvoiceTableSelector(s *sql.Se
 		).
 		AppendSelectAs(customers.C("name"), "customer_name").
 		AppendSelect(invoices.C("currency")).
+		AppendSelectExprAs(sql.Raw("'billing_invoice'"), "storage_table").
 		AppendSelectExprAs(sql.Raw("'gathering'"), "invoice_type").
 		AppendSelectExprAs(sql.Raw("'gathering'"), "status").
 		AppendSelectExprAs(sql.Raw("NULL::timestamptz"), "issued_at").
@@ -132,6 +134,7 @@ func (BillingInvoiceSearchV1) buildGatheringInvoiceTableSelector(s *sql.Selector
 		).
 		AppendSelectAs(customers.C("name"), "customer_name").
 		AppendSelect(invoices.C("currency")).
+		AppendSelectExprAs(sql.Raw("'billing_gathering_invoice'"), "storage_table").
 		AppendSelectExprAs(sql.Raw("'gathering'"), "invoice_type").
 		AppendSelectExprAs(sql.Raw("'gathering'"), "status").
 		AppendSelectExprAs(sql.Raw("NULL::timestamptz"), "issued_at").
@@ -171,6 +174,8 @@ func (BillingInvoiceSearchV1) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(3)",
 			}),
+		field.Enum("storage_table").
+			Values("billing_invoice", "billing_gathering_invoice"),
 		field.String("invoice_type").
 			GoType(billing.InvoiceType("")),
 		field.String("status").

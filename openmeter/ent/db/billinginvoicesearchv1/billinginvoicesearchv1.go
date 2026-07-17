@@ -3,6 +3,8 @@
 package billinginvoicesearchv1
 
 import (
+	"fmt"
+
 	"entgo.io/ent/dialect/sql"
 )
 
@@ -19,6 +21,8 @@ const (
 	FieldCustomerName = "customer_name"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldStorageTable holds the string denoting the storage_table field in the database.
+	FieldStorageTable = "storage_table"
 	// FieldInvoiceType holds the string denoting the invoice_type field in the database.
 	FieldInvoiceType = "invoice_type"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -60,6 +64,7 @@ var Columns = []string{
 	FieldCustomerID,
 	FieldCustomerName,
 	FieldCurrency,
+	FieldStorageTable,
 	FieldInvoiceType,
 	FieldStatus,
 	FieldIssuedAt,
@@ -85,6 +90,29 @@ func ValidColumn(column string) bool {
 		}
 	}
 	return false
+}
+
+// StorageTable defines the type for the "storage_table" enum field.
+type StorageTable string
+
+// StorageTable values.
+const (
+	StorageTableBillingInvoice          StorageTable = "billing_invoice"
+	StorageTableBillingGatheringInvoice StorageTable = "billing_gathering_invoice"
+)
+
+func (st StorageTable) String() string {
+	return string(st)
+}
+
+// StorageTableValidator is a validator for the "storage_table" field enum values. It is called by the builders before save.
+func StorageTableValidator(st StorageTable) error {
+	switch st {
+	case StorageTableBillingInvoice, StorageTableBillingGatheringInvoice:
+		return nil
+	default:
+		return fmt.Errorf("billinginvoicesearchv1: invalid enum value for storage_table field: %q", st)
+	}
 }
 
 // OrderOption defines the ordering options for the BillingInvoiceSearchV1 queries.
@@ -113,6 +141,11 @@ func ByCustomerName(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByStorageTable orders the results by the storage_table field.
+func ByStorageTable(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStorageTable, opts...).ToFunc()
 }
 
 // ByInvoiceType orders the results by the invoice_type field.
