@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	entschema "entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -27,9 +28,21 @@ func (Addon) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("version").
 			Min(1),
-		field.String("currency").
-			Default("USD").
+		field.String("fiat_currency_code").
+			StorageKey("currency").
 			NotEmpty().
+			MinLen(3).
+			MaxLen(3).
+			Optional().
+			Nillable().
+			Immutable(),
+		field.String("custom_currency_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			NotEmpty().
+			Optional().
+			Nillable().
 			Immutable(),
 		field.Enum("instance_type").
 			GoType(productcatalog.AddonInstanceType("")).
@@ -64,6 +77,11 @@ func (Addon) Edges() []ent.Edge {
 			Annotations(entsql.Annotation{
 				OnDelete: entsql.Cascade,
 			}),
+		edge.From("custom_currency", CustomCurrency.Type).
+			Ref("addons").
+			Field("custom_currency_id").
+			Unique().
+			Immutable(),
 	}
 }
 
@@ -81,6 +99,15 @@ func (Addon) Indexes() []ent.Index {
 					dialect.Postgres: "GIN",
 				}),
 			),
+		index.Fields("custom_currency_id"),
+	}
+}
+
+func (Addon) Annotations() []entschema.Annotation {
+	return []entschema.Annotation{
+		entsql.Checks(map[string]string{
+			"addon_currency_reference": `(currency IS NULL) <> (custom_currency_id IS NULL)`,
+		}),
 	}
 }
 
@@ -126,6 +153,10 @@ func (AddonRateCard) Edges() []ent.Edge {
 			Ref("addon_rate_cards").
 			Field("tax_code_id").
 			Unique(),
+		edge.From("custom_currency", CustomCurrency.Type).
+			Ref("addon_rate_cards").
+			Field("custom_currency_id").
+			Unique(),
 	}
 }
 
@@ -141,5 +172,15 @@ func (AddonRateCard) Indexes() []ent.Index {
 				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			Unique(),
+		index.Fields("custom_currency_id"),
+	}
+}
+
+func (AddonRateCard) Annotations() []entschema.Annotation {
+	return []entschema.Annotation{
+		entsql.Checks(map[string]string{
+			"addon_rate_card_currency_reference": `currency IS NULL OR custom_currency_id IS NULL`,
+			"addon_rate_card_currency_has_price": `price IS NOT NULL OR (currency IS NULL AND custom_currency_id IS NULL)`,
+		}),
 	}
 }

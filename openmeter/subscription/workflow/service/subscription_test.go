@@ -26,6 +26,7 @@ import (
 	workflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/ffx"
@@ -882,7 +883,7 @@ func TestChangeToPlan(t *testing.T) {
 						Name:           "Test Plan 2",
 						Key:            "test_plan_2",
 						Version:        1,
-						Currency:       currency.USD,
+						Currency:       currencyx.Code(currency.USD),
 						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: productcatalog.ProRatingConfig{
 							Enabled: true,

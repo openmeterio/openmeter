@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -116,7 +117,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 				Name:           "Test Plan",
 				Key:            "paid-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -167,7 +168,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 				Name:           "Test Plan",
 				Key:            "free-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

@@ -54,9 +54,17 @@ type CustomCurrencyEdges struct {
 	ChargesFlatFee []*ChargeFlatFee `json:"charges_flat_fee,omitempty"`
 	// ChargesUsageBased holds the value of the charges_usage_based edge.
 	ChargesUsageBased []*ChargeUsageBased `json:"charges_usage_based,omitempty"`
+	// Plans holds the value of the plans edge.
+	Plans []*Plan `json:"plans,omitempty"`
+	// Addons holds the value of the addons edge.
+	Addons []*Addon `json:"addons,omitempty"`
+	// PlanRateCards holds the value of the plan_rate_cards edge.
+	PlanRateCards []*PlanRateCard `json:"plan_rate_cards,omitempty"`
+	// AddonRateCards holds the value of the addon_rate_cards edge.
+	AddonRateCards []*AddonRateCard `json:"addon_rate_cards,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [8]bool
 }
 
 // CostBasisHistoryOrErr returns the CostBasisHistory value or an error if the edge
@@ -93,6 +101,42 @@ func (e CustomCurrencyEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, erro
 		return e.ChargesUsageBased, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_usage_based"}
+}
+
+// PlansOrErr returns the Plans value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) PlansOrErr() ([]*Plan, error) {
+	if e.loadedTypes[4] {
+		return e.Plans, nil
+	}
+	return nil, &NotLoadedError{edge: "plans"}
+}
+
+// AddonsOrErr returns the Addons value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) AddonsOrErr() ([]*Addon, error) {
+	if e.loadedTypes[5] {
+		return e.Addons, nil
+	}
+	return nil, &NotLoadedError{edge: "addons"}
+}
+
+// PlanRateCardsOrErr returns the PlanRateCards value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) PlanRateCardsOrErr() ([]*PlanRateCard, error) {
+	if e.loadedTypes[6] {
+		return e.PlanRateCards, nil
+	}
+	return nil, &NotLoadedError{edge: "plan_rate_cards"}
+}
+
+// AddonRateCardsOrErr returns the AddonRateCards value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) AddonRateCardsOrErr() ([]*AddonRateCard, error) {
+	if e.loadedTypes[7] {
+		return e.AddonRateCards, nil
+	}
+	return nil, &NotLoadedError{edge: "addon_rate_cards"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -219,6 +263,26 @@ func (_m *CustomCurrency) QueryChargesFlatFee() *ChargeFlatFeeQuery {
 // QueryChargesUsageBased queries the "charges_usage_based" edge of the CustomCurrency entity.
 func (_m *CustomCurrency) QueryChargesUsageBased() *ChargeUsageBasedQuery {
 	return NewCustomCurrencyClient(_m.config).QueryChargesUsageBased(_m)
+}
+
+// QueryPlans queries the "plans" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryPlans() *PlanQuery {
+	return NewCustomCurrencyClient(_m.config).QueryPlans(_m)
+}
+
+// QueryAddons queries the "addons" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryAddons() *AddonQuery {
+	return NewCustomCurrencyClient(_m.config).QueryAddons(_m)
+}
+
+// QueryPlanRateCards queries the "plan_rate_cards" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryPlanRateCards() *PlanRateCardQuery {
+	return NewCustomCurrencyClient(_m.config).QueryPlanRateCards(_m)
+}
+
+// QueryAddonRateCards queries the "addon_rate_cards" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryAddonRateCards() *AddonRateCardQuery {
+	return NewCustomCurrencyClient(_m.config).QueryAddonRateCards(_m)
 }
 
 // Update returns a builder for updating this CustomCurrency.

@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/session"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -44,6 +45,7 @@ func TestEvents(t *testing.T) {
 		Version:      1,
 		Name:         "Test Addon",
 		Description:  lo.ToPtr("Test Description"),
+		Currency:     currencyx.Code("USD"),
 		InstanceType: productcatalog.AddonInstanceTypeSingle,
 	}
 

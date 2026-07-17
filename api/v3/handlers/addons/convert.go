@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
-	currency "github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
@@ -15,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -122,7 +122,7 @@ func ToAPIAddon(source addon.Addon) (apiv3.Addon, error) {
 	var result apiv3.Addon
 
 	result.CreatedAt = source.ManagedModel.CreatedAt
-	result.Currency = string(source.AddonMeta.Currency)
+	result.Currency = source.AddonMeta.Currency.GetCode().String()
 	result.DeletedAt = source.ManagedModel.DeletedAt
 	result.Description = source.AddonMeta.Description
 	result.EffectiveFrom = source.AddonMeta.EffectivePeriod.EffectiveFrom
@@ -188,7 +188,7 @@ func FromAPICreateAddonRequest(namespace string, body apiv3.CreateAddonRequest) 
 				Key:          body.Key,
 				Name:         body.Name,
 				Description:  body.Description,
-				Currency:     currency.Code(body.Currency),
+				Currency:     currencyx.Code(body.Currency),
 				InstanceType: instanceType,
 				Metadata:     metadata,
 			},

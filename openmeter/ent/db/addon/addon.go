@@ -36,8 +36,10 @@ const (
 	FieldKey = "key"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
+	// FieldFiatCurrencyCode holds the string denoting the fiat_currency_code field in the database.
+	FieldFiatCurrencyCode = "currency"
+	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
+	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldInstanceType holds the string denoting the instance_type field in the database.
 	FieldInstanceType = "instance_type"
 	// FieldEffectiveFrom holds the string denoting the effective_from field in the database.
@@ -52,6 +54,8 @@ const (
 	EdgePlans = "plans"
 	// EdgeSubscriptionAddons holds the string denoting the subscription_addons edge name in mutations.
 	EdgeSubscriptionAddons = "subscription_addons"
+	// EdgeCustomCurrency holds the string denoting the custom_currency edge name in mutations.
+	EdgeCustomCurrency = "custom_currency"
 	// Table holds the table name of the addon in the database.
 	Table = "addons"
 	// RatecardsTable is the table that holds the ratecards relation/edge.
@@ -75,6 +79,13 @@ const (
 	SubscriptionAddonsInverseTable = "subscription_addons"
 	// SubscriptionAddonsColumn is the table column denoting the subscription_addons relation/edge.
 	SubscriptionAddonsColumn = "addon_id"
+	// CustomCurrencyTable is the table that holds the custom_currency relation/edge.
+	CustomCurrencyTable = "addons"
+	// CustomCurrencyInverseTable is the table name for the CustomCurrency entity.
+	// It exists in this package in order to avoid circular dependency with the "customcurrency" package.
+	CustomCurrencyInverseTable = "custom_currencies"
+	// CustomCurrencyColumn is the table column denoting the custom_currency relation/edge.
+	CustomCurrencyColumn = "custom_currency_id"
 )
 
 // Columns holds all SQL columns for addon fields.
@@ -89,7 +100,8 @@ var Columns = []string{
 	FieldDescription,
 	FieldKey,
 	FieldVersion,
-	FieldCurrency,
+	FieldFiatCurrencyCode,
+	FieldCustomCurrencyID,
 	FieldInstanceType,
 	FieldEffectiveFrom,
 	FieldEffectiveTo,
@@ -119,10 +131,10 @@ var (
 	KeyValidator func(string) error
 	// VersionValidator is a validator for the "version" field. It is called by the builders before save.
 	VersionValidator func(int) error
-	// DefaultCurrency holds the default value on creation for the "currency" field.
-	DefaultCurrency string
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
+	// FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	FiatCurrencyCodeValidator func(string) error
+	// CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	CustomCurrencyIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all Addon fields.
@@ -191,9 +203,14 @@ func ByVersion(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVersion, opts...).ToFunc()
 }
 
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+// ByFiatCurrencyCode orders the results by the fiat_currency_code field.
+func ByFiatCurrencyCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFiatCurrencyCode, opts...).ToFunc()
+}
+
+// ByCustomCurrencyID orders the results by the custom_currency_id field.
+func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomCurrencyID, opts...).ToFunc()
 }
 
 // ByInstanceType orders the results by the instance_type field.
@@ -257,6 +274,13 @@ func BySubscriptionAddons(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOptio
 		sqlgraph.OrderByNeighborTerms(s, newSubscriptionAddonsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByCustomCurrencyField orders the results by custom_currency field.
+func ByCustomCurrencyField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomCurrencyStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newRatecardsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -276,5 +300,12 @@ func newSubscriptionAddonsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionAddonsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionAddonsTable, SubscriptionAddonsColumn),
+	)
+}
+func newCustomCurrencyStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomCurrencyInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomCurrencyTable, CustomCurrencyColumn),
 	)
 }

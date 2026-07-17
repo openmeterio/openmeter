@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -25,7 +26,7 @@ func NewTestAddon(t *testing.T, namespace string, rateCards ...productcatalog.Ra
 				Description:  lo.ToPtr("Test Addon"),
 				Metadata:     models.Metadata{"name": "test-addon"},
 				Annotations:  models.Annotations{"name": "test-addon"},
-				Currency:     currency.USD,
+				Currency:     currencyx.Code(currency.USD),
 				InstanceType: productcatalog.AddonInstanceTypeSingle,
 			},
 			RateCards: rateCards,

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -20,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -445,23 +447,18 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 	t.Cleanup(func() { env.Close(t) })
 
 	namespace := pctestutils.NewTestNamespace(t)
-	managedCurrency, err := env.Currency.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
-		Namespace: namespace,
-		Code:      "CREDITS",
-		Name:      "Credits",
-		Symbol:    "cr",
-	})
+	managedCurrency, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"))
 	require.NoError(t, err)
 
 	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
 		Namespace:  namespace,
 		CurrencyID: managedCurrency.ID,
-		FiatCode:   currency.USD.String(),
+		FiatCode:   currencyx.Code(currency.USD),
 		Rate:       decimal.NewFromInt(1),
 	})
 	require.NoError(t, err)
 
-	customCurrency := currency.Code(managedCurrency.Code)
+	customCurrency := managedCurrency.GetCode()
 	month := datetime.MustParseDuration(t, "P1M")
 	price := func() *productcatalog.Price {
 		return productcatalog.NewPriceFrom(productcatalog.FlatPrice{
@@ -477,7 +474,7 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 				RateCardMeta: productcatalog.RateCardMeta{
 					Key:      "credits",
 					Name:     "Credits",
-					Currency: &customCurrency,
+					Currency: customCurrency,
 					Price:    price(),
 				},
 				BillingCadence: &month,
@@ -491,7 +488,7 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:      "credits",
 			Name:     "Credits",
-			Currency: &customCurrency,
+			Currency: customCurrency,
 			Price:    price(),
 		},
 		BillingCadence: &month,
@@ -515,10 +512,10 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 		FromPlanPhase:   "default",
 	})
 	require.NoError(t, err)
-	require.Equal(t, currency.USD, assigned.Addon.Currency)
+	require.Equal(t, currencyx.Code(currency.USD), assigned.Addon.Currency.GetCode())
 	require.Len(t, assigned.Addon.RateCards, 1)
-	require.Equal(t, customCurrency, lo.FromPtr(assigned.Addon.RateCards[0].AsMeta().Currency))
-	require.Equal(t, customCurrency, assigned.Addon.RateCards[0].AsMeta().EffectiveCurrency(assigned.Addon.Currency))
+	require.Equal(t, customCurrency, assigned.Addon.RateCards[0].AsMeta().Currency.GetCode())
+	require.Equal(t, customCurrency, assigned.Addon.RateCards[0].AsMeta().EffectiveCurrency(assigned.Addon.Currency).GetCode())
 
 	t.Run("missing plan fiat cost basis", func(t *testing.T) {
 		// given:
@@ -527,15 +524,10 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 		// - an add-on introduces a newly priced rate card in that currency
 		// then:
 		// - assignment fails before the plan add-on row is written
-		currencyWithoutBasis, err := env.Currency.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
-			Namespace: namespace,
-			Code:      "POINTS",
-			Name:      "Points",
-			Symbol:    "pt",
-		})
+		currencyWithoutBasis, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "POINTS", "Points", "pt"))
 		require.NoError(t, err)
 
-		points := currency.Code(currencyWithoutBasis.Code)
+		points := currencyWithoutBasis.GetCode()
 		input := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
 				Key:   "points",

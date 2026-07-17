@@ -5,7 +5,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
@@ -18,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -479,7 +479,7 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 		},
 	}
 
-	req.Currency = currency.Code(a.Currency)
+	req.Currency = currencyx.Code(a.Currency)
 	if err = req.Currency.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}

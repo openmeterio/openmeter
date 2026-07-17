@@ -44,8 +44,6 @@ type Currency struct {
 	CostBasis *[]CostBasis `json:"-"`
 }
 
-var _ models.Validator = Currency{}
-
 func NewFiatCurrency(code currencyx.Code) (Currency, error) {
 	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
 		WithCode(code).
@@ -65,6 +63,10 @@ func (c Currency) Validate() error {
 	} else {
 		if err := c.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
+		}
+
+		if c.Currency.IsCustom() && c.ID == "" {
+			errs = append(errs, errors.New("managed custom currency ID is required"))
 		}
 	}
 
@@ -88,6 +90,29 @@ func (c Currency) IsCustom() bool {
 	return c.Currency != nil && c.Currency.Type() == currencyx.CurrencyTypeCustom
 }
 
+func (c Currency) GetID() string {
+	return c.ID
+}
+
+// Equal compares fiat currencies by code and managed custom currencies by resource ID.
+// Custom codes can be reused after archival, so their codes do not establish identity.
+func (c Currency) Equal(other currencyx.CurrencyIdentity) bool {
+	if c.Currency == nil || other == nil {
+		return false
+	}
+
+	if c.Currency.IsFiat() {
+		return c.Currency.Equal(other)
+	}
+
+	if !other.IsCustom() {
+		return false
+	}
+
+	managed, ok := other.(currencyx.ManagedCurrency)
+	return ok && c.ID != "" && c.ID == managed.GetID()
+}
+
 func (c Currency) Clone() Currency {
 	if c.CostBasis != nil {
 		c.CostBasis = lo.ToPtr(slices.Clone(*c.CostBasis))
@@ -108,3 +133,9 @@ func (c Currency) Identity() (string, error) {
 
 	return "", fmt.Errorf("currency is not fiat or custom")
 }
+
+var (
+	_ models.Validator          = Currency{}
+	_ currencyx.Currency        = (*Currency)(nil)
+	_ currencyx.ManagedCurrency = (*Currency)(nil)
+)

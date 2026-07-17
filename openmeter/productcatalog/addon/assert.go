@@ -17,7 +17,7 @@ func AssertAddonCreateInputEqual(t *testing.T, i CreateAddonInput, a Addon) {
 	assert.Equalf(t, i.Key, a.Key, "create input: key mismatch")
 	assert.Equalf(t, i.Name, a.Name, "create input: name mismatch")
 	assert.Equalf(t, i.Description, a.Description, "create input: description mismatch")
-	assert.Equalf(t, i.Currency, a.Currency, "create input: currency mismatch")
+	assert.Truef(t, i.Currency.Equal(a.Currency), "create input: currency mismatch")
 	assert.Equalf(t, i.Metadata, a.Metadata, "metadata mismatch")
 	assert.Equalf(t, i.Annotations, a.Annotations, "annotations mismatch")
 
@@ -56,7 +56,7 @@ func AssertAddonEqual(t *testing.T, expected, actual Addon) {
 	assert.Equalf(t, expected.Key, actual.Key, "key mismatch")
 	assert.Equalf(t, expected.Name, actual.Name, "name mismatch")
 	assert.Equalf(t, expected.Description, actual.Description, "description mismatch")
-	assert.Equalf(t, expected.Currency, actual.Currency, "currency mismatch")
+	assert.Truef(t, expected.Currency.Equal(actual.Currency), "currency mismatch")
 	assert.Equalf(t, expected.Metadata, actual.Metadata, "metadata mismatch")
 	assert.Equalf(t, expected.Annotations, actual.Annotations, "annotations mismatch")
 

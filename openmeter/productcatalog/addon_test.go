@@ -6,14 +6,16 @@ import (
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestValidateAddonRateCardCurrencies(t *testing.T) {
-	customCurrency := currency.Code("CREDITS")
-	usd := currency.USD
-	eur := currency.EUR
+	customCurrency := currencyx.Code("CREDITS")
+	usd := currencyx.Code(currency.USD)
+	eur := currencyx.Code(currency.EUR)
 
-	newRateCard := func(override *currency.Code) RateCard {
+	newRateCard := func(override currencyx.CurrencyIdentity) RateCard {
 		return &FlatFeeRateCard{
 			RateCardMeta: RateCardMeta{
 				Key:      "flat-fee",
@@ -28,35 +30,39 @@ func TestValidateAddonRateCardCurrencies(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		defaultCurrency currency.Code
-		override        *currency.Code
+		defaultCurrency currencyx.CurrencyIdentity
+		override        currencyx.CurrencyIdentity
 		expectedError   error
 	}{
+		{
+			name:          "missing add-on currency",
+			expectedError: ErrCurrencyInvalid,
+		},
 		{
 			name:            "custom default without override",
 			defaultCurrency: customCurrency,
 		},
 		{
 			name:            "fiat default with custom override",
-			defaultCurrency: currency.USD,
-			override:        &customCurrency,
+			defaultCurrency: currencyx.Code(currency.USD),
+			override:        customCurrency,
 		},
 		{
 			name:            "custom default rejects override",
 			defaultCurrency: customCurrency,
-			override:        &usd,
+			override:        usd,
 			expectedError:   ErrRateCardCurrencyOverrideNotAllowed,
 		},
 		{
 			name:            "fiat default rejects redundant override",
-			defaultCurrency: currency.USD,
-			override:        &usd,
+			defaultCurrency: currencyx.Code(currency.USD),
+			override:        usd,
 			expectedError:   ErrRateCardCurrencyOverrideRedundant,
 		},
 		{
 			name:            "fiat default rejects second fiat",
-			defaultCurrency: currency.USD,
-			override:        &eur,
+			defaultCurrency: currencyx.Code(currency.USD),
+			override:        eur,
 			expectedError:   ErrPlanMultipleFiatCurrencies,
 		},
 	}

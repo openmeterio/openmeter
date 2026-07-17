@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/oapi-codegen/nullable"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -868,6 +869,7 @@ func TestArchiveFeature(t *testing.T) {
 			SetName("default").
 			SetKey("default").
 			SetVersion(1).
+			SetFiatCurrencyCode(currency.USD.String()).
 			SetEffectiveFrom(time.Now()).
 			SetNamespace(testFeature.Namespace).
 			SetBillingCadence("P1M").

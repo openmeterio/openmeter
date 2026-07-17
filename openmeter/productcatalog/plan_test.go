@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -192,7 +193,7 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Key:             "plan-1",
 				EffectivePeriod: productcatalog.EffectivePeriod{},
 				Version:         1,
-				Currency:        "USD",
+				Currency:        currencyx.Code(currency.USD),
 				BillingCadence:  datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -244,7 +245,7 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Key:             "plan-1",
 				EffectivePeriod: productcatalog.EffectivePeriod{},
 				Version:         1,
-				Currency:        "USD",
+				Currency:        currencyx.Code(currency.USD),
 				BillingCadence:  datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -297,7 +298,7 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Key:             "plan-1",
 				EffectivePeriod: productcatalog.EffectivePeriod{},
 				Version:         1,
-				Currency:        "USD",
+				Currency:        currencyx.Code(currency.USD),
 				BillingCadence:  datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -377,7 +378,7 @@ func TestPlanHasUnitConfig(t *testing.T) {
 }
 
 func TestPlanHasCurrencyOverrides(t *testing.T) {
-	card := func(currencyOverride *currency.Code) productcatalog.RateCard {
+	card := func(currencyOverride currencyx.CurrencyIdentity) productcatalog.RateCard {
 		return &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
 				Key:      "flat-fee",
@@ -389,7 +390,7 @@ func TestPlanHasCurrencyOverrides(t *testing.T) {
 	phase := func(cards ...productcatalog.RateCard) productcatalog.Phase {
 		return productcatalog.Phase{RateCards: cards}
 	}
-	customCurrency := currency.Code("TOK")
+	customCurrency := currencyx.Code("TOK")
 
 	t.Run("plan with no phases has none", func(t *testing.T) {
 		assert.False(t, productcatalog.Plan{}.HasCurrencyOverrides())
@@ -401,7 +402,7 @@ func TestPlanHasCurrencyOverrides(t *testing.T) {
 	})
 
 	t.Run("override in any later phase is detected", func(t *testing.T) {
-		p := productcatalog.Plan{Phases: []productcatalog.Phase{phase(card(nil)), phase(card(nil), card(&customCurrency))}}
+		p := productcatalog.Plan{Phases: []productcatalog.Phase{phase(card(nil)), phase(card(nil), card(customCurrency))}}
 		assert.True(t, p.HasCurrencyOverrides())
 	})
 }

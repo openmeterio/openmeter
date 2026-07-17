@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -349,7 +350,7 @@ func TestRestore(t *testing.T) {
 					Name:           "Test Plan",
 					Key:            "test_plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
 						Enabled: true,

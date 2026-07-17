@@ -17,7 +17,7 @@ func AssertPlanCreateInputEqual(t *testing.T, i CreatePlanInput, p Plan) {
 	assert.Equalf(t, i.Key, p.Key, "create input: key mismatch")
 	assert.Equalf(t, i.Name, p.Name, "create input: name mismatch")
 	assert.Equalf(t, i.Description, p.Description, "create input: description mismatch")
-	assert.Equalf(t, i.Currency, p.Currency, "create input: currency mismatch")
+	assert.Truef(t, i.Currency.Equal(p.Currency), "create input: currency mismatch")
 	assert.Equalf(t, i.Metadata, p.Metadata, "metadata mismatch")
 	assert.Equalf(t, i.SettlementMode, p.SettlementMode, "create input: settlement mode mismatch")
 
@@ -56,7 +56,7 @@ func AssertPlanEqual(t *testing.T, expected, actual Plan) {
 	assert.Equal(t, expected.Key, actual.Key)
 	assert.Equal(t, expected.Name, actual.Name)
 	assert.Equal(t, expected.Description, actual.Description)
-	assert.Equal(t, expected.Currency, actual.Currency)
+	assert.True(t, expected.Currency.Equal(actual.Currency), "currency mismatch")
 	assert.Equal(t, expected.SettlementMode, actual.SettlementMode)
 
 	AssertPlanPhasesEqual(t, expected.Phases, actual.Phases)

@@ -154,9 +154,11 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 func querySubscriptionAddon(query *db.SubscriptionAddonQuery) *db.SubscriptionAddonQuery {
 	return query.
 		WithAddon(func(aq *db.AddonQuery) {
+			aq.WithCustomCurrency()
 			aq.WithRatecards(func(arq *db.AddonRateCardQuery) {
 				arq.WithFeatures()
 				arq.WithTaxCode()
+				arq.WithCustomCurrency()
 			})
 		}).
 		WithQuantities(func(saqq *db.SubscriptionAddonQuantityQuery) {

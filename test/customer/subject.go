@@ -7,7 +7,6 @@ import (
 	"time"
 
 	alpacadecimal "github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -257,7 +256,7 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 				Name:           "Integration Plan",
 				Key:            planKey,
 				Version:        1,
-				Currency:       currency.Code("USD"),
+				Currency:       currencyx.Code("USD"),
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

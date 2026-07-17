@@ -419,6 +419,9 @@ func (_u *PlanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(plan.FieldVersion, field.TypeInt, value)
 	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(plan.FieldFiatCurrencyCode, field.TypeString)
+	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(plan.FieldBillingCadence, field.TypeString, value)
 	}
@@ -1014,6 +1017,9 @@ func (_u *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) {
 	}
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(plan.FieldVersion, field.TypeInt, value)
+	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(plan.FieldFiatCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(plan.FieldBillingCadence, field.TypeString, value)
