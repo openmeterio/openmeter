@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -86,7 +87,9 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 			// We need to update all items
 			for _, item := range items {
 				itemPer := item.GetCadence(pCad).AsPeriod()
-				priceIntroducedByAddon := item.RateCard.AsMeta().Price == nil && rc.AddonRateCard.AsMeta().Price != nil
+				itemMeta := item.RateCard.AsMeta()
+				addonMeta := rc.AddonRateCard.AsMeta()
+				priceIntroducedByAddon := itemMeta.Price == nil && addonMeta.Price != nil
 
 				{
 					// Let's subtract the item from the gaps
@@ -115,6 +118,13 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 					newItems = append(newItems, item)
 
 					continue
+				}
+
+				if itemMeta.Price != nil && addonMeta.Price != nil {
+					addonCurrency := addonMeta.EffectiveCurrency(d.addon.Addon.Currency)
+					if itemMeta.Currency == nil || !itemMeta.Currency.Equal(addonCurrency) {
+						return fmt.Errorf("add-on rate card %s: %w", rc.AddonRateCard.Key(), productcatalog.ErrPlanAddonCurrencyMismatch)
+					}
 				}
 
 				// We need to split the item:
@@ -162,7 +172,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 				}
 				if priceIntroducedByAddon {
 					addonCurrency := rc.AddonRateCard.AsMeta().EffectiveCurrency(d.addon.Addon.Currency)
-					if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.Currency); err != nil {
+					if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.InvoiceCurrency); err != nil {
 						return fmt.Errorf("failed to materialize currency for extended rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}
 				}
@@ -192,7 +202,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 					}
 				}
 				addonCurrency := rc.AddonRateCard.AsMeta().EffectiveCurrency(d.addon.Addon.Currency)
-				if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.Currency); err != nil {
+				if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.InvoiceCurrency); err != nil {
 					return fmt.Errorf("failed to materialize currency for new rate card %s: %w", rc.AddonRateCard.Key(), err)
 				}
 

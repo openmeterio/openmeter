@@ -1,12 +1,14 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -21,18 +23,53 @@ type Config struct {
 	WorkflowService     subscriptionworkflow.Service
 	SubscriptionService subscription.Service
 	PlanService         plan.Service
+	CurrencyResolver    currencies.CurrencyResolver
 	Logger              *slog.Logger
 	CustomerService     customer.Service
+}
+
+func (c Config) Validate() error {
+	var errs []error
+
+	if c.WorkflowService == nil {
+		errs = append(errs, errors.New("subscription workflow service is required"))
+	}
+
+	if c.SubscriptionService == nil {
+		errs = append(errs, errors.New("subscription service is required"))
+	}
+
+	if c.PlanService == nil {
+		errs = append(errs, errors.New("plan service is required"))
+	}
+
+	if c.CurrencyResolver == nil {
+		errs = append(errs, errors.New("currency resolver is required"))
+	}
+
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
+	if c.CustomerService == nil {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+
+	return errors.Join(errs...)
 }
 
 type service struct {
 	Config
 }
 
-func New(c Config) plansubscription.PlanSubscriptionService {
+func New(c Config) (plansubscription.PlanSubscriptionService, error) {
+	if err := c.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid plan subscription service config: %w", err)
+	}
+
 	return &service{
 		Config: c,
-	}
+	}, nil
 }
 
 func (s *service) zeroPhasesBeforeStartingPhase(p *plan.Plan, startingPhase string) error {

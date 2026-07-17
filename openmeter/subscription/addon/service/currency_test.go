@@ -227,11 +227,11 @@ func createSubscriptionForPlanWithAddon(
 
 	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
 	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-		CustomerId:    customer.ID,
-		Currency:      "USD",
-		ActiveFrom:    now,
-		BillingAnchor: now,
-		Name:          "Test Subscription",
+		CustomerId:      customer.ID,
+		InvoiceCurrency: "USD",
+		ActiveFrom:      now,
+		BillingAnchor:   now,
+		Name:            "Test Subscription",
 	})
 	require.NoError(t, err)
 

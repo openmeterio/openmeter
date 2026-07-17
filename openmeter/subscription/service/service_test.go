@@ -43,12 +43,12 @@ func TestCreation(t *testing.T) {
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
-			Annotations:   models.Annotations{},
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
+			Annotations:     models.Annotations{},
 		})
 		require.Nil(t, err)
 
@@ -58,7 +58,7 @@ func TestCreation(t *testing.T) {
 		require.Equal(t, plan.ToCreateSubscriptionPlanInput().Plan, sub.PlanRef)
 		require.Equal(t, subscriptiontestutils.ExampleNamespace, sub.Namespace)
 		require.Equal(t, cust.ID, sub.CustomerId)
-		require.Equal(t, currencyx.Code("USD"), sub.Currency)
+		require.Equal(t, currencyx.Code("USD"), sub.InvoiceCurrency)
 		require.NotNil(t, sub.Annotations)
 
 		t.Run("Should find subscription by ID", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestCreation(t *testing.T) {
 			assert.Equal(t, sub.PlanRef, found.PlanRef)
 			assert.Equal(t, sub.Namespace, found.Namespace)
 			assert.Equal(t, sub.CustomerId, found.CustomerId)
-			assert.Equal(t, sub.Currency, found.Currency)
+			assert.Equal(t, sub.InvoiceCurrency, found.InvoiceCurrency)
 			// Annotations should be initialized as empty map
 			assert.NotNil(t, found.Annotations)
 			assert.Equal(t, models.Annotations{}, found.Annotations)
@@ -89,7 +89,7 @@ func TestCreation(t *testing.T) {
 			assert.Equal(t, sub.PlanRef, foundSub.PlanRef)
 			assert.Equal(t, sub.Namespace, foundSub.Namespace)
 			assert.Equal(t, sub.CustomerId, foundSub.CustomerId)
-			assert.Equal(t, sub.Currency, foundSub.Currency)
+			assert.Equal(t, sub.InvoiceCurrency, foundSub.InvoiceCurrency)
 
 			// Let's validate the spec & the view
 			subscriptiontestutils.ValidateSpecAndView(t, defaultSpecFromPlan, found)
@@ -114,12 +114,12 @@ func TestCreation(t *testing.T) {
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		specWithAnnotations, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription with Annotations",
-			Annotations:   models.Annotations{"test.key": "test.value", "another.key": float64(123)},
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription with Annotations",
+			Annotations:     models.Annotations{"test.key": "test.value", "another.key": float64(123)},
 		})
 		require.Nil(t, err)
 
@@ -172,11 +172,11 @@ func TestCreation(t *testing.T) {
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -217,11 +217,11 @@ func TestCreation(t *testing.T) {
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -238,6 +238,66 @@ func TestCreation(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, currencyx.Code("USD"), *c.Currency)
+	})
+
+	t.Run("Should set customer currency when an update first introduces billables", func(t *testing.T) {
+		// given:
+		// - an unpriced subscription whose customer has no currency
+		// when:
+		// - an update first makes an item billable
+		// then:
+		// - the customer snapshots the subscription invoice currency
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
+		clock.FreezeTime(currentTime)
+		defer clock.UnFreeze()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		cust, err := deps.CustomerService.CreateCustomer(t.Context(), customer.CreateCustomerInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			CustomerMutate: customer.CustomerMutate{
+				Name: "Initially currency-less customer",
+				Key:  lo.ToPtr("initially-currency-less-customer"),
+			},
+		})
+		require.NoError(t, err)
+
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
+			AddPhase(nil, subscriptiontestutils.ExampleAddonRateCard2.Clone()).
+			Build())
+		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:      cust.ID,
+			InvoiceCurrency: currencyx.Code("USD"),
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Initially unpriced subscription",
+		})
+		require.NoError(t, err)
+
+		created, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+		require.NoError(t, err)
+		customerBefore, err := deps.CustomerService.GetCustomer(t.Context(), customer.GetCustomerInput{CustomerID: lo.ToPtr(cust.GetID())})
+		require.NoError(t, err)
+		require.Nil(t, customerBefore.Currency)
+
+		view, err := deps.SubscriptionService.GetView(t.Context(), created.NamespacedID)
+		require.NoError(t, err)
+		updatedSpec := view.AsSpec()
+		item := updatedSpec.GetSortedPhases()[0].ItemsByKey[subscriptiontestutils.ExampleAddonRateCard2.Key()][0]
+		item.RateCard = item.RateCard.Clone()
+		require.NoError(t, item.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+			meta.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(10)})
+			return meta, nil
+		}))
+
+		_, err = deps.SubscriptionService.Update(t.Context(), created.NamespacedID, updatedSpec)
+		require.NoError(t, err)
+
+		customerAfter, err := deps.CustomerService.GetCustomer(t.Context(), customer.GetCustomerInput{CustomerID: lo.ToPtr(cust.GetID())})
+		require.NoError(t, err)
+		require.Equal(t, currencyx.Code("USD"), *customerAfter.Currency)
 	})
 }
 
@@ -261,11 +321,11 @@ func TestCancellation(t *testing.T) {
 
 		// First, let's create a subscription
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -284,7 +344,7 @@ func TestCancellation(t *testing.T) {
 		assert.Equal(t, sub.PlanRef, cancelledSub.PlanRef)
 		assert.Equal(t, sub.Namespace, cancelledSub.Namespace)
 		assert.Equal(t, sub.CustomerId, cancelledSub.CustomerId)
-		assert.Equal(t, sub.Currency, cancelledSub.Currency)
+		assert.Equal(t, sub.InvoiceCurrency, cancelledSub.InvoiceCurrency)
 		assert.Equal(t, expectedCancelTime, *cancelledSub.ActiveTo)
 		assert.Equal(t, subscription.SubscriptionStatusCanceled, cancelledSub.GetStatusAt(clock.Now()))
 
@@ -378,11 +438,11 @@ func TestContinuing(t *testing.T) {
 
 		// First, let's create a subscription
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -465,11 +525,11 @@ func TestContinuing(t *testing.T) {
 
 		// First, let's create a subscription
 		spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -487,11 +547,11 @@ func TestContinuing(t *testing.T) {
 
 		// Third, let's create another subscription for later
 		spec2, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    expectedCancelTime.AddDate(0, 0, 1),
-			BillingAnchor: expectedCancelTime.AddDate(0, 0, 1),
-			Name:          "Test Subscription",
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      expectedCancelTime.AddDate(0, 0, 1),
+			BillingAnchor:   expectedCancelTime.AddDate(0, 0, 1),
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -574,11 +634,11 @@ func TestList(t *testing.T) {
 		// Let's create some subscriptions:
 		// - One active
 		spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust1.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
+			CustomerId:      cust1.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -587,11 +647,11 @@ func TestList(t *testing.T) {
 
 		// - One canceled
 		spec2, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust2.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
+			CustomerId:      cust2.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -605,11 +665,11 @@ func TestList(t *testing.T) {
 
 		// - One inactive
 		spec3, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust3.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime.Add(-1 * time.Minute),
-			BillingAnchor: currentTime.Add(-1 * time.Minute),
-			Name:          "Test Subscription",
+			CustomerId:      cust3.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime.Add(-1 * time.Minute),
+			BillingAnchor:   currentTime.Add(-1 * time.Minute),
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -623,11 +683,11 @@ func TestList(t *testing.T) {
 
 		// - One scheduled
 		spec4, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust4.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime.AddDate(0, 0, 3),
-			BillingAnchor: currentTime.AddDate(0, 0, 3),
-			Name:          "Test Subscription",
+			CustomerId:      cust4.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime.AddDate(0, 0, 3),
+			BillingAnchor:   currentTime.AddDate(0, 0, 3),
+			Name:            "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -756,22 +816,22 @@ func TestList(t *testing.T) {
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust1.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Alpha Subscription",
+			CustomerId:      cust1.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Alpha Subscription",
 		})
 		require.Nil(t, err)
 		sub1, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec1)
 		require.Nil(t, err)
 
 		spec2, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust2.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Beta Subscription",
+			CustomerId:      cust2.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Beta Subscription",
 		})
 		require.Nil(t, err)
 		sub2, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec2)
@@ -1129,12 +1189,12 @@ func TestTaxCodeResolution(t *testing.T) {
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
-			Annotations:   models.Annotations{},
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
+			Annotations:     models.Annotations{},
 		})
 		require.NoError(t, err)
 
@@ -1197,12 +1257,12 @@ func TestTaxCodeResolution(t *testing.T) {
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
-			Annotations:   models.Annotations{},
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
+			Annotations:     models.Annotations{},
 		})
 		require.NoError(t, err)
 
@@ -1299,12 +1359,12 @@ func TestTaxCodeResolution(t *testing.T) {
 		plan := deps.PlanHelper.CreatePlan(t, planInput)
 
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
-			Annotations:   models.Annotations{},
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
+			Annotations:     models.Annotations{},
 		})
 		require.NoError(t, err)
 
@@ -1367,12 +1427,12 @@ func TestTaxCodeResolution(t *testing.T) {
 		plan := deps.PlanHelper.CreatePlan(t, planInput)
 
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cust.ID,
-			Currency:      "USD",
-			ActiveFrom:    currentTime,
-			BillingAnchor: currentTime,
-			Name:          "Test Subscription",
-			Annotations:   models.Annotations{},
+			CustomerId:      cust.ID,
+			InvoiceCurrency: "USD",
+			ActiveFrom:      currentTime,
+			BillingAnchor:   currentTime,
+			Name:            "Test Subscription",
+			Annotations:     models.Annotations{},
 		})
 		require.NoError(t, err)
 

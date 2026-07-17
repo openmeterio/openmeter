@@ -115,11 +115,11 @@ func TestAddonServiceChangeQuantity(t *testing.T) {
 				Plan: p.AsProductCatalogPlan(),
 				Ref:  &p.NamespacedID,
 			}, subscription.CreateSubscriptionCustomerInput{
-				CustomerId:    cust.ID,
-				Currency:      "USD",
-				ActiveFrom:    now,
-				BillingAnchor: now,
-				Name:          "Test Subscription",
+				CustomerId:      cust.ID,
+				InvoiceCurrency: "USD",
+				ActiveFrom:      now,
+				BillingAnchor:   now,
+				Name:            "Test Subscription",
 			})
 			require.Nil(t, err)
 
@@ -199,11 +199,11 @@ func createExampleSubscriptionAddon(t *testing.T, deps subscriptiontestutils.Sub
 	// Let's create a subscription
 	cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 	spec1, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-		CustomerId:    cust.ID,
-		Currency:      "USD",
-		ActiveFrom:    now,
-		BillingAnchor: now,
-		Name:          "Test Subscription",
+		CustomerId:      cust.ID,
+		InvoiceCurrency: "USD",
+		ActiveFrom:      now,
+		BillingAnchor:   now,
+		Name:            "Test Subscription",
 	})
 	require.Nil(t, err)
 

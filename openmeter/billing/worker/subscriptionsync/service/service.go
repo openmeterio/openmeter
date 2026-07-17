@@ -113,12 +113,12 @@ func (s *Service) GetSyncStates(ctx context.Context, input subscriptionsync.GetS
 	})
 }
 
-func (s *Service) SyncByViewAndInvoiceCustomer(ctx context.Context, view subscription.SubscriptionView, asOf time.Time) error {
-	return s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(view), asOf)
+func (s *Service) SyncByViewAndInvoiceCustomer(ctx context.Context, view subscription.SubscriptionView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
+	return s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(view), asOf, opts...)
 }
 
-func (s *Service) SyncByIDAndInvoiceCustomer(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time) error {
-	return s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(subscriptionID), asOf)
+func (s *Service) SyncByIDAndInvoiceCustomer(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
+	return s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(subscriptionID), asOf, opts...)
 }
 
 func (s *Service) SyncByView(ctx context.Context, view subscription.SubscriptionView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {

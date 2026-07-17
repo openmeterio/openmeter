@@ -57,9 +57,9 @@ func NewAggregateAppliesToSpec(applieses []AppliesToSpec) AppliesToSpec {
 					return models.ErrorWithComponent(models.ComponentName(fmt.Sprintf("patch at idx %d", i)), err)
 				}
 
-				issues, err := models.AsValidationIssues(err)
-				if err != nil {
-					return wrapError(err)
+				issues, conversionErr := models.AsValidationIssues(err)
+				if conversionErr != nil {
+					return wrapError(conversionErr)
 				}
 
 				if lo.EveryBy(issues, func(issue models.ValidationIssue) bool {
