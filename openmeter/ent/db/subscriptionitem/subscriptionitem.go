@@ -64,6 +64,10 @@ const (
 	FieldBillingCadence = "billing_cadence"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
+	// FieldFiatCurrencyCode holds the string denoting the fiat_currency_code field in the database.
+	FieldFiatCurrencyCode = "currency"
+	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
+	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
 	// FieldUnitConfig holds the string denoting the unit_config field in the database.
@@ -86,6 +90,8 @@ const (
 	EdgeChargesFlatFee = "charges_flat_fee"
 	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
 	EdgeTaxCode = "tax_code"
+	// EdgeCustomCurrency holds the string denoting the custom_currency edge name in mutations.
+	EdgeCustomCurrency = "custom_currency"
 	// Table holds the table name of the subscriptionitem in the database.
 	Table = "subscription_items"
 	// PhaseTable is the table that holds the phase relation/edge.
@@ -151,6 +157,13 @@ const (
 	TaxCodeInverseTable = "tax_codes"
 	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
 	TaxCodeColumn = "tax_code_id"
+	// CustomCurrencyTable is the table that holds the custom_currency relation/edge.
+	CustomCurrencyTable = "subscription_items"
+	// CustomCurrencyInverseTable is the table name for the CustomCurrency entity.
+	// It exists in this package in order to avoid circular dependency with the "customcurrency" package.
+	CustomCurrencyInverseTable = "custom_currencies"
+	// CustomCurrencyColumn is the table column denoting the custom_currency relation/edge.
+	CustomCurrencyColumn = "custom_currency_id"
 )
 
 // Columns holds all SQL columns for subscriptionitem fields.
@@ -179,6 +192,8 @@ var Columns = []string{
 	FieldTaxConfig,
 	FieldBillingCadence,
 	FieldPrice,
+	FieldFiatCurrencyCode,
+	FieldCustomCurrencyID,
 	FieldDiscounts,
 	FieldUnitConfig,
 }
@@ -208,6 +223,10 @@ var (
 	KeyValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
+	// FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	FiatCurrencyCodeValidator func(string) error
+	// CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	CustomCurrencyIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all SubscriptionItem fields.
@@ -349,6 +368,16 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
 }
 
+// ByFiatCurrencyCode orders the results by the fiat_currency_code field.
+func ByFiatCurrencyCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFiatCurrencyCode, opts...).ToFunc()
+}
+
+// ByCustomCurrencyID orders the results by the custom_currency_id field.
+func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomCurrencyID, opts...).ToFunc()
+}
+
 // ByDiscounts orders the results by the discounts field.
 func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
@@ -463,6 +492,13 @@ func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByCustomCurrencyField orders the results by custom_currency field.
+func ByCustomCurrencyField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomCurrencyStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newPhaseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -524,5 +560,12 @@ func newTaxCodeStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TaxCodeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+	)
+}
+func newCustomCurrencyStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomCurrencyInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomCurrencyTable, CustomCurrencyColumn),
 	)
 }

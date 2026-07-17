@@ -260,6 +260,12 @@ func TestAddAddon(t *testing.T) {
 			require.NoError(t, spec.Apply(diff.GetApplies(), subscription.ApplyContext{
 				CurrentTime: now,
 			}))
+
+			expectedCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+				WithCode(spec.Currency).
+				Build()
+			require.NoError(t, err)
+			require.NoError(t, spec.MaterializeRateCardCurrencies(expectedCurrency))
 		}
 
 		newSpec := subView.AsSpec()

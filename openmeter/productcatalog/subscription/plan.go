@@ -94,8 +94,8 @@ func (p *Plan) GetPhases() []subscription.PlanPhase {
 	return ps
 }
 
-func (p *Plan) Currency() currencyx.Code {
-	return p.Plan.Currency.GetCode()
+func (p *Plan) Currency() currencyx.CurrencyIdentity {
+	return p.Plan.Currency
 }
 
 type Phase struct {

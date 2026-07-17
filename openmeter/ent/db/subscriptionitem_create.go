@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -277,6 +278,34 @@ func (_c *SubscriptionItemCreate) SetPrice(v *productcatalog.Price) *Subscriptio
 	return _c
 }
 
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_c *SubscriptionItemCreate) SetFiatCurrencyCode(v string) *SubscriptionItemCreate {
+	_c.mutation.SetFiatCurrencyCode(v)
+	return _c
+}
+
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_c *SubscriptionItemCreate) SetNillableFiatCurrencyCode(v *string) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetFiatCurrencyCode(*v)
+	}
+	return _c
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *SubscriptionItemCreate) SetCustomCurrencyID(v string) *SubscriptionItemCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *SubscriptionItemCreate) SetNillableCustomCurrencyID(v *string) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
+	}
+	return _c
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_c *SubscriptionItemCreate) SetDiscounts(v *productcatalog.Discounts) *SubscriptionItemCreate {
 	_c.mutation.SetDiscounts(v)
@@ -408,6 +437,11 @@ func (_c *SubscriptionItemCreate) SetTaxCode(v *TaxCode) *SubscriptionItemCreate
 	return _c.SetTaxCodeID(v.ID)
 }
 
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *SubscriptionItemCreate) SetCustomCurrency(v *CustomCurrency) *SubscriptionItemCreate {
+	return _c.SetCustomCurrencyID(v.ID)
+}
+
 // Mutation returns the SubscriptionItemMutation object of the builder.
 func (_c *SubscriptionItemCreate) Mutation() *SubscriptionItemMutation {
 	return _c.mutation
@@ -518,6 +552,16 @@ func (_c *SubscriptionItemCreate) check() error {
 	if v, ok := _c.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
+		if err := subscriptionitem.FiatCurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.fiat_currency_code": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := subscriptionitem.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.custom_currency_id": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.Discounts(); ok {
@@ -667,6 +711,10 @@ func (_c *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cre
 		}
 		_spec.SetField(subscriptionitem.FieldPrice, field.TypeString, vv)
 		_node.Price = value
+	}
+	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(subscriptionitem.FieldFiatCurrencyCode, field.TypeString, value)
+		_node.FiatCurrencyCode = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)
@@ -829,6 +877,23 @@ func (_c *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cre
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.TaxCodeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscriptionitem.CustomCurrencyTable,
+			Columns: []string{subscriptionitem.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1207,6 +1272,24 @@ func (u *SubscriptionItemUpsert) ClearPrice() *SubscriptionItemUpsert {
 	return u
 }
 
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (u *SubscriptionItemUpsert) SetFiatCurrencyCode(v string) *SubscriptionItemUpsert {
+	u.Set(subscriptionitem.FieldFiatCurrencyCode, v)
+	return u
+}
+
+// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
+func (u *SubscriptionItemUpsert) UpdateFiatCurrencyCode() *SubscriptionItemUpsert {
+	u.SetExcluded(subscriptionitem.FieldFiatCurrencyCode)
+	return u
+}
+
+// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
+func (u *SubscriptionItemUpsert) ClearFiatCurrencyCode() *SubscriptionItemUpsert {
+	u.SetNull(subscriptionitem.FieldFiatCurrencyCode)
+	return u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (u *SubscriptionItemUpsert) SetDiscounts(v *productcatalog.Discounts) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldDiscounts, v)
@@ -1271,6 +1354,9 @@ func (u *SubscriptionItemUpsertOne) UpdateNewValues() *SubscriptionItemUpsertOne
 		}
 		if _, exists := u.create.mutation.Key(); exists {
 			s.SetIgnore(subscriptionitem.FieldKey)
+		}
+		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
+			s.SetIgnore(subscriptionitem.FieldCustomCurrencyID)
 		}
 	}))
 	return u
@@ -1681,6 +1767,27 @@ func (u *SubscriptionItemUpsertOne) ClearPrice() *SubscriptionItemUpsertOne {
 	})
 }
 
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (u *SubscriptionItemUpsertOne) SetFiatCurrencyCode(v string) *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetFiatCurrencyCode(v)
+	})
+}
+
+// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertOne) UpdateFiatCurrencyCode() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateFiatCurrencyCode()
+	})
+}
+
+// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
+func (u *SubscriptionItemUpsertOne) ClearFiatCurrencyCode() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearFiatCurrencyCode()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
 func (u *SubscriptionItemUpsertOne) SetDiscounts(v *productcatalog.Discounts) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
@@ -1920,6 +2027,9 @@ func (u *SubscriptionItemUpsertBulk) UpdateNewValues() *SubscriptionItemUpsertBu
 			}
 			if _, exists := b.mutation.Key(); exists {
 				s.SetIgnore(subscriptionitem.FieldKey)
+			}
+			if _, exists := b.mutation.CustomCurrencyID(); exists {
+				s.SetIgnore(subscriptionitem.FieldCustomCurrencyID)
 			}
 		}
 	}))
@@ -2328,6 +2438,27 @@ func (u *SubscriptionItemUpsertBulk) UpdatePrice() *SubscriptionItemUpsertBulk {
 func (u *SubscriptionItemUpsertBulk) ClearPrice() *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearPrice()
+	})
+}
+
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (u *SubscriptionItemUpsertBulk) SetFiatCurrencyCode(v string) *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetFiatCurrencyCode(v)
+	})
+}
+
+// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertBulk) UpdateFiatCurrencyCode() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateFiatCurrencyCode()
+	})
+}
+
+// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
+func (u *SubscriptionItemUpsertBulk) ClearFiatCurrencyCode() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearFiatCurrencyCode()
 	})
 }
 

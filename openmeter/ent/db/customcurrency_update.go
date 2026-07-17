@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 )
 
 // CustomCurrencyUpdate is the builder for updating CustomCurrency entities.
@@ -162,6 +163,21 @@ func (_u *CustomCurrencyUpdate) AddAddonRateCards(v ...*AddonRateCard) *CustomCu
 	return _u.AddAddonRateCardIDs(ids...)
 }
 
+// AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
+func (_u *CustomCurrencyUpdate) AddSubscriptionItemIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.AddSubscriptionItemIDs(ids...)
+	return _u
+}
+
+// AddSubscriptionItems adds the "subscription_items" edges to the SubscriptionItem entity.
+func (_u *CustomCurrencyUpdate) AddSubscriptionItems(v ...*SubscriptionItem) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubscriptionItemIDs(ids...)
+}
+
 // Mutation returns the CustomCurrencyMutation object of the builder.
 func (_u *CustomCurrencyUpdate) Mutation() *CustomCurrencyMutation {
 	return _u.mutation
@@ -270,6 +286,27 @@ func (_u *CustomCurrencyUpdate) RemoveAddonRateCards(v ...*AddonRateCard) *Custo
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAddonRateCardIDs(ids...)
+}
+
+// ClearSubscriptionItems clears all "subscription_items" edges to the SubscriptionItem entity.
+func (_u *CustomCurrencyUpdate) ClearSubscriptionItems() *CustomCurrencyUpdate {
+	_u.mutation.ClearSubscriptionItems()
+	return _u
+}
+
+// RemoveSubscriptionItemIDs removes the "subscription_items" edge to SubscriptionItem entities by IDs.
+func (_u *CustomCurrencyUpdate) RemoveSubscriptionItemIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.RemoveSubscriptionItemIDs(ids...)
+	return _u
+}
+
+// RemoveSubscriptionItems removes "subscription_items" edges to SubscriptionItem entities.
+func (_u *CustomCurrencyUpdate) RemoveSubscriptionItems(v ...*SubscriptionItem) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubscriptionItemIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -575,6 +612,51 @@ func (_u *CustomCurrencyUpdate) sqlSave(ctx context.Context) (_node int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.SubscriptionItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionItemsTable,
+			Columns: []string{customcurrency.SubscriptionItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubscriptionItemsIDs(); len(nodes) > 0 && !_u.mutation.SubscriptionItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionItemsTable,
+			Columns: []string{customcurrency.SubscriptionItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionItemsTable,
+			Columns: []string{customcurrency.SubscriptionItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customcurrency.Label}
@@ -724,6 +806,21 @@ func (_u *CustomCurrencyUpdateOne) AddAddonRateCards(v ...*AddonRateCard) *Custo
 	return _u.AddAddonRateCardIDs(ids...)
 }
 
+// AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
+func (_u *CustomCurrencyUpdateOne) AddSubscriptionItemIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.AddSubscriptionItemIDs(ids...)
+	return _u
+}
+
+// AddSubscriptionItems adds the "subscription_items" edges to the SubscriptionItem entity.
+func (_u *CustomCurrencyUpdateOne) AddSubscriptionItems(v ...*SubscriptionItem) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubscriptionItemIDs(ids...)
+}
+
 // Mutation returns the CustomCurrencyMutation object of the builder.
 func (_u *CustomCurrencyUpdateOne) Mutation() *CustomCurrencyMutation {
 	return _u.mutation
@@ -832,6 +929,27 @@ func (_u *CustomCurrencyUpdateOne) RemoveAddonRateCards(v ...*AddonRateCard) *Cu
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAddonRateCardIDs(ids...)
+}
+
+// ClearSubscriptionItems clears all "subscription_items" edges to the SubscriptionItem entity.
+func (_u *CustomCurrencyUpdateOne) ClearSubscriptionItems() *CustomCurrencyUpdateOne {
+	_u.mutation.ClearSubscriptionItems()
+	return _u
+}
+
+// RemoveSubscriptionItemIDs removes the "subscription_items" edge to SubscriptionItem entities by IDs.
+func (_u *CustomCurrencyUpdateOne) RemoveSubscriptionItemIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.RemoveSubscriptionItemIDs(ids...)
+	return _u
+}
+
+// RemoveSubscriptionItems removes "subscription_items" edges to SubscriptionItem entities.
+func (_u *CustomCurrencyUpdateOne) RemoveSubscriptionItems(v ...*SubscriptionItem) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubscriptionItemIDs(ids...)
 }
 
 // Where appends a list predicates to the CustomCurrencyUpdate builder.
@@ -1160,6 +1278,51 @@ func (_u *CustomCurrencyUpdateOne) sqlSave(ctx context.Context) (_node *CustomCu
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionItemsTable,
+			Columns: []string{customcurrency.SubscriptionItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubscriptionItemsIDs(); len(nodes) > 0 && !_u.mutation.SubscriptionItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionItemsTable,
+			Columns: []string{customcurrency.SubscriptionItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionItemsTable,
+			Columns: []string{customcurrency.SubscriptionItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

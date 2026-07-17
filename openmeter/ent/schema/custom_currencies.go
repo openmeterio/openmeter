@@ -51,6 +51,8 @@ func (CustomCurrency) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Restrict)),
 		edge.To("addon_rate_cards", AddonRateCard.Type).
 			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("subscription_items", SubscriptionItem.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 

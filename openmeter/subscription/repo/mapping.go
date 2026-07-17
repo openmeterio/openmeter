@@ -5,6 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -127,6 +128,15 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		return subscription.SubscriptionItem{}, fmt.Errorf("failed to parse billing cadence: %w", err)
 	}
 
+	itemCurrency, err := currencyadapter.FromDBCurrencyReference(currencyadapter.CurrencyReference{
+		FiatCurrencyCode: item.FiatCurrencyCode,
+		CustomCurrencyID: item.CustomCurrencyID,
+		CustomCurrency:   item.Edges.CustomCurrency,
+	}, true)
+	if err != nil {
+		return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: %w", err)
+	}
+
 	var rc productcatalog.RateCard
 	rcMeta := productcatalog.RateCardMeta{
 		Name:                item.Name,
@@ -140,6 +150,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		Key:                 item.Key,
 		// NOTE: resolving feature is done on service level as there is no direct relationship between subscription items and features.
 		FeatureID: nil,
+		Currency:  itemCurrency,
 	}
 
 	// Map TaxCode if eagerly loaded.

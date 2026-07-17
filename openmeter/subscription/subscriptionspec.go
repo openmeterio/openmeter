@@ -62,6 +62,32 @@ type SubscriptionSpec struct {
 	Phases map[string]*SubscriptionPhaseSpec `json:"phases"`
 }
 
+// MaterializeRateCardCurrencies snapshots the effective currency onto every
+// priced item that still inherits its currency from the subscription source.
+// Existing explicit identities are preserved so managed custom-currency
+// references survive independently of the plan or add-on that introduced them.
+func (s SubscriptionSpec) MaterializeRateCardCurrencies(defaultCurrency currencyx.CurrencyIdentity) error {
+	for phaseKey, phase := range s.Phases {
+		if phase == nil {
+			continue
+		}
+
+		for itemKey, items := range phase.ItemsByKey {
+			for idx, item := range items {
+				if item == nil {
+					continue
+				}
+
+				if err := item.MaterializeRateCardCurrency(defaultCurrency); err != nil {
+					return fmt.Errorf("materializing currency for item %q[%d] in phase %q: %w", itemKey, idx, phaseKey, err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubscriptionEntityInput {
 	return CreateSubscriptionEntityInput{
 		NamespacedModel: models.NamespacedModel{
@@ -757,6 +783,31 @@ type SubscriptionItemSpec struct {
 	CreateSubscriptionItemInput `json:",inline"`
 }
 
+// MaterializeRateCardCurrency snapshots an inherited currency on a priced
+// subscription item. Unpriced items have no currency, while an already
+// materialized identity must not be replaced by a later subscription update.
+func (s *SubscriptionItemSpec) MaterializeRateCardCurrency(defaultCurrency currencyx.CurrencyIdentity) error {
+	if s.RateCard == nil {
+		return errors.New("rate card is required")
+	}
+
+	meta := s.RateCard.AsMeta()
+	if meta.Price == nil || meta.Currency != nil {
+		return nil
+	}
+	if defaultCurrency == nil {
+		return errors.New("default currency is required for a priced rate card")
+	}
+	if err := defaultCurrency.Validate(); err != nil {
+		return fmt.Errorf("invalid default currency: %w", err)
+	}
+
+	return s.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.Currency = defaultCurrency
+		return meta, nil
+	})
+}
+
 func (s SubscriptionItemSpec) GetCadence(phaseCadence models.CadencedModel) models.CadencedModel {
 	start := phaseCadence.ActiveFrom
 	if s.ActiveFromOverrideRelativeToPhaseStart != nil {
@@ -1125,6 +1176,9 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 					CreateSubscriptionItemCustomerInput: CreateSubscriptionItemCustomerInput{},
 					Annotations:                         annotations,
 				},
+			}
+			if err := itemSpec.MaterializeRateCardCurrency(p.Currency()); err != nil {
+				return spec, fmt.Errorf("failed to snapshot effective currency for rate card %s of phase %s of %s: %w", rateCard.GetKey(), phase.PhaseKey, planRefName, err)
 			}
 
 			if phase.ItemsByKey[rateCard.GetKey()] == nil {

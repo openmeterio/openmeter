@@ -102,6 +102,9 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	ctx = subscription.NewSubscriptionOperationContext(ctx)
 
 	def := subscription.Subscription{}
+	if err := spec.MaterializeRateCardCurrencies(spec.Currency); err != nil {
+		return def, fmt.Errorf("failed to materialize subscription item currencies: %w", err)
+	}
 
 	// Fetch the customer & validate the customer
 	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
@@ -197,6 +200,9 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 	ctx = subscription.NewSubscriptionOperationContext(ctx)
 
 	var def subscription.Subscription
+	if err := newSpec.MaterializeRateCardCurrencies(newSpec.Currency); err != nil {
+		return def, fmt.Errorf("failed to materialize subscription item currencies: %w", err)
+	}
 
 	// Get the full view
 	view, err := s.GetView(ctx, subscriptionID)

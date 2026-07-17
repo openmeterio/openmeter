@@ -38,6 +38,8 @@ const (
 	EdgePlanRateCards = "plan_rate_cards"
 	// EdgeAddonRateCards holds the string denoting the addon_rate_cards edge name in mutations.
 	EdgeAddonRateCards = "addon_rate_cards"
+	// EdgeSubscriptionItems holds the string denoting the subscription_items edge name in mutations.
+	EdgeSubscriptionItems = "subscription_items"
 	// Table holds the table name of the customcurrency in the database.
 	Table = "custom_currencies"
 	// CostBasisHistoryTable is the table that holds the cost_basis_history relation/edge.
@@ -75,6 +77,13 @@ const (
 	AddonRateCardsInverseTable = "addon_rate_cards"
 	// AddonRateCardsColumn is the table column denoting the addon_rate_cards relation/edge.
 	AddonRateCardsColumn = "custom_currency_id"
+	// SubscriptionItemsTable is the table that holds the subscription_items relation/edge.
+	SubscriptionItemsTable = "subscription_items"
+	// SubscriptionItemsInverseTable is the table name for the SubscriptionItem entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionitem" package.
+	SubscriptionItemsInverseTable = "subscription_items"
+	// SubscriptionItemsColumn is the table column denoting the subscription_items relation/edge.
+	SubscriptionItemsColumn = "custom_currency_id"
 )
 
 // Columns holds all SQL columns for customcurrency fields.
@@ -230,6 +239,20 @@ func ByAddonRateCards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAddonRateCardsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// BySubscriptionItemsCount orders the results by subscription_items count.
+func BySubscriptionItemsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSubscriptionItemsStep(), opts...)
+	}
+}
+
+// BySubscriptionItems orders the results by subscription_items terms.
+func BySubscriptionItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCostBasisHistoryStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -263,5 +286,12 @@ func newAddonRateCardsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AddonRateCardsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AddonRateCardsTable, AddonRateCardsColumn),
+	)
+}
+func newSubscriptionItemsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionItemsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionItemsTable, SubscriptionItemsColumn),
 	)
 }

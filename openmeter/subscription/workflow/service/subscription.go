@@ -72,7 +72,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 		// Let's create the new Spec
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
 			CustomerId:    cus.ID,
-			Currency:      plan.Currency(),
+			Currency:      plan.Currency().GetCode(),
 			ActiveFrom:    activeFrom,
 			MetadataModel: inp.MetadataModel,
 			Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
