@@ -69,6 +69,14 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "too short custom currency",
+			input: GetBalanceServiceInput{
+				CustomerID: valid.CustomerID,
+				Currency:   currencyx.Code("X"),
+			},
+			wantErr: true,
+		},
+		{
 			name: "custom currency",
 			input: GetBalanceServiceInput{
 				CustomerID: valid.CustomerID,

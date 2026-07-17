@@ -45,7 +45,7 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 	resp := api.BillingPlan{
 		BillingCadence:   p.BillingCadence.String(),
 		CreatedAt:        p.CreatedAt,
-		Currency:         api.BillingCurrencyCode(p.Currency.GetCode().String()),
+		Currency:         p.Currency.GetCode().String(),
 		DeletedAt:        p.DeletedAt,
 		Description:      p.Description,
 		EffectiveFrom:    p.EffectiveFrom,
@@ -122,7 +122,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 	}
 
 	if meta.Currency != nil {
-		result.Currency = lo.ToPtr(api.BillingCurrencyCode(meta.Currency.GetCode().String()))
+		result.Currency = lo.ToPtr(meta.Currency.GetCode().String())
 	}
 
 	if meta.FeatureID != nil {
