@@ -1,0 +1,1 @@
+-- The completed invoice schema migration helpers are intentionally not recreated on rollback.
