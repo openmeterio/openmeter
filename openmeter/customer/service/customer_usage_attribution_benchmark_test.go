@@ -21,13 +21,10 @@ import (
 func newUsageAttributionServiceBenchmark(b *testing.B) (customer.Service, string, int) {
 	b.Helper()
 
-	db := testutils.InitPostgresDB(b)
+	db := testutils.InitPostgresDB(b, testutils.PostgresDBStateEntMigrated)
 	b.Cleanup(func() { db.Close(b) })
 
 	client := db.EntDriver.Client()
-	if err := client.Schema.Create(b.Context()); err != nil {
-		b.Fatalf("create database schema: %v", err)
-	}
 
 	logger := testutils.NewDiscardLogger(b)
 
