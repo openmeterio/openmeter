@@ -196,7 +196,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 					hydrated[models.NamespacedID{Namespace: invoice.Namespace, ID: invoice.ID}] = billing.NewInvoice(invoice)
 				}
 			case target.Type == billing.InvoiceTypeGathering && target.StorageTable == billinginvoicesearchv1.StorageTableBillingInvoice:
-				invoices, err := tx.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+				invoices, err := tx.listGatheringInvoices(ctx, listGatheringInvoicesInput{
 					Namespaces:     input.Namespaces,
 					IDs:            ids,
 					Expand:         gatheringExpand,
@@ -205,11 +205,11 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 				if err != nil {
 					return response, fmt.Errorf("listing legacy gathering invoices for search hydration: %w", err)
 				}
-				for _, invoice := range invoices.Items {
+				for _, invoice := range invoices {
 					hydrated[models.NamespacedID{Namespace: invoice.Namespace, ID: invoice.ID}] = billing.NewInvoice(invoice)
 				}
 			case target.Type == billing.InvoiceTypeGathering && target.StorageTable == billinginvoicesearchv1.StorageTableBillingGatheringInvoice:
-				invoices, err := tx.listDedicatedGatheringInvoices(ctx, listDedicatedGatheringInvoicesInput{
+				invoices, err := tx.listDedicatedGatheringInvoices(ctx, listGatheringInvoicesInput{
 					Namespaces:     input.Namespaces,
 					IDs:            ids,
 					Expand:         gatheringExpand,
@@ -815,24 +815,24 @@ func (a *adapter) GetInvoiceType(ctx context.Context, input billing.GetInvoiceTy
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.InvoiceType, error) {
-		invoice, err := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.ID(input.ID)).
-			Where(billinginvoice.Namespace(input.Namespace)).
-			Only(ctx)
+		searchResults, err := tx.db.BillingInvoiceSearchV1.Query().
+			Where(billinginvoicesearchv1.ID(input.ID)).
+			Where(billinginvoicesearchv1.Namespace(input.Namespace)).
+			All(ctx)
 		if err != nil {
-			if db.IsNotFound(err) {
-				return "", billing.NotFoundError{
-					Err: fmt.Errorf("invoice not found: %w", err),
-				}
-			}
-
 			return "", err
 		}
 
-		if invoice.Status == billing.StandardInvoiceStatusGathering {
-			return billing.InvoiceTypeGathering, nil
+		if len(searchResults) == 0 {
+			return "", billing.NotFoundError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrInvoiceNotFound, input.ID),
+			}
 		}
 
-		return billing.InvoiceTypeStandard, nil
+		if len(searchResults) > 1 {
+			return "", models.NewGenericConflictError(fmt.Errorf("invoice exists in multiple storage tables [namespace=%s, id=%s]", input.Namespace, input.ID))
+		}
+
+		return searchResults[0].InvoiceType, nil
 	})
 }
