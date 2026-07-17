@@ -158,7 +158,6 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		customerService, err := customerservice.New(customerservice.Config{
 			Adapter:   customerAdapter,
 			Publisher: mockPublisher,
-			Logger:    testLogger,
 		})
 		require.NoError(t, err)
 

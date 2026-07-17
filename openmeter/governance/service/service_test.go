@@ -91,7 +91,6 @@ func setupTestDeps(t *testing.T) *testDeps {
 	customerSvc, err := customerservice.New(customerservice.Config{
 		Adapter:   customerAdapter,
 		Publisher: eventbus.NewMock(t),
-		Logger:    logger,
 	})
 	require.NoError(t, err)
 

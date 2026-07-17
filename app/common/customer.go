@@ -40,7 +40,6 @@ func NewCustomerService(
 	service, err := customerservice.New(customerservice.Config{
 		Adapter:   customerAdapter,
 		Publisher: eventPublisher,
-		Logger:    logger.WithGroup("customer"),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)

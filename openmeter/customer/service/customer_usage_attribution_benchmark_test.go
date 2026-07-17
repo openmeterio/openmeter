@@ -49,7 +49,6 @@ func newUsageAttributionServiceBenchmark(b *testing.B) (customer.Service, string
 	svc, err := customerservice.New(customerservice.Config{
 		Adapter:   adapter,
 		Publisher: publisher,
-		Logger:    logger,
 	})
 	if err != nil {
 		b.Fatalf("build customer service: %v", err)

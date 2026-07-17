@@ -63,7 +63,6 @@ func NewCustomerService(t *testing.T, dbDeps *DBDeps) customer.Service {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:   customerAdapter,
 		Publisher: eventbus.NewMock(t),
-		Logger:    testutils.NewLogger(t),
 	})
 	if err != nil {
 		t.Fatalf("failed to create customer service: %v", err)

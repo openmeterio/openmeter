@@ -139,7 +139,6 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:   customerAdapter,
 		Publisher: mockPublisher,
-		Logger:    testLogger,
 	})
 	require.NoError(t, err)
 
