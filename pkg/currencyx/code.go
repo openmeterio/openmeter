@@ -10,8 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var _ fmt.Stringer = (*Code)(nil)
-var _ CurrencyIdentity = (*Code)(nil)
+var (
+	_ fmt.Stringer     = (*Code)(nil)
+	_ CurrencyIdentity = (*Code)(nil)
+)
 
 // Code represents a fiat or custom currency code.
 type Code currency.Code
