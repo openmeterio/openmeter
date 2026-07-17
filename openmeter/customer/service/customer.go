@@ -141,7 +141,7 @@ func (s *Service) GetCustomerByUsageAttribution(ctx context.Context, input custo
 		)
 	}
 
-	customers, err := s.adapter.GetCustomersByUsageAttribution(ctx, customer.GetCustomersByUsageAttributionInput{
+	resolved, err := s.resolveCustomersByUsageAttribution(ctx, customer.GetCustomersByUsageAttributionInput{
 		Namespace: input.Namespace,
 		Keys:      []string{input.Key},
 		Expands:   input.Expands,
@@ -150,7 +150,7 @@ func (s *Service) GetCustomerByUsageAttribution(ctx context.Context, input custo
 		return nil, err
 	}
 
-	c, ok := resolveCustomersByKey(customers, []string{input.Key})[input.Key]
+	c, ok := resolved[input.Key]
 	if !ok {
 		return nil, models.NewGenericNotFoundError(
 			fmt.Errorf("customer with subject key %s not found in %s namespace", input.Key, input.Namespace),
@@ -169,21 +169,28 @@ func (s *Service) GetCustomersByUsageAttribution(ctx context.Context, input cust
 		)
 	}
 
+	return s.resolveCustomersByUsageAttribution(ctx, input)
+}
+
+// resolveCustomersByUsageAttribution runs the shared usage-attribution lookup: fetch the raw
+// candidate customers from the adapter, then apply key-over-subject precedence. Both the single-key
+// and bulk service methods route through this so their core resolution stays identical.
+func (s *Service) resolveCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) (map[string]customer.Customer, error) {
 	customers, err := s.adapter.GetCustomersByUsageAttribution(ctx, input)
 	if err != nil {
 		return nil, err
 	}
 
-	return resolveCustomersByKey(customers, input.Keys), nil
+	return resolveCustomersByKeyWithPrecedence(customers, input.Keys), nil
 }
 
-// resolveCustomersByKey maps each input key to the customer it matches. A key matches a customer
+// resolveCustomersByKeyWithPrecedence maps each input key to the customer it matches. A key matches a customer
 // either by the customer's own key or by one of its subject keys; when a key matches both a
 // distinct key-owner and a distinct subject-owner, the key-owner takes precedence. Key-over-subject
 // collisions are structurally rare and resolved deterministically here, so they are not surfaced as
 // errors or logs; investigate the underlying data via the database if ever needed. Keys with no
 // match are absent from the returned map.
-func resolveCustomersByKey(customers []customer.Customer, keys []string) map[string]customer.Customer {
+func resolveCustomersByKeyWithPrecedence(customers []customer.Customer, keys []string) map[string]customer.Customer {
 	byKey := make(map[string]customer.Customer, len(customers))
 	bySubject := make(map[string]customer.Customer, len(customers))
 

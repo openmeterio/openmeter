@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func Test_resolveCustomersByKey(t *testing.T) {
+func Test_resolveCustomersByKeyWithPrecedence(t *testing.T) {
 	customerA := customer.Customer{
 		ManagedResource: models.ManagedResource{ID: "customer-a"},
 		Key:             lo.ToPtr("key-a"),
@@ -20,19 +20,19 @@ func Test_resolveCustomersByKey(t *testing.T) {
 	}
 
 	t.Run("MatchByKey", func(t *testing.T) {
-		resolved := resolveCustomersByKey([]customer.Customer{customerA}, []string{"key-a"})
+		resolved := resolveCustomersByKeyWithPrecedence([]customer.Customer{customerA}, []string{"key-a"})
 
 		assert.Equal(t, map[string]customer.Customer{"key-a": customerA}, resolved)
 	})
 
 	t.Run("MatchBySubject", func(t *testing.T) {
-		resolved := resolveCustomersByKey([]customer.Customer{customerA}, []string{"subject-a"})
+		resolved := resolveCustomersByKeyWithPrecedence([]customer.Customer{customerA}, []string{"subject-a"})
 
 		assert.Equal(t, map[string]customer.Customer{"subject-a": customerA}, resolved)
 	})
 
 	t.Run("UnmatchedKeyIsAbsent", func(t *testing.T) {
-		resolved := resolveCustomersByKey([]customer.Customer{customerA}, []string{"no-such-key"})
+		resolved := resolveCustomersByKeyWithPrecedence([]customer.Customer{customerA}, []string{"no-such-key"})
 
 		assert.Empty(t, resolved)
 	})
@@ -50,7 +50,7 @@ func Test_resolveCustomersByKey(t *testing.T) {
 			},
 		}
 
-		resolved := resolveCustomersByKey(
+		resolved := resolveCustomersByKeyWithPrecedence(
 			[]customer.Customer{sharedKeyCustomer, sharedSubjectCustomer},
 			[]string{"shared"},
 		)
@@ -67,7 +67,7 @@ func Test_resolveCustomersByKey(t *testing.T) {
 			},
 		}
 
-		resolved := resolveCustomersByKey([]customer.Customer{selfMatched}, []string{"dual"})
+		resolved := resolveCustomersByKeyWithPrecedence([]customer.Customer{selfMatched}, []string{"dual"})
 
 		assert.Equal(t, map[string]customer.Customer{"dual": selfMatched}, resolved)
 	})
@@ -91,7 +91,7 @@ func Test_resolveCustomersByKey(t *testing.T) {
 			},
 		}
 
-		resolved := resolveCustomersByKey(
+		resolved := resolveCustomersByKeyWithPrecedence(
 			[]customer.Customer{crossA, crossB},
 			[]string{"key-1", "key-2"},
 		)

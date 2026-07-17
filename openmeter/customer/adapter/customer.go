@@ -505,7 +505,7 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 // candidate set rather than one winner per key: a key that matches both a customer's own key and a
 // different customer's subject key legitimately resolves to two distinct customers here, so the
 // caller applies key-over-subject precedence per input key (see
-// customer/service.resolveCustomersByKey). Both the single-key and bulk usage-attribution lookups
+// customer/service.resolveCustomersByKeyWithPrecedence). Both the single-key and bulk usage-attribution lookups
 // use this one predicate. The generated SQL shape mirrors:
 //
 //	WHERE customers.id IN (

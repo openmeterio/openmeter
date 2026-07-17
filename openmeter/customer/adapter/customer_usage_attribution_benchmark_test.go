@@ -94,7 +94,7 @@ func BenchmarkCustomerUsageAttributionLookup(b *testing.B) {
 					// method measures the FULL single-key path (merged predicate + WithSubjects
 					// hydration + domain mapping + Go-side precedence), not just the ID query, so it
 					// reflects the real customer/service.GetCustomerByUsageAttribution cost. The
-					// inline resolution mirrors service.resolveCustomersByKey over the raw candidate
+					// inline resolution mirrors service.resolveCustomersByKeyWithPrecedence over the raw candidate
 					// set (<=2 rows): a customer-key match wins over a subject-key match.
 					name: "method",
 					query: func(ctx context.Context) (string, error) {
