@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 )
 
@@ -46,6 +47,7 @@ type SubscriptionQuery struct {
 	withChargesFlatFee               *ChargeFlatFeeQuery
 	withAddons                       *SubscriptionAddonQuery
 	withBillingSyncState             *SubscriptionBillingSyncStateQuery
+	withCostBasisPins                *SubscriptionCostBasisPinQuery
 	modifiers                        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -325,6 +327,28 @@ func (_q *SubscriptionQuery) QueryBillingSyncState() *SubscriptionBillingSyncSta
 	return query
 }
 
+// QueryCostBasisPins chains the current query on the "cost_basis_pins" edge.
+func (_q *SubscriptionQuery) QueryCostBasisPins() *SubscriptionCostBasisPinQuery {
+	query := (&SubscriptionCostBasisPinClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
+			sqlgraph.To(subscriptioncostbasispin.Table, subscriptioncostbasispin.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.CostBasisPinsTable, subscription.CostBasisPinsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first Subscription entity from the query.
 // Returns a *NotFoundError when no Subscription was found.
 func (_q *SubscriptionQuery) First(ctx context.Context) (*Subscription, error) {
@@ -528,6 +552,7 @@ func (_q *SubscriptionQuery) Clone() *SubscriptionQuery {
 		withChargesFlatFee:               _q.withChargesFlatFee.Clone(),
 		withAddons:                       _q.withAddons.Clone(),
 		withBillingSyncState:             _q.withBillingSyncState.Clone(),
+		withCostBasisPins:                _q.withCostBasisPins.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -655,6 +680,17 @@ func (_q *SubscriptionQuery) WithBillingSyncState(opts ...func(*SubscriptionBill
 	return _q
 }
 
+// WithCostBasisPins tells the query-builder to eager-load the nodes that are connected to
+// the "cost_basis_pins" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionQuery) WithCostBasisPins(opts ...func(*SubscriptionCostBasisPinQuery)) *SubscriptionQuery {
+	query := (&SubscriptionCostBasisPinClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCostBasisPins = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -733,7 +769,7 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*Subscription{}
 		_spec       = _q.querySpec()
-		loadedTypes = [11]bool{
+		loadedTypes = [12]bool{
 			_q.withPlan != nil,
 			_q.withCustomer != nil,
 			_q.withPhases != nil,
@@ -745,6 +781,7 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 			_q.withChargesFlatFee != nil,
 			_q.withAddons != nil,
 			_q.withBillingSyncState != nil,
+			_q.withCostBasisPins != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -847,6 +884,15 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	if query := _q.withBillingSyncState; query != nil {
 		if err := _q.loadBillingSyncState(ctx, query, nodes, nil,
 			func(n *Subscription, e *SubscriptionBillingSyncState) { n.Edges.BillingSyncState = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCostBasisPins; query != nil {
+		if err := _q.loadCostBasisPins(ctx, query, nodes,
+			func(n *Subscription) { n.Edges.CostBasisPins = []*SubscriptionCostBasisPin{} },
+			func(n *Subscription, e *SubscriptionCostBasisPin) {
+				n.Edges.CostBasisPins = append(n.Edges.CostBasisPins, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -1185,6 +1231,36 @@ func (_q *SubscriptionQuery) loadBillingSyncState(ctx context.Context, query *Su
 	}
 	query.Where(predicate.SubscriptionBillingSyncState(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(subscription.BillingSyncStateColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SubscriptionID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "subscription_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SubscriptionQuery) loadCostBasisPins(ctx context.Context, query *SubscriptionCostBasisPinQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *SubscriptionCostBasisPin)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Subscription)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(subscriptioncostbasispin.FieldSubscriptionID)
+	}
+	query.Where(predicate.SubscriptionCostBasisPin(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscription.CostBasisPinsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

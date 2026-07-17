@@ -14323,11 +14323,13 @@ export const createSubscriptionBodyOnePlanOneKeyMax = 64
 export const createSubscriptionBodyOnePlanOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 
+export const createSubscriptionBodyOneCostBasisModeDefault = 'dynamic'
 export const createSubscriptionBodyOneTimingDefault = 'immediate'
 export const createSubscriptionBodyOneCustomerIdRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
 export const createSubscriptionBodyOneCustomerKeyMax = 256
 
+export const createSubscriptionBodyTwoCostBasisModeDefault = 'dynamic'
 export const createSubscriptionBodyTwoCustomPlanOneOneNameMax = 256
 
 export const createSubscriptionBodyTwoCustomPlanOneOneDescriptionMax = 1024
@@ -14474,6 +14476,15 @@ export const CreateSubscriptionBody = zod
           .describe(
             'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.',
           ),
+        costBasisMode: zod
+          .enum(['dynamic', 'pinned'])
+          .describe(
+            'Controls how custom-currency cost bases are selected for the subscription.',
+          )
+          .default(createSubscriptionBodyOneCostBasisModeDefault)
+          .describe(
+            'Controls how custom-currency cost bases are selected for the new subscription.',
+          ),
         customerId: zod.coerce
           .string()
           .regex(createSubscriptionBodyOneCustomerIdRegExp)
@@ -14564,6 +14575,15 @@ export const CreateSubscriptionBody = zod
           .optional()
           .describe(
             'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.',
+          ),
+        costBasisMode: zod
+          .enum(['dynamic', 'pinned'])
+          .describe(
+            'Controls how custom-currency cost bases are selected for the subscription.',
+          )
+          .default(createSubscriptionBodyTwoCostBasisModeDefault)
+          .describe(
+            'Controls how custom-currency cost bases are selected for the new subscription.',
           ),
         customerId: zod.coerce
           .string()
@@ -17027,6 +17047,8 @@ export const changeSubscriptionBodyOnePlanOneKeyMax = 64
 export const changeSubscriptionBodyOnePlanOneKeyRegExp =
   /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 
+export const changeSubscriptionBodyOneCostBasisModeDefault = 'dynamic'
+export const changeSubscriptionBodyTwoCostBasisModeDefault = 'dynamic'
 export const changeSubscriptionBodyTwoCustomPlanOneOneNameMax = 256
 
 export const changeSubscriptionBodyTwoCustomPlanOneOneDescriptionMax = 1024
@@ -17168,6 +17190,15 @@ export const ChangeSubscriptionBody = zod
           .describe(
             'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.',
           ),
+        costBasisMode: zod
+          .enum(['dynamic', 'pinned'])
+          .describe(
+            'Controls how custom-currency cost bases are selected for the subscription.',
+          )
+          .default(changeSubscriptionBodyOneCostBasisModeDefault)
+          .describe(
+            'Controls how custom-currency cost bases are selected for the new subscription.',
+          ),
         description: zod.coerce
           .string()
           .optional()
@@ -17244,6 +17275,15 @@ export const ChangeSubscriptionBody = zod
           .optional()
           .describe(
             'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.',
+          ),
+        costBasisMode: zod
+          .enum(['dynamic', 'pinned'])
+          .describe(
+            'Controls how custom-currency cost bases are selected for the subscription.',
+          )
+          .default(changeSubscriptionBodyTwoCostBasisModeDefault)
+          .describe(
+            'Controls how custom-currency cost bases are selected for the new subscription.',
           ),
         customPlan: zod
           .object({

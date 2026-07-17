@@ -41,7 +41,7 @@ func (s *MockService) Create(ctx context.Context, namespace string, spec subscri
 	return s.CreateFn(ctx, namespace, spec)
 }
 
-func (s *MockService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error) {
+func (s *MockService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec, options ...subscription.UpdateOption) (subscription.Subscription, error) {
 	return s.UpdateFn(ctx, subscriptionID, target)
 }
 

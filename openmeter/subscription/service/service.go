@@ -40,6 +40,7 @@ type ServiceConfig struct {
 	Lockr              *lockr.Locker
 	FeatureFlags       ffx.Service
 	TaxCode            taxcode.Service
+	CostBasisService   currencies.CostBasisService
 
 	// Hooks
 	Hooks []subscription.SubscriptionCommandHook
@@ -48,6 +49,10 @@ type ServiceConfig struct {
 func New(conf ServiceConfig) (subscription.Service, error) {
 	if conf.CurrencyResolver == nil {
 		return nil, errors.New("currency resolver is required")
+	}
+
+	if conf.CostBasisService == nil {
+		return nil, errors.New("cost basis service is required")
 	}
 
 	svc := &service{
@@ -152,10 +157,21 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return def, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
+		costBases, err := s.resolveCostBasisRequirements(ctx, namespace, spec, spec.ActiveFrom, customCostBasisPairs(spec))
+		if err != nil {
+			return def, err
+		}
+
 		// Create subscription entity
 		sub, err := s.SubscriptionRepo.Create(ctx, spec.ToCreateSubscriptionEntityInput(namespace))
 		if err != nil {
 			return def, fmt.Errorf("failed to create subscription: %w", err)
+		}
+
+		if spec.CostBasisMode.IsPinned() {
+			if err := s.SubscriptionRepo.CreateCostBasisPins(ctx, costBasisPinInputs(namespace, sub.ID, costBases)); err != nil {
+				return def, fmt.Errorf("failed to create subscription cost basis pins: %w", err)
+			}
 		}
 
 		for _, phase := range spec.GetSortedPhases() {
@@ -198,11 +214,11 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		}
 
 		// Return sub reference
-		return sub, nil
+		return view.Subscription, nil
 	})
 }
 
-func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID, newSpec subscription.SubscriptionSpec, options ...subscription.UpdateOption) (subscription.Subscription, error) {
 	ctx = subscription.NewSubscriptionOperationContext(ctx)
 
 	var def subscription.Subscription
@@ -220,9 +236,43 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		return def, err
 	}
 
+	updateOptions := subscription.UpdateOptions{CostBasisEffectiveAt: clock.Now()}
+	for _, option := range options {
+		option(&updateOptions)
+	}
+
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
+		if err := s.lockCustomer(ctx, view.Subscription.CustomerId); err != nil {
+			return def, err
+		}
+
 		s.mu.RLock()
 		defer s.mu.RUnlock()
+
+		pairsToResolve := customCostBasisPairs(newSpec)
+		if newSpec.CostBasisMode.IsPinned() {
+			for _, pin := range view.Subscription.CostBasisPins {
+				delete(pairsToResolve, costBasisPair{
+					customCurrencyID: pin.CustomCurrencyID,
+					invoiceCurrency:  pin.InvoiceCurrency.String(),
+				})
+			}
+		} else {
+			for pair := range customCostBasisPairs(view.Spec) {
+				delete(pairsToResolve, pair)
+			}
+		}
+
+		costBases, err := s.resolveCostBasisRequirements(ctx, subscriptionID.Namespace, newSpec, updateOptions.CostBasisEffectiveAt, pairsToResolve)
+		if err != nil {
+			return def, err
+		}
+
+		if newSpec.CostBasisMode.IsPinned() {
+			if err := s.SubscriptionRepo.CreateCostBasisPins(ctx, costBasisPinInputs(subscriptionID.Namespace, subscriptionID.ID, costBases)); err != nil {
+				return def, fmt.Errorf("failed to create subscription cost basis pins: %w", err)
+			}
+		}
 
 		err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
 			return v.BeforeUpdate(ctx, subscriptionID, newSpec)
@@ -233,6 +283,10 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 
 		subs, err := s.syncPrepared(ctx, view, newSpec)
 		if err != nil {
+			return subs, err
+		}
+
+		if err := s.updateCustomerCurrencyIfNotSet(ctx, subs, newSpec); err != nil {
 			return subs, err
 		}
 
@@ -254,7 +308,7 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			return subs, fmt.Errorf("failed to publish event: %w", err)
 		}
 
-		return subs, nil
+		return updatedView.Subscription, nil
 	})
 }
 
@@ -722,7 +776,7 @@ func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscr
 		return fmt.Errorf("customer is nil")
 	}
 
-	// Let's set the customer's currency to the subscription currency for paid subscriptions (if not already set)
+	// Let's set the customer's currency to the subscription's invoice currency for paid subscriptions (if not already set)
 	if cus.Currency == nil && currentSpec.HasBillables() {
 		if _, err := s.CustomerService.UpdateCustomer(ctx, customer.UpdateCustomerInput{
 			CustomerID: cus.GetID(),
@@ -733,7 +787,7 @@ func (s *service) updateCustomerCurrencyIfNotSet(ctx context.Context, sub subscr
 				UsageAttribution: cus.UsageAttribution,
 				PrimaryEmail:     cus.PrimaryEmail,
 				BillingAddress:   cus.BillingAddress,
-				Currency:         &currentSpec.Currency,
+				Currency:         &currentSpec.InvoiceCurrency,
 				Metadata:         cus.Metadata,
 				Annotation:       cus.Annotation,
 			},

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcatalogcurrencyresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -24,7 +25,9 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 		if request.SettlementMode != nil {
 			planInput.SettlementMode = *request.SettlementMode
 		}
-
+		if err := productcatalogcurrencyresolver.ResolveCurrenciesForPlan(ctx, s.CurrencyResolver.WithNamespace(request.ID.Namespace), &planInput.Plan); err != nil {
+			return def, fmt.Errorf("invalid plan currencies: %w", err)
+		}
 		p, err := PlanFromPlanInput(planInput)
 		if err != nil {
 			return def, err

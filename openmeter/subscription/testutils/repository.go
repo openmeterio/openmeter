@@ -36,10 +36,10 @@ func (r *testSubscriptionRepo) CreateExampleSubscription(t *testing.T, customerI
 
 func getExampleCreateSubscriptionInput(customerId string, planRef subscription.PlanRef) subscription.CreateSubscriptionEntityInput {
 	return subscription.CreateSubscriptionEntityInput{
-		Plan:           &planRef,
-		CustomerId:     customerId,
-		Currency:       "USD",
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+		Plan:            &planRef,
+		CustomerId:      customerId,
+		InvoiceCurrency: "USD",
+		SettlementMode:  productcatalog.CreditThenInvoiceSettlementMode,
 		CadencedModel: models.CadencedModel{
 			ActiveFrom: clock.Now(),
 		},

@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -23,7 +24,7 @@ type CommandService interface {
 	// Create a new subscription accotding to the given spec
 	Create(ctx context.Context, namespace string, spec SubscriptionSpec) (Subscription, error)
 	// Update the subscription with the given ID to the target spec
-	Update(ctx context.Context, subscriptionID models.NamespacedID, target SubscriptionSpec) (Subscription, error)
+	Update(ctx context.Context, subscriptionID models.NamespacedID, target SubscriptionSpec, options ...UpdateOption) (Subscription, error)
 	// Delete a scheduled subscription with the given ID
 	Delete(ctx context.Context, subscriptionID models.NamespacedID) error
 	// Cancel a running subscription at the provided time
@@ -32,6 +33,18 @@ type CommandService interface {
 	Continue(ctx context.Context, subscriptionID models.NamespacedID) (Subscription, error)
 	// UpdateAnnotations updates the annotations of a subscription
 	UpdateAnnotations(ctx context.Context, subscriptionID models.NamespacedID, annotations models.Annotations) (*Subscription, error)
+}
+
+type UpdateOptions struct {
+	CostBasisEffectiveAt time.Time
+}
+
+type UpdateOption func(*UpdateOptions)
+
+func WithCostBasisEffectiveAt(at time.Time) UpdateOption {
+	return func(options *UpdateOptions) {
+		options.CostBasisEffectiveAt = at
+	}
 }
 
 type Service interface {
