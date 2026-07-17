@@ -82,7 +82,6 @@ type StandardInvoiceAdapter interface {
 }
 
 type GatheringInvoiceAdapter interface {
-	GetGatheringLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (GatheringLines, error)
 	SetGatheringLineSubscriptionReferenceByChargeID(ctx context.Context, input SetLineSubscriptionReferenceByChargeIDInput) error
 	CreateGatheringInvoice(ctx context.Context, input CreateGatheringInvoiceAdapterInput) (GatheringInvoice, error)
 	DeleteGatheringInvoices(ctx context.Context, input DeleteGatheringInvoicesInput) error
@@ -91,6 +90,7 @@ type GatheringInvoiceAdapter interface {
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 	ListCustomerIDsPendingCollection(ctx context.Context, input ListCustomerIDsPendingCollectionInput) ([]customer.CustomerID, error)
+	GetGatheringLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (GatheringLines, error)
 
 	HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID InvoiceID, lineIDs []string) error
 }

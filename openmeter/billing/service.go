@@ -64,6 +64,14 @@ type SplitLineGroupService interface {
 }
 
 type InvoiceService interface {
+	// GetLinesForSubscription returns the lines or hierarchies required for subscription sync.
+	//
+	// It does not include any deleted lines or hierarchy unless the deleted line is manually edited.
+	//
+	// This logic prevents reusing old entities that might have dirty state, but the manually edited lines are
+	// included so that subscription sync can understand the user intent that they don't want to invoice
+	// that line.
+
 	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput, opts ...InvoicePendingLinesOption) ([]StandardInvoice, error)
 
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
