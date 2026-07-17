@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 )
 
 // CustomCurrencyCreate is the builder for creating a CustomCurrency entity.
@@ -181,6 +182,21 @@ func (_c *CustomCurrencyCreate) AddAddonRateCards(v ...*AddonRateCard) *CustomCu
 		ids[i] = v[i].ID
 	}
 	return _c.AddAddonRateCardIDs(ids...)
+}
+
+// AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
+func (_c *CustomCurrencyCreate) AddSubscriptionItemIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddSubscriptionItemIDs(ids...)
+	return _c
+}
+
+// AddSubscriptionItems adds the "subscription_items" edges to the SubscriptionItem entity.
+func (_c *CustomCurrencyCreate) AddSubscriptionItems(v ...*SubscriptionItem) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSubscriptionItemIDs(ids...)
 }
 
 // Mutation returns the CustomCurrencyMutation object of the builder.
@@ -409,6 +425,22 @@ func (_c *CustomCurrencyCreate) createSpec() (*CustomCurrency, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionItemsTable,
+			Columns: []string{customcurrency.SubscriptionItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

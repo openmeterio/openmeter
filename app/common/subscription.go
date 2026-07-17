@@ -101,7 +101,7 @@ func NewSubscriptionServices(
 		return SubscriptionServiceWithWorkflow{}, err
 	}
 
-	subscriptionWorkflowService := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
+	subscriptionWorkflowService, err := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            subscriptionService,
 		CustomerService:    customerService,
 		TransactionManager: subscriptionRepo,
@@ -110,6 +110,9 @@ func NewSubscriptionServices(
 		Lockr:              lockr,
 		FeatureFlags:       featureFlags,
 	})
+	if err != nil {
+		return SubscriptionServiceWithWorkflow{}, err
+	}
 
 	planSubscriptionService := subscriptionchangeservice.New(subscriptionchangeservice.Config{
 		WorkflowService:     subscriptionWorkflowService,

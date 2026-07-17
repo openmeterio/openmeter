@@ -318,7 +318,7 @@ func TestEditRunning(t *testing.T) {
 
 				lockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: slog.Default()})
 				require.NoError(t, err)
-				workflowService := workflowservice.NewWorkflowService(workflowservice.WorkflowServiceConfig{
+				workflowService, err := workflowservice.NewWorkflowService(workflowservice.WorkflowServiceConfig{
 					Service:            &mSvc,
 					CustomerService:    tuDeps.CustomerService,
 					TransactionManager: tuDeps.CustomerAdapter,
@@ -329,6 +329,7 @@ func TestEditRunning(t *testing.T) {
 						subscription.MultiSubscriptionEnabledFF: false,
 					}),
 				})
+				require.NoError(t, err)
 
 				_, err = workflowService.EditRunning(ctx, sID, []subscription.Patch{&patch1}, immediate)
 				assert.Nil(t, err)
@@ -1004,7 +1005,7 @@ func TestChangeToPlan(t *testing.T) {
 				Description:   changeInput.Description,
 				MetadataModel: changeInput.MetadataModel,
 				CustomerId:    curr.CustomerId,
-				Currency:      deps.Plan2.Currency(),
+				Currency:      deps.Plan2.Currency().GetCode(),
 				ActiveFrom:    testutils.GetRFC3339Time(t, "2021-02-01T00:00:00Z"),
 				BillingAnchor: sub.Subscription.BillingAnchor,
 				ActiveTo:      nil,

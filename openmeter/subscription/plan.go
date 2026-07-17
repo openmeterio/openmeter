@@ -64,8 +64,7 @@ type Plan interface {
 	// Phases are expected to be returned in the order they activate.
 	GetPhases() []PlanPhase
 
-	// Will not make sense on the long term
-	Currency() currencyx.Code
+	Currency() currencyx.CurrencyIdentity
 }
 
 // NewPlanNotFoundError returns a new PlanNotFoundError.

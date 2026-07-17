@@ -49,9 +49,11 @@ type CustomCurrencyEdges struct {
 	PlanRateCards []*PlanRateCard `json:"plan_rate_cards,omitempty"`
 	// AddonRateCards holds the value of the addon_rate_cards edge.
 	AddonRateCards []*AddonRateCard `json:"addon_rate_cards,omitempty"`
+	// SubscriptionItems holds the value of the subscription_items edge.
+	SubscriptionItems []*SubscriptionItem `json:"subscription_items,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // CostBasisHistoryOrErr returns the CostBasisHistory value or an error if the edge
@@ -97,6 +99,15 @@ func (e CustomCurrencyEdges) AddonRateCardsOrErr() ([]*AddonRateCard, error) {
 		return e.AddonRateCards, nil
 	}
 	return nil, &NotLoadedError{edge: "addon_rate_cards"}
+}
+
+// SubscriptionItemsOrErr returns the SubscriptionItems value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) SubscriptionItemsOrErr() ([]*SubscriptionItem, error) {
+	if e.loadedTypes[5] {
+		return e.SubscriptionItems, nil
+	}
+	return nil, &NotLoadedError{edge: "subscription_items"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -208,6 +219,11 @@ func (_m *CustomCurrency) QueryPlanRateCards() *PlanRateCardQuery {
 // QueryAddonRateCards queries the "addon_rate_cards" edge of the CustomCurrency entity.
 func (_m *CustomCurrency) QueryAddonRateCards() *AddonRateCardQuery {
 	return NewCustomCurrencyClient(_m.config).QueryAddonRateCards(_m)
+}
+
+// QuerySubscriptionItems queries the "subscription_items" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QuerySubscriptionItems() *SubscriptionItemQuery {
+	return NewCustomCurrencyClient(_m.config).QuerySubscriptionItems(_m)
 }
 
 // Update returns a builder for updating this CustomCurrency.

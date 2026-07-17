@@ -403,7 +403,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	require.NoError(t, err)
 	require.NoError(t, svc.RegisterHook(annotationCleanupHook))
 
-	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
+	workflowSvc, err := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            svc,
 		CustomerService:    customerService,
 		TransactionManager: subItemRepo,
@@ -412,6 +412,9 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Lockr:              locker,
 		FeatureFlags:       ffService,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create subscription workflow service: %w", err)
+	}
 
 	subsCustValidator, err := subscriptioncustomer.NewValidator(svc, customerService)
 	if err != nil {

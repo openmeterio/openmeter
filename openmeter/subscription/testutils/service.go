@@ -11,12 +11,14 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
@@ -56,6 +58,8 @@ type SubscriptionDependencies struct {
 	ItemRepo                 subscription.SubscriptionItemRepository
 	CustomerAdapter          *testCustomerRepo
 	CustomerService          customer.Service
+	CurrencyService          currencies.Service
+	CurrencyResolver         productcatalog.CurrencyResolver
 	SubjectService           subject.Service
 	FeatureConnector         *testFeatureConnector
 	ExampleMeterID           string
@@ -281,7 +285,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 	require.NoError(t, svc.RegisterHook(annotationCleanupHook))
 
-	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
+	workflowSvc, err := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            svc,
 		CustomerService:    customerService,
 		TransactionManager: subItemRepo,
@@ -290,12 +294,15 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
 	})
+	require.NoError(t, err)
 
 	return SubscriptionDependencies{
 		SubscriptionService:      svc,
 		WorkflowService:          workflowSvc,
 		CustomerAdapter:          customerAdapter,
 		CustomerService:          customerService,
+		CurrencyService:          currencyService,
+		CurrencyResolver:         currencyResolver,
 		SubjectService:           subjectService,
 		FeatureConnector:         NewTestFeatureConnector(entitlementRegistry.Feature),
 		ExampleMeterID:           meterID,

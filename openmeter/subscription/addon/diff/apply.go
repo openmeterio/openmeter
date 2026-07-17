@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -84,6 +85,7 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 			// We need to update all items
 			for _, item := range items {
 				itemPer := item.GetCadence(pCad).AsPeriod()
+				priceIntroducedByAddon := item.RateCard.AsMeta().Price == nil && rc.AddonRateCard.AsMeta().Price != nil
 
 				{
 					// Let's subtract the item from the gaps
@@ -157,6 +159,12 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 						return fmt.Errorf("failed to extend rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}
 				}
+				if priceIntroducedByAddon {
+					addonCurrency := rc.AddonRateCard.AsMeta().EffectiveCurrency(d.addon.Addon.Currency)
+					if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.Currency); err != nil {
+						return fmt.Errorf("failed to materialize currency for extended rate card %s: %w", rc.AddonRateCard.Key(), err)
+					}
+				}
 
 				d.setItemRelativeCadence(&inst, pCad, *inter)
 
@@ -182,6 +190,10 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 						return fmt.Errorf("failed to extend gap rate card %s: %w", rc.AddonRateCard.Key(), err)
 					}
 				}
+				addonCurrency := rc.AddonRateCard.AsMeta().EffectiveCurrency(d.addon.Addon.Currency)
+				if err := materializeAddonRateCardCurrency(&inst, addonCurrency, spec.Currency); err != nil {
+					return fmt.Errorf("failed to materialize currency for new rate card %s: %w", rc.AddonRateCard.Key(), err)
+				}
 
 				d.setItemRelativeCadence(&inst, pCad, gap)
 
@@ -197,6 +209,17 @@ func (d *diffable) getApplyForRateCard(rc subscriptionaddon.SubscriptionAddonRat
 
 		return nil
 	})
+}
+
+// materializeAddonRateCardCurrency records only the add-on currency information
+// that cannot be recovered from the subscription default. The service write
+// path materializes matching defaults before persistence.
+func materializeAddonRateCardCurrency(item *subscription.SubscriptionItemSpec, addonCurrency currencyx.CurrencyIdentity, subscriptionCurrency currencyx.Code) error {
+	if addonCurrency != nil && addonCurrency.Equal(subscriptionCurrency) {
+		return nil
+	}
+
+	return item.MaterializeRateCardCurrency(addonCurrency)
 }
 
 // setItemRelativeCadence sets the cadence of an item to match target

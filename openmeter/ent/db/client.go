@@ -10248,6 +10248,22 @@ func (c *CustomCurrencyClient) QueryAddonRateCards(_m *CustomCurrency) *AddonRat
 	return query
 }
 
+// QuerySubscriptionItems queries the subscription_items edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QuerySubscriptionItems(_m *CustomCurrency) *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.SubscriptionItemsTable, customcurrency.SubscriptionItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CustomCurrencyClient) Hooks() []Hook {
 	return c.hooks.CustomCurrency
@@ -15996,6 +16012,22 @@ func (c *SubscriptionItemClient) QueryTaxCode(_m *SubscriptionItem) *TaxCodeQuer
 			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
 			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionitem.TaxCodeTable, subscriptionitem.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency queries the custom_currency edge of a SubscriptionItem.
+func (c *SubscriptionItemClient) QueryCustomCurrency(_m *SubscriptionItem) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionitem.CustomCurrencyTable, subscriptionitem.CustomCurrencyColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
