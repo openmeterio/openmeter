@@ -954,7 +954,7 @@ func updateLineFromStandardLine(t *testing.T, line v3sdk.InvoiceStandardLine) v3
 		Labels:        lo.EmptyableToPtr(line.Labels),
 		Type:          v3sdk.InvoiceLineTypeStandardLine,
 		ServicePeriod: line.ServicePeriod,
-		RateCard: v3sdk.InvoiceLineRateCard{
+		RateCard: v3sdk.UpdateInvoiceLineRateCard{
 			FeatureKey: line.RateCard.FeatureKey,
 			Discounts:  line.RateCard.Discounts,
 			TaxConfig:  line.RateCard.TaxConfig,
@@ -970,7 +970,7 @@ func newFlatUpdateLine(name string, period v3sdk.ClosedPeriod, amount string) v3
 		Name:          name,
 		Type:          v3sdk.InvoiceLineTypeStandardLine,
 		ServicePeriod: period,
-		RateCard: v3sdk.InvoiceLineRateCard{
+		RateCard: v3sdk.UpdateInvoiceLineRateCard{
 			Price: lo.Must(v3sdk.PriceFromPriceFlat(v3sdk.PriceFlat{Amount: amount})),
 		},
 	}

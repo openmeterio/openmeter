@@ -4450,6 +4450,11 @@ export interface InvoiceLineRateCard {
   featureKey?: string
   /** Discount configuration from the rate card. */
   discounts?: RateCardDiscounts
+  /**
+   * Unit config snapshot applied when this line was billed, converting the raw
+   * metered quantity into the billed quantity. Frozen at billing time; read-only.
+   */
+  unitConfig?: UnitConfig
 }
 
 /** Rate card configuration snapshot for a usage-based invoice line. */
@@ -6354,6 +6359,23 @@ export interface RateCardInput {
   entitlement?: RateCardEntitlementInput
 }
 
+/** Rate card configuration snapshot for a usage-based invoice line. */
+export interface InvoiceLineRateCardInput {
+  /** The price definition used to calculate charges for this line. */
+  price: Price
+  /** Tax configuration snapshot for this line. */
+  taxConfig?: RateCardTaxConfig
+  /** The feature key associated with this line's rate card. */
+  featureKey?: string
+  /** Discount configuration from the rate card. */
+  discounts?: RateCardDiscounts
+  /**
+   * Unit config snapshot applied when this line was billed, converting the raw
+   * metered quantity into the billed quantity. Frozen at billing time; read-only.
+   */
+  unitConfig?: UnitConfigInput
+}
+
 /** Billing workflow settings. */
 export interface WorkflowInput {
   /** The collection settings for this workflow */
@@ -6575,7 +6597,7 @@ export interface InvoiceStandardLineInput {
   /** Reference to the subscription item that generated this line. */
   subscription?: SubscriptionReference
   /** The rate card configuration snapshot used to price this line item. */
-  rateCard: InvoiceLineRateCard
+  rateCard: InvoiceLineRateCardInput
   /**
    * Detailed sub-lines that this line has been broken down into.
    *

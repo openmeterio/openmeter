@@ -5057,6 +5057,7 @@ export const invoiceLineRateCard = z
     taxConfig: rateCardTaxConfig.optional(),
     featureKey: resourceKey.optional(),
     discounts: rateCardDiscounts.optional(),
+    unitConfig: unitConfig.optional(),
   })
   .describe('Rate card configuration snapshot for a usage-based invoice line.')
 
@@ -11722,6 +11723,7 @@ export const invoiceLineRateCardWire = z
     tax_config: rateCardTaxConfigWire.optional(),
     feature_key: resourceKeyWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
+    unit_config: unitConfigWire.optional(),
   })
   .describe('Rate card configuration snapshot for a usage-based invoice line.')
 
