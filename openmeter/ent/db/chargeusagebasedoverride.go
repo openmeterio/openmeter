@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -65,7 +66,7 @@ type ChargeUsageBasedOverride struct {
 	// Discounts holds the value of the "discounts" field.
 	Discounts *billing.Discounts `json:"discounts,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
-	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
+	UnitConfig *unitconfig.UnitConfig `json:"unit_config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeUsageBasedOverrideQuery when eager-loading is set.
 	Edges        ChargeUsageBasedOverrideEdges `json:"edges"`

@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -51,6 +52,8 @@ const (
 	FieldPreserveOverageAtReset = "preserve_overage_at_reset"
 	// FieldConfig holds the string denoting the config field in the database.
 	FieldConfig = "config"
+	// FieldUnitConfig holds the string denoting the unit_config field in the database.
+	FieldUnitConfig = "unit_config"
 	// FieldUsagePeriodInterval holds the string denoting the usage_period_interval field in the database.
 	FieldUsagePeriodInterval = "usage_period_interval"
 	// FieldUsagePeriodAnchor holds the string denoting the usage_period_anchor field in the database.
@@ -139,6 +142,7 @@ var Columns = []string{
 	FieldIsSoftLimit,
 	FieldPreserveOverageAtReset,
 	FieldConfig,
+	FieldUnitConfig,
 	FieldUsagePeriodInterval,
 	FieldUsagePeriodAnchor,
 	FieldCurrentUsagePeriodStart,
@@ -171,6 +175,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all Entitlement fields.
 	ValueScanner struct {
+		UnitConfig  field.TypeValueScanner[*unitconfig.UnitConfig]
 		Annotations field.TypeValueScanner[models.Annotations]
 	}
 )
@@ -285,6 +290,11 @@ func ByPreserveOverageAtReset(opts ...sql.OrderTermOption) OrderOption {
 // ByConfig orders the results by the config field.
 func ByConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldConfig, opts...).ToFunc()
+}
+
+// ByUnitConfig orders the results by the unit_config field.
+func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
 }
 
 // ByUsagePeriodInterval orders the results by the usage_period_interval field.

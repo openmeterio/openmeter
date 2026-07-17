@@ -947,6 +947,16 @@ func ConfigContainsFold(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldContainsFold(FieldConfig, v))
 }
 
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldUnitConfig))
+}
+
 // UsagePeriodIntervalEQ applies the EQ predicate on the "usage_period_interval" field.
 func UsagePeriodIntervalEQ(v datetime.ISODurationString) predicate.Entitlement {
 	vc := string(v)

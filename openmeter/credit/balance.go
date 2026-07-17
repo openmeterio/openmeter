@@ -109,10 +109,11 @@ func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	// TODO: it might be the case that we don't save any snapshots as they require a history breakpoint. To solve this,
 	// we should introduce artificial history breakpoints in the engine, but that would result in more streaming.Query calls, so first lets improve the visibility of what's happening.
 	if err := m.snapshotEngineResult(ctx, snapshotParams{
-		grants:   grants,
-		owner:    ownerID,
-		notAfter: m.getSnapshotNotAfter(periodStart, clock.Now()),
-		meter:    owner.Meter,
+		grants:     grants,
+		owner:      ownerID,
+		notAfter:   m.getSnapshotNotAfter(periodStart, clock.Now()),
+		meter:      owner.Meter,
+		unitConfig: owner.UnitConfig,
 	}, result); err != nil {
 		return def, fmt.Errorf("failed to snapshot engine result: %w", err)
 	}
@@ -317,10 +318,11 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 
 		// Let's save the snapshot
 		snap, err = m.saveSnapshot(ctx, snapshotParams{
-			grants:   grants,
-			owner:    ownerID,
-			notAfter: at,
-			meter:    owner.Meter,
+			grants:     grants,
+			owner:      ownerID,
+			notAfter:   at,
+			meter:      owner.Meter,
+			unitConfig: owner.UnitConfig,
 		}, snap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save snapshot: %w", err)

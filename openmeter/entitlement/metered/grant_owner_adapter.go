@@ -123,7 +123,7 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 
 	queryParams.FilterCustomer = []streaming.Customer{streamingCustomer}
 
-	return grant.Owner{
+	owner := grant.Owner{
 		NamespacedID:       id,
 		Meter:              met,
 		DefaultQueryParams: queryParams,
@@ -131,7 +131,25 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 			PreserveOverage: mEnt.PreserveOverageAtReset,
 		},
 		StreamingCustomer: streamingCustomer,
-	}, nil
+	}
+
+	// Convert usage into the rate card's billing units for balance checks whenever the
+	// entitlement carries a unit_config snapshot (OM-400). The conversion regime is a
+	// property of this immutable snapshot, NOT the live unitConfig feature flag: a
+	// unit_config can only be authored while the flag is on, so an entitlement either
+	// converts for its whole life or never — which keeps persisted balance snapshots in
+	// a single unit system and makes a later flag flip a no-op for existing entitlements
+	// (no raw/converted mixing on resume). No snapshot → nil → identity → byte-identical.
+	// Fail closed on an invalid snapshot rather than silently checking access in raw units.
+	if ent.UnitConfig != nil {
+		if err := ent.UnitConfig.Validate(); err != nil {
+			return def, fmt.Errorf("invalid entitlement unit config: %w", err)
+		}
+
+		owner.UnitConfig = ent.UnitConfig
+	}
+
+	return owner, nil
 }
 
 func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner models.NamespacedID) (time.Time, error) {

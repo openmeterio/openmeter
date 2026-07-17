@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -126,7 +127,7 @@ var (
 		Metadata   field.TypeValueScanner[*models.Metadata]
 		Price      field.TypeValueScanner[*productcatalog.Price]
 		Discounts  field.TypeValueScanner[*billing.Discounts]
-		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
+		UnitConfig field.TypeValueScanner[*unitconfig.UnitConfig]
 	}
 )
 

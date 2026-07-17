@@ -17,6 +17,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -195,7 +196,7 @@ func (_c *AddonRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *AddonR
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_c *AddonRateCardCreate) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardCreate {
+func (_c *AddonRateCardCreate) SetUnitConfig(v *unitconfig.UnitConfig) *AddonRateCardCreate {
 	_c.mutation.SetUnitConfig(v)
 	return _c
 }
@@ -841,7 +842,7 @@ func (u *AddonRateCardUpsert) ClearDiscounts() *AddonRateCardUpsert {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *AddonRateCardUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardUpsert {
+func (u *AddonRateCardUpsert) SetUnitConfig(v *unitconfig.UnitConfig) *AddonRateCardUpsert {
 	u.Set(addonratecard.FieldUnitConfig, v)
 	return u
 }
@@ -1208,7 +1209,7 @@ func (u *AddonRateCardUpsertOne) ClearDiscounts() *AddonRateCardUpsertOne {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *AddonRateCardUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardUpsertOne {
+func (u *AddonRateCardUpsertOne) SetUnitConfig(v *unitconfig.UnitConfig) *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.SetUnitConfig(v)
 	})
@@ -1753,7 +1754,7 @@ func (u *AddonRateCardUpsertBulk) ClearDiscounts() *AddonRateCardUpsertBulk {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *AddonRateCardUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardUpsertBulk {
+func (u *AddonRateCardUpsertBulk) SetUnitConfig(v *unitconfig.UnitConfig) *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.SetUnitConfig(v)
 	})

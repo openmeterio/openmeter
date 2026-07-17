@@ -97,6 +97,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 
@@ -184,7 +185,7 @@ func init() {
 	addonratecard.ValueScanner.Discounts = addonratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// addonratecardDescUnitConfig is the schema descriptor for unit_config field.
 	addonratecardDescUnitConfig := addonratecardFields[7].Descriptor()
-	addonratecard.ValueScanner.UnitConfig = addonratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
+	addonratecard.ValueScanner.UnitConfig = addonratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	// addonratecardDescAddonID is the schema descriptor for addon_id field.
 	addonratecardDescAddonID := addonratecardFields[8].Descriptor()
 	// addonratecard.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
@@ -406,6 +407,9 @@ func init() {
 	balancesnapshot.DefaultUpdatedAt = balancesnapshotDescUpdatedAt.Default.(func() time.Time)
 	// balancesnapshot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	balancesnapshot.UpdateDefaultUpdatedAt = balancesnapshotDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// balancesnapshotDescUnitConfig is the schema descriptor for unit_config field.
+	balancesnapshotDescUnitConfig := balancesnapshotFields[6].Descriptor()
+	balancesnapshot.ValueScanner.UnitConfig = balancesnapshotDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	billingcustomerlockMixin := schema.BillingCustomerLock{}.Mixin()
 	billingcustomerlockMixinFields0 := billingcustomerlockMixin[0].Fields()
 	_ = billingcustomerlockMixinFields0
@@ -478,7 +482,7 @@ func init() {
 	billinggatheringinvoiceline.ValueScanner.Price = billinggatheringinvoicelineDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// billinggatheringinvoicelineDescUnitConfig is the schema descriptor for unit_config field.
 	billinggatheringinvoicelineDescUnitConfig := billinggatheringinvoicelineMixinFields2[7].Descriptor()
-	billinggatheringinvoiceline.ValueScanner.UnitConfig = billinggatheringinvoicelineDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
+	billinggatheringinvoiceline.ValueScanner.UnitConfig = billinggatheringinvoicelineDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	// billinggatheringinvoicelineDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
 	billinggatheringinvoicelineDescRatecardDiscounts := billinggatheringinvoicelineMixinFields2[8].Descriptor()
 	billinggatheringinvoiceline.ValueScanner.RatecardDiscounts = billinggatheringinvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
@@ -736,7 +740,7 @@ func init() {
 	billinginvoiceusagebasedlineconfig.ValueScanner.Price = billinginvoiceusagebasedlineconfigDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// billinginvoiceusagebasedlineconfigDescUnitConfig is the schema descriptor for unit_config field.
 	billinginvoiceusagebasedlineconfigDescUnitConfig := billinginvoiceusagebasedlineconfigFields[6].Descriptor()
-	billinginvoiceusagebasedlineconfig.ValueScanner.UnitConfig = billinginvoiceusagebasedlineconfigDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
+	billinginvoiceusagebasedlineconfig.ValueScanner.UnitConfig = billinginvoiceusagebasedlineconfigDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	// billinginvoiceusagebasedlineconfigDescID is the schema descriptor for id field.
 	billinginvoiceusagebasedlineconfigDescID := billinginvoiceusagebasedlineconfigMixinFields1[0].Descriptor()
 	// billinginvoiceusagebasedlineconfig.DefaultID holds the default value on creation for the id field.
@@ -1409,7 +1413,7 @@ func init() {
 	chargeusagebased.ValueScanner.Price = chargeusagebasedDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// chargeusagebasedDescUnitConfig is the schema descriptor for unit_config field.
 	chargeusagebasedDescUnitConfig := chargeusagebasedFields[8].Descriptor()
-	chargeusagebased.ValueScanner.UnitConfig = chargeusagebasedDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
+	chargeusagebased.ValueScanner.UnitConfig = chargeusagebasedDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	// chargeusagebasedDescID is the schema descriptor for id field.
 	chargeusagebasedDescID := chargeusagebasedMixinFields0[18].Descriptor()
 	// chargeusagebased.DefaultID holds the default value on creation for the id field.
@@ -1444,7 +1448,7 @@ func init() {
 	chargeusagebasedoverride.ValueScanner.Discounts = chargeusagebasedoverrideDescDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// chargeusagebasedoverrideDescUnitConfig is the schema descriptor for unit_config field.
 	chargeusagebasedoverrideDescUnitConfig := chargeusagebasedoverrideFields[17].Descriptor()
-	chargeusagebasedoverride.ValueScanner.UnitConfig = chargeusagebasedoverrideDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
+	chargeusagebasedoverride.ValueScanner.UnitConfig = chargeusagebasedoverrideDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	// chargeusagebasedoverrideDescID is the schema descriptor for id field.
 	chargeusagebasedoverrideDescID := chargeusagebasedoverrideMixinFields1[0].Descriptor()
 	// chargeusagebasedoverride.DefaultID holds the default value on creation for the id field.
@@ -1920,8 +1924,11 @@ func init() {
 			return nil
 		}
 	}()
+	// entitlementDescUnitConfig is the schema descriptor for unit_config field.
+	entitlementDescUnitConfig := entitlementFields[12].Descriptor()
+	entitlement.ValueScanner.UnitConfig = entitlementDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	// entitlementDescAnnotations is the schema descriptor for annotations field.
-	entitlementDescAnnotations := entitlementFields[16].Descriptor()
+	entitlementDescAnnotations := entitlementFields[17].Descriptor()
 	entitlement.ValueScanner.Annotations = entitlementDescAnnotations.ValueScanner.(field.TypeValueScanner[models.Annotations])
 	// entitlementDescID is the schema descriptor for id field.
 	entitlementDescID := entitlementMixinFields0[0].Descriptor()
@@ -2693,7 +2700,7 @@ func init() {
 	planratecard.ValueScanner.Discounts = planratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// planratecardDescUnitConfig is the schema descriptor for unit_config field.
 	planratecardDescUnitConfig := planratecardFields[7].Descriptor()
-	planratecard.ValueScanner.UnitConfig = planratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
+	planratecard.ValueScanner.UnitConfig = planratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	// planratecardDescPhaseID is the schema descriptor for phase_id field.
 	planratecardDescPhaseID := planratecardFields[8].Descriptor()
 	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
@@ -2941,7 +2948,7 @@ func init() {
 	subscriptionitem.ValueScanner.Discounts = subscriptionitemDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// subscriptionitemDescUnitConfig is the schema descriptor for unit_config field.
 	subscriptionitemDescUnitConfig := subscriptionitemFields[17].Descriptor()
-	subscriptionitem.ValueScanner.UnitConfig = subscriptionitemDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
+	subscriptionitem.ValueScanner.UnitConfig = subscriptionitemDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	// subscriptionitemDescID is the schema descriptor for id field.
 	subscriptionitemDescID := subscriptionitemMixinFields0[0].Descriptor()
 	// subscriptionitem.DefaultID holds the default value on creation for the id field.

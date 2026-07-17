@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -211,7 +212,7 @@ func (_u *BillingGatheringInvoiceLineUpdate) SetPrice(v *productcatalog.Price) *
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *BillingGatheringInvoiceLineUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpdate {
+func (_u *BillingGatheringInvoiceLineUpdate) SetUnitConfig(v *unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpdate {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }
@@ -1181,7 +1182,7 @@ func (_u *BillingGatheringInvoiceLineUpdateOne) SetPrice(v *productcatalog.Price
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *BillingGatheringInvoiceLineUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpdateOne {
+func (_u *BillingGatheringInvoiceLineUpdateOne) SetUnitConfig(v *unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpdateOne {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }

@@ -485,6 +485,16 @@ func AtLTE(v time.Time) predicate.BalanceSnapshot {
 	return predicate.BalanceSnapshot(sql.FieldLTE(FieldAt, v))
 }
 
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.BalanceSnapshot {
+	return predicate.BalanceSnapshot(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.BalanceSnapshot {
+	return predicate.BalanceSnapshot(sql.FieldNotNull(FieldUnitConfig))
+}
+
 // HasEntitlement applies the HasEdge predicate on the "entitlement" edge.
 func HasEntitlement() predicate.BalanceSnapshot {
 	return predicate.BalanceSnapshot(func(s *sql.Selector) {

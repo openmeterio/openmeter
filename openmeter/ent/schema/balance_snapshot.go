@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -41,6 +42,20 @@ func (BalanceSnapshot) Fields() []ent.Field {
 			dialect.Postgres: "numeric",
 		}),
 		field.Time("at").Immutable(),
+		// unit_config records the conversion regime this snapshot was computed under
+		// (OM-400). The resume path only reuses a snapshot whose config matches the
+		// owner's current one, so a later regime change (e.g. a backfill) forces a
+		// recompute instead of mixing raw and converted units. Nil = raw. Immutable:
+		// a snapshot's regime is fixed at write time.
+		field.String("unit_config").
+			GoType(&productcatalog.UnitConfig{}).
+			ValueScanner(UnitConfigValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
 	}
 }
 

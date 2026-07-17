@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 // BillingInvoiceUsageBasedLineConfig is the model entity for the BillingInvoiceUsageBasedLineConfig schema.
@@ -33,7 +34,7 @@ type BillingInvoiceUsageBasedLineConfig struct {
 	// MeteredQuantity holds the value of the "metered_quantity" field.
 	MeteredQuantity *alpacadecimal.Decimal `json:"metered_quantity,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
-	UnitConfig   *productcatalog.UnitConfig `json:"unit_config,omitempty"`
+	UnitConfig   *unitconfig.UnitConfig `json:"unit_config,omitempty"`
 	selectValues sql.SelectValues
 }
 

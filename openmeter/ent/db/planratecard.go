@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -58,7 +59,7 @@ type PlanRateCard struct {
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
-	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
+	UnitConfig *unitconfig.UnitConfig `json:"unit_config,omitempty"`
 	// The phase identifier the ratecard is assigned to.
 	PhaseID string `json:"phase_id,omitempty"`
 	// The feature identifier the ratecard is related to.

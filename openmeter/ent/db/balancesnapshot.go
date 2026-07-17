@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 // BalanceSnapshot is the model entity for the BalanceSnapshot schema.
@@ -40,6 +41,8 @@ type BalanceSnapshot struct {
 	Overage float64 `json:"overage,omitempty"`
 	// At holds the value of the "at" field.
 	At time.Time `json:"at,omitempty"`
+	// UnitConfig holds the value of the "unit_config" field.
+	UnitConfig *unitconfig.UnitConfig `json:"unit_config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BalanceSnapshotQuery when eager-loading is set.
 	Edges        BalanceSnapshotEdges `json:"edges"`
@@ -81,6 +84,8 @@ func (*BalanceSnapshot) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case balancesnapshot.FieldCreatedAt, balancesnapshot.FieldUpdatedAt, balancesnapshot.FieldDeletedAt, balancesnapshot.FieldAt:
 			values[i] = new(sql.NullTime)
+		case balancesnapshot.FieldUnitConfig:
+			values[i] = balancesnapshot.ValueScanner.UnitConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -167,6 +172,12 @@ func (_m *BalanceSnapshot) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.At = value.Time
 			}
+		case balancesnapshot.FieldUnitConfig:
+			if value, err := balancesnapshot.ValueScanner.UnitConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.UnitConfig = value
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -239,6 +250,11 @@ func (_m *BalanceSnapshot) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("at=")
 	builder.WriteString(_m.At.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.UnitConfig; v != nil {
+		builder.WriteString("unit_config=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

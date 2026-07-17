@@ -173,6 +173,10 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				cmd.SetNillableConfig(ent.Config)
 			}
 
+			if ent.UnitConfig != nil {
+				cmd.SetUnitConfig(ent.UnitConfig)
+			}
+
 			res, err := cmd.Save(ctx)
 			if err != nil {
 				return nil, err
@@ -594,6 +598,10 @@ func (a *entitlementDBAdapter) mapEntitlementEntity(e *db.Entitlement) (*entitle
 
 	if e.Config != nil {
 		ent.Config = e.Config
+	}
+
+	if e.UnitConfig != nil {
+		ent.UnitConfig = e.UnitConfig
 	}
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {

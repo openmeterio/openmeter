@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -257,14 +258,14 @@ func (u *AddonRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disc
 	return u.SetDiscounts(*value)
 }
 
-func (u *AddonRateCardUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *AddonRateCardUpdate {
+func (u *AddonRateCardUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *AddonRateCardUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *AddonRateCardUpdateOne {
+func (u *AddonRateCardUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *AddonRateCardUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -705,14 +706,14 @@ func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearFeatureKey(value *strin
 	return u.SetFeatureKey(*value)
 }
 
-func (u *BillingGatheringInvoiceLineUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpdate {
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpdateOne {
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -1979,14 +1980,14 @@ func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearMeteredQuantity(
 	return u.SetMeteredQuantity(*value)
 }
 
-func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
+func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -3421,14 +3422,14 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearDiscounts(value **billing.Discount
 	return u.SetDiscounts(*value)
 }
 
-func (u *ChargeUsageBasedUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedUpdate {
+func (u *ChargeUsageBasedUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *ChargeUsageBasedUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *ChargeUsageBasedUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedUpdateOne {
+func (u *ChargeUsageBasedUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *ChargeUsageBasedUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -3533,14 +3534,14 @@ func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearFeatureKey(value *string) 
 	return u.SetFeatureKey(*value)
 }
 
-func (u *ChargeUsageBasedOverrideUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdate {
+func (u *ChargeUsageBasedOverrideUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *ChargeUsageBasedOverrideUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdateOne {
+func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *ChargeUsageBasedOverrideUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -5451,14 +5452,14 @@ func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disco
 	return u.SetDiscounts(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *PlanRateCardUpdate {
+func (u *PlanRateCardUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *PlanRateCardUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *PlanRateCardUpdateOne {
+func (u *PlanRateCardUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *PlanRateCardUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -5913,14 +5914,14 @@ func (u *SubscriptionItemUpdateOne) SetOrClearDiscounts(value **productcatalog.D
 	return u.SetDiscounts(*value)
 }
 
-func (u *SubscriptionItemUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *SubscriptionItemUpdate {
+func (u *SubscriptionItemUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *SubscriptionItemUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *SubscriptionItemUpdateOne {
+func (u *SubscriptionItemUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *SubscriptionItemUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -99,6 +100,15 @@ type CreateEntitlementInputs struct {
 	UsagePeriod             *UsagePeriodInput      `json:"usagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`
 
+	// UnitConfig is the rate card's UnitConfig snapshotted onto the entitlement at
+	// subscription time. The metered grant-owner adapter uses it to convert usage
+	// into billing units at balance-check time (OM-400). It is the typed DTO from the
+	// leaf unitconfig package (not productcatalog) so this package, which sits below
+	// productcatalog in the import graph, can reference it without a cycle. Only
+	// metered entitlements created from a unit_config rate card carry it; nil means
+	// balances are computed in raw metered units, as before.
+	UnitConfig *unitconfig.UnitConfig `json:"unitConfig,omitempty"`
+
 	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
 }
 
@@ -183,6 +193,10 @@ func (c CreateEntitlementInputs) Equal(other CreateEntitlementInputs) bool {
 		return false
 	}
 
+	if !c.UnitConfig.Equal(other.UnitConfig) {
+		return false
+	}
+
 	if c.SubscriptionManaged != other.SubscriptionManaged {
 		return false
 	}
@@ -250,6 +264,10 @@ type Entitlement struct {
 
 	// static
 	Config *string `json:"config,omitempty"`
+
+	// UnitConfig is the rate card's UnitConfig snapshotted onto the entitlement
+	// (metered entitlements only). See CreateEntitlementInputs.UnitConfig.
+	UnitConfig *unitconfig.UnitConfig `json:"unitConfig,omitempty"`
 }
 
 func (e Entitlement) AsCreateEntitlementInputs(cust customer.Customer) CreateEntitlementInputs {
@@ -267,6 +285,7 @@ func (e Entitlement) AsCreateEntitlementInputs(cust customer.Customer) CreateEnt
 		IssueAfterResetPriority: e.IssueAfterResetPriority,
 		IsSoftLimit:             e.IsSoftLimit,
 		Config:                  e.Config,
+		UnitConfig:              e.UnitConfig,
 		UsagePeriod:             e.UsagePeriod.GetOriginalValueAsUsagePeriodInput(),
 		PreserveOverageAtReset:  e.PreserveOverageAtReset,
 		Annotations:             e.Annotations,

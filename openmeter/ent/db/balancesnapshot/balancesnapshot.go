@@ -7,6 +7,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 const (
@@ -34,6 +36,8 @@ const (
 	FieldOverage = "overage"
 	// FieldAt holds the string denoting the at field in the database.
 	FieldAt = "at"
+	// FieldUnitConfig holds the string denoting the unit_config field in the database.
+	FieldUnitConfig = "unit_config"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
 	EdgeEntitlement = "entitlement"
 	// Table holds the table name of the balancesnapshot in the database.
@@ -60,6 +64,7 @@ var Columns = []string{
 	FieldBalance,
 	FieldOverage,
 	FieldAt,
+	FieldUnitConfig,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -81,6 +86,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// ValueScanner of all BalanceSnapshot fields.
+	ValueScanner struct {
+		UnitConfig field.TypeValueScanner[*unitconfig.UnitConfig]
+	}
 )
 
 // OrderOption defines the ordering options for the BalanceSnapshot queries.
@@ -129,6 +138,11 @@ func ByOverage(opts ...sql.OrderTermOption) OrderOption {
 // ByAt orders the results by the at field.
 func ByAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAt, opts...).ToFunc()
+}
+
+// ByUnitConfig orders the results by the unit_config field.
+func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
 }
 
 // ByEntitlementField orders the results by entitlement field.

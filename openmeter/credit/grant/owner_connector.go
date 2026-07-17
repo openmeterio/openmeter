@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -17,6 +20,27 @@ type Owner struct {
 	DefaultQueryParams streaming.QueryParams
 	ResetBehavior      ResetBehavior
 	StreamingCustomer  streaming.Customer
+
+	// UnitConfig, when set, is the rate card's UnitConfig snapshotted onto this
+	// owner's entitlement. ConvertUsage uses it to map raw metered usage into the
+	// unit the entitlement's limit and grants are authored in. Nil means identity
+	// (no unit_config, or the unitConfig feature is disabled), so balances are
+	// byte-identical to pre-UnitConfig behavior. It is the leaf unitconfig DTO, not
+	// productcatalog, so credit can reference it without an import cycle.
+	UnitConfig *unitconfig.UnitConfig
+}
+
+// ConvertUsage maps a raw metered usage value into the owner's billing unit using
+// its UnitConfig — conversion only, no rounding, so balance checks always use the
+// precise value. Returns the raw value unchanged when the owner has no UnitConfig.
+func (o Owner) ConvertUsage(rawUsage float64) float64 {
+	if o.UnitConfig == nil {
+		return rawUsage
+	}
+
+	converted, _ := o.UnitConfig.Apply(alpacadecimal.NewFromFloat(rawUsage))
+
+	return converted.InexactFloat64()
 }
 
 type EndCurrentUsagePeriodParams struct {

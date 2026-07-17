@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -60,7 +61,7 @@ type BillingGatheringInvoiceLine struct {
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
-	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
+	UnitConfig *unitconfig.UnitConfig `json:"unit_config,omitempty"`
 	// RatecardDiscounts holds the value of the "ratecard_discounts" field.
 	RatecardDiscounts *billing.Discounts `json:"ratecard_discounts,omitempty"`
 	// ChildUniqueReferenceID holds the value of the "child_unique_reference_id" field.

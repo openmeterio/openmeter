@@ -19,6 +19,7 @@ import (
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -218,6 +219,12 @@ func (_c *EntitlementCreate) SetNillableConfig(v *string) *EntitlementCreate {
 	if v != nil {
 		_c.SetConfig(*v)
 	}
+	return _c
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (_c *EntitlementCreate) SetUnitConfig(v *unitconfig.UnitConfig) *EntitlementCreate {
+	_c.mutation.SetUnitConfig(v)
 	return _c
 }
 
@@ -454,6 +461,11 @@ func (_c *EntitlementCreate) check() error {
 	if _, ok := _c.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "Entitlement.customer_id"`)}
 	}
+	if v, ok := _c.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "Entitlement.unit_config": %w`, err)}
+		}
+	}
 	if len(_c.mutation.FeatureIDs()) == 0 {
 		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "Entitlement.feature"`)}
 	}
@@ -558,6 +570,14 @@ func (_c *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec, e
 	if value, ok := _c.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
 		_node.Config = &value
+	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		vv, err := entitlement.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(entitlement.FieldUnitConfig, field.TypeString, vv)
+		_node.UnitConfig = value
 	}
 	if value, ok := _c.mutation.UsagePeriodInterval(); ok {
 		_spec.SetField(entitlement.FieldUsagePeriodInterval, field.TypeString, value)
@@ -941,6 +961,9 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.PreserveOverageAtReset(); exists {
 			s.SetIgnore(entitlement.FieldPreserveOverageAtReset)
+		}
+		if _, exists := u.create.mutation.UnitConfig(); exists {
+			s.SetIgnore(entitlement.FieldUnitConfig)
 		}
 		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
 			s.SetIgnore(entitlement.FieldUsagePeriodInterval)
@@ -1379,6 +1402,9 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.PreserveOverageAtReset(); exists {
 				s.SetIgnore(entitlement.FieldPreserveOverageAtReset)
+			}
+			if _, exists := b.mutation.UnitConfig(); exists {
+				s.SetIgnore(entitlement.FieldUnitConfig)
 			}
 			if _, exists := b.mutation.UsagePeriodInterval(); exists {
 				s.SetIgnore(entitlement.FieldUsagePeriodInterval)
