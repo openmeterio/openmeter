@@ -253,6 +253,9 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (apiv3.BillingRateCard, er
 		Description: meta.Description,
 		Labels:      labels.FromMetadata(meta.Metadata),
 	}
+	if meta.Currency != nil {
+		result.Currency = lo.ToPtr(meta.Currency.GetCode().String())
+	}
 
 	// Feature
 	if meta.FeatureID != nil {
@@ -807,6 +810,9 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 		Key:         rc.Key,
 		Name:        rc.Name,
 		Description: rc.Description,
+	}
+	if rc.Currency != nil {
+		meta.Currency = currencyx.Code(*rc.Currency)
 	}
 
 	if rc.Labels != nil {
