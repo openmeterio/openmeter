@@ -69,7 +69,7 @@ func (a *adapter) migrateCustomerInvoices(ctx context.Context, customerID custom
 func (a *adapter) migrateSchemaLevel1(ctx context.Context, customerID customer.CustomerID) error {
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		// Schema level 1 -> 2 migration is implemented as a DB function (see migrations).
-		rows, err := tx.db.QueryContext(ctx, `SELECT om_func_migrate_customer_invoices_to_schema_level_2($1)`, customerID.ID)
+		rows, err := tx.db.QueryContext(ctx, `SELECT om_func_migrate_customer_invoices_to_schema_level_2_bulk(ARRAY[$1]::TEXT[])`, customerID.ID)
 		if err != nil {
 			return err
 		}

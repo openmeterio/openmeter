@@ -52,6 +52,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 	var (
 		customerEntity *customer.Customer
 		invoiceID      billing.InvoiceID
+		gatheringID    billing.InvoiceID
 
 		deletedAtSet time.Time
 
@@ -210,6 +211,40 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		s.GreaterOrEqual(len(lineActive.DetailedLines[0].AmountDiscounts), 1)
 	})
 
+	s.Run("Given a schema level 1 gathering invoice exists", func() {
+		periodStart := time.Now().Add(-time.Hour)
+		periodEnd := time.Now().Add(time.Hour)
+
+		result, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []billing.GatheringLine{
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Gathering item",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Currency:      currencyx.Code(currency.USD),
+						FeatureKey:    featureFlatPerUnit.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+						})),
+					},
+				},
+			},
+		})
+		s.Require().NoError(err)
+
+		gatheringID = result.Invoice.GetInvoiceID()
+		gatheringInvoice, err := s.DBClient.BillingInvoice.Get(ctx, gatheringID.ID)
+		s.Require().NoError(err)
+		s.Require().Equal(1, gatheringInvoice.SchemaLevel)
+	})
+
 	s.Run("When the write schema level is set to 2 and a lock is obtained on the customer", func() {
 		s.NoError(s.BillingAdapter.SetInvoiceDefaultSchemaLevel(ctx, 2))
 		// Side-effect: migration happens due to the previous line.
@@ -217,6 +252,10 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 	})
 
 	s.Run("Then the invoice is migrated and lines (incl detailed lines) match exactly", func() {
+		gatheringInvoice, err := s.DBClient.BillingInvoice.Get(ctx, gatheringID.ID)
+		s.Require().NoError(err)
+		s.Require().Equal(2, gatheringInvoice.SchemaLevel)
+
 		invoiceAfter, err := s.BillingAdapter.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoiceID,
 			Expand: billing.StandardInvoiceExpands{
