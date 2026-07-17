@@ -78,6 +78,9 @@ BEGIN
         i.customer_id = ANY(p_customer_ids)
         AND i.schema_level = 1
         AND i.status <> 'gathering'
+        -- Hard-deleting parent lines previously used ON DELETE SET NULL instead of cascading,
+        -- leaving orphaned legacy detailed lines that cannot be represented in schema level 2.
+        AND l.parent_line_id IS NOT NULL
         AND l.status = 'detailed'
         AND l.type = 'flat_fee'
     ON CONFLICT (id) DO NOTHING;
@@ -125,6 +128,7 @@ BEGIN
         i.customer_id = ANY(p_customer_ids)
         AND i.schema_level = 1
         AND i.status <> 'gathering'
+        AND l.parent_line_id IS NOT NULL
         AND l.status = 'detailed'
         AND l.type = 'flat_fee'
     ON CONFLICT (id) DO NOTHING;
