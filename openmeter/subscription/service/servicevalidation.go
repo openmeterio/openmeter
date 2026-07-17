@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -11,6 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+var errCustomCurrencySubscriptionsNotSupported = errors.New("custom currencies are not yet supported on subscriptions")
 
 func (s *service) validateCreate(ctx context.Context, cust customer.Customer, spec subscription.SubscriptionSpec) error {
 	// Let's make sure the method was called properly
@@ -23,6 +26,10 @@ func (s *service) validateCreate(ctx context.Context, cust customer.Customer, sp
 	// 1. Valiate the spec
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("spec is invalid: %w", err)
+	}
+
+	if err := validateSubscriptionUsesFiatOnly(spec); err != nil {
+		return err
 	}
 
 	// 2. Let's make sure Create is possible based on the transition rules
@@ -45,6 +52,10 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 	if err := subscription.NewStateMachine(
 		currentView.Subscription.GetStatusAt(clock.Now()),
 	).CanTransitionOrErr(ctx, subscription.SubscriptionActionUpdate); err != nil {
+		return err
+	}
+
+	if err := validateSubscriptionUsesFiatOnly(newSpec); err != nil {
 		return err
 	}
 
@@ -73,6 +84,49 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 		if cus.Currency != nil {
 			if string(*cus.Currency) != string(newSpec.Currency) {
 				return models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cus.Currency, newSpec.Currency))
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateSubscriptionUsesFiatOnly is a temporary boundary while the product
+// catalog can persist custom currencies but subscriptions cannot yet
+// materialize or bill them. Checking both the subscription default and priced
+// item overrides prevents plan changes and add-on updates from bypassing it.
+func validateSubscriptionUsesFiatOnly(spec subscription.SubscriptionSpec) error {
+	if spec.Currency != "" && spec.Currency.IsCustom() {
+		return models.NewGenericValidationError(fmt.Errorf(
+			"%w: subscription currency is %q",
+			errCustomCurrencySubscriptionsNotSupported,
+			spec.Currency,
+		))
+	}
+
+	for phaseKey, phase := range spec.Phases {
+		if phase == nil {
+			continue
+		}
+
+		for itemKey, items := range phase.ItemsByKey {
+			for _, item := range items {
+				if item == nil || item.RateCard == nil {
+					continue
+				}
+
+				meta := item.RateCard.AsMeta()
+				if meta.Price == nil || meta.Currency == nil || !meta.Currency.IsCustom() {
+					continue
+				}
+
+				return models.NewGenericValidationError(fmt.Errorf(
+					"%w: item %q in phase %q uses %q",
+					errCustomCurrencySubscriptionsNotSupported,
+					itemKey,
+					phaseKey,
+					meta.Currency.GetCode(),
+				))
 			}
 		}
 	}
