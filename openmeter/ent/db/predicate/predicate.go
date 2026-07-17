@@ -61,6 +61,9 @@ type BillingCustomerLock func(*sql.Selector)
 // BillingCustomerOverride is the predicate function for billingcustomeroverride builders.
 type BillingCustomerOverride func(*sql.Selector)
 
+// BillingGatheringInvoice is the predicate function for billinggatheringinvoice builders.
+type BillingGatheringInvoice func(*sql.Selector)
+
 // BillingGatheringInvoiceLine is the predicate function for billinggatheringinvoiceline builders.
 type BillingGatheringInvoiceLine func(*sql.Selector)
 
@@ -122,6 +125,9 @@ func BillingInvoiceLineUsageDiscountOrErr(p BillingInvoiceLineUsageDiscount, err
 		p(s)
 	}
 }
+
+// BillingInvoiceSearchV1 is the predicate function for billinginvoicesearchv1 builders.
+type BillingInvoiceSearchV1 func(*sql.Selector)
 
 // BillingInvoiceSplitLineGroup is the predicate function for billinginvoicesplitlinegroup builders.
 type BillingInvoiceSplitLineGroup func(*sql.Selector)

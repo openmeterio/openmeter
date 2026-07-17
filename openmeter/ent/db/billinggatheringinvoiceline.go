@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -99,8 +99,8 @@ type BillingGatheringInvoiceLine struct {
 
 // BillingGatheringInvoiceLineEdges holds the relations/edges for other nodes in the graph.
 type BillingGatheringInvoiceLineEdges struct {
-	// BillingInvoice holds the value of the billing_invoice edge.
-	BillingInvoice *BillingInvoice `json:"billing_invoice,omitempty"`
+	// BillingGatheringInvoice holds the value of the billing_gathering_invoice edge.
+	BillingGatheringInvoice *BillingGatheringInvoice `json:"billing_gathering_invoice,omitempty"`
 	// SplitLineGroup holds the value of the split_line_group edge.
 	SplitLineGroup *BillingInvoiceSplitLineGroup `json:"split_line_group,omitempty"`
 	// Subscription holds the value of the subscription edge.
@@ -118,15 +118,15 @@ type BillingGatheringInvoiceLineEdges struct {
 	loadedTypes [7]bool
 }
 
-// BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
+// BillingGatheringInvoiceOrErr returns the BillingGatheringInvoice value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e BillingGatheringInvoiceLineEdges) BillingInvoiceOrErr() (*BillingInvoice, error) {
-	if e.BillingInvoice != nil {
-		return e.BillingInvoice, nil
+func (e BillingGatheringInvoiceLineEdges) BillingGatheringInvoiceOrErr() (*BillingGatheringInvoice, error) {
+	if e.BillingGatheringInvoice != nil {
+		return e.BillingGatheringInvoice, nil
 	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: billinginvoice.Label}
+		return nil, &NotFoundError{label: billinggatheringinvoice.Label}
 	}
-	return nil, &NotLoadedError{edge: "billing_invoice"}
+	return nil, &NotLoadedError{edge: "billing_gathering_invoice"}
 }
 
 // SplitLineGroupOrErr returns the SplitLineGroup value or an error if the edge
@@ -451,9 +451,9 @@ func (_m *BillingGatheringInvoiceLine) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryBillingInvoice queries the "billing_invoice" edge of the BillingGatheringInvoiceLine entity.
-func (_m *BillingGatheringInvoiceLine) QueryBillingInvoice() *BillingInvoiceQuery {
-	return NewBillingGatheringInvoiceLineClient(_m.config).QueryBillingInvoice(_m)
+// QueryBillingGatheringInvoice queries the "billing_gathering_invoice" edge of the BillingGatheringInvoiceLine entity.
+func (_m *BillingGatheringInvoiceLine) QueryBillingGatheringInvoice() *BillingGatheringInvoiceQuery {
+	return NewBillingGatheringInvoiceLineClient(_m.config).QueryBillingGatheringInvoice(_m)
 }
 
 // QuerySplitLineGroup queries the "split_line_group" edge of the BillingGatheringInvoiceLine entity.

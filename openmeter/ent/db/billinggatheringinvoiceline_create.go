@@ -13,8 +13,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -370,15 +370,15 @@ func (_c *BillingGatheringInvoiceLineCreate) SetNillableID(v *string) *BillingGa
 	return _c
 }
 
-// SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by ID.
-func (_c *BillingGatheringInvoiceLineCreate) SetBillingInvoiceID(id string) *BillingGatheringInvoiceLineCreate {
-	_c.mutation.SetBillingInvoiceID(id)
+// SetBillingGatheringInvoiceID sets the "billing_gathering_invoice" edge to the BillingGatheringInvoice entity by ID.
+func (_c *BillingGatheringInvoiceLineCreate) SetBillingGatheringInvoiceID(id string) *BillingGatheringInvoiceLineCreate {
+	_c.mutation.SetBillingGatheringInvoiceID(id)
 	return _c
 }
 
-// SetBillingInvoice sets the "billing_invoice" edge to the BillingInvoice entity.
-func (_c *BillingGatheringInvoiceLineCreate) SetBillingInvoice(v *BillingInvoice) *BillingGatheringInvoiceLineCreate {
-	return _c.SetBillingInvoiceID(v.ID)
+// SetBillingGatheringInvoice sets the "billing_gathering_invoice" edge to the BillingGatheringInvoice entity.
+func (_c *BillingGatheringInvoiceLineCreate) SetBillingGatheringInvoice(v *BillingGatheringInvoice) *BillingGatheringInvoiceLineCreate {
+	return _c.SetBillingGatheringInvoiceID(v.ID)
 }
 
 // SetSplitLineGroup sets the "split_line_group" edge to the BillingInvoiceSplitLineGroup entity.
@@ -555,8 +555,8 @@ func (_c *BillingGatheringInvoiceLineCreate) check() error {
 			return &ValidationError{Name: "engine", err: fmt.Errorf(`db: validator failed for field "BillingGatheringInvoiceLine.engine": %w`, err)}
 		}
 	}
-	if len(_c.mutation.BillingInvoiceIDs()) == 0 {
-		return &ValidationError{Name: "billing_invoice", err: errors.New(`db: missing required edge "BillingGatheringInvoiceLine.billing_invoice"`)}
+	if len(_c.mutation.BillingGatheringInvoiceIDs()) == 0 {
+		return &ValidationError{Name: "billing_gathering_invoice", err: errors.New(`db: missing required edge "BillingGatheringInvoiceLine.billing_gathering_invoice"`)}
 	}
 	return nil
 }
@@ -705,15 +705,15 @@ func (_c *BillingGatheringInvoiceLineCreate) createSpec() (*BillingGatheringInvo
 		_spec.SetField(billinggatheringinvoiceline.FieldEngine, field.TypeEnum, value)
 		_node.Engine = value
 	}
-	if nodes := _c.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingGatheringInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   billinggatheringinvoiceline.BillingInvoiceTable,
-			Columns: []string{billinggatheringinvoiceline.BillingInvoiceColumn},
+			Table:   billinggatheringinvoiceline.BillingGatheringInvoiceTable,
+			Columns: []string{billinggatheringinvoiceline.BillingGatheringInvoiceColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoice.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

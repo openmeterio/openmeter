@@ -621,6 +621,90 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDefaultTaxConfig(val
 	return u.SetInvoiceDefaultTaxConfig(*value)
 }
 
+func (u *BillingGatheringInvoiceUpdate) SetOrClearMetadata(value *map[string]string) *BillingGatheringInvoiceUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingGatheringInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdate) SetOrClearDeletedAt(value *time.Time) *BillingGatheringInvoiceUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingGatheringInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdate) SetOrClearDescription(value *string) *BillingGatheringInvoiceUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdateOne) SetOrClearDescription(value *string) *BillingGatheringInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdate) SetOrClearServicePeriodStart(value *time.Time) *BillingGatheringInvoiceUpdate {
+	if value == nil {
+		return u.ClearServicePeriodStart()
+	}
+	return u.SetServicePeriodStart(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdateOne) SetOrClearServicePeriodStart(value *time.Time) *BillingGatheringInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearServicePeriodStart()
+	}
+	return u.SetServicePeriodStart(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdate) SetOrClearServicePeriodEnd(value *time.Time) *BillingGatheringInvoiceUpdate {
+	if value == nil {
+		return u.ClearServicePeriodEnd()
+	}
+	return u.SetServicePeriodEnd(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdateOne) SetOrClearServicePeriodEnd(value *time.Time) *BillingGatheringInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearServicePeriodEnd()
+	}
+	return u.SetServicePeriodEnd(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdate) SetOrClearNextCollectionAt(value *time.Time) *BillingGatheringInvoiceUpdate {
+	if value == nil {
+		return u.ClearNextCollectionAt()
+	}
+	return u.SetNextCollectionAt(*value)
+}
+
+func (u *BillingGatheringInvoiceUpdateOne) SetOrClearNextCollectionAt(value *time.Time) *BillingGatheringInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearNextCollectionAt()
+	}
+	return u.SetNextCollectionAt(*value)
+}
+
 func (u *BillingGatheringInvoiceLineUpdate) SetOrClearAnnotations(value *models.Annotations) *BillingGatheringInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearAnnotations()

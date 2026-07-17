@@ -273,6 +273,38 @@ func (e *BillingCustomerOverride) GetTaxBehavior() *productcatalog.TaxBehavior {
 	return e.TaxBehavior
 }
 
+func (e *BillingGatheringInvoice) GetID() string {
+	return e.ID
+}
+
+func (e *BillingGatheringInvoice) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *BillingGatheringInvoice) GetMetadata() map[string]string {
+	return e.Metadata
+}
+
+func (e *BillingGatheringInvoice) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *BillingGatheringInvoice) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *BillingGatheringInvoice) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *BillingGatheringInvoice) GetName() string {
+	return e.Name
+}
+
+func (e *BillingGatheringInvoice) GetDescription() *string {
+	return e.Description
+}
+
 func (e *BillingGatheringInvoiceLine) GetID() string {
 	return e.ID
 }

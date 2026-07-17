@@ -80,8 +80,8 @@ const (
 	FieldSplitLineGroupID = "split_line_group_id"
 	// FieldChargeID holds the string denoting the charge_id field in the database.
 	FieldChargeID = "charge_id"
-	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
-	EdgeBillingInvoice = "billing_invoice"
+	// EdgeBillingGatheringInvoice holds the string denoting the billing_gathering_invoice edge name in mutations.
+	EdgeBillingGatheringInvoice = "billing_gathering_invoice"
 	// EdgeSplitLineGroup holds the string denoting the split_line_group edge name in mutations.
 	EdgeSplitLineGroup = "split_line_group"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
@@ -96,13 +96,13 @@ const (
 	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the billinggatheringinvoiceline in the database.
 	Table = "billing_gathering_invoice_lines"
-	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
-	BillingInvoiceTable = "billing_gathering_invoice_lines"
-	// BillingInvoiceInverseTable is the table name for the BillingInvoice entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoice" package.
-	BillingInvoiceInverseTable = "billing_invoices"
-	// BillingInvoiceColumn is the table column denoting the billing_invoice relation/edge.
-	BillingInvoiceColumn = "invoice_id"
+	// BillingGatheringInvoiceTable is the table that holds the billing_gathering_invoice relation/edge.
+	BillingGatheringInvoiceTable = "billing_gathering_invoice_lines"
+	// BillingGatheringInvoiceInverseTable is the table name for the BillingGatheringInvoice entity.
+	// It exists in this package in order to avoid circular dependency with the "billinggatheringinvoice" package.
+	BillingGatheringInvoiceInverseTable = "billing_gathering_invoices"
+	// BillingGatheringInvoiceColumn is the table column denoting the billing_gathering_invoice relation/edge.
+	BillingGatheringInvoiceColumn = "invoice_id"
 	// SplitLineGroupTable is the table that holds the split_line_group relation/edge.
 	SplitLineGroupTable = "billing_gathering_invoice_lines"
 	// SplitLineGroupInverseTable is the table name for the BillingInvoiceSplitLineGroup entity.
@@ -404,10 +404,10 @@ func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
 }
 
-// ByBillingInvoiceField orders the results by billing_invoice field.
-func ByBillingInvoiceField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByBillingGatheringInvoiceField orders the results by billing_gathering_invoice field.
+func ByBillingGatheringInvoiceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newBillingGatheringInvoiceStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -452,11 +452,11 @@ func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newBillingInvoiceStep() *sqlgraph.Step {
+func newBillingGatheringInvoiceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingInvoiceInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceTable, BillingInvoiceColumn),
+		sqlgraph.To(BillingGatheringInvoiceInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BillingGatheringInvoiceTable, BillingGatheringInvoiceColumn),
 	)
 }
 func newSplitLineGroupStep() *sqlgraph.Step {

@@ -319,6 +319,7 @@ func (StandardInvoiceLineIntentMixin) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Checks(map[string]string{
 			"child_unique_reference_id_not_empty": `child_unique_reference_id <> ''`,
+			"service_period_not_inverted":         `service_period_start <= service_period_end`,
 		}),
 	}
 }
@@ -592,6 +593,85 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 	}
 }
 
+type BillingGatheringInvoice struct {
+	ent.Schema
+}
+
+func (BillingGatheringInvoice) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.ResourceMixin{},
+	}
+}
+
+func (BillingGatheringInvoice) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("number").
+			NotEmpty(),
+		field.String("customer_id").
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("currency").
+			GoType(currencyx.Code("")).
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "varchar(3)",
+			}),
+		field.Time("service_period_start").
+			Optional().
+			Nillable(),
+		field.Time("service_period_end").
+			Optional().
+			Nillable(),
+		field.Time("next_collection_at").
+			Optional().
+			Nillable(),
+		// The schema level for writing invoice data (until invoice migrations are complete).
+		field.Int("schema_level").Default(2),
+	}
+}
+
+func (BillingGatheringInvoice) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"service_period_both_set_or_null": `(service_period_start IS NULL) = (service_period_end IS NULL)`,
+			"service_period_not_inverted":     `service_period_start IS NULL OR service_period_start <= service_period_end`,
+		}),
+	}
+}
+
+func (BillingGatheringInvoice) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("customer_id"),
+		index.Fields("namespace", "customer_id"),
+		index.Fields("namespace", "next_collection_at"),
+		index.Fields("namespace", "created_at"),
+		index.Fields("namespace", "updated_at"),
+		index.Fields("namespace", "customer_id", "currency").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
+			Unique(),
+	}
+}
+
+func (BillingGatheringInvoice) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("customer", Customer.Type).
+			Ref("billing_gathering_invoices").
+			Field("customer_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.To("billing_gathering_invoice_lines", BillingGatheringInvoiceLine.Type).
+			StorageKey(edge.Symbol("billing_gathering_line_invoice_fk")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+	}
+}
+
 type BillingGatheringInvoiceLine struct {
 	ent.Schema
 }
@@ -634,6 +714,7 @@ func (BillingGatheringInvoiceLine) Fields() []ent.Field {
 
 func (BillingGatheringInvoiceLine) Indexes() []ent.Index {
 	return []ent.Index{
+		index.Fields("invoice_id"),
 		index.Fields("namespace", "invoice_id"),
 		index.Fields("namespace", "split_line_group_id"),
 		index.Fields("namespace", "charge_id"),
@@ -650,7 +731,7 @@ func (BillingGatheringInvoiceLine) Indexes() []ent.Index {
 
 func (BillingGatheringInvoiceLine) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("billing_invoice", BillingInvoice.Type).
+		edge.From("billing_gathering_invoice", BillingGatheringInvoice.Type).
 			Ref("billing_gathering_invoice_lines").
 			Field("invoice_id").
 			Unique().
@@ -1354,9 +1435,6 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type).
-			Annotations(entsql.OnDelete(entsql.Cascade)),
-		edge.To("billing_gathering_invoice_lines", BillingGatheringInvoiceLine.Type).
-			StorageKey(edge.Symbol("billing_gathering_line_invoice_fk")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_invoice_detailed_lines", BillingStandardInvoiceDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),

@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
@@ -29,20 +30,21 @@ import (
 // CustomerQuery is the builder for querying Customer entities.
 type CustomerQuery struct {
 	config
-	ctx                         *QueryContext
-	order                       []customer.OrderOption
-	inters                      []Interceptor
-	predicates                  []predicate.Customer
-	withApps                    *AppCustomerQuery
-	withSubjects                *CustomerSubjectsQuery
-	withBillingCustomerOverride *BillingCustomerOverrideQuery
-	withBillingInvoice          *BillingInvoiceQuery
-	withSubscription            *SubscriptionQuery
-	withEntitlements            *EntitlementQuery
-	withChargesCreditPurchase   *ChargeCreditPurchaseQuery
-	withChargesFlatFee          *ChargeFlatFeeQuery
-	withChargesUsageBased       *ChargeUsageBasedQuery
-	modifiers                   []func(*sql.Selector)
+	ctx                          *QueryContext
+	order                        []customer.OrderOption
+	inters                       []Interceptor
+	predicates                   []predicate.Customer
+	withApps                     *AppCustomerQuery
+	withSubjects                 *CustomerSubjectsQuery
+	withBillingCustomerOverride  *BillingCustomerOverrideQuery
+	withBillingInvoice           *BillingInvoiceQuery
+	withBillingGatheringInvoices *BillingGatheringInvoiceQuery
+	withSubscription             *SubscriptionQuery
+	withEntitlements             *EntitlementQuery
+	withChargesCreditPurchase    *ChargeCreditPurchaseQuery
+	withChargesFlatFee           *ChargeFlatFeeQuery
+	withChargesUsageBased        *ChargeUsageBasedQuery
+	modifiers                    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -160,6 +162,28 @@ func (_q *CustomerQuery) QueryBillingInvoice() *BillingInvoiceQuery {
 			sqlgraph.From(customer.Table, customer.FieldID, selector),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingInvoiceTable, customer.BillingInvoiceColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingGatheringInvoices chains the current query on the "billing_gathering_invoices" edge.
+func (_q *CustomerQuery) QueryBillingGatheringInvoices() *BillingGatheringInvoiceQuery {
+	query := (&BillingGatheringInvoiceClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, selector),
+			sqlgraph.To(billinggatheringinvoice.Table, billinggatheringinvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingGatheringInvoicesTable, customer.BillingGatheringInvoicesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -464,20 +488,21 @@ func (_q *CustomerQuery) Clone() *CustomerQuery {
 		return nil
 	}
 	return &CustomerQuery{
-		config:                      _q.config,
-		ctx:                         _q.ctx.Clone(),
-		order:                       append([]customer.OrderOption{}, _q.order...),
-		inters:                      append([]Interceptor{}, _q.inters...),
-		predicates:                  append([]predicate.Customer{}, _q.predicates...),
-		withApps:                    _q.withApps.Clone(),
-		withSubjects:                _q.withSubjects.Clone(),
-		withBillingCustomerOverride: _q.withBillingCustomerOverride.Clone(),
-		withBillingInvoice:          _q.withBillingInvoice.Clone(),
-		withSubscription:            _q.withSubscription.Clone(),
-		withEntitlements:            _q.withEntitlements.Clone(),
-		withChargesCreditPurchase:   _q.withChargesCreditPurchase.Clone(),
-		withChargesFlatFee:          _q.withChargesFlatFee.Clone(),
-		withChargesUsageBased:       _q.withChargesUsageBased.Clone(),
+		config:                       _q.config,
+		ctx:                          _q.ctx.Clone(),
+		order:                        append([]customer.OrderOption{}, _q.order...),
+		inters:                       append([]Interceptor{}, _q.inters...),
+		predicates:                   append([]predicate.Customer{}, _q.predicates...),
+		withApps:                     _q.withApps.Clone(),
+		withSubjects:                 _q.withSubjects.Clone(),
+		withBillingCustomerOverride:  _q.withBillingCustomerOverride.Clone(),
+		withBillingInvoice:           _q.withBillingInvoice.Clone(),
+		withBillingGatheringInvoices: _q.withBillingGatheringInvoices.Clone(),
+		withSubscription:             _q.withSubscription.Clone(),
+		withEntitlements:             _q.withEntitlements.Clone(),
+		withChargesCreditPurchase:    _q.withChargesCreditPurchase.Clone(),
+		withChargesFlatFee:           _q.withChargesFlatFee.Clone(),
+		withChargesUsageBased:        _q.withChargesUsageBased.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -525,6 +550,17 @@ func (_q *CustomerQuery) WithBillingInvoice(opts ...func(*BillingInvoiceQuery)) 
 		opt(query)
 	}
 	_q.withBillingInvoice = query
+	return _q
+}
+
+// WithBillingGatheringInvoices tells the query-builder to eager-load the nodes that are connected to
+// the "billing_gathering_invoices" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CustomerQuery) WithBillingGatheringInvoices(opts ...func(*BillingGatheringInvoiceQuery)) *CustomerQuery {
+	query := (&BillingGatheringInvoiceClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingGatheringInvoices = query
 	return _q
 }
 
@@ -661,11 +697,12 @@ func (_q *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	var (
 		nodes       = []*Customer{}
 		_spec       = _q.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [10]bool{
 			_q.withApps != nil,
 			_q.withSubjects != nil,
 			_q.withBillingCustomerOverride != nil,
 			_q.withBillingInvoice != nil,
+			_q.withBillingGatheringInvoices != nil,
 			_q.withSubscription != nil,
 			_q.withEntitlements != nil,
 			_q.withChargesCreditPurchase != nil,
@@ -718,6 +755,15 @@ func (_q *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 		if err := _q.loadBillingInvoice(ctx, query, nodes,
 			func(n *Customer) { n.Edges.BillingInvoice = []*BillingInvoice{} },
 			func(n *Customer, e *BillingInvoice) { n.Edges.BillingInvoice = append(n.Edges.BillingInvoice, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingGatheringInvoices; query != nil {
+		if err := _q.loadBillingGatheringInvoices(ctx, query, nodes,
+			func(n *Customer) { n.Edges.BillingGatheringInvoices = []*BillingGatheringInvoice{} },
+			func(n *Customer, e *BillingGatheringInvoice) {
+				n.Edges.BillingGatheringInvoices = append(n.Edges.BillingGatheringInvoices, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -865,6 +911,36 @@ func (_q *CustomerQuery) loadBillingInvoice(ctx context.Context, query *BillingI
 	}
 	query.Where(predicate.BillingInvoice(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(customer.BillingInvoiceColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CustomerQuery) loadBillingGatheringInvoices(ctx context.Context, query *BillingGatheringInvoiceQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *BillingGatheringInvoice)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Customer)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinggatheringinvoice.FieldCustomerID)
+	}
+	query.Where(predicate.BillingGatheringInvoice(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customer.BillingGatheringInvoicesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

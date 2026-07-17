@@ -111,6 +111,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		BillingCustomerOverride: NewBillingCustomerOverrideClient(config),
 
+		BillingGatheringInvoice: NewBillingGatheringInvoiceClient(config),
+
 		BillingGatheringInvoiceLine: NewBillingGatheringInvoiceLineClient(config),
 
 		BillingInvoice: NewBillingInvoiceClient(config),
@@ -122,6 +124,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 		BillingInvoiceLineDiscount: NewBillingInvoiceLineDiscountClient(config),
 
 		BillingInvoiceLineUsageDiscount: NewBillingInvoiceLineUsageDiscountClient(config),
+
+		BillingInvoiceSearchV1: NewBillingInvoiceSearchV1Client(config),
 
 		BillingInvoiceSplitLineGroup: NewBillingInvoiceSplitLineGroupClient(config),
 
