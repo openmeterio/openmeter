@@ -41,7 +41,6 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 	lines, err := l.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
 		Namespace:      subs.Namespace,
 		SubscriptionID: subs.ID,
-		CustomerID:     subs.CustomerId,
 		// Charge-managed invoice lines are edited through charge patches, so subscription sync loads the
 		// charge entities instead of reconciling those lines directly.
 		IncludeChargeManaged: false,

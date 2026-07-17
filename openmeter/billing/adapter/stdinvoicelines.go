@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
@@ -776,7 +775,8 @@ func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLine
 	return lines, nil
 }
 
-func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
+// TODO[later]: handle split lines in a separate adapter method. Split-line groups should eventually be deprecated in favor of charges.
+func (a *adapter) GetStandardLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
 	if err := in.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
@@ -787,6 +787,9 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 		query := tx.db.BillingInvoiceLine.Query().
 			Where(billinginvoiceline.Namespace(in.Namespace)).
 			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
+			Where(billinginvoiceline.HasBillingInvoiceWith(
+				billinginvoice.StatusNEQ(billing.StandardInvoiceStatusGathering),
+			)).
 			Where(billinginvoiceline.ParentLineIDIsNil()). // This one is required so that we are not fetching split line's children directly, the mapper will handle that
 			Where(
 				billinginvoiceline.Or(
@@ -823,46 +826,13 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			return nil, err
 		}
 
-		invoiceSchemaLevelByID, err := tx.getSchemaLevelPerInvoice(ctx, customer.CustomerID{
-			Namespace: in.Namespace,
-			ID:        in.CustomerID,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("getting schema level per invoice: %w", err)
-		}
-
-		// map standard lines
-		dbStandardLines := lo.Filter(dbLines, func(line *db.BillingInvoiceLine, _ int) bool {
-			return line.Edges.BillingInvoice.Status != billing.StandardInvoiceStatusGathering
+		invoiceSchemaLevelByID := lo.SliceToMap(dbLines, func(line *db.BillingInvoiceLine) (string, int) {
+			return line.Edges.BillingInvoice.ID, line.Edges.BillingInvoice.SchemaLevel
 		})
 
-		standardLines, err := tx.mapStandardInvoiceLinesFromDB(invoiceSchemaLevelByID, dbStandardLines)
+		standardLines, err := tx.mapStandardInvoiceLinesFromDB(invoiceSchemaLevelByID, dbLines)
 		if err != nil {
 			return nil, fmt.Errorf("mapping standard lines: %w", err)
-		}
-
-		// map gathering lines
-		dbGatheringLines := lo.Filter(dbLines, func(line *db.BillingInvoiceLine, _ int) bool {
-			return line.Edges.BillingInvoice.Status == billing.StandardInvoiceStatusGathering
-		})
-
-		dbGatheringLinesByInvoiceID := lo.GroupBy(dbGatheringLines, func(line *db.BillingInvoiceLine) string {
-			return line.Edges.BillingInvoice.ID
-		})
-
-		gatheringLines := make([]billing.GatheringLine, 0, len(dbGatheringLines))
-		for invoiceID, dbGatheringLinesForInvoice := range dbGatheringLinesByInvoiceID {
-			schemaLevel, found := invoiceSchemaLevelByID[invoiceID]
-			if !found {
-				return nil, fmt.Errorf("schema level not found for invoice [id=%s]", invoiceID)
-			}
-
-			mappedLines, err := tx.mapGatheringInvoiceLinesFromDB(schemaLevel, dbGatheringLinesForInvoice)
-			if err != nil {
-				return nil, fmt.Errorf("mapping gathering lines: %w", err)
-			}
-
-			gatheringLines = append(gatheringLines, mappedLines...)
 		}
 
 		dbGroups, err := tx.db.BillingInvoiceSplitLineGroup.Query().
@@ -913,14 +883,9 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			},
 		)
 
-		lineChildUniqueReferenceIDs := lo.Union(
-			lo.FilterMap(standardLines, func(line *billing.StandardLine, _ int) (string, bool) {
-				return lo.FromPtr(line.ChildUniqueReferenceID), line.ChildUniqueReferenceID != nil
-			}),
-			lo.FilterMap(gatheringLines, func(line billing.GatheringLine, _ int) (string, bool) {
-				return lo.FromPtr(line.ChildUniqueReferenceID), line.ChildUniqueReferenceID != nil
-			}),
-		)
+		lineChildUniqueReferenceIDs := lo.FilterMap(standardLines, func(line *billing.StandardLine, _ int) (string, bool) {
+			return lo.FromPtr(line.ChildUniqueReferenceID), line.ChildUniqueReferenceID != nil
+		})
 
 		overlappingChildUniqueReferenceIDs := lo.Intersect(groupUniqueReferenceIDs, lineChildUniqueReferenceIDs)
 
@@ -929,17 +894,13 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 		}
 
 		// Let's map to the union type
-		out := make([]billing.LineOrHierarchy, 0, len(groups)+len(standardLines)+len(gatheringLines))
+		out := make([]billing.LineOrHierarchy, 0, len(groups)+len(standardLines))
 
 		out = append(out, lo.Map(groups, func(h billing.SplitLineHierarchy, _ int) billing.LineOrHierarchy {
 			return billing.NewLineOrHierarchy(&h)
 		})...)
 
 		out = append(out, lo.Map(standardLines, func(line *billing.StandardLine, _ int) billing.LineOrHierarchy {
-			return billing.NewLineOrHierarchy(line)
-		})...)
-
-		out = append(out, lo.Map(gatheringLines, func(line billing.GatheringLine, _ int) billing.LineOrHierarchy {
 			return billing.NewLineOrHierarchy(line)
 		})...)
 

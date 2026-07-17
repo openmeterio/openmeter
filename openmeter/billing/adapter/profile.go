@@ -14,6 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
@@ -324,16 +326,27 @@ func (a *adapter) GetUnpinnedCustomerIDsWithPaidSubscription(ctx context.Context
 				dbcustomer.NamespaceEQ(input.Namespace),
 				dbcustomer.DeletedAtIsNil(),
 				// Has outstanding line items belonging to a subscription (a paid subscription always has at least
-				// one gathering line item, if there are still upcoming lines)
-				dbcustomer.HasBillingInvoiceWith(
-					billinginvoice.NamespaceEQ(input.Namespace),
-					billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering),
-					billinginvoice.DeletedAtIsNil(),
-					billinginvoice.HasBillingInvoiceLinesWith(
-						billinginvoiceline.DeletedAtIsNil(),
-						billinginvoiceline.StatusEQ(billing.InvoiceLineStatusValid),
-						billinginvoiceline.NamespaceEQ(input.Namespace),
-						billinginvoiceline.SubscriptionIDNotNil(),
+				// one gathering line item, if there are still upcoming lines) in either gathering invoice storage.
+				dbcustomer.Or(
+					dbcustomer.HasBillingInvoiceWith(
+						billinginvoice.NamespaceEQ(input.Namespace),
+						billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering),
+						billinginvoice.DeletedAtIsNil(),
+						billinginvoice.HasBillingInvoiceLinesWith(
+							billinginvoiceline.DeletedAtIsNil(),
+							billinginvoiceline.StatusEQ(billing.InvoiceLineStatusValid),
+							billinginvoiceline.NamespaceEQ(input.Namespace),
+							billinginvoiceline.SubscriptionIDNotNil(),
+						),
+					),
+					dbcustomer.HasBillingGatheringInvoicesWith(
+						billinggatheringinvoice.NamespaceEQ(input.Namespace),
+						billinggatheringinvoice.DeletedAtIsNil(),
+						billinggatheringinvoice.HasBillingGatheringInvoiceLinesWith(
+							billinggatheringinvoiceline.DeletedAtIsNil(),
+							billinggatheringinvoiceline.NamespaceEQ(input.Namespace),
+							billinggatheringinvoiceline.SubscriptionIDNotNil(),
+						),
 					),
 				),
 				// Has no customer override with explicit billing profile pinning

@@ -2,6 +2,7 @@ package billingadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
@@ -27,7 +29,92 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func (a *adapter) GetGatheringLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) (billing.GatheringLines, error) {
+	if err := in.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GatheringLines, error) {
+		legacyQuery := tx.db.BillingInvoiceLine.Query().
+			Where(billinginvoiceline.Namespace(in.Namespace)).
+			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
+			Where(billinginvoiceline.HasBillingInvoiceWith(
+				billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering),
+			)).
+			Where(billinginvoiceline.ParentLineIDIsNil()).
+			Where(
+				billinginvoiceline.Or(
+					billinginvoiceline.DeletedAtIsNil(),
+					billinginvoiceline.And(
+						billinginvoiceline.DeletedAtNotNil(),
+						billinginvoiceline.ManagedByEQ(billing.ManuallyManagedLine),
+					),
+				),
+			).
+			WithBillingInvoice()
+
+		if !in.IncludeChargeManaged {
+			legacyQuery = legacyQuery.Where(billinginvoiceline.ChargeIDIsNil())
+		}
+
+		dbLegacyLines, err := tx.expandLineItems(legacyQuery).All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching legacy gathering lines: %w", err)
+		}
+
+		dedicatedQuery := tx.db.BillingGatheringInvoiceLine.Query().
+			Where(billinggatheringinvoiceline.Namespace(in.Namespace)).
+			Where(billinggatheringinvoiceline.SubscriptionID(in.SubscriptionID)).
+			Where(
+				billinggatheringinvoiceline.Or(
+					billinggatheringinvoiceline.DeletedAtIsNil(),
+					billinggatheringinvoiceline.And(
+						billinggatheringinvoiceline.DeletedAtNotNil(),
+						billinggatheringinvoiceline.ManagedByEQ(billing.ManuallyManagedLine),
+					),
+				),
+			).
+			WithTaxCode()
+
+		if !in.IncludeChargeManaged {
+			dedicatedQuery = dedicatedQuery.Where(billinggatheringinvoiceline.ChargeIDIsNil())
+		}
+
+		dbDedicatedLines, err := dedicatedQuery.All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching dedicated gathering lines: %w", err)
+		}
+
+		legacyLines, err := slicesx.MapWithErr(dbLegacyLines, func(dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
+			if dbLine.Edges.BillingInvoice == nil {
+				return billing.GatheringLine{}, fmt.Errorf("billing invoice not found for legacy gathering line [id=%s]", dbLine.ID)
+			}
+
+			return tx.mapGatheringInvoiceLineFromDB(dbLine.Edges.BillingInvoice.SchemaLevel, dbLine)
+		})
+		if err != nil {
+			return nil, fmt.Errorf("mapping legacy gathering lines: %w", err)
+		}
+
+		dedicatedLines, err := slicesx.MapWithErr(dbDedicatedLines, tx.fromDBBillingGatheringInvoiceLine)
+		if err != nil {
+			return nil, fmt.Errorf("mapping dedicated gathering lines: %w", err)
+		}
+
+		lines, err := mergeGatheringLines(legacyLines, dedicatedLines)
+		if err != nil {
+			return nil, fmt.Errorf("merging gathering lines: %w", err)
+		}
+
+		return lines, nil
+	})
+}
+
 func (a *adapter) HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID billing.InvoiceID, lineIDs []string) error {
+	// TODO[later]: hard deleting gathering lines leaves their detailed lines behind. Clean up those
+	// dependent records as part of removing this legacy hard-delete path.
 	if err := invoiceID.Validate(); err != nil {
 		return fmt.Errorf("validating invoice ID: %w", err)
 	}
@@ -442,4 +529,23 @@ func taxCodeFromGatheringInvoiceLineEdge(dbLine *db.BillingGatheringInvoiceLine)
 	}
 
 	return &mapped
+}
+
+func mergeGatheringLines(lineGroups ...billing.GatheringLines) (billing.GatheringLines, error) {
+	merged := lo.Flatten(lineGroups)
+	linesByID := lo.GroupBy(merged, func(line billing.GatheringLine) string {
+		return line.ID
+	})
+
+	var errs []error
+	for lineID, lines := range linesByID {
+		if len(lines) > 1 {
+			errs = append(errs, fmt.Errorf("gathering line exists in multiple tables [line_id=%s]", lineID))
+		}
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+
+	return merged, nil
 }

@@ -60,7 +60,6 @@ type InvoiceLineAdapter interface {
 	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*StandardLine, error)
 	// TODO[later]: these are test only, move them to a testutils package
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*StandardLine, error)
-	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 }
 
 type InvoiceAdapter interface {
@@ -78,6 +77,7 @@ type StandardInvoiceAdapter interface {
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceAdapterInput) (StandardInvoice, error)
 	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]StandardInvoice, error)
 	CountStandardInvoicesPendingAdvancement(ctx context.Context, input CountStandardInvoicesPendingAdvancementInput) (int64, error)
+	GetStandardLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 }
 
 type GatheringInvoiceAdapter interface {
@@ -87,6 +87,7 @@ type GatheringInvoiceAdapter interface {
 	DeleteGatheringInvoice(ctx context.Context, input DeleteGatheringInvoiceAdapterInput) error
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
+	GetGatheringLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (GatheringLines, error)
 
 	HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID InvoiceID, lineIDs []string) error
 }

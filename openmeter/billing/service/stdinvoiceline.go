@@ -15,13 +15,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
-
-var _ billing.InvoiceLineService = (*Service)(nil)
 
 // TODO[later]: Move this to gatheringinvoice.go
 func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
@@ -260,16 +257,4 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 	return &upsertGatheringInvoiceForCurrencyResponse{
 		Invoice: invoice,
 	}, nil
-}
-
-func (s *Service) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
-	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]billing.LineOrHierarchy, error) {
-		return s.adapter.GetLinesForSubscription(ctx, input)
-	})
 }

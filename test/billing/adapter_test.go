@@ -24,39 +24,35 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type BillingAdapterTestSuite struct {
 	BaseSuite
+	SubscriptionMixin
 }
 
 func TestBillingAdapter(t *testing.T) {
 	suite.Run(t, new(BillingAdapterTestSuite))
 }
 
+func (s *BillingAdapterTestSuite) SetupSuite() {
+	s.BaseSuite.SetupSuite()
+	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
+}
+
 func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *billing.StandardInvoice {
 	s.T().Helper()
 	// Given we have a customer
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: ns,
-
-		CustomerMutate: customer.CustomerMutate{
-			Name:         "Test Customer",
-			PrimaryEmail: lo.ToPtr("test@test.com"),
-			BillingAddress: &models.Address{
-				Country: lo.ToPtr(models.CountryCode("US")),
-			},
-			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: &customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"test"},
-			},
-		},
-	})
-	require.NoError(s.T(), err)
+	customerEntity := s.CreateTestCustomer(ns, "test")
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 
@@ -107,9 +103,79 @@ func (s *BillingAdapterTestSuite) TestReadInvoicesAcrossInvoiceTables() {
 	legacyGatheringInvoice := s.setupInvoice(ctx, gatheringNamespace)
 	dedicatedInvoiceID := ulid.Make().String()
 	dedicatedLineID := ulid.Make().String()
-	servicePeriodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	servicePeriodEnd := servicePeriodStart.AddDate(0, 1, 0)
+	subscriptionStart := clock.Now().UTC()
 	dedicatedCreatedAt := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	createdPlan, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: gatheringNamespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Dedicated gathering invoice test plan",
+				Key:            "dedicated-gathering-invoice-test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Name: "default",
+						Key:  "default",
+					},
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "flat-fee",
+								Name: "Flat fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromInt(10),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(s.T(), err)
+
+	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, gatheringNamespace, productcatalogsubscription.PlanRefInput{
+		Key:     createdPlan.Key,
+		Version: lo.ToPtr(createdPlan.Version),
+	})
+	require.NoError(s.T(), err)
+
+	subscriptionView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(subscriptionStart),
+			},
+		},
+		Namespace:  gatheringNamespace,
+		CustomerID: legacyGatheringInvoice.GetCustomerID().ID,
+	}, subscriptionPlan)
+	require.NoError(s.T(), err)
+	subscriptionID := subscriptionView.Subscription.ID
+	require.Len(s.T(), subscriptionView.Phases, 1)
+	subscriptionPhase := subscriptionView.Phases[0].SubscriptionPhase
+	subscriptionItems := subscriptionView.Phases[0].ItemsByKey["flat-fee"]
+	require.Len(s.T(), subscriptionItems, 1)
+	subscriptionItem := subscriptionItems[0].SubscriptionItem
+	require.Equal(s.T(), subscriptionPhase.ID, subscriptionItem.PhaseId)
+
+	billingPeriod, err := subscriptionView.Spec.GetAlignedBillingPeriodAt(subscriptionStart)
+	require.NoError(s.T(), err)
+	require.True(s.T(), billingPeriod.Contains(subscriptionItem.ActiveFrom))
+	servicePeriodStart := billingPeriod.From
+	servicePeriodEnd := billingPeriod.To
 
 	_, err = s.DBClient.BillingGatheringInvoice.Create().
 		SetID(dedicatedInvoiceID).
@@ -144,6 +210,9 @@ func (s *BillingAdapterTestSuite) TestReadInvoicesAcrossInvoiceTables() {
 		SetInvoiceAt(servicePeriodEnd).
 		SetManagedBy(billing.SystemManagedLine).
 		SetEngine(billing.LineEngineTypeInvoice).
+		SetSubscriptionID(subscriptionID).
+		SetSubscriptionPhaseID(subscriptionPhase.ID).
+		SetSubscriptionItemID(subscriptionItem.ID).
 		Save(ctx)
 	require.NoError(s.T(), err)
 
@@ -256,6 +325,33 @@ func (s *BillingAdapterTestSuite) TestReadInvoicesAcrossInvoiceTables() {
 		require.Equal(s.T(), dedicatedInvoiceID, listedGatheringInvoicesByID[dedicatedInvoiceID].ID)
 		require.Len(s.T(), listedGatheringInvoicesByID[dedicatedInvoiceID].Lines.OrEmpty(), 1)
 		require.Equal(s.T(), dedicatedLineID, listedGatheringInvoicesByID[dedicatedInvoiceID].Lines.OrEmpty()[0].ID)
+	})
+
+	s.Run("GetGatheringLinesForSubscription loads dedicated gathering lines", func() {
+		lines, err := s.BillingAdapter.GetGatheringLinesForSubscription(s.T().Context(), billing.GetLinesForSubscriptionInput{
+			Namespace:      gatheringNamespace,
+			SubscriptionID: subscriptionID,
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), lines, 1)
+		require.Equal(s.T(), dedicatedLineID, lines[0].ID)
+		require.Equal(s.T(), servicePeriodStart, lines[0].ServicePeriod.From)
+		require.Equal(s.T(), servicePeriodEnd, lines[0].ServicePeriod.To)
+		require.Equal(s.T(), &billing.SubscriptionReference{
+			SubscriptionID: subscriptionID,
+			PhaseID:        subscriptionPhase.ID,
+			ItemID:         subscriptionItem.ID,
+		}, lines[0].Subscription)
+	})
+
+	s.Run("GetUnpinnedCustomerIDsWithPaidSubscription finds a dedicated gathering line", func() {
+		customerIDs, err := s.BillingAdapter.GetUnpinnedCustomerIDsWithPaidSubscription(s.T().Context(), billing.GetUnpinnedCustomerIDsWithPaidSubscriptionInput{
+			Namespace: gatheringNamespace,
+		})
+		require.NoError(s.T(), err)
+		require.ElementsMatch(s.T(), []customer.CustomerID{
+			legacyGatheringInvoice.GetCustomerID(),
+		}, customerIDs)
 	})
 
 	s.Run("GetGatheringInvoiceById rejects a standard invoice", func() {

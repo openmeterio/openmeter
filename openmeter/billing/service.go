@@ -11,7 +11,6 @@ import (
 type Service interface {
 	ProfileService
 	CustomerOverrideService
-	InvoiceLineService
 	LineEngineService
 	SplitLineGroupService
 	InvoiceService
@@ -45,20 +44,6 @@ type CustomerOverrideService interface {
 	ListCustomerOverrides(ctx context.Context, input ListCustomerOverridesInput) (ListCustomerOverridesResult, error)
 }
 
-type InvoiceLineService interface {
-	// GetLinesForSubscription returns the lines or hierarchies required for subscription sync.
-	//
-	// It does not include any deleted lines or hierarchy unless the deleted line is manually edited.
-	//
-	// This logic prevents reusing old entities that might have dirty state, but the manually edited lines are
-	// included so that subscription sync can understand the user intent that they don't want to invoice
-	// that line.
-	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
-	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
-	// the invoice is used as contextual information to the call.
-	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*StandardLine, error)
-}
-
 type LineEngineService interface {
 	RegisterLineEngine(engine LineEngine) error
 	RegisterCreateLineRouter(router CreateLineRouter) error
@@ -76,6 +61,15 @@ type SplitLineGroupService interface {
 }
 
 type InvoiceService interface {
+	// GetLinesForSubscription returns the lines or hierarchies required for subscription sync.
+	//
+	// It does not include any deleted lines or hierarchy unless the deleted line is manually edited.
+	//
+	// This logic prevents reusing old entities that might have dirty state, but the manually edited lines are
+	// included so that subscription sync can understand the user intent that they don't want to invoice
+	// that line.
+	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
+
 	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput, opts ...InvoicePendingLinesOption) ([]StandardInvoice, error)
 
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
@@ -107,6 +101,9 @@ type InvoiceService interface {
 }
 
 type StandardInvoiceService interface {
+	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
+	// the invoice is used as contextual information to the call.
+	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*StandardLine, error)
 	// UpdateStandardInvoice updates a standard invoice as a whole
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceInput) (StandardInvoice, error)
 	// GetStandardInvoiceById gets a standard invoice by its ID
