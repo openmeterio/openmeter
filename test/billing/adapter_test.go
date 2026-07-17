@@ -85,15 +85,15 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 	return &invoice
 }
 
-func (s *BillingAdapterTestSuite) TestListInvoicesAcrossInvoiceTables() {
+func (s *BillingAdapterTestSuite) TestReadInvoicesAcrossInvoiceTables() {
 	// given:
 	// - one standard invoice and one legacy gathering invoice in billing_invoices
 	// - one gathering invoice and line in the dedicated tables
 	// when:
-	// - generic and standard-only invoice listings are requested
+	// - generic listing and type-specific reads are requested
 	// then:
 	// - generic listing follows view order and hydrates all storage locations
-	// - standard-only listing reads only the standard invoice table
+	// - gathering invoice reads use the storage table selected by the view
 	ctx := s.T().Context()
 	standardNamespace := s.GetUniqueNamespace("list-invoices-standard")
 	gatheringNamespace := s.GetUniqueNamespace("list-invoices-gathering")
@@ -147,61 +147,164 @@ func (s *BillingAdapterTestSuite) TestListInvoicesAcrossInvoiceTables() {
 		Save(ctx)
 	require.NoError(s.T(), err)
 
-	searchRows, err := s.DBClient.BillingInvoiceSearchV1.Query().
-		Where(billinginvoicesearchv1.IDIn(standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID)).
-		All(ctx)
-	require.NoError(s.T(), err)
-	storageTableByInvoiceID := lo.SliceToMap(searchRows, func(row *db.BillingInvoiceSearchV1) (string, billinginvoicesearchv1.StorageTable) {
-		return row.ID, row.StorageTable
-	})
-	require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingInvoice, storageTableByInvoiceID[standardInvoice.ID])
-	require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingInvoice, storageTableByInvoiceID[legacyGatheringInvoice.ID])
-	require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingGatheringInvoice, storageTableByInvoiceID[dedicatedInvoiceID])
-
-	listed, err := s.BillingAdapter.ListInvoices(ctx, billing.ListInvoicesAdapterInput{
-		Namespaces: []string{standardNamespace, gatheringNamespace},
-		IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
-		Expand:     billing.InvoiceExpands{billing.InvoiceExpandLines},
-	})
-	require.NoError(s.T(), err)
-	require.Equal(s.T(), 3, listed.TotalCount)
-	require.Len(s.T(), listed.Items, 3)
-	firstInvoice, err := listed.Items[0].AsGenericInvoice()
-	require.NoError(s.T(), err)
-	require.Equal(s.T(), dedicatedInvoiceID, firstInvoice.GetID())
-
-	listedByID := make(map[string]billing.Invoice, len(listed.Items))
-	for _, invoice := range listed.Items {
-		genericInvoice, err := invoice.AsGenericInvoice()
+	s.Run("search view identifies each invoice storage table", func() {
+		ctx := s.T().Context()
+		searchRows, err := s.DBClient.BillingInvoiceSearchV1.Query().
+			Where(billinginvoicesearchv1.IDIn(standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID)).
+			All(ctx)
 		require.NoError(s.T(), err)
-		listedByID[genericInvoice.GetID()] = invoice
-	}
-
-	standard, err := listedByID[standardInvoice.ID].AsStandardInvoice()
-	require.NoError(s.T(), err)
-	require.Equal(s.T(), billing.StandardInvoiceStatusDraftCreated, standard.Status)
-
-	legacyGathering, err := listedByID[legacyGatheringInvoice.ID].AsGatheringInvoice()
-	require.NoError(s.T(), err)
-	require.Equal(s.T(), legacyGatheringInvoice.ID, legacyGathering.ID)
-
-	dedicatedGathering, err := listedByID[dedicatedInvoiceID].AsGatheringInvoice()
-	require.NoError(s.T(), err)
-	require.Equal(s.T(), "GATHERING-DEDICATED", dedicatedGathering.Number)
-	require.Equal(s.T(), servicePeriodStart, dedicatedGathering.ServicePeriod.From)
-	require.Equal(s.T(), servicePeriodEnd, dedicatedGathering.ServicePeriod.To)
-	require.Len(s.T(), dedicatedGathering.Lines.OrEmpty(), 1)
-	require.Equal(s.T(), dedicatedLineID, dedicatedGathering.Lines.OrEmpty()[0].ID)
-	require.NotNil(s.T(), dedicatedGathering.Lines.OrEmpty()[0].DBState)
-
-	standardOnly, err := s.BillingAdapter.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-		Namespaces: []string{standardNamespace, gatheringNamespace},
-		IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
+		storageTableByInvoiceID := lo.SliceToMap(searchRows, func(row *db.BillingInvoiceSearchV1) (string, billinginvoicesearchv1.StorageTable) {
+			return row.ID, row.StorageTable
+		})
+		require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingInvoice, storageTableByInvoiceID[standardInvoice.ID])
+		require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingInvoice, storageTableByInvoiceID[legacyGatheringInvoice.ID])
+		require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingGatheringInvoice, storageTableByInvoiceID[dedicatedInvoiceID])
 	})
-	require.NoError(s.T(), err)
-	require.Equal(s.T(), 1, standardOnly.TotalCount)
-	require.Len(s.T(), standardOnly.Items, 1)
-	require.Equal(s.T(), standardInvoice.ID, standardOnly.Items[0].ID)
+
+	s.Run("ListInvoices hydrates standard and gathering invoices across storage tables", func() {
+		ctx := s.T().Context()
+		listed, err := s.BillingAdapter.ListInvoices(ctx, billing.ListInvoicesAdapterInput{
+			Namespaces: []string{standardNamespace, gatheringNamespace},
+			IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
+			Expand:     billing.InvoiceExpands{billing.InvoiceExpandLines},
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), 3, listed.TotalCount)
+		require.Len(s.T(), listed.Items, 3)
+		firstInvoice, err := listed.Items[0].AsGenericInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), dedicatedInvoiceID, firstInvoice.GetID())
+
+		listedByID := make(map[string]billing.Invoice, len(listed.Items))
+		for _, invoice := range listed.Items {
+			genericInvoice, err := invoice.AsGenericInvoice()
+			require.NoError(s.T(), err)
+			listedByID[genericInvoice.GetID()] = invoice
+		}
+
+		standard, err := listedByID[standardInvoice.ID].AsStandardInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.StandardInvoiceStatusDraftCreated, standard.Status)
+
+		legacyGathering, err := listedByID[legacyGatheringInvoice.ID].AsGatheringInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), legacyGatheringInvoice.ID, legacyGathering.ID)
+
+		dedicatedGathering, err := listedByID[dedicatedInvoiceID].AsGatheringInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), "GATHERING-DEDICATED", dedicatedGathering.Number)
+		require.Equal(s.T(), servicePeriodStart, dedicatedGathering.ServicePeriod.From)
+		require.Equal(s.T(), servicePeriodEnd, dedicatedGathering.ServicePeriod.To)
+		require.Len(s.T(), dedicatedGathering.Lines.OrEmpty(), 1)
+		require.Equal(s.T(), dedicatedLineID, dedicatedGathering.Lines.OrEmpty()[0].ID)
+		require.NotNil(s.T(), dedicatedGathering.Lines.OrEmpty()[0].DBState)
+	})
+
+	s.Run("GetGatheringInvoiceById loads a legacy gathering invoice", func() {
+		legacyGatheringByID, err := s.BillingAdapter.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+			Invoice: legacyGatheringInvoice.GetInvoiceID(),
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), legacyGatheringInvoice.ID, legacyGatheringByID.ID)
+	})
+
+	s.Run("GetGatheringInvoiceById loads a dedicated gathering invoice with lines", func() {
+		dedicatedGatheringByID, err := s.BillingAdapter.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+			Invoice: billing.InvoiceID{
+				Namespace: gatheringNamespace,
+				ID:        dedicatedInvoiceID,
+			},
+			Expand: billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), dedicatedInvoiceID, dedicatedGatheringByID.ID)
+		require.Len(s.T(), dedicatedGatheringByID.Lines.OrEmpty(), 1)
+		require.Equal(s.T(), dedicatedLineID, dedicatedGatheringByID.Lines.OrEmpty()[0].ID)
+	})
+
+	s.Run("GetInvoiceType resolves invoice types across storage tables", func() {
+		ctx := s.T().Context()
+		standardInvoiceType, err := s.BillingAdapter.GetInvoiceType(ctx, standardInvoice.GetInvoiceID())
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.InvoiceTypeStandard, standardInvoiceType)
+
+		legacyGatheringInvoiceType, err := s.BillingAdapter.GetInvoiceType(ctx, legacyGatheringInvoice.GetInvoiceID())
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.InvoiceTypeGathering, legacyGatheringInvoiceType)
+
+		dedicatedGatheringInvoiceType, err := s.BillingAdapter.GetInvoiceType(ctx, billing.InvoiceID{
+			Namespace: gatheringNamespace,
+			ID:        dedicatedInvoiceID,
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.InvoiceTypeGathering, dedicatedGatheringInvoiceType)
+	})
+
+	s.Run("ListGatheringInvoices hydrates legacy and dedicated gathering invoices", func() {
+		listedGatheringInvoices, err := s.BillingAdapter.ListGatheringInvoices(s.T().Context(), billing.ListGatheringInvoicesInput{
+			Namespaces: []string{gatheringNamespace},
+			IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
+			Expand:     billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), 2, listedGatheringInvoices.TotalCount)
+		require.Len(s.T(), listedGatheringInvoices.Items, 2)
+		listedGatheringInvoicesByID := lo.SliceToMap(listedGatheringInvoices.Items, func(invoice billing.GatheringInvoice) (string, billing.GatheringInvoice) {
+			return invoice.ID, invoice
+		})
+		require.Equal(s.T(), legacyGatheringInvoice.ID, listedGatheringInvoicesByID[legacyGatheringInvoice.ID].ID)
+		require.Equal(s.T(), dedicatedInvoiceID, listedGatheringInvoicesByID[dedicatedInvoiceID].ID)
+		require.Len(s.T(), listedGatheringInvoicesByID[dedicatedInvoiceID].Lines.OrEmpty(), 1)
+		require.Equal(s.T(), dedicatedLineID, listedGatheringInvoicesByID[dedicatedInvoiceID].Lines.OrEmpty()[0].ID)
+	})
+
+	s.Run("GetGatheringInvoiceById rejects a standard invoice", func() {
+		_, err := s.BillingAdapter.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+			Invoice: standardInvoice.GetInvoiceID(),
+		})
+		require.ErrorAs(s.T(), err, &billing.ValidationError{})
+	})
+
+	s.Run("GetGatheringInvoiceById returns not found for an unknown invoice", func() {
+		_, err := s.BillingAdapter.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+			Invoice: billing.InvoiceID{
+				Namespace: gatheringNamespace,
+				ID:        ulid.Make().String(),
+			},
+		})
+		require.ErrorAs(s.T(), err, &billing.NotFoundError{})
+	})
+
+	s.Run("ListStandardInvoices excludes gathering invoices from both storage tables", func() {
+		standardOnly, err := s.BillingAdapter.ListStandardInvoices(s.T().Context(), billing.ListStandardInvoicesInput{
+			Namespaces: []string{standardNamespace, gatheringNamespace},
+			IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), 1, standardOnly.TotalCount)
+		require.Len(s.T(), standardOnly.Items, 1)
+		require.Equal(s.T(), standardInvoice.ID, standardOnly.Items[0].ID)
+	})
+
+	s.Run("GetGatheringInvoiceById prefers a dedicated replacement over its legacy row", func() {
+		ctx := s.T().Context()
+		_, err := s.DBClient.BillingGatheringInvoice.Create().
+			SetID(legacyGatheringInvoice.ID).
+			SetNamespace(gatheringNamespace).
+			SetName("Dedicated replacement gathering invoice").
+			SetNumber("GATHERING-REPLACEMENT").
+			SetCustomerID(legacyGatheringInvoice.GetCustomerID().ID).
+			SetCurrency(currencyx.Code(currency.EUR)).
+			SetSchemaLevel(2).
+			Save(ctx)
+		require.NoError(s.T(), err)
+
+		replacedGatheringInvoice, err := s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: legacyGatheringInvoice.GetInvoiceID(),
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), "GATHERING-REPLACEMENT", replacedGatheringInvoice.Number)
+	})
 }
 
 type newLineInput struct {
