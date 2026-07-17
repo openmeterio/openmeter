@@ -52,14 +52,31 @@ func NewEntitlementHandler(
 	subjectService subject.Service,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
-) EntitlementHandler {
+) (EntitlementHandler, error) {
+	var errs []error
+	if connector == nil {
+		errs = append(errs, errors.New("entitlement connector is required"))
+	}
+	if customerService == nil {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+	if subjectService == nil {
+		errs = append(errs, errors.New("subject service is required"))
+	}
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid entitlement handler config: %w", err)
+	}
+
 	return &entitlementHandler{
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		connector:        connector,
 		customerService:  customerService,
 		subjectService:   subjectService,
-	}
+	}, nil
 }
 
 type (

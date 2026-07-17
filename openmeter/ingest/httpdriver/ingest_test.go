@@ -29,10 +29,11 @@ func TestIngestEvents(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := httpdriver.New(
+	handler, err := httpdriver.New(
 		namespacedriver.StaticNamespaceDecoder("test"),
 		ingestSvc,
 	)
+	require.NoError(t, err)
 
 	server := httptest.NewServer(handler.IngestEvents())
 	client := server.Client()
@@ -78,10 +79,11 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := httpdriver.New(
+	handler, err := httpdriver.New(
 		namespacedriver.StaticNamespaceDecoder("test"),
 		ingestSvc,
 	)
+	require.NoError(t, err)
 
 	server := httptest.NewServer(handler.IngestEvents())
 	client := server.Client()
@@ -103,10 +105,11 @@ func TestBatchHandler(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := httpdriver.New(
+	handler, err := httpdriver.New(
 		namespacedriver.StaticNamespaceDecoder("test"),
 		ingestSvc,
 	)
+	require.NoError(t, err)
 
 	server := httptest.NewServer(handler.IngestEvents())
 	client := server.Client()

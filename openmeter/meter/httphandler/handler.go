@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -59,7 +60,27 @@ func New(
 	streaming streaming.Connector,
 	subjectService subject.Service,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if customerService == nil {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+	if meterService == nil {
+		errs = append(errs, errors.New("meter service is required"))
+	}
+	if streaming == nil {
+		errs = append(errs, errors.New("streaming connector is required"))
+	}
+	if subjectService == nil {
+		errs = append(errs, errors.New("subject service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid meter handler config: %w", err)
+	}
+
 	return &handler{
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
@@ -67,5 +88,5 @@ func New(
 		meterService:     meterService,
 		streaming:        streaming,
 		subjectService:   subjectService,
-	}
+	}, nil
 }

@@ -50,7 +50,27 @@ func NewMeteredEntitlementHandler(
 	subjectService subject.Service,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
-) MeteredEntitlementHandler {
+) (MeteredEntitlementHandler, error) {
+	var errs []error
+	if entitlementConnector == nil {
+		errs = append(errs, errors.New("entitlement connector is required"))
+	}
+	if balanceConnector == nil {
+		errs = append(errs, errors.New("entitlement balance connector is required"))
+	}
+	if customerService == nil {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+	if subjectService == nil {
+		errs = append(errs, errors.New("subject service is required"))
+	}
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid metered entitlement handler config: %w", err)
+	}
+
 	return &meteredEntitlementHandler{
 		entitlementConnector: entitlementConnector,
 		balanceConnector:     balanceConnector,
@@ -58,7 +78,7 @@ func NewMeteredEntitlementHandler(
 		subjectService:       subjectService,
 		namespaceDecoder:     namespaceDecoder,
 		options:              options,
-	}
+	}, nil
 }
 
 type (

@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -68,7 +69,30 @@ func New(
 	customerService customer.Service,
 
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if appService == nil {
+		errs = append(errs, errors.New("app service is required"))
+	}
+	if appStripeService == nil {
+		errs = append(errs, errors.New("app stripe service is required"))
+	}
+	if billingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
+	}
+	if customerService == nil {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid app handler config: %w", err)
+	}
+
 	return &handler{
 		service:          appService,
 		namespaceDecoder: namespaceDecoder,
@@ -76,5 +100,5 @@ func New(
 		billingService:   billingService,
 		customerService:  customerService,
 		options:          options,
-	}
+	}, nil
 }

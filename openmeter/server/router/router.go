@@ -175,6 +175,10 @@ func (c Config) Validate() error {
 		return errors.New("app custom invoicing service is required")
 	}
 
+	if c.ChargeService == nil {
+		return errors.New("charge service is required")
+	}
+
 	if c.Customer == nil {
 		return errors.New("customer service is required")
 	}
@@ -207,20 +211,44 @@ func (c Config) Validate() error {
 		return errors.New("grant connector is required")
 	}
 
+	if c.GrantRepo == nil {
+		return errors.New("grant repo is required")
+	}
+
 	if c.LLMCostService == nil {
 		return errors.New("llm cost service is required")
+	}
+
+	if c.Logger == nil {
+		return errors.New("logger is required")
 	}
 
 	if c.MeterManageService == nil {
 		return errors.New("meter manage service is required")
 	}
 
+	if c.MeterEventService == nil {
+		return errors.New("meter event service is required")
+	}
+
 	if c.Notification == nil {
 		return errors.New("notification service is required")
 	}
 
+	if c.Plan == nil {
+		return errors.New("plan service is required")
+	}
+
 	if c.PlanAddon == nil {
 		return errors.New("plan add-on service is required")
+	}
+
+	if c.PlanSubscriptionService == nil {
+		return errors.New("plan subscription service is required")
+	}
+
+	if c.Portal == nil {
+		return errors.New("portal service is required")
 	}
 
 	if c.ProgressManager == nil {
@@ -249,6 +277,10 @@ func (c Config) Validate() error {
 
 	if c.TaxCodeService == nil {
 		return errors.New("tax code service is required")
+	}
+
+	if c.FeatureGate == nil {
+		return errors.New("feature gate is required")
 	}
 
 	if err := c.FeatureGate.Validate(); err != nil {
@@ -304,38 +336,60 @@ func NewRouter(config Config) (*Router, error) {
 		config: config,
 	}
 
-	router.debugHandler = debug_httpdriver.NewDebugHandler(
+	if err := router.initHandlers(config); err != nil {
+		return nil, err
+	}
+
+	return router, nil
+}
+
+func (router *Router) initHandlers(config Config) error {
+	var err error
+
+	router.debugHandler, err = debug_httpdriver.NewDebugHandler(
 		config.NamespaceDecoder,
 		config.DebugConnector,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("debug handler: %w", err)
+	}
 
-	router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(
+	router.featureHandler, err = productcatalog_httpdriver.NewFeatureHandler(
 		config.FeatureConnector,
 		config.NamespaceDecoder,
 		config.MeterManageService,
 		config.LLMCostService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("feature handler: %w", err)
+	}
 
-	router.entitlementHandler = entitlementdriver.NewEntitlementHandler(
+	router.entitlementHandler, err = entitlementdriver.NewEntitlementHandler(
 		config.EntitlementConnector,
 		config.Customer,
 		config.SubjectService,
 		config.NamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("entitlement handler: %w", err)
+	}
 
 	// V2 entitlement handler for customer-scoped operations
-	router.entitlementV2Handler = entitlementdriverv2.NewEntitlementHandler(
+	router.entitlementV2Handler, err = entitlementdriverv2.NewEntitlementHandler(
 		config.EntitlementConnector,
 		config.EntitlementBalanceConnector,
 		config.Customer,
 		config.NamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("entitlement v2 handler: %w", err)
+	}
 
-	router.meterHandler = meterhttphandler.New(
+	router.meterHandler, err = meterhttphandler.New(
 		config.NamespaceDecoder,
 		config.Customer,
 		config.MeterManageService,
@@ -343,20 +397,29 @@ func NewRouter(config Config) (*Router, error) {
 		config.SubjectService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("meter handler: %w", err)
+	}
 
-	router.ingestHandler = ingesthttpdriver.New(
+	router.ingestHandler, err = ingesthttpdriver.New(
 		config.NamespaceDecoder,
 		config.IngestService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("ingest handler: %w", err)
+	}
 
-	router.meterEventHandler = metereventhttphandler.New(
+	router.meterEventHandler, err = metereventhttphandler.New(
 		config.NamespaceDecoder,
 		config.MeterEventService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("meter event handler: %w", err)
+	}
 
-	router.meteredEntitlementHandler = entitlementdriver.NewMeteredEntitlementHandler(
+	router.meteredEntitlementHandler, err = entitlementdriver.NewMeteredEntitlementHandler(
 		config.EntitlementConnector,
 		config.EntitlementBalanceConnector,
 		config.Customer,
@@ -364,43 +427,58 @@ func NewRouter(config Config) (*Router, error) {
 		config.NamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("metered entitlement handler: %w", err)
+	}
 
-	router.creditHandler = creditdriver.NewGrantHandler(
+	router.creditHandler, err = creditdriver.NewGrantHandler(
 		config.NamespaceDecoder,
 		config.GrantConnector,
 		config.GrantRepo,
 		config.Customer,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("grant handler: %w", err)
+	}
 
-	router.notificationHandler = notificationhttpdriver.New(
+	router.notificationHandler, err = notificationhttpdriver.New(
 		config.NamespaceDecoder,
 		config.Notification,
 		config.Billing,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("notification handler: %w", err)
+	}
 
 	router.infoHandler = infohttpdriver.New(
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
-	router.progressHandler = progresshttpdriver.New(
+	router.progressHandler, err = progresshttpdriver.New(
 		config.NamespaceDecoder,
 		config.ProgressManager,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("progress handler: %w", err)
+	}
 
 	// Customer
-	router.customerHandler = customerhttpdriver.New(
+	router.customerHandler, err = customerhttpdriver.New(
 		config.NamespaceDecoder,
 		config.Customer,
 		config.SubscriptionService,
 		config.EntitlementConnector,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("customer handler: %w", err)
+	}
 
 	// App
-	router.appHandler = apphttpdriver.New(
+	router.appHandler, err = apphttpdriver.New(
 		config.Logger,
 		config.NamespaceDecoder,
 		config.App,
@@ -409,78 +487,88 @@ func NewRouter(config Config) (*Router, error) {
 		config.Customer,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("app handler: %w", err)
+	}
 
 	// App Stripe
-	router.appStripeHandler = appstripehttpdriver.New(
+	router.appStripeHandler, err = appstripehttpdriver.New(
 		config.NamespaceDecoder,
 		config.AppStripe,
 		config.Billing,
 		config.Customer,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("app stripe handler: %w", err)
+	}
 
 	// App Custom Invoicing
-	router.appCustomInvoicingHandler = appcustominvoicinghttpdriver.New(
+	router.appCustomInvoicingHandler, err = appcustominvoicinghttpdriver.New(
 		config.AppCustomInvoicing,
 		config.NamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("app custom invoicing handler: %w", err)
+	}
 
 	// Billing
-	router.billingHandler = billinghttpdriver.New(
+	router.billingHandler, err = billinghttpdriver.New(
 		config.Logger,
 		config.NamespaceDecoder,
 		config.BillingFeatureSwitches,
 		config.Billing,
 		config.App,
-		config.AppStripe,
 		config.ChargeService,
 		config.Credits,
 		config.FeatureGate,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
-
-	// Product Catalog
-	if config.Plan == nil {
-		return nil, errors.New("plan service is required")
+	if err != nil {
+		return fmt.Errorf("billing handler: %w", err)
 	}
 
-	router.planHandler = planhttpdriver.New(
+	// Product Catalog
+	router.planHandler, err = planhttpdriver.New(
 		config.NamespaceDecoder,
 		config.Plan,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("plan handler: %w", err)
+	}
 
-	router.addonHandler = addonhttpdriver.New(
+	router.addonHandler, err = addonhttpdriver.New(
 		config.NamespaceDecoder,
 		config.Addon,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("add-on handler: %w", err)
+	}
 
-	router.planAddonHandler = planaddonhttpdriver.New(
+	router.planAddonHandler, err = planaddonhttpdriver.New(
 		config.NamespaceDecoder,
 		config.PlanAddon,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("plan add-on handler: %w", err)
+	}
 
-	router.subjectHandler = subjecthttphandler.New(
+	router.subjectHandler, err = subjecthttphandler.New(
 		config.NamespaceDecoder,
 		config.Logger,
 		config.SubjectService,
 		config.EntitlementConnector,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
-
-	if config.SubscriptionService == nil || config.SubscriptionWorkflowService == nil || config.PlanSubscriptionService == nil {
-		return nil, errors.New("subscription services are required")
+	if err != nil {
+		return fmt.Errorf("subject handler: %w", err)
 	}
 
-	if config.Logger == nil {
-		return nil, errors.New("logger is required")
-	}
-
-	// Subscription
-	router.subscriptionHandler = subscriptionhttpdriver.NewHandler(
+	subscriptionHandler, err := subscriptionhttpdriver.NewHandler(
 		subscriptionhttpdriver.HandlerConfig{
 			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
 			SubscriptionService:         config.SubscriptionService,
@@ -492,8 +580,13 @@ func NewRouter(config Config) (*Router, error) {
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("subscription handler: %w", err)
+	}
 
-	router.subscriptionAddonHandler = subscriptionaddonhttpdriver.NewHandler(
+	router.subscriptionHandler = subscriptionHandler
+
+	subscriptionAddonHandler, err := subscriptionaddonhttpdriver.NewHandler(
 		subscriptionaddonhttpdriver.HandlerConfig{
 			SubscriptionAddonService:    config.SubscriptionAddonService,
 			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
@@ -504,14 +597,22 @@ func NewRouter(config Config) (*Router, error) {
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("subscription add-on handler: %w", err)
+	}
+
+	router.subscriptionAddonHandler = subscriptionAddonHandler
 
 	// Portal
-	router.portalHandler = portalhttphandler.New(
+	router.portalHandler, err = portalhttphandler.New(
 		config.NamespaceDecoder,
 		config.Portal,
 		config.MeterManageService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("portal handler: %w", err)
+	}
 
 	// Currencies
 	resolveNamespace := func(ctx context.Context) (string, error) {
@@ -523,11 +624,14 @@ func NewRouter(config Config) (*Router, error) {
 		return ns, nil
 	}
 
-	router.currencyHandler = currencyhandler.New(
+	router.currencyHandler, err = currencyhandler.New(
 		resolveNamespace,
 		config.CurrencyService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
+	if err != nil {
+		return fmt.Errorf("currency handler: %w", err)
+	}
 
-	return router, nil
+	return nil
 }

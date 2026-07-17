@@ -1,6 +1,9 @@
 package entitlementdriverv2
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -37,12 +40,29 @@ func NewEntitlementHandler(
 	customerService customer.Service,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
-) EntitlementHandler {
+) (EntitlementHandler, error) {
+	var errs []error
+	if connector == nil {
+		errs = append(errs, errors.New("entitlement connector is required"))
+	}
+	if balanceConnector == nil {
+		errs = append(errs, errors.New("entitlement balance connector is required"))
+	}
+	if customerService == nil {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid entitlement v2 handler config: %w", err)
+	}
+
 	return &entitlementHandler{
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		connector:        connector,
 		balanceConnector: balanceConnector,
 		customerService:  customerService,
-	}
+	}, nil
 }

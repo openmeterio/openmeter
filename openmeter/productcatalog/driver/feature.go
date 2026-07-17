@@ -45,14 +45,31 @@ func NewFeatureHandler(
 	meterService meter.Service,
 	llmcostService llmcost.Service,
 	options ...httptransport.HandlerOption,
-) FeatureHandler {
+) (FeatureHandler, error) {
+	var errs []error
+	if connector == nil {
+		errs = append(errs, errors.New("feature connector is required"))
+	}
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if meterService == nil {
+		errs = append(errs, errors.New("meter service is required"))
+	}
+	if llmcostService == nil {
+		errs = append(errs, errors.New("llm cost service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid feature handler config: %w", err)
+	}
+
 	return &featureHandlers{
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		connector:        connector,
 		meterService:     meterService,
 		llmcostService:   llmcostService,
-	}
+	}, nil
 }
 
 type (

@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/debug"
@@ -26,12 +27,23 @@ func NewDebugHandler(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	debugConnector debug.DebugConnector,
 	options ...httptransport.HandlerOption,
-) DebugHandler {
+) (DebugHandler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if debugConnector == nil {
+		errs = append(errs, errors.New("debug connector is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid debug handler config: %w", err)
+	}
+
 	return &debugHandler{
 		namespaceDecoder: namespaceDecoder,
 		debugConnector:   debugConnector,
 		options:          options,
-	}
+	}, nil
 }
 
 type GetMetricsHandlerRequestParams struct {
