@@ -42,11 +42,11 @@ func TestEdit(t *testing.T) {
 				defer cancel()
 
 				spec, err := subscription.NewSpecFromPlan(deps.ExamplePlan, subscription.CreateSubscriptionCustomerInput{
-					Name:          "Test",
-					CustomerId:    deps.Customer.ID,
-					Currency:      currencyx.Code("USD"),
-					ActiveFrom:    deps.CurrentTime,
-					BillingAnchor: deps.CurrentTime,
+					Name:            "Test",
+					CustomerId:      deps.Customer.ID,
+					InvoiceCurrency: currencyx.Code("USD"),
+					ActiveFrom:      deps.CurrentTime,
+					BillingAnchor:   deps.CurrentTime,
 				})
 				require.Nil(t, err)
 
@@ -64,11 +64,11 @@ func TestEdit(t *testing.T) {
 				defer cancel()
 
 				spec, err := subscription.NewSpecFromPlan(deps.ExamplePlan, subscription.CreateSubscriptionCustomerInput{
-					Name:          "Test",
-					CustomerId:    deps.Customer.ID,
-					Currency:      currencyx.Code("USD"),
-					ActiveFrom:    deps.CurrentTime,
-					BillingAnchor: deps.CurrentTime,
+					Name:            "Test",
+					CustomerId:      deps.Customer.ID,
+					InvoiceCurrency: currencyx.Code("USD"),
+					ActiveFrom:      deps.CurrentTime,
+					BillingAnchor:   deps.CurrentTime,
 				})
 				require.Nil(t, err)
 
@@ -91,11 +91,11 @@ func TestEdit(t *testing.T) {
 				defer cancel()
 
 				spec, err := subscription.NewSpecFromPlan(deps.ExamplePlan, subscription.CreateSubscriptionCustomerInput{
-					Name:          "Test",
-					CustomerId:    deps.Customer.ID,
-					Currency:      currencyx.Code("USD"),
-					ActiveFrom:    deps.CurrentTime,
-					BillingAnchor: deps.CurrentTime,
+					Name:            "Test",
+					CustomerId:      deps.Customer.ID,
+					InvoiceCurrency: currencyx.Code("USD"),
+					ActiveFrom:      deps.CurrentTime,
+					BillingAnchor:   deps.CurrentTime,
 				})
 				require.Nil(t, err)
 
@@ -117,11 +117,11 @@ func TestEdit(t *testing.T) {
 				defer cancel()
 
 				spec, err := subscription.NewSpecFromPlan(deps.ExamplePlan, subscription.CreateSubscriptionCustomerInput{
-					Name:          "Test",
-					CustomerId:    deps.Customer.ID,
-					Currency:      currencyx.Code("USD"),
-					ActiveFrom:    deps.CurrentTime,
-					BillingAnchor: deps.CurrentTime,
+					Name:            "Test",
+					CustomerId:      deps.Customer.ID,
+					InvoiceCurrency: currencyx.Code("USD"),
+					ActiveFrom:      deps.CurrentTime,
+					BillingAnchor:   deps.CurrentTime,
 				})
 				require.Nil(t, err)
 
@@ -143,11 +143,11 @@ func TestEdit(t *testing.T) {
 				defer cancel()
 
 				spec, err := subscription.NewSpecFromPlan(deps.ExamplePlan, subscription.CreateSubscriptionCustomerInput{
-					Name:          "Test",
-					CustomerId:    deps.Customer.ID,
-					Currency:      currencyx.Code("USD"),
-					ActiveFrom:    deps.CurrentTime,
-					BillingAnchor: deps.CurrentTime,
+					Name:            "Test",
+					CustomerId:      deps.Customer.ID,
+					InvoiceCurrency: currencyx.Code("USD"),
+					ActiveFrom:      deps.CurrentTime,
+					BillingAnchor:   deps.CurrentTime,
 				})
 				require.Nil(t, err)
 
@@ -189,11 +189,11 @@ func TestEdit(t *testing.T) {
 				defer cancel()
 
 				spec, err := subscription.NewSpecFromPlan(deps.ExamplePlan, subscription.CreateSubscriptionCustomerInput{
-					Name:          "Test",
-					CustomerId:    deps.Customer.ID,
-					Currency:      currencyx.Code("USD"),
-					ActiveFrom:    deps.CurrentTime,
-					BillingAnchor: deps.CurrentTime,
+					Name:            "Test",
+					CustomerId:      deps.Customer.ID,
+					InvoiceCurrency: currencyx.Code("USD"),
+					ActiveFrom:      deps.CurrentTime,
+					BillingAnchor:   deps.CurrentTime,
 				})
 				require.Nil(t, err)
 
@@ -237,11 +237,11 @@ func TestEdit(t *testing.T) {
 				defer cancel()
 
 				spec, err := subscription.NewSpecFromPlan(deps.ExamplePlan, subscription.CreateSubscriptionCustomerInput{
-					Name:          "Test",
-					CustomerId:    deps.Customer.ID,
-					Currency:      currencyx.Code("USD"),
-					ActiveFrom:    deps.CurrentTime,
-					BillingAnchor: deps.CurrentTime,
+					Name:            "Test",
+					CustomerId:      deps.Customer.ID,
+					InvoiceCurrency: currencyx.Code("USD"),
+					ActiveFrom:      deps.CurrentTime,
+					BillingAnchor:   deps.CurrentTime,
 				})
 				require.Nil(t, err)
 
@@ -297,11 +297,11 @@ func TestEdit(t *testing.T) {
 				defer cancel()
 
 				spec, err := subscription.NewSpecFromPlan(deps.ExamplePlan, subscription.CreateSubscriptionCustomerInput{
-					Name:          "Test",
-					CustomerId:    deps.Customer.ID,
-					Currency:      currencyx.Code("USD"),
-					ActiveFrom:    deps.CurrentTime,
-					BillingAnchor: deps.CurrentTime,
+					Name:            "Test",
+					CustomerId:      deps.Customer.ID,
+					InvoiceCurrency: currencyx.Code("USD"),
+					ActiveFrom:      deps.CurrentTime,
+					BillingAnchor:   deps.CurrentTime,
 				})
 				require.Nil(t, err)
 

@@ -412,11 +412,11 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 	now := clock.Now()
 
 	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-		CustomerId:    originalCustomer.ID,
-		Name:          "Test Subscription",
-		Currency:      currencyx.Code("USD"),
-		ActiveFrom:    now,
-		BillingAnchor: now,
+		CustomerId:      originalCustomer.ID,
+		Name:            "Test Subscription",
+		InvoiceCurrency: currencyx.Code("USD"),
+		ActiveFrom:      now,
+		BillingAnchor:   now,
 	})
 	require.Nil(t, err)
 
@@ -1080,11 +1080,11 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 	now := clock.Now()
 
 	spec, err := subscription.NewSpecFromPlan(p, subscription.CreateSubscriptionCustomerInput{
-		CustomerId:    originalCustomer.ID,
-		Name:          "Test Subscription",
-		Currency:      currencyx.Code("USD"),
-		ActiveFrom:    now,
-		BillingAnchor: now,
+		CustomerId:      originalCustomer.ID,
+		Name:            "Test Subscription",
+		InvoiceCurrency: currencyx.Code("USD"),
+		ActiveFrom:      now,
+		BillingAnchor:   now,
 	})
 	require.Nil(t, err)
 

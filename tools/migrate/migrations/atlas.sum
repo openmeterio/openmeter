@@ -1,4 +1,4 @@
-h1:6f4Rg+mwo9xLMzrRCjFv5hqfqLVxPBu5GVNq0/1SdNU=
+h1:Px4SaMIIOHAVQVopR6skS3VRwFaf4LnnKmWvM5/jb18=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -241,3 +241,4 @@ h1:6f4Rg+mwo9xLMzrRCjFv5hqfqLVxPBu5GVNq0/1SdNU=
 20260717143312_add_rate_card_currency.up.sql h1:J6EGrDkaqRfqdTRohzJcXAld+JE3aPv5mJaJ3fEmDsE=
 20260717143818_add_product_catalog_currency_references.up.sql h1:aAzAwYGErOfRAMnDXDd6kuCd451MUBKTTAQ4GUYnPeg=
 20260717150347_add_subscription_item_currency_references.up.sql h1:XHGUpkjJtitf1Hha5oO4usxmtIYQtv1wpYJ5obSgCWU=
+20260717195001_custom_currency_subscription_semantics.up.sql h1:P6+qgIDBC5KjXRmtBZPAVPlRzZAg1kDbkw3OzVvC3rs=

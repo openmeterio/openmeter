@@ -62,13 +62,15 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	deps := subscriptiontestutils.NewService(t, dbDeps)
 
-	pcSubsService := pcsubscriptionservice.New(pcsubscriptionservice.Config{
+	pcSubsService, err := pcsubscriptionservice.New(pcsubscriptionservice.Config{
 		WorkflowService:     deps.WorkflowService,
 		SubscriptionService: deps.SubscriptionService,
 		PlanService:         deps.PlanService,
+		CurrencyResolver:    deps.CurrencyResolver,
 		Logger:              testutils.NewLogger(t),
 		CustomerService:     deps.CustomerService,
 	})
+	require.NoError(t, err)
 
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{

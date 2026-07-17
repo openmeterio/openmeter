@@ -39,6 +39,10 @@ func (m mockCurrencyService) ListCostBases(context.Context, currencies.ListCostB
 	return pagination.Result[currencies.CostBasis]{}, errors.New("not implemented")
 }
 
+func (m mockCurrencyService) GetCostBasisAt(context.Context, currencies.GetCostBasisAtInput) (currencies.CostBasis, error) {
+	return currencies.CostBasis{}, errors.New("not implemented")
+}
+
 func TestResolverResolveCustomCurrencyIgnoresArchivedResources(t *testing.T) {
 	deletedAt := time.Now()
 	service := mockCurrencyService{

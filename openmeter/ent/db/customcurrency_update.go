@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 )
 
@@ -178,6 +179,21 @@ func (_u *CustomCurrencyUpdate) AddSubscriptionItems(v ...*SubscriptionItem) *Cu
 	return _u.AddSubscriptionItemIDs(ids...)
 }
 
+// AddSubscriptionCostBasisPinIDs adds the "subscription_cost_basis_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (_u *CustomCurrencyUpdate) AddSubscriptionCostBasisPinIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.AddSubscriptionCostBasisPinIDs(ids...)
+	return _u
+}
+
+// AddSubscriptionCostBasisPins adds the "subscription_cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_u *CustomCurrencyUpdate) AddSubscriptionCostBasisPins(v ...*SubscriptionCostBasisPin) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubscriptionCostBasisPinIDs(ids...)
+}
+
 // Mutation returns the CustomCurrencyMutation object of the builder.
 func (_u *CustomCurrencyUpdate) Mutation() *CustomCurrencyMutation {
 	return _u.mutation
@@ -307,6 +323,27 @@ func (_u *CustomCurrencyUpdate) RemoveSubscriptionItems(v ...*SubscriptionItem) 
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveSubscriptionItemIDs(ids...)
+}
+
+// ClearSubscriptionCostBasisPins clears all "subscription_cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_u *CustomCurrencyUpdate) ClearSubscriptionCostBasisPins() *CustomCurrencyUpdate {
+	_u.mutation.ClearSubscriptionCostBasisPins()
+	return _u
+}
+
+// RemoveSubscriptionCostBasisPinIDs removes the "subscription_cost_basis_pins" edge to SubscriptionCostBasisPin entities by IDs.
+func (_u *CustomCurrencyUpdate) RemoveSubscriptionCostBasisPinIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.RemoveSubscriptionCostBasisPinIDs(ids...)
+	return _u
+}
+
+// RemoveSubscriptionCostBasisPins removes "subscription_cost_basis_pins" edges to SubscriptionCostBasisPin entities.
+func (_u *CustomCurrencyUpdate) RemoveSubscriptionCostBasisPins(v ...*SubscriptionCostBasisPin) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubscriptionCostBasisPinIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -657,6 +694,51 @@ func (_u *CustomCurrencyUpdate) sqlSave(ctx context.Context) (_node int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.SubscriptionCostBasisPinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionCostBasisPinsTable,
+			Columns: []string{customcurrency.SubscriptionCostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubscriptionCostBasisPinsIDs(); len(nodes) > 0 && !_u.mutation.SubscriptionCostBasisPinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionCostBasisPinsTable,
+			Columns: []string{customcurrency.SubscriptionCostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionCostBasisPinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionCostBasisPinsTable,
+			Columns: []string{customcurrency.SubscriptionCostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customcurrency.Label}
@@ -821,6 +903,21 @@ func (_u *CustomCurrencyUpdateOne) AddSubscriptionItems(v ...*SubscriptionItem) 
 	return _u.AddSubscriptionItemIDs(ids...)
 }
 
+// AddSubscriptionCostBasisPinIDs adds the "subscription_cost_basis_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (_u *CustomCurrencyUpdateOne) AddSubscriptionCostBasisPinIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.AddSubscriptionCostBasisPinIDs(ids...)
+	return _u
+}
+
+// AddSubscriptionCostBasisPins adds the "subscription_cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_u *CustomCurrencyUpdateOne) AddSubscriptionCostBasisPins(v ...*SubscriptionCostBasisPin) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubscriptionCostBasisPinIDs(ids...)
+}
+
 // Mutation returns the CustomCurrencyMutation object of the builder.
 func (_u *CustomCurrencyUpdateOne) Mutation() *CustomCurrencyMutation {
 	return _u.mutation
@@ -950,6 +1047,27 @@ func (_u *CustomCurrencyUpdateOne) RemoveSubscriptionItems(v ...*SubscriptionIte
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveSubscriptionItemIDs(ids...)
+}
+
+// ClearSubscriptionCostBasisPins clears all "subscription_cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_u *CustomCurrencyUpdateOne) ClearSubscriptionCostBasisPins() *CustomCurrencyUpdateOne {
+	_u.mutation.ClearSubscriptionCostBasisPins()
+	return _u
+}
+
+// RemoveSubscriptionCostBasisPinIDs removes the "subscription_cost_basis_pins" edge to SubscriptionCostBasisPin entities by IDs.
+func (_u *CustomCurrencyUpdateOne) RemoveSubscriptionCostBasisPinIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.RemoveSubscriptionCostBasisPinIDs(ids...)
+	return _u
+}
+
+// RemoveSubscriptionCostBasisPins removes "subscription_cost_basis_pins" edges to SubscriptionCostBasisPin entities.
+func (_u *CustomCurrencyUpdateOne) RemoveSubscriptionCostBasisPins(v ...*SubscriptionCostBasisPin) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubscriptionCostBasisPinIDs(ids...)
 }
 
 // Where appends a list predicates to the CustomCurrencyUpdate builder.
@@ -1323,6 +1441,51 @@ func (_u *CustomCurrencyUpdateOne) sqlSave(ctx context.Context) (_node *CustomCu
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubscriptionCostBasisPinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionCostBasisPinsTable,
+			Columns: []string{customcurrency.SubscriptionCostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubscriptionCostBasisPinsIDs(); len(nodes) > 0 && !_u.mutation.SubscriptionCostBasisPinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionCostBasisPinsTable,
+			Columns: []string{customcurrency.SubscriptionCostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubscriptionCostBasisPinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionCostBasisPinsTable,
+			Columns: []string{customcurrency.SubscriptionCostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

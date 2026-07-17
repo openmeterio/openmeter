@@ -113,7 +113,7 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 		}
 
 		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(subs.Subscription.Currency).
+			WithCode(subs.Subscription.InvoiceCurrency).
 			Build()
 		if err != nil {
 			return State{}, fmt.Errorf("getting currency calculator: %w", err)

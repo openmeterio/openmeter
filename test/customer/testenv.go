@@ -350,6 +350,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Publisher:             publisher,
 		Lockr:                 locker,
 		FeatureFlags:          ffService,
+		CostBasisService:      currencyService,
 	})
 	require.NoError(t, err)
 
@@ -406,6 +407,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	workflowSvc, err := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            svc,
 		CustomerService:    customerService,
+		CurrencyResolver:   currencyResolver,
 		TransactionManager: subItemRepo,
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),

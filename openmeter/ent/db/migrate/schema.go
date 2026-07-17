@@ -5127,6 +5127,7 @@ var (
 		{Name: "name", Type: field.TypeString, Default: "Subscription"},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, Size: 3},
+		{Name: "cost_basis_mode", Type: field.TypeEnum, Enums: []string{"dynamic", "pinned"}, Default: "dynamic"},
 		{Name: "billing_anchor", Type: field.TypeTime},
 		{Name: "billing_cadence", Type: field.TypeString},
 		{Name: "pro_rating_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -5142,13 +5143,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscriptions_customers_subscription",
-				Columns:    []*schema.Column{SubscriptionsColumns[16]},
+				Columns:    []*schema.Column{SubscriptionsColumns[17]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "subscriptions_plans_subscriptions",
-				Columns:    []*schema.Column{SubscriptionsColumns[17]},
+				Columns:    []*schema.Column{SubscriptionsColumns[18]},
 				RefColumns: []*schema.Column{PlansColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -5182,7 +5183,7 @@ var (
 			{
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[16]},
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[17]},
 			},
 		},
 	}
@@ -5316,6 +5317,76 @@ var (
 				Name:    "subscriptionbillingsyncstate_namespace_subscription_id",
 				Unique:  true,
 				Columns: []*schema.Column{SubscriptionBillingSyncStatesColumns[1], SubscriptionBillingSyncStatesColumns[5]},
+			},
+		},
+	}
+	// SubscriptionCostBasisPinsColumns holds the columns for the "subscription_cost_basis_pins" table.
+	SubscriptionCostBasisPinsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "invoice_currency", Type: field.TypeString, Size: 3},
+		{Name: "cost_basis_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "custom_currency_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "subscription_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionCostBasisPinsTable holds the schema information for the "subscription_cost_basis_pins" table.
+	SubscriptionCostBasisPinsTable = &schema.Table{
+		Name:       "subscription_cost_basis_pins",
+		Columns:    SubscriptionCostBasisPinsColumns,
+		PrimaryKey: []*schema.Column{SubscriptionCostBasisPinsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_cost_basis_pins_currency_cost_bases_subscription_pins",
+				Columns:    []*schema.Column{SubscriptionCostBasisPinsColumns[6]},
+				RefColumns: []*schema.Column{CurrencyCostBasesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "subscription_cost_basis_pins_custom_currencies_subscription_cost_basis_pins",
+				Columns:    []*schema.Column{SubscriptionCostBasisPinsColumns[7]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "subscription_cost_basis_pins_subscriptions_cost_basis_pins",
+				Columns:    []*schema.Column{SubscriptionCostBasisPinsColumns[8]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptioncostbasispin_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionCostBasisPinsColumns[0]},
+			},
+			{
+				Name:    "subscriptioncostbasispin_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionCostBasisPinsColumns[1]},
+			},
+			{
+				Name:    "subscriptioncostbasispin_namespace_subscription_id_custom_currency_id_invoice_currency",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionCostBasisPinsColumns[1], SubscriptionCostBasisPinsColumns[8], SubscriptionCostBasisPinsColumns[7], SubscriptionCostBasisPinsColumns[5]},
+			},
+			{
+				Name:    "subscriptioncostbasispin_subscription_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionCostBasisPinsColumns[8]},
+			},
+			{
+				Name:    "subscriptioncostbasispin_custom_currency_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionCostBasisPinsColumns[7]},
+			},
+			{
+				Name:    "subscriptioncostbasispin_cost_basis_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionCostBasisPinsColumns[6]},
 			},
 		},
 	}
@@ -5720,6 +5791,7 @@ var (
 		SubscriptionAddonsTable,
 		SubscriptionAddonQuantitiesTable,
 		SubscriptionBillingSyncStatesTable,
+		SubscriptionCostBasisPinsTable,
 		SubscriptionItemsTable,
 		SubscriptionPhasesTable,
 		TaxCodesTable,
@@ -5922,13 +5994,16 @@ func init() {
 	SubscriptionAddonsTable.ForeignKeys[1].RefTable = SubscriptionsTable
 	SubscriptionAddonQuantitiesTable.ForeignKeys[0].RefTable = SubscriptionAddonsTable
 	SubscriptionBillingSyncStatesTable.ForeignKeys[0].RefTable = SubscriptionsTable
+	SubscriptionCostBasisPinsTable.ForeignKeys[0].RefTable = CurrencyCostBasesTable
+	SubscriptionCostBasisPinsTable.ForeignKeys[1].RefTable = CustomCurrenciesTable
+	SubscriptionCostBasisPinsTable.ForeignKeys[2].RefTable = SubscriptionsTable
 	SubscriptionItemsTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
 	SubscriptionItemsTable.ForeignKeys[1].RefTable = EntitlementsTable
 	SubscriptionItemsTable.ForeignKeys[2].RefTable = SubscriptionPhasesTable
 	SubscriptionItemsTable.ForeignKeys[3].RefTable = TaxCodesTable
 	SubscriptionItemsTable.Annotation = &entsql.Annotation{}
 	SubscriptionItemsTable.Annotation.Checks = map[string]string{
-		"subscription_item_currency_has_price": "(price IS NOT NULL) OR ((currency IS NULL) AND (custom_currency_id IS NULL))",
+		"subscription_item_currency_has_price": "((price IS NULL) AND (currency IS NULL) AND (custom_currency_id IS NULL)) OR ((price IS NOT NULL) AND ((currency IS NOT NULL) OR (custom_currency_id IS NOT NULL)))",
 		"subscription_item_currency_reference": "(currency IS NULL) OR (custom_currency_id IS NULL)",
 	}
 	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable

@@ -44,14 +44,16 @@ type CreateSubscriptionPlanInput struct {
 
 type CreateSubscriptionCustomerInput struct {
 	models.MetadataModel `json:",inline"`
-	Name                 string             `json:"name"`
-	Description          *string            `json:"description,omitempty"`
-	CustomerId           string             `json:"customerId"`
-	Currency             currencyx.Code     `json:"currency"`
-	ActiveFrom           time.Time          `json:"activeFrom,omitempty"`
-	ActiveTo             *time.Time         `json:"activeTo,omitempty"`
-	BillingAnchor        time.Time          `json:"billingAnchor,omitempty"`
-	Annotations          models.Annotations `json:"annotations"`
+	Name                 string  `json:"name"`
+	Description          *string `json:"description,omitempty"`
+	CustomerId           string  `json:"customerId"`
+	// Keep the legacy JSON key because v1 subscription events embed this spec.
+	InvoiceCurrency currencyx.Code     `json:"currency"`
+	CostBasisMode   CostBasisMode      `json:"costBasisMode"`
+	ActiveFrom      time.Time          `json:"activeFrom,omitempty"`
+	ActiveTo        *time.Time         `json:"activeTo,omitempty"`
+	BillingAnchor   time.Time          `json:"billingAnchor,omitempty"`
+	Annotations     models.Annotations `json:"annotations"`
 }
 
 type SubscriptionSpec struct {
@@ -95,7 +97,8 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		},
 		Plan:            s.Plan,
 		CustomerId:      s.CustomerId,
-		Currency:        s.Currency,
+		InvoiceCurrency: s.InvoiceCurrency,
+		CostBasisMode:   s.CostBasisMode.OrDefault(),
 		BillingCadence:  s.BillingCadence,
 		ProRatingConfig: s.ProRatingConfig,
 		SettlementMode:  s.SettlementMode,
@@ -333,6 +336,10 @@ func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
 	var errs []error
 
+	if err := s.validateCurrencies(); err != nil {
+		errs = append(errs, err)
+	}
+
 	// Let's validate the billing anchor
 	// - is present
 	if s.BillingAnchor.IsZero() {
@@ -359,6 +366,78 @@ func (s *SubscriptionSpec) Validate() error {
 
 		if err := phase.Validate(cadence); err != nil {
 			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+func (s *SubscriptionSpec) validateCurrencies() error {
+	var errs []error
+
+	if err := s.InvoiceCurrency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invoiceCurrency: %w", err))
+	} else if !s.InvoiceCurrency.IsFiat() {
+		errs = append(errs, fmt.Errorf("invoiceCurrency: currency %q must be fiat", s.InvoiceCurrency))
+	}
+
+	if err := s.CostBasisMode.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("costBasisMode: %w", err))
+	}
+	if s.CostBasisMode.IsPinned() && s.SettlementMode == productcatalog.CreditOnlySettlementMode {
+		errs = append(errs, errors.New("costBasisMode: pinned cost basis is not supported for credit-only subscriptions"))
+	}
+
+	for _, phase := range s.GetSortedPhases() {
+		if phase == nil {
+			continue
+		}
+
+		for itemKey, items := range phase.ItemsByKey {
+			for idx, item := range items {
+				if item == nil || item.RateCard == nil {
+					continue
+				}
+
+				meta := item.RateCard.AsMeta()
+				fieldSelector := models.NewFieldSelectorGroup(
+					models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", phase.PhaseKey)),
+					models.NewFieldSelector("itemsByKey"),
+					models.NewFieldSelector(itemKey).WithExpression(models.NewFieldArrIndex(idx)),
+					models.NewFieldSelector("rateCard"),
+					models.NewFieldSelector("currency"),
+				)
+
+				if meta.Price == nil {
+					if meta.Currency != nil {
+						errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, productcatalog.ErrRateCardCurrencyRequiresPrice))
+					}
+					continue
+				}
+
+				if meta.Currency == nil {
+					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, productcatalog.ErrCurrencyInvalid))
+					continue
+				}
+				if err := meta.Currency.Validate(); err != nil {
+					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, productcatalog.ErrCurrencyInvalid))
+					continue
+				}
+
+				switch {
+				case meta.Currency.IsFiat():
+					if meta.Currency.GetCode() != s.InvoiceCurrency {
+						errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, productcatalog.ErrPlanMultipleFiatCurrencies))
+					}
+				case meta.Currency.IsCustom():
+					managed, ok := meta.Currency.(currencyx.ManagedCurrency)
+					if !ok || managed.GetID() == "" {
+						errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, productcatalog.ErrCurrencyInvalid))
+					}
+				default:
+					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, productcatalog.ErrCurrencyInvalid))
+				}
+			}
 		}
 	}
 
@@ -1209,6 +1288,10 @@ func (s *SubscriptionSpec) Apply(applies AppliesToSpec, context ApplyContext) er
 		return fmt.Errorf("apply failed: %w", err)
 	}
 
+	if err := s.MaterializeRateCardCurrencies(s.InvoiceCurrency); err != nil {
+		return fmt.Errorf("failed to materialize rate card currencies: %w", err)
+	}
+
 	if err := s.SyncAnnotations(); err != nil {
 		return fmt.Errorf("failed to sync annotations: %w", err)
 	}
@@ -1219,6 +1302,10 @@ func (s *SubscriptionSpec) Apply(applies AppliesToSpec, context ApplyContext) er
 func (s *SubscriptionSpec) ApplyMany(applieses []AppliesToSpec, aCtx ApplyContext) error {
 	if err := NewAggregateAppliesToSpec(applieses).ApplyTo(s, aCtx); err != nil {
 		return fmt.Errorf("apply failed: %w", err)
+	}
+
+	if err := s.MaterializeRateCardCurrencies(s.InvoiceCurrency); err != nil {
+		return fmt.Errorf("failed to materialize rate card currencies: %w", err)
 	}
 
 	if err := s.Validate(); err != nil {

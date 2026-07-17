@@ -178,6 +178,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		TransactionManager: subsRepo,
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
+		CostBasisService:   currencyService,
 		// events
 		Publisher: publisher,
 	})
@@ -239,6 +240,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Service:            s.SubscriptionService,
 		AddonService:       s.SubscriptionAddonService,
 		CustomerService:    deps.CustomerService,
+		CurrencyResolver:   currencyResolver,
 		TransactionManager: subsRepo,
 		Logger:             slog.Default(),
 		Lockr:              lockr,

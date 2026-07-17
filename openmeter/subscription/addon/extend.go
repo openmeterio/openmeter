@@ -158,8 +158,9 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 					PaymentTerm: tFlat.PaymentTerm,
 				})
 			case instanceType == productcatalog.AddonInstanceTypeSingle:
-				// Clear UnitConfig with Price: it can't outlive the price it converts.
+				// Currency and UnitConfig describe the price and cannot outlive it.
 				m.Price = nil
+				m.Currency = nil
 				m.UnitConfig = nil
 			default:
 				return m, fmt.Errorf("not supported price type: %s", tMeta.Price.Type())

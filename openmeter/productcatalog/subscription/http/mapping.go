@@ -181,21 +181,34 @@ func MapSubscriptionToAPI(sub subscription.Subscription) api.Subscription {
 		annotations = lo.ToPtr(api.Annotations(sub.Annotations))
 	}
 
+	costBasisPins := make([]api.SubscriptionCostBasisPin, 0, len(sub.CostBasisPins))
+	for _, pin := range sub.CostBasisPins {
+		costBasisPins = append(costBasisPins, api.SubscriptionCostBasisPin{
+			CustomCurrencyId: pin.CustomCurrencyID,
+			InvoiceCurrency:  pin.InvoiceCurrency.String(),
+			CostBasisId:      pin.CostBasis.ID,
+		})
+	}
+
 	return api.Subscription{
-		Id:          sub.ID,
-		ActiveFrom:  sub.ActiveFrom,
-		ActiveTo:    sub.ActiveTo,
-		CustomerId:  sub.CustomerId,
-		Currency:    string(sub.Currency),
-		Description: sub.Description,
-		Name:        sub.Name,
-		Status:      api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
-		Plan:        ref,
-		Metadata:    lo.EmptyableToPtr(api.Metadata(sub.Metadata)),
-		Annotations: annotations,
-		CreatedAt:   sub.CreatedAt,
-		UpdatedAt:   sub.UpdatedAt,
-		DeletedAt:   sub.DeletedAt,
+		Id:         sub.ID,
+		ActiveFrom: sub.ActiveFrom,
+		ActiveTo:   sub.ActiveTo,
+		CustomerId: sub.CustomerId,
+		Currency:   sub.InvoiceCurrency.String(),
+		CostBasisMode: api.SubscriptionCostBasisMode(
+			sub.CostBasisMode.OrDefault(),
+		),
+		CostBasisPins: costBasisPins,
+		Description:   sub.Description,
+		Name:          sub.Name,
+		Status:        api.SubscriptionStatus(sub.GetStatusAt(clock.Now())),
+		Plan:          ref,
+		Metadata:      lo.EmptyableToPtr(api.Metadata(sub.Metadata)),
+		Annotations:   annotations,
+		CreatedAt:     sub.CreatedAt,
+		UpdatedAt:     sub.UpdatedAt,
+		DeletedAt:     sub.DeletedAt,
 		Alignment: &api.Alignment{
 			BillablesMustAlign: lo.ToPtr(true), // TODO(OM-1249): this field is deprecated on API, we'll get rid of it eventually
 		},
@@ -249,7 +262,7 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		pr = &prc
 	}
 
-	return api.SubscriptionItem{
+	result := api.SubscriptionItem{
 		ActiveFrom:     item.SubscriptionItem.ActiveFrom,
 		ActiveTo:       item.SubscriptionItem.ActiveTo,
 		BillingCadence: (*string)(item.SubscriptionItem.RateCard.GetBillingCadence().ISOStringPtrOrNil()),
@@ -266,7 +279,13 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 		Discounts:      productcataloghttp.FromDiscounts(item.SubscriptionItem.RateCard.AsMeta().Discounts),
 		TaxConfig:      tx,
 		UpdatedAt:      item.SubscriptionItem.UpdatedAt,
-	}, nil
+	}
+
+	if currency := item.SubscriptionItem.RateCard.AsMeta().Currency; currency != nil {
+		result.Currency = lo.ToPtr(currency.GetCode().String())
+	}
+
+	return result, nil
 }
 
 func MapAPITimingToTiming(apiTiming api.SubscriptionTiming) (subscription.Timing, error) {
@@ -422,6 +441,8 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 		ActiveTo:        apiSub.ActiveTo,
 		CreatedAt:       apiSub.CreatedAt,
 		Currency:        apiSub.Currency,
+		CostBasisMode:   apiSub.CostBasisMode,
+		CostBasisPins:   apiSub.CostBasisPins,
 		CustomerId:      apiSub.CustomerId,
 		DeletedAt:       apiSub.DeletedAt,
 		Description:     apiSub.Description,

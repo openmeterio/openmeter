@@ -174,6 +174,8 @@ type Tx struct {
 	SubscriptionAddonQuantity *SubscriptionAddonQuantityClient
 	// SubscriptionBillingSyncState is the client for interacting with the SubscriptionBillingSyncState builders.
 	SubscriptionBillingSyncState *SubscriptionBillingSyncStateClient
+	// SubscriptionCostBasisPin is the client for interacting with the SubscriptionCostBasisPin builders.
+	SubscriptionCostBasisPin *SubscriptionCostBasisPinClient
 	// SubscriptionItem is the client for interacting with the SubscriptionItem builders.
 	SubscriptionItem *SubscriptionItemClient
 	// SubscriptionPhase is the client for interacting with the SubscriptionPhase builders.
@@ -393,6 +395,7 @@ func (tx *Tx) init() {
 	tx.SubscriptionAddon = NewSubscriptionAddonClient(tx.config)
 	tx.SubscriptionAddonQuantity = NewSubscriptionAddonQuantityClient(tx.config)
 	tx.SubscriptionBillingSyncState = NewSubscriptionBillingSyncStateClient(tx.config)
+	tx.SubscriptionCostBasisPin = NewSubscriptionCostBasisPinClient(tx.config)
 	tx.SubscriptionItem = NewSubscriptionItemClient(tx.config)
 	tx.SubscriptionPhase = NewSubscriptionPhaseClient(tx.config)
 	tx.TaxCode = NewTaxCodeClient(tx.config)

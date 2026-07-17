@@ -25,7 +25,7 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 	assert.Equal(t, expected.Name, found.Subscription.Name)
 	assert.Equal(t, expected.Description, found.Subscription.Description)
 	assert.Equal(t, expected.Plan, found.Subscription.PlanRef)
-	assert.Equal(t, expected.Currency, found.Subscription.Currency)
+	assert.Equal(t, expected.InvoiceCurrency, found.Subscription.InvoiceCurrency)
 	assert.Equal(t, expected.CustomerId, found.Subscription.CustomerId)
 	assert.Equal(t, expected.ActiveFrom, found.Subscription.ActiveFrom)
 	assert.Equal(t, expected.ActiveTo, found.Subscription.ActiveTo)
@@ -169,7 +169,7 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 	assert.Equal(t, s1.Name, s2.Name)
 	assert.Equal(t, s1.Description, s2.Description)
 	assert.Equal(t, s1.Plan, s2.Plan)
-	assert.Equal(t, s1.Currency, s2.Currency)
+	assert.Equal(t, s1.InvoiceCurrency, s2.InvoiceCurrency)
 	assert.Equal(t, s1.CustomerId, s2.CustomerId)
 	assert.Equal(t, s1.ActiveFrom, s2.ActiveFrom)
 	assert.Equal(t, s1.ActiveTo, s2.ActiveTo)
@@ -226,7 +226,7 @@ func SpecsEqual(t *testing.T, s1, s2 subscription.SubscriptionSpec) {
 				// Let's validate the item properties
 				assert.Equal(t, i1.ItemKey, i2.ItemKey)
 				assert.True(t, i1.RateCard.Equal(i2.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %+v\n\nview: %+v", itemKey, key, i1.RateCard, i2.RateCard)
-				assert.Equal(t, i1.CreateSubscriptionItemPlanInput, i2.CreateSubscriptionItemPlanInput, "create subscription item plan input mismatch for item %s in phase %s", itemKey, key)
+				assert.Equal(t, i1.PhaseKey, i2.PhaseKey, "phase key mismatch for item %s in phase %s", itemKey, key)
 
 				// We'll compare the time offsets separately
 				i1af := i1.ActiveFromOverrideRelativeToPhaseStart

@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -89,6 +90,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 							Metadata: req.Metadata,
 						},
 						BillingAnchor: parsedBody.BillingAnchor,
+						CostBasisMode: subscription.CostBasisMode(lo.FromPtr(parsedBody.CostBasisMode)),
 					},
 					RejectUnitConfig: true,
 				}, nil
@@ -126,6 +128,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						Name:          lo.FromPtr(parsedBody.Name),
 						Description:   parsedBody.Description,
 						BillingAnchor: parsedBody.BillingAnchor,
+						CostBasisMode: subscription.CostBasisMode(lo.FromPtr(parsedBody.CostBasisMode)),
 					},
 					StartingPhase:    parsedBody.StartingPhase,
 					SettlementMode:   settlementMode,

@@ -206,6 +206,114 @@ func TestEditRunning(t *testing.T) {
 			},
 		},
 		{
+			Name: "Should materialize invoice currency on a newly priced item",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				// given:
+				// - a priced item authored without an explicit currency
+				// when:
+				// - it is added through the running-subscription edit workflow
+				// then:
+				// - the persisted item carries the subscription invoice currency
+				const (
+					phaseKey = "test_phase_1"
+					itemKey  = "edited-priced-item"
+				)
+
+				rateCard := &productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:  itemKey,
+						Name: itemKey,
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount: alpacadecimal.NewFromInt(10),
+						}),
+					},
+					BillingCadence: lo.ToPtr(subscriptiontestutils.ISOMonth),
+				}
+
+				subView, err := deps.WorkflowService.EditRunning(t.Context(), deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchAddItem{
+						PhaseKey: phaseKey,
+						ItemKey:  itemKey,
+						CreateInput: subscription.SubscriptionItemSpec{
+							CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+								CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+									PhaseKey: phaseKey,
+									ItemKey:  itemKey,
+									RateCard: rateCard,
+								},
+							},
+						},
+					},
+				}, immediate)
+				require.NoError(t, err)
+
+				phase, ok := subView.GetPhaseByKey(phaseKey)
+				require.True(t, ok)
+				require.Len(t, phase.ItemsByKey[itemKey], 1)
+
+				itemCurrency := phase.ItemsByKey[itemKey][0].Spec.RateCard.AsMeta().Currency
+				require.NotNil(t, itemCurrency)
+				require.True(t, itemCurrency.IsFiat())
+				require.Equal(t, subView.Subscription.InvoiceCurrency, itemCurrency.GetCode())
+			},
+		},
+		{
+			Name: "Should preserve patch field paths when a priced item is invalid",
+			Handler: func(t *testing.T, deps testCaseDeps) {
+				// given:
+				// - a priced add-item patch whose entitlement template is invalid
+				// when:
+				// - the workflow validates and materializes the patch currency
+				// then:
+				// - validation still identifies the authored phase and item
+				const (
+					phaseKey = "test_phase_1"
+					itemKey  = "invalid-metered-item"
+				)
+
+				rateCard := &productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:        itemKey,
+						Name:       itemKey,
+						FeatureKey: lo.ToPtr(itemKey),
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount: alpacadecimal.NewFromInt(10),
+						}),
+						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+							IssueAfterResetPriority: lo.ToPtr(uint8(10)),
+							UsagePeriod:             subscriptiontestutils.ISOMonth,
+						}),
+					},
+					BillingCadence: lo.ToPtr(subscriptiontestutils.ISOMonth),
+				}
+
+				_, err := deps.WorkflowService.EditRunning(t.Context(), deps.SubView.Subscription.NamespacedID, []subscription.Patch{
+					patch.PatchAddItem{
+						PhaseKey: phaseKey,
+						ItemKey:  itemKey,
+						CreateInput: subscription.SubscriptionItemSpec{
+							CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+								CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+									PhaseKey: phaseKey,
+									ItemKey:  itemKey,
+									RateCard: rateCard,
+								},
+							},
+						},
+					},
+				}, immediate)
+				require.Error(t, err)
+
+				issues, err := models.AsValidationIssues(err)
+				require.NoError(t, err)
+				require.Len(t, issues, 2)
+
+				for _, issue := range issues {
+					require.Equal(t, "phases.test_phase_1.items.invalid-metered-item.entitlementTemplate.issueAfterReset", issue.Field().String())
+				}
+			},
+		},
+		{
 			Name: "Should validate the provided patches",
 			Handler: func(t *testing.T, deps testCaseDeps) {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -321,6 +429,7 @@ func TestEditRunning(t *testing.T) {
 				workflowService, err := workflowservice.NewWorkflowService(workflowservice.WorkflowServiceConfig{
 					Service:            &mSvc,
 					CustomerService:    tuDeps.CustomerService,
+					CurrencyResolver:   tuDeps.CurrencyResolver,
 					TransactionManager: tuDeps.CustomerAdapter,
 					AddonService:       tuDeps.SubscriptionAddonService,
 					Logger:             slog.Default(),
@@ -1001,14 +1110,14 @@ func TestChangeToPlan(t *testing.T) {
 
 			// Let's check that the new plan looks as we expect
 			targetSpec, err := subscription.NewSpecFromPlan(deps.Plan2, subscription.CreateSubscriptionCustomerInput{
-				Name:          changeInput.Name,
-				Description:   changeInput.Description,
-				MetadataModel: changeInput.MetadataModel,
-				CustomerId:    curr.CustomerId,
-				Currency:      deps.Plan2.Currency().GetCode(),
-				ActiveFrom:    testutils.GetRFC3339Time(t, "2021-02-01T00:00:00Z"),
-				BillingAnchor: sub.Subscription.BillingAnchor,
-				ActiveTo:      nil,
+				Name:            changeInput.Name,
+				Description:     changeInput.Description,
+				MetadataModel:   changeInput.MetadataModel,
+				CustomerId:      curr.CustomerId,
+				InvoiceCurrency: deps.Plan2.Currency().GetCode(),
+				ActiveFrom:      testutils.GetRFC3339Time(t, "2021-02-01T00:00:00Z"),
+				BillingAnchor:   sub.Subscription.BillingAnchor,
+				ActiveTo:        nil,
 			})
 			require.Nil(t, err)
 

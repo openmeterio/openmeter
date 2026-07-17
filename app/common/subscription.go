@@ -5,8 +5,10 @@ import (
 
 	"github.com/google/wire"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -49,6 +51,8 @@ func NewSubscriptionServices(
 	featureConnector feature.FeatureConnector,
 	entitlementRegistry *registry.Entitlement,
 	customerService customer.Service,
+	currencyService currencies.Service,
+	currencyResolver productcatalog.CurrencyResolver,
 	planService plan.Service,
 	planAddonService planaddon.Service,
 	addonService addon.Service,
@@ -79,6 +83,7 @@ func NewSubscriptionServices(
 		FeatureFlags:          featureFlags,
 		Lockr:                 lockr,
 		TaxCode:               taxCodeService,
+		CostBasisService:      currencyService,
 	})
 	if err != nil {
 		return SubscriptionServiceWithWorkflow{}, err
@@ -104,6 +109,7 @@ func NewSubscriptionServices(
 	subscriptionWorkflowService, err := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            subscriptionService,
 		CustomerService:    customerService,
+		CurrencyResolver:   currencyResolver,
 		TransactionManager: subscriptionRepo,
 		AddonService:       subAddSvc,
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
@@ -114,13 +120,17 @@ func NewSubscriptionServices(
 		return SubscriptionServiceWithWorkflow{}, err
 	}
 
-	planSubscriptionService := subscriptionchangeservice.New(subscriptionchangeservice.Config{
+	planSubscriptionService, err := subscriptionchangeservice.New(subscriptionchangeservice.Config{
 		WorkflowService:     subscriptionWorkflowService,
 		SubscriptionService: subscriptionService,
 		PlanService:         planService,
+		CurrencyResolver:    currencyResolver,
 		CustomerService:     customerService,
 		Logger:              logger.With("subsystem", "subscription.change.service"),
 	})
+	if err != nil {
+		return SubscriptionServiceWithWorkflow{}, err
+	}
 
 	validator, err := subscriptioncustomer.NewValidator(subscriptionService, customerService)
 	if err != nil {

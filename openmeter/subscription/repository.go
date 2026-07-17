@@ -24,8 +24,9 @@ type CreateSubscriptionEntityInput struct {
 	Name        string  `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 
-	CustomerId string `json:"customerId,omitempty"`
-	Currency   currencyx.Code
+	CustomerId      string `json:"customerId,omitempty"`
+	InvoiceCurrency currencyx.Code
+	CostBasisMode   CostBasisMode
 
 	// BillingCadence is the default billing cadence for subscriptions.
 	BillingCadence datetime.ISODuration `json:"billing_cadence"`
@@ -59,6 +60,16 @@ type SubscriptionRepository interface {
 
 	// UpdateAnnotations updates the annotations of a subscription
 	UpdateAnnotations(ctx context.Context, id models.NamespacedID, annotations models.Annotations) (*Subscription, error)
+
+	CreateCostBasisPins(ctx context.Context, inputs []CreateCostBasisPinEntityInput) error
+}
+
+type CreateCostBasisPinEntityInput struct {
+	Namespace        string
+	SubscriptionID   string
+	CustomCurrencyID string
+	InvoiceCurrency  currencyx.Code
+	CostBasisID      string
 }
 
 type CreateSubscriptionPhaseEntityInput struct {

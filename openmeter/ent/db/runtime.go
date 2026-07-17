@@ -89,6 +89,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -2846,19 +2847,19 @@ func init() {
 	subscriptionDescCustomerID := subscriptionFields[3].Descriptor()
 	// subscription.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	subscription.CustomerIDValidator = subscriptionDescCustomerID.Validators[0].(func(string) error)
-	// subscriptionDescCurrency is the schema descriptor for currency field.
-	subscriptionDescCurrency := subscriptionFields[4].Descriptor()
-	// subscription.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	subscription.CurrencyValidator = func() func(string) error {
-		validators := subscriptionDescCurrency.Validators
+	// subscriptionDescInvoiceCurrency is the schema descriptor for invoice_currency field.
+	subscriptionDescInvoiceCurrency := subscriptionFields[4].Descriptor()
+	// subscription.InvoiceCurrencyValidator is a validator for the "invoice_currency" field. It is called by the builders before save.
+	subscription.InvoiceCurrencyValidator = func() func(string) error {
+		validators := subscriptionDescInvoiceCurrency.Validators
 		fns := [...]func(string) error{
 			validators[0].(func(string) error),
 			validators[1].(func(string) error),
 			validators[2].(func(string) error),
 		}
-		return func(currency string) error {
+		return func(invoice_currency string) error {
 			for _, fn := range fns {
-				if err := fn(currency); err != nil {
+				if err := fn(invoice_currency); err != nil {
 					return err
 				}
 			}
@@ -2866,7 +2867,7 @@ func init() {
 		}
 	}()
 	// subscriptionDescProRatingConfig is the schema descriptor for pro_rating_config field.
-	subscriptionDescProRatingConfig := subscriptionFields[7].Descriptor()
+	subscriptionDescProRatingConfig := subscriptionFields[8].Descriptor()
 	// subscription.DefaultProRatingConfig holds the default value on creation for the pro_rating_config field.
 	subscription.DefaultProRatingConfig = subscriptionDescProRatingConfig.Default.(func() productcatalog.ProRatingConfig)
 	subscription.ValueScanner.ProRatingConfig = subscriptionDescProRatingConfig.ValueScanner.(field.TypeValueScanner[productcatalog.ProRatingConfig])
@@ -2969,6 +2970,64 @@ func init() {
 	subscriptionbillingsyncstateDescID := subscriptionbillingsyncstateMixinFields0[0].Descriptor()
 	// subscriptionbillingsyncstate.DefaultID holds the default value on creation for the id field.
 	subscriptionbillingsyncstate.DefaultID = subscriptionbillingsyncstateDescID.Default.(func() string)
+	subscriptioncostbasispinMixin := schema.SubscriptionCostBasisPin{}.Mixin()
+	subscriptioncostbasispinMixinFields0 := subscriptioncostbasispinMixin[0].Fields()
+	_ = subscriptioncostbasispinMixinFields0
+	subscriptioncostbasispinMixinFields1 := subscriptioncostbasispinMixin[1].Fields()
+	_ = subscriptioncostbasispinMixinFields1
+	subscriptioncostbasispinMixinFields2 := subscriptioncostbasispinMixin[2].Fields()
+	_ = subscriptioncostbasispinMixinFields2
+	subscriptioncostbasispinFields := schema.SubscriptionCostBasisPin{}.Fields()
+	_ = subscriptioncostbasispinFields
+	// subscriptioncostbasispinDescNamespace is the schema descriptor for namespace field.
+	subscriptioncostbasispinDescNamespace := subscriptioncostbasispinMixinFields1[0].Descriptor()
+	// subscriptioncostbasispin.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptioncostbasispin.NamespaceValidator = subscriptioncostbasispinDescNamespace.Validators[0].(func(string) error)
+	// subscriptioncostbasispinDescCreatedAt is the schema descriptor for created_at field.
+	subscriptioncostbasispinDescCreatedAt := subscriptioncostbasispinMixinFields2[0].Descriptor()
+	// subscriptioncostbasispin.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriptioncostbasispin.DefaultCreatedAt = subscriptioncostbasispinDescCreatedAt.Default.(func() time.Time)
+	// subscriptioncostbasispinDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptioncostbasispinDescUpdatedAt := subscriptioncostbasispinMixinFields2[1].Descriptor()
+	// subscriptioncostbasispin.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriptioncostbasispin.DefaultUpdatedAt = subscriptioncostbasispinDescUpdatedAt.Default.(func() time.Time)
+	// subscriptioncostbasispin.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriptioncostbasispin.UpdateDefaultUpdatedAt = subscriptioncostbasispinDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptioncostbasispinDescSubscriptionID is the schema descriptor for subscription_id field.
+	subscriptioncostbasispinDescSubscriptionID := subscriptioncostbasispinFields[0].Descriptor()
+	// subscriptioncostbasispin.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
+	subscriptioncostbasispin.SubscriptionIDValidator = subscriptioncostbasispinDescSubscriptionID.Validators[0].(func(string) error)
+	// subscriptioncostbasispinDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
+	subscriptioncostbasispinDescCustomCurrencyID := subscriptioncostbasispinFields[1].Descriptor()
+	// subscriptioncostbasispin.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	subscriptioncostbasispin.CustomCurrencyIDValidator = subscriptioncostbasispinDescCustomCurrencyID.Validators[0].(func(string) error)
+	// subscriptioncostbasispinDescInvoiceCurrency is the schema descriptor for invoice_currency field.
+	subscriptioncostbasispinDescInvoiceCurrency := subscriptioncostbasispinFields[2].Descriptor()
+	// subscriptioncostbasispin.InvoiceCurrencyValidator is a validator for the "invoice_currency" field. It is called by the builders before save.
+	subscriptioncostbasispin.InvoiceCurrencyValidator = func() func(string) error {
+		validators := subscriptioncostbasispinDescInvoiceCurrency.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(invoice_currency string) error {
+			for _, fn := range fns {
+				if err := fn(invoice_currency); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// subscriptioncostbasispinDescCostBasisID is the schema descriptor for cost_basis_id field.
+	subscriptioncostbasispinDescCostBasisID := subscriptioncostbasispinFields[3].Descriptor()
+	// subscriptioncostbasispin.CostBasisIDValidator is a validator for the "cost_basis_id" field. It is called by the builders before save.
+	subscriptioncostbasispin.CostBasisIDValidator = subscriptioncostbasispinDescCostBasisID.Validators[0].(func(string) error)
+	// subscriptioncostbasispinDescID is the schema descriptor for id field.
+	subscriptioncostbasispinDescID := subscriptioncostbasispinMixinFields0[0].Descriptor()
+	// subscriptioncostbasispin.DefaultID holds the default value on creation for the id field.
+	subscriptioncostbasispin.DefaultID = subscriptioncostbasispinDescID.Default.(func() string)
 	subscriptionitemMixin := schema.SubscriptionItem{}.Mixin()
 	subscriptionitemMixinFields0 := subscriptionitemMixin[0].Fields()
 	_ = subscriptionitemMixinFields0

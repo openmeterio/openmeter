@@ -175,3 +175,13 @@ func (s *service) ListCostBases(ctx context.Context, params currencies.ListCostB
 		return s.adapter.ListCostBases(ctx, params)
 	})
 }
+
+func (s *service) GetCostBasisAt(ctx context.Context, params currencies.GetCostBasisAtInput) (currencies.CostBasis, error) {
+	if err := params.Validate(); err != nil {
+		return currencies.CostBasis{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (currencies.CostBasis, error) {
+		return s.adapter.GetCostBasisAt(ctx, params)
+	})
+}

@@ -44,6 +44,33 @@ enum SubscriptionStatus {
 }
 
 /**
+ * Controls how custom-currency cost bases are selected for the subscription.
+ */
+@friendlyName("SubscriptionCostBasisMode")
+enum SubscriptionCostBasisMode {
+  Dynamic: "dynamic",
+  Pinned: "pinned",
+}
+
+/**
+ * A cost basis pinned to a custom-currency pair for the subscription.
+ */
+@friendlyName("SubscriptionCostBasisPin")
+model SubscriptionCostBasisPin {
+  /** The managed custom currency ID. */
+  @visibility(Lifecycle.Read)
+  customCurrencyId: ULID;
+
+  /** The fiat currency in which the subscription is invoiced. */
+  @visibility(Lifecycle.Read)
+  invoiceCurrency: CurrencyCode;
+
+  /** The pinned cost basis resource ID. */
+  @visibility(Lifecycle.Read)
+  costBasisId: ULID;
+}
+
+/**
  * Alignment details enriched with the current billing period.
  */
 @friendlyName("SubscriptionAlignment")
@@ -93,11 +120,25 @@ model Subscription {
   plan?: PlanReference;
 
   /**
-   * The currency code of the subscription.
-   * Will be revised once we add multi currency support.
+   * The fiat currency in which the subscription is invoiced.
    */
   @summary("Currency")
   currency: CurrencyCode = "USD";
+
+  /**
+   * Controls whether custom-currency cost bases are resolved dynamically or pinned
+   * when their currency pair is introduced to the subscription.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Cost basis mode")
+  costBasisMode: SubscriptionCostBasisMode = SubscriptionCostBasisMode.Dynamic;
+
+  /**
+   * Cost bases pinned to custom-currency pairs for this subscription.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Pinned cost bases")
+  costBasisPins: SubscriptionCostBasisPin[];
 
   /**
    * The billing cadence for the subscriptions.
@@ -251,6 +292,13 @@ model SubscriptionItem {
    * We say "referenced by the Price" regardless of how a price itself is referenced, it colloquially makes sense to say "paying the same price for the same thing". In practice this should be derived from what's printed on the invoice line-item.
    */
   key: Key;
+
+  /**
+   * The materialized currency of the item's rate card. Present for priced items.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Currency")
+  currency?: CurrencyCodeOrCustom;
 
   /**
    * The feature's key (if present).
@@ -416,6 +464,11 @@ model CustomSubscriptionChange {
   billingAnchor?: DateTime;
 
   /**
+   * Controls how custom-currency cost bases are selected for the new subscription.
+   */
+  costBasisMode?: SubscriptionCostBasisMode = SubscriptionCostBasisMode.Dynamic;
+
+  /**
    * The custom plan description which defines the Subscription.
    */
   customPlan: CustomPlanInput;
@@ -513,6 +566,11 @@ model PlanSubscriptionChange {
    * The settlement mode of the subscription.
    */
   settlementMode?: SettlementMode;
+
+  /**
+   * Controls how custom-currency cost bases are selected for the new subscription.
+   */
+  costBasisMode?: SubscriptionCostBasisMode = SubscriptionCostBasisMode.Dynamic;
 }
 
 /**

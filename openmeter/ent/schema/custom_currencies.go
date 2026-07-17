@@ -53,6 +53,8 @@ func (CustomCurrency) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Restrict)),
 		edge.To("subscription_items", SubscriptionItem.Type).
 			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("subscription_cost_basis_pins", SubscriptionCostBasisPin.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 
@@ -114,6 +116,8 @@ func (CurrencyCostBasis) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.To("subscription_pins", SubscriptionCostBasisPin.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 

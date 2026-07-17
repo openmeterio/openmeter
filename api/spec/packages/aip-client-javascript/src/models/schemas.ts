@@ -674,6 +674,13 @@ export const priceFree = z
   })
   .describe('Free price.')
 
+export const subscriptionCostBasisMode = z
+  .enum(['dynamic', 'pinned'])
+
+  .describe(
+    'Controls how custom-currency cost bases are selected for the subscription.',
+  )
+
 export const subscriptionStatus = z
   .enum(['active', 'inactive', 'canceled', 'scheduled'])
   .describe('Subscription status.')
@@ -1780,6 +1787,17 @@ export const subscriptionReference = z
     'Subscription reference represents a reference to the specific subscription item this entity represents.',
   )
 
+export const subscriptionCostBasisPin = z
+  .object({
+    customCurrencyId: ulid,
+    invoiceCurrency: currencyCode,
+    costBasisId: ulid,
+  })
+
+  .describe(
+    'A cost basis pinned to a custom-currency pair for the subscription.',
+  )
+
 export const addonReference = z
   .object({
     id: ulid,
@@ -2800,6 +2818,12 @@ export const voidCreditGrantRequest = z
   })
   .describe('Request body for voiding a credit grant.')
 
+export const rateCardProrationConfiguration = z
+  .object({
+    mode: rateCardProrationMode,
+  })
+  .describe('The proration configuration of the rate card.')
+
 export const subscriptionCreate = z
   .object({
     labels: labels.optional(),
@@ -2825,29 +2849,9 @@ export const subscriptionCreate = z
       })
       .describe('The plan reference of the subscription.'),
     billingAnchor: dateTime.optional(),
+    costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
   })
   .describe('Subscription create request.')
-
-export const rateCardProrationConfiguration = z
-  .object({
-    mode: rateCardProrationMode,
-  })
-  .describe('The proration configuration of the rate card.')
-
-export const subscription = z
-  .object({
-    id: ulid,
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    customerId: ulid,
-    planId: ulid.optional(),
-    billingAnchor: dateTime,
-    status: subscriptionStatus,
-    settlementMode: settlementMode.optional(),
-  })
-  .describe('Subscription.')
 
 export const subscriptionEditTiming = z
   .union([subscriptionEditTimingEnum, dateTime])
@@ -3411,6 +3415,29 @@ export const updateOrganizationDefaultTaxCodesRequest = z
   })
   .describe('OrganizationDefaultTaxCodes update request.')
 
+export const subscription = z
+  .object({
+    id: ulid,
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    customerId: ulid,
+    planId: ulid.optional(),
+    invoiceCurrency: currencyCode,
+    costBasisMode: subscriptionCostBasisMode.default('dynamic'),
+    costBasisPins: z
+      .array(subscriptionCostBasisPin)
+
+      .describe(
+        'Cost bases pinned to custom-currency pairs for this subscription.',
+      ),
+    billingAnchor: dateTime,
+    status: subscriptionStatus,
+    settlementMode: settlementMode.optional(),
+  })
+  .describe('Subscription.')
+
 export const planAddon = z
   .object({
     id: ulid,
@@ -3842,20 +3869,6 @@ export const chargeFlatFeeSystemIntent = z
     'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
   )
 
-export const subscriptionPagePaginatedResponse = z
-  .object({
-    data: z.array(subscription),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
-
-export const subscriptionChangeResponse = z
-  .object({
-    current: subscription,
-    next: subscription,
-  })
-  .describe('Response for changing a subscription.')
-
 export const subscriptionCancel = z
   .object({
     timing: subscriptionEditTiming.optional().default('immediate'),
@@ -3887,6 +3900,7 @@ export const subscriptionChange = z
       })
       .describe('The plan reference of the subscription.'),
     billingAnchor: dateTime.optional(),
+    costBasisMode: subscriptionCostBasisMode.optional().default('dynamic'),
     timing: subscriptionEditTiming,
   })
   .describe('Request for changing a subscription.')
@@ -4332,6 +4346,20 @@ export const workflowTaxSettings = z
     defaultTaxConfig: taxConfig.optional(),
   })
   .describe('Tax settings for a billing workflow.')
+
+export const subscriptionPagePaginatedResponse = z
+  .object({
+    data: z.array(subscription),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
+export const subscriptionChangeResponse = z
+  .object({
+    current: subscription,
+    next: subscription,
+  })
+  .describe('Response for changing a subscription.')
 
 export const planAddonPagePaginatedResponse = z
   .object({
@@ -7358,6 +7386,13 @@ export const priceFreeWire = z
   })
   .describe('Free price.')
 
+export const subscriptionCostBasisModeWire = z
+  .enum(['dynamic', 'pinned'])
+
+  .describe(
+    'Controls how custom-currency cost bases are selected for the subscription.',
+  )
+
 export const subscriptionStatusWire = z
   .enum(['active', 'inactive', 'canceled', 'scheduled'])
   .describe('Subscription status.')
@@ -8458,6 +8493,17 @@ export const subscriptionReferenceWire = z
     'Subscription reference represents a reference to the specific subscription item this entity represents.',
   )
 
+export const subscriptionCostBasisPinWire = z
+  .strictObject({
+    custom_currency_id: ulidWire,
+    invoice_currency: currencyCodeWire,
+    cost_basis_id: ulidWire,
+  })
+
+  .describe(
+    'A cost basis pinned to a custom-currency pair for the subscription.',
+  )
+
 export const addonReferenceWire = z
   .strictObject({
     id: ulidWire,
@@ -9466,6 +9512,12 @@ export const voidCreditGrantRequestWire = z
   })
   .describe('Request body for voiding a credit grant.')
 
+export const rateCardProrationConfigurationWire = z
+  .strictObject({
+    mode: rateCardProrationModeWire,
+  })
+  .describe('The proration configuration of the rate card.')
+
 export const subscriptionCreateWire = z
   .strictObject({
     labels: labelsWire.optional(),
@@ -9491,29 +9543,9 @@ export const subscriptionCreateWire = z
       })
       .describe('The plan reference of the subscription.'),
     billing_anchor: dateTimeWire.optional(),
+    cost_basis_mode: subscriptionCostBasisModeWire.optional(),
   })
   .describe('Subscription create request.')
-
-export const rateCardProrationConfigurationWire = z
-  .strictObject({
-    mode: rateCardProrationModeWire,
-  })
-  .describe('The proration configuration of the rate card.')
-
-export const subscriptionWire = z
-  .strictObject({
-    id: ulidWire,
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    customer_id: ulidWire,
-    plan_id: ulidWire.optional(),
-    billing_anchor: dateTimeWire,
-    status: subscriptionStatusWire,
-    settlement_mode: settlementModeWire.optional(),
-  })
-  .describe('Subscription.')
 
 export const subscriptionEditTimingWire = z
   .union([subscriptionEditTimingEnumWire, dateTimeWire])
@@ -10071,6 +10103,29 @@ export const updateOrganizationDefaultTaxCodesRequestWire = z
   })
   .describe('OrganizationDefaultTaxCodes update request.')
 
+export const subscriptionWire = z
+  .strictObject({
+    id: ulidWire,
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    customer_id: ulidWire,
+    plan_id: ulidWire.optional(),
+    invoice_currency: currencyCodeWire,
+    cost_basis_mode: subscriptionCostBasisModeWire,
+    cost_basis_pins: z
+      .array(subscriptionCostBasisPinWire)
+
+      .describe(
+        'Cost bases pinned to custom-currency pairs for this subscription.',
+      ),
+    billing_anchor: dateTimeWire,
+    status: subscriptionStatusWire,
+    settlement_mode: settlementModeWire.optional(),
+  })
+  .describe('Subscription.')
+
 export const planAddonWire = z
   .strictObject({
     id: ulidWire,
@@ -10502,20 +10557,6 @@ export const chargeFlatFeeSystemIntentWire = z
     'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
   )
 
-export const subscriptionPagePaginatedResponseWire = z
-  .strictObject({
-    data: z.array(subscriptionWire),
-    meta: paginatedMetaWire,
-  })
-  .describe('Page paginated response.')
-
-export const subscriptionChangeResponseWire = z
-  .strictObject({
-    current: subscriptionWire,
-    next: subscriptionWire,
-  })
-  .describe('Response for changing a subscription.')
-
 export const subscriptionCancelWire = z
   .strictObject({
     timing: subscriptionEditTimingWire.optional(),
@@ -10547,6 +10588,7 @@ export const subscriptionChangeWire = z
       })
       .describe('The plan reference of the subscription.'),
     billing_anchor: dateTimeWire.optional(),
+    cost_basis_mode: subscriptionCostBasisModeWire.optional(),
     timing: subscriptionEditTimingWire,
   })
   .describe('Request for changing a subscription.')
@@ -10995,6 +11037,20 @@ export const workflowTaxSettingsWire = z
     default_tax_config: taxConfigWire.optional(),
   })
   .describe('Tax settings for a billing workflow.')
+
+export const subscriptionPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(subscriptionWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
+
+export const subscriptionChangeResponseWire = z
+  .strictObject({
+    current: subscriptionWire,
+    next: subscriptionWire,
+  })
+  .describe('Response for changing a subscription.')
 
 export const planAddonPagePaginatedResponseWire = z
   .strictObject({

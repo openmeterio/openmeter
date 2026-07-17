@@ -94,6 +94,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -267,6 +268,8 @@ type Client struct {
 	SubscriptionAddonQuantity *SubscriptionAddonQuantityClient
 	// SubscriptionBillingSyncState is the client for interacting with the SubscriptionBillingSyncState builders.
 	SubscriptionBillingSyncState *SubscriptionBillingSyncStateClient
+	// SubscriptionCostBasisPin is the client for interacting with the SubscriptionCostBasisPin builders.
+	SubscriptionCostBasisPin *SubscriptionCostBasisPinClient
 	// SubscriptionItem is the client for interacting with the SubscriptionItem builders.
 	SubscriptionItem *SubscriptionItemClient
 	// SubscriptionPhase is the client for interacting with the SubscriptionPhase builders.
@@ -366,6 +369,7 @@ func (c *Client) init() {
 	c.SubscriptionAddon = NewSubscriptionAddonClient(c.config)
 	c.SubscriptionAddonQuantity = NewSubscriptionAddonQuantityClient(c.config)
 	c.SubscriptionBillingSyncState = NewSubscriptionBillingSyncStateClient(c.config)
+	c.SubscriptionCostBasisPin = NewSubscriptionCostBasisPinClient(c.config)
 	c.SubscriptionItem = NewSubscriptionItemClient(c.config)
 	c.SubscriptionPhase = NewSubscriptionPhaseClient(c.config)
 	c.TaxCode = NewTaxCodeClient(c.config)
@@ -542,6 +546,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		SubscriptionAddon:                                NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:                        NewSubscriptionAddonQuantityClient(cfg),
 		SubscriptionBillingSyncState:                     NewSubscriptionBillingSyncStateClient(cfg),
+		SubscriptionCostBasisPin:                         NewSubscriptionCostBasisPinClient(cfg),
 		SubscriptionItem:                                 NewSubscriptionItemClient(cfg),
 		SubscriptionPhase:                                NewSubscriptionPhaseClient(cfg),
 		TaxCode:                                          NewTaxCodeClient(cfg),
@@ -645,6 +650,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		SubscriptionAddon:                                NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:                        NewSubscriptionAddonQuantityClient(cfg),
 		SubscriptionBillingSyncState:                     NewSubscriptionBillingSyncStateClient(cfg),
+		SubscriptionCostBasisPin:                         NewSubscriptionCostBasisPinClient(cfg),
 		SubscriptionItem:                                 NewSubscriptionItemClient(cfg),
 		SubscriptionPhase:                                NewSubscriptionPhaseClient(cfg),
 		TaxCode:                                          NewTaxCodeClient(cfg),
@@ -707,7 +713,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
 		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
+		c.SubscriptionCostBasisPin, c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode,
+		c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -746,7 +753,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
 		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
+		c.SubscriptionCostBasisPin, c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode,
+		c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -913,6 +921,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SubscriptionAddonQuantity.mutate(ctx, m)
 	case *SubscriptionBillingSyncStateMutation:
 		return c.SubscriptionBillingSyncState.mutate(ctx, m)
+	case *SubscriptionCostBasisPinMutation:
+		return c.SubscriptionCostBasisPin.mutate(ctx, m)
 	case *SubscriptionItemMutation:
 		return c.SubscriptionItem.mutate(ctx, m)
 	case *SubscriptionPhaseMutation:
@@ -10035,6 +10045,22 @@ func (c *CurrencyCostBasisClient) QueryCurrency(_m *CurrencyCostBasis) *CustomCu
 	return query
 }
 
+// QuerySubscriptionPins queries the subscription_pins edge of a CurrencyCostBasis.
+func (c *CurrencyCostBasisClient) QuerySubscriptionPins(_m *CurrencyCostBasis) *SubscriptionCostBasisPinQuery {
+	query := (&SubscriptionCostBasisPinClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(currencycostbasis.Table, currencycostbasis.FieldID, id),
+			sqlgraph.To(subscriptioncostbasispin.Table, subscriptioncostbasispin.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, currencycostbasis.SubscriptionPinsTable, currencycostbasis.SubscriptionPinsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CurrencyCostBasisClient) Hooks() []Hook {
 	return c.hooks.CurrencyCostBasis
@@ -10257,6 +10283,22 @@ func (c *CustomCurrencyClient) QuerySubscriptionItems(_m *CustomCurrency) *Subsc
 			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
 			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.SubscriptionItemsTable, customcurrency.SubscriptionItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionCostBasisPins queries the subscription_cost_basis_pins edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QuerySubscriptionCostBasisPins(_m *CustomCurrency) *SubscriptionCostBasisPinQuery {
+	query := (&SubscriptionCostBasisPinClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(subscriptioncostbasispin.Table, subscriptioncostbasispin.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.SubscriptionCostBasisPinsTable, customcurrency.SubscriptionCostBasisPinsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -15263,6 +15305,22 @@ func (c *SubscriptionClient) QueryBillingSyncState(_m *Subscription) *Subscripti
 	return query
 }
 
+// QueryCostBasisPins queries the cost_basis_pins edge of a Subscription.
+func (c *SubscriptionClient) QueryCostBasisPins(_m *Subscription) *SubscriptionCostBasisPinQuery {
+	query := (&SubscriptionCostBasisPinClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, id),
+			sqlgraph.To(subscriptioncostbasispin.Table, subscriptioncostbasispin.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.CostBasisPinsTable, subscription.CostBasisPinsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *SubscriptionClient) Hooks() []Hook {
 	return c.hooks.Subscription
@@ -15764,6 +15822,187 @@ func (c *SubscriptionBillingSyncStateClient) mutate(ctx context.Context, m *Subs
 		return (&SubscriptionBillingSyncStateDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown SubscriptionBillingSyncState mutation op: %q", m.Op())
+	}
+}
+
+// SubscriptionCostBasisPinClient is a client for the SubscriptionCostBasisPin schema.
+type SubscriptionCostBasisPinClient struct {
+	config
+}
+
+// NewSubscriptionCostBasisPinClient returns a client for the SubscriptionCostBasisPin from the given config.
+func NewSubscriptionCostBasisPinClient(c config) *SubscriptionCostBasisPinClient {
+	return &SubscriptionCostBasisPinClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `subscriptioncostbasispin.Hooks(f(g(h())))`.
+func (c *SubscriptionCostBasisPinClient) Use(hooks ...Hook) {
+	c.hooks.SubscriptionCostBasisPin = append(c.hooks.SubscriptionCostBasisPin, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `subscriptioncostbasispin.Intercept(f(g(h())))`.
+func (c *SubscriptionCostBasisPinClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SubscriptionCostBasisPin = append(c.inters.SubscriptionCostBasisPin, interceptors...)
+}
+
+// Create returns a builder for creating a SubscriptionCostBasisPin entity.
+func (c *SubscriptionCostBasisPinClient) Create() *SubscriptionCostBasisPinCreate {
+	mutation := newSubscriptionCostBasisPinMutation(c.config, OpCreate)
+	return &SubscriptionCostBasisPinCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SubscriptionCostBasisPin entities.
+func (c *SubscriptionCostBasisPinClient) CreateBulk(builders ...*SubscriptionCostBasisPinCreate) *SubscriptionCostBasisPinCreateBulk {
+	return &SubscriptionCostBasisPinCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SubscriptionCostBasisPinClient) MapCreateBulk(slice any, setFunc func(*SubscriptionCostBasisPinCreate, int)) *SubscriptionCostBasisPinCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SubscriptionCostBasisPinCreateBulk{err: fmt.Errorf("calling to SubscriptionCostBasisPinClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SubscriptionCostBasisPinCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SubscriptionCostBasisPinCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SubscriptionCostBasisPin.
+func (c *SubscriptionCostBasisPinClient) Update() *SubscriptionCostBasisPinUpdate {
+	mutation := newSubscriptionCostBasisPinMutation(c.config, OpUpdate)
+	return &SubscriptionCostBasisPinUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SubscriptionCostBasisPinClient) UpdateOne(_m *SubscriptionCostBasisPin) *SubscriptionCostBasisPinUpdateOne {
+	mutation := newSubscriptionCostBasisPinMutation(c.config, OpUpdateOne, withSubscriptionCostBasisPin(_m))
+	return &SubscriptionCostBasisPinUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SubscriptionCostBasisPinClient) UpdateOneID(id string) *SubscriptionCostBasisPinUpdateOne {
+	mutation := newSubscriptionCostBasisPinMutation(c.config, OpUpdateOne, withSubscriptionCostBasisPinID(id))
+	return &SubscriptionCostBasisPinUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SubscriptionCostBasisPin.
+func (c *SubscriptionCostBasisPinClient) Delete() *SubscriptionCostBasisPinDelete {
+	mutation := newSubscriptionCostBasisPinMutation(c.config, OpDelete)
+	return &SubscriptionCostBasisPinDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SubscriptionCostBasisPinClient) DeleteOne(_m *SubscriptionCostBasisPin) *SubscriptionCostBasisPinDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SubscriptionCostBasisPinClient) DeleteOneID(id string) *SubscriptionCostBasisPinDeleteOne {
+	builder := c.Delete().Where(subscriptioncostbasispin.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SubscriptionCostBasisPinDeleteOne{builder}
+}
+
+// Query returns a query builder for SubscriptionCostBasisPin.
+func (c *SubscriptionCostBasisPinClient) Query() *SubscriptionCostBasisPinQuery {
+	return &SubscriptionCostBasisPinQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSubscriptionCostBasisPin},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SubscriptionCostBasisPin entity by its id.
+func (c *SubscriptionCostBasisPinClient) Get(ctx context.Context, id string) (*SubscriptionCostBasisPin, error) {
+	return c.Query().Where(subscriptioncostbasispin.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SubscriptionCostBasisPinClient) GetX(ctx context.Context, id string) *SubscriptionCostBasisPin {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySubscription queries the subscription edge of a SubscriptionCostBasisPin.
+func (c *SubscriptionCostBasisPinClient) QuerySubscription(_m *SubscriptionCostBasisPin) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptioncostbasispin.Table, subscriptioncostbasispin.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscriptioncostbasispin.SubscriptionTable, subscriptioncostbasispin.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency queries the custom_currency edge of a SubscriptionCostBasisPin.
+func (c *SubscriptionCostBasisPinClient) QueryCustomCurrency(_m *SubscriptionCostBasisPin) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptioncostbasispin.Table, subscriptioncostbasispin.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscriptioncostbasispin.CustomCurrencyTable, subscriptioncostbasispin.CustomCurrencyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCostBasis queries the cost_basis edge of a SubscriptionCostBasisPin.
+func (c *SubscriptionCostBasisPinClient) QueryCostBasis(_m *SubscriptionCostBasisPin) *CurrencyCostBasisQuery {
+	query := (&CurrencyCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptioncostbasispin.Table, subscriptioncostbasispin.FieldID, id),
+			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscriptioncostbasispin.CostBasisTable, subscriptioncostbasispin.CostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SubscriptionCostBasisPinClient) Hooks() []Hook {
+	return c.hooks.SubscriptionCostBasisPin
+}
+
+// Interceptors returns the client interceptors.
+func (c *SubscriptionCostBasisPinClient) Interceptors() []Interceptor {
+	return c.inters.SubscriptionCostBasisPin
+}
+
+func (c *SubscriptionCostBasisPinClient) mutate(ctx context.Context, m *SubscriptionCostBasisPinMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SubscriptionCostBasisPinCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SubscriptionCostBasisPinUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SubscriptionCostBasisPinUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SubscriptionCostBasisPinDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown SubscriptionCostBasisPin mutation op: %q", m.Op())
 	}
 }
 
@@ -16855,7 +17094,8 @@ type (
 		NotificationEventDeliveryStatus, NotificationRule, OrganizationDefaultTaxCodes,
 		Plan, PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription,
 		SubscriptionAddon, SubscriptionAddonQuantity, SubscriptionBillingSyncState,
-		SubscriptionItem, SubscriptionPhase, TaxCode, UsageReset []ent.Hook
+		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase, TaxCode,
+		UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -16883,8 +17123,8 @@ type (
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
 		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
 		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase, TaxCode,
-		UsageReset []ent.Interceptor
+		SubscriptionBillingSyncState, SubscriptionCostBasisPin, SubscriptionItem,
+		SubscriptionPhase, TaxCode, UsageReset []ent.Interceptor
 	}
 )
 

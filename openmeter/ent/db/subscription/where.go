@@ -118,10 +118,10 @@ func CustomerID(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldCustomerID, v))
 }
 
-// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrency applies equality check predicate on the "invoice_currency" field. It's identical to InvoiceCurrencyEQ.
+func InvoiceCurrency(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldEQ(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldEQ(FieldInvoiceCurrency, vc))
 }
 
 // BillingAnchor applies equality check predicate on the "billing_anchor" field. It's identical to BillingAnchorEQ.
@@ -720,88 +720,108 @@ func CustomerIDContainsFold(v string) predicate.Subscription {
 	return predicate.Subscription(sql.FieldContainsFold(FieldCustomerID, v))
 }
 
-// CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyEQ applies the EQ predicate on the "invoice_currency" field.
+func InvoiceCurrencyEQ(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldEQ(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldEQ(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyNEQ applies the NEQ predicate on the "invoice_currency" field.
+func InvoiceCurrencyNEQ(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldNEQ(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldNEQ(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyIn applies the In predicate on the "invoice_currency" field.
+func InvoiceCurrencyIn(vs ...currencyx.Code) predicate.Subscription {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.Subscription(sql.FieldIn(FieldCurrency, v...))
+	return predicate.Subscription(sql.FieldIn(FieldInvoiceCurrency, v...))
 }
 
-// CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyNotIn applies the NotIn predicate on the "invoice_currency" field.
+func InvoiceCurrencyNotIn(vs ...currencyx.Code) predicate.Subscription {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.Subscription(sql.FieldNotIn(FieldCurrency, v...))
+	return predicate.Subscription(sql.FieldNotIn(FieldInvoiceCurrency, v...))
 }
 
-// CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyGT applies the GT predicate on the "invoice_currency" field.
+func InvoiceCurrencyGT(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldGT(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldGT(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyGTE applies the GTE predicate on the "invoice_currency" field.
+func InvoiceCurrencyGTE(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldGTE(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldGTE(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyLT applies the LT predicate on the "invoice_currency" field.
+func InvoiceCurrencyLT(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldLT(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldLT(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyLTE applies the LTE predicate on the "invoice_currency" field.
+func InvoiceCurrencyLTE(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldLTE(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldLTE(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyContains applies the Contains predicate on the "invoice_currency" field.
+func InvoiceCurrencyContains(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldContains(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldContains(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyHasPrefix applies the HasPrefix predicate on the "invoice_currency" field.
+func InvoiceCurrencyHasPrefix(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldHasPrefix(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldHasPrefix(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyHasSuffix applies the HasSuffix predicate on the "invoice_currency" field.
+func InvoiceCurrencyHasSuffix(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldHasSuffix(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldHasSuffix(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyEqualFold applies the EqualFold predicate on the "invoice_currency" field.
+func InvoiceCurrencyEqualFold(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldEqualFold(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldEqualFold(FieldInvoiceCurrency, vc))
 }
 
-// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v currencyx.Code) predicate.Subscription {
+// InvoiceCurrencyContainsFold applies the ContainsFold predicate on the "invoice_currency" field.
+func InvoiceCurrencyContainsFold(v currencyx.Code) predicate.Subscription {
 	vc := string(v)
-	return predicate.Subscription(sql.FieldContainsFold(FieldCurrency, vc))
+	return predicate.Subscription(sql.FieldContainsFold(FieldInvoiceCurrency, vc))
+}
+
+// CostBasisModeEQ applies the EQ predicate on the "cost_basis_mode" field.
+func CostBasisModeEQ(v CostBasisMode) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldCostBasisMode, v))
+}
+
+// CostBasisModeNEQ applies the NEQ predicate on the "cost_basis_mode" field.
+func CostBasisModeNEQ(v CostBasisMode) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldCostBasisMode, v))
+}
+
+// CostBasisModeIn applies the In predicate on the "cost_basis_mode" field.
+func CostBasisModeIn(vs ...CostBasisMode) predicate.Subscription {
+	return predicate.Subscription(sql.FieldIn(FieldCostBasisMode, vs...))
+}
+
+// CostBasisModeNotIn applies the NotIn predicate on the "cost_basis_mode" field.
+func CostBasisModeNotIn(vs ...CostBasisMode) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotIn(FieldCostBasisMode, vs...))
 }
 
 // BillingAnchorEQ applies the EQ predicate on the "billing_anchor" field.
@@ -1203,6 +1223,29 @@ func HasBillingSyncState() predicate.Subscription {
 func HasBillingSyncStateWith(preds ...predicate.SubscriptionBillingSyncState) predicate.Subscription {
 	return predicate.Subscription(func(s *sql.Selector) {
 		step := newBillingSyncStateStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCostBasisPins applies the HasEdge predicate on the "cost_basis_pins" edge.
+func HasCostBasisPins() predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CostBasisPinsTable, CostBasisPinsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCostBasisPinsWith applies the HasEdge predicate on the "cost_basis_pins" edge with a given conditions (other predicates).
+func HasCostBasisPinsWith(preds ...predicate.SubscriptionCostBasisPin) predicate.Subscription {
+	return predicate.Subscription(func(s *sql.Selector) {
+		step := newCostBasisPinsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

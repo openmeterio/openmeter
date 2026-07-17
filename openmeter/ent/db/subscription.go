@@ -49,8 +49,10 @@ type Subscription struct {
 	PlanID *string `json:"plan_id,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	// InvoiceCurrency holds the value of the "invoice_currency" field.
+	InvoiceCurrency currencyx.Code `json:"invoice_currency,omitempty"`
+	// CostBasisMode holds the value of the "cost_basis_mode" field.
+	CostBasisMode subscription.CostBasisMode `json:"cost_basis_mode,omitempty"`
 	// BillingAnchor holds the value of the "billing_anchor" field.
 	BillingAnchor time.Time `json:"billing_anchor,omitempty"`
 	// The default billing cadence for subscriptions.
@@ -89,9 +91,11 @@ type SubscriptionEdges struct {
 	Addons []*SubscriptionAddon `json:"addons,omitempty"`
 	// BillingSyncState holds the value of the billing_sync_state edge.
 	BillingSyncState *SubscriptionBillingSyncState `json:"billing_sync_state,omitempty"`
+	// CostBasisPins holds the value of the cost_basis_pins edge.
+	CostBasisPins []*SubscriptionCostBasisPin `json:"cost_basis_pins,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [11]bool
+	loadedTypes [12]bool
 }
 
 // PlanOrErr returns the Plan value or an error if the edge
@@ -199,6 +203,15 @@ func (e SubscriptionEdges) BillingSyncStateOrErr() (*SubscriptionBillingSyncStat
 	return nil, &NotLoadedError{edge: "billing_sync_state"}
 }
 
+// CostBasisPinsOrErr returns the CostBasisPins value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionEdges) CostBasisPinsOrErr() ([]*SubscriptionCostBasisPin, error) {
+	if e.loadedTypes[11] {
+		return e.CostBasisPins, nil
+	}
+	return nil, &NotLoadedError{edge: "cost_basis_pins"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Subscription) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -206,7 +219,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscription.FieldAnnotations, subscription.FieldMetadata:
 			values[i] = new([]byte)
-		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency, subscription.FieldBillingCadence, subscription.FieldSettlementMode:
+		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldInvoiceCurrency, subscription.FieldCostBasisMode, subscription.FieldBillingCadence, subscription.FieldSettlementMode:
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo, subscription.FieldBillingAnchor:
 			values[i] = new(sql.NullTime)
@@ -313,11 +326,17 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.CustomerID = value.String
 			}
-		case subscription.FieldCurrency:
+		case subscription.FieldInvoiceCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
+				return fmt.Errorf("unexpected type %T for field invoice_currency", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.InvoiceCurrency = currencyx.Code(value.String)
+			}
+		case subscription.FieldCostBasisMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_basis_mode", values[i])
+			} else if value.Valid {
+				_m.CostBasisMode = subscription.CostBasisMode(value.String)
 			}
 		case subscription.FieldBillingAnchor:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -411,6 +430,11 @@ func (_m *Subscription) QueryBillingSyncState() *SubscriptionBillingSyncStateQue
 	return NewSubscriptionClient(_m.config).QueryBillingSyncState(_m)
 }
 
+// QueryCostBasisPins queries the "cost_basis_pins" edge of the Subscription entity.
+func (_m *Subscription) QueryCostBasisPins() *SubscriptionCostBasisPinQuery {
+	return NewSubscriptionClient(_m.config).QueryCostBasisPins(_m)
+}
+
 // Update returns a builder for updating this Subscription.
 // Note that you need to call Subscription.Unwrap() before calling this method if this Subscription
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -478,8 +502,11 @@ func (_m *Subscription) String() string {
 	builder.WriteString("customer_id=")
 	builder.WriteString(_m.CustomerID)
 	builder.WriteString(", ")
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	builder.WriteString("invoice_currency=")
+	builder.WriteString(fmt.Sprintf("%v", _m.InvoiceCurrency))
+	builder.WriteString(", ")
+	builder.WriteString("cost_basis_mode=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CostBasisMode))
 	builder.WriteString(", ")
 	builder.WriteString("billing_anchor=")
 	builder.WriteString(_m.BillingAnchor.Format(time.ANSIC))

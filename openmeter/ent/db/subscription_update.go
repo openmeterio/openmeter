@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -351,6 +352,21 @@ func (_u *SubscriptionUpdate) SetBillingSyncState(v *SubscriptionBillingSyncStat
 	return _u.SetBillingSyncStateID(v.ID)
 }
 
+// AddCostBasisPinIDs adds the "cost_basis_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (_u *SubscriptionUpdate) AddCostBasisPinIDs(ids ...string) *SubscriptionUpdate {
+	_u.mutation.AddCostBasisPinIDs(ids...)
+	return _u
+}
+
+// AddCostBasisPins adds the "cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_u *SubscriptionUpdate) AddCostBasisPins(v ...*SubscriptionCostBasisPin) *SubscriptionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCostBasisPinIDs(ids...)
+}
+
 // Mutation returns the SubscriptionMutation object of the builder.
 func (_u *SubscriptionUpdate) Mutation() *SubscriptionMutation {
 	return _u.mutation
@@ -534,6 +550,27 @@ func (_u *SubscriptionUpdate) RemoveAddons(v ...*SubscriptionAddon) *Subscriptio
 func (_u *SubscriptionUpdate) ClearBillingSyncState() *SubscriptionUpdate {
 	_u.mutation.ClearBillingSyncState()
 	return _u
+}
+
+// ClearCostBasisPins clears all "cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_u *SubscriptionUpdate) ClearCostBasisPins() *SubscriptionUpdate {
+	_u.mutation.ClearCostBasisPins()
+	return _u
+}
+
+// RemoveCostBasisPinIDs removes the "cost_basis_pins" edge to SubscriptionCostBasisPin entities by IDs.
+func (_u *SubscriptionUpdate) RemoveCostBasisPinIDs(ids ...string) *SubscriptionUpdate {
+	_u.mutation.RemoveCostBasisPinIDs(ids...)
+	return _u
+}
+
+// RemoveCostBasisPins removes "cost_basis_pins" edges to SubscriptionCostBasisPin entities.
+func (_u *SubscriptionUpdate) RemoveCostBasisPins(v ...*SubscriptionCostBasisPin) *SubscriptionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCostBasisPinIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1069,6 +1106,51 @@ func (_u *SubscriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.CostBasisPinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.CostBasisPinsTable,
+			Columns: []string{subscription.CostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCostBasisPinsIDs(); len(nodes) > 0 && !_u.mutation.CostBasisPinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.CostBasisPinsTable,
+			Columns: []string{subscription.CostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CostBasisPinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.CostBasisPinsTable,
+			Columns: []string{subscription.CostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscription.Label}
@@ -1399,6 +1481,21 @@ func (_u *SubscriptionUpdateOne) SetBillingSyncState(v *SubscriptionBillingSyncS
 	return _u.SetBillingSyncStateID(v.ID)
 }
 
+// AddCostBasisPinIDs adds the "cost_basis_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (_u *SubscriptionUpdateOne) AddCostBasisPinIDs(ids ...string) *SubscriptionUpdateOne {
+	_u.mutation.AddCostBasisPinIDs(ids...)
+	return _u
+}
+
+// AddCostBasisPins adds the "cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_u *SubscriptionUpdateOne) AddCostBasisPins(v ...*SubscriptionCostBasisPin) *SubscriptionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCostBasisPinIDs(ids...)
+}
+
 // Mutation returns the SubscriptionMutation object of the builder.
 func (_u *SubscriptionUpdateOne) Mutation() *SubscriptionMutation {
 	return _u.mutation
@@ -1582,6 +1679,27 @@ func (_u *SubscriptionUpdateOne) RemoveAddons(v ...*SubscriptionAddon) *Subscrip
 func (_u *SubscriptionUpdateOne) ClearBillingSyncState() *SubscriptionUpdateOne {
 	_u.mutation.ClearBillingSyncState()
 	return _u
+}
+
+// ClearCostBasisPins clears all "cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_u *SubscriptionUpdateOne) ClearCostBasisPins() *SubscriptionUpdateOne {
+	_u.mutation.ClearCostBasisPins()
+	return _u
+}
+
+// RemoveCostBasisPinIDs removes the "cost_basis_pins" edge to SubscriptionCostBasisPin entities by IDs.
+func (_u *SubscriptionUpdateOne) RemoveCostBasisPinIDs(ids ...string) *SubscriptionUpdateOne {
+	_u.mutation.RemoveCostBasisPinIDs(ids...)
+	return _u
+}
+
+// RemoveCostBasisPins removes "cost_basis_pins" edges to SubscriptionCostBasisPin entities.
+func (_u *SubscriptionUpdateOne) RemoveCostBasisPins(v ...*SubscriptionCostBasisPin) *SubscriptionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCostBasisPinIDs(ids...)
 }
 
 // Where appends a list predicates to the SubscriptionUpdate builder.
@@ -2140,6 +2258,51 @@ func (_u *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscripti
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionbillingsyncstate.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CostBasisPinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.CostBasisPinsTable,
+			Columns: []string{subscription.CostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCostBasisPinsIDs(); len(nodes) > 0 && !_u.mutation.CostBasisPinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.CostBasisPinsTable,
+			Columns: []string{subscription.CostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CostBasisPinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.CostBasisPinsTable,
+			Columns: []string{subscription.CostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

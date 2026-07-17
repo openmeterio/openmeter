@@ -42,6 +42,15 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		annotations = models.Annotations{}
 	}
 
+	costBasisPins := make([]subscription.CostBasisPin, 0, len(sub.Edges.CostBasisPins))
+	for _, pin := range sub.Edges.CostBasisPins {
+		mapped, err := FromDBSubscriptionCostBasisPin(pin)
+		if err != nil {
+			return subscription.Subscription{}, fmt.Errorf("mapping subscription cost basis pin: %w", err)
+		}
+		costBasisPins = append(costBasisPins, mapped)
+	}
+
 	return subscription.Subscription{
 		NamespacedID: models.NamespacedID{
 			ID:        sub.ID,
@@ -64,12 +73,46 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		Name:            sub.Name,
 		Description:     sub.Description,
 		CustomerId:      sub.CustomerID,
-		Currency:        sub.Currency,
+		InvoiceCurrency: sub.InvoiceCurrency,
+		CostBasisMode:   subscription.CostBasisMode(sub.CostBasisMode),
+		CostBasisPins:   costBasisPins,
 		BillingCadence:  billingCadence,
 		ProRatingConfig: sub.ProRatingConfig,
 		SettlementMode:  sub.SettlementMode,
 		BillingAnchor:   sub.BillingAnchor.UTC(),
 	}, nil
+}
+
+func FromDBSubscriptionCostBasisPin(pin *db.SubscriptionCostBasisPin) (subscription.CostBasisPin, error) {
+	if pin == nil {
+		return subscription.CostBasisPin{}, fmt.Errorf("unexpected nil subscription cost basis pin")
+	}
+
+	costBasis, err := pin.Edges.CostBasisOrErr()
+	if err != nil {
+		return subscription.CostBasisPin{}, fmt.Errorf("cost basis is not loaded: %w", err)
+	}
+
+	mapped := subscription.CostBasisPin{
+		NamespacedID: models.NamespacedID{
+			Namespace: pin.Namespace,
+			ID:        pin.ID,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: pin.CreatedAt.UTC(),
+			UpdatedAt: pin.UpdatedAt.UTC(),
+			DeletedAt: convert.SafeToUTC(pin.DeletedAt),
+		},
+		CustomCurrencyID: pin.CustomCurrencyID,
+		InvoiceCurrency:  pin.InvoiceCurrency,
+		CostBasis:        currencyadapter.FromDBCurrencyCostBasis(costBasis),
+	}
+
+	if err := mapped.Validate(); err != nil {
+		return subscription.CostBasisPin{}, err
+	}
+
+	return mapped, nil
 }
 
 func MapDBSubscripitonPhase(phase *db.SubscriptionPhase) (subscription.SubscriptionPhase, error) {

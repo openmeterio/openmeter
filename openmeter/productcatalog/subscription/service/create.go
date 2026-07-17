@@ -26,6 +26,13 @@ func (s *service) Create(ctx context.Context, request plansubscription.CreateSub
 		if request.SettlementMode != nil {
 			planInput.SettlementMode = *request.SettlementMode
 		}
+		if err := planInput.ResolveCurrencies(ctx, s.CurrencyResolver); err != nil {
+			return def, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
+		if err := planInput.ValidateCurrencies(ctx, s.CurrencyResolver); err != nil {
+			return def, fmt.Errorf("invalid plan currencies: %w", err)
+		}
 
 		p, err := PlanFromPlanInput(planInput)
 		if err != nil {
