@@ -441,7 +441,7 @@ func (s *Server) DeletePlanAddon(w http.ResponseWriter, r *http.Request, planId 
 var unimplemented = api.Unimplemented{}
 
 func (s *Server) GetCustomerCreditBalance(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.GetCustomerCreditBalanceParams) {
-	if !s.Credits.Enabled || s.customersCreditsHandler == nil {
+	if s.customersCreditsHandler == nil {
 		unimplemented.GetCustomerCreditBalance(w, r, customerId, params)
 		return
 	}
@@ -453,7 +453,7 @@ func (s *Server) GetCustomerCreditBalance(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) ListCreditGrants(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCreditGrantsParams) {
-	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+	if s.customersCreditsHandler == nil {
 		unimplemented.ListCreditGrants(w, r, customerId, params)
 		return
 	}
@@ -465,7 +465,7 @@ func (s *Server) ListCreditGrants(w http.ResponseWriter, r *http.Request, custom
 }
 
 func (s *Server) CreateCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+	if s.customersCreditsHandler == nil {
 		unimplemented.CreateCreditGrant(w, r, customerId)
 		return
 	}
@@ -476,7 +476,7 @@ func (s *Server) CreateCreditGrant(w http.ResponseWriter, r *http.Request, custo
 }
 
 func (s *Server) GetCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
-	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+	if s.customersCreditsHandler == nil {
 		unimplemented.GetCreditGrant(w, r, customerId, creditGrantId)
 		return
 	}
@@ -492,7 +492,7 @@ func (s *Server) CreateCreditAdjustment(w http.ResponseWriter, r *http.Request, 
 }
 
 func (s *Server) VoidCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
-	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+	if s.customersCreditsHandler == nil {
 		unimplemented.VoidCreditGrant(w, r, customerId, creditGrantId)
 		return
 	}
@@ -504,7 +504,7 @@ func (s *Server) VoidCreditGrant(w http.ResponseWriter, r *http.Request, custome
 }
 
 func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
-	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+	if s.customersCreditsHandler == nil {
 		unimplemented.UpdateCreditGrantExternalSettlement(w, r, customerId, creditGrantId)
 		return
 	}
@@ -516,7 +516,7 @@ func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *h
 }
 
 func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCreditTransactionsParams) {
-	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.Ledger == nil {
+	if s.customersCreditsHandler == nil {
 		unimplemented.ListCreditTransactions(w, r, customerId, params)
 		return
 	}

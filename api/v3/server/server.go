@@ -52,7 +52,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
-	ledgernoop "github.com/openmeterio/openmeter/openmeter/ledger/noop"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
@@ -308,21 +307,22 @@ func NewServer(config *Config) (*Server, error) {
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, config.MeterEventService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersBillingHandler := customersbillinghandler.New(resolveNamespace, config.BillingService, config.CustomerService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
-	customerBalanceFacade := config.CustomerBalanceFacade
-	creditGrantService := config.CreditGrantService
-	ledgerService := config.Ledger
-	accountResolver := config.AccountResolver
-	if !config.Credits.Enabled {
-		customerBalanceFacade, err = customerbalance.NewFacade(customerbalance.NewNoopService())
-		if err != nil {
-			return nil, fmt.Errorf("create noop customer balance facade: %w", err)
-		}
-
-		creditGrantService = creditgrant.NewNoopService()
-		ledgerService = ledgernoop.Ledger{}
-		accountResolver = ledgernoop.AccountResolver{}
+	var customersCreditsHandler customerscreditshandler.Handler
+	if config.Credits.Enabled {
+		customersCreditsHandler = customerscreditshandler.New(
+			resolveNamespace,
+			config.CustomerService,
+			config.CustomerBalanceFacade,
+			config.CreditGrantService,
+			config.Ledger,
+			config.AccountResolver,
+			httptransport.WithErrorHandler(config.ErrorHandler),
+		)
+	} else {
+		customersCreditsHandler = customerscreditshandler.NewDisabled(
+			httptransport.WithErrorHandler(config.ErrorHandler),
+		)
 	}
-	customersCreditsHandler := customerscreditshandler.New(resolveNamespace, config.CustomerService, customerBalanceFacade, creditGrantService, ledgerService, accountResolver, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
