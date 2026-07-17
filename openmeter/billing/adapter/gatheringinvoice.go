@@ -2,6 +2,7 @@ package billingadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -24,6 +27,36 @@ import (
 )
 
 var _ billing.GatheringInvoiceAdapter = (*adapter)(nil)
+
+func (a *adapter) DeleteGatheringInvoices(ctx context.Context, input billing.DeleteGatheringInvoicesInput) error {
+	if err := input.Validate(); err != nil {
+		return billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		nAffected, err := tx.db.BillingInvoice.Update().
+			Where(billinginvoice.IDIn(input.InvoiceIDs...)).
+			Where(billinginvoice.Namespace(input.Namespace)).
+			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering)).
+			ClearPeriodStart().
+			ClearPeriodEnd().
+			SetDeletedAt(clock.Now()).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+
+		if nAffected != len(input.InvoiceIDs) {
+			return billing.ValidationError{
+				Err: errors.New("invoices failed to delete"),
+			}
+		}
+
+		return nil
+	})
+}
 
 func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.CreateGatheringInvoiceAdapterInput) (billing.GatheringInvoice, error) {
 	if err := input.Validate(); err != nil {
@@ -356,6 +389,16 @@ func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand 
 	})
 }
 
+func (a *adapter) expandDedicatedGatheringInvoiceLines(q *db.BillingGatheringInvoiceQuery, expand billing.GatheringInvoiceExpands) *db.BillingGatheringInvoiceQuery {
+	return q.WithBillingGatheringInvoiceLines(func(q *db.BillingGatheringInvoiceLineQuery) {
+		if !expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
+			q = q.Where(billinggatheringinvoiceline.DeletedAtIsNil())
+		}
+
+		q.WithTaxCode()
+	})
+}
+
 func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
 	if err := input.Validate(); err != nil {
 		return billing.GatheringInvoice{}, fmt.Errorf("validating get gathering invoice by id input: %w", err)
@@ -455,4 +498,92 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 	}
 
 	return res, nil
+}
+
+func (a *adapter) fromDBBillingGatheringInvoice(invoice *db.BillingGatheringInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
+	period := timeutil.ClosedPeriod{}
+	if invoice.ServicePeriodStart != nil && invoice.ServicePeriodEnd != nil {
+		period = timeutil.ClosedPeriod{
+			From: invoice.ServicePeriodStart.In(time.UTC),
+			To:   invoice.ServicePeriodEnd.In(time.UTC),
+		}
+	}
+
+	result := billing.GatheringInvoice{
+		GatheringInvoiceBase: billing.GatheringInvoiceBase{
+			ManagedResource: models.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: invoice.Namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: invoice.CreatedAt.In(time.UTC),
+					UpdatedAt: invoice.UpdatedAt.In(time.UTC),
+					DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+				},
+				ID:          invoice.ID,
+				Name:        invoice.Name,
+				Description: invoice.Description,
+			},
+			Metadata:         invoice.Metadata,
+			Number:           invoice.Number,
+			CustomerID:       invoice.CustomerID,
+			Currency:         invoice.Currency,
+			ServicePeriod:    period,
+			NextCollectionAt: convert.TimePtrIn(invoice.NextCollectionAt, time.UTC),
+			SchemaLevel:      invoice.SchemaLevel,
+		},
+		Expands: expand,
+	}
+
+	if expand.Has(billing.GatheringInvoiceExpandLines) {
+		lines := make(billing.GatheringLines, 0, len(invoice.Edges.BillingGatheringInvoiceLines))
+		for _, dbLine := range invoice.Edges.BillingGatheringInvoiceLines {
+			line, err := a.fromDBBillingGatheringInvoiceLine(dbLine)
+			if err != nil {
+				return billing.GatheringInvoice{}, fmt.Errorf("mapping gathering invoice line [id=%s]: %w", dbLine.ID, err)
+			}
+			lines = append(lines, line)
+		}
+
+		result.Lines = billing.NewGatheringInvoiceLines(lines)
+	}
+
+	return result, nil
+}
+
+type listDedicatedGatheringInvoicesInput struct {
+	Namespaces     []string
+	IDs            []string
+	Expand         billing.GatheringInvoiceExpands
+	IncludeDeleted bool
+}
+
+func (a *adapter) listDedicatedGatheringInvoices(ctx context.Context, input listDedicatedGatheringInvoicesInput) ([]billing.GatheringInvoice, error) {
+	query := a.db.BillingGatheringInvoice.Query().
+		Where(billinggatheringinvoice.IDIn(input.IDs...))
+	if len(input.Namespaces) > 0 {
+		query = query.Where(billinggatheringinvoice.NamespaceIn(input.Namespaces...))
+	}
+	if !input.IncludeDeleted {
+		query = query.Where(billinggatheringinvoice.DeletedAtIsNil())
+	}
+	if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
+		query = a.expandDedicatedGatheringInvoiceLines(query, input.Expand)
+	}
+
+	invoices, err := query.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]billing.GatheringInvoice, 0, len(invoices))
+	for _, invoice := range invoices {
+		mapped, err := a.fromDBBillingGatheringInvoice(invoice, input.Expand)
+		if err != nil {
+			return nil, fmt.Errorf("mapping gathering invoice [namespace=%s, id=%s]: %w", invoice.Namespace, invoice.ID, err)
+		}
+		result = append(result, mapped)
+	}
+
+	return result, nil
 }

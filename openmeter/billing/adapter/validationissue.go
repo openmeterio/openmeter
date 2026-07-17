@@ -102,6 +102,7 @@ type ValidationIssueWithDBMeta struct {
 // IntropectValidationIssues returns the validation issues for the given invoice, this is not
 // exposed via the adpter interface, as it's only used by tests to validate the state of the
 // database.
+// TODO[later]: these are test only, move them to a testutils package
 func (a *adapter) IntrospectValidationIssues(ctx context.Context, invoice billing.InvoiceID) ([]ValidationIssueWithDBMeta, error) {
 	issues, err := a.db.BillingInvoiceValidationIssue.Query().
 		Where(billinginvoicevalidationissue.InvoiceID(invoice.ID)).

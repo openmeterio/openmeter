@@ -816,14 +816,6 @@ type (
 
 type UpdateStandardInvoiceAdapterInput = StandardInvoice
 
-type GetInvoiceOwnershipAdapterInput = InvoiceID
-
-type GetOwnershipAdapterResponse struct {
-	Namespace  string
-	InvoiceID  string
-	CustomerID string
-}
-
 type DeleteInvoiceInput struct {
 	// Invoice identifies the standard invoice to delete.
 	Invoice InvoiceID

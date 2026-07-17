@@ -438,6 +438,26 @@ func CurrencyContainsFold(v currencyx.Code) predicate.BillingInvoiceSearchV1 {
 	return predicate.BillingInvoiceSearchV1(sql.FieldContainsFold(FieldCurrency, vc))
 }
 
+// StorageTableEQ applies the EQ predicate on the "storage_table" field.
+func StorageTableEQ(v StorageTable) predicate.BillingInvoiceSearchV1 {
+	return predicate.BillingInvoiceSearchV1(sql.FieldEQ(FieldStorageTable, v))
+}
+
+// StorageTableNEQ applies the NEQ predicate on the "storage_table" field.
+func StorageTableNEQ(v StorageTable) predicate.BillingInvoiceSearchV1 {
+	return predicate.BillingInvoiceSearchV1(sql.FieldNEQ(FieldStorageTable, v))
+}
+
+// StorageTableIn applies the In predicate on the "storage_table" field.
+func StorageTableIn(vs ...StorageTable) predicate.BillingInvoiceSearchV1 {
+	return predicate.BillingInvoiceSearchV1(sql.FieldIn(FieldStorageTable, vs...))
+}
+
+// StorageTableNotIn applies the NotIn predicate on the "storage_table" field.
+func StorageTableNotIn(vs ...StorageTable) predicate.BillingInvoiceSearchV1 {
+	return predicate.BillingInvoiceSearchV1(sql.FieldNotIn(FieldStorageTable, vs...))
+}
+
 // InvoiceTypeEQ applies the EQ predicate on the "invoice_type" field.
 func InvoiceTypeEQ(v billing.InvoiceType) predicate.BillingInvoiceSearchV1 {
 	vc := string(v)

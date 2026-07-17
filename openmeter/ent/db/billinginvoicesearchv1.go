@@ -28,6 +28,8 @@ type BillingInvoiceSearchV1 struct {
 	CustomerName string `json:"customer_name,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
+	// StorageTable holds the value of the "storage_table" field.
+	StorageTable billinginvoicesearchv1.StorageTable `json:"storage_table,omitempty"`
 	// InvoiceType holds the value of the "invoice_type" field.
 	InvoiceType billing.InvoiceType `json:"invoice_type,omitempty"`
 	// Status holds the value of the "status" field.
@@ -70,7 +72,7 @@ func (*BillingInvoiceSearchV1) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoicesearchv1.FieldSchemaLevel:
 			values[i] = new(sql.NullInt64)
-		case billinginvoicesearchv1.FieldID, billinginvoicesearchv1.FieldNamespace, billinginvoicesearchv1.FieldCustomerID, billinginvoicesearchv1.FieldCustomerName, billinginvoicesearchv1.FieldCurrency, billinginvoicesearchv1.FieldInvoiceType, billinginvoicesearchv1.FieldStatus, billinginvoicesearchv1.FieldInvoicingAppExternalID, billinginvoicesearchv1.FieldPaymentAppExternalID, billinginvoicesearchv1.FieldTaxAppExternalID:
+		case billinginvoicesearchv1.FieldID, billinginvoicesearchv1.FieldNamespace, billinginvoicesearchv1.FieldCustomerID, billinginvoicesearchv1.FieldCustomerName, billinginvoicesearchv1.FieldCurrency, billinginvoicesearchv1.FieldStorageTable, billinginvoicesearchv1.FieldInvoiceType, billinginvoicesearchv1.FieldStatus, billinginvoicesearchv1.FieldInvoicingAppExternalID, billinginvoicesearchv1.FieldPaymentAppExternalID, billinginvoicesearchv1.FieldTaxAppExternalID:
 			values[i] = new(sql.NullString)
 		case billinginvoicesearchv1.FieldIssuedAt, billinginvoicesearchv1.FieldServicePeriodStart, billinginvoicesearchv1.FieldServicePeriodEnd, billinginvoicesearchv1.FieldCreatedAt, billinginvoicesearchv1.FieldUpdatedAt, billinginvoicesearchv1.FieldDeletedAt, billinginvoicesearchv1.FieldDraftUntil, billinginvoicesearchv1.FieldCollectionAt:
 			values[i] = new(sql.NullTime)
@@ -118,6 +120,12 @@ func (_m *BillingInvoiceSearchV1) assignValues(columns []string, values []any) e
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = currencyx.Code(value.String)
+			}
+		case billinginvoicesearchv1.FieldStorageTable:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field storage_table", values[i])
+			} else if value.Valid {
+				_m.StorageTable = billinginvoicesearchv1.StorageTable(value.String)
 			}
 		case billinginvoicesearchv1.FieldInvoiceType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -262,6 +270,9 @@ func (_m *BillingInvoiceSearchV1) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	builder.WriteString(", ")
+	builder.WriteString("storage_table=")
+	builder.WriteString(fmt.Sprintf("%v", _m.StorageTable))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InvoiceType))

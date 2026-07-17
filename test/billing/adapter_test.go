@@ -9,6 +9,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
@@ -19,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -81,6 +83,125 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 	require.NotNil(s.T(), invoice)
 
 	return &invoice
+}
+
+func (s *BillingAdapterTestSuite) TestListInvoicesAcrossInvoiceTables() {
+	// given:
+	// - one standard invoice and one legacy gathering invoice in billing_invoices
+	// - one gathering invoice and line in the dedicated tables
+	// when:
+	// - generic and standard-only invoice listings are requested
+	// then:
+	// - generic listing follows view order and hydrates all storage locations
+	// - standard-only listing reads only the standard invoice table
+	ctx := s.T().Context()
+	standardNamespace := s.GetUniqueNamespace("list-invoices-standard")
+	gatheringNamespace := s.GetUniqueNamespace("list-invoices-gathering")
+
+	standardInvoice := s.setupInvoice(ctx, standardNamespace)
+	_, err := s.DBClient.BillingInvoice.UpdateOneID(standardInvoice.ID).
+		SetStatus(billing.StandardInvoiceStatusDraftCreated).
+		Save(ctx)
+	require.NoError(s.T(), err)
+
+	legacyGatheringInvoice := s.setupInvoice(ctx, gatheringNamespace)
+	dedicatedInvoiceID := ulid.Make().String()
+	dedicatedLineID := ulid.Make().String()
+	servicePeriodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	servicePeriodEnd := servicePeriodStart.AddDate(0, 1, 0)
+	dedicatedCreatedAt := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	_, err = s.DBClient.BillingGatheringInvoice.Create().
+		SetID(dedicatedInvoiceID).
+		SetNamespace(gatheringNamespace).
+		SetName("Dedicated gathering invoice").
+		SetNumber("GATHERING-DEDICATED").
+		SetCustomerID(legacyGatheringInvoice.GetCustomerID().ID).
+		SetCurrency(legacyGatheringInvoice.Currency).
+		SetServicePeriodStart(servicePeriodStart).
+		SetServicePeriodEnd(servicePeriodEnd).
+		SetNextCollectionAt(servicePeriodEnd).
+		SetCreatedAt(dedicatedCreatedAt).
+		SetUpdatedAt(dedicatedCreatedAt).
+		SetSchemaLevel(2).
+		Save(ctx)
+	require.NoError(s.T(), err)
+
+	price := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromInt(10),
+	})
+	_, err = s.DBClient.BillingGatheringInvoiceLine.Create().
+		SetID(dedicatedLineID).
+		SetNamespace(gatheringNamespace).
+		SetName("Dedicated gathering line").
+		SetCurrency(legacyGatheringInvoice.Currency).
+		SetServicePeriodStart(servicePeriodStart).
+		SetServicePeriodEnd(servicePeriodEnd).
+		SetPriceType(price.Type()).
+		SetFeatureKey("dedicated-feature").
+		SetPrice(price).
+		SetInvoiceID(dedicatedInvoiceID).
+		SetInvoiceAt(servicePeriodEnd).
+		SetManagedBy(billing.SystemManagedLine).
+		SetEngine(billing.LineEngineTypeInvoice).
+		Save(ctx)
+	require.NoError(s.T(), err)
+
+	searchRows, err := s.DBClient.BillingInvoiceSearchV1.Query().
+		Where(billinginvoicesearchv1.IDIn(standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID)).
+		All(ctx)
+	require.NoError(s.T(), err)
+	storageTableByInvoiceID := lo.SliceToMap(searchRows, func(row *db.BillingInvoiceSearchV1) (string, billinginvoicesearchv1.StorageTable) {
+		return row.ID, row.StorageTable
+	})
+	require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingInvoice, storageTableByInvoiceID[standardInvoice.ID])
+	require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingInvoice, storageTableByInvoiceID[legacyGatheringInvoice.ID])
+	require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingGatheringInvoice, storageTableByInvoiceID[dedicatedInvoiceID])
+
+	listed, err := s.BillingAdapter.ListInvoices(ctx, billing.ListInvoicesAdapterInput{
+		Namespaces: []string{standardNamespace, gatheringNamespace},
+		IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
+		Expand:     billing.InvoiceExpands{billing.InvoiceExpandLines},
+	})
+	require.NoError(s.T(), err)
+	require.Equal(s.T(), 3, listed.TotalCount)
+	require.Len(s.T(), listed.Items, 3)
+	firstInvoice, err := listed.Items[0].AsGenericInvoice()
+	require.NoError(s.T(), err)
+	require.Equal(s.T(), dedicatedInvoiceID, firstInvoice.GetID())
+
+	listedByID := make(map[string]billing.Invoice, len(listed.Items))
+	for _, invoice := range listed.Items {
+		genericInvoice, err := invoice.AsGenericInvoice()
+		require.NoError(s.T(), err)
+		listedByID[genericInvoice.GetID()] = invoice
+	}
+
+	standard, err := listedByID[standardInvoice.ID].AsStandardInvoice()
+	require.NoError(s.T(), err)
+	require.Equal(s.T(), billing.StandardInvoiceStatusDraftCreated, standard.Status)
+
+	legacyGathering, err := listedByID[legacyGatheringInvoice.ID].AsGatheringInvoice()
+	require.NoError(s.T(), err)
+	require.Equal(s.T(), legacyGatheringInvoice.ID, legacyGathering.ID)
+
+	dedicatedGathering, err := listedByID[dedicatedInvoiceID].AsGatheringInvoice()
+	require.NoError(s.T(), err)
+	require.Equal(s.T(), "GATHERING-DEDICATED", dedicatedGathering.Number)
+	require.Equal(s.T(), servicePeriodStart, dedicatedGathering.ServicePeriod.From)
+	require.Equal(s.T(), servicePeriodEnd, dedicatedGathering.ServicePeriod.To)
+	require.Len(s.T(), dedicatedGathering.Lines.OrEmpty(), 1)
+	require.Equal(s.T(), dedicatedLineID, dedicatedGathering.Lines.OrEmpty()[0].ID)
+	require.NotNil(s.T(), dedicatedGathering.Lines.OrEmpty()[0].DBState)
+
+	standardOnly, err := s.BillingAdapter.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+		Namespaces: []string{standardNamespace, gatheringNamespace},
+		IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
+	})
+	require.NoError(s.T(), err)
+	require.Equal(s.T(), 1, standardOnly.TotalCount)
+	require.Len(s.T(), standardOnly.Items, 1)
+	require.Equal(s.T(), standardInvoice.ID, standardOnly.Items[0].ID)
 }
 
 type newLineInput struct {

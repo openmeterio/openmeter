@@ -16,6 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
@@ -361,4 +363,83 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 	line.DBState = lo.ToPtr(cloned)
 
 	return line, nil
+}
+
+func (a *adapter) fromDBBillingGatheringInvoiceLine(dbLine *db.BillingGatheringInvoiceLine) (billing.GatheringLine, error) {
+	if dbLine.Price == nil {
+		return billing.GatheringLine{}, fmt.Errorf("price is missing [line_id=%s]", dbLine.ID)
+	}
+
+	line := billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   dbLine.Namespace,
+				ID:          dbLine.ID,
+				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
+				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
+				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+				Name:        dbLine.Name,
+				Description: dbLine.Description,
+			}),
+			Metadata:               dbLine.Metadata,
+			Annotations:            dbLine.Annotations,
+			InvoiceID:              dbLine.InvoiceID,
+			ManagedBy:              dbLine.ManagedBy,
+			Engine:                 dbLine.Engine,
+			SplitLineGroupID:       dbLine.SplitLineGroupID,
+			ChargeID:               dbLine.ChargeID,
+			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: dbLine.ServicePeriodStart.In(time.UTC),
+				To:   dbLine.ServicePeriodEnd.In(time.UTC),
+			},
+			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
+			Currency:  dbLine.Currency,
+			TaxConfig: productcatalog.BackfillTaxConfig(
+				lo.EmptyableToPtr(dbLine.TaxConfig).ToProductCatalog(),
+				dbLine.TaxBehavior,
+				taxCodeFromGatheringInvoiceLineEdge(dbLine),
+			),
+			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
+			FeatureKey:        lo.FromPtr(dbLine.FeatureKey),
+			Price:             lo.FromPtr(dbLine.Price),
+			UnitConfig:        dbLine.UnitConfig,
+		},
+	}
+
+	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {
+		line.Subscription = &billing.SubscriptionReference{
+			SubscriptionID: *dbLine.SubscriptionID,
+			PhaseID:        *dbLine.SubscriptionPhaseID,
+			ItemID:         *dbLine.SubscriptionItemID,
+		}
+		if dbLine.SubscriptionBillingPeriodFrom != nil && dbLine.SubscriptionBillingPeriodTo != nil {
+			line.Subscription.BillingPeriod = timeutil.ClosedPeriod{
+				From: dbLine.SubscriptionBillingPeriodFrom.In(time.UTC),
+				To:   dbLine.SubscriptionBillingPeriodTo.In(time.UTC),
+			}
+		}
+	}
+
+	cloned, err := line.WithoutDBState()
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("cloning line: %w", err)
+	}
+	line.DBState = lo.ToPtr(cloned)
+
+	return line, nil
+}
+
+func taxCodeFromGatheringInvoiceLineEdge(dbLine *db.BillingGatheringInvoiceLine) *taxcode.TaxCode {
+	dbTaxCode, err := dbLine.Edges.TaxCodeOrErr()
+	if err != nil {
+		return nil
+	}
+
+	mapped, err := taxcodeadapter.MapTaxCodeFromEntity(dbTaxCode)
+	if err != nil {
+		return nil
+	}
+
+	return &mapped
 }
