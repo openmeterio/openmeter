@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -84,10 +85,48 @@ func BenchmarkCustomerUsageAttributionLookup(b *testing.B) {
 						return client.Customer.Query().
 							Where(
 								customerdb.Namespace(namespace),
-								customerdb.DeletedAtIsNil(),
-								customerMatchesUsageAttributionKey(namespace, lookup.key, now),
+								customersMatchUsageAttributionKeys(namespace, []string{lookup.key}, now),
 							).
 							FirstID(ctx)
+					},
+				},
+				{
+					// method measures the FULL single-key path (merged predicate + WithSubjects
+					// hydration + domain mapping + Go-side precedence), not just the ID query, so it
+					// reflects the real customer/service.GetCustomerByUsageAttribution cost. The
+					// inline resolution mirrors service.resolveCustomersByKey over the raw candidate
+					// set (<=2 rows): a customer-key match wins over a subject-key match.
+					name: "method",
+					query: func(ctx context.Context) (string, error) {
+						q := client.Customer.Query().Where(
+							customerdb.Namespace(namespace),
+							customersMatchUsageAttributionKeys(namespace, []string{lookup.key}, now),
+						)
+						q = WithSubjects(q, now)
+						entities, err := q.All(ctx)
+						if err != nil {
+							return "", err
+						}
+						var byKeyID, bySubjectID string
+						for _, entity := range entities {
+							c, err := CustomerFromDBEntity(*entity, nil)
+							if err != nil {
+								return "", err
+							}
+							if c.Key != nil && *c.Key == lookup.key {
+								byKeyID = c.ID
+							}
+							if c.UsageAttribution != nil && bySubjectID == "" && slices.Contains(c.UsageAttribution.SubjectKeys, lookup.key) {
+								bySubjectID = c.ID
+							}
+						}
+						if byKeyID != "" {
+							return byKeyID, nil
+						}
+						if bySubjectID != "" {
+							return bySubjectID, nil
+						}
+						return "", fmt.Errorf("no customer resolved for key %q", lookup.key)
 					},
 				},
 			}

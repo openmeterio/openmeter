@@ -20,29 +20,25 @@ func Test_resolveCustomersByKey(t *testing.T) {
 	}
 
 	t.Run("MatchByKey", func(t *testing.T) {
-		resolved, ambiguous := resolveCustomersByKey([]customer.Customer{customerA}, []string{"key-a"})
+		resolved := resolveCustomersByKey([]customer.Customer{customerA}, []string{"key-a"})
 
 		assert.Equal(t, map[string]customer.Customer{"key-a": customerA}, resolved)
-		assert.Empty(t, ambiguous)
 	})
 
 	t.Run("MatchBySubject", func(t *testing.T) {
-		resolved, ambiguous := resolveCustomersByKey([]customer.Customer{customerA}, []string{"subject-a"})
+		resolved := resolveCustomersByKey([]customer.Customer{customerA}, []string{"subject-a"})
 
 		assert.Equal(t, map[string]customer.Customer{"subject-a": customerA}, resolved)
-		assert.Empty(t, ambiguous)
 	})
 
 	t.Run("UnmatchedKeyIsAbsent", func(t *testing.T) {
-		resolved, ambiguous := resolveCustomersByKey([]customer.Customer{customerA}, []string{"no-such-key"})
+		resolved := resolveCustomersByKey([]customer.Customer{customerA}, []string{"no-such-key"})
 
 		assert.Empty(t, resolved)
-		assert.Empty(t, ambiguous)
 	})
 
 	t.Run("KeyOwnerTakesPrecedenceOverDistinctSubjectOwner", func(t *testing.T) {
-		// "shared" is customerA's own key AND customerB's subject key: the key-owner (A) must win,
-		// mirroring the single-key GetCustomerByUsageAttribution UNION ALL lookup_priority ordering.
+		// "shared" is customerA's own key AND customerB's subject key: the key-owner (A) must win.
 		sharedKeyCustomer := customer.Customer{
 			ManagedResource: models.ManagedResource{ID: "customer-a"},
 			Key:             lo.ToPtr("shared"),
@@ -54,18 +50,15 @@ func Test_resolveCustomersByKey(t *testing.T) {
 			},
 		}
 
-		resolved, ambiguous := resolveCustomersByKey(
+		resolved := resolveCustomersByKey(
 			[]customer.Customer{sharedKeyCustomer, sharedSubjectCustomer},
 			[]string{"shared"},
 		)
 
 		assert.Equal(t, map[string]customer.Customer{"shared": sharedKeyCustomer}, resolved)
-		assert.Equal(t, []ambiguousUsageAttributionMatch{
-			{Key: "shared", KeyOwnerID: "customer-a", SubjectOwnerID: "customer-b"},
-		}, ambiguous)
 	})
 
-	t.Run("NoCollisionCountedWhenKeyAndSubjectOwnerAreTheSameCustomer", func(t *testing.T) {
+	t.Run("SameCustomerMatchedByOwnKeyAndSubjectKey", func(t *testing.T) {
 		selfMatched := customer.Customer{
 			ManagedResource: models.ManagedResource{ID: "customer-a"},
 			Key:             lo.ToPtr("dual"),
@@ -74,10 +67,9 @@ func Test_resolveCustomersByKey(t *testing.T) {
 			},
 		}
 
-		resolved, ambiguous := resolveCustomersByKey([]customer.Customer{selfMatched}, []string{"dual"})
+		resolved := resolveCustomersByKey([]customer.Customer{selfMatched}, []string{"dual"})
 
 		assert.Equal(t, map[string]customer.Customer{"dual": selfMatched}, resolved)
-		assert.Empty(t, ambiguous)
 	})
 
 	t.Run("CrossCollisionResolvesEachKeyToItsOwnKeyOwner", func(t *testing.T) {
@@ -99,7 +91,7 @@ func Test_resolveCustomersByKey(t *testing.T) {
 			},
 		}
 
-		resolved, ambiguous := resolveCustomersByKey(
+		resolved := resolveCustomersByKey(
 			[]customer.Customer{crossA, crossB},
 			[]string{"key-1", "key-2"},
 		)
@@ -108,9 +100,5 @@ func Test_resolveCustomersByKey(t *testing.T) {
 			"key-1": crossA,
 			"key-2": crossB,
 		}, resolved)
-		assert.Equal(t, []ambiguousUsageAttributionMatch{
-			{Key: "key-1", KeyOwnerID: "customer-a", SubjectOwnerID: "customer-b"},
-			{Key: "key-2", KeyOwnerID: "customer-b", SubjectOwnerID: "customer-a"},
-		}, ambiguous)
 	})
 }

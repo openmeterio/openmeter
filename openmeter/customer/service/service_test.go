@@ -241,3 +241,73 @@ func Test_GetCustomersByUsageAttribution_Validation(t *testing.T) {
 	require.Error(t, err, "empty key set must fail validation")
 	assert.True(t, models.IsGenericValidationError(err), "error must be a validation error")
 }
+
+// Test_GetCustomerByUsageAttribution covers the single-key wiring that Test_CustomerService's
+// happy-path lookups don't reach: the key-over-subject precedence now resolved in the service (not
+// in SQL), the not-found mapping, and input validation. The predicate itself is covered by the
+// adapter's TestGetCustomersByUsageAttribution.
+func Test_GetCustomerByUsageAttribution(t *testing.T) {
+	env := customertestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	namespace := customertestutils.NewTestNamespace(t)
+	ctx := t.Context()
+
+	t.Run("KeyOverSubjectPrecedence", func(t *testing.T) {
+		// given:
+		// - customer A owns the key "shared-key"
+		// - customer B carries "shared-key" as one of its subject keys
+		// when:
+		// - resolving "shared-key" by usage attribution
+		// then:
+		// - the direct key owner (A) wins over the subject-key match (B), resolved in the service
+		keyOwner, err := env.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: namespace,
+			CustomerMutate: customer.CustomerMutate{
+				Key:              lo.ToPtr("shared-key"),
+				Name:             "Key Owner",
+				UsageAttribution: &customer.CustomerUsageAttribution{SubjectKeys: []string{"key-owner-subject"}},
+			},
+		})
+		require.NoError(t, err)
+
+		_, err = env.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: namespace,
+			CustomerMutate: customer.CustomerMutate{
+				Key:              lo.ToPtr("subject-owner"),
+				Name:             "Subject Owner",
+				UsageAttribution: &customer.CustomerUsageAttribution{SubjectKeys: []string{"shared-key"}},
+			},
+		})
+		require.NoError(t, err)
+
+		got, err := env.CustomerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+			Namespace: namespace,
+			Key:       "shared-key",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		assert.Equal(t, keyOwner.ID, got.ID, "a direct customer-key match must win over a subject-key match")
+	})
+
+	t.Run("UnknownKeyReturnsNotFound", func(t *testing.T) {
+		_, err := env.CustomerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+			Namespace: namespace,
+			Key:       "no-such-key",
+		})
+		require.Error(t, err)
+		assert.True(t, models.IsGenericNotFoundError(err), "unmatched key must map to a not-found error")
+	})
+
+	t.Run("EmptyKeyFailsValidation", func(t *testing.T) {
+		_, err := env.CustomerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
+			Namespace: namespace,
+			Key:       "",
+		})
+		require.Error(t, err)
+		assert.True(t, models.IsGenericValidationError(err), "empty key must fail validation")
+	})
+}

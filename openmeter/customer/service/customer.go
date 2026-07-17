@@ -131,9 +131,33 @@ func (s *Service) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 	return s.adapter.GetCustomer(ctx, input)
 }
 
-// GetCustomerByUsageAttribution gets a customer by usage attribution
+// GetCustomerByUsageAttribution gets a customer by usage attribution. It resolves the single key
+// through the same bulk candidate query and key-over-subject precedence as
+// GetCustomersByUsageAttribution, so both paths share one predicate and one precedence mechanism.
 func (s *Service) GetCustomerByUsageAttribution(ctx context.Context, input customer.GetCustomerByUsageAttributionInput) (*customer.Customer, error) {
-	return s.adapter.GetCustomerByUsageAttribution(ctx, input)
+	if err := input.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(
+			fmt.Errorf("error getting customer by usage attribution: %w", err),
+		)
+	}
+
+	customers, err := s.adapter.GetCustomersByUsageAttribution(ctx, customer.GetCustomersByUsageAttributionInput{
+		Namespace: input.Namespace,
+		Keys:      []string{input.Key},
+		Expands:   input.Expands,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	c, ok := resolveCustomersByKey(customers, []string{input.Key})[input.Key]
+	if !ok {
+		return nil, models.NewGenericNotFoundError(
+			fmt.Errorf("customer with subject key %s not found in %s namespace", input.Key, input.Namespace),
+		)
+	}
+
+	return &c, nil
 }
 
 // GetCustomersByUsageAttribution resolves multiple customers by usage attribution keys in a single
@@ -150,41 +174,16 @@ func (s *Service) GetCustomersByUsageAttribution(ctx context.Context, input cust
 		return nil, err
 	}
 
-	resolved, ambiguous := resolveCustomersByKey(customers, input.Keys)
-
-	// A key resolving to both a distinct key-owner and a distinct subject-owner is not an error —
-	// the key-owner wins deterministically, mirroring GetCustomerByUsageAttribution's single-row
-	// precedence — but the underlying data (one key doing double duty as another customer's own
-	// key and a different customer's subject key) is unusual enough to warrant operator attention,
-	// so each occurrence is logged with the key and both customer IDs for follow-up.
-	for _, m := range ambiguous {
-		s.logger.ErrorContext(ctx, "ambiguous usage attribution key: matches both a customer key and a distinct subject key",
-			"namespace", input.Namespace,
-			"key", m.Key,
-			"key_owner.id", m.KeyOwnerID,
-			"subject_owner.id", m.SubjectOwnerID,
-		)
-	}
-
-	return resolved, nil
-}
-
-// ambiguousUsageAttributionMatch records a key that matched both a distinct customer-key owner and
-// a distinct subject-key owner, so the caller can log the identifiers needed to investigate and fix
-// the underlying data overlap.
-type ambiguousUsageAttributionMatch struct {
-	Key            string
-	KeyOwnerID     string
-	SubjectOwnerID string
+	return resolveCustomersByKey(customers, input.Keys), nil
 }
 
 // resolveCustomersByKey maps each input key to the customer it matches. A key matches a customer
 // either by the customer's own key or by one of its subject keys; when a key matches both a
-// distinct key-owner and a distinct subject-owner, the key-owner takes precedence, mirroring the
-// single-key GetCustomerByUsageAttribution's UNION ALL lookup_priority ordering. Keys with no match
-// are absent from the returned map. The second return value lists the keys where precedence
-// actually mattered (a distinct key-owner and a distinct subject-owner both matched).
-func resolveCustomersByKey(customers []customer.Customer, keys []string) (map[string]customer.Customer, []ambiguousUsageAttributionMatch) {
+// distinct key-owner and a distinct subject-owner, the key-owner takes precedence. Key-over-subject
+// collisions are structurally rare and resolved deterministically here, so they are not surfaced as
+// errors or logs; investigate the underlying data via the database if ever needed. Keys with no
+// match are absent from the returned map.
+func resolveCustomersByKey(customers []customer.Customer, keys []string) map[string]customer.Customer {
 	byKey := make(map[string]customer.Customer, len(customers))
 	bySubject := make(map[string]customer.Customer, len(customers))
 
@@ -203,31 +202,19 @@ func resolveCustomersByKey(customers []customer.Customer, keys []string) (map[st
 	}
 
 	resolved := make(map[string]customer.Customer, len(keys))
-	var ambiguous []ambiguousUsageAttributionMatch
 
 	for _, k := range keys {
-		keyOwner, hasKeyOwner := byKey[k]
-		subjectOwner, hasSubjectOwner := bySubject[k]
-
-		if hasKeyOwner && hasSubjectOwner && keyOwner.ID != subjectOwner.ID {
-			ambiguous = append(ambiguous, ambiguousUsageAttributionMatch{
-				Key:            k,
-				KeyOwnerID:     keyOwner.ID,
-				SubjectOwnerID: subjectOwner.ID,
-			})
-		}
-
-		if hasKeyOwner {
+		if keyOwner, ok := byKey[k]; ok {
 			resolved[k] = keyOwner
 			continue
 		}
 
-		if hasSubjectOwner {
+		if subjectOwner, ok := bySubject[k]; ok {
 			resolved[k] = subjectOwner
 		}
 	}
 
-	return resolved, ambiguous
+	return resolved
 }
 
 // UpdateCustomer updates a customer
