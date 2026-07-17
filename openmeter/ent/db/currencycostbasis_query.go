@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -15,17 +16,19 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 )
 
 // CurrencyCostBasisQuery is the builder for querying CurrencyCostBasis entities.
 type CurrencyCostBasisQuery struct {
 	config
-	ctx          *QueryContext
-	order        []currencycostbasis.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.CurrencyCostBasis
-	withCurrency *CustomCurrencyQuery
-	modifiers    []func(*sql.Selector)
+	ctx                  *QueryContext
+	order                []currencycostbasis.OrderOption
+	inters               []Interceptor
+	predicates           []predicate.CurrencyCostBasis
+	withCurrency         *CustomCurrencyQuery
+	withSubscriptionPins *SubscriptionCostBasisPinQuery
+	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -77,6 +80,28 @@ func (_q *CurrencyCostBasisQuery) QueryCurrency() *CustomCurrencyQuery {
 			sqlgraph.From(currencycostbasis.Table, currencycostbasis.FieldID, selector),
 			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, currencycostbasis.CurrencyTable, currencycostbasis.CurrencyColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySubscriptionPins chains the current query on the "subscription_pins" edge.
+func (_q *CurrencyCostBasisQuery) QuerySubscriptionPins() *SubscriptionCostBasisPinQuery {
+	query := (&SubscriptionCostBasisPinClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(currencycostbasis.Table, currencycostbasis.FieldID, selector),
+			sqlgraph.To(subscriptioncostbasispin.Table, subscriptioncostbasispin.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, currencycostbasis.SubscriptionPinsTable, currencycostbasis.SubscriptionPinsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -271,12 +296,13 @@ func (_q *CurrencyCostBasisQuery) Clone() *CurrencyCostBasisQuery {
 		return nil
 	}
 	return &CurrencyCostBasisQuery{
-		config:       _q.config,
-		ctx:          _q.ctx.Clone(),
-		order:        append([]currencycostbasis.OrderOption{}, _q.order...),
-		inters:       append([]Interceptor{}, _q.inters...),
-		predicates:   append([]predicate.CurrencyCostBasis{}, _q.predicates...),
-		withCurrency: _q.withCurrency.Clone(),
+		config:               _q.config,
+		ctx:                  _q.ctx.Clone(),
+		order:                append([]currencycostbasis.OrderOption{}, _q.order...),
+		inters:               append([]Interceptor{}, _q.inters...),
+		predicates:           append([]predicate.CurrencyCostBasis{}, _q.predicates...),
+		withCurrency:         _q.withCurrency.Clone(),
+		withSubscriptionPins: _q.withSubscriptionPins.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -291,6 +317,17 @@ func (_q *CurrencyCostBasisQuery) WithCurrency(opts ...func(*CustomCurrencyQuery
 		opt(query)
 	}
 	_q.withCurrency = query
+	return _q
+}
+
+// WithSubscriptionPins tells the query-builder to eager-load the nodes that are connected to
+// the "subscription_pins" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CurrencyCostBasisQuery) WithSubscriptionPins(opts ...func(*SubscriptionCostBasisPinQuery)) *CurrencyCostBasisQuery {
+	query := (&SubscriptionCostBasisPinClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSubscriptionPins = query
 	return _q
 }
 
@@ -372,8 +409,9 @@ func (_q *CurrencyCostBasisQuery) sqlAll(ctx context.Context, hooks ...queryHook
 	var (
 		nodes       = []*CurrencyCostBasis{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			_q.withCurrency != nil,
+			_q.withSubscriptionPins != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -400,6 +438,15 @@ func (_q *CurrencyCostBasisQuery) sqlAll(ctx context.Context, hooks ...queryHook
 	if query := _q.withCurrency; query != nil {
 		if err := _q.loadCurrency(ctx, query, nodes, nil,
 			func(n *CurrencyCostBasis, e *CustomCurrency) { n.Edges.Currency = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSubscriptionPins; query != nil {
+		if err := _q.loadSubscriptionPins(ctx, query, nodes,
+			func(n *CurrencyCostBasis) { n.Edges.SubscriptionPins = []*SubscriptionCostBasisPin{} },
+			func(n *CurrencyCostBasis, e *SubscriptionCostBasisPin) {
+				n.Edges.SubscriptionPins = append(n.Edges.SubscriptionPins, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -432,6 +479,36 @@ func (_q *CurrencyCostBasisQuery) loadCurrency(ctx context.Context, query *Custo
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (_q *CurrencyCostBasisQuery) loadSubscriptionPins(ctx context.Context, query *SubscriptionCostBasisPinQuery, nodes []*CurrencyCostBasis, init func(*CurrencyCostBasis), assign func(*CurrencyCostBasis, *SubscriptionCostBasisPin)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*CurrencyCostBasis)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(subscriptioncostbasispin.FieldCostBasisID)
+	}
+	query.Where(predicate.SubscriptionCostBasisPin(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(currencycostbasis.SubscriptionPinsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CostBasisID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "cost_basis_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

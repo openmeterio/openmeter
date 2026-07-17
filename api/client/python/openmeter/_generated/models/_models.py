@@ -3899,6 +3899,9 @@ class CustomSubscriptionChange(_Model):
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the previous subscription billing anchor will be used.
     :vartype billing_anchor: ~datetime.datetime
+    :ivar cost_basis_mode: Controls how custom-currency cost bases are selected for the new
+     subscription. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: str or ~openmeter.models.SubscriptionCostBasisMode
     :ivar custom_plan: The custom plan description which defines the Subscription. Required.
     :vartype custom_plan: ~openmeter._generated.models.CustomPlanInput
     """
@@ -3913,6 +3916,11 @@ class CustomSubscriptionChange(_Model):
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the previous
      subscription billing anchor will be used."""
+    cost_basis_mode: Optional[Union[str, "_models.SubscriptionCostBasisMode"]] = rest_field(
+        name="costBasisMode", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Controls how custom-currency cost bases are selected for the new subscription. Known values
+     are: \"dynamic\" and \"pinned\"."""
     custom_plan: "_models.CustomPlanInput" = rest_field(
         name="customPlan", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -3925,6 +3933,7 @@ class CustomSubscriptionChange(_Model):
         timing: "_types.SubscriptionTiming",
         custom_plan: "_models.CustomPlanInput",
         billing_anchor: Optional[datetime.datetime] = None,
+        cost_basis_mode: Optional[Union[str, "_models.SubscriptionCostBasisMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -3941,6 +3950,9 @@ class CustomSubscriptionChange(_Model):
 class CustomSubscriptionCreate(_Model):
     """Create custom.
 
+    :ivar cost_basis_mode: Controls how custom-currency cost bases are selected for the new
+     subscription. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: str or ~openmeter.models.SubscriptionCostBasisMode
     :ivar custom_plan: The custom plan description which defines the Subscription. Required.
     :vartype custom_plan: ~openmeter._generated.models.CustomPlanInput
     :ivar timing: Timing configuration for the change, when the change should take effect. The
@@ -3958,6 +3970,11 @@ class CustomSubscriptionCreate(_Model):
     :vartype billing_anchor: ~datetime.datetime
     """
 
+    cost_basis_mode: Optional[Union[str, "_models.SubscriptionCostBasisMode"]] = rest_field(
+        name="costBasisMode", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Controls how custom-currency cost bases are selected for the new subscription. Known values
+     are: \"dynamic\" and \"pinned\"."""
     custom_plan: "_models.CustomPlanInput" = rest_field(
         name="customPlan", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -3988,6 +4005,7 @@ class CustomSubscriptionCreate(_Model):
         self,
         *,
         custom_plan: "_models.CustomPlanInput",
+        cost_basis_mode: Optional[Union[str, "_models.SubscriptionCostBasisMode"]] = None,
         timing: Optional["_types.SubscriptionTiming"] = None,
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
@@ -12167,6 +12185,9 @@ class PlanSubscriptionChange(_Model):
     :ivar settlement_mode: The settlement mode of the subscription. Known values are:
      "credit_then_invoice" and "credit_only".
     :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
+    :ivar cost_basis_mode: Controls how custom-currency cost bases are selected for the new
+     subscription. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: str or ~openmeter.models.SubscriptionCostBasisMode
     """
 
     timing: "_types.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -12199,6 +12220,11 @@ class PlanSubscriptionChange(_Model):
     )
     """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
      \"credit_only\"."""
+    cost_basis_mode: Optional[Union[str, "_models.SubscriptionCostBasisMode"]] = rest_field(
+        name="costBasisMode", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Controls how custom-currency cost bases are selected for the new subscription. Known values
+     are: \"dynamic\" and \"pinned\"."""
 
     @overload
     def __init__(
@@ -12213,6 +12239,7 @@ class PlanSubscriptionChange(_Model):
         description: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
         settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = None,
+        cost_basis_mode: Optional[Union[str, "_models.SubscriptionCostBasisMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -12245,6 +12272,9 @@ class PlanSubscriptionCreate(_Model):
     :ivar settlement_mode: The settlement mode of the subscription. Known values are:
      "credit_then_invoice" and "credit_only".
     :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
+    :ivar cost_basis_mode: Controls how custom-currency cost bases are selected for the new
+     subscription. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: str or ~openmeter.models.SubscriptionCostBasisMode
     :ivar timing: Timing configuration for the change, when the change should take effect. The
      default is immediate. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a
      datetime.datetime type.
@@ -12280,6 +12310,11 @@ class PlanSubscriptionCreate(_Model):
     )
     """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
      \"credit_only\"."""
+    cost_basis_mode: Optional[Union[str, "_models.SubscriptionCostBasisMode"]] = rest_field(
+        name="costBasisMode", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Controls how custom-currency cost bases are selected for the new subscription. Known values
+     are: \"dynamic\" and \"pinned\"."""
     timing: Optional["_types.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
@@ -12312,6 +12347,7 @@ class PlanSubscriptionCreate(_Model):
         name: Optional[str] = None,
         description: Optional[str] = None,
         settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = None,
+        cost_basis_mode: Optional[Union[str, "_models.SubscriptionCostBasisMode"]] = None,
         timing: Optional["_types.SubscriptionTiming"] = None,
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
@@ -13953,6 +13989,10 @@ class Subscription(_Model):
     :vartype plan: ~openmeter._generated.models.PlanReference
     :ivar currency: Currency. Required.
     :vartype currency: str
+    :ivar cost_basis_mode: Cost basis mode. Required. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: str or ~openmeter.models.SubscriptionCostBasisMode
+    :ivar cost_basis_pins: Pinned cost bases. Required.
+    :vartype cost_basis_pins: list[~openmeter._generated.models.SubscriptionCostBasisPin]
     :ivar billing_cadence: Billing cadence. Required.
     :vartype billing_cadence: ~datetime.timedelta
     :ivar pro_rating_config: Pro-rating configuration.
@@ -13999,6 +14039,12 @@ class Subscription(_Model):
     """The plan of the subscription."""
     currency: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Currency. Required."""
+    cost_basis_mode: Union[str, "_models.SubscriptionCostBasisMode"] = rest_field(
+        name="costBasisMode", visibility=["read"]
+    )
+    """Cost basis mode. Required. Known values are: \"dynamic\" and \"pinned\"."""
+    cost_basis_pins: list["_models.SubscriptionCostBasisPin"] = rest_field(name="costBasisPins", visibility=["read"])
+    """Pinned cost bases. Required."""
     billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read"])
     """Billing cadence. Required."""
     pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(name="proRatingConfig", visibility=["read"])
@@ -14609,6 +14655,25 @@ class SubscriptionConflictErrorResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
+class SubscriptionCostBasisPin(_Model):
+    """A cost basis pinned to a custom-currency pair for the subscription.
+
+    :ivar custom_currency_id: The managed custom currency ID. Required.
+    :vartype custom_currency_id: str
+    :ivar invoice_currency: The fiat currency in which the subscription is invoiced. Required.
+    :vartype invoice_currency: str
+    :ivar cost_basis_id: The pinned cost basis resource ID. Required.
+    :vartype cost_basis_id: str
+    """
+
+    custom_currency_id: str = rest_field(name="customCurrencyId", visibility=["read"])
+    """The managed custom currency ID. Required."""
+    invoice_currency: str = rest_field(name="invoiceCurrency", visibility=["read"])
+    """The fiat currency in which the subscription is invoiced. Required."""
+    cost_basis_id: str = rest_field(name="costBasisId", visibility=["read"])
+    """The pinned cost basis resource ID. Required."""
+
+
 class SubscriptionEdit(_Model):
     """Subscription edit input.
 
@@ -14689,6 +14754,10 @@ class SubscriptionExpanded(_Model):
     :vartype plan: ~openmeter._generated.models.PlanReference
     :ivar currency: Currency. Required.
     :vartype currency: str
+    :ivar cost_basis_mode: Cost basis mode. Required. Known values are: "dynamic" and "pinned".
+    :vartype cost_basis_mode: str or ~openmeter.models.SubscriptionCostBasisMode
+    :ivar cost_basis_pins: Pinned cost bases. Required.
+    :vartype cost_basis_pins: list[~openmeter._generated.models.SubscriptionCostBasisPin]
     :ivar billing_cadence: Billing cadence. Required.
     :vartype billing_cadence: ~datetime.timedelta
     :ivar pro_rating_config: Pro-rating configuration.
@@ -14737,6 +14806,12 @@ class SubscriptionExpanded(_Model):
     """The plan of the subscription."""
     currency: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Currency. Required."""
+    cost_basis_mode: Union[str, "_models.SubscriptionCostBasisMode"] = rest_field(
+        name="costBasisMode", visibility=["read"]
+    )
+    """Cost basis mode. Required. Known values are: \"dynamic\" and \"pinned\"."""
+    cost_basis_pins: list["_models.SubscriptionCostBasisPin"] = rest_field(name="costBasisPins", visibility=["read"])
+    """Pinned cost bases. Required."""
     billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read"])
     """Billing cadence. Required."""
     pro_rating_config: Optional["_models.ProRatingConfig"] = rest_field(name="proRatingConfig", visibility=["read"])
@@ -14821,6 +14896,8 @@ class SubscriptionItem(_Model):
      colloquially makes sense to say "paying the same price for the same thing". In practice this
      should be derived from what's printed on the invoice line-item. Required.
     :vartype key: str
+    :ivar currency: Currency.
+    :vartype currency: str
     :ivar feature_key: The feature's key (if present).
     :vartype feature_key: str
     :ivar billing_cadence: Billing cadence. Required.
@@ -14880,6 +14957,8 @@ class SubscriptionItem(_Model):
      We say \"referenced by the Price\" regardless of how a price itself is referenced, it
      colloquially makes sense to say \"paying the same price for the same thing\". In practice this
      should be derived from what's printed on the invoice line-item. Required."""
+    currency: Optional[str] = rest_field(visibility=["read"])
+    """Currency."""
     feature_key: Optional[str] = rest_field(
         name="featureKey", visibility=["read", "create", "update", "delete", "query"]
     )

@@ -134,6 +134,10 @@ func (b *testSubscriptionSpecBuilder) AddPhase(dur *datetime.ISODuration, rcs ..
 func (b *testSubscriptionSpecBuilder) Build() (subscription.SubscriptionSpec, error) {
 	spec := b.s
 
+	if err := spec.MaterializeRateCardCurrencies(spec.InvoiceCurrency); err != nil {
+		return spec, fmt.Errorf("failed to materialize currencies: %w", err)
+	}
+
 	if err := spec.SyncAnnotations(); err != nil {
 		return spec, fmt.Errorf("failed to sync annotations: %w", err)
 	}
@@ -159,12 +163,12 @@ func BuildTestSubscriptionSpec(t *testing.T) *testSubscriptionSpecBuilder {
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			},
 			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
-				CustomerId:    "01K6JCPG631MH1EKEQB2YMDBJW",
-				ActiveFrom:    now,
-				ActiveTo:      nil,
-				Name:          "test_subscription",
-				BillingAnchor: now,
-				Currency:      currencyx.Code(currency.USD),
+				CustomerId:      "01K6JCPG631MH1EKEQB2YMDBJW",
+				ActiveFrom:      now,
+				ActiveTo:        nil,
+				Name:            "test_subscription",
+				BillingAnchor:   now,
+				InvoiceCurrency: currencyx.Code(currency.USD),
 			},
 			Phases: make(map[string]*subscription.SubscriptionPhaseSpec),
 		},

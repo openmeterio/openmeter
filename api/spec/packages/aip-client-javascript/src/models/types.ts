@@ -834,6 +834,16 @@ export interface SubscriptionReference {
   phase: { id: string; item: { id: string } }
 }
 
+/** A cost basis pinned to a custom-currency pair for the subscription. */
+export interface SubscriptionCostBasisPin {
+  /** The managed custom currency ID. */
+  customCurrencyId: string
+  /** The fiat currency in which the subscription is invoiced. */
+  invoiceCurrency: string
+  /** The pinned cost basis resource ID. */
+  costBasisId: string
+}
+
 /** Addon reference. */
 export interface AddonReference {
   id: string
@@ -1856,6 +1866,12 @@ export interface VoidCreditGrantRequest {
   paymentAdjustment: 'none'
 }
 
+/** The proration configuration of the rate card. */
+export interface RateCardProrationConfiguration {
+  /** The proration mode of the rate card. */
+  mode: 'no_proration' | 'prorate_prices'
+}
+
 /** Subscription create request. */
 export interface SubscriptionCreate {
   labels?: Labels
@@ -1886,50 +1902,8 @@ export interface SubscriptionCreate {
    * creation time as the billing anchor.
    */
   billingAnchor?: Date
-}
-
-/** The proration configuration of the rate card. */
-export interface RateCardProrationConfiguration {
-  /** The proration mode of the rate card. */
-  mode: 'no_proration' | 'prorate_prices'
-}
-
-/** Subscription. */
-export interface Subscription {
-  id: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The customer ID of the subscription. */
-  customerId: string
-  /** The plan ID of the subscription. Set if subscription is created from a plan. */
-  planId?: string
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   */
-  billingAnchor: Date
-  /** The status of the subscription. */
-  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode: 'dynamic' | 'pinned'
 }
 
 /**
@@ -2576,6 +2550,53 @@ export interface UpdateOrganizationDefaultTaxCodesRequest {
   creditGrantTaxCode?: TaxCodeReference
 }
 
+/** Subscription. */
+export interface Subscription {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The customer ID of the subscription. */
+  customerId: string
+  /** The plan ID of the subscription. Set if subscription is created from a plan. */
+  planId?: string
+  /** The fiat currency in which the subscription is invoiced. */
+  invoiceCurrency: string
+  /**
+   * Controls whether custom-currency cost bases are resolved dynamically or pinned
+   * when their currency pair is introduced to the subscription.
+   */
+  costBasisMode: 'dynamic' | 'pinned'
+  /** Cost bases pinned to custom-currency pairs for this subscription. */
+  costBasisPins: SubscriptionCostBasisPin[]
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   */
+  billingAnchor: Date
+  /** The status of the subscription. */
+  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+}
+
 /**
  * PlanAddon represents an association between a plan and an add-on, controlling
  * which add-ons are available for purchase within a plan.
@@ -3021,20 +3042,6 @@ export interface ChargeFlatFeeSystemIntent {
   deletedAt?: Date
 }
 
-/** Page paginated response. */
-export interface SubscriptionPagePaginatedResponse {
-  data: Subscription[]
-  meta: PaginatedMeta
-}
-
-/** Response for changing a subscription. */
-export interface SubscriptionChangeResponse {
-  /** The current subscription before the change. */
-  current: Subscription
-  /** The new state of the subscription after the change. */
-  next: Subscription
-}
-
 /** Request for canceling a subscription. */
 export interface SubscriptionCancel {
   /** If not provided the subscription is canceled immediately. */
@@ -3071,6 +3078,8 @@ export interface SubscriptionChange {
    * creation time as the billing anchor.
    */
   billingAnchor?: Date
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode: 'dynamic' | 'pinned'
   /**
    * Timing configuration for the change, when the change should take effect. For
    * changing a subscription, the accepted values depend on the subscription
@@ -3579,6 +3588,20 @@ export interface WorkflowTaxSettings {
    * and `behavior` remains fully supported.
    */
   defaultTaxConfig?: TaxConfig
+}
+
+/** Page paginated response. */
+export interface SubscriptionPagePaginatedResponse {
+  data: Subscription[]
+  meta: PaginatedMeta
+}
+
+/** Response for changing a subscription. */
+export interface SubscriptionChangeResponse {
+  /** The current subscription before the change. */
+  current: Subscription
+  /** The new state of the subscription after the change. */
+  next: Subscription
 }
 
 /** Page paginated response. */
@@ -5750,6 +5773,40 @@ export interface VoidCreditGrantRequestInput {
   paymentAdjustment?: 'none'
 }
 
+/** Subscription create request. */
+export interface SubscriptionCreateInput {
+  labels?: Labels
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** The customer to create the subscription for. */
+  customer: { id?: string; key?: string }
+  /** The plan reference of the subscription. */
+  plan: { id?: string; key?: string; version?: number }
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
+   */
+  billingAnchor?: Date
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode?: 'dynamic' | 'pinned'
+}
+
 /**
  * Unit conversion configuration.
  *
@@ -5834,6 +5891,53 @@ export interface GovernanceQueryRequestInput {
   feature?: GovernanceQueryRequestFeatures
 }
 
+/** Subscription. */
+export interface SubscriptionInput {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The customer ID of the subscription. */
+  customerId: string
+  /** The plan ID of the subscription. Set if subscription is created from a plan. */
+  planId?: string
+  /** The fiat currency in which the subscription is invoiced. */
+  invoiceCurrency: string
+  /**
+   * Controls whether custom-currency cost bases are resolved dynamically or pinned
+   * when their currency pair is introduced to the subscription.
+   */
+  costBasisMode?: 'dynamic' | 'pinned'
+  /** Cost bases pinned to custom-currency pairs for this subscription. */
+  costBasisPins: SubscriptionCostBasisPin[]
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   */
+  billingAnchor: Date
+  /** The status of the subscription. */
+  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+}
+
 /** An ingested metering event with ingestion metadata. */
 export interface IngestedEventInput {
   /** The original event ingested. */
@@ -5852,6 +5956,46 @@ export interface IngestedEventInput {
 export interface SubscriptionCancelInput {
   /** If not provided the subscription is canceled immediately. */
   timing?: SubscriptionEditTiming
+}
+
+/** Request for changing a subscription. */
+export interface SubscriptionChangeInput {
+  labels?: Labels
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** The customer to create the subscription for. */
+  customer: { id?: string; key?: string }
+  /** The plan reference of the subscription. */
+  plan: { id?: string; key?: string; version?: number }
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
+   */
+  billingAnchor?: Date
+  /** Controls how custom-currency cost bases are selected for the subscription. */
+  costBasisMode?: 'dynamic' | 'pinned'
+  /**
+   * Timing configuration for the change, when the change should take effect. For
+   * changing a subscription, the accepted values depend on the subscription
+   * configuration.
+   */
+  timing: SubscriptionEditTiming
 }
 
 /**
@@ -6061,6 +6205,20 @@ export interface WorkflowTaxSettingsInput {
    * and `behavior` remains fully supported.
    */
   defaultTaxConfig?: TaxConfig
+}
+
+/** Page paginated response. */
+export interface SubscriptionPagePaginatedResponseInput {
+  data: SubscriptionInput[]
+  meta: PaginatedMeta
+}
+
+/** Response for changing a subscription. */
+export interface SubscriptionChangeResponseInput {
+  /** The current subscription before the change. */
+  current: SubscriptionInput
+  /** The new state of the subscription after the change. */
+  next: SubscriptionInput
 }
 
 /** Cursor paginated response. */

@@ -7986,6 +7986,9 @@ components:
         - created_at
         - updated_at
         - customer_id
+        - invoice_currency
+        - cost_basis_mode
+        - cost_basis_pins
         - billing_anchor
         - status
       properties:
@@ -8021,6 +8024,28 @@ components:
             - $ref: '#/components/schemas/ULID'
           description: The plan ID of the subscription. Set if subscription is created from a plan.
           title: Plan ID
+          readOnly: true
+        invoice_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency in which the subscription is invoiced.
+          title: Invoice currency
+          readOnly: true
+        cost_basis_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionCostBasisMode'
+          description: |-
+            Controls whether custom-currency cost bases are resolved dynamically or pinned
+            when their currency pair is introduced to the subscription.
+          title: Cost basis mode
+          default: dynamic
+          readOnly: true
+        cost_basis_pins:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingSubscriptionCostBasisPin'
+          description: Cost bases pinned to custom-currency pairs for this subscription.
+          title: Pinned cost bases
           readOnly: true
         billing_anchor:
           allOf:
@@ -8154,6 +8179,12 @@ components:
             If not provided, the subscription will be created with the subscription's
             creation time as the billing anchor.
           title: Billing anchor
+        cost_basis_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionCostBasisMode'
+          description: Controls how custom-currency cost bases are selected for the subscription.
+          title: Cost basis mode
+          default: dynamic
         timing:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionEditTiming'
@@ -8179,6 +8210,36 @@ components:
           description: The new state of the subscription after the change.
       additionalProperties: false
       description: Response for changing a subscription.
+    BillingSubscriptionCostBasisMode:
+      type: string
+      enum:
+        - dynamic
+        - pinned
+      description: Controls how custom-currency cost bases are selected for the subscription.
+    BillingSubscriptionCostBasisPin:
+      type: object
+      required:
+        - custom_currency_id
+        - invoice_currency
+        - cost_basis_id
+      properties:
+        custom_currency_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The managed custom currency ID.
+          readOnly: true
+        invoice_currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency in which the subscription is invoiced.
+          readOnly: true
+        cost_basis_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The pinned cost basis resource ID.
+          readOnly: true
+      additionalProperties: false
+      description: A cost basis pinned to a custom-currency pair for the subscription.
     BillingSubscriptionCreate:
       type: object
       required:
@@ -8267,6 +8328,12 @@ components:
             If not provided, the subscription will be created with the subscription's
             creation time as the billing anchor.
           title: Billing anchor
+        cost_basis_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionCostBasisMode'
+          description: Controls how custom-currency cost bases are selected for the subscription.
+          title: Cost basis mode
+          default: dynamic
       additionalProperties: false
       description: Subscription create request.
     BillingSubscriptionEditTiming:

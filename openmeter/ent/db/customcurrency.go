@@ -51,9 +51,11 @@ type CustomCurrencyEdges struct {
 	AddonRateCards []*AddonRateCard `json:"addon_rate_cards,omitempty"`
 	// SubscriptionItems holds the value of the subscription_items edge.
 	SubscriptionItems []*SubscriptionItem `json:"subscription_items,omitempty"`
+	// SubscriptionCostBasisPins holds the value of the subscription_cost_basis_pins edge.
+	SubscriptionCostBasisPins []*SubscriptionCostBasisPin `json:"subscription_cost_basis_pins,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
 }
 
 // CostBasisHistoryOrErr returns the CostBasisHistory value or an error if the edge
@@ -108,6 +110,15 @@ func (e CustomCurrencyEdges) SubscriptionItemsOrErr() ([]*SubscriptionItem, erro
 		return e.SubscriptionItems, nil
 	}
 	return nil, &NotLoadedError{edge: "subscription_items"}
+}
+
+// SubscriptionCostBasisPinsOrErr returns the SubscriptionCostBasisPins value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) SubscriptionCostBasisPinsOrErr() ([]*SubscriptionCostBasisPin, error) {
+	if e.loadedTypes[6] {
+		return e.SubscriptionCostBasisPins, nil
+	}
+	return nil, &NotLoadedError{edge: "subscription_cost_basis_pins"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -224,6 +235,11 @@ func (_m *CustomCurrency) QueryAddonRateCards() *AddonRateCardQuery {
 // QuerySubscriptionItems queries the "subscription_items" edge of the CustomCurrency entity.
 func (_m *CustomCurrency) QuerySubscriptionItems() *SubscriptionItemQuery {
 	return NewCustomCurrencyClient(_m.config).QuerySubscriptionItems(_m)
+}
+
+// QuerySubscriptionCostBasisPins queries the "subscription_cost_basis_pins" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QuerySubscriptionCostBasisPins() *SubscriptionCostBasisPinQuery {
+	return NewCustomCurrencyClient(_m.config).QuerySubscriptionCostBasisPins(_m)
 }
 
 // Update returns a builder for updating this CustomCurrency.

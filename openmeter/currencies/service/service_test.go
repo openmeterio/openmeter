@@ -31,6 +31,7 @@ func (noopDriver) SavePoint() error { return nil }
 type fakeAdapter struct {
 	custom          []currencies.Currency
 	createCostBasis func(context.Context, currencies.CreateCostBasisInput) (currencies.CostBasis, error)
+	getCostBasisAt  func(context.Context, currencies.GetCostBasisAtInput) (currencies.CostBasis, error)
 }
 
 func (f *fakeAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
@@ -65,6 +66,14 @@ func (f *fakeAdapter) CreateCostBasis(ctx context.Context, input currencies.Crea
 
 func (f *fakeAdapter) ListCostBases(_ context.Context, _ currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
 	return pagination.Result[currencies.CostBasis]{}, errors.New("fakeAdapter.ListCostBases is not implemented")
+}
+
+func (f *fakeAdapter) GetCostBasisAt(ctx context.Context, input currencies.GetCostBasisAtInput) (currencies.CostBasis, error) {
+	if f.getCostBasisAt != nil {
+		return f.getCostBasisAt(ctx, input)
+	}
+
+	return currencies.CostBasis{}, errors.New("fakeAdapter.GetCostBasisAt is not implemented")
 }
 
 // newTestService creates a Service backed by a fake adapter seeded with custom currencies.

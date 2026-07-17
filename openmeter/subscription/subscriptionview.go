@@ -58,8 +58,25 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 		return fmt.Errorf("subscription customer id %s does not match spec customer id %s", s.Subscription.CustomerId, spec.CustomerId)
 	}
 
-	if spec.Currency != s.Subscription.Currency {
-		return fmt.Errorf("subscription currency %s does not match spec currency %s", s.Subscription.Currency, spec.Currency)
+	if spec.InvoiceCurrency != s.Subscription.InvoiceCurrency {
+		return fmt.Errorf("subscription invoice currency %s does not match spec invoice currency %s", s.Subscription.InvoiceCurrency, spec.InvoiceCurrency)
+	}
+
+	if spec.CostBasisMode.OrDefault() != s.Subscription.CostBasisMode.OrDefault() {
+		return fmt.Errorf("subscription cost basis mode %s does not match spec cost basis mode %s", s.Subscription.CostBasisMode.OrDefault(), spec.CostBasisMode.OrDefault())
+	}
+
+	if !s.Subscription.CostBasisMode.IsPinned() && len(s.Subscription.CostBasisPins) != 0 {
+		return fmt.Errorf("dynamic subscription cannot have pinned cost bases")
+	}
+
+	for _, pin := range s.Subscription.CostBasisPins {
+		if err := pin.Validate(); err != nil {
+			return fmt.Errorf("subscription cost basis pin is invalid: %w", err)
+		}
+		if pin.Namespace != s.Subscription.Namespace || pin.InvoiceCurrency != s.Subscription.InvoiceCurrency {
+			return fmt.Errorf("subscription cost basis pin does not belong to subscription invoice currency")
+		}
 	}
 
 	if !spec.Plan.NilEqual(s.Subscription.PlanRef) {
@@ -249,14 +266,15 @@ func NewSubscriptionView(
 			SettlementMode:  sub.SettlementMode,
 		},
 		CreateSubscriptionCustomerInput: CreateSubscriptionCustomerInput{
-			CustomerId:    sub.CustomerId,
-			Currency:      sub.Currency,
-			ActiveFrom:    sub.ActiveFrom,
-			ActiveTo:      sub.ActiveTo,
-			MetadataModel: sub.MetadataModel,
-			Name:          sub.Name,
-			Description:   sub.Description,
-			BillingAnchor: sub.BillingAnchor,
+			CustomerId:      sub.CustomerId,
+			InvoiceCurrency: sub.InvoiceCurrency,
+			CostBasisMode:   sub.CostBasisMode,
+			ActiveFrom:      sub.ActiveFrom,
+			ActiveTo:        sub.ActiveTo,
+			MetadataModel:   sub.MetadataModel,
+			Name:            sub.Name,
+			Description:     sub.Description,
+			BillingAnchor:   sub.BillingAnchor,
 		},
 		Phases: make(map[string]*SubscriptionPhaseSpec),
 	}

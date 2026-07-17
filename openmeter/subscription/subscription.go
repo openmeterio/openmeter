@@ -22,8 +22,11 @@ type Subscription struct {
 	// References the plan (if the Subscription was created form one)
 	PlanRef *PlanRef `json:"planRef"`
 
-	CustomerId string         `json:"customerId,omitempty"`
-	Currency   currencyx.Code `json:"currency,omitempty"`
+	CustomerId string `json:"customerId,omitempty"`
+	// Keep the legacy JSON key because v1 subscription events embed this domain type.
+	InvoiceCurrency currencyx.Code `json:"currency,omitempty"`
+	CostBasisMode   CostBasisMode  `json:"costBasisMode"`
+	CostBasisPins   []CostBasisPin `json:"costBasisPins,omitempty"`
 
 	BillingCadence  datetime.ISODuration           `json:"billing_cadence"`
 	BillingAnchor   time.Time                      `json:"billingAnchor"`
@@ -45,7 +48,8 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 		Name:            s.Name,
 		Description:     s.Description,
 		CustomerId:      s.CustomerId,
-		Currency:        s.Currency,
+		InvoiceCurrency: s.InvoiceCurrency,
+		CostBasisMode:   s.CostBasisMode,
 		BillingCadence:  s.BillingCadence,
 		BillingAnchor:   s.BillingAnchor,
 		ProRatingConfig: s.ProRatingConfig,

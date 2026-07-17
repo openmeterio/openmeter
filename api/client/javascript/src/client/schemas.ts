@@ -3825,6 +3825,8 @@ export interface components {
      * @example USD
      */
     CurrencyCode: string
+    /** @description Fiat or managed custom currency code. */
+    CurrencyCodeOrCustom: string
     /**
      * @description Custom Invoicing app can be used for interface with any invoicing or payment system.
      *
@@ -4130,6 +4132,11 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       billingAnchor?: Date
+      /**
+       * @description Controls how custom-currency cost bases are selected for the new subscription.
+       * @default dynamic
+       */
+      costBasisMode?: components['schemas']['SubscriptionCostBasisMode']
       /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
     }
@@ -4138,6 +4145,11 @@ export interface components {
      * @description Create a custom subscription.
      */
     CustomSubscriptionCreate: {
+      /**
+       * @description Controls how custom-currency cost bases are selected for the new subscription.
+       * @default dynamic
+       */
+      costBasisMode?: components['schemas']['SubscriptionCostBasisMode']
       /** @description The custom plan description which defines the Subscription. */
       customPlan: components['schemas']['CustomPlanInput']
       /**
@@ -9927,6 +9939,11 @@ export interface components {
       billingAnchor?: Date
       /** @description The settlement mode of the subscription. */
       settlementMode?: components['schemas']['BillingSettlementMode']
+      /**
+       * @description Controls how custom-currency cost bases are selected for the new subscription.
+       * @default dynamic
+       */
+      costBasisMode?: components['schemas']['SubscriptionCostBasisMode']
     }
     /**
      * Create from plan
@@ -9950,6 +9967,11 @@ export interface components {
       description?: string
       /** @description The settlement mode of the subscription. */
       settlementMode?: components['schemas']['BillingSettlementMode']
+      /**
+       * @description Controls how custom-currency cost bases are selected for the new subscription.
+       * @default dynamic
+       */
+      costBasisMode?: components['schemas']['SubscriptionCostBasisMode']
       /**
        * @description Timing configuration for the change, when the change should take effect.
        *     The default is immediate.
@@ -11037,11 +11059,22 @@ export interface components {
       plan?: components['schemas']['PlanReference']
       /**
        * Currency
-       * @description The currency code of the subscription.
-       *     Will be revised once we add multi currency support.
+       * @description The fiat currency in which the subscription is invoiced.
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
+      /**
+       * Cost basis mode
+       * @description Controls whether custom-currency cost bases are resolved dynamically or pinned
+       *     when their currency pair is introduced to the subscription.
+       * @default dynamic
+       */
+      readonly costBasisMode: components['schemas']['SubscriptionCostBasisMode']
+      /**
+       * Pinned cost bases
+       * @description Cost bases pinned to custom-currency pairs for this subscription.
+       */
+      readonly costBasisPins: components['schemas']['SubscriptionCostBasisPin'][]
       /**
        * Billing cadence
        * Format: duration
@@ -11409,6 +11442,26 @@ export interface components {
       /** @description Additional properties specific to the problem type may be present. */
       extensions?: components['schemas']['SubscriptionErrorExtensions']
     }
+    /**
+     * @description Controls how custom-currency cost bases are selected for the subscription.
+     * @enum {string}
+     */
+    SubscriptionCostBasisMode: 'dynamic' | 'pinned'
+    /** @description A cost basis pinned to a custom-currency pair for the subscription. */
+    SubscriptionCostBasisPin: {
+      /**
+       * @description The managed custom currency ID.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly customCurrencyId: string
+      /** @description The fiat currency in which the subscription is invoiced. */
+      readonly invoiceCurrency: components['schemas']['CurrencyCode']
+      /**
+       * @description The pinned cost basis resource ID.
+       * @example 01G65Z755AFWAKHE12NY0CQ9FH
+       */
+      readonly costBasisId: string
+    }
     /** @description Create a subscription. */
     SubscriptionCreate:
       | components['schemas']['PlanSubscriptionCreate']
@@ -11507,11 +11560,22 @@ export interface components {
       plan?: components['schemas']['PlanReference']
       /**
        * Currency
-       * @description The currency code of the subscription.
-       *     Will be revised once we add multi currency support.
+       * @description The fiat currency in which the subscription is invoiced.
        * @default USD
        */
       currency: components['schemas']['CurrencyCode']
+      /**
+       * Cost basis mode
+       * @description Controls whether custom-currency cost bases are resolved dynamically or pinned
+       *     when their currency pair is introduced to the subscription.
+       * @default dynamic
+       */
+      readonly costBasisMode: components['schemas']['SubscriptionCostBasisMode']
+      /**
+       * Pinned cost bases
+       * @description Cost bases pinned to custom-currency pairs for this subscription.
+       */
+      readonly costBasisPins: components['schemas']['SubscriptionCostBasisPin'][]
       /**
        * Billing cadence
        * Format: duration
@@ -11620,6 +11684,11 @@ export interface components {
        *     We say "referenced by the Price" regardless of how a price itself is referenced, it colloquially makes sense to say "paying the same price for the same thing". In practice this should be derived from what's printed on the invoice line-item.
        */
       key: string
+      /**
+       * Currency
+       * @description The materialized currency of the item's rate card. Present for priced items.
+       */
+      readonly currency?: components['schemas']['CurrencyCodeOrCustom']
       /** @description The feature's key (if present). */
       featureKey?: string
       /**
@@ -12569,6 +12638,7 @@ export type CreditNoteOriginalInvoiceRef =
   components['schemas']['CreditNoteOriginalInvoiceRef']
 export type Currency = components['schemas']['Currency']
 export type CurrencyCode = components['schemas']['CurrencyCode']
+export type CurrencyCodeOrCustom = components['schemas']['CurrencyCodeOrCustom']
 export type CustomInvoicingApp = components['schemas']['CustomInvoicingApp']
 export type CustomInvoicingAppReplaceUpdate =
   components['schemas']['CustomInvoicingAppReplaceUpdate']
@@ -13003,6 +13073,10 @@ export type SubscriptionChangeResponseBody =
   components['schemas']['SubscriptionChangeResponseBody']
 export type SubscriptionConflictErrorResponse =
   components['schemas']['SubscriptionConflictErrorResponse']
+export type SubscriptionCostBasisMode =
+  components['schemas']['SubscriptionCostBasisMode']
+export type SubscriptionCostBasisPin =
+  components['schemas']['SubscriptionCostBasisPin']
 export type SubscriptionCreate = components['schemas']['SubscriptionCreate']
 export type SubscriptionEdit = components['schemas']['SubscriptionEdit']
 export type SubscriptionEditOperation =

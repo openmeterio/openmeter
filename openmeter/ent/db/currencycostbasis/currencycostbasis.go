@@ -34,6 +34,8 @@ const (
 	FieldEffectiveTo = "effective_to"
 	// EdgeCurrency holds the string denoting the currency edge name in mutations.
 	EdgeCurrency = "currency"
+	// EdgeSubscriptionPins holds the string denoting the subscription_pins edge name in mutations.
+	EdgeSubscriptionPins = "subscription_pins"
 	// Table holds the table name of the currencycostbasis in the database.
 	Table = "currency_cost_bases"
 	// CurrencyTable is the table that holds the currency relation/edge.
@@ -43,6 +45,13 @@ const (
 	CurrencyInverseTable = "custom_currencies"
 	// CurrencyColumn is the table column denoting the currency relation/edge.
 	CurrencyColumn = "currency_id"
+	// SubscriptionPinsTable is the table that holds the subscription_pins relation/edge.
+	SubscriptionPinsTable = "subscription_cost_basis_pins"
+	// SubscriptionPinsInverseTable is the table name for the SubscriptionCostBasisPin entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptioncostbasispin" package.
+	SubscriptionPinsInverseTable = "subscription_cost_basis_pins"
+	// SubscriptionPinsColumn is the table column denoting the subscription_pins relation/edge.
+	SubscriptionPinsColumn = "cost_basis_id"
 )
 
 // Columns holds all SQL columns for currencycostbasis fields.
@@ -143,10 +152,31 @@ func ByCurrencyField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCurrencyStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// BySubscriptionPinsCount orders the results by subscription_pins count.
+func BySubscriptionPinsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSubscriptionPinsStep(), opts...)
+	}
+}
+
+// BySubscriptionPins orders the results by subscription_pins terms.
+func BySubscriptionPins(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionPinsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCurrencyStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CurrencyInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, CurrencyTable, CurrencyColumn),
+	)
+}
+func newSubscriptionPinsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionPinsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionPinsTable, SubscriptionPinsColumn),
 	)
 }

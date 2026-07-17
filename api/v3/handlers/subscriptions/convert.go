@@ -32,16 +32,28 @@ func FromAPISubscriptionSortField(ctx context.Context, field string) (subscripti
 }
 
 func ToAPIBillingSubscription(subscription subscription.Subscription) api.BillingSubscription {
+	costBasisPins := make([]api.BillingSubscriptionCostBasisPin, 0, len(subscription.CostBasisPins))
+	for _, pin := range subscription.CostBasisPins {
+		costBasisPins = append(costBasisPins, api.BillingSubscriptionCostBasisPin{
+			CustomCurrencyId: pin.CustomCurrencyID,
+			InvoiceCurrency:  pin.InvoiceCurrency.String(),
+			CostBasisId:      pin.CostBasis.ID,
+		})
+	}
+
 	subscriptionAPI := api.BillingSubscription{
-		Id:             subscription.ID,
-		CustomerId:     subscription.CustomerId,
-		BillingAnchor:  subscription.BillingAnchor,
-		SettlementMode: lo.ToPtr(api.BillingSettlementMode(subscription.SettlementMode)),
-		Status:         api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
-		Labels:         labels.FromMetadataAnnotations(subscription.Metadata, subscription.Annotations),
-		CreatedAt:      subscription.CreatedAt,
-		UpdatedAt:      subscription.UpdatedAt,
-		DeletedAt:      subscription.DeletedAt,
+		Id:              subscription.ID,
+		CustomerId:      subscription.CustomerId,
+		InvoiceCurrency: subscription.InvoiceCurrency.String(),
+		CostBasisMode:   api.BillingSubscriptionCostBasisMode(subscription.CostBasisMode.OrDefault()),
+		CostBasisPins:   costBasisPins,
+		BillingAnchor:   subscription.BillingAnchor,
+		SettlementMode:  lo.ToPtr(api.BillingSettlementMode(subscription.SettlementMode)),
+		Status:          api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
+		Labels:          labels.FromMetadataAnnotations(subscription.Metadata, subscription.Annotations),
+		CreatedAt:       subscription.CreatedAt,
+		UpdatedAt:       subscription.UpdatedAt,
+		DeletedAt:       subscription.DeletedAt,
 	}
 
 	// Only set if the subscription is created from a plan
@@ -95,7 +107,8 @@ func FromAPIBillingSubscriptionCreate(
 		CustomerID:    customerID.ID,
 		BillingAnchor: createSubscriptionRequest.BillingAnchor,
 		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
-			Name: subscriptionName,
+			Name:          subscriptionName,
+			CostBasisMode: subscription.CostBasisMode(lo.FromPtr(createSubscriptionRequest.CostBasisMode)),
 			Timing: subscription.Timing{
 				// TODO: accept from request
 				Enum: lo.ToPtr(subscription.TimingImmediate),

@@ -1627,7 +1627,7 @@ func (n NoopSubscriptionService) Create(ctx context.Context, namespace string, s
 	return subscription.Subscription{}, nil
 }
 
-func (n NoopSubscriptionService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec) (subscription.Subscription, error) {
+func (n NoopSubscriptionService) Update(ctx context.Context, subscriptionID models.NamespacedID, target subscription.SubscriptionSpec, options ...subscription.UpdateOption) (subscription.Subscription, error) {
 	return subscription.Subscription{}, nil
 }
 
@@ -2117,6 +2117,10 @@ func (n NoopCurrencyService) CreateCostBasis(ctx context.Context, params currenc
 
 func (n NoopCurrencyService) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
 	return pagination.Result[currencies.CostBasis]{}, nil
+}
+
+func (n NoopCurrencyService) GetCostBasisAt(ctx context.Context, params currencies.GetCostBasisAtInput) (currencies.CostBasis, error) {
+	return currencies.CostBasis{}, nil
 }
 
 // NoopLLMCostService implements llmcost.Service with no-op operations

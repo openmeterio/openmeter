@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -66,19 +67,25 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			return def, fmt.Errorf("failed to resolve active from: %w", err)
 		}
 
+		invoiceCurrency, err := resolveSubscriptionInvoiceCurrency(*cus, plan)
+		if err != nil {
+			return def, err
+		}
+
 		// Let's normalize the billing anchor to the closest iteration based on the cadence
 		billingAnchor := lo.FromPtrOr(inp.BillingAnchor, activeFrom).UTC()
 
 		// Let's create the new Spec
 		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    cus.ID,
-			Currency:      plan.Currency().GetCode(),
-			ActiveFrom:    activeFrom,
-			MetadataModel: inp.MetadataModel,
-			Name:          lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
-			Description:   inp.Description,
-			BillingAnchor: billingAnchor,
-			Annotations:   inp.Annotations,
+			CustomerId:      cus.ID,
+			InvoiceCurrency: invoiceCurrency,
+			CostBasisMode:   inp.CostBasisMode,
+			ActiveFrom:      activeFrom,
+			MetadataModel:   inp.MetadataModel,
+			Name:            lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
+			Description:     inp.Description,
+			BillingAnchor:   billingAnchor,
+			Annotations:     inp.Annotations,
 		})
 
 		if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {
@@ -97,6 +104,126 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 
 		return s.Service.GetView(ctx, sub.NamespacedID)
 	})
+}
+
+func resolveSubscriptionInvoiceCurrency(cus customer.Customer, plan subscription.Plan) (currencyx.Code, error) {
+	planCurrency := plan.Currency()
+	if planCurrency == nil {
+		return "", models.NewGenericValidationError(errors.New("plan currency is required"))
+	}
+	if err := planCurrency.Validate(); err != nil {
+		return "", models.NewGenericValidationError(fmt.Errorf("invalid plan currency: %w", err))
+	}
+
+	if cus.Currency == nil {
+		if planCurrency.IsFiat() {
+			return planCurrency.GetCode(), nil
+		}
+
+		return "", models.NewGenericValidationError(fmt.Errorf(
+			"customer currency is required when plan currency %q is custom",
+			planCurrency.GetCode(),
+		))
+	}
+
+	if !cus.Currency.IsFiat() {
+		return "", models.NewGenericValidationError(fmt.Errorf("customer currency %q must be fiat", *cus.Currency))
+	}
+
+	if planCurrency.IsFiat() && planCurrency.GetCode() != *cus.Currency {
+		return "", models.NewGenericValidationError(fmt.Errorf(
+			"currency mismatch: customer currency is %s, but plan currency is %s",
+			*cus.Currency,
+			planCurrency.GetCode(),
+		))
+	}
+
+	return *cus.Currency, nil
+}
+
+// resolveEditPatchCurrency materializes the currency of a newly authored priced
+// item before it is applied. Subscription specs require managed identities for
+// custom currencies, but API patches only carry their public currency code.
+func (s *service) resolveEditPatchCurrency(ctx context.Context, namespace string, invoiceCurrency currencyx.Code, customization subscription.Patch) (subscription.Patch, error) {
+	switch addItem := customization.(type) {
+	case patch.PatchAddItem:
+		if err := s.resolveEditAddItemCurrency(ctx, namespace, invoiceCurrency, &addItem); err != nil {
+			return nil, err
+		}
+
+		return addItem, nil
+	case *patch.PatchAddItem:
+		if addItem == nil {
+			return nil, errors.New("add-item patch is required")
+		}
+
+		if err := s.resolveEditAddItemCurrency(ctx, namespace, invoiceCurrency, addItem); err != nil {
+			return nil, err
+		}
+
+		return addItem, nil
+	default:
+		return customization, nil
+	}
+}
+
+func (s *service) resolveEditAddItemCurrency(ctx context.Context, namespace string, invoiceCurrency currencyx.Code, addItem *patch.PatchAddItem) error {
+	rateCard := addItem.CreateInput.RateCard
+	if rateCard == nil {
+		return nil
+	}
+
+	meta := rateCard.AsMeta()
+	if meta.Price == nil {
+		return nil
+	}
+
+	identity := meta.Currency
+	if identity == nil {
+		identity = invoiceCurrency
+	}
+
+	fieldSelector := models.NewFieldSelectorGroup(
+		addItem.FieldDescriptor(),
+		models.NewFieldSelector("rateCard"),
+		models.NewFieldSelector("currency"),
+	)
+
+	if err := identity.Validate(); err != nil {
+		return models.ErrorWithFieldPrefix(fieldSelector, productcatalog.ErrCurrencyInvalid)
+	}
+
+	if identity.IsCustom() {
+		if managed, ok := identity.(currencyx.ManagedCurrency); ok && managed.GetID() != "" {
+			return nil
+		}
+	} else if _, ok := identity.(currencyx.Currency); ok {
+		return nil
+	}
+
+	resolved, err := s.CurrencyResolver.Resolve(ctx, namespace, identity.GetCode())
+	if err != nil {
+		if models.IsGenericNotFoundError(err) {
+			return models.ErrorWithFieldPrefix(fieldSelector, productcatalog.ErrCurrencyNotFound)
+		}
+
+		return fmt.Errorf("resolving add-item currency %q: %w", identity.GetCode(), err)
+	}
+	if resolved == nil {
+		return models.ErrorWithFieldPrefix(fieldSelector, productcatalog.ErrCurrencyInvalid)
+	}
+
+	rateCard = rateCard.Clone()
+	if err := rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.Currency = resolved
+		return meta, nil
+	}); err != nil {
+		return fmt.Errorf("setting add-item currency: %w", err)
+	}
+
+	addItem.CreateInput.RateCard = rateCard
+
+	return nil
 }
 
 func (s *service) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error) {
@@ -154,6 +281,18 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 			}
 		}
 
+		// Currency resolution mutates rate card metadata through ChangeMeta, which
+		// validates the complete rate card. Run normal patch validation first so
+		// unrelated errors retain the patch's phase and item field descriptors.
+		for i, customization := range customizations {
+			customization, err = s.resolveEditPatchCurrency(ctx, subscriptionID.Namespace, curr.Spec.InvoiceCurrency, customization)
+			if err != nil {
+				return subscription.SubscriptionView{}, models.ErrorWithComponent(models.ComponentName(fmt.Sprintf("patch[%d]", i)), err)
+			}
+
+			customizations[i] = customization
+		}
+
 		// Let's try to decode when the subscription should be patched
 		if err := timing.ValidateForAction(subscription.SubscriptionActionUpdate, &curr); err != nil {
 			return subscription.SubscriptionView{}, models.NewGenericValidationError(fmt.Errorf("invalid timing: %w", err))
@@ -178,7 +317,7 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 			return subscription.SubscriptionView{}, err
 		}
 
-		sub, err := s.Service.Update(ctx, subscriptionID, spec)
+		sub, err := s.Service.Update(ctx, subscriptionID, spec, subscription.WithCostBasisEffectiveAt(editTime))
 		if err != nil {
 			return subscription.SubscriptionView{}, fmt.Errorf("failed to update subscription: %w", err)
 		}

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -33,14 +34,29 @@ func NewSubscriptionRepo(db *db.Client) *subscriptionRepo {
 	}
 }
 
+func withSubscriptionReferences(q *db.SubscriptionQuery) *db.SubscriptionQuery {
+	return q.
+		WithPlan().
+		WithCostBasisPins(func(q *db.SubscriptionCostBasisPinQuery) {
+			q.WithCostBasis()
+		})
+}
+
 func (r *subscriptionRepo) SetEndOfCadence(ctx context.Context, id models.NamespacedID, at *time.Time) (*subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (*subscription.Subscription, error) {
-		ent, err := repo.db.Subscription.UpdateOneID(id.ID).SetOrClearActiveTo(at).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)
+		_, err := repo.db.Subscription.UpdateOneID(id.ID).SetOrClearActiveTo(at).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)
 		if db.IsNotFound(err) {
 			return nil, subscription.NewSubscriptionNotFoundError(
 				id.ID,
 			)
 		}
+		if err != nil {
+			return nil, err
+		}
+
+		ent, err := withSubscriptionReferences(repo.db.Subscription.Query()).
+			Where(dbsubscription.ID(id.ID), dbsubscription.Namespace(id.Namespace)).
+			Only(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -53,12 +69,19 @@ func (r *subscriptionRepo) SetEndOfCadence(ctx context.Context, id models.Namesp
 
 func (r *subscriptionRepo) UpdateAnnotations(ctx context.Context, id models.NamespacedID, annotations models.Annotations) (*subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (*subscription.Subscription, error) {
-		ent, err := repo.db.Subscription.UpdateOneID(id.ID).SetAnnotations(annotations).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)
+		_, err := repo.db.Subscription.UpdateOneID(id.ID).SetAnnotations(annotations).Where(dbsubscription.Namespace(id.Namespace)).Save(ctx)
 		if db.IsNotFound(err) {
 			return nil, subscription.NewSubscriptionNotFoundError(
 				id.ID,
 			)
 		}
+		if err != nil {
+			return nil, err
+		}
+
+		ent, err := withSubscriptionReferences(repo.db.Subscription.Query()).
+			Where(dbsubscription.ID(id.ID), dbsubscription.Namespace(id.Namespace)).
+			Only(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +94,7 @@ func (r *subscriptionRepo) UpdateAnnotations(ctx context.Context, id models.Name
 
 func (r *subscriptionRepo) GetByID(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
-		res, err := repo.db.Subscription.Query().WithPlan().Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).Where(SubscriptionNotDeletedAt(clock.Now())...).First(ctx)
+		res, err := withSubscriptionReferences(repo.db.Subscription.Query()).Where(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).Where(SubscriptionNotDeletedAt(clock.Now())...).First(ctx)
 
 		if db.IsNotFound(err) {
 			return subscription.Subscription{}, subscription.NewSubscriptionNotFoundError(
@@ -92,7 +115,8 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 		command := repo.db.Subscription.Create().
 			SetNamespace(sub.Namespace).
 			SetCustomerID(sub.CustomerId).
-			SetCurrency(sub.Currency).
+			SetInvoiceCurrency(sub.InvoiceCurrency).
+			SetCostBasisMode(dbsubscription.CostBasisMode(sub.CostBasisMode.OrDefault())).
 			SetBillingCadence(sub.BillingCadence.ISOString()).
 			SetProRatingConfig(sub.ProRatingConfig).
 			SetSettlementMode(sub.SettlementMode).
@@ -120,20 +144,60 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			return subscription.Subscription{}, fmt.Errorf("unexpected nil subscription")
 		}
 
-		if res.PlanID != nil {
-			plan, err := repo.db.Plan.Query().Where(dbplan.ID(*res.PlanID)).First(ctx)
-			if err != nil {
-				return subscription.Subscription{}, fmt.Errorf("failed to fetch plan: %w", err)
-			}
-
-			if plan == nil {
-				return subscription.Subscription{}, fmt.Errorf("unexpected nil plan")
-			}
-
-			res.Edges.Plan = plan
+		res, err = withSubscriptionReferences(repo.db.Subscription.Query()).
+			Where(dbsubscription.ID(res.ID), dbsubscription.Namespace(res.Namespace)).
+			Only(ctx)
+		if err != nil {
+			return subscription.Subscription{}, fmt.Errorf("failed to reload subscription: %w", err)
 		}
 
 		return MapDBSubscription(res)
+	})
+}
+
+func (r *subscriptionRepo) CreateCostBasisPins(ctx context.Context, inputs []subscription.CreateCostBasisPinEntityInput) error {
+	if len(inputs) == 0 {
+		return nil
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, r, func(ctx context.Context, repo *subscriptionRepo) error {
+		builders := make([]*db.SubscriptionCostBasisPinCreate, 0, len(inputs))
+		var errs []error
+
+		for idx, input := range inputs {
+			if input.Namespace == "" {
+				errs = append(errs, fmt.Errorf("input[%d]: namespace is required", idx))
+			}
+			if input.SubscriptionID == "" {
+				errs = append(errs, fmt.Errorf("input[%d]: subscription ID is required", idx))
+			}
+			if input.CustomCurrencyID == "" {
+				errs = append(errs, fmt.Errorf("input[%d]: custom currency ID is required", idx))
+			}
+			if input.CostBasisID == "" {
+				errs = append(errs, fmt.Errorf("input[%d]: cost basis ID is required", idx))
+			}
+			if err := input.InvoiceCurrency.Validate(); err != nil || !input.InvoiceCurrency.IsFiat() {
+				errs = append(errs, fmt.Errorf("input[%d]: invalid invoice currency %q", idx, input.InvoiceCurrency))
+			}
+
+			builders = append(builders, repo.db.SubscriptionCostBasisPin.Create().
+				SetNamespace(input.Namespace).
+				SetSubscriptionID(input.SubscriptionID).
+				SetCustomCurrencyID(input.CustomCurrencyID).
+				SetInvoiceCurrency(input.InvoiceCurrency).
+				SetCostBasisID(input.CostBasisID))
+		}
+
+		if err := errors.Join(errs...); err != nil {
+			return err
+		}
+
+		if _, err := repo.db.SubscriptionCostBasisPin.CreateBulk(builders...).Save(ctx); err != nil {
+			return fmt.Errorf("creating subscription cost basis pins: %w", err)
+		}
+
+		return nil
 	})
 }
 
@@ -155,8 +219,7 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.SubscriptionList, error) {
 		now := clock.Now()
 
-		query := repo.db.Subscription.Query().
-			WithPlan()
+		query := withSubscriptionReferences(repo.db.Subscription.Query())
 
 		notDeletedAtNow := SubscriptionNotDeletedAt(now)
 		if !in.IncludeDeleted {

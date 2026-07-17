@@ -41,8 +41,10 @@ const (
 	FieldPlanID = "plan_id"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
+	// FieldInvoiceCurrency holds the string denoting the invoice_currency field in the database.
+	FieldInvoiceCurrency = "currency"
+	// FieldCostBasisMode holds the string denoting the cost_basis_mode field in the database.
+	FieldCostBasisMode = "cost_basis_mode"
 	// FieldBillingAnchor holds the string denoting the billing_anchor field in the database.
 	FieldBillingAnchor = "billing_anchor"
 	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
@@ -73,6 +75,8 @@ const (
 	EdgeAddons = "addons"
 	// EdgeBillingSyncState holds the string denoting the billing_sync_state edge name in mutations.
 	EdgeBillingSyncState = "billing_sync_state"
+	// EdgeCostBasisPins holds the string denoting the cost_basis_pins edge name in mutations.
+	EdgeCostBasisPins = "cost_basis_pins"
 	// Table holds the table name of the subscription in the database.
 	Table = "subscriptions"
 	// PlanTable is the table that holds the plan relation/edge.
@@ -152,6 +156,13 @@ const (
 	BillingSyncStateInverseTable = "subscription_billing_sync_states"
 	// BillingSyncStateColumn is the table column denoting the billing_sync_state relation/edge.
 	BillingSyncStateColumn = "subscription_id"
+	// CostBasisPinsTable is the table that holds the cost_basis_pins relation/edge.
+	CostBasisPinsTable = "subscription_cost_basis_pins"
+	// CostBasisPinsInverseTable is the table name for the SubscriptionCostBasisPin entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptioncostbasispin" package.
+	CostBasisPinsInverseTable = "subscription_cost_basis_pins"
+	// CostBasisPinsColumn is the table column denoting the cost_basis_pins relation/edge.
+	CostBasisPinsColumn = "subscription_id"
 )
 
 // Columns holds all SQL columns for subscription fields.
@@ -169,7 +180,8 @@ var Columns = []string{
 	FieldDescription,
 	FieldPlanID,
 	FieldCustomerID,
-	FieldCurrency,
+	FieldInvoiceCurrency,
+	FieldCostBasisMode,
 	FieldBillingAnchor,
 	FieldBillingCadence,
 	FieldProRatingConfig,
@@ -201,8 +213,8 @@ var (
 	NameValidator func(string) error
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
+	// InvoiceCurrencyValidator is a validator for the "invoice_currency" field. It is called by the builders before save.
+	InvoiceCurrencyValidator func(string) error
 	// DefaultProRatingConfig holds the default value on creation for the "pro_rating_config" field.
 	DefaultProRatingConfig func() productcatalog.ProRatingConfig
 	// DefaultID holds the default value on creation for the "id" field.
@@ -212,6 +224,32 @@ var (
 		ProRatingConfig field.TypeValueScanner[productcatalog.ProRatingConfig]
 	}
 )
+
+// CostBasisMode defines the type for the "cost_basis_mode" enum field.
+type CostBasisMode string
+
+// CostBasisModeDynamic is the default value of the CostBasisMode enum.
+const DefaultCostBasisMode = CostBasisModeDynamic
+
+// CostBasisMode values.
+const (
+	CostBasisModeDynamic CostBasisMode = "dynamic"
+	CostBasisModePinned  CostBasisMode = "pinned"
+)
+
+func (cbm CostBasisMode) String() string {
+	return string(cbm)
+}
+
+// CostBasisModeValidator is a validator for the "cost_basis_mode" field enum values. It is called by the builders before save.
+func CostBasisModeValidator(cbm CostBasisMode) error {
+	switch cbm {
+	case CostBasisModeDynamic, CostBasisModePinned:
+		return nil
+	default:
+		return fmt.Errorf("subscription: invalid enum value for cost_basis_mode field: %q", cbm)
+	}
+}
 
 const DefaultSettlementMode productcatalog.SettlementMode = "credit_then_invoice"
 
@@ -283,9 +321,14 @@ func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCustomerID, opts...).ToFunc()
 }
 
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+// ByInvoiceCurrency orders the results by the invoice_currency field.
+func ByInvoiceCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceCurrency, opts...).ToFunc()
+}
+
+// ByCostBasisMode orders the results by the cost_basis_mode field.
+func ByCostBasisMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostBasisMode, opts...).ToFunc()
 }
 
 // ByBillingAnchor orders the results by the billing_anchor field.
@@ -440,6 +483,20 @@ func ByBillingSyncStateField(field string, opts ...sql.OrderTermOption) OrderOpt
 		sqlgraph.OrderByNeighborTerms(s, newBillingSyncStateStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByCostBasisPinsCount orders the results by cost_basis_pins count.
+func ByCostBasisPinsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCostBasisPinsStep(), opts...)
+	}
+}
+
+// ByCostBasisPins orders the results by cost_basis_pins terms.
+func ByCostBasisPins(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCostBasisPinsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newPlanStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -515,5 +572,12 @@ func newBillingSyncStateStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingSyncStateInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, BillingSyncStateTable, BillingSyncStateColumn),
+	)
+}
+func newCostBasisPinsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CostBasisPinsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CostBasisPinsTable, CostBasisPinsColumn),
 	)
 }

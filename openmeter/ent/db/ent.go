@@ -96,6 +96,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 
@@ -241,6 +242,7 @@ func checkColumn(t, c string) error {
 			subscriptionaddon.Table:                                subscriptionaddon.ValidColumn,
 			subscriptionaddonquantity.Table:                        subscriptionaddonquantity.ValidColumn,
 			subscriptionbillingsyncstate.Table:                     subscriptionbillingsyncstate.ValidColumn,
+			subscriptioncostbasispin.Table:                         subscriptioncostbasispin.ValidColumn,
 			subscriptionitem.Table:                                 subscriptionitem.ValidColumn,
 			subscriptionphase.Table:                                subscriptionphase.ValidColumn,
 			dbtaxcode.Table:                                        dbtaxcode.ValidColumn,

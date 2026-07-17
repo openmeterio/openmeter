@@ -22,4 +22,5 @@ type CurrencyRepository interface {
 type CostBasisRepository interface {
 	CreateCostBasis(ctx context.Context, params CreateCostBasisInput) (CostBasis, error)
 	ListCostBases(ctx context.Context, params ListCostBasesInput) (pagination.Result[CostBasis], error)
+	GetCostBasisAt(ctx context.Context, params GetCostBasisAtInput) (CostBasis, error)
 }

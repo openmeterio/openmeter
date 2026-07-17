@@ -22,6 +22,13 @@ type BillingSubscription struct {
 	CustomerID string `json:"customer_id"`
 	// The plan ID of the subscription. Set if subscription is created from a plan.
 	PlanID *string `json:"plan_id,omitempty"`
+	// The fiat currency in which the subscription is invoiced.
+	InvoiceCurrency string `json:"invoice_currency"`
+	// Controls whether custom-currency cost bases are resolved dynamically or pinned
+	// when their currency pair is introduced to the subscription.
+	CostBasisMode SubscriptionCostBasisMode `json:"cost_basis_mode"`
+	// Cost bases pinned to custom-currency pairs for this subscription.
+	CostBasisPins []SubscriptionCostBasisPin `json:"cost_basis_pins"`
 	// A billing anchor is the fixed point in time that determines the subscription's
 	// recurring billing cycle. It affects when charges occur and how prorations are
 	// calculated. Common anchors:
@@ -145,6 +152,8 @@ type SubscriptionChange struct {
 	// If not provided, the subscription will be created with the subscription's
 	// creation time as the billing anchor.
 	BillingAnchor *time.Time `json:"billing_anchor,omitempty"`
+	// Controls how custom-currency cost bases are selected for the subscription.
+	CostBasisMode *SubscriptionCostBasisMode `json:"cost_basis_mode,omitempty"`
 	// Timing configuration for the change, when the change should take effect. For
 	// changing a subscription, the accepted values depend on the subscription
 	// configuration.
@@ -189,6 +198,33 @@ type SubscriptionChangeResponse struct {
 	Next BillingSubscription `json:"next"`
 }
 
+// Controls how custom-currency cost bases are selected for the subscription.
+type SubscriptionCostBasisMode string
+
+const (
+	SubscriptionCostBasisModeDynamic SubscriptionCostBasisMode = "dynamic"
+	SubscriptionCostBasisModePinned  SubscriptionCostBasisMode = "pinned"
+)
+
+func (value SubscriptionCostBasisMode) Valid() bool {
+	switch value {
+	case SubscriptionCostBasisModeDynamic, SubscriptionCostBasisModePinned:
+		return true
+	default:
+		return false
+	}
+}
+
+// A cost basis pinned to a custom-currency pair for the subscription.
+type SubscriptionCostBasisPin struct {
+	// The managed custom currency ID.
+	CustomCurrencyID string `json:"custom_currency_id"`
+	// The fiat currency in which the subscription is invoiced.
+	InvoiceCurrency string `json:"invoice_currency"`
+	// The pinned cost basis resource ID.
+	CostBasisID string `json:"cost_basis_id"`
+}
+
 // Subscription create request.
 type SubscriptionCreate struct {
 	Labels *map[string]string `json:"labels,omitempty"`
@@ -215,6 +251,8 @@ type SubscriptionCreate struct {
 	// If not provided, the subscription will be created with the subscription's
 	// creation time as the billing anchor.
 	BillingAnchor *time.Time `json:"billing_anchor,omitempty"`
+	// Controls how custom-currency cost bases are selected for the subscription.
+	CostBasisMode *SubscriptionCostBasisMode `json:"cost_basis_mode,omitempty"`
 }
 
 // Subscription edit timing defined when the changes should take effect. If the

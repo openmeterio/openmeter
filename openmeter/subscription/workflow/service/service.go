@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -19,7 +20,8 @@ type WorkflowServiceConfig struct {
 	Service      subscription.Service
 	AddonService subscriptionaddon.Service
 	// connectors
-	CustomerService customer.Service
+	CustomerService  customer.Service
+	CurrencyResolver productcatalog.CurrencyResolver
 	// framework
 	TransactionManager transaction.Creator
 	Logger             *slog.Logger
@@ -40,6 +42,10 @@ func (c WorkflowServiceConfig) Validate() error {
 
 	if c.CustomerService == nil {
 		errs = append(errs, errors.New("customer service is required"))
+	}
+
+	if c.CurrencyResolver == nil {
+		errs = append(errs, errors.New("currency resolver is required"))
 	}
 
 	if c.TransactionManager == nil {

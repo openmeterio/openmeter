@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/service"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -53,13 +52,7 @@ func TestMigrate(t *testing.T) {
 
 			ctx := context.Background()
 
-			svc := service.New(service.Config{
-				SubscriptionService: deps.subSvc,
-				WorkflowService:     deps.wfSvc,
-				Logger:              logger,
-				PlanService:         deps.subDeps.PlanService,
-				CustomerService:     deps.subDeps.CustomerService,
-			})
+			svc := newPlanSubscriptionService(t, deps.subDeps, logger)
 
 			// Let's set up the feature & customer
 			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
@@ -135,13 +128,7 @@ func TestMigrate(t *testing.T) {
 
 			ctx := context.Background()
 
-			svc := service.New(service.Config{
-				SubscriptionService: deps.subSvc,
-				WorkflowService:     deps.wfSvc,
-				Logger:              logger,
-				PlanService:         deps.subDeps.PlanService,
-				CustomerService:     deps.subDeps.CustomerService,
-			})
+			svc := newPlanSubscriptionService(t, deps.subDeps, logger)
 
 			// Let's set up the feature & customer
 			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
@@ -215,13 +202,7 @@ func TestMigrate(t *testing.T) {
 
 			ctx := context.Background()
 
-			svc := service.New(service.Config{
-				SubscriptionService: deps.subSvc,
-				WorkflowService:     deps.wfSvc,
-				Logger:              logger,
-				PlanService:         deps.subDeps.PlanService,
-				CustomerService:     deps.subDeps.CustomerService,
-			})
+			svc := newPlanSubscriptionService(t, deps.subDeps, logger)
 
 			// Let's set up the feature & customer
 			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)
@@ -300,13 +281,7 @@ func TestMigrate(t *testing.T) {
 
 			ctx := context.Background()
 
-			svc := service.New(service.Config{
-				SubscriptionService: deps.subSvc,
-				WorkflowService:     deps.wfSvc,
-				Logger:              logger,
-				PlanService:         deps.subDeps.PlanService,
-				CustomerService:     deps.subDeps.CustomerService,
-			})
+			svc := newPlanSubscriptionService(t, deps.subDeps, logger)
 
 			// Let's set up the feature & customer
 			cust := deps.subDeps.CustomerAdapter.CreateExampleCustomer(t)

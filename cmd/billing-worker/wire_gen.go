@@ -248,17 +248,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	featureResolver, err := featureresolver.New(featureConnector)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	repository, err := common.NewCurrencyAdapter(client)
 	if err != nil {
 		cleanup7()
@@ -282,6 +271,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	currencyResolver, err := currencyresolver.New(currenciesService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	featureResolver, err := featureresolver.New(featureConnector)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -348,7 +348,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	ffxService := ffx.NewContextService()
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService, taxcodeService)
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, currenciesService, currencyResolver, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService, taxcodeService)
 	if err != nil {
 		cleanup7()
 		cleanup6()

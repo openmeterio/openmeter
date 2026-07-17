@@ -262,7 +262,7 @@ func TestAddAddon(t *testing.T) {
 			}))
 
 			expectedCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-				WithCode(spec.Currency).
+				WithCode(spec.InvoiceCurrency).
 				Build()
 			require.NoError(t, err)
 			require.NoError(t, spec.MaterializeRateCardCurrencies(expectedCurrency))

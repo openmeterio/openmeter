@@ -163,7 +163,12 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(
+				ctx,
+				event.SubscriptionView,
+				time.Now(),
+				subscriptionsync.SkipCustomCurrencySubscriptions(),
+			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.CancelledEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {
@@ -184,14 +189,24 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 				return nil
 			}
 
-			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(ctx, event.SubscriptionView, time.Now())
+			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(
+				ctx,
+				event.SubscriptionView,
+				time.Now(),
+				subscriptionsync.SkipCustomCurrencySubscriptions(),
+			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.UpdatedEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.UpdatedView.Subscription.Namespace) {
 				return nil
 			}
 
-			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(ctx, event.UpdatedView, time.Now())
+			return w.subscriptionSync.SyncByViewAndInvoiceCustomer(
+				ctx,
+				event.UpdatedView,
+				time.Now(),
+				subscriptionsync.SkipCustomCurrencySubscriptions(),
+			)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *subscription.SubscriptionSyncEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Subscription.Namespace) {

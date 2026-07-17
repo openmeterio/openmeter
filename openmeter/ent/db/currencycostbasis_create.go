@@ -15,6 +15,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -129,6 +130,21 @@ func (_c *CurrencyCostBasisCreate) SetNillableID(v *string) *CurrencyCostBasisCr
 // SetCurrency sets the "currency" edge to the CustomCurrency entity.
 func (_c *CurrencyCostBasisCreate) SetCurrency(v *CustomCurrency) *CurrencyCostBasisCreate {
 	return _c.SetCurrencyID(v.ID)
+}
+
+// AddSubscriptionPinIDs adds the "subscription_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (_c *CurrencyCostBasisCreate) AddSubscriptionPinIDs(ids ...string) *CurrencyCostBasisCreate {
+	_c.mutation.AddSubscriptionPinIDs(ids...)
+	return _c
+}
+
+// AddSubscriptionPins adds the "subscription_pins" edges to the SubscriptionCostBasisPin entity.
+func (_c *CurrencyCostBasisCreate) AddSubscriptionPins(v ...*SubscriptionCostBasisPin) *CurrencyCostBasisCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSubscriptionPinIDs(ids...)
 }
 
 // Mutation returns the CurrencyCostBasisMutation object of the builder.
@@ -299,6 +315,22 @@ func (_c *CurrencyCostBasisCreate) createSpec() (*CurrencyCostBasis, *sqlgraph.C
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.CurrencyID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionPinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   currencycostbasis.SubscriptionPinsTable,
+			Columns: []string{currencycostbasis.SubscriptionPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

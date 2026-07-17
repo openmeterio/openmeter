@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -27,6 +28,7 @@ type CurrencyService interface {
 type CostBasisService interface {
 	CreateCostBasis(ctx context.Context, params CreateCostBasisInput) (CostBasis, error)
 	ListCostBases(ctx context.Context, params ListCostBasesInput) (pagination.Result[CostBasis], error)
+	GetCostBasisAt(ctx context.Context, params GetCostBasisAtInput) (CostBasis, error)
 }
 
 // OrderBy specifies the field to sort currencies by.
@@ -161,6 +163,39 @@ type ListCostBasesInput struct {
 
 	// FilterFiatCode filters cost bases by fiat currency code. Nil means no filter.
 	FilterFiatCode *string `json:"filter_fiat_code,omitempty"`
+}
+
+var _ models.Validator = (*GetCostBasisAtInput)(nil)
+
+type GetCostBasisAtInput struct {
+	Namespace  string         `json:"namespace"`
+	CurrencyID string         `json:"currency_id"`
+	FiatCode   currencyx.Code `json:"fiat_code"`
+	At         time.Time      `json:"at"`
+}
+
+func (i GetCostBasisAtInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CurrencyID == "" {
+		errs = append(errs, errors.New("currency_id is required"))
+	}
+
+	if err := i.FiatCode.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("fiat_code: %w", err))
+	} else if !i.FiatCode.IsFiat() {
+		errs = append(errs, fmt.Errorf("fiat_code %q must be fiat", i.FiatCode))
+	}
+
+	if i.At.IsZero() {
+		errs = append(errs, errors.New("at is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i ListCostBasesInput) Validate() error {

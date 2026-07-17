@@ -14854,6 +14854,11 @@ components:
         Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
         Custom three-letter currency codes are also supported for convenience.
       example: USD
+    CurrencyCodeOrCustom:
+      type: string
+      minLength: 3
+      maxLength: 24
+      description: Fiat or managed custom currency code.
     CustomInvoicingApp:
       type: object
       required:
@@ -15253,6 +15258,11 @@ components:
           format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
           example: '2023-01-01T01:01:01.001Z'
+        costBasisMode:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionCostBasisMode'
+          description: Controls how custom-currency cost bases are selected for the new subscription.
+          default: dynamic
         customPlan:
           allOf:
             - $ref: '#/components/schemas/CustomPlanInput'
@@ -15263,6 +15273,11 @@ components:
       required:
         - customPlan
       properties:
+        costBasisMode:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionCostBasisMode'
+          description: Controls how custom-currency cost bases are selected for the new subscription.
+          default: dynamic
         customPlan:
           allOf:
             - $ref: '#/components/schemas/CustomPlanInput'
@@ -23405,6 +23420,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingSettlementMode'
           description: The settlement mode of the subscription.
+        costBasisMode:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionCostBasisMode'
+          description: Controls how custom-currency cost bases are selected for the new subscription.
+          default: dynamic
       description: Change subscription based on plan.
     PlanSubscriptionCreate:
       type: object
@@ -23439,6 +23459,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingSettlementMode'
           description: The settlement mode of the subscription.
+        costBasisMode:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionCostBasisMode'
+          description: Controls how custom-currency cost bases are selected for the new subscription.
+          default: dynamic
         timing:
           allOf:
             - $ref: '#/components/schemas/SubscriptionTiming'
@@ -24856,6 +24881,8 @@ components:
         - status
         - customerId
         - currency
+        - costBasisMode
+        - costBasisPins
         - billingCadence
         - billingAnchor
         - settlementMode
@@ -24943,11 +24970,25 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: |-
-            The currency code of the subscription.
-            Will be revised once we add multi currency support.
+          description: The fiat currency in which the subscription is invoiced.
           title: Currency
           default: USD
+        costBasisMode:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionCostBasisMode'
+          description: |-
+            Controls whether custom-currency cost bases are resolved dynamically or pinned
+            when their currency pair is introduced to the subscription.
+          title: Cost basis mode
+          default: dynamic
+          readOnly: true
+        costBasisPins:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionCostBasisPin'
+          description: Cost bases pinned to custom-currency pairs for this subscription.
+          title: Pinned cost bases
+          readOnly: true
         billingCadence:
           type: string
           format: duration
@@ -25385,6 +25426,37 @@ components:
       description: |-
         The request could not be completed due to a conflict with the current state of the target resource.
         Variants with ErrorExtensions specific to subscriptions.
+    SubscriptionCostBasisMode:
+      type: string
+      enum:
+        - dynamic
+        - pinned
+      description: Controls how custom-currency cost bases are selected for the subscription.
+    SubscriptionCostBasisPin:
+      type: object
+      required:
+        - customCurrencyId
+        - invoiceCurrency
+        - costBasisId
+      properties:
+        customCurrencyId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The managed custom currency ID.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          readOnly: true
+        invoiceCurrency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency in which the subscription is invoiced.
+          readOnly: true
+        costBasisId:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: The pinned cost basis resource ID.
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          readOnly: true
+      description: A cost basis pinned to a custom-currency pair for the subscription.
     SubscriptionCreate:
       oneOf:
         - $ref: '#/components/schemas/PlanSubscriptionCreate'
@@ -25448,6 +25520,8 @@ components:
         - status
         - customerId
         - currency
+        - costBasisMode
+        - costBasisPins
         - billingCadence
         - billingAnchor
         - settlementMode
@@ -25532,11 +25606,25 @@ components:
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
-          description: |-
-            The currency code of the subscription.
-            Will be revised once we add multi currency support.
+          description: The fiat currency in which the subscription is invoiced.
           title: Currency
           default: USD
+        costBasisMode:
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionCostBasisMode'
+          description: |-
+            Controls whether custom-currency cost bases are resolved dynamically or pinned
+            when their currency pair is introduced to the subscription.
+          title: Cost basis mode
+          default: dynamic
+          readOnly: true
+        costBasisPins:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionCostBasisPin'
+          description: Cost bases pinned to custom-currency pairs for this subscription.
+          title: Pinned cost bases
+          readOnly: true
         billingCadence:
           type: string
           format: duration
@@ -25668,6 +25756,12 @@ components:
             2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
 
             We say "referenced by the Price" regardless of how a price itself is referenced, it colloquially makes sense to say "paying the same price for the same thing". In practice this should be derived from what's printed on the invoice line-item.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCodeOrCustom'
+          description: The materialized currency of the item's rate card. Present for priced items.
+          title: Currency
+          readOnly: true
         featureKey:
           type: string
           minLength: 1

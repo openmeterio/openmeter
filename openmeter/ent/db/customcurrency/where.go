@@ -628,6 +628,29 @@ func HasSubscriptionItemsWith(preds ...predicate.SubscriptionItem) predicate.Cus
 	})
 }
 
+// HasSubscriptionCostBasisPins applies the HasEdge predicate on the "subscription_cost_basis_pins" edge.
+func HasSubscriptionCostBasisPins() predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionCostBasisPinsTable, SubscriptionCostBasisPinsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionCostBasisPinsWith applies the HasEdge predicate on the "subscription_cost_basis_pins" edge with a given conditions (other predicates).
+func HasSubscriptionCostBasisPinsWith(preds ...predicate.SubscriptionCostBasisPin) predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := newSubscriptionCostBasisPinsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.CustomCurrency) predicate.CustomCurrency {
 	return predicate.CustomCurrency(sql.AndPredicates(predicates...))

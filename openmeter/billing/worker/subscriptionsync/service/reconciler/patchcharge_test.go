@@ -381,9 +381,9 @@ func newChargePatchTestTarget(t *testing.T, settlementMode productcatalog.Settle
 				Namespace: "namespace",
 				ID:        "subscription-id",
 			},
-			CustomerId:     "customer-id",
-			Currency:       currencyx.Code("USD"),
-			SettlementMode: settlementMode,
+			CustomerId:      "customer-id",
+			InvoiceCurrency: currencyx.Code("USD"),
+			SettlementMode:  settlementMode,
 		},
 	}
 }

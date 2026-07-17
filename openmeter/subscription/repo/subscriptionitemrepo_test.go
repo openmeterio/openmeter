@@ -87,14 +87,14 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 	customPlan := deps.PlanHelper.CreatePlan(t, customPlanInput)
 
 	customSpec, err := subscription.NewSpecFromPlan(customPlan, subscription.CreateSubscriptionCustomerInput{
-		CustomerId:    customer.ID,
-		Currency:      customPlan.Currency().GetCode(),
-		ActiveFrom:    now,
-		BillingAnchor: now,
-		Name:          customPlan.GetName(),
+		CustomerId:      customer.ID,
+		InvoiceCurrency: currencyx.Code("USD"),
+		ActiveFrom:      now,
+		BillingAnchor:   now,
+		Name:            customPlan.GetName(),
 	})
 	require.NoError(t, err)
-	require.Equal(t, customCurrency, customSpec.Currency)
+	require.Equal(t, currencyx.Code("USD"), customSpec.InvoiceCurrency)
 
 	customPhases := customSpec.GetSortedPhases()
 	require.Len(t, customPhases, 1)

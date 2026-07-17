@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcatalogaddon "github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
@@ -191,6 +192,110 @@ func TestApply(t *testing.T) {
 		})
 	})
 
+	t.Run("Should reject a second priced addon with a different currency", func(t *testing.T) {
+		// given:
+		// - an unpriced subscription item
+		// - two add-ons that independently introduce a price for the same key in different custom currencies
+		// when:
+		// - the second add-on is layered over the first
+		// then:
+		// - its price cannot be silently combined under the first add-on's currency
+		const itemKey = "shared-addon-price"
+
+		unpricedRateCard := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:  itemKey,
+				Name: itemKey,
+			},
+			BillingCadence: &subscriptiontestutils.ISOMonth,
+		}
+		spec := subscription.SubscriptionSpec{
+			CreateSubscriptionPlanInput: subscription.CreateSubscriptionPlanInput{
+				BillingCadence: subscriptiontestutils.ISOMonth,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+			},
+			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
+				Name:            "currency layering",
+				CustomerId:      "customer",
+				InvoiceCurrency: currencyx.Code(currency.USD),
+				ActiveFrom:      now,
+				BillingAnchor:   now,
+			},
+			Phases: map[string]*subscription.SubscriptionPhaseSpec{
+				"default": {
+					CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+						PhaseKey: "default",
+						Name:     "default",
+					},
+					ItemsByKey: map[string][]*subscription.SubscriptionItemSpec{
+						itemKey: {
+							{
+								CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+									CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+										PhaseKey: "default",
+										ItemKey:  itemKey,
+										RateCard: unpricedRateCard,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		require.NoError(t, spec.Validate())
+
+		newAddon := func(id, code string) subscriptionaddon.SubscriptionAddon {
+			customCurrency := currencies.Currency{
+				NamespacedID: models.NamespacedID{Namespace: "default", ID: id},
+				Code:         code,
+				Name:         code,
+			}
+			pricedRateCard := &productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  itemKey,
+					Name: itemKey,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(10),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+				},
+				BillingCadence: &subscriptiontestutils.ISOMonth,
+			}
+			quantity := subscriptionaddon.SubscriptionAddonQuantity{
+				ActiveFrom: now,
+				Quantity:   1,
+			}
+
+			return subscriptionaddon.SubscriptionAddon{
+				Addon: productcatalogaddon.Addon{
+					AddonMeta: productcatalog.AddonMeta{
+						Currency: customCurrency,
+					},
+				},
+				RateCards: []subscriptionaddon.SubscriptionAddonRateCard{
+					{
+						AddonRateCard: productcatalogaddon.RateCard{RateCard: pricedRateCard},
+					},
+				},
+				Quantities: timeutil.NewTimeline([]timeutil.Timed[subscriptionaddon.SubscriptionAddonQuantity]{
+					quantity.AsTimed(),
+				}),
+			}
+		}
+
+		creditsDiff, err := addondiff.GetDiffableFromAddon(subscription.SubscriptionView{}, newAddon("credits-id", "CREDITS"))
+		require.NoError(t, err)
+		require.NoError(t, spec.Apply(creditsDiff.GetApplies(), subscription.ApplyContext{CurrentTime: now}))
+		require.Equal(t, currencyx.Code("CREDITS"), spec.Phases["default"].ItemsByKey[itemKey][0].RateCard.AsMeta().Currency.GetCode())
+
+		pointsAddon := newAddon("points-id", "POINTS")
+		pointsDiff, err := addondiff.GetDiffableFromAddon(subscription.SubscriptionView{}, pointsAddon)
+		require.NoError(t, err)
+		err = spec.Apply(pointsDiff.GetApplies(), subscription.ApplyContext{CurrentTime: now})
+		require.ErrorIs(t, err, productcatalog.ErrPlanAddonCurrencyMismatch)
+	})
+
 	t.Run("Should add multiple instances of new item to the subscription", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
 			exampleAddonRateCard3, ok := (subscriptiontestutils.ExampleAddonRateCard3.Clone()).(*productcatalog.FlatFeeRateCard)
@@ -261,7 +366,7 @@ func TestApply(t *testing.T) {
 				require.Equal(t, int64(300), pr.Amount.IntPart())
 
 				// It should have the proper RateCard info, which is price * quantity + bool access
-				compareRateCardsWithAmountChange(t, exampleAddonRateCard3, 100*3, item.RateCard, "phase %s", p.PhaseKey)
+				compareRateCardsWithAmountChange(t, withTaxCodeIDAndCurrency(exampleAddonRateCard3, nil, currency.USD), 100*3, item.RateCard, "phase %s", p.PhaseKey)
 			}
 		})
 	})
@@ -716,6 +821,8 @@ func TestApply(t *testing.T) {
 
 			// Let's just manipulate the spec object directly
 			ogItem := spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleRateCard3ForAddons.Key()][0]
+			ogRateCard, ok := ogItem.RateCard.(*productcatalog.FlatFeeRateCard)
+			require.True(t, ok)
 			spec.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleRateCard3ForAddons.Key()] = []*subscription.SubscriptionItemSpec{
 				// First, before gap
 				{
@@ -723,7 +830,7 @@ func TestApply(t *testing.T) {
 						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 							PhaseKey: spec.Phases["test_phase_1"].PhaseKey,
 							ItemKey:  subscriptiontestutils.ExampleRateCard3ForAddons.Key(),
-							RateCard: subscriptiontestutils.ExampleRateCard3ForAddons.Clone(),
+							RateCard: ogItem.RateCard.Clone(),
 						},
 						CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
 							ActiveToOverrideRelativeToPhaseStart: lo.ToPtr(datetime.ISODurationBetween(t0, t2)),
@@ -737,7 +844,7 @@ func TestApply(t *testing.T) {
 						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
 							PhaseKey: spec.Phases["test_phase_1"].PhaseKey,
 							ItemKey:  subscriptiontestutils.ExampleRateCard3ForAddons.Key(),
-							RateCard: subscriptiontestutils.ExampleRateCard3ForAddons.Clone(),
+							RateCard: ogItem.RateCard.Clone(),
 						},
 						CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
 							ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(datetime.ISODurationBetween(t0, t3)),
@@ -763,29 +870,29 @@ func TestApply(t *testing.T) {
 			// [t0-t1]: ExampleRateCard3ForAddons
 			require.True(t, items[0].GetCadence(pCad).ActiveFrom.Equal(t0))
 			require.True(t, items[0].GetCadence(pCad).ActiveTo.Equal(t1))
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100, items[0].RateCard, "phase %s", phase.PhaseKey)
+			compareRateCardsWithAmountChange(t, ogRateCard, 100, items[0].RateCard, "phase %s", phase.PhaseKey)
 
 			// [t1-t2]: ExampleRateCard3ForAddons + ExampleAddonRateCard4
 			require.True(t, items[1].GetCadence(pCad).ActiveFrom.Equal(t1))
 			require.True(t, items[1].GetCadence(pCad).ActiveTo.Equal(t2))
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*2, items[1].RateCard, "phase %s", phase.PhaseKey)
+			compareRateCardsWithAmountChange(t, ogRateCard, 100*2, items[1].RateCard, "phase %s", phase.PhaseKey)
 			require.Equal(t, ogItem.Annotations, items[1].Annotations, "annotations should be the same")
 
 			// [t2-t3]: ExampleAddonRateCard4
 			require.True(t, items[2].GetCadence(pCad).ActiveFrom.Equal(t2))
 			require.True(t, items[2].GetCadence(pCad).ActiveTo.Equal(t3))
-			compareRateCardsWithAmountChange(t, subsAdd.RateCards[0].AddonRateCard.RateCard.(*productcatalog.FlatFeeRateCard), 100, items[2].RateCard, "phase %s", phase.PhaseKey)
+			compareRateCardsWithAmountChange(t, withTaxCodeIDAndCurrency(subsAdd.RateCards[0].AddonRateCard.RateCard.(*productcatalog.FlatFeeRateCard), nil, currency.USD), 100, items[2].RateCard, "phase %s", phase.PhaseKey)
 
 			// [t3-t4]: ExampleRateCard3ForAddons + ExampleAddonRateCard4
 			require.True(t, items[3].GetCadence(pCad).ActiveFrom.Equal(t3))
 			require.True(t, items[3].GetCadence(pCad).ActiveTo.Equal(t4))
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*2, items[3].RateCard, "phase %s", phase.PhaseKey)
+			compareRateCardsWithAmountChange(t, ogRateCard, 100*2, items[3].RateCard, "phase %s", phase.PhaseKey)
 			require.Equal(t, ogItem.Annotations, items[3].Annotations, "annotations should be the same")
 
 			// [t4-open]: ExampleRateCard3ForAddons
 			require.True(t, items[4].GetCadence(pCad).ActiveFrom.Equal(t4))
 			require.Nil(t, items[4].GetCadence(pCad).ActiveTo)
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100, items[4].RateCard, "phase %s", phase.PhaseKey)
+			compareRateCardsWithAmountChange(t, ogRateCard, 100, items[4].RateCard, "phase %s", phase.PhaseKey)
 		})
 	})
 
@@ -859,7 +966,7 @@ func TestApply(t *testing.T) {
 			require.True(t, item.GetCadence(pCad).ActiveFrom.Equal(now))
 			require.Nil(t, item.GetCadence(pCad).ActiveTo)
 
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleAddonRateCard3, 100, item.RateCard, "phase %s", p.PhaseKey)
+			compareRateCardsWithAmountChange(t, withTaxCodeIDAndCurrency(&subscriptiontestutils.ExampleAddonRateCard3, nil, currency.USD), 100, item.RateCard, "phase %s", p.PhaseKey)
 		})
 	})
 }

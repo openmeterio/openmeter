@@ -37,7 +37,17 @@ func (Subscription) Fields() []ent.Field {
 		field.String("description").Optional().Nillable(),
 		field.String("plan_id").Optional().Nillable(),
 		field.String("customer_id").NotEmpty().Immutable(),
-		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).NotEmpty().Immutable(),
+		field.String("invoice_currency").
+			StorageKey("currency").
+			GoType(currencyx.Code("")).
+			MinLen(3).
+			MaxLen(3).
+			NotEmpty().
+			Immutable(),
+		field.Enum("cost_basis_mode").
+			Values("dynamic", "pinned").
+			Default("dynamic").
+			Immutable(),
 		field.Time("billing_anchor"),
 		field.String("billing_cadence").
 			GoType(datetime.ISODurationString("")).
@@ -89,6 +99,10 @@ func (Subscription) Edges() []ent.Edge {
 			}),
 		edge.To("billing_sync_state", SubscriptionBillingSyncState.Type).
 			Unique().
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}),
+		edge.To("cost_basis_pins", SubscriptionCostBasisPin.Type).
 			Annotations(entsql.Annotation{
 				OnDelete: entsql.Cascade,
 			}),
@@ -282,7 +296,7 @@ func (SubscriptionItem) Annotations() []entschema.Annotation {
 	return []entschema.Annotation{
 		entsql.Checks(map[string]string{
 			"subscription_item_currency_reference": `(currency IS NULL) OR (custom_currency_id IS NULL)`,
-			"subscription_item_currency_has_price": `(price IS NOT NULL) OR ((currency IS NULL) AND (custom_currency_id IS NULL))`,
+			"subscription_item_currency_has_price": `((price IS NULL) AND (currency IS NULL) AND (custom_currency_id IS NULL)) OR ((price IS NOT NULL) AND ((currency IS NOT NULL) OR (custom_currency_id IS NOT NULL)))`,
 		}),
 	}
 }

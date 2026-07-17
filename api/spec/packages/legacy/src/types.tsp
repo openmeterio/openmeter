@@ -345,6 +345,14 @@ model Period {
 scalar CurrencyCode extends string;
 
 /**
+ * Fiat or managed custom currency code.
+ */
+@friendlyName("CurrencyCodeOrCustom")
+@minLength(3)
+@maxLength(24)
+scalar CurrencyCodeOrCustom extends string;
+
+/**
  * [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
  * Custom two-letter country codes are also supported for convenience.
  */

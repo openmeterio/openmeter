@@ -479,12 +479,12 @@ func getSimpleSub(cad models.CadencedModel) subscription.SubscriptionSpec {
 			BillingCadence: datetime.NewISODuration(0, 1, 0, 0, 0, 0, 0),
 		},
 		CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
-			CustomerId:    "test_customer",
-			ActiveFrom:    cad.ActiveFrom,
-			ActiveTo:      cad.ActiveTo,
-			Name:          "test_subscription",
-			BillingAnchor: cad.ActiveFrom,
-			Currency:      currencyx.Code(currency.USD),
+			CustomerId:      "test_customer",
+			ActiveFrom:      cad.ActiveFrom,
+			ActiveTo:        cad.ActiveTo,
+			Name:            "test_subscription",
+			BillingAnchor:   cad.ActiveFrom,
+			InvoiceCurrency: currencyx.Code(currency.USD),
 		},
 	}
 

@@ -2965,6 +2965,26 @@ func (e *SubscriptionBillingSyncState) GetNamespace() string {
 	return e.Namespace
 }
 
+func (e *SubscriptionCostBasisPin) GetID() string {
+	return e.ID
+}
+
+func (e *SubscriptionCostBasisPin) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *SubscriptionCostBasisPin) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *SubscriptionCostBasisPin) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *SubscriptionCostBasisPin) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *SubscriptionItem) GetID() string {
 	return e.ID
 }

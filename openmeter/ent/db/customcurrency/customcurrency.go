@@ -40,6 +40,8 @@ const (
 	EdgeAddonRateCards = "addon_rate_cards"
 	// EdgeSubscriptionItems holds the string denoting the subscription_items edge name in mutations.
 	EdgeSubscriptionItems = "subscription_items"
+	// EdgeSubscriptionCostBasisPins holds the string denoting the subscription_cost_basis_pins edge name in mutations.
+	EdgeSubscriptionCostBasisPins = "subscription_cost_basis_pins"
 	// Table holds the table name of the customcurrency in the database.
 	Table = "custom_currencies"
 	// CostBasisHistoryTable is the table that holds the cost_basis_history relation/edge.
@@ -84,6 +86,13 @@ const (
 	SubscriptionItemsInverseTable = "subscription_items"
 	// SubscriptionItemsColumn is the table column denoting the subscription_items relation/edge.
 	SubscriptionItemsColumn = "custom_currency_id"
+	// SubscriptionCostBasisPinsTable is the table that holds the subscription_cost_basis_pins relation/edge.
+	SubscriptionCostBasisPinsTable = "subscription_cost_basis_pins"
+	// SubscriptionCostBasisPinsInverseTable is the table name for the SubscriptionCostBasisPin entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptioncostbasispin" package.
+	SubscriptionCostBasisPinsInverseTable = "subscription_cost_basis_pins"
+	// SubscriptionCostBasisPinsColumn is the table column denoting the subscription_cost_basis_pins relation/edge.
+	SubscriptionCostBasisPinsColumn = "custom_currency_id"
 )
 
 // Columns holds all SQL columns for customcurrency fields.
@@ -253,6 +262,20 @@ func BySubscriptionItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption
 		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// BySubscriptionCostBasisPinsCount orders the results by subscription_cost_basis_pins count.
+func BySubscriptionCostBasisPinsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSubscriptionCostBasisPinsStep(), opts...)
+	}
+}
+
+// BySubscriptionCostBasisPins orders the results by subscription_cost_basis_pins terms.
+func BySubscriptionCostBasisPins(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionCostBasisPinsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCostBasisHistoryStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -293,5 +316,12 @@ func newSubscriptionItemsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionItemsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionItemsTable, SubscriptionItemsColumn),
+	)
+}
+func newSubscriptionCostBasisPinsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionCostBasisPinsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionCostBasisPinsTable, SubscriptionCostBasisPinsColumn),
 	)
 }

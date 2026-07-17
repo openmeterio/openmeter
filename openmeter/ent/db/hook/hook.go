@@ -957,6 +957,18 @@ func (f SubscriptionBillingSyncStateFunc) Mutate(ctx context.Context, m db.Mutat
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionBillingSyncStateMutation", m)
 }
 
+// The SubscriptionCostBasisPinFunc type is an adapter to allow the use of ordinary
+// function as SubscriptionCostBasisPin mutator.
+type SubscriptionCostBasisPinFunc func(context.Context, *db.SubscriptionCostBasisPinMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SubscriptionCostBasisPinFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionCostBasisPinMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionCostBasisPinMutation", m)
+}
+
 // The SubscriptionItemFunc type is an adapter to allow the use of ordinary
 // function as SubscriptionItem mutator.
 type SubscriptionItemFunc func(context.Context, *db.SubscriptionItemMutation) (db.Value, error)

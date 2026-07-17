@@ -5731,6 +5731,20 @@ func (u *SubscriptionBillingSyncStateUpdateOne) SetOrClearNextSyncAfter(value *t
 	return u.SetNextSyncAfter(*value)
 }
 
+func (u *SubscriptionCostBasisPinUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionCostBasisPinUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *SubscriptionCostBasisPinUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionCostBasisPinUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *SubscriptionItemUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

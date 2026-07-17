@@ -477,6 +477,9 @@ type SubscriptionAddonQuantity func(*sql.Selector)
 // SubscriptionBillingSyncState is the predicate function for subscriptionbillingsyncstate builders.
 type SubscriptionBillingSyncState func(*sql.Selector)
 
+// SubscriptionCostBasisPin is the predicate function for subscriptioncostbasispin builders.
+type SubscriptionCostBasisPin func(*sql.Selector)
+
 // SubscriptionItem is the predicate function for subscriptionitem builders.
 type SubscriptionItem func(*sql.Selector)
 

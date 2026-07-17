@@ -98,6 +98,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 							MetadataModel: models.MetadataModel{
 								Metadata: req.Metadata, // We map the plan metadata to the subscription metadata
 							},
+							CostBasisMode: subscription.CostBasisMode(lo.FromPtr(parsedBody.CostBasisMode)),
 						},
 						Namespace:     ns,
 						CustomerID:    cus.ID,
@@ -147,6 +148,7 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 							MetadataModel: models.MetadataModel{
 								Metadata: convert.DerefHeaderPtr[string](parsedBody.Metadata),
 							},
+							CostBasisMode: subscription.CostBasisMode(lo.FromPtr(parsedBody.CostBasisMode)),
 						},
 						Namespace:     ns,
 						CustomerID:    customer.ID,

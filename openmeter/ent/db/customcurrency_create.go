@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 )
 
@@ -197,6 +198,21 @@ func (_c *CustomCurrencyCreate) AddSubscriptionItems(v ...*SubscriptionItem) *Cu
 		ids[i] = v[i].ID
 	}
 	return _c.AddSubscriptionItemIDs(ids...)
+}
+
+// AddSubscriptionCostBasisPinIDs adds the "subscription_cost_basis_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (_c *CustomCurrencyCreate) AddSubscriptionCostBasisPinIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddSubscriptionCostBasisPinIDs(ids...)
+	return _c
+}
+
+// AddSubscriptionCostBasisPins adds the "subscription_cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_c *CustomCurrencyCreate) AddSubscriptionCostBasisPins(v ...*SubscriptionCostBasisPin) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSubscriptionCostBasisPinIDs(ids...)
 }
 
 // Mutation returns the CustomCurrencyMutation object of the builder.
@@ -441,6 +457,22 @@ func (_c *CustomCurrencyCreate) createSpec() (*CustomCurrency, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionCostBasisPinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.SubscriptionCostBasisPinsTable,
+			Columns: []string{customcurrency.SubscriptionCostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
