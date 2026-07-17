@@ -12,8 +12,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 )
 
 // CustomCurrencyCreate is the builder for creating a CustomCurrency entity.
@@ -117,6 +121,66 @@ func (_c *CustomCurrencyCreate) AddCostBasisHistory(v ...*CurrencyCostBasis) *Cu
 		ids[i] = v[i].ID
 	}
 	return _c.AddCostBasisHistoryIDs(ids...)
+}
+
+// AddPlanIDs adds the "plans" edge to the Plan entity by IDs.
+func (_c *CustomCurrencyCreate) AddPlanIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddPlanIDs(ids...)
+	return _c
+}
+
+// AddPlans adds the "plans" edges to the Plan entity.
+func (_c *CustomCurrencyCreate) AddPlans(v ...*Plan) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPlanIDs(ids...)
+}
+
+// AddAddonIDs adds the "addons" edge to the Addon entity by IDs.
+func (_c *CustomCurrencyCreate) AddAddonIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddAddonIDs(ids...)
+	return _c
+}
+
+// AddAddons adds the "addons" edges to the Addon entity.
+func (_c *CustomCurrencyCreate) AddAddons(v ...*Addon) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAddonIDs(ids...)
+}
+
+// AddPlanRateCardIDs adds the "plan_rate_cards" edge to the PlanRateCard entity by IDs.
+func (_c *CustomCurrencyCreate) AddPlanRateCardIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddPlanRateCardIDs(ids...)
+	return _c
+}
+
+// AddPlanRateCards adds the "plan_rate_cards" edges to the PlanRateCard entity.
+func (_c *CustomCurrencyCreate) AddPlanRateCards(v ...*PlanRateCard) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPlanRateCardIDs(ids...)
+}
+
+// AddAddonRateCardIDs adds the "addon_rate_cards" edge to the AddonRateCard entity by IDs.
+func (_c *CustomCurrencyCreate) AddAddonRateCardIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddAddonRateCardIDs(ids...)
+	return _c
+}
+
+// AddAddonRateCards adds the "addon_rate_cards" edges to the AddonRateCard entity.
+func (_c *CustomCurrencyCreate) AddAddonRateCards(v ...*AddonRateCard) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAddonRateCardIDs(ids...)
 }
 
 // Mutation returns the CustomCurrencyMutation object of the builder.
@@ -281,6 +345,70 @@ func (_c *CustomCurrencyCreate) createSpec() (*CustomCurrency, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(currencycostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlansTable,
+			Columns: []string{customcurrency.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonsTable,
+			Columns: []string{customcurrency.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PlanRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlanRateCardsTable,
+			Columns: []string{customcurrency.PlanRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AddonRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonRateCardsTable,
+			Columns: []string{customcurrency.AddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -46,7 +47,7 @@ func NewTestPlan(t *testing.T, namespace string, transformers ...TransformerFunc
 				Name:           "Test",
 				Description:    lo.ToPtr("Test plan"),
 				Metadata:       models.Metadata{"name": "test"},
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				BillingCadence: MonthPeriod,
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

@@ -3,13 +3,13 @@ package httpdriver
 import (
 	"fmt"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -19,7 +19,7 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 
 	resp := api.Plan{
 		CreatedAt:        p.CreatedAt,
-		Currency:         p.Currency.String(),
+		Currency:         p.Currency.GetCode().String(),
 		DeletedAt:        p.DeletedAt,
 		Description:      p.Description,
 		EffectiveFrom:    p.EffectiveFrom,
@@ -107,7 +107,7 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		},
 	}
 
-	req.Currency = currency.Code(a.Currency)
+	req.Currency = currencyx.Code(a.Currency)
 	if err = req.Currency.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}

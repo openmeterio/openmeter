@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -461,7 +462,7 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	customCurrency := currency.Code(managedCurrency.Code)
+	customCurrency := currencyx.Code(managedCurrency.Code)
 	month := datetime.MustParseDuration(t, "P1M")
 	price := func() *productcatalog.Price {
 		return productcatalog.NewPriceFrom(productcatalog.FlatPrice{
@@ -477,7 +478,7 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 				RateCardMeta: productcatalog.RateCardMeta{
 					Key:      "credits",
 					Name:     "Credits",
-					Currency: &customCurrency,
+					Currency: customCurrency,
 					Price:    price(),
 				},
 				BillingCadence: &month,
@@ -491,7 +492,7 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:      "credits",
 			Name:     "Credits",
-			Currency: &customCurrency,
+			Currency: customCurrency,
 			Price:    price(),
 		},
 		BillingCadence: &month,
@@ -515,10 +516,10 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 		FromPlanPhase:   "default",
 	})
 	require.NoError(t, err)
-	require.Equal(t, currency.USD, assigned.Addon.Currency)
+	require.Equal(t, currencyx.Code(currency.USD), assigned.Addon.Currency.GetCode())
 	require.Len(t, assigned.Addon.RateCards, 1)
-	require.Equal(t, customCurrency, lo.FromPtr(assigned.Addon.RateCards[0].AsMeta().Currency))
-	require.Equal(t, customCurrency, assigned.Addon.RateCards[0].AsMeta().EffectiveCurrency(assigned.Addon.Currency))
+	require.Equal(t, customCurrency, assigned.Addon.RateCards[0].AsMeta().Currency.GetCode())
+	require.Equal(t, customCurrency, assigned.Addon.RateCards[0].AsMeta().EffectiveCurrency(assigned.Addon.Currency).GetCode())
 
 	t.Run("missing plan fiat cost basis", func(t *testing.T) {
 		// given:
@@ -535,7 +536,7 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		points := currency.Code(currencyWithoutBasis.Code)
+		points := currencyx.Code(currencyWithoutBasis.Code)
 		input := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
 				Key:   "points",

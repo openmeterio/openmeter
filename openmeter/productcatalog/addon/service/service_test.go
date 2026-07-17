@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -19,6 +20,7 @@ import (
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -471,9 +473,9 @@ func TestAddonService_List(t *testing.T) {
 		addonInput.Key = fmt.Sprintf("addon-%d", i)
 		addonInput.Name = fmt.Sprintf("Addon %d", i)
 		if i%2 == 0 {
-			addonInput.Currency = "USD"
+			addonInput.Currency = currencyx.Code("USD")
 		} else {
-			addonInput.Currency = "EUR"
+			addonInput.Currency = currencyx.Code("EUR")
 		}
 
 		a, err := env.Addon.CreateAddon(ctx, addonInput)
@@ -607,4 +609,92 @@ func TestAddonService_List(t *testing.T) {
 			tc.validate(t, res)
 		})
 	}
+}
+
+func TestUpdateAddonInputResolveCurrenciesPreservesManagedRateCardIdentity(t *testing.T) {
+	// given:
+	// - a persisted add-on rate card linked to an older managed CREDITS resource
+	// - code-only update data that keeps one key/code and changes another key's code
+	// when:
+	// - update currencies are resolved after CREDITS has been recreated
+	// then:
+	// - the unchanged key/code keeps the persisted identity while the changed
+	//   currency resolves to its active managed identity
+	namespace := "test-namespace"
+	oldCredits := currencies.Currency{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: "old-credits-id"},
+		Code:         "CREDITS",
+		Name:         "Old credits",
+	}
+	newCredits := currencies.Currency{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: "new-credits-id"},
+		Code:         "CREDITS",
+		Name:         "New credits",
+	}
+	points := currencies.Currency{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: "points-id"},
+		Code:         "POINTS",
+		Name:         "Points",
+	}
+
+	newRateCard := func(key string, identity currencyx.CurrencyIdentity) productcatalog.RateCard {
+		return &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
+			Key:      key,
+			Name:     key,
+			Currency: identity,
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      decimal.NewFromInt(1),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+		}}
+	}
+
+	persisted := productcatalog.Addon{
+		AddonMeta: productcatalog.AddonMeta{Currency: currencyx.Code("USD")},
+		RateCards: productcatalog.RateCards{
+			newRateCard("unchanged", oldCredits),
+			newRateCard("changed", oldCredits),
+		},
+	}
+	updatedRateCards := productcatalog.RateCards{
+		newRateCard("unchanged", currencyx.Code("CREDITS")),
+		newRateCard("changed", currencyx.Code("POINTS")),
+	}
+	resolver := &currencyResolverStub{resolved: map[currencyx.Code]currencyx.CurrencyIdentity{
+		"USD":     currencyx.Code("USD"),
+		"CREDITS": newCredits,
+		"POINTS":  points,
+	}}
+	input := addon.UpdateAddonInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: "addon-id"},
+		RateCards:    &updatedRateCards,
+	}
+
+	err := input.ResolveCurrencies(t.Context(), resolver, persisted)
+	require.NoError(t, err)
+
+	preserved, ok := updatedRateCards[0].AsMeta().Currency.(currencyx.ManagedCurrency)
+	require.True(t, ok)
+	require.Equal(t, oldCredits.ID, preserved.GetID())
+
+	resolvedPoints, ok := updatedRateCards[1].AsMeta().Currency.(currencyx.ManagedCurrency)
+	require.True(t, ok)
+	require.Equal(t, points.ID, resolvedPoints.GetID())
+}
+
+type currencyResolverStub struct {
+	resolved map[currencyx.Code]currencyx.CurrencyIdentity
+}
+
+func (r *currencyResolverStub) Resolve(_ context.Context, _ string, code currencyx.Code) (currencyx.CurrencyIdentity, error) {
+	identity, ok := r.resolved[code]
+	if !ok {
+		return nil, fmt.Errorf("unexpected currency resolution: %s", code)
+	}
+
+	return identity, nil
+}
+
+func (r *currencyResolverStub) HasCostBasis(_ context.Context, _ string, _ currencyx.ManagedCurrency, _ currencyx.CurrencyIdentity) (bool, error) {
+	return true, nil
 }

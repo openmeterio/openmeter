@@ -165,10 +165,6 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 		// Override the version parameter with the next version calculated from the last available version.
 		params.Version = lo.FromPtr(versions.Latest()).Version + 1
 
-		if err := params.ValidateCurrencies(ctx, s.currencyResolver); err != nil {
-			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
-		}
-
 		logger.Debug("creating add-on")
 
 		if len(params.RateCards) > 0 {
@@ -179,6 +175,18 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 			if err = s.resolveTaxCodes(ctx, params.Namespace, &params.RateCards); err != nil {
 				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
 			}
+		}
+
+		if err := params.ResolveCurrencies(ctx, s.currencyResolver); err != nil {
+			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
+		}
+
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid resolved add-on: %w", err)
+		}
+
+		if err := params.ValidateCurrencies(ctx, s.currencyResolver); err != nil {
+			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
 		}
 
 		aa, err := s.adapter.CreateAddon(ctx, params)
@@ -326,16 +334,6 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 		)
 		logger.Debug("updating add-on")
 
-		if params.RateCards != nil && len(*params.RateCards) > 0 {
-			if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, params.RateCards); err != nil {
-				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
-			}
-
-			if err := s.resolveTaxCodes(ctx, params.Namespace, params.RateCards); err != nil {
-				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
-			}
-		}
-
 		add, err := s.adapter.GetAddon(ctx, addon.GetAddonInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
@@ -358,6 +356,26 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			productcatalog.ValidateAddonWithStatus(productcatalog.AddonStatusDraft),
 		); err != nil {
 			return nil, err
+		}
+
+		if params.RateCards != nil && len(*params.RateCards) > 0 {
+			if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, params.RateCards); err != nil {
+				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
+			}
+
+			if err := s.resolveTaxCodes(ctx, params.Namespace, params.RateCards); err != nil {
+				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
+			}
+		}
+
+		if err = params.ResolveCurrencies(ctx, s.currencyResolver, add.AsProductCatalogAddon()); err != nil {
+			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
+		}
+
+		// Validate the full candidate only after all authoring currencies have
+		// become stable currency identities.
+		if err = params.ValidateWithAddon(add.AsProductCatalogAddon()); err != nil {
+			return nil, fmt.Errorf("invalid add-on update: %w", err)
 		}
 
 		if err = params.ValidateCurrencies(ctx, s.currencyResolver, add.AsProductCatalogAddon()); err != nil {

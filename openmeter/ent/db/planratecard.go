@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -55,8 +56,10 @@ type PlanRateCard struct {
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency *string `json:"currency,omitempty"`
+	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
+	FiatCurrencyCode *string `json:"fiat_currency_code,omitempty"`
+	// CustomCurrencyID holds the value of the "custom_currency_id" field.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
@@ -79,9 +82,11 @@ type PlanRateCardEdges struct {
 	Features *Feature `json:"features,omitempty"`
 	// TaxCode holds the value of the tax_code edge.
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
+	// CustomCurrency holds the value of the custom_currency edge.
+	CustomCurrency *CustomCurrency `json:"custom_currency,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // PhaseOrErr returns the Phase value or an error if the edge
@@ -117,6 +122,17 @@ func (e PlanRateCardEdges) TaxCodeOrErr() (*TaxCode, error) {
 	return nil, &NotLoadedError{edge: "tax_code"}
 }
 
+// CustomCurrencyOrErr returns the CustomCurrency value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PlanRateCardEdges) CustomCurrencyOrErr() (*CustomCurrency, error) {
+	if e.CustomCurrency != nil {
+		return e.CustomCurrency, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: customcurrency.Label}
+	}
+	return nil, &NotLoadedError{edge: "custom_currency"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -124,7 +140,7 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case planratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldTaxCodeID, planratecard.FieldTaxBehavior, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldCurrency, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
+		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldTaxCodeID, planratecard.FieldTaxBehavior, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldFiatCurrencyCode, planratecard.FieldCustomCurrencyID, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case planratecard.FieldCreatedAt, planratecard.FieldUpdatedAt, planratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -263,12 +279,19 @@ func (_m *PlanRateCard) assignValues(columns []string, values []any) error {
 			} else {
 				_m.Price = value
 			}
-		case planratecard.FieldCurrency:
+		case planratecard.FieldFiatCurrencyCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
+				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
 			} else if value.Valid {
-				_m.Currency = new(string)
-				*_m.Currency = value.String
+				_m.FiatCurrencyCode = new(string)
+				*_m.FiatCurrencyCode = value.String
+			}
+		case planratecard.FieldCustomCurrencyID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyID = new(string)
+				*_m.CustomCurrencyID = value.String
 			}
 		case planratecard.FieldDiscounts:
 			if value, err := planratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
@@ -321,6 +344,11 @@ func (_m *PlanRateCard) QueryFeatures() *FeatureQuery {
 // QueryTaxCode queries the "tax_code" edge of the PlanRateCard entity.
 func (_m *PlanRateCard) QueryTaxCode() *TaxCodeQuery {
 	return NewPlanRateCardClient(_m.config).QueryTaxCode(_m)
+}
+
+// QueryCustomCurrency queries the "custom_currency" edge of the PlanRateCard entity.
+func (_m *PlanRateCard) QueryCustomCurrency() *CustomCurrencyQuery {
+	return NewPlanRateCardClient(_m.config).QueryCustomCurrency(_m)
 }
 
 // Update returns a builder for updating this PlanRateCard.
@@ -412,8 +440,13 @@ func (_m *PlanRateCard) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.Currency; v != nil {
-		builder.WriteString("currency=")
+	if v := _m.FiatCurrencyCode; v != nil {
+		builder.WriteString("fiat_currency_code=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyID; v != nil {
+		builder.WriteString("custom_currency_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

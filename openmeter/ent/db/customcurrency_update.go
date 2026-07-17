@@ -11,8 +11,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -98,6 +102,66 @@ func (_u *CustomCurrencyUpdate) AddCostBasisHistory(v ...*CurrencyCostBasis) *Cu
 	return _u.AddCostBasisHistoryIDs(ids...)
 }
 
+// AddPlanIDs adds the "plans" edge to the Plan entity by IDs.
+func (_u *CustomCurrencyUpdate) AddPlanIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.AddPlanIDs(ids...)
+	return _u
+}
+
+// AddPlans adds the "plans" edges to the Plan entity.
+func (_u *CustomCurrencyUpdate) AddPlans(v ...*Plan) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlanIDs(ids...)
+}
+
+// AddAddonIDs adds the "addons" edge to the Addon entity by IDs.
+func (_u *CustomCurrencyUpdate) AddAddonIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.AddAddonIDs(ids...)
+	return _u
+}
+
+// AddAddons adds the "addons" edges to the Addon entity.
+func (_u *CustomCurrencyUpdate) AddAddons(v ...*Addon) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAddonIDs(ids...)
+}
+
+// AddPlanRateCardIDs adds the "plan_rate_cards" edge to the PlanRateCard entity by IDs.
+func (_u *CustomCurrencyUpdate) AddPlanRateCardIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.AddPlanRateCardIDs(ids...)
+	return _u
+}
+
+// AddPlanRateCards adds the "plan_rate_cards" edges to the PlanRateCard entity.
+func (_u *CustomCurrencyUpdate) AddPlanRateCards(v ...*PlanRateCard) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlanRateCardIDs(ids...)
+}
+
+// AddAddonRateCardIDs adds the "addon_rate_cards" edge to the AddonRateCard entity by IDs.
+func (_u *CustomCurrencyUpdate) AddAddonRateCardIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.AddAddonRateCardIDs(ids...)
+	return _u
+}
+
+// AddAddonRateCards adds the "addon_rate_cards" edges to the AddonRateCard entity.
+func (_u *CustomCurrencyUpdate) AddAddonRateCards(v ...*AddonRateCard) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAddonRateCardIDs(ids...)
+}
+
 // Mutation returns the CustomCurrencyMutation object of the builder.
 func (_u *CustomCurrencyUpdate) Mutation() *CustomCurrencyMutation {
 	return _u.mutation
@@ -122,6 +186,90 @@ func (_u *CustomCurrencyUpdate) RemoveCostBasisHistory(v ...*CurrencyCostBasis) 
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCostBasisHistoryIDs(ids...)
+}
+
+// ClearPlans clears all "plans" edges to the Plan entity.
+func (_u *CustomCurrencyUpdate) ClearPlans() *CustomCurrencyUpdate {
+	_u.mutation.ClearPlans()
+	return _u
+}
+
+// RemovePlanIDs removes the "plans" edge to Plan entities by IDs.
+func (_u *CustomCurrencyUpdate) RemovePlanIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.RemovePlanIDs(ids...)
+	return _u
+}
+
+// RemovePlans removes "plans" edges to Plan entities.
+func (_u *CustomCurrencyUpdate) RemovePlans(v ...*Plan) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlanIDs(ids...)
+}
+
+// ClearAddons clears all "addons" edges to the Addon entity.
+func (_u *CustomCurrencyUpdate) ClearAddons() *CustomCurrencyUpdate {
+	_u.mutation.ClearAddons()
+	return _u
+}
+
+// RemoveAddonIDs removes the "addons" edge to Addon entities by IDs.
+func (_u *CustomCurrencyUpdate) RemoveAddonIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.RemoveAddonIDs(ids...)
+	return _u
+}
+
+// RemoveAddons removes "addons" edges to Addon entities.
+func (_u *CustomCurrencyUpdate) RemoveAddons(v ...*Addon) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAddonIDs(ids...)
+}
+
+// ClearPlanRateCards clears all "plan_rate_cards" edges to the PlanRateCard entity.
+func (_u *CustomCurrencyUpdate) ClearPlanRateCards() *CustomCurrencyUpdate {
+	_u.mutation.ClearPlanRateCards()
+	return _u
+}
+
+// RemovePlanRateCardIDs removes the "plan_rate_cards" edge to PlanRateCard entities by IDs.
+func (_u *CustomCurrencyUpdate) RemovePlanRateCardIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.RemovePlanRateCardIDs(ids...)
+	return _u
+}
+
+// RemovePlanRateCards removes "plan_rate_cards" edges to PlanRateCard entities.
+func (_u *CustomCurrencyUpdate) RemovePlanRateCards(v ...*PlanRateCard) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlanRateCardIDs(ids...)
+}
+
+// ClearAddonRateCards clears all "addon_rate_cards" edges to the AddonRateCard entity.
+func (_u *CustomCurrencyUpdate) ClearAddonRateCards() *CustomCurrencyUpdate {
+	_u.mutation.ClearAddonRateCards()
+	return _u
+}
+
+// RemoveAddonRateCardIDs removes the "addon_rate_cards" edge to AddonRateCard entities by IDs.
+func (_u *CustomCurrencyUpdate) RemoveAddonRateCardIDs(ids ...string) *CustomCurrencyUpdate {
+	_u.mutation.RemoveAddonRateCardIDs(ids...)
+	return _u
+}
+
+// RemoveAddonRateCards removes "addon_rate_cards" edges to AddonRateCard entities.
+func (_u *CustomCurrencyUpdate) RemoveAddonRateCards(v ...*AddonRateCard) *CustomCurrencyUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAddonRateCardIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -247,6 +395,186 @@ func (_u *CustomCurrencyUpdate) sqlSave(ctx context.Context) (_node int, err err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.PlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlansTable,
+			Columns: []string{customcurrency.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPlansIDs(); len(nodes) > 0 && !_u.mutation.PlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlansTable,
+			Columns: []string{customcurrency.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlansTable,
+			Columns: []string{customcurrency.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonsTable,
+			Columns: []string{customcurrency.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAddonsIDs(); len(nodes) > 0 && !_u.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonsTable,
+			Columns: []string{customcurrency.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonsTable,
+			Columns: []string{customcurrency.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PlanRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlanRateCardsTable,
+			Columns: []string{customcurrency.PlanRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPlanRateCardsIDs(); len(nodes) > 0 && !_u.mutation.PlanRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlanRateCardsTable,
+			Columns: []string{customcurrency.PlanRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PlanRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlanRateCardsTable,
+			Columns: []string{customcurrency.PlanRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AddonRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonRateCardsTable,
+			Columns: []string{customcurrency.AddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAddonRateCardsIDs(); len(nodes) > 0 && !_u.mutation.AddonRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonRateCardsTable,
+			Columns: []string{customcurrency.AddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AddonRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonRateCardsTable,
+			Columns: []string{customcurrency.AddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customcurrency.Label}
@@ -336,6 +664,66 @@ func (_u *CustomCurrencyUpdateOne) AddCostBasisHistory(v ...*CurrencyCostBasis) 
 	return _u.AddCostBasisHistoryIDs(ids...)
 }
 
+// AddPlanIDs adds the "plans" edge to the Plan entity by IDs.
+func (_u *CustomCurrencyUpdateOne) AddPlanIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.AddPlanIDs(ids...)
+	return _u
+}
+
+// AddPlans adds the "plans" edges to the Plan entity.
+func (_u *CustomCurrencyUpdateOne) AddPlans(v ...*Plan) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlanIDs(ids...)
+}
+
+// AddAddonIDs adds the "addons" edge to the Addon entity by IDs.
+func (_u *CustomCurrencyUpdateOne) AddAddonIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.AddAddonIDs(ids...)
+	return _u
+}
+
+// AddAddons adds the "addons" edges to the Addon entity.
+func (_u *CustomCurrencyUpdateOne) AddAddons(v ...*Addon) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAddonIDs(ids...)
+}
+
+// AddPlanRateCardIDs adds the "plan_rate_cards" edge to the PlanRateCard entity by IDs.
+func (_u *CustomCurrencyUpdateOne) AddPlanRateCardIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.AddPlanRateCardIDs(ids...)
+	return _u
+}
+
+// AddPlanRateCards adds the "plan_rate_cards" edges to the PlanRateCard entity.
+func (_u *CustomCurrencyUpdateOne) AddPlanRateCards(v ...*PlanRateCard) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlanRateCardIDs(ids...)
+}
+
+// AddAddonRateCardIDs adds the "addon_rate_cards" edge to the AddonRateCard entity by IDs.
+func (_u *CustomCurrencyUpdateOne) AddAddonRateCardIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.AddAddonRateCardIDs(ids...)
+	return _u
+}
+
+// AddAddonRateCards adds the "addon_rate_cards" edges to the AddonRateCard entity.
+func (_u *CustomCurrencyUpdateOne) AddAddonRateCards(v ...*AddonRateCard) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAddonRateCardIDs(ids...)
+}
+
 // Mutation returns the CustomCurrencyMutation object of the builder.
 func (_u *CustomCurrencyUpdateOne) Mutation() *CustomCurrencyMutation {
 	return _u.mutation
@@ -360,6 +748,90 @@ func (_u *CustomCurrencyUpdateOne) RemoveCostBasisHistory(v ...*CurrencyCostBasi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCostBasisHistoryIDs(ids...)
+}
+
+// ClearPlans clears all "plans" edges to the Plan entity.
+func (_u *CustomCurrencyUpdateOne) ClearPlans() *CustomCurrencyUpdateOne {
+	_u.mutation.ClearPlans()
+	return _u
+}
+
+// RemovePlanIDs removes the "plans" edge to Plan entities by IDs.
+func (_u *CustomCurrencyUpdateOne) RemovePlanIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.RemovePlanIDs(ids...)
+	return _u
+}
+
+// RemovePlans removes "plans" edges to Plan entities.
+func (_u *CustomCurrencyUpdateOne) RemovePlans(v ...*Plan) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlanIDs(ids...)
+}
+
+// ClearAddons clears all "addons" edges to the Addon entity.
+func (_u *CustomCurrencyUpdateOne) ClearAddons() *CustomCurrencyUpdateOne {
+	_u.mutation.ClearAddons()
+	return _u
+}
+
+// RemoveAddonIDs removes the "addons" edge to Addon entities by IDs.
+func (_u *CustomCurrencyUpdateOne) RemoveAddonIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.RemoveAddonIDs(ids...)
+	return _u
+}
+
+// RemoveAddons removes "addons" edges to Addon entities.
+func (_u *CustomCurrencyUpdateOne) RemoveAddons(v ...*Addon) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAddonIDs(ids...)
+}
+
+// ClearPlanRateCards clears all "plan_rate_cards" edges to the PlanRateCard entity.
+func (_u *CustomCurrencyUpdateOne) ClearPlanRateCards() *CustomCurrencyUpdateOne {
+	_u.mutation.ClearPlanRateCards()
+	return _u
+}
+
+// RemovePlanRateCardIDs removes the "plan_rate_cards" edge to PlanRateCard entities by IDs.
+func (_u *CustomCurrencyUpdateOne) RemovePlanRateCardIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.RemovePlanRateCardIDs(ids...)
+	return _u
+}
+
+// RemovePlanRateCards removes "plan_rate_cards" edges to PlanRateCard entities.
+func (_u *CustomCurrencyUpdateOne) RemovePlanRateCards(v ...*PlanRateCard) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlanRateCardIDs(ids...)
+}
+
+// ClearAddonRateCards clears all "addon_rate_cards" edges to the AddonRateCard entity.
+func (_u *CustomCurrencyUpdateOne) ClearAddonRateCards() *CustomCurrencyUpdateOne {
+	_u.mutation.ClearAddonRateCards()
+	return _u
+}
+
+// RemoveAddonRateCardIDs removes the "addon_rate_cards" edge to AddonRateCard entities by IDs.
+func (_u *CustomCurrencyUpdateOne) RemoveAddonRateCardIDs(ids ...string) *CustomCurrencyUpdateOne {
+	_u.mutation.RemoveAddonRateCardIDs(ids...)
+	return _u
+}
+
+// RemoveAddonRateCards removes "addon_rate_cards" edges to AddonRateCard entities.
+func (_u *CustomCurrencyUpdateOne) RemoveAddonRateCards(v ...*AddonRateCard) *CustomCurrencyUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAddonRateCardIDs(ids...)
 }
 
 // Where appends a list predicates to the CustomCurrencyUpdate builder.
@@ -508,6 +980,186 @@ func (_u *CustomCurrencyUpdateOne) sqlSave(ctx context.Context) (_node *CustomCu
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(currencycostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlansTable,
+			Columns: []string{customcurrency.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPlansIDs(); len(nodes) > 0 && !_u.mutation.PlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlansTable,
+			Columns: []string{customcurrency.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlansTable,
+			Columns: []string{customcurrency.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonsTable,
+			Columns: []string{customcurrency.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addon.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAddonsIDs(); len(nodes) > 0 && !_u.mutation.AddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonsTable,
+			Columns: []string{customcurrency.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonsTable,
+			Columns: []string{customcurrency.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PlanRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlanRateCardsTable,
+			Columns: []string{customcurrency.PlanRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPlanRateCardsIDs(); len(nodes) > 0 && !_u.mutation.PlanRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlanRateCardsTable,
+			Columns: []string{customcurrency.PlanRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PlanRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlanRateCardsTable,
+			Columns: []string{customcurrency.PlanRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AddonRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonRateCardsTable,
+			Columns: []string{customcurrency.AddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAddonRateCardsIDs(); len(nodes) > 0 && !_u.mutation.AddonRateCardsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonRateCardsTable,
+			Columns: []string{customcurrency.AddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AddonRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonRateCardsTable,
+			Columns: []string{customcurrency.AddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -60,6 +59,11 @@ type RateCardSerde struct {
 	Type RateCardType `json:"type"`
 }
 
+// rateCardMetaSerde keeps the domain identity out of the wire shape. Catalog
+// and subscription JSON carry currency codes; managed resource identity is
+// restored at the service boundary.
+type rateCardMetaSerde RateCardMeta
+
 var (
 	_ models.Validator                     = (*RateCardMeta)(nil)
 	_ models.Equaler[RateCardMeta]         = (*RateCardMeta)(nil)
@@ -100,7 +104,7 @@ type RateCardMeta struct {
 
 	// Currency overrides the containing plan or add-on currency for this rate card.
 	// Nil means the containing resource's currency applies.
-	Currency *currency.Code `json:"currency,omitempty"`
+	Currency currencyx.CurrencyIdentity `json:"currency,omitempty"`
 
 	// Discounts defines a list of discounts for the RateCard
 	Discounts Discounts `json:"discounts,omitempty"`
@@ -172,10 +176,7 @@ func (r RateCardMeta) Clone() RateCardMeta {
 		clone.Price = &p
 	}
 
-	if r.Currency != nil {
-		currency := *r.Currency
-		clone.Currency = &currency
-	}
+	clone.Currency = r.Currency
 
 	clone.Discounts = r.Discounts.Clone()
 
@@ -223,7 +224,11 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 		return false
 	}
 
-	if lo.FromPtr(r.Currency) != lo.FromPtr(v.Currency) {
+	if (r.Currency == nil) != (v.Currency == nil) {
+		return false
+	}
+
+	if r.Currency != nil && !r.Currency.Equal(v.Currency) {
 		return false
 	}
 
@@ -297,7 +302,7 @@ func (r RateCardMeta) Validate() error {
 			errs = append(errs, ErrRateCardCurrencyRequiresPrice)
 		}
 
-		if err := currencyx.Code(*r.Currency).Validate(); err != nil {
+		if err := r.Currency.Validate(); err != nil {
 			errs = append(errs, models.ErrorWithFieldPrefix(
 				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
 				ErrCurrencyInvalid,
@@ -338,8 +343,12 @@ func (r RateCardMeta) Validate() error {
 
 // EffectiveCurrency returns the currency in which the rate card's price is
 // denominated after applying its optional override.
-func (r RateCardMeta) EffectiveCurrency(defaultCurrency currency.Code) currency.Code {
-	return lo.FromPtrOr(r.Currency, defaultCurrency)
+func (r RateCardMeta) EffectiveCurrency(defaultCurrency currencyx.CurrencyIdentity) currencyx.CurrencyIdentity {
+	if r.Currency != nil {
+		return r.Currency
+	}
+
+	return defaultCurrency
 }
 
 func (r RateCardMeta) IsBillable() bool {
@@ -477,19 +486,50 @@ func (r *FlatFeeRateCard) Clone() RateCard {
 }
 
 func (r *FlatFeeRateCard) MarshalJSON() ([]byte, error) {
+	meta := rateCardMetaSerde(r.RateCardMeta)
+	meta.Currency = nil
+
+	var currencyCode *currencyx.Code
+	if r.Currency != nil {
+		code := r.Currency.GetCode()
+		currencyCode = &code
+	}
+
 	serde := struct {
 		RateCardSerde
-		RateCardMeta
+		rateCardMetaSerde
+		Currency       *currencyx.Code       `json:"currency,omitempty"`
 		BillingCadence *datetime.ISODuration `json:"billingCadence"`
 	}{
-		RateCardMeta:   r.RateCardMeta,
-		BillingCadence: r.BillingCadence,
+		rateCardMetaSerde: meta,
+		Currency:          currencyCode,
+		BillingCadence:    r.BillingCadence,
 		RateCardSerde: RateCardSerde{
 			Type: r.Type(),
 		},
 	}
 
 	return json.Marshal(serde)
+}
+
+func (r *FlatFeeRateCard) UnmarshalJSON(data []byte) error {
+	serde := struct {
+		rateCardMetaSerde
+		Currency       *currencyx.Code       `json:"currency,omitempty"`
+		BillingCadence *datetime.ISODuration `json:"billingCadence"`
+	}{}
+
+	if err := json.Unmarshal(data, &serde); err != nil {
+		return err
+	}
+
+	r.RateCardMeta = RateCardMeta(serde.rateCardMetaSerde)
+	if serde.Currency != nil {
+		r.Currency = *serde.Currency
+	}
+	r.BillingCadence = serde.BillingCadence
+
+	return nil
 }
 
 var (
@@ -612,19 +652,50 @@ func (r *UsageBasedRateCard) Validate() error {
 }
 
 func (r *UsageBasedRateCard) MarshalJSON() ([]byte, error) {
+	meta := rateCardMetaSerde(r.RateCardMeta)
+	meta.Currency = nil
+
+	var currencyCode *currencyx.Code
+	if r.Currency != nil {
+		code := r.Currency.GetCode()
+		currencyCode = &code
+	}
+
 	serde := struct {
 		RateCardSerde
-		RateCardMeta
+		rateCardMetaSerde
+		Currency       *currencyx.Code      `json:"currency,omitempty"`
 		BillingCadence datetime.ISODuration `json:"billingCadence"`
 	}{
-		RateCardMeta:   r.RateCardMeta,
-		BillingCadence: r.BillingCadence,
+		rateCardMetaSerde: meta,
+		Currency:          currencyCode,
+		BillingCadence:    r.BillingCadence,
 		RateCardSerde: RateCardSerde{
 			Type: r.Type(),
 		},
 	}
 
 	return json.Marshal(serde)
+}
+
+func (r *UsageBasedRateCard) UnmarshalJSON(data []byte) error {
+	serde := struct {
+		rateCardMetaSerde
+		Currency       *currencyx.Code      `json:"currency,omitempty"`
+		BillingCadence datetime.ISODuration `json:"billingCadence"`
+	}{}
+
+	if err := json.Unmarshal(data, &serde); err != nil {
+		return err
+	}
+
+	r.RateCardMeta = RateCardMeta(serde.rateCardMetaSerde)
+	if serde.Currency != nil {
+		r.Currency = *serde.Currency
+	}
+	r.BillingCadence = serde.BillingCadence
+
+	return nil
 }
 
 var (

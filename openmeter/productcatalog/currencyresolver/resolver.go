@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -28,20 +27,19 @@ func New(service currencies.Service) (productcatalog.CurrencyResolver, error) {
 	return &resolver{service: service}, nil
 }
 
-func (r *resolver) Resolve(ctx context.Context, namespace string, code currency.Code) (productcatalog.ResolvedCurrency, error) {
+func (r *resolver) Resolve(ctx context.Context, namespace string, code currencyx.Code) (currencyx.CurrencyIdentity, error) {
 	if namespace == "" {
-		return productcatalog.ResolvedCurrency{}, errors.New("namespace is required")
+		return nil, errors.New("namespace is required")
 	}
 
-	if err := currencyx.Code(code).Validate(); err != nil {
-		return productcatalog.ResolvedCurrency{}, models.NewGenericValidationError(fmt.Errorf("invalid currency code: %w", err))
+	if err := code.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(fmt.Errorf("invalid currency code: %w", err))
 	}
 
-	if currencyx.Code(code).IsFiat() {
-		return productcatalog.ResolvedCurrency{
-			Code: code,
-			Type: currencyx.CurrencyTypeFiat,
-		}, nil
+	if code.IsFiat() {
+		return currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(code).
+			Build()
 	}
 
 	customType := currencies.CurrencyTypeCustom
@@ -54,38 +52,42 @@ func (r *resolver) Resolve(ctx context.Context, namespace string, code currency.
 		},
 	})
 	if err != nil {
-		return productcatalog.ResolvedCurrency{}, fmt.Errorf("listing custom currencies: %w", err)
+		return nil, fmt.Errorf("listing custom currencies: %w", err)
 	}
 
-	if len(result.Items) == 0 {
-		return productcatalog.ResolvedCurrency{}, models.NewGenericNotFoundError(fmt.Errorf("currency %q", code))
+	activeCurrencies := lo.Filter(result.Items, func(item currencies.Currency, _ int) bool {
+		return item.DeletedAt == nil
+	})
+
+	if len(activeCurrencies) == 0 {
+		return nil, models.NewGenericNotFoundError(fmt.Errorf("currency %q", code))
 	}
 
-	if len(result.Items) > 1 {
-		return productcatalog.ResolvedCurrency{}, fmt.Errorf("multiple custom currencies found for code %q", code)
+	if len(activeCurrencies) > 1 {
+		return nil, fmt.Errorf("multiple custom currencies found for code %q", code)
 	}
 
-	return productcatalog.ResolvedCurrency{
-		ID:   result.Items[0].ID,
-		Code: code,
-		Type: currencyx.CurrencyTypeCustom,
-	}, nil
+	return activeCurrencies[0], nil
 }
 
-func (r *resolver) HasCostBasis(ctx context.Context, namespace string, customCurrency productcatalog.ResolvedCurrency, fiatCurrency currency.Code) (bool, error) {
-	if customCurrency.Type != currencyx.CurrencyTypeCustom || customCurrency.ID == "" {
+func (r *resolver) HasCostBasis(ctx context.Context, namespace string, customCurrency currencyx.ManagedCurrency, fiatCurrency currencyx.CurrencyIdentity) (bool, error) {
+	if err := customCurrency.Validate(); err != nil {
+		return false, fmt.Errorf("invalid custom currency: %w", err)
+	}
+
+	if !customCurrency.IsCustom() || customCurrency.GetID() == "" {
 		return false, errors.New("custom currency with managed resource ID is required")
 	}
 
-	if !currencyx.Code(fiatCurrency).IsFiat() {
+	if fiatCurrency == nil || !fiatCurrency.IsFiat() {
 		return false, errors.New("fiat currency is required")
 	}
 
-	fiatCode := fiatCurrency.String()
+	fiatCode := fiatCurrency.GetCode().String()
 	result, err := r.service.ListCostBases(ctx, currencies.ListCostBasesInput{
 		Page:           pagination.NewPage(1, 1),
 		Namespace:      namespace,
-		CurrencyID:     customCurrency.ID,
+		CurrencyID:     customCurrency.GetID(),
 		FilterFiatCode: &fiatCode,
 	})
 	if err != nil {

@@ -30,6 +30,14 @@ const (
 	FieldSymbol = "symbol"
 	// EdgeCostBasisHistory holds the string denoting the cost_basis_history edge name in mutations.
 	EdgeCostBasisHistory = "cost_basis_history"
+	// EdgePlans holds the string denoting the plans edge name in mutations.
+	EdgePlans = "plans"
+	// EdgeAddons holds the string denoting the addons edge name in mutations.
+	EdgeAddons = "addons"
+	// EdgePlanRateCards holds the string denoting the plan_rate_cards edge name in mutations.
+	EdgePlanRateCards = "plan_rate_cards"
+	// EdgeAddonRateCards holds the string denoting the addon_rate_cards edge name in mutations.
+	EdgeAddonRateCards = "addon_rate_cards"
 	// Table holds the table name of the customcurrency in the database.
 	Table = "custom_currencies"
 	// CostBasisHistoryTable is the table that holds the cost_basis_history relation/edge.
@@ -39,6 +47,34 @@ const (
 	CostBasisHistoryInverseTable = "currency_cost_bases"
 	// CostBasisHistoryColumn is the table column denoting the cost_basis_history relation/edge.
 	CostBasisHistoryColumn = "currency_id"
+	// PlansTable is the table that holds the plans relation/edge.
+	PlansTable = "plans"
+	// PlansInverseTable is the table name for the Plan entity.
+	// It exists in this package in order to avoid circular dependency with the "plan" package.
+	PlansInverseTable = "plans"
+	// PlansColumn is the table column denoting the plans relation/edge.
+	PlansColumn = "custom_currency_id"
+	// AddonsTable is the table that holds the addons relation/edge.
+	AddonsTable = "addons"
+	// AddonsInverseTable is the table name for the Addon entity.
+	// It exists in this package in order to avoid circular dependency with the "addon" package.
+	AddonsInverseTable = "addons"
+	// AddonsColumn is the table column denoting the addons relation/edge.
+	AddonsColumn = "custom_currency_id"
+	// PlanRateCardsTable is the table that holds the plan_rate_cards relation/edge.
+	PlanRateCardsTable = "plan_rate_cards"
+	// PlanRateCardsInverseTable is the table name for the PlanRateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "planratecard" package.
+	PlanRateCardsInverseTable = "plan_rate_cards"
+	// PlanRateCardsColumn is the table column denoting the plan_rate_cards relation/edge.
+	PlanRateCardsColumn = "custom_currency_id"
+	// AddonRateCardsTable is the table that holds the addon_rate_cards relation/edge.
+	AddonRateCardsTable = "addon_rate_cards"
+	// AddonRateCardsInverseTable is the table name for the AddonRateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "addonratecard" package.
+	AddonRateCardsInverseTable = "addon_rate_cards"
+	// AddonRateCardsColumn is the table column denoting the addon_rate_cards relation/edge.
+	AddonRateCardsColumn = "custom_currency_id"
 )
 
 // Columns holds all SQL columns for customcurrency fields.
@@ -138,10 +174,94 @@ func ByCostBasisHistory(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newCostBasisHistoryStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByPlansCount orders the results by plans count.
+func ByPlansCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPlansStep(), opts...)
+	}
+}
+
+// ByPlans orders the results by plans terms.
+func ByPlans(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPlansStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByAddonsCount orders the results by addons count.
+func ByAddonsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAddonsStep(), opts...)
+	}
+}
+
+// ByAddons orders the results by addons terms.
+func ByAddons(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAddonsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByPlanRateCardsCount orders the results by plan_rate_cards count.
+func ByPlanRateCardsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPlanRateCardsStep(), opts...)
+	}
+}
+
+// ByPlanRateCards orders the results by plan_rate_cards terms.
+func ByPlanRateCards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPlanRateCardsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByAddonRateCardsCount orders the results by addon_rate_cards count.
+func ByAddonRateCardsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAddonRateCardsStep(), opts...)
+	}
+}
+
+// ByAddonRateCards orders the results by addon_rate_cards terms.
+func ByAddonRateCards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAddonRateCardsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCostBasisHistoryStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CostBasisHistoryInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, CostBasisHistoryTable, CostBasisHistoryColumn),
+	)
+}
+func newPlansStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PlansInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PlansTable, PlansColumn),
+	)
+}
+func newAddonsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AddonsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AddonsTable, AddonsColumn),
+	)
+}
+func newPlanRateCardsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PlanRateCardsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PlanRateCardsTable, PlanRateCardsColumn),
+	)
+}
+func newAddonRateCardsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AddonRateCardsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AddonRateCardsTable, AddonRateCardsColumn),
 	)
 }

@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -380,7 +379,7 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
 				Name:           "Empty Plan",
-				Currency:       currency.Code("USD"),
+				Currency:       currencyx.Code("USD"),
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -1049,7 +1048,7 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
 				Name:           "Empty Plan",
-				Currency:       currency.Code("USD"),
+				Currency:       currencyx.Code("USD"),
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

@@ -10,7 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	addonratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -19,6 +21,7 @@ import (
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -224,7 +227,7 @@ func TestPostgresAdapter(t *testing.T) {
 				})
 
 				t.Run("ByCurrencyFilter", func(t *testing.T) {
-					currencyStr := string(addonV1Input.Currency)
+					currencyStr := addonV1Input.Currency.GetCode().String()
 					listAddonV1, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
 						Namespaces: []string{namespace},
 						Currency: &filter.FilterString{
@@ -517,6 +520,101 @@ func TestListAddonsExcludeUnitConfig(t *testing.T) {
 		require.ElementsMatch(t, []string{"plain"}, keys)
 		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude the unit_config add-on, not just the page slice")
 	})
+}
+
+func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
+	// given:
+	// - one managed custom currency used both as an add-on default and as a rate-card override
+	// when:
+	// - both add-ons are persisted and loaded through the repository
+	// then:
+	// - DB rows keep the managed ID while domain objects expose the hydrated identity
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+	custom, err := env.Currency.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+		Namespace: namespace,
+		Code:      "CREDITS",
+		Name:      "Credits",
+		Symbol:    "cr",
+	})
+	require.NoError(t, err)
+
+	price := productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+		Amount:      decimal.NewFromInt(25),
+		PaymentTerm: productcatalog.InAdvancePaymentTerm,
+	})
+
+	customDefaultInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:   "inherited-custom",
+			Name:  "Inherited custom",
+			Price: price,
+		},
+	})
+	customDefaultInput.Key = "custom-addon-currency"
+	customDefaultInput.Currency = custom
+
+	customDefault, err := env.AddonRepository.CreateAddon(t.Context(), customDefaultInput)
+	require.NoError(t, err)
+
+	fetchedDefault, err := env.AddonRepository.GetAddon(t.Context(), addon.GetAddonInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: customDefault.ID},
+	})
+	require.NoError(t, err)
+	managedDefault, ok := fetchedDefault.Currency.(currencyx.ManagedCurrency)
+	require.True(t, ok)
+	require.Equal(t, custom.ID, managedDefault.GetID())
+
+	addonRow, err := env.Client.Addon.Get(t.Context(), customDefault.ID)
+	require.NoError(t, err)
+	require.Nil(t, addonRow.FiatCurrencyCode)
+	require.NotNil(t, addonRow.CustomCurrencyID)
+	require.Equal(t, custom.ID, *addonRow.CustomCurrencyID)
+
+	code := custom.Code
+	listed, err := env.AddonRepository.ListAddons(t.Context(), addon.ListAddonsInput{
+		Namespaces: []string{namespace},
+		Currency:   &filter.FilterString{Eq: &code},
+	})
+	require.NoError(t, err)
+	require.Len(t, listed.Items, 1)
+	require.Equal(t, customDefault.ID, listed.Items[0].ID)
+
+	customOverrideInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:      "custom-override",
+			Name:     "Custom override",
+			Currency: custom,
+			Price:    price,
+		},
+	})
+	customOverrideInput.Key = "custom-addon-rate-card"
+
+	customOverride, err := env.AddonRepository.CreateAddon(t.Context(), customOverrideInput)
+	require.NoError(t, err)
+
+	fetchedOverride, err := env.AddonRepository.GetAddon(t.Context(), addon.GetAddonInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: customOverride.ID},
+	})
+	require.NoError(t, err)
+	require.Len(t, fetchedOverride.RateCards, 1)
+	rateCardCurrency := fetchedOverride.RateCards[0].AsMeta().Currency
+	managedOverride, ok := rateCardCurrency.(currencyx.ManagedCurrency)
+	require.True(t, ok)
+	require.Equal(t, custom.ID, managedOverride.GetID())
+
+	rateCardRow, err := env.Client.AddonRateCard.Query().
+		Where(addonratecarddb.Namespace(namespace), addonratecarddb.Key("custom-override")).
+		Only(t.Context())
+	require.NoError(t, err)
+	require.Nil(t, rateCardRow.FiatCurrencyCode)
+	require.NotNil(t, rateCardRow.CustomCurrencyID)
+	require.Equal(t, custom.ID, *rateCardRow.CustomCurrencyID)
+
+	err = env.Client.CustomCurrency.DeleteOneID(custom.ID).Exec(t.Context())
+	require.Error(t, err, "referenced custom currencies must not be hard-deleted")
 }
 
 // TestFromPlanRateCardRowMapsUnitConfig guards the cross-package mapper used when an

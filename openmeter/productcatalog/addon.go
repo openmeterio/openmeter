@@ -8,7 +8,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -61,7 +60,7 @@ type AddonMeta struct {
 	Description *string `json:"description,omitempty"`
 
 	// Currency
-	Currency currency.Code `json:"currency"`
+	Currency currencyx.CurrencyIdentity `json:"currency"`
 
 	// InstanceType
 	InstanceType AddonInstanceType `json:"instanceType"`
@@ -88,8 +87,13 @@ func (m AddonMeta) Validate() error {
 		errs = append(errs, ErrAddonNameEmpty)
 	}
 
-	if err := currencyx.Code(m.Currency).Validate(); err != nil {
+	if m.Currency == nil {
 		errs = append(errs, ErrCurrencyInvalid)
+	} else if err := m.Currency.Validate(); err != nil {
+		errs = append(errs, models.ErrorWithFieldPrefix(
+			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+			ErrCurrencyInvalid,
+		))
 	}
 
 	if err := m.InstanceType.Validate(); err != nil {
@@ -116,7 +120,11 @@ func (m AddonMeta) Equal(v AddonMeta) bool {
 		return false
 	}
 
-	if m.Currency != v.Currency {
+	if (m.Currency == nil) != (v.Currency == nil) {
+		return false
+	}
+
+	if m.Currency != nil && !m.Currency.Equal(v.Currency) {
 		return false
 	}
 
@@ -280,6 +288,10 @@ func ValidateAddonRateCards() models.ValidatorFunc[Addon] {
 // add-on service.
 func ValidateAddonRateCardCurrencies() models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
+		if a.Currency == nil {
+			return ErrCurrencyInvalid
+		}
+
 		var errs []error
 
 		for _, rateCard := range a.RateCards {
@@ -295,11 +307,11 @@ func ValidateAddonRateCardCurrencies() models.ValidatorFunc[Addon] {
 			)
 
 			switch {
-			case !currencyx.Code(a.Currency).IsFiat():
+			case !a.Currency.IsFiat():
 				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardCurrencyOverrideNotAllowed))
-			case *override == a.Currency:
+			case override.Equal(a.Currency):
 				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardCurrencyOverrideRedundant))
-			case currencyx.Code(*override).IsFiat():
+			case override.IsFiat():
 				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrPlanMultipleFiatCurrencies))
 			}
 		}
@@ -320,23 +332,22 @@ func ValidateAddonWithCurrencies(ctx context.Context, namespace string, resolver
 
 		var errs []error
 
-		addonCurrency, err := resolver.Resolve(ctx, namespace, a.Currency)
+		addonCurrency, err := existingOrResolveCurrency(
+			ctx,
+			namespace,
+			resolver,
+			a.Currency,
+			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+		)
 		if err != nil {
-			if models.IsGenericNotFoundError(err) {
-				return models.ErrorWithFieldPrefix(
-					models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
-					ErrCurrencyNotFound,
-				)
-			}
-
-			return fmt.Errorf("resolving add-on currency: %w", err)
+			return err
 		}
 
-		resolved := map[currency.Code]ResolvedCurrency{a.Currency: addonCurrency}
-		costBasisAvailable := map[currency.Code]bool{}
+		costBasisAvailable := map[costBasisPairKey]bool{}
 
 		for _, rateCard := range a.RateCards {
-			override := rateCard.AsMeta().Currency
+			meta := rateCard.AsMeta()
+			override := meta.Currency
 			if override == nil {
 				continue
 			}
@@ -347,33 +358,34 @@ func ValidateAddonWithCurrencies(ctx context.Context, namespace string, resolver
 				models.NewFieldSelector("currency"),
 			)
 
-			resolvedOverride, ok := resolved[*override]
-			if !ok {
-				resolvedOverride, err = resolver.Resolve(ctx, namespace, *override)
-				if err != nil {
-					if models.IsGenericNotFoundError(err) {
-						errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrCurrencyNotFound))
-						continue
-					}
-
-					return fmt.Errorf("resolving rate card currency %q: %w", *override, err)
-				}
-
-				resolved[*override] = resolvedOverride
-			}
-
-			if addonCurrency.Type != currencyx.CurrencyTypeFiat || resolvedOverride.Type != currencyx.CurrencyTypeCustom {
+			resolvedOverride, err := existingOrResolveCurrency(ctx, namespace, resolver, override, fieldSelector)
+			if err != nil {
+				errs = append(errs, err)
 				continue
 			}
 
-			hasCostBasis, ok := costBasisAvailable[*override]
+			if addonCurrency.Type() != currencyx.CurrencyTypeFiat || resolvedOverride.Type() != currencyx.CurrencyTypeCustom {
+				continue
+			}
+
+			overrideCode := resolvedOverride.GetCode()
+			managedCustomCurrency, ok := resolvedOverride.(currencyx.ManagedCurrency)
 			if !ok {
-				hasCostBasis, err = resolver.HasCostBasis(ctx, namespace, resolvedOverride, a.Currency)
+				return fmt.Errorf("resolved custom currency %q has no managed resource identity", overrideCode)
+			}
+
+			pairKey := costBasisPairKey{
+				customCurrencyID: managedCustomCurrency.GetID(),
+				fiatCurrencyCode: addonCurrency.GetCode(),
+			}
+			hasCostBasis, ok := costBasisAvailable[pairKey]
+			if !ok {
+				hasCostBasis, err = resolver.HasCostBasis(ctx, namespace, managedCustomCurrency, addonCurrency)
 				if err != nil {
-					return fmt.Errorf("checking cost basis for currency %q: %w", *override, err)
+					return fmt.Errorf("checking cost basis for currency %q: %w", overrideCode, err)
 				}
 
-				costBasisAvailable[*override] = hasCostBasis
+				costBasisAvailable[pairKey] = hasCostBasis
 			}
 
 			if !hasCostBasis {

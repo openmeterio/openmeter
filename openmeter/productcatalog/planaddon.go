@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -132,11 +131,21 @@ func (c PlanAddon) Validate() error {
 func ValidatePlanAddonRateCardCurrencies() models.ValidatorFunc[PlanAddon] {
 	return func(pa PlanAddon) error {
 		var errs []error
+		planPrefix := models.NewFieldSelectorGroup(models.NewFieldSelector("plan"))
 		addonPrefix := models.NewFieldSelectorGroup(models.NewFieldSelector("addon"))
 
-		if currencyx.Code(pa.Plan.Currency).IsFiat() &&
-			currencyx.Code(pa.Addon.Currency).IsFiat() &&
-			pa.Plan.Currency != pa.Addon.Currency {
+		if pa.Plan.Currency == nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(planPrefix, ErrCurrencyInvalid))
+		}
+		if pa.Addon.Currency == nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrCurrencyInvalid))
+		}
+		if len(errs) > 0 {
+			return errors.Join(errs...)
+		}
+
+		if pa.Plan.Currency.IsFiat() && pa.Addon.Currency.IsFiat() &&
+			!pa.Plan.Currency.Equal(pa.Addon.Currency) {
 			errs = append(errs, models.ErrorWithFieldPrefix(addonPrefix, ErrPlanMultipleFiatCurrencies))
 		}
 
@@ -162,8 +171,12 @@ func ValidatePlanAddonRateCardCurrencies() models.ValidatorFunc[PlanAddon] {
 // ValidatePlanPhaseAndAddonRateCardCurrencies ensures an add-on cannot change
 // the currency of an existing priced rate card and that newly priced rate
 // cards preserve the plan's single-fiat constraint.
-func ValidatePlanPhaseAndAddonRateCardCurrencies(planCurrency currency.Code, addon Addon) models.ValidatorFunc[Phase] {
+func ValidatePlanPhaseAndAddonRateCardCurrencies(planCurrency currencyx.CurrencyIdentity, addon Addon) models.ValidatorFunc[Phase] {
 	return func(p Phase) error {
+		if planCurrency == nil || addon.Currency == nil {
+			return ErrCurrencyInvalid
+		}
+
 		var errs []error
 
 		phaseRateCardsByKey := lo.SliceToMap(p.RateCards, func(item RateCard) (string, RateCard) {
@@ -185,8 +198,9 @@ func ValidatePlanPhaseAndAddonRateCardCurrencies(planCurrency currency.Code, add
 
 			planRateCard, found := phaseRateCardsByKey[addonRateCard.Key()]
 			if found && planRateCard.AsMeta().Price != nil {
-				planRateCardCurrency := planRateCard.AsMeta().EffectiveCurrency(planCurrency)
-				if addonCurrency != planRateCardCurrency {
+				planRateCardMeta := planRateCard.AsMeta()
+				planRateCardCurrency := planRateCardMeta.EffectiveCurrency(planCurrency)
+				if !addonCurrency.Equal(planRateCardCurrency) {
 					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrPlanAddonCurrencyMismatch))
 				}
 
@@ -194,9 +208,9 @@ func ValidatePlanPhaseAndAddonRateCardCurrencies(planCurrency currency.Code, add
 			}
 
 			switch {
-			case !currencyx.Code(planCurrency).IsFiat() && addonCurrency != planCurrency:
+			case !planCurrency.IsFiat() && !addonCurrency.Equal(planCurrency):
 				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardCurrencyOverrideNotAllowed))
-			case currencyx.Code(planCurrency).IsFiat() && currencyx.Code(addonCurrency).IsFiat() && addonCurrency != planCurrency:
+			case planCurrency.IsFiat() && addonCurrency.IsFiat() && !addonCurrency.Equal(planCurrency):
 				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrPlanMultipleFiatCurrencies))
 			}
 		}
@@ -214,23 +228,21 @@ func ValidatePlanAddonWithCurrencies(ctx context.Context, namespace string, reso
 			return errors.New("currency resolver is required")
 		}
 
-		planCurrency, err := resolver.Resolve(ctx, namespace, pa.Plan.Currency)
+		planCurrency, err := existingOrResolveCurrency(
+			ctx,
+			namespace,
+			resolver,
+			pa.Plan.Currency,
+			models.NewFieldSelectorGroup(
+				models.NewFieldSelector("plan"),
+				models.NewFieldSelector("currency"),
+			),
+		)
 		if err != nil {
-			if models.IsGenericNotFoundError(err) {
-				return models.ErrorWithFieldPrefix(
-					models.NewFieldSelectorGroup(
-						models.NewFieldSelector("plan"),
-						models.NewFieldSelector("currency"),
-					),
-					ErrCurrencyNotFound,
-				)
-			}
-
-			return fmt.Errorf("resolving plan currency: %w", err)
+			return err
 		}
 
-		resolved := map[currency.Code]ResolvedCurrency{pa.Plan.Currency: planCurrency}
-		costBasisAvailable := map[currency.Code]bool{}
+		costBasisAvailable := map[costBasisPairKey]bool{}
 		var errs []error
 
 		for _, rateCard := range pa.Addon.RateCards {
@@ -239,7 +251,7 @@ func ValidatePlanAddonWithCurrencies(ctx context.Context, namespace string, reso
 				continue
 			}
 
-			code := meta.EffectiveCurrency(pa.Addon.Currency)
+			identity := meta.EffectiveCurrency(pa.Addon.Currency)
 			fieldSelector := models.NewFieldSelectorGroup(
 				models.NewFieldSelector("addon"),
 				models.NewFieldSelector("ratecards").
@@ -247,33 +259,34 @@ func ValidatePlanAddonWithCurrencies(ctx context.Context, namespace string, reso
 				models.NewFieldSelector("currency"),
 			)
 
-			resolvedCurrency, ok := resolved[code]
-			if !ok {
-				resolvedCurrency, err = resolver.Resolve(ctx, namespace, code)
-				if err != nil {
-					if models.IsGenericNotFoundError(err) {
-						errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrCurrencyNotFound))
-						continue
-					}
-
-					return fmt.Errorf("resolving add-on rate card currency %q: %w", code, err)
-				}
-
-				resolved[code] = resolvedCurrency
-			}
-
-			if planCurrency.Type != currencyx.CurrencyTypeFiat || resolvedCurrency.Type != currencyx.CurrencyTypeCustom {
+			resolvedCurrency, err := existingOrResolveCurrency(ctx, namespace, resolver, identity, fieldSelector)
+			if err != nil {
+				errs = append(errs, err)
 				continue
 			}
 
-			hasCostBasis, ok := costBasisAvailable[code]
+			if planCurrency.Type() != currencyx.CurrencyTypeFiat || resolvedCurrency.Type() != currencyx.CurrencyTypeCustom {
+				continue
+			}
+
+			code := resolvedCurrency.GetCode()
+			managedCustomCurrency, ok := resolvedCurrency.(currencyx.ManagedCurrency)
 			if !ok {
-				hasCostBasis, err = resolver.HasCostBasis(ctx, namespace, resolvedCurrency, pa.Plan.Currency)
+				return fmt.Errorf("resolved custom currency %q has no managed resource identity", code)
+			}
+
+			pairKey := costBasisPairKey{
+				customCurrencyID: managedCustomCurrency.GetID(),
+				fiatCurrencyCode: planCurrency.GetCode(),
+			}
+			hasCostBasis, ok := costBasisAvailable[pairKey]
+			if !ok {
+				hasCostBasis, err = resolver.HasCostBasis(ctx, namespace, managedCustomCurrency, planCurrency)
 				if err != nil {
 					return fmt.Errorf("checking cost basis for currency %q: %w", code, err)
 				}
 
-				costBasisAvailable[code] = hasCostBasis
+				costBasisAvailable[pairKey] = hasCostBasis
 			}
 
 			if !hasCostBasis {

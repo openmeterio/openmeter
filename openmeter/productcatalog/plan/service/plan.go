@@ -122,10 +122,6 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 			params.SettlementMode = productcatalog.CreditThenInvoiceSettlementMode
 		}
 
-		if err := params.ValidateCurrencies(ctx, s.currencyResolver); err != nil {
-			return nil, fmt.Errorf("invalid plan currencies: %w", err)
-		}
-
 		logger.Debug("creating Plan")
 
 		if len(params.Phases) > 0 {
@@ -147,6 +143,18 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
 			}
+		}
+
+		if err := params.ResolveCurrencies(ctx, s.currencyResolver); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid resolved Plan: %w", err)
+		}
+
+		if err := params.ValidateCurrencies(ctx, s.currencyResolver); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
 
 		p, err := s.adapter.CreatePlan(ctx, params)
@@ -280,27 +288,6 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		)
 		logger.Debug("updating Plan")
 
-		if params.Phases != nil && len(*params.Phases) > 0 {
-			for idx := range *params.Phases {
-				phaseFieldSelector := models.NewFieldSelectorGroup(
-					models.NewFieldSelector("phases").
-						WithExpression(
-							models.NewFieldAttrValue("key", &(*params.Phases)[idx].Key),
-						),
-				)
-
-				if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
-					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
-						fmt.Errorf("failed to expand features for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
-							params.ID, (*params.Phases)[idx].Key, err))
-				}
-
-				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
-					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
-				}
-			}
-		}
-
 		p, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
@@ -332,7 +319,33 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		// therefore the EffectivePeriod attribute must be zeroed before updating the Plan.
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
-		// Validate the Plan with changes applied
+		if params.Phases != nil && len(*params.Phases) > 0 {
+			for idx := range *params.Phases {
+				phaseFieldSelector := models.NewFieldSelectorGroup(
+					models.NewFieldSelector("phases").
+						WithExpression(
+							models.NewFieldAttrValue("key", &(*params.Phases)[idx].Key),
+						),
+				)
+
+				if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
+					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
+						fmt.Errorf("failed to expand features for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
+							params.ID, (*params.Phases)[idx].Key, err))
+				}
+
+				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
+					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
+				}
+			}
+		}
+
+		if err = params.ResolveCurrencies(ctx, s.currencyResolver, pp); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
+		// Validate the full candidate only after all authoring currencies have
+		// become stable currency identities.
 		if err = params.ValidateWithPlan(pp); err != nil {
 			return nil, fmt.Errorf("invalid Plan update: %w", err)
 		}

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -188,16 +189,30 @@ func (_c *PlanRateCardCreate) SetPrice(v *productcatalog.Price) *PlanRateCardCre
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *PlanRateCardCreate) SetCurrency(v string) *PlanRateCardCreate {
-	_c.mutation.SetCurrency(v)
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_c *PlanRateCardCreate) SetFiatCurrencyCode(v string) *PlanRateCardCreate {
+	_c.mutation.SetFiatCurrencyCode(v)
 	return _c
 }
 
-// SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (_c *PlanRateCardCreate) SetNillableCurrency(v *string) *PlanRateCardCreate {
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_c *PlanRateCardCreate) SetNillableFiatCurrencyCode(v *string) *PlanRateCardCreate {
 	if v != nil {
-		_c.SetCurrency(*v)
+		_c.SetFiatCurrencyCode(*v)
+	}
+	return _c
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *PlanRateCardCreate) SetCustomCurrencyID(v string) *PlanRateCardCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *PlanRateCardCreate) SetNillableCustomCurrencyID(v *string) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
 	}
 	return _c
 }
@@ -275,6 +290,11 @@ func (_c *PlanRateCardCreate) SetFeatures(v *Feature) *PlanRateCardCreate {
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_c *PlanRateCardCreate) SetTaxCode(v *TaxCode) *PlanRateCardCreate {
 	return _c.SetTaxCodeID(v.ID)
+}
+
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *PlanRateCardCreate) SetCustomCurrency(v *CustomCurrency) *PlanRateCardCreate {
+	return _c.SetCustomCurrencyID(v.ID)
 }
 
 // Mutation returns the PlanRateCardMutation object of the builder.
@@ -379,6 +399,16 @@ func (_c *PlanRateCardCreate) check() error {
 	if v, ok := _c.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
+		if err := planratecard.FiatCurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.fiat_currency_code": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := planratecard.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.custom_currency_id": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.Discounts(); ok {
@@ -513,9 +543,9 @@ func (_c *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec,
 		_spec.SetField(planratecard.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(planratecard.FieldCurrency, field.TypeString, value)
-		_node.Currency = &value
+	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(planratecard.FieldFiatCurrencyCode, field.TypeString, value)
+		_node.FiatCurrencyCode = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)
@@ -582,6 +612,23 @@ func (_c *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec,
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.TaxCodeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   planratecard.CustomCurrencyTable,
+			Columns: []string{planratecard.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -840,21 +887,39 @@ func (u *PlanRateCardUpsert) ClearPrice() *PlanRateCardUpsert {
 	return u
 }
 
-// SetCurrency sets the "currency" field.
-func (u *PlanRateCardUpsert) SetCurrency(v string) *PlanRateCardUpsert {
-	u.Set(planratecard.FieldCurrency, v)
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (u *PlanRateCardUpsert) SetFiatCurrencyCode(v string) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldFiatCurrencyCode, v)
 	return u
 }
 
-// UpdateCurrency sets the "currency" field to the value that was provided on create.
-func (u *PlanRateCardUpsert) UpdateCurrency() *PlanRateCardUpsert {
-	u.SetExcluded(planratecard.FieldCurrency)
+// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateFiatCurrencyCode() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldFiatCurrencyCode)
 	return u
 }
 
-// ClearCurrency clears the value of the "currency" field.
-func (u *PlanRateCardUpsert) ClearCurrency() *PlanRateCardUpsert {
-	u.SetNull(planratecard.FieldCurrency)
+// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
+func (u *PlanRateCardUpsert) ClearFiatCurrencyCode() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldFiatCurrencyCode)
+	return u
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (u *PlanRateCardUpsert) SetCustomCurrencyID(v string) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldCustomCurrencyID, v)
+	return u
+}
+
+// UpdateCustomCurrencyID sets the "custom_currency_id" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateCustomCurrencyID() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldCustomCurrencyID)
+	return u
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (u *PlanRateCardUpsert) ClearCustomCurrencyID() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldCustomCurrencyID)
 	return u
 }
 
@@ -1222,24 +1287,45 @@ func (u *PlanRateCardUpsertOne) ClearPrice() *PlanRateCardUpsertOne {
 	})
 }
 
-// SetCurrency sets the "currency" field.
-func (u *PlanRateCardUpsertOne) SetCurrency(v string) *PlanRateCardUpsertOne {
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (u *PlanRateCardUpsertOne) SetFiatCurrencyCode(v string) *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.SetCurrency(v)
+		s.SetFiatCurrencyCode(v)
 	})
 }
 
-// UpdateCurrency sets the "currency" field to the value that was provided on create.
-func (u *PlanRateCardUpsertOne) UpdateCurrency() *PlanRateCardUpsertOne {
+// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateFiatCurrencyCode() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.UpdateCurrency()
+		s.UpdateFiatCurrencyCode()
 	})
 }
 
-// ClearCurrency clears the value of the "currency" field.
-func (u *PlanRateCardUpsertOne) ClearCurrency() *PlanRateCardUpsertOne {
+// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
+func (u *PlanRateCardUpsertOne) ClearFiatCurrencyCode() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.ClearCurrency()
+		s.ClearFiatCurrencyCode()
+	})
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (u *PlanRateCardUpsertOne) SetCustomCurrencyID(v string) *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetCustomCurrencyID(v)
+	})
+}
+
+// UpdateCustomCurrencyID sets the "custom_currency_id" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateCustomCurrencyID() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateCustomCurrencyID()
+	})
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (u *PlanRateCardUpsertOne) ClearCustomCurrencyID() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearCustomCurrencyID()
 	})
 }
 
@@ -1788,24 +1874,45 @@ func (u *PlanRateCardUpsertBulk) ClearPrice() *PlanRateCardUpsertBulk {
 	})
 }
 
-// SetCurrency sets the "currency" field.
-func (u *PlanRateCardUpsertBulk) SetCurrency(v string) *PlanRateCardUpsertBulk {
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (u *PlanRateCardUpsertBulk) SetFiatCurrencyCode(v string) *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.SetCurrency(v)
+		s.SetFiatCurrencyCode(v)
 	})
 }
 
-// UpdateCurrency sets the "currency" field to the value that was provided on create.
-func (u *PlanRateCardUpsertBulk) UpdateCurrency() *PlanRateCardUpsertBulk {
+// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateFiatCurrencyCode() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.UpdateCurrency()
+		s.UpdateFiatCurrencyCode()
 	})
 }
 
-// ClearCurrency clears the value of the "currency" field.
-func (u *PlanRateCardUpsertBulk) ClearCurrency() *PlanRateCardUpsertBulk {
+// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
+func (u *PlanRateCardUpsertBulk) ClearFiatCurrencyCode() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.ClearCurrency()
+		s.ClearFiatCurrencyCode()
+	})
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (u *PlanRateCardUpsertBulk) SetCustomCurrencyID(v string) *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetCustomCurrencyID(v)
+	})
+}
+
+// UpdateCustomCurrencyID sets the "custom_currency_id" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateCustomCurrencyID() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateCustomCurrencyID()
+	})
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (u *PlanRateCardUpsertBulk) ClearCustomCurrencyID() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearCustomCurrencyID()
 	})
 }
 

@@ -1,17 +1,80 @@
 package productcatalog
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestRateCardCurrencyJSONRoundTrip(t *testing.T) {
+	// given:
+	// - root rate cards carry a managed custom-currency identity
+	// when:
+	// - they cross the JSON boundary used by subscription specs and views
+	// then:
+	// - JSON contains only the currency code and decoding restores code-only authoring identity
+	managedCurrency := currencies.Currency{
+		NamespacedID: models.NamespacedID{ID: "01J00000000000000000000000"},
+		Code:         "CREDITS",
+	}
+	price := NewPriceFrom(FlatPrice{Amount: decimal.NewFromInt(1)})
+
+	tests := []struct {
+		name   string
+		input  RateCard
+		target RateCard
+	}{
+		{
+			name: "flat fee",
+			input: &FlatFeeRateCard{RateCardMeta: RateCardMeta{
+				Key:      "flat",
+				Name:     "Flat",
+				Price:    price,
+				Currency: managedCurrency,
+			}},
+			target: &FlatFeeRateCard{},
+		},
+		{
+			name: "usage based",
+			input: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Key:      "usage",
+					Name:     "Usage",
+					Price:    price,
+					Currency: managedCurrency,
+				},
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
+			},
+			target: &UsageBasedRateCard{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := json.Marshal(tt.input)
+			require.NoError(t, err)
+
+			var wire map[string]any
+			require.NoError(t, json.Unmarshal(data, &wire))
+			require.Equal(t, "CREDITS", wire["currency"])
+			require.NotContains(t, string(data), managedCurrency.ID)
+
+			require.NoError(t, json.Unmarshal(data, tt.target))
+			require.Equal(t, currencyx.Code("CREDITS"), tt.target.AsMeta().Currency)
+		})
+	}
+}
 
 func TestFlatFeeRateCard(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {

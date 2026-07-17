@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -22,14 +23,15 @@ import (
 // AddonRateCardQuery is the builder for querying AddonRateCard entities.
 type AddonRateCardQuery struct {
 	config
-	ctx          *QueryContext
-	order        []addonratecard.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.AddonRateCard
-	withAddon    *AddonQuery
-	withFeatures *FeatureQuery
-	withTaxCode  *TaxCodeQuery
-	modifiers    []func(*sql.Selector)
+	ctx                *QueryContext
+	order              []addonratecard.OrderOption
+	inters             []Interceptor
+	predicates         []predicate.AddonRateCard
+	withAddon          *AddonQuery
+	withFeatures       *FeatureQuery
+	withTaxCode        *TaxCodeQuery
+	withCustomCurrency *CustomCurrencyQuery
+	modifiers          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -125,6 +127,28 @@ func (_q *AddonRateCardQuery) QueryTaxCode() *TaxCodeQuery {
 			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, selector),
 			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.TaxCodeTable, addonratecard.TaxCodeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency chains the current query on the "custom_currency" edge.
+func (_q *AddonRateCardQuery) QueryCustomCurrency() *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, selector),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.CustomCurrencyTable, addonratecard.CustomCurrencyColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -319,14 +343,15 @@ func (_q *AddonRateCardQuery) Clone() *AddonRateCardQuery {
 		return nil
 	}
 	return &AddonRateCardQuery{
-		config:       _q.config,
-		ctx:          _q.ctx.Clone(),
-		order:        append([]addonratecard.OrderOption{}, _q.order...),
-		inters:       append([]Interceptor{}, _q.inters...),
-		predicates:   append([]predicate.AddonRateCard{}, _q.predicates...),
-		withAddon:    _q.withAddon.Clone(),
-		withFeatures: _q.withFeatures.Clone(),
-		withTaxCode:  _q.withTaxCode.Clone(),
+		config:             _q.config,
+		ctx:                _q.ctx.Clone(),
+		order:              append([]addonratecard.OrderOption{}, _q.order...),
+		inters:             append([]Interceptor{}, _q.inters...),
+		predicates:         append([]predicate.AddonRateCard{}, _q.predicates...),
+		withAddon:          _q.withAddon.Clone(),
+		withFeatures:       _q.withFeatures.Clone(),
+		withTaxCode:        _q.withTaxCode.Clone(),
+		withCustomCurrency: _q.withCustomCurrency.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -363,6 +388,17 @@ func (_q *AddonRateCardQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *AddonRat
 		opt(query)
 	}
 	_q.withTaxCode = query
+	return _q
+}
+
+// WithCustomCurrency tells the query-builder to eager-load the nodes that are connected to
+// the "custom_currency" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AddonRateCardQuery) WithCustomCurrency(opts ...func(*CustomCurrencyQuery)) *AddonRateCardQuery {
+	query := (&CustomCurrencyClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCustomCurrency = query
 	return _q
 }
 
@@ -444,10 +480,11 @@ func (_q *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*AddonRateCard{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withAddon != nil,
 			_q.withFeatures != nil,
 			_q.withTaxCode != nil,
+			_q.withCustomCurrency != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -486,6 +523,12 @@ func (_q *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	if query := _q.withTaxCode; query != nil {
 		if err := _q.loadTaxCode(ctx, query, nodes, nil,
 			func(n *AddonRateCard, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCustomCurrency; query != nil {
+		if err := _q.loadCustomCurrency(ctx, query, nodes, nil,
+			func(n *AddonRateCard, e *CustomCurrency) { n.Edges.CustomCurrency = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -585,6 +628,38 @@ func (_q *AddonRateCardQuery) loadTaxCode(ctx context.Context, query *TaxCodeQue
 	}
 	return nil
 }
+func (_q *AddonRateCardQuery) loadCustomCurrency(ctx context.Context, query *CustomCurrencyQuery, nodes []*AddonRateCard, init func(*AddonRateCard), assign func(*AddonRateCard, *CustomCurrency)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*AddonRateCard)
+	for i := range nodes {
+		if nodes[i].CustomCurrencyID == nil {
+			continue
+		}
+		fk := *nodes[i].CustomCurrencyID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(customcurrency.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "custom_currency_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *AddonRateCardQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -622,6 +697,9 @@ func (_q *AddonRateCardQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withTaxCode != nil {
 			_spec.Node.AddColumnOnce(addonratecard.FieldTaxCodeID)
+		}
+		if _q.withCustomCurrency != nil {
+			_spec.Node.AddColumnOnce(addonratecard.FieldCustomCurrencyID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

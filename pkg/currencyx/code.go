@@ -11,6 +11,7 @@ import (
 )
 
 var _ fmt.Stringer = (*Code)(nil)
+var _ CurrencyIdentity = (*Code)(nil)
 
 // Code represents a fiat or custom currency code.
 type Code currency.Code
@@ -49,4 +50,34 @@ func (c Code) IsFiat() bool {
 	definition := currency.Get(currency.Code(c))
 
 	return definition != nil && definition.ISONumeric != ""
+}
+
+func (c Code) IsCustom() bool {
+	return !c.IsFiat()
+}
+
+func (c Code) Type() CurrencyType {
+	if c.IsFiat() {
+		return CurrencyTypeFiat
+	}
+
+	return CurrencyTypeCustom
+}
+
+func (c Code) GetCode() Code {
+	return c
+}
+
+func (c Code) Equal(other CurrencyIdentity) bool {
+	if other == nil || c.Type() != other.Type() {
+		return false
+	}
+
+	if c.IsCustom() {
+		if _, managed := other.(ManagedCurrency); managed {
+			return false
+		}
+	}
+
+	return c == other.GetCode()
 }
