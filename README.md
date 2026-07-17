@@ -125,6 +125,9 @@ high-volume event ingestion and real-time aggregation:
 | **Kafka**                | Event streaming and ingestion pipeline                   |
 | **TypeSpec**             | API-first design — OpenAPI spec and SDKs from TypeSpec   |
 
+See [Architecture and data flow](docs/architecture.md) for a
+diagram of the runtime components and their primary interactions.
+
 ## Community
 
 We'd love to have you involved:
