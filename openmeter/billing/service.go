@@ -11,7 +11,6 @@ import (
 type Service interface {
 	ProfileService
 	CustomerOverrideService
-	InvoiceLineService
 	LineEngineService
 	SplitLineGroupService
 	InvoiceService
@@ -43,12 +42,6 @@ type CustomerOverrideService interface {
 	GetCustomerOverride(ctx context.Context, input GetCustomerOverrideInput) (CustomerOverrideWithDetails, error)
 	GetCustomerApp(ctx context.Context, input GetCustomerAppInput) (app.App, error)
 	ListCustomerOverrides(ctx context.Context, input ListCustomerOverridesInput) (ListCustomerOverridesResult, error)
-}
-
-type InvoiceLineService interface {
-	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
-	// the invoice is used as contextual information to the call.
-	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*StandardLine, error)
 }
 
 type LineEngineService interface {

@@ -21,8 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-var _ billing.InvoiceLineService = (*Service)(nil)
-
 // TODO[later]: Move this to gatheringinvoice.go
 func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	for i := range input.Lines {
