@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
@@ -448,6 +449,45 @@ func init() {
 	billingcustomeroverrideDescID := billingcustomeroverrideMixinFields0[0].Descriptor()
 	// billingcustomeroverride.DefaultID holds the default value on creation for the id field.
 	billingcustomeroverride.DefaultID = billingcustomeroverrideDescID.Default.(func() string)
+	billinggatheringinvoiceMixin := schema.BillingGatheringInvoice{}.Mixin()
+	billinggatheringinvoiceMixinFields0 := billinggatheringinvoiceMixin[0].Fields()
+	_ = billinggatheringinvoiceMixinFields0
+	billinggatheringinvoiceFields := schema.BillingGatheringInvoice{}.Fields()
+	_ = billinggatheringinvoiceFields
+	// billinggatheringinvoiceDescNamespace is the schema descriptor for namespace field.
+	billinggatheringinvoiceDescNamespace := billinggatheringinvoiceMixinFields0[1].Descriptor()
+	// billinggatheringinvoice.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billinggatheringinvoice.NamespaceValidator = billinggatheringinvoiceDescNamespace.Validators[0].(func(string) error)
+	// billinggatheringinvoiceDescCreatedAt is the schema descriptor for created_at field.
+	billinggatheringinvoiceDescCreatedAt := billinggatheringinvoiceMixinFields0[3].Descriptor()
+	// billinggatheringinvoice.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billinggatheringinvoice.DefaultCreatedAt = billinggatheringinvoiceDescCreatedAt.Default.(func() time.Time)
+	// billinggatheringinvoiceDescUpdatedAt is the schema descriptor for updated_at field.
+	billinggatheringinvoiceDescUpdatedAt := billinggatheringinvoiceMixinFields0[4].Descriptor()
+	// billinggatheringinvoice.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billinggatheringinvoice.DefaultUpdatedAt = billinggatheringinvoiceDescUpdatedAt.Default.(func() time.Time)
+	// billinggatheringinvoice.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billinggatheringinvoice.UpdateDefaultUpdatedAt = billinggatheringinvoiceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billinggatheringinvoiceDescNumber is the schema descriptor for number field.
+	billinggatheringinvoiceDescNumber := billinggatheringinvoiceFields[0].Descriptor()
+	// billinggatheringinvoice.NumberValidator is a validator for the "number" field. It is called by the builders before save.
+	billinggatheringinvoice.NumberValidator = billinggatheringinvoiceDescNumber.Validators[0].(func(string) error)
+	// billinggatheringinvoiceDescCustomerID is the schema descriptor for customer_id field.
+	billinggatheringinvoiceDescCustomerID := billinggatheringinvoiceFields[1].Descriptor()
+	// billinggatheringinvoice.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	billinggatheringinvoice.CustomerIDValidator = billinggatheringinvoiceDescCustomerID.Validators[0].(func(string) error)
+	// billinggatheringinvoiceDescCurrency is the schema descriptor for currency field.
+	billinggatheringinvoiceDescCurrency := billinggatheringinvoiceFields[2].Descriptor()
+	// billinggatheringinvoice.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	billinggatheringinvoice.CurrencyValidator = billinggatheringinvoiceDescCurrency.Validators[0].(func(string) error)
+	// billinggatheringinvoiceDescSchemaLevel is the schema descriptor for schema_level field.
+	billinggatheringinvoiceDescSchemaLevel := billinggatheringinvoiceFields[6].Descriptor()
+	// billinggatheringinvoice.DefaultSchemaLevel holds the default value on creation for the schema_level field.
+	billinggatheringinvoice.DefaultSchemaLevel = billinggatheringinvoiceDescSchemaLevel.Default.(int)
+	// billinggatheringinvoiceDescID is the schema descriptor for id field.
+	billinggatheringinvoiceDescID := billinggatheringinvoiceMixinFields0[0].Descriptor()
+	// billinggatheringinvoice.DefaultID holds the default value on creation for the id field.
+	billinggatheringinvoice.DefaultID = billinggatheringinvoiceDescID.Default.(func() string)
 	billinggatheringinvoicelineMixin := schema.BillingGatheringInvoiceLine{}.Mixin()
 	billinggatheringinvoicelineMixinFields1 := billinggatheringinvoicelineMixin[1].Fields()
 	_ = billinggatheringinvoicelineMixinFields1

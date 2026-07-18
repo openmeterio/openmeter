@@ -9,6 +9,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
@@ -19,42 +20,39 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type BillingAdapterTestSuite struct {
 	BaseSuite
+	SubscriptionMixin
 }
 
 func TestBillingAdapter(t *testing.T) {
 	suite.Run(t, new(BillingAdapterTestSuite))
 }
 
+func (s *BillingAdapterTestSuite) SetupSuite() {
+	s.BaseSuite.SetupSuite()
+	s.SubscriptionMixin.SetupSuite(s.T(), s.GetSubscriptionMixInDependencies())
+}
+
 func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *billing.StandardInvoice {
 	s.T().Helper()
 	// Given we have a customer
-	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
-		Namespace: ns,
-
-		CustomerMutate: customer.CustomerMutate{
-			Name:         "Test Customer",
-			PrimaryEmail: lo.ToPtr("test@test.com"),
-			BillingAddress: &models.Address{
-				Country: lo.ToPtr(models.CountryCode("US")),
-			},
-			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
-			UsageAttribution: &customer.CustomerUsageAttribution{
-				SubjectKeys: []string{"test"},
-			},
-		},
-	})
-	require.NoError(s.T(), err)
+	customerEntity := s.CreateTestCustomer(ns, "test")
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 
@@ -81,6 +79,423 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 	require.NotNil(s.T(), invoice)
 
 	return &invoice
+}
+
+func (s *BillingAdapterTestSuite) TestReadInvoicesAcrossInvoiceTables() {
+	// given:
+	// - one standard invoice and one legacy gathering invoice in billing_invoices
+	// - one gathering invoice and line in the dedicated tables
+	// when:
+	// - generic listing and type-specific reads are requested
+	// then:
+	// - generic listing follows view order and hydrates all storage locations
+	// - gathering invoice reads use the storage table selected by the view
+	ctx := s.T().Context()
+	standardNamespace := s.GetUniqueNamespace("list-invoices-standard")
+	gatheringNamespace := s.GetUniqueNamespace("list-invoices-gathering")
+
+	standardInvoice := s.setupInvoice(ctx, standardNamespace)
+	_, err := s.DBClient.BillingInvoice.UpdateOneID(standardInvoice.ID).
+		SetStatus(billing.StandardInvoiceStatusDraftCreated).
+		Save(ctx)
+	require.NoError(s.T(), err)
+
+	legacyGatheringInvoice := s.setupInvoice(ctx, gatheringNamespace)
+	dedicatedInvoiceID := ulid.Make().String()
+	dedicatedLineID := ulid.Make().String()
+	subscriptionStart := clock.Now().UTC()
+	dedicatedCreatedAt := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	createdPlan, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: gatheringNamespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Dedicated gathering invoice test plan",
+				Key:            "dedicated-gathering-invoice-test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: productcatalog.PhaseMeta{
+						Name: "default",
+						Key:  "default",
+					},
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "flat-fee",
+								Name: "Flat fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromInt(10),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(s.T(), err)
+
+	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, gatheringNamespace, productcatalogsubscription.PlanRefInput{
+		Key:     createdPlan.Key,
+		Version: lo.ToPtr(createdPlan.Version),
+	})
+	require.NoError(s.T(), err)
+
+	subscriptionView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(subscriptionStart),
+			},
+		},
+		Namespace:  gatheringNamespace,
+		CustomerID: legacyGatheringInvoice.GetCustomerID().ID,
+	}, subscriptionPlan)
+	require.NoError(s.T(), err)
+	subscriptionID := subscriptionView.Subscription.ID
+	require.Len(s.T(), subscriptionView.Phases, 1)
+	subscriptionPhase := subscriptionView.Phases[0].SubscriptionPhase
+	subscriptionItems := subscriptionView.Phases[0].ItemsByKey["flat-fee"]
+	require.Len(s.T(), subscriptionItems, 1)
+	subscriptionItem := subscriptionItems[0].SubscriptionItem
+	require.Equal(s.T(), subscriptionPhase.ID, subscriptionItem.PhaseId)
+
+	billingPeriod, err := subscriptionView.Spec.GetAlignedBillingPeriodAt(subscriptionStart)
+	require.NoError(s.T(), err)
+	require.True(s.T(), billingPeriod.Contains(subscriptionItem.ActiveFrom))
+	servicePeriodStart := billingPeriod.From
+	servicePeriodEnd := billingPeriod.To
+
+	_, err = s.DBClient.BillingGatheringInvoice.Create().
+		SetID(dedicatedInvoiceID).
+		SetNamespace(gatheringNamespace).
+		SetName("Dedicated gathering invoice").
+		SetNumber("GATHERING-DEDICATED").
+		SetCustomerID(legacyGatheringInvoice.GetCustomerID().ID).
+		SetCurrency(legacyGatheringInvoice.Currency).
+		SetServicePeriodStart(servicePeriodStart).
+		SetServicePeriodEnd(servicePeriodEnd).
+		SetNextCollectionAt(servicePeriodEnd).
+		SetCreatedAt(dedicatedCreatedAt).
+		SetUpdatedAt(dedicatedCreatedAt).
+		SetSchemaLevel(2).
+		Save(ctx)
+	require.NoError(s.T(), err)
+
+	price := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromInt(10),
+	})
+	splitLineGroup, err := s.BillingAdapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
+		Namespace: gatheringNamespace,
+		SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+			Name:          "Dedicated gathering line split group",
+			ServicePeriod: billingPeriod,
+		},
+		Price:    price,
+		Currency: legacyGatheringInvoice.Currency,
+		Subscription: &billing.SubscriptionReference{
+			SubscriptionID: subscriptionID,
+			PhaseID:        subscriptionPhase.ID,
+			ItemID:         subscriptionItem.ID,
+			BillingPeriod:  billingPeriod,
+		},
+	})
+	require.NoError(s.T(), err)
+
+	_, err = s.DBClient.BillingGatheringInvoiceLine.Create().
+		SetID(dedicatedLineID).
+		SetNamespace(gatheringNamespace).
+		SetName("Dedicated gathering line").
+		SetCurrency(legacyGatheringInvoice.Currency).
+		SetServicePeriodStart(servicePeriodStart).
+		SetServicePeriodEnd(servicePeriodEnd).
+		SetPriceType(price.Type()).
+		SetFeatureKey("dedicated-feature").
+		SetPrice(price).
+		SetInvoiceID(dedicatedInvoiceID).
+		SetInvoiceAt(servicePeriodEnd).
+		SetManagedBy(billing.SystemManagedLine).
+		SetEngine(billing.LineEngineTypeInvoice).
+		SetSubscriptionID(subscriptionID).
+		SetSubscriptionPhaseID(subscriptionPhase.ID).
+		SetSubscriptionItemID(subscriptionItem.ID).
+		SetSubscriptionBillingPeriodFrom(billingPeriod.From).
+		SetSubscriptionBillingPeriodTo(billingPeriod.To).
+		SetSplitLineGroupID(splitLineGroup.ID).
+		Save(ctx)
+	require.NoError(s.T(), err)
+
+	s.Run("search view identifies each invoice storage table", func() {
+		ctx := s.T().Context()
+		searchRows, err := s.DBClient.BillingInvoiceSearchV1.Query().
+			Where(billinginvoicesearchv1.IDIn(standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID)).
+			All(ctx)
+		require.NoError(s.T(), err)
+		storageTableByInvoiceID := lo.SliceToMap(searchRows, func(row *db.BillingInvoiceSearchV1) (string, billinginvoicesearchv1.StorageTable) {
+			return row.ID, row.StorageTable
+		})
+		require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingInvoice, storageTableByInvoiceID[standardInvoice.ID])
+		require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingInvoice, storageTableByInvoiceID[legacyGatheringInvoice.ID])
+		require.Equal(s.T(), billinginvoicesearchv1.StorageTableBillingGatheringInvoice, storageTableByInvoiceID[dedicatedInvoiceID])
+	})
+
+	s.Run("ListInvoices hydrates standard and gathering invoices across storage tables", func() {
+		ctx := s.T().Context()
+		listed, err := s.BillingAdapter.ListInvoices(ctx, billing.ListInvoicesAdapterInput{
+			Namespaces: []string{standardNamespace, gatheringNamespace},
+			IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
+			Expand:     billing.InvoiceExpands{billing.InvoiceExpandLines},
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), 3, listed.TotalCount)
+		require.Len(s.T(), listed.Items, 3)
+		firstInvoice, err := listed.Items[0].AsGenericInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), dedicatedInvoiceID, firstInvoice.GetID())
+
+		listedByID := make(map[string]billing.Invoice, len(listed.Items))
+		for _, invoice := range listed.Items {
+			genericInvoice, err := invoice.AsGenericInvoice()
+			require.NoError(s.T(), err)
+			listedByID[genericInvoice.GetID()] = invoice
+		}
+
+		standard, err := listedByID[standardInvoice.ID].AsStandardInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.StandardInvoiceStatusDraftCreated, standard.Status)
+
+		legacyGathering, err := listedByID[legacyGatheringInvoice.ID].AsGatheringInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), legacyGatheringInvoice.ID, legacyGathering.ID)
+
+		dedicatedGathering, err := listedByID[dedicatedInvoiceID].AsGatheringInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), "GATHERING-DEDICATED", dedicatedGathering.Number)
+		require.Equal(s.T(), servicePeriodStart, dedicatedGathering.ServicePeriod.From)
+		require.Equal(s.T(), servicePeriodEnd, dedicatedGathering.ServicePeriod.To)
+		require.Len(s.T(), dedicatedGathering.Lines.OrEmpty(), 1)
+		require.Equal(s.T(), dedicatedLineID, dedicatedGathering.Lines.OrEmpty()[0].ID)
+		require.NotNil(s.T(), dedicatedGathering.Lines.OrEmpty()[0].DBState)
+	})
+
+	s.Run("GetGatheringInvoiceById loads a legacy gathering invoice", func() {
+		legacyGatheringByID, err := s.BillingAdapter.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+			Invoice: legacyGatheringInvoice.GetInvoiceID(),
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), legacyGatheringInvoice.ID, legacyGatheringByID.ID)
+	})
+
+	s.Run("GetGatheringInvoiceById loads a dedicated gathering invoice with its split line hierarchy", func() {
+		dedicatedGatheringByID, err := s.BillingAdapter.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+			Invoice: billing.InvoiceID{
+				Namespace: gatheringNamespace,
+				ID:        dedicatedInvoiceID,
+			},
+			Expand: billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
+				billing.GatheringInvoiceExpandSplitLineHierarchy,
+			},
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), dedicatedInvoiceID, dedicatedGatheringByID.ID)
+		require.Len(s.T(), dedicatedGatheringByID.Lines.OrEmpty(), 1)
+		require.Equal(s.T(), dedicatedLineID, dedicatedGatheringByID.Lines.OrEmpty()[0].ID)
+		require.NotNil(s.T(), dedicatedGatheringByID.Lines.OrEmpty()[0].SplitLineHierarchy)
+		require.Equal(s.T(), splitLineGroup.ID, dedicatedGatheringByID.Lines.OrEmpty()[0].SplitLineHierarchy.Group.ID)
+	})
+
+	s.Run("GetSplitLineGroup loads dedicated gathering lines with their invoice headers", func() {
+		hierarchy, err := s.BillingAdapter.GetSplitLineGroup(s.T().Context(), splitLineGroup.NamespacedID)
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), splitLineGroup.ID, hierarchy.Group.ID)
+		require.Len(s.T(), hierarchy.Lines, 1)
+		require.Equal(s.T(), dedicatedLineID, hierarchy.Lines[0].Line.GetID())
+		require.Equal(s.T(), dedicatedInvoiceID, hierarchy.Lines[0].Invoice.GetID())
+	})
+
+	s.Run("GetInvoiceType resolves invoice types across storage tables", func() {
+		ctx := s.T().Context()
+		standardInvoiceType, err := s.BillingAdapter.GetInvoiceType(ctx, standardInvoice.GetInvoiceID())
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.InvoiceTypeStandard, standardInvoiceType)
+
+		legacyGatheringInvoiceType, err := s.BillingAdapter.GetInvoiceType(ctx, legacyGatheringInvoice.GetInvoiceID())
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.InvoiceTypeGathering, legacyGatheringInvoiceType)
+
+		dedicatedGatheringInvoiceType, err := s.BillingAdapter.GetInvoiceType(ctx, billing.InvoiceID{
+			Namespace: gatheringNamespace,
+			ID:        dedicatedInvoiceID,
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), billing.InvoiceTypeGathering, dedicatedGatheringInvoiceType)
+	})
+
+	s.Run("ListGatheringInvoices hydrates legacy and dedicated gathering invoices with split line hierarchies", func() {
+		listedGatheringInvoices, err := s.BillingAdapter.ListGatheringInvoices(s.T().Context(), billing.ListGatheringInvoicesInput{
+			Namespaces: []string{gatheringNamespace},
+			IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
+			Expand: billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
+				billing.GatheringInvoiceExpandSplitLineHierarchy,
+			},
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), 2, listedGatheringInvoices.TotalCount)
+		require.Len(s.T(), listedGatheringInvoices.Items, 2)
+		listedGatheringInvoicesByID := lo.SliceToMap(listedGatheringInvoices.Items, func(invoice billing.GatheringInvoice) (string, billing.GatheringInvoice) {
+			return invoice.ID, invoice
+		})
+		require.Equal(s.T(), legacyGatheringInvoice.ID, listedGatheringInvoicesByID[legacyGatheringInvoice.ID].ID)
+		require.Equal(s.T(), dedicatedInvoiceID, listedGatheringInvoicesByID[dedicatedInvoiceID].ID)
+		require.Len(s.T(), listedGatheringInvoicesByID[dedicatedInvoiceID].Lines.OrEmpty(), 1)
+		require.Equal(s.T(), dedicatedLineID, listedGatheringInvoicesByID[dedicatedInvoiceID].Lines.OrEmpty()[0].ID)
+		require.NotNil(s.T(), listedGatheringInvoicesByID[dedicatedInvoiceID].Lines.OrEmpty()[0].SplitLineHierarchy)
+		require.Equal(s.T(), splitLineGroup.ID, listedGatheringInvoicesByID[dedicatedInvoiceID].Lines.OrEmpty()[0].SplitLineHierarchy.Group.ID)
+	})
+
+	s.Run("GetGatheringLinesForSubscription loads dedicated gathering lines", func() {
+		lines, err := s.BillingAdapter.GetGatheringLinesForSubscription(s.T().Context(), billing.GetLinesForSubscriptionInput{
+			Namespace:      gatheringNamespace,
+			SubscriptionID: subscriptionID,
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), lines, 1)
+		require.Equal(s.T(), dedicatedLineID, lines[0].ID)
+		require.Equal(s.T(), servicePeriodStart, lines[0].ServicePeriod.From)
+		require.Equal(s.T(), servicePeriodEnd, lines[0].ServicePeriod.To)
+		require.Equal(s.T(), &billing.SubscriptionReference{
+			SubscriptionID: subscriptionID,
+			PhaseID:        subscriptionPhase.ID,
+			ItemID:         subscriptionItem.ID,
+			BillingPeriod:  billingPeriod,
+		}, lines[0].Subscription)
+	})
+
+	s.Run("GetLinesForSubscription returns a split line hierarchy containing the dedicated gathering line", func() {
+		lines, err := s.BillingService.GetLinesForSubscription(s.T().Context(), billing.GetLinesForSubscriptionInput{
+			Namespace:      gatheringNamespace,
+			SubscriptionID: subscriptionID,
+		})
+		require.NoError(s.T(), err)
+
+		hierarchies := lo.FilterMap(lines, func(line billing.LineOrHierarchy, _ int) (*billing.SplitLineHierarchy, bool) {
+			hierarchy, err := line.AsHierarchy()
+			return hierarchy, err == nil
+		})
+		require.Len(s.T(), hierarchies, 1)
+		require.Equal(s.T(), splitLineGroup.ID, hierarchies[0].Group.ID)
+		require.Len(s.T(), hierarchies[0].Lines, 1)
+		require.Equal(s.T(), dedicatedLineID, hierarchies[0].Lines[0].Line.GetID())
+	})
+
+	s.Run("GetUnpinnedCustomerIDsWithPaidSubscription finds a dedicated gathering line", func() {
+		customerIDs, err := s.BillingAdapter.GetUnpinnedCustomerIDsWithPaidSubscription(s.T().Context(), billing.GetUnpinnedCustomerIDsWithPaidSubscriptionInput{
+			Namespace: gatheringNamespace,
+		})
+		require.NoError(s.T(), err)
+		require.ElementsMatch(s.T(), []customer.CustomerID{
+			legacyGatheringInvoice.GetCustomerID(),
+		}, customerIDs)
+	})
+
+	s.Run("GetGatheringInvoiceById rejects a standard invoice", func() {
+		_, err := s.BillingAdapter.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+			Invoice: standardInvoice.GetInvoiceID(),
+		})
+		require.ErrorAs(s.T(), err, &billing.ValidationError{})
+	})
+
+	s.Run("GetGatheringInvoiceById returns not found for an unknown invoice", func() {
+		_, err := s.BillingAdapter.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+			Invoice: billing.InvoiceID{
+				Namespace: gatheringNamespace,
+				ID:        ulid.Make().String(),
+			},
+		})
+		require.ErrorAs(s.T(), err, &billing.NotFoundError{})
+	})
+
+	s.Run("ListStandardInvoices excludes gathering invoices from both storage tables", func() {
+		standardOnly, err := s.BillingAdapter.ListStandardInvoices(s.T().Context(), billing.ListStandardInvoicesInput{
+			Namespaces: []string{standardNamespace, gatheringNamespace},
+			IDs:        []string{standardInvoice.ID, legacyGatheringInvoice.ID, dedicatedInvoiceID},
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), 1, standardOnly.TotalCount)
+		require.Len(s.T(), standardOnly.Items, 1)
+		require.Equal(s.T(), standardInvoice.ID, standardOnly.Items[0].ID)
+	})
+
+	s.Run("GetSplitLineGroup rejects a line present in both line tables", func() {
+		legacyInvoice, err := s.BillingAdapter.GetGatheringInvoiceById(s.T().Context(), billing.GetGatheringInvoiceByIdInput{
+			Invoice: legacyGatheringInvoice.GetInvoiceID(),
+		})
+		require.NoError(s.T(), err)
+
+		legacyInvoice.Lines = billing.NewGatheringInvoiceLines(billing.GatheringLines{
+			{
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: gatheringNamespace,
+						ID:        dedicatedLineID,
+						Name:      "Duplicate legacy gathering line",
+					}),
+					ManagedBy:        billing.SystemManagedLine,
+					Engine:           billing.LineEngineTypeInvoice,
+					InvoiceID:        legacyGatheringInvoice.ID,
+					Currency:         legacyGatheringInvoice.Currency,
+					ServicePeriod:    billingPeriod,
+					InvoiceAt:        billingPeriod.To,
+					Price:            lo.FromPtr(price),
+					FeatureKey:       "dedicated-feature",
+					SplitLineGroupID: lo.ToPtr(splitLineGroup.ID),
+					Subscription: &billing.SubscriptionReference{
+						SubscriptionID: subscriptionID,
+						PhaseID:        subscriptionPhase.ID,
+						ItemID:         subscriptionItem.ID,
+						BillingPeriod:  billingPeriod,
+					},
+				},
+			},
+		})
+		require.NoError(s.T(), s.BillingAdapter.UpdateGatheringInvoice(s.T().Context(), legacyInvoice))
+
+		_, err = s.BillingAdapter.GetSplitLineGroup(s.T().Context(), splitLineGroup.NamespacedID)
+		require.ErrorContains(s.T(), err, "split line hierarchy line exists in multiple tables")
+	})
+
+	s.Run("GetGatheringInvoiceById prefers a dedicated replacement over its legacy row", func() {
+		ctx := s.T().Context()
+		_, err := s.DBClient.BillingGatheringInvoice.Create().
+			SetID(legacyGatheringInvoice.ID).
+			SetNamespace(gatheringNamespace).
+			SetName("Dedicated replacement gathering invoice").
+			SetNumber("GATHERING-REPLACEMENT").
+			SetCustomerID(legacyGatheringInvoice.GetCustomerID().ID).
+			SetCurrency(currencyx.Code(currency.EUR)).
+			SetSchemaLevel(2).
+			Save(ctx)
+		require.NoError(s.T(), err)
+
+		replacedGatheringInvoice, err := s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: legacyGatheringInvoice.GetInvoiceID(),
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), "GATHERING-REPLACEMENT", replacedGatheringInvoice.Number)
+	})
 }
 
 type newLineInput struct {

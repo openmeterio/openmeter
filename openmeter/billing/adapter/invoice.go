@@ -2,7 +2,6 @@ package billingadapter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -19,102 +18,22 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ billing.InvoiceAdapter = (*adapter)(nil)
 
-func (a *adapter) GetStandardInvoiceById(ctx context.Context, in billing.GetStandardInvoiceByIdInput) (billing.StandardInvoice, error) {
-	if err := in.Validate(); err != nil {
-		return billing.StandardInvoice{}, billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.StandardInvoice, error) {
-		query := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.ID(in.Invoice.ID)).
-			Where(billinginvoice.Namespace(in.Invoice.Namespace)).
-			Where(billinginvoice.StatusNEQ(billing.StandardInvoiceStatusGathering)).
-			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
-				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
-			}).
-			WithBillingWorkflowConfig(workflowConfigWithTaxCode)
-
-		if in.Expand.Has(billing.StandardInvoiceExpandLines) {
-			query = tx.expandInvoiceLineItems(query, in.Expand)
-		}
-
-		invoice, err := query.Only(ctx)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return billing.StandardInvoice{}, billing.NotFoundError{
-					Err: fmt.Errorf("%w [id=%s]", billing.ErrInvoiceNotFound, in.Invoice.ID),
-				}
-			}
-
-			return billing.StandardInvoice{}, err
-		}
-
-		return tx.mapStandardInvoiceFromDB(ctx, invoice, in.Expand)
-	})
-}
-
-func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand billing.StandardInvoiceExpands) *db.BillingInvoiceQuery {
-	return query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-		if !expand.Has(billing.StandardInvoiceExpandDeletedLines) {
-			q = q.Where(billinginvoiceline.DeletedAtIsNil())
-		}
-
-		requestedStatuses := []billing.InvoiceLineStatus{billing.InvoiceLineStatusValid}
-
-		q = q.Where(
-			// Detailed lines are sub-lines of a line and should not be included in the top-level invoice
-			billinginvoiceline.StatusIn(requestedStatuses...),
-		)
-
-		a.expandLineItemsWithDetailedLines(q)
-	})
-}
-
-func (a *adapter) DeleteGatheringInvoices(ctx context.Context, input billing.DeleteGatheringInvoicesInput) error {
-	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		nAffected, err := tx.db.BillingInvoice.Update().
-			Where(billinginvoice.IDIn(input.InvoiceIDs...)).
-			Where(billinginvoice.Namespace(input.Namespace)).
-			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering)).
-			ClearPeriodStart().
-			ClearPeriodEnd().
-			SetDeletedAt(clock.Now()).
-			Save(ctx)
-		if err != nil {
-			return err
-		}
-
-		if nAffected != len(input.InvoiceIDs) {
-			return billing.ValidationError{
-				Err: errors.New("invoices failed to delete"),
-			}
-		}
-
-		return nil
-	})
+type invoiceSearchTarget struct {
+	Type         billing.InvoiceType
+	StorageTable billinginvoicesearchv1.StorageTable
 }
 
 func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAdapterInput) (billing.ListInvoicesResponse, error) {
@@ -125,72 +44,65 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.ListInvoicesResponse, error) {
-		// Note: we are not filtering for deleted invoices here (as in deleted_at is not nil), as we have the deleted
-		// status that we can use to filter for.
-
-		query := tx.db.BillingInvoice.Query().
-			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
-				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
-			}).
-			WithBillingWorkflowConfig(workflowConfigWithTaxCode)
+		query := tx.db.BillingInvoiceSearchV1.Query()
 
 		if len(input.Namespaces) > 0 {
-			query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
+			query = query.Where(billinginvoicesearchv1.NamespaceIn(input.Namespaces...))
 		}
 
-		query = filter.ApplyToQuery(query, input.CustomerID, billinginvoice.FieldCustomerID)
-		query = filter.ApplyToQuery(query, input.IssuedAt, billinginvoice.FieldIssuedAt)
-		query = filter.ApplyToQuery(query, input.PeriodStart, billinginvoice.FieldPeriodStart)
-		query = filter.ApplyToQuery(query, input.CreatedAt, billinginvoice.FieldCreatedAt)
+		query = filter.ApplyToQuery(query, input.CustomerID, billinginvoicesearchv1.FieldCustomerID)
+		query = filter.ApplyToQuery(query, input.IssuedAt, billinginvoicesearchv1.FieldIssuedAt)
+		query = filter.ApplyToQuery(query, input.PeriodStart, billinginvoicesearchv1.FieldServicePeriodStart)
+		query = filter.ApplyToQuery(query, input.CreatedAt, billinginvoicesearchv1.FieldCreatedAt)
 
 		if len(input.IDs) > 0 {
-			query = query.Where(billinginvoice.IDIn(input.IDs...))
+			query = query.Where(billinginvoicesearchv1.IDIn(input.IDs...))
 		}
 
 		if !input.IncludeDeleted {
-			query = query.Where(billinginvoice.DeletedAtIsNil())
+			query = query.Where(billinginvoicesearchv1.DeletedAtIsNil())
 		}
 
 		if input.OnlyGathering {
-			query = query.Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering))
+			query = query.Where(billinginvoicesearchv1.InvoiceTypeEQ(billing.InvoiceTypeGathering))
 		}
 
 		if input.OnlyStandard {
-			query = query.Where(billinginvoice.StatusNEQ(billing.StandardInvoiceStatusGathering))
+			query = query.Where(billinginvoicesearchv1.InvoiceTypeEQ(billing.InvoiceTypeStandard))
 		}
 
 		if len(input.Statuses) > 0 {
 			query = query.Where(func(s *sql.Selector) {
 				s.Where(sql.Or(
 					lo.Map(input.Statuses, func(status string, _ int) *sql.Predicate {
-						return sql.Like(billinginvoice.FieldStatus, status+"%")
+						return sql.Like(billinginvoicesearchv1.FieldStatus, status+"%")
 					})...,
 				))
 			})
 		}
 
 		if len(input.ExtendedStatuses) > 0 {
-			query = query.Where(billinginvoice.StatusIn(input.ExtendedStatuses...))
+			query = query.Where(billinginvoicesearchv1.StatusIn(input.ExtendedStatuses...))
 		}
 
 		if input.DraftUntilLTE != nil {
-			query = query.Where(billinginvoice.DraftUntilLTE(*input.DraftUntilLTE))
+			query = query.Where(billinginvoicesearchv1.DraftUntilLTE(*input.DraftUntilLTE))
 		}
 
 		if input.CollectionAtLTE != nil {
-			query = query.Where(billinginvoice.Or(
-				billinginvoice.CollectionAtLTE(*input.CollectionAtLTE),
-				billinginvoice.CollectionAtIsNil(),
+			query = query.Where(billinginvoicesearchv1.Or(
+				billinginvoicesearchv1.CollectionAtLTE(*input.CollectionAtLTE),
+				billinginvoicesearchv1.CollectionAtIsNil(),
 			))
 		}
 
 		if len(input.HasAvailableAction) > 0 {
 			query = query.Where(
-				billinginvoice.Or(
+				billinginvoicesearchv1.Or(
 					lo.Map(
 						input.HasAvailableAction,
-						func(action billing.InvoiceAvailableActionsFilter, _ int) predicate.BillingInvoice {
-							return entutils.JSONBKeyExistsInObject(billinginvoice.FieldStatusDetailsCache, "availableActions", string(action))
+						func(action billing.InvoiceAvailableActionsFilter, _ int) predicate.BillingInvoiceSearchV1 {
+							return entutils.JSONBKeyExistsInObject(billinginvoicesearchv1.FieldStatusDetailsCache, "availableActions", string(action))
 						},
 					)...,
 				),
@@ -200,11 +112,11 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 		if input.ExternalIDs != nil {
 			switch input.ExternalIDs.Type {
 			case billing.InvoicingExternalIDType:
-				query = query.Where(billinginvoice.InvoicingAppExternalIDIn(input.ExternalIDs.IDs...))
+				query = query.Where(billinginvoicesearchv1.InvoicingAppExternalIDIn(input.ExternalIDs.IDs...))
 			case billing.PaymentExternalIDType:
-				query = query.Where(billinginvoice.PaymentAppExternalIDIn(input.ExternalIDs.IDs...))
+				query = query.Where(billinginvoicesearchv1.PaymentAppExternalIDIn(input.ExternalIDs.IDs...))
 			case billing.TaxExternalIDType:
-				query = query.Where(billinginvoice.TaxAppExternalIDIn(input.ExternalIDs.IDs...))
+				query = query.Where(billinginvoicesearchv1.TaxAppExternalIDIn(input.ExternalIDs.IDs...))
 			}
 		}
 
@@ -213,30 +125,24 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 			order = entutils.GetOrdering(input.Order)
 		}
 
-		if input.Expand.Has(billing.InvoiceExpandLines) {
-			query = tx.expandInvoiceLineItems(query, billing.
-				StandardInvoiceExpands{billing.StandardInvoiceExpandLines}.
-				SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines))
-		}
-
 		switch input.OrderBy {
 		case api.InvoiceOrderByCustomerName:
-			query = query.Order(billinginvoice.ByCustomerName(order...))
+			query = query.Order(billinginvoicesearchv1.ByCustomerName(order...))
 		case api.InvoiceOrderByIssuedAt:
-			query = query.Order(billinginvoice.ByIssuedAt(order...))
+			query = query.Order(billinginvoicesearchv1.ByIssuedAt(order...))
 		case api.InvoiceOrderByPeriodStart:
-			query = query.Order(billinginvoice.ByPeriodStart(order...))
+			query = query.Order(billinginvoicesearchv1.ByServicePeriodStart(order...))
 		case api.InvoiceOrderByStatus:
-			query = query.Order(billinginvoice.ByStatus(order...))
+			query = query.Order(billinginvoicesearchv1.ByStatus(order...))
 		case api.InvoiceOrderByUpdatedAt:
-			query = query.Order(billinginvoice.ByUpdatedAt(order...))
+			query = query.Order(billinginvoicesearchv1.ByUpdatedAt(order...))
 		case api.InvoiceOrderByCreatedAt:
 			fallthrough
 		default:
-			query = query.Order(billinginvoice.ByCreatedAt(order...))
+			query = query.Order(billinginvoicesearchv1.ByCreatedAt(order...))
 		}
 
-		response := pagination.Result[billing.Invoice]{
+		response := billing.ListInvoicesResponse{
 			Page: input.Page,
 		}
 
@@ -245,29 +151,91 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 			return response, err
 		}
 
-		result := make([]billing.Invoice, 0, len(paged.Items))
-		for _, invoice := range paged.Items {
-			switch invoice.Status {
-			case billing.StandardInvoiceStatusGathering:
-				mapped, err := tx.mapGatheringInvoiceFromDB(ctx, invoice, billing.GatheringInvoiceExpands{}.
-					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.GatheringInvoiceExpandLines).
-					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.GatheringInvoiceExpandDeletedLines),
-				)
-				if err != nil {
-					return response, err
-				}
-				result = append(result, billing.NewInvoice(mapped))
-			default:
-				mapped, err := tx.mapStandardInvoiceFromDB(ctx, invoice, billing.StandardInvoiceExpands{}.
-					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.StandardInvoiceExpandLines).
-					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines),
-				)
-				if err != nil {
-					return response, err
-				}
+		if len(paged.Items) == 0 {
+			response.TotalCount = paged.TotalCount
+			return response, nil
+		}
 
-				result = append(result, billing.NewInvoice(mapped))
+		invoicesToBeLoaded := lo.MapValues(
+			lo.GroupBy(paged.Items, func(hit *db.BillingInvoiceSearchV1) invoiceSearchTarget {
+				return invoiceSearchTarget{
+					Type:         hit.InvoiceType,
+					StorageTable: hit.StorageTable,
+				}
+			}),
+			func(hits []*db.BillingInvoiceSearchV1, _ invoiceSearchTarget) []string {
+				return lo.Map(hits, func(hit *db.BillingInvoiceSearchV1, _ int) string {
+					return hit.ID
+				})
+			},
+		)
+
+		standardExpand := billing.StandardInvoiceExpands{}.
+			SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.StandardInvoiceExpandLines).
+			SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines)
+		gatheringExpand := billing.GatheringInvoiceExpands{}.
+			SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.GatheringInvoiceExpandLines).
+			SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.GatheringInvoiceExpandDeletedLines)
+
+		// Downstream list operations can be permissive about namespace filtering because
+		// response assembly only accepts invoices matching a search hit by namespace and ID.
+		hydrated := make(map[models.NamespacedID]billing.Invoice, len(paged.Items))
+		for target, ids := range invoicesToBeLoaded {
+			switch {
+			case target.Type == billing.InvoiceTypeStandard && target.StorageTable == billinginvoicesearchv1.StorageTableBillingInvoice:
+				invoices, err := tx.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+					Namespaces:     input.Namespaces,
+					IDs:            ids,
+					Expand:         standardExpand,
+					IncludeDeleted: true,
+				})
+				if err != nil {
+					return response, fmt.Errorf("listing standard invoices for search hydration: %w", err)
+				}
+				for _, invoice := range invoices.Items {
+					hydrated[models.NamespacedID{Namespace: invoice.Namespace, ID: invoice.ID}] = billing.NewInvoice(invoice)
+				}
+			case target.Type == billing.InvoiceTypeGathering && target.StorageTable == billinginvoicesearchv1.StorageTableBillingInvoice:
+				invoices, err := tx.listGatheringInvoices(ctx, listGatheringInvoicesInput{
+					Namespaces:     input.Namespaces,
+					IDs:            ids,
+					Expand:         gatheringExpand,
+					IncludeDeleted: true,
+				})
+				if err != nil {
+					return response, fmt.Errorf("listing legacy gathering invoices for search hydration: %w", err)
+				}
+				for _, invoice := range invoices {
+					hydrated[models.NamespacedID{Namespace: invoice.Namespace, ID: invoice.ID}] = billing.NewInvoice(invoice)
+				}
+			case target.Type == billing.InvoiceTypeGathering && target.StorageTable == billinginvoicesearchv1.StorageTableBillingGatheringInvoice:
+				invoices, err := tx.listDedicatedGatheringInvoices(ctx, listGatheringInvoicesInput{
+					Namespaces:     input.Namespaces,
+					IDs:            ids,
+					Expand:         gatheringExpand,
+					IncludeDeleted: true,
+				})
+				if err != nil {
+					return response, fmt.Errorf("listing dedicated gathering invoices for search hydration: %w", err)
+				}
+				for _, invoice := range invoices {
+					hydrated[models.NamespacedID{Namespace: invoice.Namespace, ID: invoice.ID}] = billing.NewInvoice(invoice)
+				}
+			default:
+				return response, fmt.Errorf("unsupported invoice search target [storage_table=%s, type=%s]", target.StorageTable, target.Type)
 			}
+		}
+
+		result, err := lo.MapErr(paged.Items, func(hit *db.BillingInvoiceSearchV1, _ int) (billing.Invoice, error) {
+			invoice, ok := hydrated[models.NamespacedID{Namespace: hit.Namespace, ID: hit.ID}]
+			if !ok {
+				return billing.Invoice{}, fmt.Errorf("invoice search result could not be hydrated [namespace=%s, id=%s, type=%s]", hit.Namespace, hit.ID, hit.InvoiceType)
+			}
+
+			return invoice, nil
+		})
+		if err != nil {
+			return response, err
 		}
 
 		response.TotalCount = paged.TotalCount
@@ -591,38 +559,6 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 	})
 }
 
-func (a *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoiceOwnershipAdapterInput) (billing.GetOwnershipAdapterResponse, error) {
-	if err := in.Validate(); err != nil {
-		return billing.GetOwnershipAdapterResponse{}, billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GetOwnershipAdapterResponse, error) {
-		dbInvoice, err := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.ID(in.ID)).
-			Where(billinginvoice.Namespace(in.Namespace)).
-			First(ctx)
-		if err != nil {
-			if db.IsNotFound(err) {
-				return billing.GetOwnershipAdapterResponse{}, billing.NotFoundError{
-					Entity: billing.EntityInvoice,
-					ID:     in.ID,
-					Err:    err,
-				}
-			}
-
-			return billing.GetOwnershipAdapterResponse{}, err
-		}
-
-		return billing.GetOwnershipAdapterResponse{
-			Namespace:  dbInvoice.Namespace,
-			InvoiceID:  dbInvoice.ID,
-			CustomerID: dbInvoice.CustomerID,
-		}, nil
-	})
-}
-
 func (a *adapter) mapStandardInvoiceBaseFromDB(invoice *db.BillingInvoice) billing.StandardInvoiceBase {
 	return billing.StandardInvoiceBase{
 		ID:                   invoice.ID,
@@ -879,24 +815,24 @@ func (a *adapter) GetInvoiceType(ctx context.Context, input billing.GetInvoiceTy
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.InvoiceType, error) {
-		invoice, err := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.ID(input.ID)).
-			Where(billinginvoice.Namespace(input.Namespace)).
-			Only(ctx)
+		searchResults, err := tx.db.BillingInvoiceSearchV1.Query().
+			Where(billinginvoicesearchv1.ID(input.ID)).
+			Where(billinginvoicesearchv1.Namespace(input.Namespace)).
+			All(ctx)
 		if err != nil {
-			if db.IsNotFound(err) {
-				return "", billing.NotFoundError{
-					Err: fmt.Errorf("invoice not found: %w", err),
-				}
-			}
-
 			return "", err
 		}
 
-		if invoice.Status == billing.StandardInvoiceStatusGathering {
-			return billing.InvoiceTypeGathering, nil
+		if len(searchResults) == 0 {
+			return "", billing.NotFoundError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrInvoiceNotFound, input.ID),
+			}
 		}
 
-		return billing.InvoiceTypeStandard, nil
+		if len(searchResults) > 1 {
+			return "", models.NewGenericConflictError(fmt.Errorf("invoice exists in multiple storage tables [namespace=%s, id=%s]", input.Namespace, input.ID))
+		}
+
+		return searchResults[0].InvoiceType, nil
 	})
 }

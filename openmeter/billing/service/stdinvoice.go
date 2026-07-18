@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 var _ billing.StandardInvoiceService = (*Service)(nil)
@@ -123,42 +122,12 @@ func (s *Service) ListStandardInvoices(ctx context.Context, input billing.ListSt
 		}
 	}
 
-	adapterInput := billing.ListInvoicesAdapterInput{
-		Page:               input.Page,
-		Namespaces:         input.Namespaces,
-		IDs:                input.IDs,
-		Statuses:           input.Statuses,
-		ExtendedStatuses:   input.ExtendedStatuses,
-		HasAvailableAction: input.HasAvailableAction,
-
-		ExternalIDs:     input.ExternalIDs,
-		DraftUntilLTE:   input.DraftUntilLTE,
-		CollectionAtLTE: input.CollectionAtLTE,
-		IncludeDeleted:  input.IncludeDeleted,
-
-		Expand: billing.InvoiceExpands{}.
-			SetOrUnsetIf(input.Expand.Has(billing.StandardInvoiceExpandLines), billing.InvoiceExpandLines).
-			SetOrUnsetIf(input.Expand.Has(billing.StandardInvoiceExpandDeletedLines), billing.InvoiceExpandDeletedLines),
-		OnlyStandard: true,
-	}
-
-	resp, err := s.adapter.ListInvoices(ctx, adapterInput)
+	resp, err := s.adapter.ListStandardInvoices(ctx, input)
 	if err != nil {
-		return billing.ListStandardInvoicesResponse{}, fmt.Errorf("listing invoices: %w", err)
+		return billing.ListStandardInvoicesResponse{}, fmt.Errorf("listing standard invoices: %w", err)
 	}
 
-	stdInvoices, err := slicesx.MapWithErr(resp.Items, func(item billing.Invoice) (billing.StandardInvoice, error) {
-		return item.AsStandardInvoice()
-	})
-	if err != nil {
-		return billing.ListStandardInvoicesResponse{}, fmt.Errorf("mapping invoices to standard invoices: %w", err)
-	}
-
-	return billing.ListStandardInvoicesResponse{
-		Items:      stdInvoices,
-		Page:       resp.Page,
-		TotalCount: resp.TotalCount,
-	}, nil
+	return resp, nil
 }
 
 func (s *Service) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.StandardInvoice, error) {

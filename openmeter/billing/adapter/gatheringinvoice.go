@@ -2,6 +2,7 @@ package billingadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,8 +12,11 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesearchv1"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -24,6 +28,36 @@ import (
 )
 
 var _ billing.GatheringInvoiceAdapter = (*adapter)(nil)
+
+func (a *adapter) DeleteGatheringInvoices(ctx context.Context, input billing.DeleteGatheringInvoicesInput) error {
+	if err := input.Validate(); err != nil {
+		return billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		nAffected, err := tx.db.BillingInvoice.Update().
+			Where(billinginvoice.IDIn(input.InvoiceIDs...)).
+			Where(billinginvoice.Namespace(input.Namespace)).
+			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering)).
+			ClearPeriodStart().
+			ClearPeriodEnd().
+			SetDeletedAt(clock.Now()).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+
+		if nAffected != len(input.InvoiceIDs) {
+			return billing.ValidationError{
+				Err: errors.New("invoices failed to delete"),
+			}
+		}
+
+		return nil
+	})
+}
 
 func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.CreateGatheringInvoiceAdapterInput) (billing.GatheringInvoice, error) {
 	if err := input.Validate(); err != nil {
@@ -90,7 +124,7 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 		// Let's add required edges for mapping
 		newInvoice.Edges.BillingWorkflowConfig = clonedWorkflowConfig
 
-		return tx.mapGatheringInvoiceFromDB(ctx, newInvoice, billing.GatheringInvoiceExpands{})
+		return tx.mapGatheringInvoiceFromDB(newInvoice, billing.GatheringInvoiceExpands{})
 	})
 }
 
@@ -203,23 +237,23 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[billing.GatheringInvoice], error) {
-		query := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering))
+		query := tx.db.BillingInvoiceSearchV1.Query().
+			Where(billinginvoicesearchv1.InvoiceTypeEQ(billing.InvoiceTypeGathering))
 
 		if len(input.Namespaces) > 0 {
-			query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
+			query = query.Where(billinginvoicesearchv1.NamespaceIn(input.Namespaces...))
 		}
 
 		if len(input.ExcludedNamespaces) > 0 {
-			query = query.Where(billinginvoice.NamespaceNotIn(input.ExcludedNamespaces...))
+			query = query.Where(billinginvoicesearchv1.NamespaceNotIn(input.ExcludedNamespaces...))
 		}
 
 		if len(input.Customers) > 0 {
-			query = query.Where(billinginvoice.CustomerIDIn(input.Customers...))
+			query = query.Where(billinginvoicesearchv1.CustomerIDIn(input.Customers...))
 		}
 
 		if len(input.Currencies) > 0 {
-			query = query.Where(billinginvoice.CurrencyIn(input.Currencies...))
+			query = query.Where(billinginvoicesearchv1.CurrencyIn(input.Currencies...))
 		}
 
 		order := entutils.GetOrdering(sortx.OrderDefault)
@@ -227,34 +261,30 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			order = entutils.GetOrdering(input.Order)
 		}
 
-		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
-			query = a.expandGatheringInvoiceLines(query, input.Expand)
-		}
-
-		query = filter.ApplyToQuery(query, &input.CollectionAt, billinginvoice.FieldCollectionAt)
+		query = filter.ApplyToQuery(query, &input.CollectionAt, billinginvoicesearchv1.FieldCollectionAt)
 		if len(input.IDs) > 0 {
-			query = query.Where(billinginvoice.IDIn(input.IDs...))
+			query = query.Where(billinginvoicesearchv1.IDIn(input.IDs...))
 		}
 
 		switch input.OrderBy {
 		case api.InvoiceOrderByCustomerName:
-			query = query.Order(billinginvoice.ByCustomerName(order...))
+			query = query.Order(billinginvoicesearchv1.ByCustomerName(order...))
 		case api.InvoiceOrderByIssuedAt:
-			query = query.Order(billinginvoice.ByIssuedAt(order...))
+			query = query.Order(billinginvoicesearchv1.ByIssuedAt(order...))
 		case api.InvoiceOrderByPeriodStart:
-			query = query.Order(billinginvoice.ByPeriodStart(order...))
+			query = query.Order(billinginvoicesearchv1.ByServicePeriodStart(order...))
 		case api.InvoiceOrderByStatus:
-			query = query.Order(billinginvoice.ByStatus(order...))
+			query = query.Order(billinginvoicesearchv1.ByStatus(order...))
 		case api.InvoiceOrderByUpdatedAt:
-			query = query.Order(billinginvoice.ByUpdatedAt(order...))
+			query = query.Order(billinginvoicesearchv1.ByUpdatedAt(order...))
 		case api.InvoiceOrderByCreatedAt:
 			fallthrough
 		default:
-			query = query.Order(billinginvoice.ByCreatedAt(order...))
+			query = query.Order(billinginvoicesearchv1.ByCreatedAt(order...))
 		}
 
 		if !input.IncludeDeleted {
-			query = query.Where(billinginvoice.DeletedAtIsNil())
+			query = query.Where(billinginvoicesearchv1.DeletedAtIsNil())
 		}
 
 		response := pagination.Result[billing.GatheringInvoice]{
@@ -266,14 +296,66 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			return response, err
 		}
 
-		result := make([]billing.GatheringInvoice, 0, len(paged.Items))
-		for _, invoice := range paged.Items {
-			mapped, err := tx.mapGatheringInvoiceFromDB(ctx, invoice, input.Expand)
+		if len(paged.Items) == 0 {
+			response.TotalCount = paged.TotalCount
+			return response, nil
+		}
+
+		invoicesToBeLoaded := lo.GroupByMap(paged.Items, func(hit *db.BillingInvoiceSearchV1) (billinginvoicesearchv1.StorageTable, string) {
+			return hit.StorageTable, hit.ID
+		})
+
+		// Downstream list operations can be permissive about namespace filtering because
+		// response assembly only accepts invoices matching a search hit by namespace and ID.
+		hydrated := make(map[models.NamespacedID]billing.GatheringInvoice, len(paged.Items))
+		for storageTable, ids := range invoicesToBeLoaded {
+			var invoices []billing.GatheringInvoice
+			var err error
+
+			switch storageTable {
+			case billinginvoicesearchv1.StorageTableBillingInvoice:
+				invoices, err = tx.listGatheringInvoices(ctx, listGatheringInvoicesInput{
+					Namespaces:     input.Namespaces,
+					IDs:            ids,
+					Expand:         input.Expand,
+					IncludeDeleted: true,
+				})
+			case billinginvoicesearchv1.StorageTableBillingGatheringInvoice:
+				invoices, err = tx.listDedicatedGatheringInvoices(ctx, listGatheringInvoicesInput{
+					Namespaces:     input.Namespaces,
+					IDs:            ids,
+					Expand:         input.Expand,
+					IncludeDeleted: true,
+				})
+			default:
+				return response, fmt.Errorf("unsupported gathering invoice storage table [storage_table=%s]", storageTable)
+			}
+			if err != nil {
+				return response, fmt.Errorf("listing gathering invoices for search hydration [storage_table=%s]: %w", storageTable, err)
+			}
+
+			for _, invoice := range invoices {
+				hydrated[models.NamespacedID{Namespace: invoice.Namespace, ID: invoice.ID}] = invoice
+			}
+		}
+
+		result, err := lo.MapErr(paged.Items, func(hit *db.BillingInvoiceSearchV1, _ int) (billing.GatheringInvoice, error) {
+			invoice, ok := hydrated[models.NamespacedID{Namespace: hit.Namespace, ID: hit.ID}]
+			if !ok {
+				return billing.GatheringInvoice{}, fmt.Errorf("gathering invoice search result could not be hydrated [namespace=%s, id=%s, storage_table=%s]", hit.Namespace, hit.ID, hit.StorageTable)
+			}
+
+			return invoice, nil
+		})
+		if err != nil {
+			return response, err
+		}
+
+		if input.Expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
+			result, err = tx.loadSplitLineHierarchiesForGatheringInvoices(ctx, result)
 			if err != nil {
 				return response, err
 			}
-
-			result = append(result, mapped)
 		}
 
 		response.TotalCount = paged.TotalCount
@@ -281,6 +363,45 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 
 		return response, nil
 	})
+}
+
+func (a *adapter) loadSplitLineHierarchiesForGatheringInvoices(ctx context.Context, invoices []billing.GatheringInvoice) ([]billing.GatheringInvoice, error) {
+	linesByInvoice := lo.Map(invoices, func(invoice billing.GatheringInvoice, _ int) billing.GatheringLines {
+		return invoice.Lines.OrEmpty()
+	})
+	linePointersByNamespace := lo.GroupBy(
+		lo.FlatMap(linesByInvoice, func(lines billing.GatheringLines, _ int) []*billing.GatheringLine {
+			return lo.Map(lines, func(_ billing.GatheringLine, lineIndex int) *billing.GatheringLine {
+				return &lines[lineIndex]
+			})
+		}),
+		func(line *billing.GatheringLine) string {
+			return line.Namespace
+		},
+	)
+
+	for namespace, linePointers := range linePointersByNamespace {
+		lines := billing.GatheringLines(lo.Map(linePointers, func(line *billing.GatheringLine, _ int) billing.GatheringLine {
+			return *line
+		}))
+
+		hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, namespace, lines.AsGenericLines())
+		if err != nil {
+			return nil, fmt.Errorf("loading gathering invoice split line hierarchies [namespace=%s]: %w", namespace, err)
+		}
+
+		if _, err := withSplitLineHierarchyForLines(linePointers, hierarchyByLineID); err != nil {
+			return nil, fmt.Errorf("assigning gathering invoice split line hierarchies [namespace=%s]: %w", namespace, err)
+		}
+	}
+
+	return lo.Map(invoices, func(invoice billing.GatheringInvoice, invoiceIndex int) billing.GatheringInvoice {
+		if invoice.Lines.IsPresent() {
+			invoice.Lines = billing.NewGatheringInvoiceLines(linesByInvoice[invoiceIndex])
+		}
+
+		return invoice
+	}), nil
 }
 
 func (a *adapter) validateUpdateGatheringInvoiceRequest(req billing.GatheringInvoice, existing *db.BillingInvoice) error {
@@ -356,18 +477,66 @@ func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand 
 	})
 }
 
+func (a *adapter) expandDedicatedGatheringInvoiceLines(q *db.BillingGatheringInvoiceQuery, expand billing.GatheringInvoiceExpands) *db.BillingGatheringInvoiceQuery {
+	return q.WithBillingGatheringInvoiceLines(func(q *db.BillingGatheringInvoiceLineQuery) {
+		if !expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
+			q = q.Where(billinggatheringinvoiceline.DeletedAtIsNil())
+		}
+
+		q.WithTaxCode()
+	})
+}
+
 func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
 	if err := input.Validate(); err != nil {
 		return billing.GatheringInvoice{}, fmt.Errorf("validating get gathering invoice by id input: %w", err)
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GatheringInvoice, error) {
+		searchResults, err := tx.db.BillingInvoiceSearchV1.Query().
+			Where(billinginvoicesearchv1.ID(input.Invoice.ID)).
+			Where(billinginvoicesearchv1.Namespace(input.Invoice.Namespace)).
+			All(ctx)
+		if err != nil {
+			return billing.GatheringInvoice{}, err
+		}
+
+		if len(searchResults) == 0 {
+			return billing.GatheringInvoice{}, billing.NotFoundError{
+				Err: fmt.Errorf("%w [id=%s]", billing.ErrInvoiceNotFound, input.Invoice.ID),
+			}
+		}
+
+		if len(searchResults) > 1 {
+			return billing.GatheringInvoice{}, models.NewGenericConflictError(fmt.Errorf("invoice exists in multiple storage tables [namespace=%s, id=%s]", input.Invoice.Namespace, input.Invoice.ID))
+		}
+
+		searchResult := searchResults[0]
+		if searchResult.InvoiceType != billing.InvoiceTypeGathering {
+			return billing.GatheringInvoice{}, billing.ValidationError{
+				Err: fmt.Errorf("invoice is not a gathering invoice [id=%s]", input.Invoice.ID),
+			}
+		}
+
+		switch searchResult.StorageTable {
+		case billinginvoicesearchv1.StorageTableBillingInvoice:
+			return tx.getGatheringInvoiceById(ctx, input)
+		case billinginvoicesearchv1.StorageTableBillingGatheringInvoice:
+			return tx.getDedicatedGatheringInvoiceById(ctx, input)
+		default:
+			return billing.GatheringInvoice{}, fmt.Errorf("unsupported gathering invoice storage table [namespace=%s, id=%s, storage_table=%s]", input.Invoice.Namespace, input.Invoice.ID, searchResult.StorageTable)
+		}
+	})
+}
+
+func (a *adapter) getGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GatheringInvoice, error) {
 		query := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(input.Invoice.ID)).
 			Where(billinginvoice.Namespace(input.Invoice.Namespace))
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
-			query = a.expandGatheringInvoiceLines(query, input.Expand)
+			query = tx.expandGatheringInvoiceLines(query, input.Expand)
 		}
 
 		invoice, err := query.Only(ctx)
@@ -381,11 +550,64 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 			return billing.GatheringInvoice{}, err
 		}
 
-		return tx.mapGatheringInvoiceFromDB(ctx, invoice, input.Expand)
+		mapped, err := tx.mapGatheringInvoiceFromDB(invoice, input.Expand)
+		if err != nil {
+			return billing.GatheringInvoice{}, err
+		}
+
+		if input.Expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
+			invoices, err := tx.loadSplitLineHierarchiesForGatheringInvoices(ctx, []billing.GatheringInvoice{mapped})
+			if err != nil {
+				return billing.GatheringInvoice{}, err
+			}
+
+			mapped = invoices[0]
+		}
+
+		return mapped, nil
 	})
 }
 
-func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
+func (a *adapter) getDedicatedGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GatheringInvoice, error) {
+		query := tx.db.BillingGatheringInvoice.Query().
+			Where(billinggatheringinvoice.ID(input.Invoice.ID)).
+			Where(billinggatheringinvoice.Namespace(input.Invoice.Namespace))
+
+		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
+			query = tx.expandDedicatedGatheringInvoiceLines(query, input.Expand)
+		}
+
+		invoice, err := query.Only(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return billing.GatheringInvoice{}, billing.NotFoundError{
+					Err: fmt.Errorf("%w [id=%s]", billing.ErrInvoiceNotFound, input.Invoice.ID),
+				}
+			}
+
+			return billing.GatheringInvoice{}, err
+		}
+
+		mapped, err := tx.fromDBBillingGatheringInvoice(invoice, input.Expand)
+		if err != nil {
+			return billing.GatheringInvoice{}, err
+		}
+
+		if input.Expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
+			invoices, err := tx.loadSplitLineHierarchiesForGatheringInvoices(ctx, []billing.GatheringInvoice{mapped})
+			if err != nil {
+				return billing.GatheringInvoice{}, err
+			}
+
+			mapped = invoices[0]
+		}
+
+		return mapped, nil
+	})
+}
+
+func (a *adapter) mapGatheringInvoiceFromDB(invoice *db.BillingInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
 	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return billing.GatheringInvoice{}, fmt.Errorf("invoice is not a gathering invoice [id=%s]", invoice.ID)
 	}
@@ -433,26 +655,127 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 			return billing.GatheringInvoice{}, err
 		}
 
-		if expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
-			hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines.AsGenericLines())
-			if err != nil {
-				return billing.GatheringInvoice{}, err
-			}
-
-			mappedLinePtrs, err := withSplitLineHierarchyForLines(lo.Map(mappedLines, func(_ billing.GatheringLine, idx int) *billing.GatheringLine {
-				return &mappedLines[idx]
-			}), hierarchyByLineID)
-			if err != nil {
-				return billing.GatheringInvoice{}, err
-			}
-
-			mappedLines = lo.Map(mappedLinePtrs, func(line *billing.GatheringLine, _ int) billing.GatheringLine {
-				return *line
-			})
-		}
-
 		res.Lines = billing.NewGatheringInvoiceLines(mappedLines)
 	}
 
 	return res, nil
+}
+
+func (a *adapter) fromDBBillingGatheringInvoice(invoice *db.BillingGatheringInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
+	period := timeutil.ClosedPeriod{}
+	if invoice.ServicePeriodStart != nil && invoice.ServicePeriodEnd != nil {
+		period = timeutil.ClosedPeriod{
+			From: invoice.ServicePeriodStart.In(time.UTC),
+			To:   invoice.ServicePeriodEnd.In(time.UTC),
+		}
+	}
+
+	result := billing.GatheringInvoice{
+		GatheringInvoiceBase: billing.GatheringInvoiceBase{
+			ManagedResource: models.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: invoice.Namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: invoice.CreatedAt.In(time.UTC),
+					UpdatedAt: invoice.UpdatedAt.In(time.UTC),
+					DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+				},
+				ID:          invoice.ID,
+				Name:        invoice.Name,
+				Description: invoice.Description,
+			},
+			Metadata:         invoice.Metadata,
+			Number:           invoice.Number,
+			CustomerID:       invoice.CustomerID,
+			Currency:         invoice.Currency,
+			ServicePeriod:    period,
+			NextCollectionAt: convert.TimePtrIn(invoice.NextCollectionAt, time.UTC),
+			SchemaLevel:      invoice.SchemaLevel,
+		},
+		Expands: expand,
+	}
+
+	if expand.Has(billing.GatheringInvoiceExpandLines) {
+		lines := make(billing.GatheringLines, 0, len(invoice.Edges.BillingGatheringInvoiceLines))
+		for _, dbLine := range invoice.Edges.BillingGatheringInvoiceLines {
+			line, err := a.fromDBBillingGatheringInvoiceLine(dbLine)
+			if err != nil {
+				return billing.GatheringInvoice{}, fmt.Errorf("mapping gathering invoice line [id=%s]: %w", dbLine.ID, err)
+			}
+			lines = append(lines, line)
+		}
+
+		result.Lines = billing.NewGatheringInvoiceLines(lines)
+	}
+
+	return result, nil
+}
+
+type listGatheringInvoicesInput struct {
+	Namespaces     []string
+	IDs            []string
+	Expand         billing.GatheringInvoiceExpands
+	IncludeDeleted bool
+}
+
+func (a *adapter) listGatheringInvoices(ctx context.Context, input listGatheringInvoicesInput) ([]billing.GatheringInvoice, error) {
+	query := a.db.BillingInvoice.Query().
+		Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering)).
+		Where(billinginvoice.IDIn(input.IDs...))
+	if len(input.Namespaces) > 0 {
+		query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
+	}
+	if !input.IncludeDeleted {
+		query = query.Where(billinginvoice.DeletedAtIsNil())
+	}
+	if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
+		query = a.expandGatheringInvoiceLines(query, input.Expand)
+	}
+
+	invoices, err := query.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]billing.GatheringInvoice, 0, len(invoices))
+	for _, invoice := range invoices {
+		mapped, err := a.mapGatheringInvoiceFromDB(invoice, input.Expand)
+		if err != nil {
+			return nil, fmt.Errorf("mapping gathering invoice [namespace=%s, id=%s]: %w", invoice.Namespace, invoice.ID, err)
+		}
+		result = append(result, mapped)
+	}
+
+	return result, nil
+}
+
+func (a *adapter) listDedicatedGatheringInvoices(ctx context.Context, input listGatheringInvoicesInput) ([]billing.GatheringInvoice, error) {
+	query := a.db.BillingGatheringInvoice.Query().
+		Where(billinggatheringinvoice.IDIn(input.IDs...))
+	if len(input.Namespaces) > 0 {
+		query = query.Where(billinggatheringinvoice.NamespaceIn(input.Namespaces...))
+	}
+	if !input.IncludeDeleted {
+		query = query.Where(billinggatheringinvoice.DeletedAtIsNil())
+	}
+	if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
+		query = a.expandDedicatedGatheringInvoiceLines(query, input.Expand)
+	}
+
+	invoices, err := query.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]billing.GatheringInvoice, 0, len(invoices))
+	for _, invoice := range invoices {
+		mapped, err := a.fromDBBillingGatheringInvoice(invoice, input.Expand)
+		if err != nil {
+			return nil, fmt.Errorf("mapping gathering invoice [namespace=%s, id=%s]: %w", invoice.Namespace, invoice.ID, err)
+		}
+		result = append(result, mapped)
+	}
+
+	return result, nil
 }

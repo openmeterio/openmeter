@@ -588,6 +588,88 @@ var (
 			},
 		},
 	}
+	// BillingGatheringInvoicesColumns holds the columns for the "billing_gathering_invoices" table.
+	BillingGatheringInvoicesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "number", Type: field.TypeString},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "service_period_start", Type: field.TypeTime, Nullable: true},
+		{Name: "service_period_end", Type: field.TypeTime, Nullable: true},
+		{Name: "next_collection_at", Type: field.TypeTime, Nullable: true},
+		{Name: "schema_level", Type: field.TypeInt, Default: 2},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingGatheringInvoicesTable holds the schema information for the "billing_gathering_invoices" table.
+	BillingGatheringInvoicesTable = &schema.Table{
+		Name:       "billing_gathering_invoices",
+		Columns:    BillingGatheringInvoicesColumns,
+		PrimaryKey: []*schema.Column{BillingGatheringInvoicesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_gathering_invoices_customers_billing_gathering_invoices",
+				Columns:    []*schema.Column{BillingGatheringInvoicesColumns[14]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billinggatheringinvoice_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingGatheringInvoicesColumns[0]},
+			},
+			{
+				Name:    "billinggatheringinvoice_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoicesColumns[1]},
+			},
+			{
+				Name:    "billinggatheringinvoice_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingGatheringInvoicesColumns[1], BillingGatheringInvoicesColumns[0]},
+			},
+			{
+				Name:    "billinggatheringinvoice_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoicesColumns[14]},
+			},
+			{
+				Name:    "billinggatheringinvoice_namespace_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoicesColumns[1], BillingGatheringInvoicesColumns[14]},
+			},
+			{
+				Name:    "billinggatheringinvoice_namespace_next_collection_at",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoicesColumns[1], BillingGatheringInvoicesColumns[12]},
+			},
+			{
+				Name:    "billinggatheringinvoice_namespace_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoicesColumns[1], BillingGatheringInvoicesColumns[3]},
+			},
+			{
+				Name:    "billinggatheringinvoice_namespace_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoicesColumns[1], BillingGatheringInvoicesColumns[4]},
+			},
+			{
+				Name:    "billinggatheringinvoice_namespace_customer_id_currency",
+				Unique:  true,
+				Columns: []*schema.Column{BillingGatheringInvoicesColumns[1], BillingGatheringInvoicesColumns[14], BillingGatheringInvoicesColumns[9]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// BillingGatheringInvoiceLinesColumns holds the columns for the "billing_gathering_invoice_lines" table.
 	BillingGatheringInvoiceLinesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -632,7 +714,7 @@ var (
 			{
 				Symbol:     "billing_gathering_line_invoice_fk",
 				Columns:    []*schema.Column{BillingGatheringInvoiceLinesColumns[25]},
-				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
+				RefColumns: []*schema.Column{BillingGatheringInvoicesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
@@ -702,6 +784,11 @@ var (
 				Name:    "billinggatheringinvoiceline_tax_code_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[31]},
+			},
+			{
+				Name:    "billinggatheringinvoiceline_invoice_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingGatheringInvoiceLinesColumns[25]},
 			},
 			{
 				Name:    "billinggatheringinvoiceline_namespace_invoice_id",
@@ -5585,6 +5672,7 @@ var (
 		BalanceSnapshotsTable,
 		BillingCustomerLocksTable,
 		BillingCustomerOverridesTable,
+		BillingGatheringInvoicesTable,
 		BillingGatheringInvoiceLinesTable,
 		BillingInvoicesTable,
 		BillingInvoiceFlatFeeLineConfigsTable,
@@ -5678,7 +5766,13 @@ func init() {
 	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable
 	BillingCustomerOverridesTable.ForeignKeys[2].RefTable = TaxCodesTable
-	BillingGatheringInvoiceLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
+	BillingGatheringInvoicesTable.ForeignKeys[0].RefTable = CustomersTable
+	BillingGatheringInvoicesTable.Annotation = &entsql.Annotation{}
+	BillingGatheringInvoicesTable.Annotation.Checks = map[string]string{
+		"service_period_both_set_or_null": "(service_period_start IS NULL) = (service_period_end IS NULL)",
+		"service_period_not_inverted":     "service_period_start IS NULL OR service_period_start <= service_period_end",
+	}
+	BillingGatheringInvoiceLinesTable.ForeignKeys[0].RefTable = BillingGatheringInvoicesTable
 	BillingGatheringInvoiceLinesTable.ForeignKeys[1].RefTable = BillingInvoiceSplitLineGroupsTable
 	BillingGatheringInvoiceLinesTable.ForeignKeys[2].RefTable = ChargesTable
 	BillingGatheringInvoiceLinesTable.ForeignKeys[3].RefTable = SubscriptionsTable
@@ -5688,6 +5782,7 @@ func init() {
 	BillingGatheringInvoiceLinesTable.Annotation = &entsql.Annotation{}
 	BillingGatheringInvoiceLinesTable.Annotation.Checks = map[string]string{
 		"child_unique_reference_id_not_empty": "child_unique_reference_id <> ''",
+		"service_period_not_inverted":         "service_period_start <= service_period_end",
 	}
 	BillingInvoicesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingInvoicesTable.ForeignKeys[1].RefTable = AppsTable

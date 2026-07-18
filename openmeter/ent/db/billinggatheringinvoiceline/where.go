@@ -1658,21 +1658,21 @@ func ChargeIDContainsFold(v string) predicate.BillingGatheringInvoiceLine {
 	return predicate.BillingGatheringInvoiceLine(sql.FieldContainsFold(FieldChargeID, v))
 }
 
-// HasBillingInvoice applies the HasEdge predicate on the "billing_invoice" edge.
-func HasBillingInvoice() predicate.BillingGatheringInvoiceLine {
+// HasBillingGatheringInvoice applies the HasEdge predicate on the "billing_gathering_invoice" edge.
+func HasBillingGatheringInvoice() predicate.BillingGatheringInvoiceLine {
 	return predicate.BillingGatheringInvoiceLine(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceTable, BillingInvoiceColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, BillingGatheringInvoiceTable, BillingGatheringInvoiceColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasBillingInvoiceWith applies the HasEdge predicate on the "billing_invoice" edge with a given conditions (other predicates).
-func HasBillingInvoiceWith(preds ...predicate.BillingInvoice) predicate.BillingGatheringInvoiceLine {
+// HasBillingGatheringInvoiceWith applies the HasEdge predicate on the "billing_gathering_invoice" edge with a given conditions (other predicates).
+func HasBillingGatheringInvoiceWith(preds ...predicate.BillingGatheringInvoice) predicate.BillingGatheringInvoiceLine {
 	return predicate.BillingGatheringInvoiceLine(func(s *sql.Selector) {
-		step := newBillingInvoiceStep()
+		step := newBillingGatheringInvoiceStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

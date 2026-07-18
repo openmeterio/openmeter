@@ -78,6 +78,7 @@ func (Customer) Edges() []ent.Edge {
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_invoice", BillingInvoice.Type),
+		edge.To("billing_gathering_invoices", BillingGatheringInvoice.Type),
 		edge.To("subscription", Subscription.Type),
 		edge.To("entitlements", Entitlement.Type),
 		edge.To("charges_credit_purchase", ChargeCreditPurchase.Type),

@@ -4,9 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicewriteschemalevel"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -41,25 +39,5 @@ func (a *adapter) SetInvoiceDefaultSchemaLevel(ctx context.Context, level int) e
 			OnConflictColumns(billinginvoicewriteschemalevel.FieldID).
 			UpdateSchemaLevel().
 			Exec(ctx)
-	})
-}
-
-func (a *adapter) getSchemaLevelPerInvoice(ctx context.Context, customerID customer.CustomerID) (map[string]int, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (map[string]int, error) {
-		invoices, err := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.Namespace(customerID.Namespace)).
-			Where(billinginvoice.CustomerID(customerID.ID)).
-			Select(billinginvoice.FieldID, billinginvoice.FieldSchemaLevel).
-			All(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		out := make(map[string]int, len(invoices))
-		for _, inv := range invoices {
-			out[inv.ID] = inv.SchemaLevel
-		}
-
-		return out, nil
 	})
 }

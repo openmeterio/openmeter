@@ -24,12 +24,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
@@ -172,12 +174,14 @@ func checkColumn(t, c string) error {
 			balancesnapshot.Table:                                  balancesnapshot.ValidColumn,
 			billingcustomerlock.Table:                              billingcustomerlock.ValidColumn,
 			billingcustomeroverride.Table:                          billingcustomeroverride.ValidColumn,
+			billinggatheringinvoice.Table:                          billinggatheringinvoice.ValidColumn,
 			billinggatheringinvoiceline.Table:                      billinggatheringinvoiceline.ValidColumn,
 			billinginvoice.Table:                                   billinginvoice.ValidColumn,
 			billinginvoiceflatfeelineconfig.Table:                  billinginvoiceflatfeelineconfig.ValidColumn,
 			billinginvoiceline.Table:                               billinginvoiceline.ValidColumn,
 			billinginvoicelinediscount.Table:                       billinginvoicelinediscount.ValidColumn,
 			billinginvoicelineusagediscount.Table:                  billinginvoicelineusagediscount.ValidColumn,
+			billinginvoicesearchv1.Table:                           billinginvoicesearchv1.ValidColumn,
 			billinginvoicesplitlinegroup.Table:                     billinginvoicesplitlinegroup.ValidColumn,
 			billinginvoiceusagebasedlineconfig.Table:               billinginvoiceusagebasedlineconfig.ValidColumn,
 			billinginvoicevalidationissue.Table:                    billinginvoicevalidationissue.ValidColumn,

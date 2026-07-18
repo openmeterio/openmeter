@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
@@ -129,6 +130,8 @@ type Client struct {
 	BillingCustomerLock *BillingCustomerLockClient
 	// BillingCustomerOverride is the client for interacting with the BillingCustomerOverride builders.
 	BillingCustomerOverride *BillingCustomerOverrideClient
+	// BillingGatheringInvoice is the client for interacting with the BillingGatheringInvoice builders.
+	BillingGatheringInvoice *BillingGatheringInvoiceClient
 	// BillingGatheringInvoiceLine is the client for interacting with the BillingGatheringInvoiceLine builders.
 	BillingGatheringInvoiceLine *BillingGatheringInvoiceLineClient
 	// BillingInvoice is the client for interacting with the BillingInvoice builders.
@@ -141,6 +144,8 @@ type Client struct {
 	BillingInvoiceLineDiscount *BillingInvoiceLineDiscountClient
 	// BillingInvoiceLineUsageDiscount is the client for interacting with the BillingInvoiceLineUsageDiscount builders.
 	BillingInvoiceLineUsageDiscount *BillingInvoiceLineUsageDiscountClient
+	// BillingInvoiceSearchV1 is the client for interacting with the BillingInvoiceSearchV1 builders.
+	BillingInvoiceSearchV1 *BillingInvoiceSearchV1Client
 	// BillingInvoiceSplitLineGroup is the client for interacting with the BillingInvoiceSplitLineGroup builders.
 	BillingInvoiceSplitLineGroup *BillingInvoiceSplitLineGroupClient
 	// BillingInvoiceUsageBasedLineConfig is the client for interacting with the BillingInvoiceUsageBasedLineConfig builders.
@@ -297,12 +302,14 @@ func (c *Client) init() {
 	c.BalanceSnapshot = NewBalanceSnapshotClient(c.config)
 	c.BillingCustomerLock = NewBillingCustomerLockClient(c.config)
 	c.BillingCustomerOverride = NewBillingCustomerOverrideClient(c.config)
+	c.BillingGatheringInvoice = NewBillingGatheringInvoiceClient(c.config)
 	c.BillingGatheringInvoiceLine = NewBillingGatheringInvoiceLineClient(c.config)
 	c.BillingInvoice = NewBillingInvoiceClient(c.config)
 	c.BillingInvoiceFlatFeeLineConfig = NewBillingInvoiceFlatFeeLineConfigClient(c.config)
 	c.BillingInvoiceLine = NewBillingInvoiceLineClient(c.config)
 	c.BillingInvoiceLineDiscount = NewBillingInvoiceLineDiscountClient(c.config)
 	c.BillingInvoiceLineUsageDiscount = NewBillingInvoiceLineUsageDiscountClient(c.config)
+	c.BillingInvoiceSearchV1 = NewBillingInvoiceSearchV1Client(c.config)
 	c.BillingInvoiceSplitLineGroup = NewBillingInvoiceSplitLineGroupClient(c.config)
 	c.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(c.config)
 	c.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(c.config)
@@ -473,12 +480,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
 		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
+		BillingGatheringInvoice:            NewBillingGatheringInvoiceClient(cfg),
 		BillingGatheringInvoiceLine:        NewBillingGatheringInvoiceLineClient(cfg),
 		BillingInvoice:                     NewBillingInvoiceClient(cfg),
 		BillingInvoiceFlatFeeLineConfig:    NewBillingInvoiceFlatFeeLineConfigClient(cfg),
 		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
 		BillingInvoiceLineDiscount:         NewBillingInvoiceLineDiscountClient(cfg),
 		BillingInvoiceLineUsageDiscount:    NewBillingInvoiceLineUsageDiscountClient(cfg),
+		BillingInvoiceSearchV1:             NewBillingInvoiceSearchV1Client(cfg),
 		BillingInvoiceSplitLineGroup:       NewBillingInvoiceSplitLineGroupClient(cfg),
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
@@ -576,12 +585,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
 		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
+		BillingGatheringInvoice:            NewBillingGatheringInvoiceClient(cfg),
 		BillingGatheringInvoiceLine:        NewBillingGatheringInvoiceLineClient(cfg),
 		BillingInvoice:                     NewBillingInvoiceClient(cfg),
 		BillingInvoiceFlatFeeLineConfig:    NewBillingInvoiceFlatFeeLineConfigClient(cfg),
 		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
 		BillingInvoiceLineDiscount:         NewBillingInvoiceLineDiscountClient(cfg),
 		BillingInvoiceLineUsageDiscount:    NewBillingInvoiceLineUsageDiscountClient(cfg),
+		BillingInvoiceSearchV1:             NewBillingInvoiceSearchV1Client(cfg),
 		BillingInvoiceSplitLineGroup:       NewBillingInvoiceSplitLineGroupClient(cfg),
 		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
 		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
@@ -681,7 +692,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
 		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
 		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
-		c.BillingGatheringInvoiceLine, c.BillingInvoice,
+		c.BillingGatheringInvoice, c.BillingGatheringInvoiceLine, c.BillingInvoice,
 		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
 		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
@@ -720,12 +731,12 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
 		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
 		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
-		c.BillingGatheringInvoiceLine, c.BillingInvoice,
+		c.BillingGatheringInvoice, c.BillingGatheringInvoiceLine, c.BillingInvoice,
 		c.BillingInvoiceFlatFeeLineConfig, c.BillingInvoiceLine,
 		c.BillingInvoiceLineDiscount, c.BillingInvoiceLineUsageDiscount,
-		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
-		c.BillingInvoiceValidationIssue, c.BillingInvoiceWriteSchemaLevel,
-		c.BillingProfile, c.BillingSequenceNumbers,
+		c.BillingInvoiceSearchV1, c.BillingInvoiceSplitLineGroup,
+		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
+		c.BillingInvoiceWriteSchemaLevel, c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCreditGrant,
@@ -777,6 +788,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingCustomerLock.mutate(ctx, m)
 	case *BillingCustomerOverrideMutation:
 		return c.BillingCustomerOverride.mutate(ctx, m)
+	case *BillingGatheringInvoiceMutation:
+		return c.BillingGatheringInvoice.mutate(ctx, m)
 	case *BillingGatheringInvoiceLineMutation:
 		return c.BillingGatheringInvoiceLine.mutate(ctx, m)
 	case *BillingInvoiceMutation:
@@ -2821,6 +2834,171 @@ func (c *BillingCustomerOverrideClient) mutate(ctx context.Context, m *BillingCu
 	}
 }
 
+// BillingGatheringInvoiceClient is a client for the BillingGatheringInvoice schema.
+type BillingGatheringInvoiceClient struct {
+	config
+}
+
+// NewBillingGatheringInvoiceClient returns a client for the BillingGatheringInvoice from the given config.
+func NewBillingGatheringInvoiceClient(c config) *BillingGatheringInvoiceClient {
+	return &BillingGatheringInvoiceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billinggatheringinvoice.Hooks(f(g(h())))`.
+func (c *BillingGatheringInvoiceClient) Use(hooks ...Hook) {
+	c.hooks.BillingGatheringInvoice = append(c.hooks.BillingGatheringInvoice, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billinggatheringinvoice.Intercept(f(g(h())))`.
+func (c *BillingGatheringInvoiceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingGatheringInvoice = append(c.inters.BillingGatheringInvoice, interceptors...)
+}
+
+// Create returns a builder for creating a BillingGatheringInvoice entity.
+func (c *BillingGatheringInvoiceClient) Create() *BillingGatheringInvoiceCreate {
+	mutation := newBillingGatheringInvoiceMutation(c.config, OpCreate)
+	return &BillingGatheringInvoiceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingGatheringInvoice entities.
+func (c *BillingGatheringInvoiceClient) CreateBulk(builders ...*BillingGatheringInvoiceCreate) *BillingGatheringInvoiceCreateBulk {
+	return &BillingGatheringInvoiceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingGatheringInvoiceClient) MapCreateBulk(slice any, setFunc func(*BillingGatheringInvoiceCreate, int)) *BillingGatheringInvoiceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingGatheringInvoiceCreateBulk{err: fmt.Errorf("calling to BillingGatheringInvoiceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingGatheringInvoiceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingGatheringInvoiceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingGatheringInvoice.
+func (c *BillingGatheringInvoiceClient) Update() *BillingGatheringInvoiceUpdate {
+	mutation := newBillingGatheringInvoiceMutation(c.config, OpUpdate)
+	return &BillingGatheringInvoiceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingGatheringInvoiceClient) UpdateOne(_m *BillingGatheringInvoice) *BillingGatheringInvoiceUpdateOne {
+	mutation := newBillingGatheringInvoiceMutation(c.config, OpUpdateOne, withBillingGatheringInvoice(_m))
+	return &BillingGatheringInvoiceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingGatheringInvoiceClient) UpdateOneID(id string) *BillingGatheringInvoiceUpdateOne {
+	mutation := newBillingGatheringInvoiceMutation(c.config, OpUpdateOne, withBillingGatheringInvoiceID(id))
+	return &BillingGatheringInvoiceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingGatheringInvoice.
+func (c *BillingGatheringInvoiceClient) Delete() *BillingGatheringInvoiceDelete {
+	mutation := newBillingGatheringInvoiceMutation(c.config, OpDelete)
+	return &BillingGatheringInvoiceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingGatheringInvoiceClient) DeleteOne(_m *BillingGatheringInvoice) *BillingGatheringInvoiceDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingGatheringInvoiceClient) DeleteOneID(id string) *BillingGatheringInvoiceDeleteOne {
+	builder := c.Delete().Where(billinggatheringinvoice.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingGatheringInvoiceDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingGatheringInvoice.
+func (c *BillingGatheringInvoiceClient) Query() *BillingGatheringInvoiceQuery {
+	return &BillingGatheringInvoiceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingGatheringInvoice},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingGatheringInvoice entity by its id.
+func (c *BillingGatheringInvoiceClient) Get(ctx context.Context, id string) (*BillingGatheringInvoice, error) {
+	return c.Query().Where(billinggatheringinvoice.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingGatheringInvoiceClient) GetX(ctx context.Context, id string) *BillingGatheringInvoice {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCustomer queries the customer edge of a BillingGatheringInvoice.
+func (c *BillingGatheringInvoiceClient) QueryCustomer(_m *BillingGatheringInvoice) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinggatheringinvoice.Table, billinggatheringinvoice.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinggatheringinvoice.CustomerTable, billinggatheringinvoice.CustomerColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingGatheringInvoiceLines queries the billing_gathering_invoice_lines edge of a BillingGatheringInvoice.
+func (c *BillingGatheringInvoiceClient) QueryBillingGatheringInvoiceLines(_m *BillingGatheringInvoice) *BillingGatheringInvoiceLineQuery {
+	query := (&BillingGatheringInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinggatheringinvoice.Table, billinggatheringinvoice.FieldID, id),
+			sqlgraph.To(billinggatheringinvoiceline.Table, billinggatheringinvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinggatheringinvoice.BillingGatheringInvoiceLinesTable, billinggatheringinvoice.BillingGatheringInvoiceLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingGatheringInvoiceClient) Hooks() []Hook {
+	return c.hooks.BillingGatheringInvoice
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingGatheringInvoiceClient) Interceptors() []Interceptor {
+	return c.inters.BillingGatheringInvoice
+}
+
+func (c *BillingGatheringInvoiceClient) mutate(ctx context.Context, m *BillingGatheringInvoiceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingGatheringInvoiceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingGatheringInvoiceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingGatheringInvoiceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingGatheringInvoiceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingGatheringInvoice mutation op: %q", m.Op())
+	}
+}
+
 // BillingGatheringInvoiceLineClient is a client for the BillingGatheringInvoiceLine schema.
 type BillingGatheringInvoiceLineClient struct {
 	config
@@ -2929,15 +3107,15 @@ func (c *BillingGatheringInvoiceLineClient) GetX(ctx context.Context, id string)
 	return obj
 }
 
-// QueryBillingInvoice queries the billing_invoice edge of a BillingGatheringInvoiceLine.
-func (c *BillingGatheringInvoiceLineClient) QueryBillingInvoice(_m *BillingGatheringInvoiceLine) *BillingInvoiceQuery {
-	query := (&BillingInvoiceClient{config: c.config}).Query()
+// QueryBillingGatheringInvoice queries the billing_gathering_invoice edge of a BillingGatheringInvoiceLine.
+func (c *BillingGatheringInvoiceLineClient) QueryBillingGatheringInvoice(_m *BillingGatheringInvoiceLine) *BillingGatheringInvoiceQuery {
+	query := (&BillingGatheringInvoiceClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinggatheringinvoiceline.Table, billinggatheringinvoiceline.FieldID, id),
-			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinggatheringinvoiceline.BillingInvoiceTable, billinggatheringinvoiceline.BillingInvoiceColumn),
+			sqlgraph.To(billinggatheringinvoice.Table, billinggatheringinvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinggatheringinvoiceline.BillingGatheringInvoiceTable, billinggatheringinvoiceline.BillingGatheringInvoiceColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -3215,22 +3393,6 @@ func (c *BillingInvoiceClient) QueryBillingInvoiceLines(_m *BillingInvoice) *Bil
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceLinesTable, billinginvoice.BillingInvoiceLinesColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryBillingGatheringInvoiceLines queries the billing_gathering_invoice_lines edge of a BillingInvoice.
-func (c *BillingInvoiceClient) QueryBillingGatheringInvoiceLines(_m *BillingInvoice) *BillingGatheringInvoiceLineQuery {
-	query := (&BillingGatheringInvoiceLineClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, id),
-			sqlgraph.To(billinggatheringinvoiceline.Table, billinggatheringinvoiceline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingGatheringInvoiceLinesTable, billinginvoice.BillingGatheringInvoiceLinesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -4257,6 +4419,36 @@ func (c *BillingInvoiceLineUsageDiscountClient) mutate(ctx context.Context, m *B
 	default:
 		return nil, fmt.Errorf("db: unknown BillingInvoiceLineUsageDiscount mutation op: %q", m.Op())
 	}
+}
+
+// BillingInvoiceSearchV1Client is a client for the BillingInvoiceSearchV1 schema.
+type BillingInvoiceSearchV1Client struct {
+	config
+}
+
+// NewBillingInvoiceSearchV1Client returns a client for the BillingInvoiceSearchV1 from the given config.
+func NewBillingInvoiceSearchV1Client(c config) *BillingInvoiceSearchV1Client {
+	return &BillingInvoiceSearchV1Client{config: c}
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billinginvoicesearchv1.Intercept(f(g(h())))`.
+func (c *BillingInvoiceSearchV1Client) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingInvoiceSearchV1 = append(c.inters.BillingInvoiceSearchV1, interceptors...)
+}
+
+// Query returns a query builder for BillingInvoiceSearchV1.
+func (c *BillingInvoiceSearchV1Client) Query() *BillingInvoiceSearchV1Query {
+	return &BillingInvoiceSearchV1Query{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingInvoiceSearchV1},
+		inters: c.Interceptors(),
+	}
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingInvoiceSearchV1Client) Interceptors() []Interceptor {
+	return c.inters.BillingInvoiceSearchV1
 }
 
 // BillingInvoiceSplitLineGroupClient is a client for the BillingInvoiceSplitLineGroup schema.
@@ -10342,6 +10534,22 @@ func (c *CustomerClient) QueryBillingInvoice(_m *Customer) *BillingInvoiceQuery 
 			sqlgraph.From(customer.Table, customer.FieldID, id),
 			sqlgraph.To(billinginvoice.Table, billinginvoice.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingInvoiceTable, customer.BillingInvoiceColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingGatheringInvoices queries the billing_gathering_invoices edge of a Customer.
+func (c *CustomerClient) QueryBillingGatheringInvoices(_m *Customer) *BillingGatheringInvoiceQuery {
+	query := (&BillingGatheringInvoiceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(billinggatheringinvoice.Table, billinggatheringinvoice.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.BillingGatheringInvoicesTable, customer.BillingGatheringInvoicesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -16672,12 +16880,13 @@ type (
 	hooks struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
 		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
-		BillingCustomerLock, BillingCustomerOverride, BillingGatheringInvoiceLine,
-		BillingInvoice, BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
-		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
-		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
-		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
+		BillingCustomerLock, BillingCustomerOverride, BillingGatheringInvoice,
+		BillingGatheringInvoiceLine, BillingInvoice, BillingInvoiceFlatFeeLineConfig,
+		BillingInvoiceLine, BillingInvoiceLineDiscount,
+		BillingInvoiceLineUsageDiscount, BillingInvoiceSplitLineGroup,
+		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
+		BillingInvoiceWriteSchemaLevel, BillingProfile, BillingSequenceNumbers,
+		BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCreditGrant,
 		ChargeCreditPurchaseExternalPayment, ChargeCreditPurchaseInvoicedPayment,
@@ -16700,9 +16909,10 @@ type (
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
 		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
-		BillingCustomerLock, BillingCustomerOverride, BillingGatheringInvoiceLine,
-		BillingInvoice, BillingInvoiceFlatFeeLineConfig, BillingInvoiceLine,
-		BillingInvoiceLineDiscount, BillingInvoiceLineUsageDiscount,
+		BillingCustomerLock, BillingCustomerOverride, BillingGatheringInvoice,
+		BillingGatheringInvoiceLine, BillingInvoice, BillingInvoiceFlatFeeLineConfig,
+		BillingInvoiceLine, BillingInvoiceLineDiscount,
+		BillingInvoiceLineUsageDiscount, BillingInvoiceSearchV1,
 		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,

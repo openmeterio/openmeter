@@ -73,6 +73,8 @@ type CustomerEdges struct {
 	BillingCustomerOverride *BillingCustomerOverride `json:"billing_customer_override,omitempty"`
 	// BillingInvoice holds the value of the billing_invoice edge.
 	BillingInvoice []*BillingInvoice `json:"billing_invoice,omitempty"`
+	// BillingGatheringInvoices holds the value of the billing_gathering_invoices edge.
+	BillingGatheringInvoices []*BillingGatheringInvoice `json:"billing_gathering_invoices,omitempty"`
 	// Subscription holds the value of the subscription edge.
 	Subscription []*Subscription `json:"subscription,omitempty"`
 	// Entitlements holds the value of the entitlements edge.
@@ -85,7 +87,7 @@ type CustomerEdges struct {
 	ChargesUsageBased []*ChargeUsageBased `json:"charges_usage_based,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [10]bool
 }
 
 // AppsOrErr returns the Apps value or an error if the edge
@@ -126,10 +128,19 @@ func (e CustomerEdges) BillingInvoiceOrErr() ([]*BillingInvoice, error) {
 	return nil, &NotLoadedError{edge: "billing_invoice"}
 }
 
+// BillingGatheringInvoicesOrErr returns the BillingGatheringInvoices value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) BillingGatheringInvoicesOrErr() ([]*BillingGatheringInvoice, error) {
+	if e.loadedTypes[4] {
+		return e.BillingGatheringInvoices, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_gathering_invoices"}
+}
+
 // SubscriptionOrErr returns the Subscription value or an error if the edge
 // was not loaded in eager-loading.
 func (e CustomerEdges) SubscriptionOrErr() ([]*Subscription, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.Subscription, nil
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -138,7 +149,7 @@ func (e CustomerEdges) SubscriptionOrErr() ([]*Subscription, error) {
 // EntitlementsOrErr returns the Entitlements value or an error if the edge
 // was not loaded in eager-loading.
 func (e CustomerEdges) EntitlementsOrErr() ([]*Entitlement, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.Entitlements, nil
 	}
 	return nil, &NotLoadedError{edge: "entitlements"}
@@ -147,7 +158,7 @@ func (e CustomerEdges) EntitlementsOrErr() ([]*Entitlement, error) {
 // ChargesCreditPurchaseOrErr returns the ChargesCreditPurchase value or an error if the edge
 // was not loaded in eager-loading.
 func (e CustomerEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPurchase, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.ChargesCreditPurchase, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_credit_purchase"}
@@ -156,7 +167,7 @@ func (e CustomerEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPurchase, er
 // ChargesFlatFeeOrErr returns the ChargesFlatFee value or an error if the edge
 // was not loaded in eager-loading.
 func (e CustomerEdges) ChargesFlatFeeOrErr() ([]*ChargeFlatFee, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[8] {
 		return e.ChargesFlatFee, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_flat_fee"}
@@ -165,7 +176,7 @@ func (e CustomerEdges) ChargesFlatFeeOrErr() ([]*ChargeFlatFee, error) {
 // ChargesUsageBasedOrErr returns the ChargesUsageBased value or an error if the edge
 // was not loaded in eager-loading.
 func (e CustomerEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, error) {
-	if e.loadedTypes[8] {
+	if e.loadedTypes[9] {
 		return e.ChargesUsageBased, nil
 	}
 	return nil, &NotLoadedError{edge: "charges_usage_based"}
@@ -357,6 +368,11 @@ func (_m *Customer) QueryBillingCustomerOverride() *BillingCustomerOverrideQuery
 // QueryBillingInvoice queries the "billing_invoice" edge of the Customer entity.
 func (_m *Customer) QueryBillingInvoice() *BillingInvoiceQuery {
 	return NewCustomerClient(_m.config).QueryBillingInvoice(_m)
+}
+
+// QueryBillingGatheringInvoices queries the "billing_gathering_invoices" edge of the Customer entity.
+func (_m *Customer) QueryBillingGatheringInvoices() *BillingGatheringInvoiceQuery {
+	return NewCustomerClient(_m.config).QueryBillingGatheringInvoices(_m)
 }
 
 // QuerySubscription queries the "subscription" edge of the Customer entity.

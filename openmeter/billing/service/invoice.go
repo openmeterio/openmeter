@@ -19,6 +19,30 @@ import (
 
 var _ billing.InvoiceService = (*Service)(nil)
 
+func (s *Service) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]billing.LineOrHierarchy, error) {
+		standardLines, err := s.adapter.GetStandardLinesForSubscription(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("getting standard lines for subscription: %w", err)
+		}
+
+		gatheringLines, err := s.adapter.GetGatheringLinesForSubscription(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("getting gathering lines for subscription: %w", err)
+		}
+
+		return append(standardLines, lo.Map(gatheringLines, func(line billing.GatheringLine, _ int) billing.LineOrHierarchy {
+			return billing.NewLineOrHierarchy(line)
+		})...), nil
+	})
+}
+
 func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
 	if err := input.Validate(); err != nil {
 		return billing.ListInvoicesResponse{}, billing.ValidationError{

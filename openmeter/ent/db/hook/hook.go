@@ -141,6 +141,18 @@ func (f BillingCustomerOverrideFunc) Mutate(ctx context.Context, m db.Mutation) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingCustomerOverrideMutation", m)
 }
 
+// The BillingGatheringInvoiceFunc type is an adapter to allow the use of ordinary
+// function as BillingGatheringInvoice mutator.
+type BillingGatheringInvoiceFunc func(context.Context, *db.BillingGatheringInvoiceMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingGatheringInvoiceFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingGatheringInvoiceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingGatheringInvoiceMutation", m)
+}
+
 // The BillingGatheringInvoiceLineFunc type is an adapter to allow the use of ordinary
 // function as BillingGatheringInvoiceLine mutator.
 type BillingGatheringInvoiceLineFunc func(context.Context, *db.BillingGatheringInvoiceLineMutation) (db.Value, error)

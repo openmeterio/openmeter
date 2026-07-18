@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
@@ -330,6 +331,21 @@ func (_c *CustomerCreate) AddBillingInvoice(v ...*BillingInvoice) *CustomerCreat
 		ids[i] = v[i].ID
 	}
 	return _c.AddBillingInvoiceIDs(ids...)
+}
+
+// AddBillingGatheringInvoiceIDs adds the "billing_gathering_invoices" edge to the BillingGatheringInvoice entity by IDs.
+func (_c *CustomerCreate) AddBillingGatheringInvoiceIDs(ids ...string) *CustomerCreate {
+	_c.mutation.AddBillingGatheringInvoiceIDs(ids...)
+	return _c
+}
+
+// AddBillingGatheringInvoices adds the "billing_gathering_invoices" edges to the BillingGatheringInvoice entity.
+func (_c *CustomerCreate) AddBillingGatheringInvoices(v ...*BillingGatheringInvoice) *CustomerCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBillingGatheringInvoiceIDs(ids...)
 }
 
 // AddSubscriptionIDs adds the "subscription" edge to the Subscription entity by IDs.
@@ -650,6 +666,22 @@ func (_c *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingGatheringInvoicesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.BillingGatheringInvoicesTable,
+			Columns: []string{customer.BillingGatheringInvoicesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoice.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
