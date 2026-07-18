@@ -1177,20 +1177,3 @@ type GetInvoiceLineInput = LineID
 type GetInvoiceLineOwnershipAdapterInput = LineID
 
 type DeleteInvoiceLineInput = LineID
-
-type SnapshotLineQuantityInput struct {
-	Invoice *StandardInvoice
-	Line    *StandardLine
-}
-
-func (i SnapshotLineQuantityInput) Validate() error {
-	if i.Invoice == nil {
-		return errors.New("invoice is required")
-	}
-
-	if i.Line == nil {
-		return errors.New("line is required")
-	}
-
-	return nil
-}
