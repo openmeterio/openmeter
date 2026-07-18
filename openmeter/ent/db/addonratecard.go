@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -55,6 +56,10 @@ type AddonRateCard struct {
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
+	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
+	FiatCurrencyCode *string `json:"fiat_currency_code,omitempty"`
+	// CustomCurrencyID holds the value of the "custom_currency_id" field.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
@@ -77,9 +82,11 @@ type AddonRateCardEdges struct {
 	Features *Feature `json:"features,omitempty"`
 	// TaxCode holds the value of the tax_code edge.
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
+	// CustomCurrency holds the value of the custom_currency edge.
+	CustomCurrency *CustomCurrency `json:"custom_currency,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // AddonOrErr returns the Addon value or an error if the edge
@@ -115,6 +122,17 @@ func (e AddonRateCardEdges) TaxCodeOrErr() (*TaxCode, error) {
 	return nil, &NotLoadedError{edge: "tax_code"}
 }
 
+// CustomCurrencyOrErr returns the CustomCurrency value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e AddonRateCardEdges) CustomCurrencyOrErr() (*CustomCurrency, error) {
+	if e.CustomCurrency != nil {
+		return e.CustomCurrency, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: customcurrency.Label}
+	}
+	return nil, &NotLoadedError{edge: "custom_currency"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*AddonRateCard) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -122,7 +140,7 @@ func (*AddonRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case addonratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case addonratecard.FieldID, addonratecard.FieldNamespace, addonratecard.FieldName, addonratecard.FieldDescription, addonratecard.FieldKey, addonratecard.FieldTaxCodeID, addonratecard.FieldTaxBehavior, addonratecard.FieldType, addonratecard.FieldFeatureKey, addonratecard.FieldBillingCadence, addonratecard.FieldAddonID, addonratecard.FieldFeatureID:
+		case addonratecard.FieldID, addonratecard.FieldNamespace, addonratecard.FieldName, addonratecard.FieldDescription, addonratecard.FieldKey, addonratecard.FieldTaxCodeID, addonratecard.FieldTaxBehavior, addonratecard.FieldType, addonratecard.FieldFeatureKey, addonratecard.FieldBillingCadence, addonratecard.FieldFiatCurrencyCode, addonratecard.FieldCustomCurrencyID, addonratecard.FieldAddonID, addonratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case addonratecard.FieldCreatedAt, addonratecard.FieldUpdatedAt, addonratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -261,6 +279,20 @@ func (_m *AddonRateCard) assignValues(columns []string, values []any) error {
 			} else {
 				_m.Price = value
 			}
+		case addonratecard.FieldFiatCurrencyCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
+			} else if value.Valid {
+				_m.FiatCurrencyCode = new(string)
+				*_m.FiatCurrencyCode = value.String
+			}
+		case addonratecard.FieldCustomCurrencyID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyID = new(string)
+				*_m.CustomCurrencyID = value.String
+			}
 		case addonratecard.FieldDiscounts:
 			if value, err := addonratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
 				return err
@@ -312,6 +344,11 @@ func (_m *AddonRateCard) QueryFeatures() *FeatureQuery {
 // QueryTaxCode queries the "tax_code" edge of the AddonRateCard entity.
 func (_m *AddonRateCard) QueryTaxCode() *TaxCodeQuery {
 	return NewAddonRateCardClient(_m.config).QueryTaxCode(_m)
+}
+
+// QueryCustomCurrency queries the "custom_currency" edge of the AddonRateCard entity.
+func (_m *AddonRateCard) QueryCustomCurrency() *CustomCurrencyQuery {
+	return NewAddonRateCardClient(_m.config).QueryCustomCurrency(_m)
 }
 
 // Update returns a builder for updating this AddonRateCard.
@@ -401,6 +438,16 @@ func (_m *AddonRateCard) String() string {
 	if v := _m.Price; v != nil {
 		builder.WriteString("price=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.FiatCurrencyCode; v != nil {
+		builder.WriteString("fiat_currency_code=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyID; v != nil {
+		builder.WriteString("custom_currency_id=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := _m.Discounts; v != nil {

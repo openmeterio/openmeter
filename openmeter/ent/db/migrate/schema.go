@@ -21,17 +21,26 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
 		{Name: "version", Type: field.TypeInt},
-		{Name: "currency", Type: field.TypeString, Default: "USD"},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
 		{Name: "instance_type", Type: field.TypeEnum, Enums: []string{"single", "multiple"}, Default: "single"},
 		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
 		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
 		{Name: "annotations", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// AddonsTable holds the schema information for the "addons" table.
 	AddonsTable = &schema.Table{
 		Name:       "addons",
 		Columns:    AddonsColumns,
 		PrimaryKey: []*schema.Column{AddonsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "addons_custom_currencies_addons",
+				Columns:    []*schema.Column{AddonsColumns[15]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "addon_id",
@@ -71,6 +80,11 @@ var (
 					},
 				},
 			},
+			{
+				Name:    "addon_custom_currency_id",
+				Unique:  false,
+				Columns: []*schema.Column{AddonsColumns[15]},
+			},
 		},
 	}
 	// AddonRateCardsColumns holds the columns for the "addon_rate_cards" table.
@@ -91,9 +105,11 @@ var (
 		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -105,19 +121,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "addon_rate_cards_addons_ratecards",
-				Columns:    []*schema.Column{AddonRateCardsColumns[18]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[19]},
 				RefColumns: []*schema.Column{AddonsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
+				Symbol:     "addon_rate_cards_custom_currencies_addon_rate_cards",
+				Columns:    []*schema.Column{AddonRateCardsColumns[20]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
 				Symbol:     "addon_rate_cards_features_addon_ratecard",
-				Columns:    []*schema.Column{AddonRateCardsColumns[19]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[21]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "addon_rate_cards_tax_codes_addon_rate_cards",
-				Columns:    []*schema.Column{AddonRateCardsColumns[20]},
+				Columns:    []*schema.Column{AddonRateCardsColumns[22]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -146,12 +168,12 @@ var (
 			{
 				Name:    "addonratecard_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{AddonRateCardsColumns[20]},
+				Columns: []*schema.Column{AddonRateCardsColumns[22]},
 			},
 			{
 				Name:    "addonratecard_addon_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{AddonRateCardsColumns[18], AddonRateCardsColumns[8]},
+				Columns: []*schema.Column{AddonRateCardsColumns[19], AddonRateCardsColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -159,10 +181,15 @@ var (
 			{
 				Name:    "addonratecard_addon_id_feature_key",
 				Unique:  true,
-				Columns: []*schema.Column{AddonRateCardsColumns[18], AddonRateCardsColumns[11]},
+				Columns: []*schema.Column{AddonRateCardsColumns[19], AddonRateCardsColumns[11]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
+			},
+			{
+				Name:    "addonratecard_custom_currency_id",
+				Unique:  false,
+				Columns: []*schema.Column{AddonRateCardsColumns[20]},
 			},
 		},
 	}
@@ -4721,18 +4748,27 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
 		{Name: "version", Type: field.TypeInt},
-		{Name: "currency", Type: field.TypeString, Default: "USD"},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
 		{Name: "billing_cadence", Type: field.TypeString},
 		{Name: "pro_rating_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
 		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
 		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}, Default: "credit_then_invoice"},
+		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// PlansTable holds the schema information for the "plans" table.
 	PlansTable = &schema.Table{
 		Name:       "plans",
 		Columns:    PlansColumns,
 		PrimaryKey: []*schema.Column{PlansColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "plans_custom_currencies_plans",
+				Columns:    []*schema.Column{PlansColumns[16]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "plan_id",
@@ -4761,6 +4797,11 @@ var (
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
+			},
+			{
+				Name:    "plan_custom_currency_id",
+				Unique:  false,
+				Columns: []*schema.Column{PlansColumns[16]},
 			},
 		},
 	}
@@ -4918,8 +4959,10 @@ var (
 		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "phase_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -4931,20 +4974,26 @@ var (
 		PrimaryKey: []*schema.Column{PlanRateCardsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
+				Symbol:     "plan_rate_cards_custom_currencies_plan_rate_cards",
+				Columns:    []*schema.Column{PlanRateCardsColumns[19]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
 				Symbol:     "plan_rate_cards_features_ratecard",
-				Columns:    []*schema.Column{PlanRateCardsColumns[18]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[20]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "plan_rate_cards_plan_phases_ratecards",
-				Columns:    []*schema.Column{PlanRateCardsColumns[19]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[21]},
 				RefColumns: []*schema.Column{PlanPhasesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "plan_rate_cards_tax_codes_plan_rate_cards",
-				Columns:    []*schema.Column{PlanRateCardsColumns[20]},
+				Columns:    []*schema.Column{PlanRateCardsColumns[22]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -4973,12 +5022,12 @@ var (
 			{
 				Name:    "planratecard_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{PlanRateCardsColumns[20]},
+				Columns: []*schema.Column{PlanRateCardsColumns[22]},
 			},
 			{
 				Name:    "planratecard_phase_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[19], PlanRateCardsColumns[8]},
+				Columns: []*schema.Column{PlanRateCardsColumns[21], PlanRateCardsColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -4986,10 +5035,15 @@ var (
 			{
 				Name:    "planratecard_phase_id_feature_key",
 				Unique:  true,
-				Columns: []*schema.Column{PlanRateCardsColumns[19], PlanRateCardsColumns[11]},
+				Columns: []*schema.Column{PlanRateCardsColumns[21], PlanRateCardsColumns[11]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
+			},
+			{
+				Name:    "planratecard_custom_currency_id",
+				Unique:  false,
+				Columns: []*schema.Column{PlanRateCardsColumns[19]},
 			},
 		},
 	}
@@ -5663,9 +5717,20 @@ var (
 )
 
 func init() {
+	AddonsTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
+	AddonsTable.Annotation = &entsql.Annotation{}
+	AddonsTable.Annotation.Checks = map[string]string{
+		"addon_currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
+	}
 	AddonRateCardsTable.ForeignKeys[0].RefTable = AddonsTable
-	AddonRateCardsTable.ForeignKeys[1].RefTable = FeaturesTable
-	AddonRateCardsTable.ForeignKeys[2].RefTable = TaxCodesTable
+	AddonRateCardsTable.ForeignKeys[1].RefTable = CustomCurrenciesTable
+	AddonRateCardsTable.ForeignKeys[2].RefTable = FeaturesTable
+	AddonRateCardsTable.ForeignKeys[3].RefTable = TaxCodesTable
+	AddonRateCardsTable.Annotation = &entsql.Annotation{}
+	AddonRateCardsTable.Annotation.Checks = map[string]string{
+		"addon_rate_card_currency_has_price": "price IS NOT NULL OR (currency IS NULL AND custom_currency_id IS NULL)",
+		"addon_rate_card_currency_reference": "currency IS NULL OR custom_currency_id IS NULL",
+	}
 	AppCustomInvoicingsTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomInvoicingCustomersTable.ForeignKeys[0].RefTable = AppCustomInvoicingsTable
 	AppCustomInvoicingCustomersTable.ForeignKeys[1].RefTable = CustomersTable
@@ -5821,12 +5886,23 @@ func init() {
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	OrganizationDefaultTaxCodesTable.ForeignKeys[0].RefTable = TaxCodesTable
 	OrganizationDefaultTaxCodesTable.ForeignKeys[1].RefTable = TaxCodesTable
+	PlansTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
+	PlansTable.Annotation = &entsql.Annotation{}
+	PlansTable.Annotation.Checks = map[string]string{
+		"plan_currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
+	}
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable
 	PlanAddonsTable.ForeignKeys[1].RefTable = PlansTable
 	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable
-	PlanRateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
-	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable
-	PlanRateCardsTable.ForeignKeys[2].RefTable = TaxCodesTable
+	PlanRateCardsTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
+	PlanRateCardsTable.ForeignKeys[1].RefTable = FeaturesTable
+	PlanRateCardsTable.ForeignKeys[2].RefTable = PlanPhasesTable
+	PlanRateCardsTable.ForeignKeys[3].RefTable = TaxCodesTable
+	PlanRateCardsTable.Annotation = &entsql.Annotation{}
+	PlanRateCardsTable.Annotation.Checks = map[string]string{
+		"plan_rate_card_currency_has_price": "price IS NOT NULL OR (currency IS NULL AND custom_currency_id IS NULL)",
+		"plan_rate_card_currency_reference": "currency IS NULL OR custom_currency_id IS NULL",
+	}
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
 	SubscriptionsTable.ForeignKeys[1].RefTable = PlansTable
 	SubscriptionAddonsTable.ForeignKeys[0].RefTable = AddonsTable

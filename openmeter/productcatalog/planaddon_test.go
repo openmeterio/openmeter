@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -45,7 +46,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:            "pro",
 						Version:        1,
 						Name:           "Pro",
-						Currency:       currency.USD,
+						Currency:       currencyx.Code(currency.USD),
 						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
@@ -157,7 +158,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:          "storage",
 						Version:      1,
 						Name:         "Storage",
-						Currency:     currency.USD,
+						Currency:     currencyx.Code(currency.USD),
 						InstanceType: AddonInstanceTypeMultiple,
 					},
 					RateCards: RateCards{
@@ -210,7 +211,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:            "pro",
 						Version:        2,
 						Name:           "Pro",
-						Currency:       currency.USD,
+						Currency:       currencyx.Code(currency.USD),
 						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
@@ -322,7 +323,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:          "storage",
 						Version:      1,
 						Name:         "Storage",
-						Currency:     currency.AUD,
+						Currency:     currencyx.Code(currency.AUD),
 						InstanceType: AddonInstanceTypeSingle,
 					},
 					RateCards: RateCards{
@@ -373,12 +374,6 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						models.NewFieldSelector("maxQuantity"),
 					).
 					WithSeverity(models.ErrorSeverityWarning),
-				models.NewValidationIssue(ErrPlanAddonCurrencyMismatch.Code(), ErrPlanAddonCurrencyMismatch.Message(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest)).
-					WithField(
-						models.NewFieldSelector("addon"),
-						models.NewFieldSelector("currency"),
-					).
-					WithSeverity(models.ErrorSeverityWarning),
 				models.NewValidationIssue(ErrPlanAddonUnknownPlanPhaseKey.Code(), ErrPlanAddonUnknownPlanPhaseKey.Message()).
 					WithField(
 						models.NewFieldSelector("fromPlanPhase"),
@@ -402,7 +397,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:            "pro",
 						Version:        2,
 						Name:           "Pro",
-						Currency:       currency.USD,
+						Currency:       currencyx.Code(currency.USD),
 						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
@@ -513,7 +508,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:          "storage",
 						Version:      1,
 						Name:         "Storage",
-						Currency:     currency.USD,
+						Currency:     currencyx.Code(currency.USD),
 						InstanceType: AddonInstanceTypeSingle,
 					},
 					RateCards: RateCards{
@@ -633,4 +628,180 @@ func TestValidatePlanPhaseAndAddonRateCardsAreCompatibleUnitConfig(t *testing.T)
 		err := ValidatePlanPhaseAndAddonRateCardsAreCompatible(addonRateCards)(phase)
 		assert.NoError(t, err)
 	})
+}
+
+func TestPlanAddonValidateRateCardCurrencies(t *testing.T) {
+	customCurrency := currencyx.Code("CREDITS")
+	otherCustomCurrency := currencyx.Code("POINTS")
+	activeFrom := clock.Now().Add(-time.Hour)
+	month := datetime.MustParseDuration(t, "P1M")
+
+	newRateCard := func(key string, price bool, override currencyx.CurrencyIdentity) RateCard {
+		meta := RateCardMeta{
+			Key:      key,
+			Name:     key,
+			Currency: override,
+		}
+		if price {
+			meta.Price = NewPriceFrom(FlatPrice{Amount: alpacadecimal.NewFromInt(10)})
+		}
+
+		return &FlatFeeRateCard{RateCardMeta: meta}
+	}
+
+	tests := []struct {
+		name          string
+		planCurrency  currencyx.CurrencyIdentity
+		planRateCards RateCards
+		addon         Addon
+		expectedError error
+	}{
+		{
+			name:         "missing plan currency is rejected",
+			planCurrency: nil,
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: currencyx.Code(currency.USD)},
+			},
+			expectedError: ErrCurrencyInvalid,
+		},
+		{
+			name:          "missing add-on currency is rejected",
+			planCurrency:  currencyx.Code(currency.USD),
+			addon:         Addon{},
+			expectedError: ErrCurrencyInvalid,
+		},
+		{
+			name:          "matching effective custom currency",
+			planCurrency:  currencyx.Code(currency.USD),
+			planRateCards: RateCards{newRateCard("fee", true, customCurrency)},
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: customCurrency},
+				RateCards: RateCards{newRateCard("fee", true, nil)},
+			},
+		},
+		{
+			name:         "matches overlapping rate cards by key",
+			planCurrency: currencyx.Code(currency.USD),
+			planRateCards: RateCards{
+				newRateCard("fiat-first", true, nil),
+				newRateCard("custom-target", true, customCurrency),
+			},
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: customCurrency},
+				RateCards: RateCards{
+					newRateCard("custom-target", true, nil),
+					newRateCard("custom-new", true, nil),
+				},
+			},
+		},
+		{
+			name:          "cannot change existing rate card currency",
+			planCurrency:  currencyx.Code(currency.USD),
+			planRateCards: RateCards{newRateCard("fee", true, nil)},
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: customCurrency},
+				RateCards: RateCards{newRateCard("fee", true, nil)},
+			},
+			expectedError: ErrPlanAddonCurrencyMismatch,
+		},
+		{
+			name:         "new custom priced rate card under fiat plan",
+			planCurrency: currencyx.Code(currency.USD),
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: customCurrency},
+				RateCards: RateCards{newRateCard("fee", true, nil)},
+			},
+		},
+		{
+			name:         "new second fiat is rejected",
+			planCurrency: currencyx.Code(currency.USD),
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: currencyx.Code(currency.EUR)},
+				RateCards: RateCards{newRateCard("fee", true, nil)},
+			},
+			expectedError: ErrPlanMultipleFiatCurrencies,
+		},
+		{
+			name:          "different fiat defaults are rejected without priced rate cards",
+			planCurrency:  currencyx.Code(currency.USD),
+			planRateCards: nil,
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: currencyx.Code(currency.EUR)},
+			},
+			expectedError: ErrPlanMultipleFiatCurrencies,
+		},
+		{
+			name:         "custom plan rejects another custom currency",
+			planCurrency: customCurrency,
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: otherCustomCurrency},
+				RateCards: RateCards{newRateCard("fee", true, nil)},
+			},
+			expectedError: ErrRateCardCurrencyOverrideNotAllowed,
+		},
+		{
+			name:          "unpriced add-on rate card has no effective currency",
+			planCurrency:  currencyx.Code(currency.USD),
+			planRateCards: RateCards{newRateCard("fee", true, nil)},
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: customCurrency},
+				RateCards: RateCards{newRateCard("fee", false, nil)},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - an otherwise-valid plan add-on assignment whose rate cards may overlap by key
+			// when:
+			// - the complete assignment validation runs
+			// then:
+			// - priced overlays preserve currency and new prices preserve the plan's single-fiat invariant
+			addon := tt.addon
+			addon.EffectiveFrom = lo.ToPtr(activeFrom)
+			addon.InstanceType = AddonInstanceTypeSingle
+
+			planAddon := PlanAddon{
+				PlanAddonMeta: PlanAddonMeta{
+					PlanAddonConfig: PlanAddonConfig{FromPlanPhase: "default"},
+				},
+				Plan: Plan{
+					PlanMeta: PlanMeta{
+						EffectivePeriod: EffectivePeriod{EffectiveFrom: lo.ToPtr(activeFrom)},
+						Currency:        tt.planCurrency,
+						BillingCadence:  month,
+					},
+					Phases: []Phase{
+						{
+							PhaseMeta: PhaseMeta{Key: "default", Name: "Default"},
+							RateCards: tt.planRateCards,
+						},
+					},
+				},
+				Addon: addon,
+			}
+
+			err := planAddon.Validate()
+
+			if tt.expectedError == nil {
+				assert.NoError(t, err)
+				return
+			}
+
+			assert.ErrorIs(t, err, tt.expectedError)
+		})
+	}
+}
+
+func TestValidatePlanPhaseAndAddonRateCardCurrenciesRequiresDefaults(t *testing.T) {
+	phase := Phase{}
+
+	err := ValidatePlanPhaseAndAddonRateCardCurrencies(nil, Addon{
+		AddonMeta: AddonMeta{Currency: currencyx.Code(currency.USD)},
+	})(phase)
+	assert.ErrorIs(t, err, ErrCurrencyInvalid)
+
+	err = ValidatePlanPhaseAndAddonRateCardCurrencies(currencyx.Code(currency.USD), Addon{})(phase)
+	assert.ErrorIs(t, err, ErrCurrencyInvalid)
 }

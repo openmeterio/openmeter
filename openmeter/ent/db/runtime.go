@@ -134,14 +134,31 @@ func init() {
 	addonDescVersion := addonFields[0].Descriptor()
 	// addon.VersionValidator is a validator for the "version" field. It is called by the builders before save.
 	addon.VersionValidator = addonDescVersion.Validators[0].(func(int) error)
-	// addonDescCurrency is the schema descriptor for currency field.
-	addonDescCurrency := addonFields[1].Descriptor()
-	// addon.DefaultCurrency holds the default value on creation for the currency field.
-	addon.DefaultCurrency = addonDescCurrency.Default.(string)
-	// addon.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	addon.CurrencyValidator = addonDescCurrency.Validators[0].(func(string) error)
+	// addonDescFiatCurrencyCode is the schema descriptor for fiat_currency_code field.
+	addonDescFiatCurrencyCode := addonFields[1].Descriptor()
+	// addon.FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	addon.FiatCurrencyCodeValidator = func() func(string) error {
+		validators := addonDescFiatCurrencyCode.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(fiat_currency_code string) error {
+			for _, fn := range fns {
+				if err := fn(fiat_currency_code); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// addonDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
+	addonDescCustomCurrencyID := addonFields[2].Descriptor()
+	// addon.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	addon.CustomCurrencyIDValidator = addonDescCustomCurrencyID.Validators[0].(func(string) error)
 	// addonDescAnnotations is the schema descriptor for annotations field.
-	addonDescAnnotations := addonFields[5].Descriptor()
+	addonDescAnnotations := addonFields[6].Descriptor()
 	addon.ValueScanner.Annotations = addonDescAnnotations.ValueScanner.(field.TypeValueScanner[models.Annotations])
 	// addonDescID is the schema descriptor for id field.
 	addonDescID := addonMixinFields0[0].Descriptor()
@@ -179,14 +196,37 @@ func init() {
 	// addonratecardDescPrice is the schema descriptor for price field.
 	addonratecardDescPrice := addonratecardFields[5].Descriptor()
 	addonratecard.ValueScanner.Price = addonratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// addonratecardDescFiatCurrencyCode is the schema descriptor for fiat_currency_code field.
+	addonratecardDescFiatCurrencyCode := addonratecardFields[6].Descriptor()
+	// addonratecard.FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	addonratecard.FiatCurrencyCodeValidator = func() func(string) error {
+		validators := addonratecardDescFiatCurrencyCode.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(fiat_currency_code string) error {
+			for _, fn := range fns {
+				if err := fn(fiat_currency_code); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// addonratecardDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
+	addonratecardDescCustomCurrencyID := addonratecardFields[7].Descriptor()
+	// addonratecard.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	addonratecard.CustomCurrencyIDValidator = addonratecardDescCustomCurrencyID.Validators[0].(func(string) error)
 	// addonratecardDescDiscounts is the schema descriptor for discounts field.
-	addonratecardDescDiscounts := addonratecardFields[6].Descriptor()
+	addonratecardDescDiscounts := addonratecardFields[8].Descriptor()
 	addonratecard.ValueScanner.Discounts = addonratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// addonratecardDescUnitConfig is the schema descriptor for unit_config field.
-	addonratecardDescUnitConfig := addonratecardFields[7].Descriptor()
+	addonratecardDescUnitConfig := addonratecardFields[9].Descriptor()
 	addonratecard.ValueScanner.UnitConfig = addonratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
 	// addonratecardDescAddonID is the schema descriptor for addon_id field.
-	addonratecardDescAddonID := addonratecardFields[8].Descriptor()
+	addonratecardDescAddonID := addonratecardFields[10].Descriptor()
 	// addonratecard.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
 	addonratecard.AddonIDValidator = addonratecardDescAddonID.Validators[0].(func(string) error)
 	// addonratecardDescID is the schema descriptor for id field.
@@ -2575,14 +2615,31 @@ func init() {
 	planDescVersion := planFields[0].Descriptor()
 	// plan.VersionValidator is a validator for the "version" field. It is called by the builders before save.
 	plan.VersionValidator = planDescVersion.Validators[0].(func(int) error)
-	// planDescCurrency is the schema descriptor for currency field.
-	planDescCurrency := planFields[1].Descriptor()
-	// plan.DefaultCurrency holds the default value on creation for the currency field.
-	plan.DefaultCurrency = planDescCurrency.Default.(string)
-	// plan.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	plan.CurrencyValidator = planDescCurrency.Validators[0].(func(string) error)
+	// planDescFiatCurrencyCode is the schema descriptor for fiat_currency_code field.
+	planDescFiatCurrencyCode := planFields[1].Descriptor()
+	// plan.FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	plan.FiatCurrencyCodeValidator = func() func(string) error {
+		validators := planDescFiatCurrencyCode.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(fiat_currency_code string) error {
+			for _, fn := range fns {
+				if err := fn(fiat_currency_code); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// planDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
+	planDescCustomCurrencyID := planFields[2].Descriptor()
+	// plan.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	plan.CustomCurrencyIDValidator = planDescCustomCurrencyID.Validators[0].(func(string) error)
 	// planDescProRatingConfig is the schema descriptor for pro_rating_config field.
-	planDescProRatingConfig := planFields[3].Descriptor()
+	planDescProRatingConfig := planFields[4].Descriptor()
 	// plan.DefaultProRatingConfig holds the default value on creation for the pro_rating_config field.
 	plan.DefaultProRatingConfig = planDescProRatingConfig.Default.(func() productcatalog.ProRatingConfig)
 	plan.ValueScanner.ProRatingConfig = planDescProRatingConfig.ValueScanner.(field.TypeValueScanner[productcatalog.ProRatingConfig])
@@ -2688,14 +2745,37 @@ func init() {
 	// planratecardDescPrice is the schema descriptor for price field.
 	planratecardDescPrice := planratecardFields[5].Descriptor()
 	planratecard.ValueScanner.Price = planratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// planratecardDescFiatCurrencyCode is the schema descriptor for fiat_currency_code field.
+	planratecardDescFiatCurrencyCode := planratecardFields[6].Descriptor()
+	// planratecard.FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	planratecard.FiatCurrencyCodeValidator = func() func(string) error {
+		validators := planratecardDescFiatCurrencyCode.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(fiat_currency_code string) error {
+			for _, fn := range fns {
+				if err := fn(fiat_currency_code); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// planratecardDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
+	planratecardDescCustomCurrencyID := planratecardFields[7].Descriptor()
+	// planratecard.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	planratecard.CustomCurrencyIDValidator = planratecardDescCustomCurrencyID.Validators[0].(func(string) error)
 	// planratecardDescDiscounts is the schema descriptor for discounts field.
-	planratecardDescDiscounts := planratecardFields[6].Descriptor()
+	planratecardDescDiscounts := planratecardFields[8].Descriptor()
 	planratecard.ValueScanner.Discounts = planratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// planratecardDescUnitConfig is the schema descriptor for unit_config field.
-	planratecardDescUnitConfig := planratecardFields[7].Descriptor()
+	planratecardDescUnitConfig := planratecardFields[9].Descriptor()
 	planratecard.ValueScanner.UnitConfig = planratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
 	// planratecardDescPhaseID is the schema descriptor for phase_id field.
-	planratecardDescPhaseID := planratecardFields[8].Descriptor()
+	planratecardDescPhaseID := planratecardFields[10].Descriptor()
 	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
 	planratecard.PhaseIDValidator = planratecardDescPhaseID.Validators[0].(func(string) error)
 	// planratecardDescID is the schema descriptor for id field.

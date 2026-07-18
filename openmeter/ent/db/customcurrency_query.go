@@ -13,8 +13,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -26,6 +30,10 @@ type CustomCurrencyQuery struct {
 	inters               []Interceptor
 	predicates           []predicate.CustomCurrency
 	withCostBasisHistory *CurrencyCostBasisQuery
+	withPlans            *PlanQuery
+	withAddons           *AddonQuery
+	withPlanRateCards    *PlanRateCardQuery
+	withAddonRateCards   *AddonRateCardQuery
 	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -78,6 +86,94 @@ func (_q *CustomCurrencyQuery) QueryCostBasisHistory() *CurrencyCostBasisQuery {
 			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, selector),
 			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.CostBasisHistoryTable, customcurrency.CostBasisHistoryColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPlans chains the current query on the "plans" edge.
+func (_q *CustomCurrencyQuery) QueryPlans() *PlanQuery {
+	query := (&PlanClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, selector),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.PlansTable, customcurrency.PlansColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAddons chains the current query on the "addons" edge.
+func (_q *CustomCurrencyQuery) QueryAddons() *AddonQuery {
+	query := (&AddonClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, selector),
+			sqlgraph.To(addon.Table, addon.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.AddonsTable, customcurrency.AddonsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPlanRateCards chains the current query on the "plan_rate_cards" edge.
+func (_q *CustomCurrencyQuery) QueryPlanRateCards() *PlanRateCardQuery {
+	query := (&PlanRateCardClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, selector),
+			sqlgraph.To(planratecard.Table, planratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.PlanRateCardsTable, customcurrency.PlanRateCardsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAddonRateCards chains the current query on the "addon_rate_cards" edge.
+func (_q *CustomCurrencyQuery) QueryAddonRateCards() *AddonRateCardQuery {
+	query := (&AddonRateCardClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, selector),
+			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.AddonRateCardsTable, customcurrency.AddonRateCardsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -278,6 +374,10 @@ func (_q *CustomCurrencyQuery) Clone() *CustomCurrencyQuery {
 		inters:               append([]Interceptor{}, _q.inters...),
 		predicates:           append([]predicate.CustomCurrency{}, _q.predicates...),
 		withCostBasisHistory: _q.withCostBasisHistory.Clone(),
+		withPlans:            _q.withPlans.Clone(),
+		withAddons:           _q.withAddons.Clone(),
+		withPlanRateCards:    _q.withPlanRateCards.Clone(),
+		withAddonRateCards:   _q.withAddonRateCards.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -292,6 +392,50 @@ func (_q *CustomCurrencyQuery) WithCostBasisHistory(opts ...func(*CurrencyCostBa
 		opt(query)
 	}
 	_q.withCostBasisHistory = query
+	return _q
+}
+
+// WithPlans tells the query-builder to eager-load the nodes that are connected to
+// the "plans" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CustomCurrencyQuery) WithPlans(opts ...func(*PlanQuery)) *CustomCurrencyQuery {
+	query := (&PlanClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPlans = query
+	return _q
+}
+
+// WithAddons tells the query-builder to eager-load the nodes that are connected to
+// the "addons" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CustomCurrencyQuery) WithAddons(opts ...func(*AddonQuery)) *CustomCurrencyQuery {
+	query := (&AddonClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAddons = query
+	return _q
+}
+
+// WithPlanRateCards tells the query-builder to eager-load the nodes that are connected to
+// the "plan_rate_cards" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CustomCurrencyQuery) WithPlanRateCards(opts ...func(*PlanRateCardQuery)) *CustomCurrencyQuery {
+	query := (&PlanRateCardClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPlanRateCards = query
+	return _q
+}
+
+// WithAddonRateCards tells the query-builder to eager-load the nodes that are connected to
+// the "addon_rate_cards" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CustomCurrencyQuery) WithAddonRateCards(opts ...func(*AddonRateCardQuery)) *CustomCurrencyQuery {
+	query := (&AddonRateCardClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAddonRateCards = query
 	return _q
 }
 
@@ -373,8 +517,12 @@ func (_q *CustomCurrencyQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	var (
 		nodes       = []*CustomCurrency{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [5]bool{
 			_q.withCostBasisHistory != nil,
+			_q.withPlans != nil,
+			_q.withAddons != nil,
+			_q.withPlanRateCards != nil,
+			_q.withAddonRateCards != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -407,6 +555,34 @@ func (_q *CustomCurrencyQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 			return nil, err
 		}
 	}
+	if query := _q.withPlans; query != nil {
+		if err := _q.loadPlans(ctx, query, nodes,
+			func(n *CustomCurrency) { n.Edges.Plans = []*Plan{} },
+			func(n *CustomCurrency, e *Plan) { n.Edges.Plans = append(n.Edges.Plans, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withAddons; query != nil {
+		if err := _q.loadAddons(ctx, query, nodes,
+			func(n *CustomCurrency) { n.Edges.Addons = []*Addon{} },
+			func(n *CustomCurrency, e *Addon) { n.Edges.Addons = append(n.Edges.Addons, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPlanRateCards; query != nil {
+		if err := _q.loadPlanRateCards(ctx, query, nodes,
+			func(n *CustomCurrency) { n.Edges.PlanRateCards = []*PlanRateCard{} },
+			func(n *CustomCurrency, e *PlanRateCard) { n.Edges.PlanRateCards = append(n.Edges.PlanRateCards, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withAddonRateCards; query != nil {
+		if err := _q.loadAddonRateCards(ctx, query, nodes,
+			func(n *CustomCurrency) { n.Edges.AddonRateCards = []*AddonRateCard{} },
+			func(n *CustomCurrency, e *AddonRateCard) { n.Edges.AddonRateCards = append(n.Edges.AddonRateCards, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -435,6 +611,138 @@ func (_q *CustomCurrencyQuery) loadCostBasisHistory(ctx context.Context, query *
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "currency_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CustomCurrencyQuery) loadPlans(ctx context.Context, query *PlanQuery, nodes []*CustomCurrency, init func(*CustomCurrency), assign func(*CustomCurrency, *Plan)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*CustomCurrency)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(plan.FieldCustomCurrencyID)
+	}
+	query.Where(predicate.Plan(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customcurrency.PlansColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomCurrencyID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "custom_currency_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "custom_currency_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CustomCurrencyQuery) loadAddons(ctx context.Context, query *AddonQuery, nodes []*CustomCurrency, init func(*CustomCurrency), assign func(*CustomCurrency, *Addon)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*CustomCurrency)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(addon.FieldCustomCurrencyID)
+	}
+	query.Where(predicate.Addon(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customcurrency.AddonsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomCurrencyID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "custom_currency_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "custom_currency_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CustomCurrencyQuery) loadPlanRateCards(ctx context.Context, query *PlanRateCardQuery, nodes []*CustomCurrency, init func(*CustomCurrency), assign func(*CustomCurrency, *PlanRateCard)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*CustomCurrency)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(planratecard.FieldCustomCurrencyID)
+	}
+	query.Where(predicate.PlanRateCard(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customcurrency.PlanRateCardsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomCurrencyID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "custom_currency_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "custom_currency_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CustomCurrencyQuery) loadAddonRateCards(ctx context.Context, query *AddonRateCardQuery, nodes []*CustomCurrency, init func(*CustomCurrency), assign func(*CustomCurrency, *AddonRateCard)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*CustomCurrency)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(addonratecard.FieldCustomCurrencyID)
+	}
+	query.Where(predicate.AddonRateCard(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customcurrency.AddonRateCardsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomCurrencyID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "custom_currency_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "custom_currency_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

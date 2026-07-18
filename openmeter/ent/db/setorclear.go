@@ -243,6 +243,34 @@ func (u *AddonRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *
 	return u.SetPrice(*value)
 }
 
+func (u *AddonRateCardUpdate) SetOrClearFiatCurrencyCode(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearFiatCurrencyCode()
+	}
+	return u.SetFiatCurrencyCode(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearFiatCurrencyCode(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearFiatCurrencyCode()
+	}
+	return u.SetFiatCurrencyCode(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearCustomCurrencyID(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearCustomCurrencyID(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
 func (u *AddonRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -5435,6 +5463,34 @@ func (u *PlanRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *P
 		return u.ClearPrice()
 	}
 	return u.SetPrice(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearFiatCurrencyCode(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearFiatCurrencyCode()
+	}
+	return u.SetFiatCurrencyCode(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearFiatCurrencyCode(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearFiatCurrencyCode()
+	}
+	return u.SetFiatCurrencyCode(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearCustomCurrencyID(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearCustomCurrencyID(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
 }
 
 func (u *PlanRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *PlanRateCardUpdate {

@@ -178,7 +178,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -682,7 +682,7 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsProratingGathering() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -879,7 +879,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -1079,7 +1079,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -1284,7 +1284,7 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsGatheringSyncNonBillableAmount
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -1445,7 +1445,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncBillableAmountPro
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -1668,7 +1668,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncDraftInvoiceProra
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -2117,7 +2117,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -2488,7 +2488,7 @@ func (s *CreditThenInvoiceTestSuite) TestDefactoZeroPrices() {
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -2592,7 +2592,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionInvoicing() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P4W"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -2929,7 +2929,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionCancellation() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -3127,7 +3127,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProgressiveBillingCa
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -3302,7 +3302,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -3401,7 +3401,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -3620,7 +3620,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualCreateSync() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -3860,7 +3860,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualCreateSync() {
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -3995,7 +3995,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualDeleteSync() {
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -4155,7 +4155,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualDeleteWithoutR
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -4344,7 +4344,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -4545,7 +4545,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDiscountEditSync()
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -4745,7 +4745,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualCreateSync() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -5006,7 +5006,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -5240,7 +5240,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDeleteSync() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -5397,7 +5397,7 @@ func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithSingleUsageBas
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -5530,7 +5530,7 @@ func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithMultipleUsageB
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -5658,7 +5658,7 @@ func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithFlatFeeOnlyDel
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -5832,7 +5832,7 @@ func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -5965,7 +5965,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 			},
@@ -6169,7 +6169,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -6578,7 +6578,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateIssuedInvoice(
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -6922,7 +6922,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -7471,7 +7471,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveStandardInvoiceDel
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -7625,7 +7625,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveGatheringLineManua
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -7816,7 +7816,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveGatheringInvoiceMa
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -7998,7 +7998,7 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncFlatFee() {
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -8168,7 +8168,7 @@ func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncUsageBased() {
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -8331,7 +8331,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -8468,7 +8468,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -8606,7 +8606,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -8848,7 +8848,7 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronizationWithPartialDisco
 					Name:           "Test Plan",
 					Key:            "test-plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
@@ -9135,7 +9135,7 @@ func (s *CreditThenInvoiceTestSuite) TestAlignedSubscriptionProratingBehavior() 
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -9753,7 +9753,7 @@ func (s *CreditThenInvoiceTestSuite) TestFirstDayOfMonthBillingForSubPeriodLengt
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
@@ -9887,7 +9887,7 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateNoBillables() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
@@ -9983,7 +9983,7 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateWithFreePhaseActiveInThe
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currency.USD,
+				Currency:       currencyx.Code(currency.USD),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,

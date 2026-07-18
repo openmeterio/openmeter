@@ -48,7 +48,7 @@ const ErrCodePlanAddonCurrencyMismatch models.ErrorCode = "plan_addon_currency_m
 
 var ErrPlanAddonCurrencyMismatch = models.NewValidationIssue(
 	ErrCodePlanAddonCurrencyMismatch,
-	"currency of the plan and addon must match",
+	"add-on cannot change an existing rate card's currency",
 	models.WithFieldString("currency"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
@@ -262,6 +262,66 @@ var ErrCurrencyInvalid = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeRateCardCurrencyOverrideNotAllowed models.ErrorCode = "rate_card_currency_override_not_allowed"
+
+var ErrRateCardCurrencyOverrideNotAllowed = models.NewValidationIssue(
+	ErrCodeRateCardCurrencyOverrideNotAllowed,
+	"currency override is not allowed when the default currency is custom",
+	models.WithFieldString("currency"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeRateCardCurrencyOverrideRedundant models.ErrorCode = "rate_card_currency_override_redundant"
+
+var ErrRateCardCurrencyOverrideRedundant = models.NewValidationIssue(
+	ErrCodeRateCardCurrencyOverrideRedundant,
+	"currency override must differ from the default currency",
+	models.WithFieldString("currency"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeRateCardCurrencyRequiresPrice models.ErrorCode = "rate_card_currency_requires_price"
+
+var ErrRateCardCurrencyRequiresPrice = models.NewValidationIssue(
+	ErrCodeRateCardCurrencyRequiresPrice,
+	"currency override requires a price",
+	models.WithFieldString("currency"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodePlanMultipleFiatCurrencies models.ErrorCode = "plan_multiple_fiat_currencies"
+
+var ErrPlanMultipleFiatCurrencies = models.NewValidationIssue(
+	ErrCodePlanMultipleFiatCurrencies,
+	"a catalog resource cannot contain more than one fiat currency",
+	models.WithFieldString("currency"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeCurrencyNotFound models.ErrorCode = "currency_not_found"
+
+var ErrCurrencyNotFound = models.NewValidationIssue(
+	ErrCodeCurrencyNotFound,
+	"currency does not exist",
+	models.WithFieldString("currency"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeCurrencyCostBasisNotFound models.ErrorCode = "currency_cost_basis_not_found"
+
+var ErrCurrencyCostBasisNotFound = models.NewValidationIssue(
+	ErrCodeCurrencyCostBasisNotFound,
+	"custom currency has no cost basis for the default fiat currency",
+	models.WithFieldString("currency"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority models.ErrorCode = "entitlement_template_invalid_issue_after_reset_with_priority"
 
 var ErrEntitlementTemplateInvalidIssueAfterResetWithPriority = models.NewValidationIssue(
@@ -405,6 +465,15 @@ const ErrCodeUnitConfigNotRepresentable models.ErrorCode = "unit_config_not_repr
 var ErrUnitConfigNotRepresentable = models.NewValidationIssue(
 	ErrCodeUnitConfigNotRepresentable,
 	"this resource uses unit_config and is only available via the v3 API",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeRateCardCurrencyNotRepresentable models.ErrorCode = "rate_card_currency_not_representable"
+
+var ErrRateCardCurrencyNotRepresentable = models.NewValidationIssue(
+	ErrCodeRateCardCurrencyNotRepresentable,
+	"this resource uses rate card currency overrides and is only available via the v3 API",
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )

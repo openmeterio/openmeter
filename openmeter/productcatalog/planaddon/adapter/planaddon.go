@@ -6,6 +6,7 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	addondb "github.com/openmeterio/openmeter/openmeter/ent/db/addon"
+	customcurrencydb "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	planaddondb "github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -58,7 +59,10 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 		}
 
 		if len(params.Currencies) > 0 {
-			planOrFilters = append(planOrFilters, plandb.CurrencyIn(params.Currencies...))
+			planOrFilters = append(planOrFilters, plandb.Or(
+				plandb.FiatCurrencyCodeIn(params.Currencies...),
+				plandb.HasCustomCurrencyWith(customcurrencydb.CodeIn(params.Currencies...)),
+			))
 		}
 
 		if len(planOrFilters) > 0 {
@@ -90,7 +94,10 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 		}
 
 		if len(params.Currencies) > 0 {
-			addonOrFilters = append(addonOrFilters, addondb.CurrencyIn(params.Currencies...))
+			addonOrFilters = append(addonOrFilters, addondb.Or(
+				addondb.FiatCurrencyCodeIn(params.Currencies...),
+				addondb.HasCustomCurrencyWith(customcurrencydb.CodeIn(params.Currencies...)),
+			))
 		}
 
 		if len(addonOrFilters) > 0 {
@@ -213,16 +220,20 @@ func (a *adapter) CreatePlanAddon(ctx context.Context, params planaddon.CreatePl
 }
 
 var PlanEagerLoadPhasesWithRateCardsWithFeaturesFn = func(pq *entdb.PlanQuery) {
+	pq.WithCustomCurrency()
 	pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) {
 		ppq.WithRatecards(func(prq *entdb.PlanRateCardQuery) {
 			prq.WithFeatures()
+			prq.WithCustomCurrency()
 		})
 	})
 }
 
 var AddonEagerLoadRateCardsWithFeaturesFn = func(aq *entdb.AddonQuery) {
+	aq.WithCustomCurrency()
 	aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
 		arq.WithFeatures()
+		arq.WithCustomCurrency()
 	})
 }
 

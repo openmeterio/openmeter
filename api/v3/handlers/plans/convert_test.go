@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -41,7 +42,7 @@ func newTestPlan(t *testing.T) plan.Plan {
 			Key:            "pro",
 			Version:        1,
 			Name:           "Pro Plan",
-			Currency:       currency.USD,
+			Currency:       currencyx.Code(currency.USD),
 			BillingCadence: billingCadence,
 			ProRatingConfig: productcatalog.ProRatingConfig{
 				Enabled: true,
@@ -308,6 +309,25 @@ func TestFromPlanWithPhases(t *testing.T) {
 }
 
 func TestFromRateCard(t *testing.T) {
+	t.Run("custom currency override round trips", func(t *testing.T) {
+		custom := currencyx.Code("CREDITS")
+		rc := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:      "credits",
+				Name:     "Credits",
+				Currency: custom,
+			},
+		}
+
+		apiRateCard, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+		require.Equal(t, lo.ToPtr(api.BillingCurrencyCode(custom)), apiRateCard.Currency)
+
+		domainRateCard, err := FromAPIBillingRateCard(apiRateCard)
+		require.NoError(t, err)
+		require.Equal(t, custom, domainRateCard.AsMeta().Currency.GetCode())
+	})
+
 	t.Run("flat fee — no price, no cadence (one-time free)", func(t *testing.T) {
 		rc := &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{

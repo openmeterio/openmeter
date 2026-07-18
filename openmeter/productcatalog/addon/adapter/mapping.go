@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -15,6 +15,15 @@ import (
 )
 
 func FromAddonRow(a entdb.Addon) (*addon.Addon, error) {
+	addonCurrency, err := currencyadapter.FromDBCurrencyReference(currencyadapter.CurrencyReference{
+		FiatCurrencyCode: a.FiatCurrencyCode,
+		CustomCurrencyID: a.CustomCurrencyID,
+		CustomCurrency:   a.Edges.CustomCurrency,
+	}, false)
+	if err != nil {
+		return nil, fmt.Errorf("invalid add-on currency: %w", err)
+	}
+
 	aa := &addon.Addon{
 		NamespacedID: models.NamespacedID{
 			Namespace: a.Namespace,
@@ -32,7 +41,7 @@ func FromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 			Metadata:     a.Metadata,
 			Annotations:  a.Annotations,
 			Version:      a.Version,
-			Currency:     currency.Code(a.Currency),
+			Currency:     addonCurrency,
 			InstanceType: a.InstanceType,
 			EffectivePeriod: productcatalog.EffectivePeriod{
 				EffectiveFrom: a.EffectiveFrom,
@@ -85,6 +94,15 @@ func FromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 }
 
 func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
+	rateCardCurrency, err := currencyadapter.FromDBCurrencyReference(currencyadapter.CurrencyReference{
+		FiatCurrencyCode: r.FiatCurrencyCode,
+		CustomCurrencyID: r.CustomCurrencyID,
+		CustomCurrency:   r.Edges.CustomCurrency,
+	}, true)
+	if err != nil {
+		return nil, fmt.Errorf("invalid rate card currency: %w", err)
+	}
+
 	meta := productcatalog.RateCardMeta{
 		Key:                 r.Key,
 		Name:                r.Name,
@@ -97,6 +115,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
 		UnitConfig:          r.UnitConfig,
+		Currency:            rateCardCurrency,
 	}
 
 	if r.FeatureID != nil || r.FeatureKey != nil {
@@ -214,6 +233,15 @@ func FromPlanAddonRow(a entdb.PlanAddon) (*addon.Plan, error) {
 }
 
 func FromPlanRow(p entdb.Plan) (*productcatalog.Plan, error) {
+	planCurrency, err := currencyadapter.FromDBCurrencyReference(currencyadapter.CurrencyReference{
+		FiatCurrencyCode: p.FiatCurrencyCode,
+		CustomCurrencyID: p.CustomCurrencyID,
+		CustomCurrency:   p.Edges.CustomCurrency,
+	}, false)
+	if err != nil {
+		return nil, fmt.Errorf("invalid plan currency: %w", err)
+	}
+
 	billingCadence, err := p.BillingCadence.Parse()
 	if err != nil {
 		return nil, fmt.Errorf("invalid billing cadence %s: %w", p.BillingCadence, err)
@@ -226,7 +254,7 @@ func FromPlanRow(p entdb.Plan) (*productcatalog.Plan, error) {
 			Description: p.Description,
 			Metadata:    p.Metadata,
 			Version:     p.Version,
-			Currency:    currency.Code(p.Currency),
+			Currency:    planCurrency,
 			EffectivePeriod: productcatalog.EffectivePeriod{
 				EffectiveFrom: p.EffectiveFrom,
 				EffectiveTo:   p.EffectiveTo,
@@ -301,6 +329,15 @@ func FromPlanPhaseRow(p entdb.PlanPhase) (*productcatalog.Phase, error) {
 }
 
 func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) {
+	rateCardCurrency, err := currencyadapter.FromDBCurrencyReference(currencyadapter.CurrencyReference{
+		FiatCurrencyCode: r.FiatCurrencyCode,
+		CustomCurrencyID: r.CustomCurrencyID,
+		CustomCurrency:   r.Edges.CustomCurrency,
+	}, true)
+	if err != nil {
+		return nil, fmt.Errorf("invalid rate card currency: %w", err)
+	}
+
 	meta := productcatalog.RateCardMeta{
 		Key:                 r.Key,
 		Name:                r.Name,
@@ -313,6 +350,7 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
 		UnitConfig:          r.UnitConfig,
+		Currency:            rateCardCurrency,
 	}
 
 	// Map TaxCode if eagerly loaded.
@@ -358,6 +396,10 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 
 func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) {
 	meta := r.AsMeta()
+	currencyReference, err := currencyadapter.ToDBCurrencyReference(meta.Currency, true)
+	if err != nil {
+		return entdb.AddonRateCard{}, fmt.Errorf("invalid rate card currency: %w", err)
+	}
 
 	ratecard := entdb.AddonRateCard{
 		Key:                 meta.Key,
@@ -372,6 +414,8 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		Type:                r.Type(),
 		Discounts:           lo.EmptyableToPtr(meta.Discounts),
 		UnitConfig:          meta.UnitConfig,
+		FiatCurrencyCode:    currencyReference.FiatCurrencyCode,
+		CustomCurrencyID:    currencyReference.CustomCurrencyID,
 	}
 
 	if managed, ok := r.(addon.ManagedRateCard); ok {

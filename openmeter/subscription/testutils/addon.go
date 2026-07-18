@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -27,7 +28,7 @@ func BuildAddonForTesting(t *testing.T, period productcatalog.EffectivePeriod, t
 				EffectivePeriod: period,
 				Key:             "test-addon",
 				Version:         1,
-				Currency:        currency.USD,
+				Currency:        currencyx.Code(currency.USD),
 				InstanceType:    typ,
 				Metadata: models.NewMetadata(map[string]string{
 					"test": "test",

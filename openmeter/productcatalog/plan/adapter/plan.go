@@ -7,7 +7,9 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	customcurrencydb "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	planaddondb "github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	phasedb "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -51,14 +53,19 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		}
 
 		if len(params.Currencies) > 0 {
-			orFilters = append(orFilters, plandb.CurrencyIn(params.Currencies...))
+			currencyFilter := filter.FilterString{In: &params.Currencies}
+			if currencyPredicate := planCurrencyPredicate(&currencyFilter); currencyPredicate != nil {
+				orFilters = append(orFilters, *currencyPredicate)
+			}
 		}
 
 		query = query.Where(plandb.Or(orFilters...))
 
 		query = filter.ApplyToQuery(query, params.Key, plandb.FieldKey)
 		query = filter.ApplyToQuery(query, params.Name, plandb.FieldName)
-		query = filter.ApplyToQuery(query, params.Currency, plandb.FieldCurrency)
+		if currencyPredicate := planCurrencyPredicate(params.Currency); currencyPredicate != nil {
+			query = query.Where(*currencyPredicate)
+		}
 
 		if params.ExcludeUnitConfig {
 			// The v1 API cannot represent a unit_config, so exclude any plan whose active rate cards
@@ -68,6 +75,20 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			query = query.Where(plandb.Not(plandb.HasPhasesWith(
 				phasedb.HasRatecardsWith(
 					ratecarddb.UnitConfigNotNil(),
+					ratecarddb.DeletedAtIsNil(),
+				),
+			)))
+		}
+
+		if params.ExcludeCurrencyOverrides {
+			// The v1 API cannot represent rate-card currency overrides. Apply the filter before
+			// pagination so TotalCount and the returned page describe the same resource set.
+			query = query.Where(plandb.Not(plandb.HasPhasesWith(
+				phasedb.HasRatecardsWith(
+					ratecarddb.Or(
+						ratecarddb.FiatCurrencyCodeNotNil(),
+						ratecarddb.CustomCurrencyIDNotNil(),
+					),
 					ratecarddb.DeletedAtIsNil(),
 				),
 			)))
@@ -123,7 +144,7 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		// Eager load phases with
 		// * ordering by StartAfter
 		// * with eager load RateCards
-		query = query.WithPhases(
+		query = query.WithCustomCurrency().WithPhases(
 			planPhaseIncludeDeleted(false),
 			planPhaseEagerLoadRateCardsFn,
 		)
@@ -191,12 +212,18 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			params.Version = 1
 		}
 
+		currencyReference, err := currencyadapter.ToDBCurrencyReference(params.Currency, false)
+		if err != nil {
+			return nil, fmt.Errorf("invalid plan currency: %w", err)
+		}
+
 		planRow, err := a.db.Plan.Create().
 			SetKey(params.Key).
 			SetNamespace(params.Namespace).
 			SetName(params.Name).
 			SetNillableDescription(params.Description).
-			SetCurrency(params.Currency.String()).
+			SetNillableFiatCurrencyCode(currencyReference.FiatCurrencyCode).
+			SetNillableCustomCurrencyID(currencyReference.CustomCurrencyID).
 			SetBillingCadence(params.BillingCadence.ISOString()).
 			SetProRatingConfig(params.ProRatingConfig).
 			SetSettlementMode(params.SettlementMode).
@@ -209,6 +236,14 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 
 		if planRow == nil {
 			return nil, fmt.Errorf("invalid query result: nil Plan received")
+		}
+
+		planRow, err = a.db.Plan.Query().
+			Where(plandb.ID(planRow.ID), plandb.Namespace(params.Namespace)).
+			WithCustomCurrency().
+			Only(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to refetch Plan currency: %w", err)
 		}
 
 		p, err := FromPlanRow(*planRow)
@@ -380,7 +415,7 @@ func (a *adapter) GetPlan(ctx context.Context, params plan.GetPlanInput) (*plan.
 		// Eager load phases with
 		// * ordering by StartAfter
 		// * with eager load RateCards
-		query = query.WithPhases(
+		query = query.WithCustomCurrency().WithPhases(
 			planPhaseIncludeDeleted(false),
 			planPhaseEagerLoadRateCardsFn,
 		)
@@ -528,9 +563,11 @@ var planEagerLoadActiveAddons = func(paq *entdb.PlanAddonQuery) {
 			planaddondb.DeletedAtGT(clock.Now().UTC()),
 		),
 	).WithAddon(func(aq *entdb.AddonQuery) {
+		aq.WithCustomCurrency()
 		aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
 			arq.WithFeatures()
 			arq.WithTaxCode()
+			arq.WithCustomCurrency()
 		})
 	})
 }
@@ -545,6 +582,7 @@ var planPhaseEagerLoadRateCardsFn = func(q *entdb.PlanPhaseQuery) {
 		)
 		rateCardEagerLoadFeaturesFn(prcq)
 		rateCardEagerLoadTaxCodesFn(prcq)
+		rateCardEagerLoadCustomCurrencyFn(prcq)
 	})
 }
 
@@ -554,4 +592,29 @@ var rateCardEagerLoadFeaturesFn = func(q *entdb.PlanRateCardQuery) {
 
 var rateCardEagerLoadTaxCodesFn = func(q *entdb.PlanRateCardQuery) {
 	q.WithTaxCode()
+}
+
+var rateCardEagerLoadCustomCurrencyFn = func(q *entdb.PlanRateCardQuery) {
+	q.WithCustomCurrency()
+}
+
+// planCurrencyPredicate applies a code filter to the mutually exclusive fiat
+// code and managed custom-currency reference representations.
+func planCurrencyPredicate(currencyFilter *filter.FilterString) *predicate.Plan {
+	if currencyFilter == nil || currencyFilter.IsEmpty() {
+		return nil
+	}
+
+	fiatPredicate := filter.SelectPredicate[predicate.Plan](currencyFilter, plandb.FieldFiatCurrencyCode)
+	customPredicate := filter.SelectPredicate[predicate.CustomCurrency](currencyFilter, customcurrencydb.FieldCode)
+	if fiatPredicate == nil || customPredicate == nil {
+		return nil
+	}
+
+	p := plandb.Or(
+		plandb.And(plandb.FiatCurrencyCodeNotNil(), *fiatPredicate),
+		plandb.And(plandb.CustomCurrencyIDNotNil(), plandb.HasCustomCurrencyWith(*customPredicate)),
+	)
+
+	return &p
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -109,6 +110,9 @@ type ListPlansInput struct {
 
 	// ExcludeUnitConfig omits plans carrying a unit_config conversion on any of their rate cards. (v1 can't represent it)
 	ExcludeUnitConfig bool
+
+	// ExcludeCurrencyOverrides omits plans carrying an explicit currency on any rate card. (v1 can't represent it)
+	ExcludeCurrencyOverrides bool
 }
 
 func (i ListPlansInput) Validate() error {
@@ -185,6 +189,14 @@ func (i CreatePlanInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
+func (i *CreatePlanInput) ResolveCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver) error {
+	return productcatalog.ResolvePlanCurrencies(ctx, i.Namespace, resolver, &i.Plan)
+}
+
+func (i CreatePlanInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver) error {
+	return validateCurrencies(ctx, i.Namespace, i.Plan, resolver, i.IgnoreNonCriticalIssues)
+}
+
 var (
 	_ models.Validator     = (*UpdatePlanInput)(nil)
 	_ models.Equaler[Plan] = (*UpdatePlanInput)(nil)
@@ -219,6 +231,9 @@ type UpdatePlanInput struct {
 
 	// RejectUnitConfig makes mutation validation reject a plan that carries a unit_config conversion on any rate card.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides makes mutation validation reject a plan that carries an explicit currency on any rate card.
+	RejectCurrencyOverrides bool
 
 	inputOptions
 }
@@ -328,9 +343,38 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 	if i.RejectUnitConfig && p.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
+	if i.RejectCurrencyOverrides && p.HasCurrencyOverrides() {
+		return productcatalog.ErrRateCardCurrencyNotRepresentable
+	}
+
+	p = i.applyTo(p)
+
+	if i.RejectUnitConfig && p.HasUnitConfig() {
+		return productcatalog.ErrUnitConfigNotRepresentable
+	}
+	if i.RejectCurrencyOverrides && p.HasCurrencyOverrides() {
+		return productcatalog.ErrRateCardCurrencyNotRepresentable
+	}
 
 	var errs []error
 
+	if err := p.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	issues, err := models.AsValidationIssues(errors.Join(errs...))
+	if err != nil {
+		return models.NewGenericValidationError(err)
+	}
+
+	if i.IgnoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
+}
+
+func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 	if i.Name != nil {
 		p.Name = *i.Name
 	}
@@ -351,20 +395,98 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 		p.ProRatingConfig = *i.ProRatingConfig
 	}
 
+	if i.SettlementMode != nil {
+		p.SettlementMode = *i.SettlementMode
+	}
+
 	if i.Phases != nil {
 		p.Phases = *i.Phases
 	}
 
-	if err := p.Validate(); err != nil {
-		errs = append(errs, err)
+	return p
+}
+
+func (i *UpdatePlanInput) ResolveCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver, p productcatalog.Plan) error {
+	if i.Phases != nil {
+		if err := preservePlanRateCardCurrencyIdentities(p.Phases, *i.Phases); err != nil {
+			return err
+		}
 	}
 
-	issues, err := models.AsValidationIssues(errors.Join(errs...))
-	if err != nil {
-		return models.NewGenericValidationError(err)
+	p = i.applyTo(p)
+
+	if err := productcatalog.ResolvePlanCurrencies(ctx, i.Namespace, resolver, &p); err != nil {
+		return err
 	}
 
-	if i.IgnoreNonCriticalIssues {
+	if i.Phases != nil {
+		*i.Phases = p.Phases
+	}
+
+	return nil
+}
+
+func (i UpdatePlanInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver, p productcatalog.Plan) error {
+	return validateCurrencies(ctx, i.Namespace, i.applyTo(p), resolver, i.IgnoreNonCriticalIssues)
+}
+
+// preservePlanRateCardCurrencyIdentities repairs code-only update input before
+// resolution. Plan updates recreate every phase and rate card when Phases is
+// supplied, so an unchanged custom currency would otherwise be resolved again
+// and the recreated rate card could be retargeted to a reused currency code.
+func preservePlanRateCardCurrencyIdentities(persisted, updated []productcatalog.Phase) error {
+	persistedPhases := make(map[string]productcatalog.Phase, len(persisted))
+	for _, phase := range persisted {
+		persistedPhases[phase.Key] = phase
+	}
+
+	for _, phase := range updated {
+		persistedPhase, ok := persistedPhases[phase.Key]
+		if !ok {
+			continue
+		}
+
+		persistedRateCards := make(map[string]productcatalog.RateCard, len(persistedPhase.RateCards))
+		for _, rateCard := range persistedPhase.RateCards {
+			persistedRateCards[rateCard.Key()] = rateCard
+		}
+
+		for _, rateCard := range phase.RateCards {
+			persistedRateCard, ok := persistedRateCards[rateCard.Key()]
+			if !ok {
+				continue
+			}
+
+			persistedCurrency := persistedRateCard.AsMeta().Currency
+			updatedCurrency := rateCard.AsMeta().Currency
+			managedCurrency, ok := persistedCurrency.(currencyx.ManagedCurrency)
+			if !ok || !managedCurrency.IsCustom() || managedCurrency.GetID() == "" {
+				continue
+			}
+			if updatedCurrency == nil || managedCurrency.GetCode() != updatedCurrency.GetCode() {
+				continue
+			}
+
+			if err := rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+				meta.Currency = persistedCurrency
+				return meta, nil
+			}); err != nil {
+				return fmt.Errorf("preserving rate card currency identity [phase.key=%s ratecard.key=%s]: %w", phase.Key, rateCard.Key(), err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func validateCurrencies(ctx context.Context, namespace string, p productcatalog.Plan, resolver productcatalog.CurrencyResolver, ignoreNonCriticalIssues bool) error {
+	err := productcatalog.ValidatePlanWithCurrencies(ctx, namespace, resolver)(p)
+	issues, conversionErr := models.AsValidationIssues(err)
+	if conversionErr != nil {
+		return err
+	}
+
+	if ignoreNonCriticalIssues {
 		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
 	}
 
@@ -434,6 +556,10 @@ type PublishPlanInput struct {
 	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the target plan carries an explicit
+	// rate-card currency. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectCurrencyOverrides bool
 }
 
 func (i PublishPlanInput) Validate() error {
@@ -486,6 +612,10 @@ type ArchivePlanInput struct {
 	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the target plan carries an explicit
+	// rate-card currency. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectCurrencyOverrides bool
 }
 
 func (i ArchivePlanInput) Validate() error {
@@ -525,6 +655,10 @@ type NextPlanInput struct {
 	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the source plan carries an explicit
+	// rate-card currency. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectCurrencyOverrides bool
 }
 
 func (i NextPlanInput) Validate() error {

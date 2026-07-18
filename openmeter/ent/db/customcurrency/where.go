@@ -513,6 +513,98 @@ func HasCostBasisHistoryWith(preds ...predicate.CurrencyCostBasis) predicate.Cus
 	})
 }
 
+// HasPlans applies the HasEdge predicate on the "plans" edge.
+func HasPlans() predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PlansTable, PlansColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPlansWith applies the HasEdge predicate on the "plans" edge with a given conditions (other predicates).
+func HasPlansWith(preds ...predicate.Plan) predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := newPlansStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAddons applies the HasEdge predicate on the "addons" edge.
+func HasAddons() predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AddonsTable, AddonsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAddonsWith applies the HasEdge predicate on the "addons" edge with a given conditions (other predicates).
+func HasAddonsWith(preds ...predicate.Addon) predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := newAddonsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPlanRateCards applies the HasEdge predicate on the "plan_rate_cards" edge.
+func HasPlanRateCards() predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PlanRateCardsTable, PlanRateCardsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPlanRateCardsWith applies the HasEdge predicate on the "plan_rate_cards" edge with a given conditions (other predicates).
+func HasPlanRateCardsWith(preds ...predicate.PlanRateCard) predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := newPlanRateCardsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAddonRateCards applies the HasEdge predicate on the "addon_rate_cards" edge.
+func HasAddonRateCards() predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AddonRateCardsTable, AddonRateCardsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAddonRateCardsWith applies the HasEdge predicate on the "addon_rate_cards" edge with a given conditions (other predicates).
+func HasAddonRateCardsWith(preds ...predicate.AddonRateCard) predicate.CustomCurrency {
+	return predicate.CustomCurrency(func(s *sql.Selector) {
+		step := newAddonRateCardsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.CustomCurrency) predicate.CustomCurrency {
 	return predicate.CustomCurrency(sql.AndPredicates(predicates...))

@@ -43,6 +43,14 @@ func (CustomCurrency) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("cost_basis_history", CurrencyCostBasis.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("plans", Plan.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("addons", Addon.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("plan_rate_cards", PlanRateCard.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("addon_rate_cards", AddonRateCard.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 

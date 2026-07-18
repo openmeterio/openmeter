@@ -10,7 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -145,6 +147,50 @@ func TestRateCard_JSON(t *testing.T) {
 			assert.Equal(t, test.RateCard, rc)
 		})
 	}
+}
+
+func TestRateCardJSONUsesCurrencyCode(t *testing.T) {
+	// given:
+	// - a managed plan rate card backed by a managed custom currency
+	managedCurrency := &currencies.Currency{
+		NamespacedID: models.NamespacedID{
+			Namespace: "test",
+			ID:        "currency-resource-id",
+		},
+		Code: "CREDITS",
+		Name: "Credits",
+	}
+	rateCard := &RateCard{
+		RateCard: &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Currency: managedCurrency,
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount: decimal.NewFromInt(1),
+				}),
+			},
+		},
+	}
+
+	// when:
+	// - the rate card crosses the JSON event boundary
+	data, err := json.Marshal(rateCard)
+	require.NoError(t, err)
+
+	// then:
+	// - the managed identity is represented by its code and restored as a code identity
+	var serialized struct {
+		RateCard struct {
+			Currency currencyx.Code `json:"currency"`
+		} `json:"RateCard"`
+	}
+	require.NoError(t, json.Unmarshal(data, &serialized))
+	assert.Equal(t, currencyx.Code("CREDITS"), serialized.RateCard.Currency)
+	assert.NotContains(t, string(data), managedCurrency.ID)
+
+	var decoded RateCard
+	require.NoError(t, json.Unmarshal(data, &decoded))
+	assert.IsType(t, currencyx.Code(""), decoded.AsMeta().Currency)
+	assert.Equal(t, currencyx.Code("CREDITS"), decoded.AsMeta().Currency.GetCode())
 }
 
 func TestFlatFeeRateCard(t *testing.T) {

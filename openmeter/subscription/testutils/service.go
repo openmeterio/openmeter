@@ -11,12 +11,15 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
@@ -188,12 +191,22 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	featureResolver, err := featureresolver.New(entitlementRegistry.Feature)
 	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
 
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{Client: dbDeps.DBClient})
+	require.NoError(t, err)
+
+	currencyService, err := currencyservice.New(currencyAdapter)
+	require.NoError(t, err)
+
+	currencyResolver, err := currencyresolver.New(currencyService)
+	require.NoError(t, err)
+
 	planService, err := planservice.New(planservice.Config{
-		FeatureResolver: featureResolver,
-		Logger:          logger,
-		Adapter:         planRepo,
-		Publisher:       publisher,
-		TaxCode:         taxCodeService,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		Logger:           logger,
+		Adapter:          planRepo,
+		Publisher:        publisher,
+		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -225,11 +238,12 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:         addonRepo,
-		Logger:          logger,
-		Publisher:       publisher,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
+		Adapter:          addonRepo,
+		Logger:           logger,
+		Publisher:        publisher,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -240,11 +254,12 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 
 	planAddonService, err := planaddonservice.New(planaddonservice.Config{
-		Adapter:   planAddonRepo,
-		Logger:    logger,
-		Plan:      planService,
-		Addon:     addonService,
-		Publisher: publisher,
+		Adapter:          planAddonRepo,
+		Logger:           logger,
+		Plan:             planService,
+		Addon:            addonService,
+		CurrencyResolver: currencyResolver,
+		Publisher:        publisher,
 	})
 	require.NoError(t, err)
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbDeps.DBClient)

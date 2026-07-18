@@ -1082,6 +1082,22 @@ func (c *AddonClient) QuerySubscriptionAddons(_m *Addon) *SubscriptionAddonQuery
 	return query
 }
 
+// QueryCustomCurrency queries the custom_currency edge of a Addon.
+func (c *AddonClient) QueryCustomCurrency(_m *Addon) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addon.Table, addon.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, addon.CustomCurrencyTable, addon.CustomCurrencyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *AddonClient) Hooks() []Hook {
 	return c.hooks.Addon
@@ -1256,6 +1272,22 @@ func (c *AddonRateCardClient) QueryTaxCode(_m *AddonRateCard) *TaxCodeQuery {
 			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, id),
 			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.TaxCodeTable, addonratecard.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency queries the custom_currency edge of a AddonRateCard.
+func (c *AddonRateCardClient) QueryCustomCurrency(_m *AddonRateCard) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.CustomCurrencyTable, addonratecard.CustomCurrencyColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -10152,6 +10184,70 @@ func (c *CustomCurrencyClient) QueryCostBasisHistory(_m *CustomCurrency) *Curren
 	return query
 }
 
+// QueryPlans queries the plans edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QueryPlans(_m *CustomCurrency) *PlanQuery {
+	query := (&PlanClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.PlansTable, customcurrency.PlansColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAddons queries the addons edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QueryAddons(_m *CustomCurrency) *AddonQuery {
+	query := (&AddonClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(addon.Table, addon.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.AddonsTable, customcurrency.AddonsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPlanRateCards queries the plan_rate_cards edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QueryPlanRateCards(_m *CustomCurrency) *PlanRateCardQuery {
+	query := (&PlanRateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(planratecard.Table, planratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.PlanRateCardsTable, customcurrency.PlanRateCardsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAddonRateCards queries the addon_rate_cards edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QueryAddonRateCards(_m *CustomCurrency) *AddonRateCardQuery {
+	query := (&AddonRateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.AddonRateCardsTable, customcurrency.AddonRateCardsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CustomCurrencyClient) Hooks() []Hook {
 	return c.hooks.CustomCurrency
@@ -14166,6 +14262,22 @@ func (c *PlanClient) QuerySubscriptions(_m *Plan) *SubscriptionQuery {
 	return query
 }
 
+// QueryCustomCurrency queries the custom_currency edge of a Plan.
+func (c *PlanClient) QueryCustomCurrency(_m *Plan) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, plan.CustomCurrencyTable, plan.CustomCurrencyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *PlanClient) Hooks() []Hook {
 	return c.hooks.Plan
@@ -14670,6 +14782,22 @@ func (c *PlanRateCardClient) QueryTaxCode(_m *PlanRateCard) *TaxCodeQuery {
 			sqlgraph.From(planratecard.Table, planratecard.FieldID, id),
 			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, planratecard.TaxCodeTable, planratecard.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency queries the custom_currency edge of a PlanRateCard.
+func (c *PlanRateCardClient) QueryCustomCurrency(_m *PlanRateCard) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planratecard.Table, planratecard.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, planratecard.CustomCurrencyTable, planratecard.CustomCurrencyColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

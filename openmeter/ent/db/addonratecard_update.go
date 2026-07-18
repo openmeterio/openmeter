@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -221,6 +222,46 @@ func (_u *AddonRateCardUpdate) ClearPrice() *AddonRateCardUpdate {
 	return _u
 }
 
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_u *AddonRateCardUpdate) SetFiatCurrencyCode(v string) *AddonRateCardUpdate {
+	_u.mutation.SetFiatCurrencyCode(v)
+	return _u
+}
+
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_u *AddonRateCardUpdate) SetNillableFiatCurrencyCode(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetFiatCurrencyCode(*v)
+	}
+	return _u
+}
+
+// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
+func (_u *AddonRateCardUpdate) ClearFiatCurrencyCode() *AddonRateCardUpdate {
+	_u.mutation.ClearFiatCurrencyCode()
+	return _u
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_u *AddonRateCardUpdate) SetCustomCurrencyID(v string) *AddonRateCardUpdate {
+	_u.mutation.SetCustomCurrencyID(v)
+	return _u
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_u *AddonRateCardUpdate) SetNillableCustomCurrencyID(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetCustomCurrencyID(*v)
+	}
+	return _u
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (_u *AddonRateCardUpdate) ClearCustomCurrencyID() *AddonRateCardUpdate {
+	_u.mutation.ClearCustomCurrencyID()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *AddonRateCardUpdate) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpdate {
 	_u.mutation.SetDiscounts(v)
@@ -308,6 +349,11 @@ func (_u *AddonRateCardUpdate) SetTaxCode(v *TaxCode) *AddonRateCardUpdate {
 	return _u.SetTaxCodeID(v.ID)
 }
 
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_u *AddonRateCardUpdate) SetCustomCurrency(v *CustomCurrency) *AddonRateCardUpdate {
+	return _u.SetCustomCurrencyID(v.ID)
+}
+
 // Mutation returns the AddonRateCardMutation object of the builder.
 func (_u *AddonRateCardUpdate) Mutation() *AddonRateCardMutation {
 	return _u.mutation
@@ -328,6 +374,12 @@ func (_u *AddonRateCardUpdate) ClearFeatures() *AddonRateCardUpdate {
 // ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
 func (_u *AddonRateCardUpdate) ClearTaxCode() *AddonRateCardUpdate {
 	_u.mutation.ClearTaxCode()
+	return _u
+}
+
+// ClearCustomCurrency clears the "custom_currency" edge to the CustomCurrency entity.
+func (_u *AddonRateCardUpdate) ClearCustomCurrency() *AddonRateCardUpdate {
+	_u.mutation.ClearCustomCurrency()
 	return _u
 }
 
@@ -387,6 +439,16 @@ func (_u *AddonRateCardUpdate) check() error {
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.FiatCurrencyCode(); ok {
+		if err := addonratecard.FiatCurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.fiat_currency_code": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CustomCurrencyID(); ok {
+		if err := addonratecard.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.custom_currency_id": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Discounts(); ok {
@@ -494,6 +556,12 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(addonratecard.FieldPrice, field.TypeString)
 	}
+	if value, ok := _u.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(addonratecard.FieldFiatCurrencyCode, field.TypeString, value)
+	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(addonratecard.FieldFiatCurrencyCode, field.TypeString)
+	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -594,6 +662,35 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CustomCurrencyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.CustomCurrencyTable,
+			Columns: []string{addonratecard.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.CustomCurrencyTable,
+			Columns: []string{addonratecard.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -809,6 +906,46 @@ func (_u *AddonRateCardUpdateOne) ClearPrice() *AddonRateCardUpdateOne {
 	return _u
 }
 
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_u *AddonRateCardUpdateOne) SetFiatCurrencyCode(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetFiatCurrencyCode(v)
+	return _u
+}
+
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_u *AddonRateCardUpdateOne) SetNillableFiatCurrencyCode(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetFiatCurrencyCode(*v)
+	}
+	return _u
+}
+
+// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
+func (_u *AddonRateCardUpdateOne) ClearFiatCurrencyCode() *AddonRateCardUpdateOne {
+	_u.mutation.ClearFiatCurrencyCode()
+	return _u
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_u *AddonRateCardUpdateOne) SetCustomCurrencyID(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetCustomCurrencyID(v)
+	return _u
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_u *AddonRateCardUpdateOne) SetNillableCustomCurrencyID(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetCustomCurrencyID(*v)
+	}
+	return _u
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (_u *AddonRateCardUpdateOne) ClearCustomCurrencyID() *AddonRateCardUpdateOne {
+	_u.mutation.ClearCustomCurrencyID()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *AddonRateCardUpdateOne) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpdateOne {
 	_u.mutation.SetDiscounts(v)
@@ -896,6 +1033,11 @@ func (_u *AddonRateCardUpdateOne) SetTaxCode(v *TaxCode) *AddonRateCardUpdateOne
 	return _u.SetTaxCodeID(v.ID)
 }
 
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_u *AddonRateCardUpdateOne) SetCustomCurrency(v *CustomCurrency) *AddonRateCardUpdateOne {
+	return _u.SetCustomCurrencyID(v.ID)
+}
+
 // Mutation returns the AddonRateCardMutation object of the builder.
 func (_u *AddonRateCardUpdateOne) Mutation() *AddonRateCardMutation {
 	return _u.mutation
@@ -916,6 +1058,12 @@ func (_u *AddonRateCardUpdateOne) ClearFeatures() *AddonRateCardUpdateOne {
 // ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
 func (_u *AddonRateCardUpdateOne) ClearTaxCode() *AddonRateCardUpdateOne {
 	_u.mutation.ClearTaxCode()
+	return _u
+}
+
+// ClearCustomCurrency clears the "custom_currency" edge to the CustomCurrency entity.
+func (_u *AddonRateCardUpdateOne) ClearCustomCurrency() *AddonRateCardUpdateOne {
+	_u.mutation.ClearCustomCurrency()
 	return _u
 }
 
@@ -988,6 +1136,16 @@ func (_u *AddonRateCardUpdateOne) check() error {
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.FiatCurrencyCode(); ok {
+		if err := addonratecard.FiatCurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.fiat_currency_code": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CustomCurrencyID(); ok {
+		if err := addonratecard.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.custom_currency_id": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Discounts(); ok {
@@ -1112,6 +1270,12 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(addonratecard.FieldPrice, field.TypeString)
 	}
+	if value, ok := _u.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(addonratecard.FieldFiatCurrencyCode, field.TypeString, value)
+	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(addonratecard.FieldFiatCurrencyCode, field.TypeString)
+	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -1212,6 +1376,35 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CustomCurrencyCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.CustomCurrencyTable,
+			Columns: []string{addonratecard.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.CustomCurrencyTable,
+			Columns: []string{addonratecard.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

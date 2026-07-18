@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -19,16 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
-
-func mapCurrencyFromDB(c *entdb.CustomCurrency) currencies.Currency {
-	return currencies.Currency{
-		NamespacedID: models.NamespacedID{ID: c.ID, Namespace: c.Namespace},
-		ManagedModel: models.ManagedModel{CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt, DeletedAt: c.DeletedAt},
-		Code:         c.Code,
-		Name:         c.Name,
-		Symbol:       lo.ToPtr(c.Symbol),
-	}
-}
 
 func mapCostBasisFromDB(c *entdb.CurrencyCostBasis) currencies.CostBasis {
 	var effectiveTo *time.Time
@@ -71,7 +60,7 @@ func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.Li
 			return pagination.Result[currencies.Currency]{}, fmt.Errorf("failed to list currencies: %w", err)
 		}
 
-		return pagination.MapResult(paged, mapCurrencyFromDB), nil
+		return pagination.MapResult(paged, FromDBCustomCurrency), nil
 	})
 }
 
@@ -90,7 +79,7 @@ func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCu
 			return currencies.Currency{}, fmt.Errorf("failed to create currency: %w", err)
 		}
 
-		return mapCurrencyFromDB(curr), nil
+		return FromDBCustomCurrency(curr), nil
 	})
 }
 

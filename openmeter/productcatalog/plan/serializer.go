@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -23,7 +24,25 @@ type rateCardAlias struct {
 	FeatureID           *string                     `json:"featureID,omitempty"`
 	BillingCadence      *string                     `json:"billingCadence,omitempty"`
 	Price               json.RawMessage             `json:"price,omitempty"`
+	Currency            *currencyx.Code             `json:"currency,omitempty"`
 	EntitlementTemplate json.RawMessage             `json:"entitlementTemplate,omitempty"`
+}
+
+func currencyCodeForJSON(currency currencyx.CurrencyIdentity) currencyx.Code {
+	if currency == nil {
+		return ""
+	}
+
+	return currency.GetCode()
+}
+
+func currencyCodePointerForJSON(currency currencyx.CurrencyIdentity) *currencyx.Code {
+	if currency == nil {
+		return nil
+	}
+
+	code := currency.GetCode()
+	return &code
 }
 
 // MarshalJSON implements json.Marshaler
@@ -72,6 +91,7 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 				FeatureKey:          meta.FeatureKey,
 				FeatureID:           meta.FeatureID,
 				Price:               priceJSON,
+				Currency:            currencyCodePointerForJSON(meta.Currency),
 				EntitlementTemplate: entitlementTemplateJSON,
 			}
 
@@ -101,9 +121,11 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 	// Marshal plan with phases
 	return json.Marshal(struct {
 		planAlias
-		Phases []json.RawMessage `json:"phases"`
+		Currency currencyx.Code    `json:"currency"`
+		Phases   []json.RawMessage `json:"phases"`
 	}{
 		planAlias: plan,
+		Currency:  currencyCodeForJSON(p.Currency),
 		Phases:    phases,
 	})
 }
@@ -112,23 +134,11 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 func (p *Plan) UnmarshalJSON(data []byte) error {
 	type planAlias Plan
 	type phaseAlias Phase
-	type rateCardAlias struct {
-		Type                productcatalog.RateCardType `json:"type"`
-		Key                 string                      `json:"key"`
-		Name                string                      `json:"name"`
-		Description         *string                     `json:"description,omitempty"`
-		Metadata            map[string]string           `json:"metadata,omitempty"`
-		FeatureKey          *string                     `json:"featureKey,omitempty"`
-		FeatureID           *string                     `json:"featureID,omitempty"`
-		BillingCadence      *string                     `json:"billingCadence,omitempty"`
-		Price               json.RawMessage             `json:"price,omitempty"`
-		EntitlementTemplate json.RawMessage             `json:"entitlementTemplate,omitempty"`
-	}
-
 	// Unmarshal the base plan
 	var planData struct {
 		planAlias
-		Phases []json.RawMessage `json:"phases"`
+		Currency currencyx.Code    `json:"currency"`
+		Phases   []json.RawMessage `json:"phases"`
 	}
 	if err := json.Unmarshal(data, &planData); err != nil {
 		return fmt.Errorf("failed to unmarshal plan: %w", err)
@@ -136,6 +146,7 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 
 	// Copy the base plan data
 	*p = Plan(planData.planAlias)
+	p.Currency = planData.Currency
 
 	// Unmarshal phases
 	p.Phases = make([]Phase, len(planData.Phases))
@@ -182,6 +193,9 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 				FeatureID:           rcData.FeatureID,
 				Price:               price,
 				EntitlementTemplate: entitlementTemplate,
+			}
+			if rcData.Currency != nil {
+				meta.Currency = *rcData.Currency
 			}
 
 			var rc productcatalog.RateCard

@@ -19,6 +19,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -55,7 +56,7 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 			PlanMeta: productcatalog.PlanMeta{
 				Name:           "Test Plan",
 				Key:            "test_plan",
-				Currency:       "USD",
+				Currency:       currencyx.Code("USD"),
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

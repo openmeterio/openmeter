@@ -58,7 +58,7 @@ func BuildTestPlanInput(t *testing.T) *testPlanbuilder {
 					Name:           "Test Plan",
 					Key:            "test_plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencyx.Code(currency.USD),
 					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
 						Enabled: true,

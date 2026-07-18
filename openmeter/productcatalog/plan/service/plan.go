@@ -145,6 +145,18 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 			}
 		}
 
+		if err := params.ResolveCurrencies(ctx, s.currencyResolver); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid resolved Plan: %w", err)
+		}
+
+		if err := params.ValidateCurrencies(ctx, s.currencyResolver); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
 		p, err := s.adapter.CreatePlan(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Plan: %w", err)
@@ -276,27 +288,6 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		)
 		logger.Debug("updating Plan")
 
-		if params.Phases != nil && len(*params.Phases) > 0 {
-			for idx := range *params.Phases {
-				phaseFieldSelector := models.NewFieldSelectorGroup(
-					models.NewFieldSelector("phases").
-						WithExpression(
-							models.NewFieldAttrValue("key", &(*params.Phases)[idx].Key),
-						),
-				)
-
-				if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
-					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
-						fmt.Errorf("failed to expand features for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
-							params.ID, (*params.Phases)[idx].Key, err))
-				}
-
-				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
-					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
-				}
-			}
-		}
-
 		p, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
@@ -328,9 +319,39 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		// therefore the EffectivePeriod attribute must be zeroed before updating the Plan.
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
-		// Validate the Plan with changes applied
+		if params.Phases != nil && len(*params.Phases) > 0 {
+			for idx := range *params.Phases {
+				phaseFieldSelector := models.NewFieldSelectorGroup(
+					models.NewFieldSelector("phases").
+						WithExpression(
+							models.NewFieldAttrValue("key", &(*params.Phases)[idx].Key),
+						),
+				)
+
+				if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
+					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
+						fmt.Errorf("failed to expand features for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
+							params.ID, (*params.Phases)[idx].Key, err))
+				}
+
+				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
+					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
+				}
+			}
+		}
+
+		if err = params.ResolveCurrencies(ctx, s.currencyResolver, pp); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
+		// Validate the full candidate only after all authoring currencies have
+		// become stable currency identities.
 		if err = params.ValidateWithPlan(pp); err != nil {
 			return nil, fmt.Errorf("invalid Plan update: %w", err)
+		}
+
+		if err = params.ValidateCurrencies(ctx, s.currencyResolver, pp); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
 
 		p, err = s.adapter.UpdatePlan(ctx, params)
@@ -396,6 +417,9 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		if params.RejectUnitConfig && p.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+		if params.RejectCurrencyOverrides && p.HasCurrencyOverrides() {
+			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
 
 		// Check if the plan is already deleted
 
@@ -428,6 +452,12 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 		if err = pp.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid plan [id=%s key=%s version=%d]: %w",
+				p.ID, p.Key, p.Version, err),
+			)
+		}
+
+		if err = pp.ValidateWith(productcatalog.ValidatePlanWithCurrencies(ctx, p.Namespace, s.currencyResolver)); err != nil {
+			errs = append(errs, fmt.Errorf("invalid plan currencies [id=%s key=%s version=%d]: %w",
 				p.ID, p.Key, p.Version, err),
 			)
 		}
@@ -494,8 +524,9 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 						Namespace: activePlan.Namespace,
 						ID:        activePlan.ID,
 					},
-					EffectiveTo:      lo.FromPtr(params.EffectiveFrom),
-					RejectUnitConfig: params.RejectUnitConfig,
+					EffectiveTo:             lo.FromPtr(params.EffectiveFrom),
+					RejectUnitConfig:        params.RejectUnitConfig,
+					RejectCurrencyOverrides: params.RejectCurrencyOverrides,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("failed to archive plan with active status: %w", err)
@@ -561,6 +592,9 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 		// The v1 API cannot represent unit_config; reject before archiving
 		if params.RejectUnitConfig && p.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+		if params.RejectCurrencyOverrides && p.HasCurrencyOverrides() {
+			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 		}
 
 		activeStatuses := []productcatalog.PlanStatus{productcatalog.PlanStatusActive}
@@ -705,6 +739,9 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		// The v1 API cannot represent unit_config; reject before creating the next draft
 		if params.RejectUnitConfig && sourcePlan.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+		if params.RejectCurrencyOverrides && sourcePlan.HasCurrencyOverrides() {
+			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 		}
 
 		nextPlan, err := s.adapter.CreatePlan(ctx, plan.CreatePlanInput{

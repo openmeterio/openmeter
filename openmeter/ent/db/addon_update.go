@@ -398,6 +398,9 @@ func (_u *AddonUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(addon.FieldVersion, field.TypeInt, value)
 	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(addon.FieldFiatCurrencyCode, field.TypeString)
+	}
 	if value, ok := _u.mutation.InstanceType(); ok {
 		_spec.SetField(addon.FieldInstanceType, field.TypeEnum, value)
 	}
@@ -972,6 +975,9 @@ func (_u *AddonUpdateOne) sqlSave(ctx context.Context) (_node *Addon, err error)
 	}
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(addon.FieldVersion, field.TypeInt, value)
+	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(addon.FieldFiatCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.InstanceType(); ok {
 		_spec.SetField(addon.FieldInstanceType, field.TypeEnum, value)
