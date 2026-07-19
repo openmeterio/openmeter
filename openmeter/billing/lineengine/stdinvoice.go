@@ -10,10 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 )
 
-type QuantitySnapshotter interface {
-	SnapshotLineQuantities(ctx context.Context, invoice billing.StandardInvoice, lines billing.StandardLines) error
-}
-
 func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
 	stdLines, err := e.buildStandardInvoiceLinesWithQuantitySnapshot(ctx, input)
 	if err != nil {
@@ -48,7 +44,7 @@ func (e *Engine) buildStandardInvoiceLinesWithQuantitySnapshot(ctx context.Conte
 		return nil, fmt.Errorf("resolving split line group headers: %w", err)
 	}
 
-	if err := e.quantitySnapshotter.SnapshotLineQuantities(ctx, input.Invoice, stdLines); err != nil {
+	if err := e.SnapshotLineQuantities(ctx, input.Invoice, stdLines); err != nil {
 		return nil, fmt.Errorf("snapshotting line quantities: %w", err)
 	}
 

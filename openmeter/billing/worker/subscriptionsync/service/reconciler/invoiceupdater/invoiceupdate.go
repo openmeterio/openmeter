@@ -2,6 +2,7 @@ package invoiceupdater
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -18,16 +20,52 @@ import (
 
 const subscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 
-type Updater struct {
-	billingService billing.Service
-	logger         *slog.Logger
+// TODO: Move invoiceupdater into billing/lineengine: invoice patches are only used by the legacy
+// invoicing backend, which is why this package declares the snapshotter dependency directly.
+type QuantitySnapshotter interface {
+	SnapshotLineQuantity(ctx context.Context, input billinglineengine.SnapshotLineQuantityInput) (*billing.StandardLine, error)
 }
 
-func New(billingService billing.Service, logger *slog.Logger) *Updater {
-	return &Updater{
-		billingService: billingService,
-		logger:         logger,
+type Config struct {
+	BillingService      billing.Service
+	QuantitySnapshotter QuantitySnapshotter
+	Logger              *slog.Logger
+}
+
+func (c Config) Validate() error {
+	var errs []error
+
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
 	}
+
+	if c.QuantitySnapshotter == nil {
+		errs = append(errs, errors.New("quantity snapshotter is required"))
+	}
+
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type Updater struct {
+	billingService      billing.Service
+	quantitySnapshotter QuantitySnapshotter
+	logger              *slog.Logger
+}
+
+func New(config Config) (*Updater, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &Updater{
+		billingService:      config.BillingService,
+		quantitySnapshotter: config.QuantitySnapshotter,
+		logger:              config.Logger,
+	}, nil
 }
 
 func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []Patch) error {
@@ -320,7 +358,7 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 					return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetStandardLine.ID)
 				}
 
-				updatedQtyLine, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
+				updatedQtyLine, err := u.quantitySnapshotter.SnapshotLineQuantity(ctx, billinglineengine.SnapshotLineQuantityInput{
 					Invoice: invoice,
 					Line:    &targetStandardLine,
 				})
@@ -465,7 +503,7 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 				return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", targetState.GetID(), err)
 			}
 
-			targetStateWithUpdatedQty, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
+			targetStateWithUpdatedQty, err := u.quantitySnapshotter.SnapshotLineQuantity(ctx, billinglineengine.SnapshotLineQuantityInput{
 				Invoice: &invoice,
 				Line:    &targetStandardLine,
 			})

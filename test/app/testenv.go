@@ -18,6 +18,7 @@ import (
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
 	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
@@ -280,20 +281,27 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	// identically). Lines that carry a unit_config are exercised by the dedicated
 	// unit_config suites.
 	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
+	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
+		SplitLineGroupAdapter:        billingAdapter,
+		RatingService:                billingRatingService,
+		FeatureService:               featureService,
+		StreamingConnector:           mockStreamingConnector,
+		MaxParallelQuantitySnapshots: 2,
+	})
+	require.NoError(t, err)
 
 	return billingservice.New(billingservice.Config{
-		Adapter:                      billingAdapter,
-		SequenceService:              billingSequenceService,
-		RatingService:                billingRatingService,
-		CustomerService:              in.CustomerService,
-		AppService:                   in.AppService,
-		Logger:                       slog.Default(),
-		FeatureService:               featureService,
-		MeterService:                 meterAdapter,
-		StreamingConnector:           mockStreamingConnector,
-		Publisher:                    eventbus.NewMock(t),
-		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
-		MaxParallelQuantitySnapshots: 2,
-		TaxCodeService:               taxCodeService,
+		Adapter:                 billingAdapter,
+		SequenceService:         billingSequenceService,
+		RatingService:           billingRatingService,
+		LegacyBillingLineEngine: legacyBillingLineEngine,
+		CustomerService:         in.CustomerService,
+		AppService:              in.AppService,
+		Logger:                  slog.Default(),
+		FeatureService:          featureService,
+		MeterService:            meterAdapter,
+		Publisher:               eventbus.NewMock(t),
+		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
+		TaxCodeService:          taxCodeService,
 	})
 }

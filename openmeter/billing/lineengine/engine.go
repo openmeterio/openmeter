@@ -9,6 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -20,9 +22,11 @@ var (
 )
 
 type Config struct {
-	SplitLineGroupAdapter SplitLineGroupAdapter
-	QuantitySnapshotter   QuantitySnapshotter
-	RatingService         rating.Service
+	SplitLineGroupAdapter        SplitLineGroupAdapter
+	RatingService                rating.Service
+	FeatureService               feature.FeatureConnector
+	StreamingConnector           streaming.Connector
+	MaxParallelQuantitySnapshots int
 }
 
 func (c Config) Validate() error {
@@ -30,21 +34,31 @@ func (c Config) Validate() error {
 		return fmt.Errorf("split line group adapter is required")
 	}
 
-	if c.QuantitySnapshotter == nil {
-		return fmt.Errorf("quantity snapshotter is required")
-	}
-
 	if c.RatingService == nil {
 		return fmt.Errorf("rating service is required")
+	}
+
+	if c.FeatureService == nil {
+		return fmt.Errorf("feature service is required")
+	}
+
+	if c.StreamingConnector == nil {
+		return fmt.Errorf("streaming connector is required")
+	}
+
+	if c.MaxParallelQuantitySnapshots < 1 {
+		return fmt.Errorf("max parallel quantity snapshots must be greater than 0")
 	}
 
 	return nil
 }
 
 type Engine struct {
-	adapter             SplitLineGroupAdapter
-	quantitySnapshotter QuantitySnapshotter
-	ratingService       rating.Service
+	adapter                      SplitLineGroupAdapter
+	ratingService                rating.Service
+	featureService               feature.FeatureConnector
+	streamingConnector           streaming.Connector
+	maxParallelQuantitySnapshots int
 }
 
 func New(config Config) (*Engine, error) {
@@ -53,9 +67,11 @@ func New(config Config) (*Engine, error) {
 	}
 
 	return &Engine{
-		adapter:             config.SplitLineGroupAdapter,
-		quantitySnapshotter: config.QuantitySnapshotter,
-		ratingService:       config.RatingService,
+		adapter:                      config.SplitLineGroupAdapter,
+		ratingService:                config.RatingService,
+		featureService:               config.FeatureService,
+		streamingConnector:           config.StreamingConnector,
+		maxParallelQuantitySnapshots: config.MaxParallelQuantitySnapshots,
 	}, nil
 }
 
@@ -79,7 +95,7 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 		return input.Lines, nil
 	}
 
-	if err := e.quantitySnapshotter.SnapshotLineQuantities(ctx, input.Invoice, input.Lines); err != nil {
+	if err := e.SnapshotLineQuantities(ctx, input.Invoice, input.Lines); err != nil {
 		if _, isInvalidDatabaseState := lo.ErrorsAs[*billing.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {
 			return nil, billing.ValidationIssue{
 				Severity:  billing.ValidationIssueSeverityCritical,
@@ -174,7 +190,7 @@ func (e *Engine) snapshotManualStandardLineOverrideIfNeeded(ctx context.Context,
 		return nil, fmt.Errorf("getting standard line: %w", err)
 	}
 
-	if err := e.quantitySnapshotter.SnapshotLineQuantities(ctx, standardInvoice, billing.StandardLines{&standardLine}); err != nil {
+	if err := e.SnapshotLineQuantities(ctx, standardInvoice, billing.StandardLines{&standardLine}); err != nil {
 		return nil, fmt.Errorf("snapshotting line quantity: %w", err)
 	}
 

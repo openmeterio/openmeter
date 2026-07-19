@@ -1868,10 +1868,6 @@ func (n NoopBillingService) GetGatheringLinesForSubscription(ctx context.Context
 	return billing.GatheringLines{}, nil
 }
 
-func (n NoopBillingService) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.StandardLine, error) {
-	return &billing.StandardLine{}, nil
-}
-
 // InvoiceSplitLineGroupService methods
 func (n NoopBillingService) DeleteSplitLineGroup(ctx context.Context, input billing.DeleteSplitLineGroupInput) error {
 	return nil
