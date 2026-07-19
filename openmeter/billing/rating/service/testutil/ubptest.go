@@ -56,37 +56,23 @@ type CalculationTestCase struct {
 	UnitConfigEnabled bool
 }
 
-// unitConfigLineAccessor wraps a StandardLine to expose a unit_config, which the
-// StandardLine type itself never carries.
-type unitConfigLineAccessor struct {
-	*billing.StandardLine
-
-	unitConfig *productcatalog.UnitConfig
-}
-
-func (l unitConfigLineAccessor) GetUnitConfig() *productcatalog.UnitConfig {
-	return l.unitConfig
-}
-
-type Service interface {
-	GenerateDetailedLines(in rating.StandardLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error)
-}
-
 func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 	t.Helper()
 
-	line := &billing.StandardLine{
-		StandardLineBase: billing.StandardLineBase{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				ID:   "fake-line",
-				Name: "feature",
-			}),
-			Currency:          "USD",
-			RateCardDiscounts: tc.Discounts,
-			CreditsApplied:    tc.CreditsApplied,
-		},
-		UsageBased: &billing.UsageBasedLine{
-			Price: lo.ToPtr(tc.Price),
+	line := &billing.StandardLineWithSplitLineHierarchy{
+		StandardLine: &billing.StandardLine{
+			StandardLineBase: billing.StandardLineBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					ID:   "fake-line",
+					Name: "feature",
+				}),
+				Currency:          "USD",
+				RateCardDiscounts: tc.Discounts,
+				CreditsApplied:    tc.CreditsApplied,
+			},
+			UsageBased: &billing.UsageBasedLine{
+				Price: lo.ToPtr(tc.Price),
+			},
 		},
 	}
 
@@ -143,14 +129,9 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 	line.UsageBased.PreLinePeriodQuantity = &tc.Usage.PreLinePeriodQty
 	line.UsageBased.MeteredPreLinePeriodQuantity = &tc.Usage.PreLinePeriodQty
 
-	var accessor rating.StandardLineAccessor = line
-	if tc.UnitConfig != nil {
-		accessor = unitConfigLineAccessor{StandardLine: line, unitConfig: tc.UnitConfig}
-	}
-
 	svc := service.New(service.Config{UnitConfigEnabled: tc.UnitConfigEnabled})
 
-	res, err := svc.GenerateDetailedLines(accessor, tc.Options...)
+	res, err := svc.GenerateProgressiveBilledDetailedLines(line, tc.Options...)
 	if err != nil {
 		if tc.ExpectErrorIs != nil {
 			require.ErrorIs(t, err, tc.ExpectErrorIs)

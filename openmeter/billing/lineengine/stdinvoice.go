@@ -2,6 +2,7 @@ package lineengine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -11,15 +12,7 @@ import (
 )
 
 func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
-	stdLines, err := e.buildStandardInvoiceLinesWithQuantitySnapshot(ctx, input)
-	if err != nil {
-		return nil, err
-	}
-
-	return e.CalculateLines(billing.CalculateLinesInput{
-		Invoice: input.Invoice,
-		Lines:   stdLines,
-	})
+	return e.buildStandardInvoiceLinesWithQuantitySnapshot(ctx, input)
 }
 
 func (e *Engine) BuildStandardLinesForGatheringPreview(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
@@ -40,33 +33,62 @@ func (e *Engine) buildStandardInvoiceLinesWithQuantitySnapshot(ctx context.Conte
 		return nil, err
 	}
 
-	if err := e.ResolveSplitLineGroupHeaders(ctx, input.Invoice.Namespace, stdLines); err != nil {
+	linesWithSplitLineHierarchy, err := e.ResolveSplitLineGroupHeaders(ctx, input.Invoice.Namespace, stdLines)
+	if err != nil {
 		return nil, fmt.Errorf("resolving split line group headers: %w", err)
 	}
 
-	if err := e.SnapshotLineQuantities(ctx, input.Invoice, stdLines); err != nil {
+	if err := e.SnapshotLineQuantities(ctx, input.Invoice, linesWithSplitLineHierarchy); err != nil {
 		return nil, fmt.Errorf("snapshotting line quantities: %w", err)
 	}
 
-	return stdLines, nil
-}
-
-func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.StandardLines, error) {
-	if input.Invoice.ID == "" {
-		return nil, fmt.Errorf("invoice id is required")
+	calculatedLines, err := e.calculateLines(calculateLinesInput{
+		Invoice: input.Invoice,
+		Lines:   linesWithSplitLineHierarchy,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	if len(input.Lines) == 0 {
-		return nil, fmt.Errorf("lines are required")
+	return calculatedLines.AsStandardLines(), nil
+}
+
+type calculateLinesInput struct {
+	Invoice billing.StandardInvoice
+	Lines   StandardLinesWithSplitLineHierarchy
+}
+
+func (i calculateLinesInput) Validate() error {
+	var errs []error
+
+	if i.Invoice.ID == "" {
+		errs = append(errs, fmt.Errorf("invoice id is required"))
+	}
+
+	if len(i.Lines) == 0 {
+		errs = append(errs, fmt.Errorf("lines are required"))
+	}
+
+	if err := i.Lines.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("lines: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+// TODO: Do not implement the calculator here, so that we don't need to pass the splitline groups to the rating service
+func (e *Engine) calculateLines(input calculateLinesInput) (StandardLinesWithSplitLineHierarchy, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
 	for _, stdLine := range input.Lines {
-		generatedDetailedLines, err := e.ratingService.GenerateDetailedLines(stdLine)
+		generatedDetailedLines, err := e.ratingService.GenerateProgressiveBilledDetailedLines(stdLine)
 		if err != nil {
 			return nil, fmt.Errorf("generating detailed lines for line[%s]: %w", stdLine.ID, err)
 		}
 
-		if err := invoicecalc.MergeGeneratedDetailedLines(stdLine, generatedDetailedLines); err != nil {
+		if err := invoicecalc.MergeGeneratedDetailedLines(stdLine.StandardLine, generatedDetailedLines); err != nil {
 			return nil, fmt.Errorf("merging generated detailed lines for line[%s]: %w", stdLine.ID, err)
 		}
 

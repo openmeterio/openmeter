@@ -7,15 +7,17 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+// TODO: Remove this and use the splitline adapter
 type SplitLineGroupAdapter interface {
-	CreateSplitLineGroup(ctx context.Context, input billing.CreateSplitLineGroupAdapterInput) (billing.SplitLineGroup, error)
-	GetSplitLineGroupHeaders(ctx context.Context, input billing.GetSplitLineGroupHeadersInput) (billing.SplitLineGroupHeaders, error)
+	CreateSplitLineGroup(ctx context.Context, input splitlinegroup.CreateSplitLineGroupAdapterInput) (splitlinegroup.SplitLineGroup, error)
+	GetSplitLineGroupHeaders(ctx context.Context, input splitlinegroup.GetSplitLineGroupHeadersInput) (splitlinegroup.SplitLineGroupHeaders, error)
 }
 
 func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheringLineInput) (billing.SplitGatheringLineResult, error) {
@@ -33,9 +35,9 @@ func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheri
 
 	var splitLineGroupID string
 	if line.SplitLineGroupID == nil {
-		splitLineGroup, err := e.adapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
+		splitLineGroup, err := e.adapter.CreateSplitLineGroup(ctx, splitlinegroup.CreateSplitLineGroupAdapterInput{
 			Namespace: line.Namespace,
-			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+			SplitLineGroupMutableFields: splitlinegroup.SplitLineGroupMutableFields{
 				Name:        line.Name,
 				Description: line.Description,
 				ServicePeriod: timeutil.ClosedPeriod{
@@ -113,7 +115,7 @@ func (e *Engine) SplitGatheringLine(ctx context.Context, in billing.SplitGatheri
 	}, nil
 }
 
-func (e *Engine) ResolveSplitLineGroupHeaders(ctx context.Context, ns string, lines billing.StandardLines) error {
+func (e *Engine) ResolveSplitLineGroupHeaders(ctx context.Context, ns string, lines billing.StandardLines) ([]StandardLineWithSplitLineHierarchy, error) {
 	splitLineGroupIDs := lo.Uniq(
 		lo.Filter(
 			lo.Map(lines, func(line *billing.StandardLine, _ int) string { return lo.FromPtr(line.SplitLineGroupID) }),
@@ -122,37 +124,39 @@ func (e *Engine) ResolveSplitLineGroupHeaders(ctx context.Context, ns string, li
 	)
 
 	if len(splitLineGroupIDs) == 0 {
-		return nil
+		return lo.Map(lines, func(line *billing.StandardLine, _ int) StandardLineWithSplitLineHierarchy {
+			return StandardLineWithSplitLineHierarchy{StandardLine: line}
+		}), nil
 	}
 
-	splitLineGroupHeaders, err := e.adapter.GetSplitLineGroupHeaders(ctx, billing.GetSplitLineGroupHeadersInput{
+	splitLineGroupHeaders, err := e.adapter.GetSplitLineGroupHeaders(ctx, splitlinegroup.GetSplitLineGroupHeadersInput{
 		Namespace:         ns,
 		SplitLineGroupIDs: splitLineGroupIDs,
 	})
 	if err != nil {
-		return fmt.Errorf("getting split line group headers: %w", err)
+		return nil, fmt.Errorf("getting split line group headers: %w", err)
 	}
 
-	splitLineGroupHeadersByID := lo.SliceToMap(splitLineGroupHeaders, func(header billing.SplitLineGroup) (string, billing.SplitLineGroup) {
+	splitLineGroupHeadersByID := lo.SliceToMap(splitLineGroupHeaders, func(header splitlinegroup.SplitLineGroup) (string, splitlinegroup.SplitLineGroup) {
 		return header.ID, header
 	})
 
-	for idx := range lines {
-		if lines[idx].SplitLineGroupID == nil {
-			continue
+	return lo.MapErr(lines, func(line *billing.StandardLine, _ int) (StandardLineWithSplitLineHierarchy, error) {
+		if line.SplitLineGroupID == nil {
+			return StandardLineWithSplitLineHierarchy{StandardLine: line}, nil
 		}
 
-		splitLineGroupHeader, ok := splitLineGroupHeadersByID[lo.FromPtr(lines[idx].SplitLineGroupID)]
+		splitLineGroupHeader, ok := splitLineGroupHeadersByID[lo.FromPtr(line.SplitLineGroupID)]
 		if !ok {
-			return fmt.Errorf("split line group header not found for line[%s]: id[%s]", lines[idx].ID, lo.FromPtr(lines[idx].SplitLineGroupID))
+			return StandardLineWithSplitLineHierarchy{StandardLine: line}, fmt.Errorf("split line group header not found for line[%s]: id[%s]", line.ID, lo.FromPtr(line.SplitLineGroupID))
 		}
 
-		lines[idx].SplitLineHierarchy = &billing.SplitLineHierarchy{
-			Group: splitLineGroupHeader,
-		}
-	}
-
-	return nil
+		return StandardLineWithSplitLineHierarchy{
+			StandardLine: line, SplitLineHierarchy: &splitlinegroup.SplitLineHierarchy{
+				Group: splitLineGroupHeader,
+			},
+		}, nil
+	})
 }
 
 func isPeriodEmptyConsideringTruncations(line billing.GatheringLine) (bool, error) {

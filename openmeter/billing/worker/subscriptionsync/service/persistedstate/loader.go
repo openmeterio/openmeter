@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -19,8 +20,11 @@ import (
 type billingService interface {
 	GetStandardLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) (billing.StandardLines, error)
 	GetGatheringLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) (billing.GatheringLines, error)
-	GetSplitLineGroupsForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error)
 	ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error)
+}
+
+type splitLineGroupService interface {
+	GetSplitLineGroupsForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]splitlinegroup.SplitLineHierarchy, error)
 }
 
 type chargeService interface {
@@ -28,14 +32,16 @@ type chargeService interface {
 }
 
 type Loader struct {
-	billingService billingService
-	chargeService  chargeService
+	billingService        billingService
+	chargeService         chargeService
+	splitLineGroupService splitLineGroupService
 }
 
-func NewLoader(billingService billingService, chargeService chargeService) Loader {
+func NewLoader(billingService billingService, chargeService chargeService, splitLineGroupService splitLineGroupService) Loader {
 	return Loader{
-		billingService: billingService,
-		chargeService:  chargeService,
+		billingService:        billingService,
+		chargeService:         chargeService,
+		splitLineGroupService: splitLineGroupService,
 	}
 }
 
@@ -59,7 +65,7 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		return State{}, fmt.Errorf("getting existing gathering lines: %w", err)
 	}
 
-	splitLineGroups, err := l.billingService.GetSplitLineGroupsForSubscription(ctx, getLinesInput)
+	splitLineGroups, err := l.splitLineGroupService.GetSplitLineGroupsForSubscription(ctx, getLinesInput)
 	if err != nil {
 		return State{}, fmt.Errorf("getting existing split line groups: %w", err)
 	}
@@ -82,7 +88,7 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		return State{}, fmt.Errorf("assembling persisted invoice line items: %w", err)
 	}
 
-	hierarchyItems, err := lo.MapErr(splitLineGroups, func(hierarchy billing.SplitLineHierarchy, _ int) (Item, error) {
+	hierarchyItems, err := lo.MapErr(splitLineGroups, func(hierarchy splitlinegroup.SplitLineHierarchy, _ int) (Item, error) {
 		normalizedHierarchy, err := normalizePersistedSplitLineHierarchy(hierarchy)
 		if err != nil {
 			return nil, fmt.Errorf("normalizing existing split line hierarchy: %w", err)
@@ -240,9 +246,14 @@ func (l Loader) loadInvoicesForSubscriptionItems(ctx context.Context, subs subsc
 				return Invoices{}, fmt.Errorf("getting hierarchy invoice ids: %w", err)
 			}
 
-			for _, child := range hierarchy.Lines {
-				invoiceIDs[child.Invoice.GetID()] = struct{}{}
+			for _, child := range hierarchy.StandardLines {
+				invoiceIDs[child.Invoice.ID] = struct{}{}
 			}
+
+			if hierarchy.GatheringLine != nil {
+				invoiceIDs[hierarchy.GatheringLine.Invoice.ID] = struct{}{}
+			}
+
 		default:
 			return Invoices{}, fmt.Errorf("unsupported persisted invoice item type: %s", item.Type())
 		}
@@ -319,7 +330,7 @@ func normalizePersistedLine(line billing.GenericInvoiceLine) (billing.GenericInv
 	return cloned, nil
 }
 
-func normalizePersistedSplitLineHierarchy(hierarchy billing.SplitLineHierarchy) (*billing.SplitLineHierarchy, error) {
+func normalizePersistedSplitLineHierarchy(hierarchy splitlinegroup.SplitLineHierarchy) (*splitlinegroup.SplitLineHierarchy, error) {
 	cloned, err := hierarchy.Clone()
 	if err != nil {
 		return nil, fmt.Errorf("cloning hierarchy: %w", err)
@@ -327,16 +338,17 @@ func normalizePersistedSplitLineHierarchy(hierarchy billing.SplitLineHierarchy) 
 
 	cloned.Group.ServicePeriod = cloned.Group.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
 
-	for i := range cloned.Lines {
-		cloned.Lines[i].Line.UpdateServicePeriod(func(period *timeutil.ClosedPeriod) {
-			*period = period.Truncate(streaming.MinimumWindowSizeDuration)
-		})
+	for i, line := range cloned.StandardLines {
+		line.ServicePeriod = line.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
+		normalizeSubscriptionReference(line.Subscription)
 
-		if invoiceAtAccessor, ok := cloned.Lines[i].Line.(billing.InvoiceAtAccessor); ok {
-			invoiceAtAccessor.SetInvoiceAt(invoiceAtAccessor.GetInvoiceAt().Truncate(streaming.MinimumWindowSizeDuration))
-		}
+		cloned.StandardLines[i] = line
+	}
 
-		normalizeSubscriptionReference(cloned.Lines[i].Line.GetSubscriptionReference())
+	if cloned.GatheringLine != nil {
+		cloned.GatheringLine.ServicePeriod = cloned.GatheringLine.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
+		cloned.GatheringLine.InvoiceAt = cloned.GatheringLine.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
+		normalizeSubscriptionReference(cloned.GatheringLine.Subscription)
 	}
 
 	return &cloned, nil

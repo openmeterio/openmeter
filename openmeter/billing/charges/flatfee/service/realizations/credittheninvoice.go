@@ -355,7 +355,6 @@ func rateFlatFeeLine(line billing.StandardLine, ratingService billingrating.Serv
 	// split-line metadata must not make the flat pricer skip an otherwise
 	// billable in-advance or in-arrears charge run.
 	ratingLine.SplitLineGroupID = nil
-	ratingLine.SplitLineHierarchy = nil
 
 	generatedDetailedLines, err := ratingService.GenerateDetailedLines(ratingLine, billingrating.WithCreditsMutatorDisabled())
 	if err != nil {

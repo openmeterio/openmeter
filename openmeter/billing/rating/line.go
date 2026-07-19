@@ -44,6 +44,10 @@ type StandardLineAccessor interface {
 	GetUnitConfig() *productcatalog.UnitConfig
 	// GetStandardLineDiscounts returns the standard line discounts for the line
 	GetStandardLineDiscounts() billing.StandardLineDiscounts
+}
+
+type ProgressiveBilledLineAccessor interface {
+	StandardLineAccessor
 
 	// Progressive billing related information
 	// IsProgressivelyBilled returns true if the line is progressively billed

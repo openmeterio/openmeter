@@ -27,7 +27,7 @@ const (
 // use it (rather than a real RateableIntent) so a single fixture can exercise the
 // Pre-populated cumulative case, which the charges path never produces at rating time.
 type unitConfigTestLine struct {
-	*billing.StandardLine
+	billing.StandardLineWithSplitLineHierarchy
 
 	price      *productcatalog.Price
 	unitConfig *productcatalog.UnitConfig
@@ -48,10 +48,12 @@ func mutateUnitConfig(t *testing.T, price *productcatalog.Price, unitConfig *pro
 	t.Helper()
 
 	input := rate.PricerCalculateInput{
-		StandardLineAccessor: unitConfigTestLine{
-			StandardLine: &billing.StandardLine{},
-			price:        price,
-			unitConfig:   unitConfig,
+		ProgressiveBilledLineAccessor: unitConfigTestLine{
+			StandardLineWithSplitLineHierarchy: billing.StandardLineWithSplitLineHierarchy{
+				StandardLine: &billing.StandardLine{},
+			},
+			price:      price,
+			unitConfig: unitConfig,
 		},
 		Usage: &rating.Usage{
 			Quantity:              alpacadecimal.NewFromFloat(quantity),
@@ -128,10 +130,12 @@ func TestUnitConfigMutator(t *testing.T) {
 		})
 
 		input := rate.PricerCalculateInput{
-			StandardLineAccessor: unitConfigTestLine{
-				StandardLine: &billing.StandardLine{},
-				price:        packagePrice,
-				unitConfig:   newUnitConfig(opDivide, 1000, roundCeiling),
+			ProgressiveBilledLineAccessor: unitConfigTestLine{
+				StandardLineWithSplitLineHierarchy: billing.StandardLineWithSplitLineHierarchy{
+					StandardLine: &billing.StandardLine{},
+				},
+				price:      packagePrice,
+				unitConfig: newUnitConfig(opDivide, 1000, roundCeiling),
 			},
 			Usage: &rating.Usage{
 				Quantity:              alpacadecimal.NewFromFloat(1400),
@@ -148,10 +152,12 @@ func TestUnitConfigMutator(t *testing.T) {
 		// validator makes a zero factor unreachable through normal writes, but a
 		// corrupt import must fail the mutation instead of panicking the billing worker.
 		input := rate.PricerCalculateInput{
-			StandardLineAccessor: unitConfigTestLine{
-				StandardLine: &billing.StandardLine{},
-				price:        unitPrice,
-				unitConfig:   newUnitConfig(opDivide, 0, roundCeiling),
+			ProgressiveBilledLineAccessor: unitConfigTestLine{
+				StandardLineWithSplitLineHierarchy: billing.StandardLineWithSplitLineHierarchy{
+					StandardLine: &billing.StandardLine{},
+				},
+				price:      unitPrice,
+				unitConfig: newUnitConfig(opDivide, 0, roundCeiling),
 			},
 			Usage: &rating.Usage{
 				Quantity:              alpacadecimal.NewFromFloat(1400),
@@ -167,10 +173,12 @@ func TestUnitConfigMutator(t *testing.T) {
 		// Re-rating reads from the raw metered quantity each run; the mutator must not
 		// double-convert, which it guarantees by never mutating the input usage in place.
 		input := rate.PricerCalculateInput{
-			StandardLineAccessor: unitConfigTestLine{
-				StandardLine: &billing.StandardLine{},
-				price:        unitPrice,
-				unitConfig:   newUnitConfig(opDivide, 1000, roundCeiling),
+			ProgressiveBilledLineAccessor: unitConfigTestLine{
+				StandardLineWithSplitLineHierarchy: billing.StandardLineWithSplitLineHierarchy{
+					StandardLine: &billing.StandardLine{},
+				},
+				price:      unitPrice,
+				unitConfig: newUnitConfig(opDivide, 1000, roundCeiling),
 			},
 			Usage: &rating.Usage{
 				Quantity:              alpacadecimal.NewFromFloat(1400),

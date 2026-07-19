@@ -14,6 +14,11 @@ import (
 
 type Service interface {
 	ResolveBillablePeriod(in ResolveBillablePeriodInput) (*timeutil.ClosedPeriod, error)
+	// GenerateProgressiveBilledDetailedLines is a specialized method for generating detailed lines for progressively billed lines. Charges
+	// never uses this, as it's rating logic does not rely on interval slicing. Once legacy billing is removed, this must be removed, making
+	// rating code easier to understand/less complex.
+	GenerateProgressiveBilledDetailedLines(in ProgressiveBilledLineAccessor, opts ...GenerateDetailedLinesOption) (GenerateDetailedLinesResult, error)
+	// GenerateDetailedLines is the general method for generating detailed lines for standard lines. Progressive billing is not supported.
 	GenerateDetailedLines(in StandardLineAccessor, opts ...GenerateDetailedLinesOption) (GenerateDetailedLinesResult, error)
 }
 

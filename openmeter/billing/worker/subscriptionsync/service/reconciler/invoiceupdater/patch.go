@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -36,7 +37,7 @@ type PatchSplitLineGroupDelete struct {
 }
 
 type PatchSplitLineGroupUpdate struct {
-	TargetState billing.SplitLineGroupUpdate
+	TargetState splitlinegroup.SplitLineGroupUpdate
 }
 
 type Patch struct {
@@ -122,7 +123,7 @@ func NewDeleteSplitLineGroupPatch(groupID models.NamespacedID) Patch {
 	}
 }
 
-func NewUpdateSplitLineGroupPatch(group billing.SplitLineGroupUpdate) Patch {
+func NewUpdateSplitLineGroupPatch(group splitlinegroup.SplitLineGroupUpdate) Patch {
 	return Patch{
 		op: PatchOpSplitLineGroupUpdate,
 		updateSplitLineGroupPatch: PatchSplitLineGroupUpdate{

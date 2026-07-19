@@ -1,6 +1,7 @@
 package delta
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -341,7 +342,11 @@ func (s *stubRatingService) ResolveBillablePeriod(in billingrating.ResolveBillab
 	return nil, nil
 }
 
+func (s *stubRatingService) GenerateProgressiveBilledDetailedLines(in billingrating.ProgressiveBilledLineAccessor, opts ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {
+	return billingrating.GenerateDetailedLinesResult{}, fmt.Errorf("charges rating must always use the non-progressive billed rating engine")
+}
+
 func (s *stubRatingService) GenerateDetailedLines(in billingrating.StandardLineAccessor, opts ...billingrating.GenerateDetailedLinesOption) (billingrating.GenerateDetailedLinesResult, error) {
 	s.lastOpts = billingrating.NewGenerateDetailedLinesOptions(opts...)
-	return s.result, nil
+	return billingrating.GenerateDetailedLinesResult{}, nil
 }

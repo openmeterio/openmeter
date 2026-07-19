@@ -12,7 +12,6 @@ type Service interface {
 	ProfileService
 	CustomerOverrideService
 	LineEngineService
-	SplitLineGroupService
 	InvoiceService
 	GatheringInvoiceService
 	StandardInvoiceService
@@ -53,13 +52,6 @@ type LineEngineService interface {
 	// This is a temporary placeholder instead of the credit-note implementation that allows us to externally
 	// invoke the right line engine for the line deletion.
 	OnUnsupportedCreditNote(ctx context.Context, input OnUnsupportedCreditNoteInput) error
-}
-
-type SplitLineGroupService interface {
-	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
-	UpdateSplitLineGroup(ctx context.Context, input UpdateSplitLineGroupInput) (SplitLineGroup, error)
-	// GetSplitLineGroupsForSubscription returns the active split-line hierarchies required for subscription sync.
-	GetSplitLineGroupsForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]SplitLineHierarchy, error)
 }
 
 type InvoiceService interface {
