@@ -66,19 +66,6 @@ func (r RateableIntent) GetStandardLineDiscounts() billing.StandardLineDiscounts
 	return billing.StandardLineDiscounts{}
 }
 
-func (r RateableIntent) IsProgressivelyBilled() bool {
-	// A charge is never progressively billed
-	return false
-}
-
-func (r RateableIntent) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
-	return r.ServicePeriod, nil
-}
-
-func (r RateableIntent) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
-	return alpacadecimal.Zero, nil
-}
-
 func (r RateableIntent) GetCreditsApplied() billing.CreditsApplied {
 	return r.CreditsApplied
 }

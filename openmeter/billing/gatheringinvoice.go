@@ -727,8 +727,7 @@ func (i gatheringInvoiceLineGenericWrapper) AsGenericInvoiceLine() GenericInvoic
 type GatheringLine struct {
 	GatheringLineBase `json:",inline"`
 
-	DBState            *GatheringLine      `json:"-"`
-	SplitLineHierarchy *SplitLineHierarchy `json:"splitLineHierarchy,omitempty"`
+	DBState *GatheringLine `json:"-"`
 }
 
 func (g GatheringLine) Clone() (GatheringLine, error) {
@@ -805,10 +804,6 @@ func (g GatheringLine) RemoveMetaForCompare() (GatheringLine, error) {
 	return g.WithoutDBState()
 }
 
-func (g *GatheringLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
-	g.SplitLineHierarchy = hierarchy
-}
-
 func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error) {
 	if invoiceID == "" {
 		return nil, errors.New("invoice ID is required")
@@ -827,16 +822,6 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 	var subscription *SubscriptionReference
 	if g.Subscription != nil {
 		subscription = g.Subscription.Clone()
-	}
-
-	var splitLineHierarchy *SplitLineHierarchy
-	if g.SplitLineHierarchy != nil {
-		clonedSHierarchy, err := g.SplitLineHierarchy.Clone()
-		if err != nil {
-			return nil, fmt.Errorf("cloning split line hierarchy: %w", err)
-		}
-
-		splitLineHierarchy = lo.ToPtr(clonedSHierarchy)
 	}
 
 	// Carry the gathering line's unit_config snapshot onto the standard line so the legacy
@@ -872,8 +857,6 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 			FeatureKey: g.FeatureKey,
 			UnitConfig: unitConfig,
 		},
-
-		SplitLineHierarchy: splitLineHierarchy,
 
 		DBState: nil, // We don't want to reuse the state from the gathering line (so let's make it explicit)
 	}
@@ -1095,4 +1078,23 @@ type PrepareBillableLinesInput = InvoicePendingLinesInput
 
 type PrepareBillableLinesResult struct {
 	LinesByCurrency map[currencyx.Code]GatheringLines
+}
+
+type GatheringLineWithInvoiceHeader struct {
+	Line    GatheringLine
+	Invoice GatheringInvoice
+}
+
+func (l GatheringLineWithInvoiceHeader) Validate() error {
+	if err := l.Line.Validate(); err != nil {
+		return fmt.Errorf("line: %w", err)
+	}
+
+	// This transport only carries the parent invoice entity as a header object,
+	// so we validate invoice identity here instead of requiring a fully fetched invoice aggregate.
+	if l.Invoice.ID == "" {
+		return fmt.Errorf("invoice id is required")
+	}
+
+	return nil
 }

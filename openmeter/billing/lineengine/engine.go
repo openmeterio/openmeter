@@ -16,10 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-var (
-	_ billing.LineEngine     = (*Engine)(nil)
-	_ billing.LineCalculator = (*Engine)(nil)
-)
+var _ billing.LineEngine = (*Engine)(nil)
 
 type Config struct {
 	SplitLineGroupAdapter        SplitLineGroupAdapter
@@ -95,7 +92,12 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 		return input.Lines, nil
 	}
 
-	if err := e.SnapshotLineQuantities(ctx, input.Invoice, input.Lines); err != nil {
+	linesWithSplitLineHierarchy, err := e.ResolveSplitLineGroupHeaders(ctx, input.Invoice.Namespace, input.Lines)
+	if err != nil {
+		return nil, fmt.Errorf("resolving split line group headers: %w", err)
+	}
+
+	if err := e.SnapshotLineQuantities(ctx, input.Invoice, linesWithSplitLineHierarchy); err != nil {
 		if _, isInvalidDatabaseState := lo.ErrorsAs[*billing.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {
 			return nil, billing.ValidationIssue{
 				Severity:  billing.ValidationIssueSeverityCritical,
@@ -108,7 +110,15 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 		return nil, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
-	return input.Lines, nil
+	calculatedLines, err := e.calculateLines(calculateLinesInput{
+		Invoice: input.Invoice,
+		Lines:   linesWithSplitLineHierarchy,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("calculating lines: %w", err)
+	}
+
+	return calculatedLines.AsStandardLines(), nil
 }
 
 func (e *Engine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) error {
@@ -190,11 +200,28 @@ func (e *Engine) snapshotManualStandardLineOverrideIfNeeded(ctx context.Context,
 		return nil, fmt.Errorf("getting standard line: %w", err)
 	}
 
-	if err := e.SnapshotLineQuantities(ctx, standardInvoice, billing.StandardLines{&standardLine}); err != nil {
+	linesWithSplitLineHierarchy, err := e.ResolveSplitLineGroupHeaders(ctx, invoice.GetInvoiceID().Namespace, billing.StandardLines{&standardLine})
+	if err != nil {
+		return nil, fmt.Errorf("resolving split line group headers: %w", err)
+	}
+
+	if err := e.SnapshotLineQuantities(ctx, standardInvoice, linesWithSplitLineHierarchy); err != nil {
 		return nil, fmt.Errorf("snapshotting line quantity: %w", err)
 	}
 
-	return standardLine.AsGenericLine(), nil
+	calculatedLines, err := e.calculateLines(calculateLinesInput{
+		Invoice: standardInvoice,
+		Lines:   linesWithSplitLineHierarchy,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("calculating lines: %w", err)
+	}
+
+	if len(calculatedLines) != 1 {
+		return nil, fmt.Errorf("expected 1 line, got %d [line_id=%s]", len(calculatedLines), standardLine.GetID())
+	}
+
+	return calculatedLines[0].AsGenericLine(), nil
 }
 
 func validateLegacyLineOverride(override billing.InvoiceLineOverride) error {

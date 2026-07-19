@@ -12,10 +12,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/rate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // ValidateStandardLine validates the standard line and returns an error if the line is invalid/inconsistent
-func validateStandardLine(in rating.StandardLineAccessor) error {
+func validateStandardLine(in rating.ProgressiveBilledLineAccessor) error {
 	if in == nil {
 		return fmt.Errorf("line is nil")
 	}
@@ -38,7 +39,7 @@ func validateStandardLine(in rating.StandardLineAccessor) error {
 	return nil
 }
 
-func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
+func (s *service) GenerateProgressiveBilledDetailedLines(in rating.ProgressiveBilledLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
 	if err := validateStandardLine(in); err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("validating billable line: %w", err)
 	}
@@ -63,7 +64,7 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 	}
 
 	input := rate.PricerCalculateInput{
-		StandardLineAccessor:                 in,
+		ProgressiveBilledLineAccessor:        in,
 		CurrencyCalculator:                   currency,
 		FullProgressivelyBilledServicePeriod: fullProgressivelyBilledServicePeriod,
 		StandardLineDiscounts:                in.GetStandardLineDiscounts(),
@@ -98,6 +99,31 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 	outWithTotals := getTotalsFromDetailedLines(out, currency)
 
 	return outWithTotals, nil
+}
+
+type nonProgressiveBilledLine struct {
+	rating.StandardLineAccessor
+}
+
+func (l nonProgressiveBilledLine) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
+	return l.GetServicePeriod(), nil
+}
+
+func (l nonProgressiveBilledLine) IsProgressivelyBilled() bool {
+	return false
+}
+
+func (l nonProgressiveBilledLine) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
+	return alpacadecimal.Zero, nil
+}
+
+func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...rating.GenerateDetailedLinesOption) (rating.GenerateDetailedLinesResult, error) {
+	if _, ok := in.(rating.ProgressiveBilledLineAccessor); ok {
+		// This should never happen, but if we are feeding the rating a progresively billed line, that's the only way to prevent overcharging.
+		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("line is progressively billed, use GenerateProgressiveBilledDetailedLines instead")
+	}
+
+	return s.GenerateProgressiveBilledDetailedLines(nonProgressiveBilledLine{StandardLineAccessor: in}, opts...)
 }
 
 // UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.
