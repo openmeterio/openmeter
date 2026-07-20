@@ -104,6 +104,17 @@ billing:
 
 credits:
   enabled: true
+
+  # ===========================================================================
+  # WARNING: EXPERIMENTAL — NOT SAFE FOR PRODUCTION
+  #
+  # Custom-currency persistence and migration behavior is not stable. Future
+  # upgrades or rollbacks may be unable to migrate data put into the database
+  # until we stabilize the implementation.
+  #
+  # Enable this only in disposable development and testing environments.
+  # ===========================================================================
+  customCurrency: false
   enableCreditThenInvoice: false
 
 # unitConfig gates the UnitConfig feature on rate cards (conversion + rounding

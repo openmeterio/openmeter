@@ -32,6 +32,7 @@ postgres:
 
 credits:
   enabled: true
+  customCurrency: true
   enableCreditThenInvoice: true
 
 meters:

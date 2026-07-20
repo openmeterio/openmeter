@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/wire"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	costadapter "github.com/openmeterio/openmeter/openmeter/cost/adapter"
 	costservice "github.com/openmeterio/openmeter/openmeter/cost/service"
@@ -93,6 +94,7 @@ func NewPlanService(
 	currencyResolver productcatalog.CurrencyResolver,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
+	creditsConfig config.CreditsConfiguration,
 ) (plan.Service, error) {
 	adapter, err := planadapter.New(planadapter.Config{
 		Client: db,
@@ -103,12 +105,13 @@ func NewPlanService(
 	}
 
 	return planservice.New(planservice.Config{
-		Adapter:          adapter,
-		FeatureResolver:  featureResolver,
-		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
-		Logger:           logger.With("subsystem", "productcatalog.plan"),
-		Publisher:        publisher,
+		Adapter:               adapter,
+		FeatureResolver:       featureResolver,
+		CurrencyResolver:      currencyResolver,
+		TaxCode:               taxCodeService,
+		Logger:                logger.With("subsystem", "productcatalog.plan"),
+		Publisher:             publisher,
+		CustomCurrencyEnabled: creditsConfig.IsCustomCurrencyEnabled(),
 	})
 }
 
@@ -119,6 +122,7 @@ func NewAddonService(
 	currencyResolver productcatalog.CurrencyResolver,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
+	creditsConfig config.CreditsConfiguration,
 ) (addon.Service, error) {
 	adapter, err := addonadapter.New(addonadapter.Config{
 		Client: db,
@@ -129,12 +133,13 @@ func NewAddonService(
 	}
 
 	return addonservice.New(addonservice.Config{
-		Adapter:          adapter,
-		FeatureResolver:  featureResolver,
-		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
-		Logger:           logger.With("subsystem", "productcatalog.addon"),
-		Publisher:        publisher,
+		Adapter:               adapter,
+		FeatureResolver:       featureResolver,
+		CurrencyResolver:      currencyResolver,
+		TaxCode:               taxCodeService,
+		Logger:                logger.With("subsystem", "productcatalog.addon"),
+		Publisher:             publisher,
+		CustomCurrencyEnabled: creditsConfig.IsCustomCurrencyEnabled(),
 	})
 }
 

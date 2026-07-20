@@ -75,6 +75,15 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 	return nil
 }
 
+// validateCustomCurrency rejects plans that use custom currency when the deployment does not support it.
+func (s service) validateCustomCurrency(p productcatalog.Plan) error {
+	if !s.customCurrencyEnabled && p.UsesCustomCurrency() {
+		return productcatalog.ErrCustomCurrencyDisabled
+	}
+
+	return nil
+}
+
 func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {
 	fn := func(ctx context.Context) (*plan.Plan, error) {
 		if err := params.Validate(); err != nil {
@@ -147,6 +156,10 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 
 		if err := params.ResolveCurrencies(ctx, s.currencyResolver); err != nil {
 			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
+		if err := s.validateCustomCurrency(params.Plan); err != nil {
+			return nil, err
 		}
 
 		if err := params.Validate(); err != nil {
@@ -344,9 +357,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
 
-		// Validate the full candidate only after all authoring currencies have
-		// become stable currency identities.
-		if err = params.ValidateWithPlan(pp); err != nil {
+		if err = params.ValidateWithPlan(pp, s.validateCustomCurrency); err != nil {
 			return nil, fmt.Errorf("invalid Plan update: %w", err)
 		}
 
@@ -430,6 +441,9 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		}
 
 		pp := p.AsProductCatalogPlan()
+		if err = s.validateCustomCurrency(pp); err != nil {
+			return nil, err
+		}
 
 		// Check if the plan has valid status for publishing
 
@@ -740,8 +754,13 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		if params.RejectUnitConfig && sourcePlan.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectCurrencyOverrides && sourcePlan.HasCurrencyOverrides() {
 			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
+
+		if err := s.validateCustomCurrency(sourcePlan.AsProductCatalogPlan()); err != nil {
+			return nil, err
 		}
 
 		nextPlan, err := s.adapter.CreatePlan(ctx, plan.CreatePlanInput{

@@ -51,6 +51,18 @@ type TestEnv struct {
 	close  sync.Once
 }
 
+type testEnvConfig struct {
+	customCurrencyEnabled bool
+}
+
+type TestEnvOption func(*testEnvConfig)
+
+func WithCustomCurrencyEnabled(enabled bool) TestEnvOption {
+	return func(config *testEnvConfig) {
+		config.customCurrencyEnabled = enabled
+	}
+}
+
 func (e *TestEnv) Close(t *testing.T) {
 	t.Helper()
 
@@ -73,8 +85,13 @@ func (e *TestEnv) Close(t *testing.T) {
 	})
 }
 
-func NewTestEnv(t *testing.T) *TestEnv {
+func NewTestEnv(t *testing.T, options ...TestEnvOption) *TestEnv {
 	t.Helper()
+
+	config := testEnvConfig{customCurrencyEnabled: true}
+	for _, option := range options {
+		option(&config)
+	}
 
 	// Init logger
 	logger := testutils.NewDiscardLogger(t)
@@ -130,12 +147,13 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, planAdapter, "plan adapter must not be nil")
 
 	planService, err := planservice.New(planservice.Config{
-		Adapter:          planAdapter,
-		FeatureResolver:  featureResolver,
-		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
-		Logger:           logger,
-		Publisher:        publisher,
+		Adapter:               planAdapter,
+		FeatureResolver:       featureResolver,
+		CurrencyResolver:      currencyResolver,
+		TaxCode:               taxCodeService,
+		Logger:                logger,
+		Publisher:             publisher,
+		CustomCurrencyEnabled: config.customCurrencyEnabled,
 	})
 	require.NoErrorf(t, err, "initializing plan service must not fail")
 	require.NotNilf(t, planService, "plan service must not be nil")
@@ -149,12 +167,13 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, addonAdapter, "addon adapter must not be nil")
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:          addonAdapter,
-		FeatureResolver:  featureResolver,
-		CurrencyResolver: currencyResolver,
-		TaxCode:          taxCodeService,
-		Logger:           logger,
-		Publisher:        publisher,
+		Adapter:               addonAdapter,
+		FeatureResolver:       featureResolver,
+		CurrencyResolver:      currencyResolver,
+		TaxCode:               taxCodeService,
+		Logger:                logger,
+		Publisher:             publisher,
+		CustomCurrencyEnabled: config.customCurrencyEnabled,
 	})
 	require.NoErrorf(t, err, "initializing addon service must not fail")
 	require.NotNilf(t, addonService, "addon service must not be nil")

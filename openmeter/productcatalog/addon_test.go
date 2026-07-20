@@ -90,3 +90,45 @@ func TestValidateAddonRateCardCurrencies(t *testing.T) {
 		})
 	}
 }
+
+func TestAddonUsesCustomCurrency(t *testing.T) {
+	customCurrency := currencyx.Code("TOK")
+	fiatCurrency := currencyx.Code(currency.USD)
+	card := func(currencyOverride currencyx.CurrencyIdentity) RateCard {
+		return &FlatFeeRateCard{
+			RateCardMeta: RateCardMeta{
+				Key:      "flat-fee",
+				Name:     "Flat fee",
+				Currency: currencyOverride,
+			},
+		}
+	}
+
+	tests := []struct {
+		name     string
+		addon    Addon
+		expected bool
+	}{
+		{name: "empty add-on"},
+		{name: "fiat add-on", addon: Addon{AddonMeta: AddonMeta{Currency: fiatCurrency}}},
+		{
+			name:     "custom add-on currency",
+			addon:    Addon{AddonMeta: AddonMeta{Currency: customCurrency}},
+			expected: true,
+		},
+		{
+			name: "custom rate card currency",
+			addon: Addon{
+				AddonMeta: AddonMeta{Currency: fiatCurrency},
+				RateCards: RateCards{card(customCurrency)},
+			},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.addon.UsesCustomCurrency())
+		})
+	}
+}

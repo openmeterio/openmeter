@@ -25,10 +25,10 @@ type testEnv struct {
 	*pctestutils.TestEnv
 }
 
-func newTestEnv(t *testing.T) *testEnv {
+func newTestEnv(t *testing.T, options ...pctestutils.TestEnvOption) *testEnv {
 	t.Helper()
 
-	env := &testEnv{TestEnv: pctestutils.NewTestEnv(t)}
+	env := &testEnv{TestEnv: pctestutils.NewTestEnv(t, options...)}
 	t.Cleanup(func() { env.Close(t) })
 
 	return env
@@ -283,6 +283,183 @@ func TestCustomCurrencyPlanVersionLifecycle(t *testing.T) {
 	require.Equal(t, productcatalog.PlanStatusActive, versions.Items[1].Status())
 	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, versions.Items[0])
 	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, versions.Items[1])
+}
+
+func TestCustomCurrencyFeatureDisabled(t *testing.T) {
+	// given:
+	// - plans and add-ons cannot use custom currencies
+	// when:
+	// - callers create, update, publish, or version custom-currency catalog resources
+	// then:
+	// - every mutation rejects custom currency while fiat plans and add-ons remain available
+	now := time.Date(2026, 7, 19, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	env := newTestEnv(t, pctestutils.WithCustomCurrencyEnabled(false))
+
+	t.Run("fiat plans and add-ons remain enabled", func(t *testing.T) {
+		namespace := pctestutils.NewTestNamespace(t)
+
+		_, err := env.Plan.CreatePlan(t.Context(), newPlanWithCurrency(t, namespace, "fiat-plan", currencyx.Code(currency.USD)))
+		require.NoError(t, err)
+
+		_, err = env.Addon.CreateAddon(t.Context(), newAddonWithCurrency(t, namespace, "fiat-addon", currencyx.Code(currency.USD)))
+		require.NoError(t, err)
+	})
+
+	t.Run("create", func(t *testing.T) {
+		namespace := pctestutils.NewTestNamespace(t)
+		customCurrency := createManagedCustomCurrency(t, env, namespace)
+
+		_, err := env.Plan.CreatePlan(t.Context(), newPlanWithCurrency(t, namespace, "custom-plan", customCurrency))
+		require.ErrorIs(t, err, productcatalog.ErrCustomCurrencyDisabled)
+
+		_, err = env.Addon.CreateAddon(t.Context(), newAddonWithCurrency(t, namespace, "custom-addon", customCurrency))
+		require.ErrorIs(t, err, productcatalog.ErrCustomCurrencyDisabled)
+	})
+
+	t.Run("update", func(t *testing.T) {
+		namespace := pctestutils.NewTestNamespace(t)
+		customCurrency := createManagedCustomCurrency(t, env, namespace)
+		_, err := env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+			Namespace:  namespace,
+			CurrencyID: customCurrency.ID,
+			FiatCode:   currency.USD.String(),
+			Rate:       decimal.NewFromInt(1),
+		})
+		require.NoError(t, err)
+
+		createdPlan, err := env.Plan.CreatePlan(t.Context(), newPlanWithCurrency(t, namespace, "update-plan", currencyx.Code(currency.USD)))
+		require.NoError(t, err)
+
+		customPlanPhases := []productcatalog.Phase{newCustomCurrencyPlanPhase(t, customCurrency.GetCode(), "Custom plan price")}
+		_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+			NamespacedID: createdPlan.NamespacedID,
+			Phases:       &customPlanPhases,
+		})
+		require.ErrorIs(t, err, productcatalog.ErrCustomCurrencyDisabled)
+
+		createdAddon, err := env.Addon.CreateAddon(t.Context(), newAddonWithCurrency(t, namespace, "update-addon", currencyx.Code(currency.USD)))
+		require.NoError(t, err)
+
+		customAddonRateCards := productcatalog.RateCards{newCustomCurrencyRateCard(t, customCurrency.GetCode(), "Custom add-on price")}
+		_, err = env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
+			NamespacedID: createdAddon.NamespacedID,
+			RateCards:    &customAddonRateCards,
+		})
+		require.ErrorIs(t, err, productcatalog.ErrCustomCurrencyDisabled)
+	})
+
+	t.Run("publish", func(t *testing.T) {
+		namespace := pctestutils.NewTestNamespace(t)
+		customCurrency := createManagedCustomCurrency(t, env, namespace)
+
+		createdPlan, err := env.PlanRepository.CreatePlan(t.Context(), newPlanWithCurrency(t, namespace, "publish-plan", customCurrency))
+		require.NoError(t, err)
+
+		_, err = env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+			NamespacedID: createdPlan.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(now.Add(time.Hour)),
+			},
+		})
+		require.ErrorIs(t, err, productcatalog.ErrCustomCurrencyDisabled)
+
+		createdAddon, err := env.AddonRepository.CreateAddon(t.Context(), newAddonWithCurrency(t, namespace, "publish-addon", customCurrency))
+		require.NoError(t, err)
+
+		_, err = env.Addon.PublishAddon(t.Context(), addon.PublishAddonInput{
+			NamespacedID: createdAddon.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(now.Add(time.Hour)),
+			},
+		})
+		require.ErrorIs(t, err, productcatalog.ErrCustomCurrencyDisabled)
+	})
+
+	t.Run("next version", func(t *testing.T) {
+		namespace := pctestutils.NewTestNamespace(t)
+		customCurrency := createManagedCustomCurrency(t, env, namespace)
+
+		planInput := newPlanWithCurrency(t, namespace, "next-plan", customCurrency)
+		createdPlan, err := env.PlanRepository.CreatePlan(t.Context(), planInput)
+		require.NoError(t, err)
+		createdPlan, err = env.PlanRepository.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+			NamespacedID: createdPlan.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(now.Add(-time.Hour)),
+			},
+		})
+		require.NoError(t, err)
+
+		_, err = env.Plan.NextPlan(t.Context(), plan.NextPlanInput{NamespacedID: createdPlan.NamespacedID})
+		require.ErrorIs(t, err, productcatalog.ErrCustomCurrencyDisabled)
+
+		addonInput := newAddonWithCurrency(t, namespace, "next-addon", customCurrency)
+		createdAddon, err := env.AddonRepository.CreateAddon(t.Context(), addonInput)
+		require.NoError(t, err)
+		createdAddon, err = env.AddonRepository.UpdateAddon(t.Context(), addon.UpdateAddonInput{
+			NamespacedID: createdAddon.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(now.Add(-time.Hour)),
+			},
+		})
+		require.NoError(t, err)
+
+		_, err = env.Addon.NextAddon(t.Context(), addon.NextAddonInput{
+			NamespacedID: createdAddon.NamespacedID,
+			Key:          createdAddon.Key,
+		})
+		require.ErrorIs(t, err, productcatalog.ErrCustomCurrencyDisabled)
+	})
+}
+
+func createManagedCustomCurrency(t *testing.T, env *testEnv, namespace string) currencies.Currency {
+	t.Helper()
+
+	customCurrency, err := env.Currency.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+		Namespace: namespace,
+		Code:      "CREDITS",
+		Name:      "Credits",
+		Symbol:    "cr",
+	})
+	require.NoError(t, err)
+
+	return customCurrency
+}
+
+func newPlanWithCurrency(t *testing.T, namespace, key string, catalogCurrency currencyx.CurrencyIdentity) plan.CreatePlanInput {
+	t.Helper()
+
+	return pctestutils.NewTestPlan(t, namespace, func(t *testing.T, p *productcatalog.Plan) {
+		t.Helper()
+		p.Key = key
+		p.Version = 1
+		p.Currency = catalogCurrency
+	})
+}
+
+func newAddonWithCurrency(t *testing.T, namespace, key string, catalogCurrency currencyx.CurrencyIdentity) addon.CreateAddonInput {
+	t.Helper()
+
+	month := datetime.MustParseDuration(t, "P1M")
+	input := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:  "flat-fee",
+			Name: "Flat fee",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      decimal.NewFromInt(25),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+		BillingCadence: &month,
+	})
+	input.Key = key
+	input.Version = 1
+	input.Currency = catalogCurrency
+
+	return input
 }
 
 func newCustomCurrencyPlanPhase(t *testing.T, code currencyx.Code, description string) productcatalog.Phase {

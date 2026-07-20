@@ -203,6 +203,11 @@ func (a Addon) HasCurrencyOverrides() bool {
 	return a.RateCards.HasCurrencyOverride()
 }
 
+// UsesCustomCurrency reports whether the add-on or any of its rate cards uses a custom currency.
+func (a Addon) UsesCustomCurrency() bool {
+	return (a.Currency != nil && a.Currency.IsCustom()) || a.RateCards.HasCustomCurrency()
+}
+
 // ValidationErrors returns a list of possible validation errors for the add-on.
 // It returns nil if the add-on has no validation issues.
 func (a Addon) ValidationErrors() (models.ValidationIssues, error) {

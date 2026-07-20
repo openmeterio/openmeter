@@ -81,6 +81,17 @@ func (p Plan) HasCurrencyOverrides() bool {
 	})
 }
 
+// UsesCustomCurrency reports whether the plan or any of its rate cards uses a custom currency.
+func (p Plan) UsesCustomCurrency() bool {
+	if p.Currency != nil && p.Currency.IsCustom() {
+		return true
+	}
+
+	return lo.SomeBy(p.Phases, func(ph Phase) bool {
+		return ph.RateCards.HasCustomCurrency()
+	})
+}
+
 func ValidatePlanMeta() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		return p.PlanMeta.Validate()

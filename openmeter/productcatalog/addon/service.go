@@ -317,7 +317,7 @@ func (i UpdateAddonInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
-func (i UpdateAddonInput) ValidateWithAddon(a productcatalog.Addon) error {
+func (i UpdateAddonInput) ValidateWithAddon(a productcatalog.Addon, validators ...models.ValidatorFunc[productcatalog.Addon]) error {
 	a = i.applyTo(a)
 
 	if i.RejectUnitConfig && a.HasUnitConfig() {
@@ -327,7 +327,7 @@ func (i UpdateAddonInput) ValidateWithAddon(a productcatalog.Addon) error {
 		return productcatalog.ErrRateCardCurrencyNotRepresentable
 	}
 
-	issues, err := models.AsValidationIssues(a.Validate())
+	issues, err := models.AsValidationIssues(errors.Join(a.Validate(), a.ValidateWith(validators...)))
 	if err != nil {
 		return models.NewGenericValidationError(err)
 	}

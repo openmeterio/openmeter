@@ -339,7 +339,7 @@ func (i UpdatePlanInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
-func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
+func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan, validators ...models.ValidatorFunc[productcatalog.Plan]) error {
 	if i.RejectUnitConfig && p.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
@@ -359,6 +359,10 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 	var errs []error
 
 	if err := p.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := p.ValidateWith(validators...); err != nil {
 		errs = append(errs, err)
 	}
 
