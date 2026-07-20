@@ -3,6 +3,7 @@ package currencies
 import (
 	"fmt"
 
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -33,7 +34,7 @@ const (
 type Currency struct {
 	models.ManagedModel
 	models.NamespacedID
-	Code   string  `json:"code"`
-	Name   string  `json:"name"`
-	Symbol *string `json:"symbol,omitempty"`
+	currencyx.Currency
+
+	CostBasis *[]CostBasis
 }

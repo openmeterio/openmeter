@@ -370,7 +370,7 @@ func testCurrencyFiat(t *testing.T, code string) currencyx.Currency {
 	return currency
 }
 
-func testCurrencyCustom(t *testing.T, code string, precision int32) currencyx.Currency {
+func testCurrencyCustom(t *testing.T, code string, precision uint32) currencyx.Currency {
 	t.Helper()
 
 	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).

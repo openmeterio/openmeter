@@ -2,12 +2,15 @@ package currencies
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"net/http"
+
+	"github.com/samber/lo"
 
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -23,28 +26,32 @@ func (h *handler) CreateCurrency() CreateCurrencyHandler {
 		func(ctx context.Context, r *http.Request) (CreateCurrencyRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return CreateCurrencyRequest{}, err
+				return CreateCurrencyRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			var body CreateCurrencyRequest
-			if err := request.ParseBody(r, &body); err != nil {
-				return CreateCurrencyRequest{}, err
+			body := v3.CreateCurrencyCustomRequest{}
+			if err = request.ParseBody(r, &body); err != nil {
+				return CreateCurrencyRequest{}, fmt.Errorf("failed to parse create custom currency request: %w", err)
 			}
 
-			body.Namespace = ns
-			return body, nil
+			return CreateCurrencyRequest{
+				CurrencyDetails: currencyx.CurrencyDetails{
+					Code:               currencyx.Code(body.Code),
+					Name:               body.Name,
+					Symbol:             lo.FromPtr(body.Symbol),
+					Precision:          body.Precision,
+					DecimalMark:        body.DecimalMark,
+					ThousandsSeparator: body.ThousandSeparator,
+				},
+				Namespace: ns,
+			}, nil
 		},
 		func(ctx context.Context, request CreateCurrencyRequest) (CreateCurrencyResponse, error) {
 			resp, err := h.service.CreateCurrency(ctx, request)
 			if err != nil {
 				return CreateCurrencyResponse{}, err
 			}
-			slog.InfoContext(ctx, "created custom currency",
-				slog.String("operation", "create-custom-currency"),
-				slog.String("namespace", resp.Namespace),
-				slog.String("currency_id", resp.ID),
-				slog.String("currency_code", resp.Code),
-			)
+
 			return ToAPIBillingCurrency(resp)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCurrencyResponse](http.StatusCreated),

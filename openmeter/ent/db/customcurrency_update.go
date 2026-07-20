@@ -83,6 +83,61 @@ func (_u *CustomCurrencyUpdate) SetNillableSymbol(v *string) *CustomCurrencyUpda
 	return _u
 }
 
+// ClearSymbol clears the value of the "symbol" field.
+func (_u *CustomCurrencyUpdate) ClearSymbol() *CustomCurrencyUpdate {
+	_u.mutation.ClearSymbol()
+	return _u
+}
+
+// SetPrecision sets the "precision" field.
+func (_u *CustomCurrencyUpdate) SetPrecision(v uint32) *CustomCurrencyUpdate {
+	_u.mutation.ResetPrecision()
+	_u.mutation.SetPrecision(v)
+	return _u
+}
+
+// SetNillablePrecision sets the "precision" field if the given value is not nil.
+func (_u *CustomCurrencyUpdate) SetNillablePrecision(v *uint32) *CustomCurrencyUpdate {
+	if v != nil {
+		_u.SetPrecision(*v)
+	}
+	return _u
+}
+
+// AddPrecision adds value to the "precision" field.
+func (_u *CustomCurrencyUpdate) AddPrecision(v int32) *CustomCurrencyUpdate {
+	_u.mutation.AddPrecision(v)
+	return _u
+}
+
+// SetDecimalMark sets the "decimal_mark" field.
+func (_u *CustomCurrencyUpdate) SetDecimalMark(v string) *CustomCurrencyUpdate {
+	_u.mutation.SetDecimalMark(v)
+	return _u
+}
+
+// SetNillableDecimalMark sets the "decimal_mark" field if the given value is not nil.
+func (_u *CustomCurrencyUpdate) SetNillableDecimalMark(v *string) *CustomCurrencyUpdate {
+	if v != nil {
+		_u.SetDecimalMark(*v)
+	}
+	return _u
+}
+
+// SetThousandsSeparator sets the "thousands_separator" field.
+func (_u *CustomCurrencyUpdate) SetThousandsSeparator(v string) *CustomCurrencyUpdate {
+	_u.mutation.SetThousandsSeparator(v)
+	return _u
+}
+
+// SetNillableThousandsSeparator sets the "thousands_separator" field if the given value is not nil.
+func (_u *CustomCurrencyUpdate) SetNillableThousandsSeparator(v *string) *CustomCurrencyUpdate {
+	if v != nil {
+		_u.SetThousandsSeparator(*v)
+	}
+	return _u
+}
+
 // AddCostBasisHistoryIDs adds the "cost_basis_history" edge to the CurrencyCostBasis entity by IDs.
 func (_u *CustomCurrencyUpdate) AddCostBasisHistoryIDs(ids ...string) *CustomCurrencyUpdate {
 	_u.mutation.AddCostBasisHistoryIDs(ids...)
@@ -167,9 +222,14 @@ func (_u *CustomCurrencyUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.name": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Symbol(); ok {
-		if err := customcurrency.SymbolValidator(v); err != nil {
-			return &ValidationError{Name: "symbol", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.symbol": %w`, err)}
+	if v, ok := _u.mutation.DecimalMark(); ok {
+		if err := customcurrency.DecimalMarkValidator(v); err != nil {
+			return &ValidationError{Name: "decimal_mark", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.decimal_mark": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ThousandsSeparator(); ok {
+		if err := customcurrency.ThousandsSeparatorValidator(v); err != nil {
+			return &ValidationError{Name: "thousands_separator", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.thousands_separator": %w`, err)}
 		}
 	}
 	return nil
@@ -201,6 +261,21 @@ func (_u *CustomCurrencyUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if value, ok := _u.mutation.Symbol(); ok {
 		_spec.SetField(customcurrency.FieldSymbol, field.TypeString, value)
+	}
+	if _u.mutation.SymbolCleared() {
+		_spec.ClearField(customcurrency.FieldSymbol, field.TypeString)
+	}
+	if value, ok := _u.mutation.Precision(); ok {
+		_spec.SetField(customcurrency.FieldPrecision, field.TypeUint32, value)
+	}
+	if value, ok := _u.mutation.AddedPrecision(); ok {
+		_spec.AddField(customcurrency.FieldPrecision, field.TypeUint32, value)
+	}
+	if value, ok := _u.mutation.DecimalMark(); ok {
+		_spec.SetField(customcurrency.FieldDecimalMark, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ThousandsSeparator(); ok {
+		_spec.SetField(customcurrency.FieldThousandsSeparator, field.TypeString, value)
 	}
 	if _u.mutation.CostBasisHistoryCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -321,6 +396,61 @@ func (_u *CustomCurrencyUpdateOne) SetNillableSymbol(v *string) *CustomCurrencyU
 	return _u
 }
 
+// ClearSymbol clears the value of the "symbol" field.
+func (_u *CustomCurrencyUpdateOne) ClearSymbol() *CustomCurrencyUpdateOne {
+	_u.mutation.ClearSymbol()
+	return _u
+}
+
+// SetPrecision sets the "precision" field.
+func (_u *CustomCurrencyUpdateOne) SetPrecision(v uint32) *CustomCurrencyUpdateOne {
+	_u.mutation.ResetPrecision()
+	_u.mutation.SetPrecision(v)
+	return _u
+}
+
+// SetNillablePrecision sets the "precision" field if the given value is not nil.
+func (_u *CustomCurrencyUpdateOne) SetNillablePrecision(v *uint32) *CustomCurrencyUpdateOne {
+	if v != nil {
+		_u.SetPrecision(*v)
+	}
+	return _u
+}
+
+// AddPrecision adds value to the "precision" field.
+func (_u *CustomCurrencyUpdateOne) AddPrecision(v int32) *CustomCurrencyUpdateOne {
+	_u.mutation.AddPrecision(v)
+	return _u
+}
+
+// SetDecimalMark sets the "decimal_mark" field.
+func (_u *CustomCurrencyUpdateOne) SetDecimalMark(v string) *CustomCurrencyUpdateOne {
+	_u.mutation.SetDecimalMark(v)
+	return _u
+}
+
+// SetNillableDecimalMark sets the "decimal_mark" field if the given value is not nil.
+func (_u *CustomCurrencyUpdateOne) SetNillableDecimalMark(v *string) *CustomCurrencyUpdateOne {
+	if v != nil {
+		_u.SetDecimalMark(*v)
+	}
+	return _u
+}
+
+// SetThousandsSeparator sets the "thousands_separator" field.
+func (_u *CustomCurrencyUpdateOne) SetThousandsSeparator(v string) *CustomCurrencyUpdateOne {
+	_u.mutation.SetThousandsSeparator(v)
+	return _u
+}
+
+// SetNillableThousandsSeparator sets the "thousands_separator" field if the given value is not nil.
+func (_u *CustomCurrencyUpdateOne) SetNillableThousandsSeparator(v *string) *CustomCurrencyUpdateOne {
+	if v != nil {
+		_u.SetThousandsSeparator(*v)
+	}
+	return _u
+}
+
 // AddCostBasisHistoryIDs adds the "cost_basis_history" edge to the CurrencyCostBasis entity by IDs.
 func (_u *CustomCurrencyUpdateOne) AddCostBasisHistoryIDs(ids ...string) *CustomCurrencyUpdateOne {
 	_u.mutation.AddCostBasisHistoryIDs(ids...)
@@ -418,9 +548,14 @@ func (_u *CustomCurrencyUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.name": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Symbol(); ok {
-		if err := customcurrency.SymbolValidator(v); err != nil {
-			return &ValidationError{Name: "symbol", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.symbol": %w`, err)}
+	if v, ok := _u.mutation.DecimalMark(); ok {
+		if err := customcurrency.DecimalMarkValidator(v); err != nil {
+			return &ValidationError{Name: "decimal_mark", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.decimal_mark": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ThousandsSeparator(); ok {
+		if err := customcurrency.ThousandsSeparatorValidator(v); err != nil {
+			return &ValidationError{Name: "thousands_separator", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.thousands_separator": %w`, err)}
 		}
 	}
 	return nil
@@ -469,6 +604,21 @@ func (_u *CustomCurrencyUpdateOne) sqlSave(ctx context.Context) (_node *CustomCu
 	}
 	if value, ok := _u.mutation.Symbol(); ok {
 		_spec.SetField(customcurrency.FieldSymbol, field.TypeString, value)
+	}
+	if _u.mutation.SymbolCleared() {
+		_spec.ClearField(customcurrency.FieldSymbol, field.TypeString)
+	}
+	if value, ok := _u.mutation.Precision(); ok {
+		_spec.SetField(customcurrency.FieldPrecision, field.TypeUint32, value)
+	}
+	if value, ok := _u.mutation.AddedPrecision(); ok {
+		_spec.AddField(customcurrency.FieldPrecision, field.TypeUint32, value)
+	}
+	if value, ok := _u.mutation.DecimalMark(); ok {
+		_spec.SetField(customcurrency.FieldDecimalMark, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ThousandsSeparator(); ok {
+		_spec.SetField(customcurrency.FieldThousandsSeparator, field.TypeString, value)
 	}
 	if _u.mutation.CostBasisHistoryCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -2103,6 +2103,10 @@ var _ currencies.CurrencyService = (*NoopCurrencyService)(nil)
 
 type NoopCurrencyService struct{}
 
+func (n NoopCurrencyService) GetCurrency(ctx context.Context, params currencies.GetCurrencyInput) (currencies.Currency, error) {
+	return currencies.Currency{}, nil
+}
+
 func (n NoopCurrencyService) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
 	return pagination.Result[currencies.Currency]{}, nil
 }

@@ -3939,6 +3939,20 @@ func (u *CurrencyCostBasisUpdateOne) SetOrClearDeletedAt(value *time.Time) *Curr
 	return u.SetDeletedAt(*value)
 }
 
+func (u *CurrencyCostBasisUpdate) SetOrClearEffectiveTo(value *time.Time) *CurrencyCostBasisUpdate {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
+func (u *CurrencyCostBasisUpdateOne) SetOrClearEffectiveTo(value *time.Time) *CurrencyCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
 func (u *CustomCurrencyUpdate) SetOrClearDeletedAt(value *time.Time) *CustomCurrencyUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -3951,6 +3965,20 @@ func (u *CustomCurrencyUpdateOne) SetOrClearDeletedAt(value *time.Time) *CustomC
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *CustomCurrencyUpdate) SetOrClearSymbol(value *string) *CustomCurrencyUpdate {
+	if value == nil {
+		return u.ClearSymbol()
+	}
+	return u.SetSymbol(*value)
+}
+
+func (u *CustomCurrencyUpdateOne) SetOrClearSymbol(value *string) *CustomCurrencyUpdateOne {
+	if value == nil {
+		return u.ClearSymbol()
+	}
+	return u.SetSymbol(*value)
 }
 
 func (u *CustomerUpdate) SetOrClearMetadata(value *map[string]string) *CustomerUpdate {

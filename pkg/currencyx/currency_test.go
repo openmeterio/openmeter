@@ -15,7 +15,7 @@ func TestRoundToPrecision(t *testing.T) {
 		name         string
 		currencyType currencyx.CurrencyType
 		code         string
-		precision    int32
+		precision    uint32
 		amount       float64
 		expected     float64
 	}{
@@ -94,7 +94,7 @@ func TestCurrencyInterface(t *testing.T) {
 
 		require.Equal(t, currencyx.CurrencyTypeFiat, fiat.Type())
 		require.Equal(t, currencyx.Code("USD"), fiat.Details().Code)
-		require.Equal(t, int32(2), fiat.Details().Precision)
+		require.Equal(t, uint32(2), fiat.Details().Precision)
 		require.Equal(t, "United States Dollar", fiat.Details().Name)
 		require.Equal(t, "$", fiat.Details().Symbol)
 
@@ -115,7 +115,7 @@ func TestCurrencyInterface(t *testing.T) {
 
 		require.Equal(t, currencyx.CurrencyTypeCustom, custom.Type())
 		require.Equal(t, currencyx.Code("CREDITS"), custom.Details().Code)
-		require.Equal(t, int32(6), custom.Details().Precision)
+		require.Equal(t, uint32(6), custom.Details().Precision)
 		require.Equal(t, "Credits", custom.Details().Name)
 
 		_, err = custom.AsCustom()
@@ -231,14 +231,14 @@ func TestFiatCurrencyPrecisionFromDefinition(t *testing.T) {
 		WithCode(currencyx.Code("USD")).
 		Build()
 	require.NoError(t, err)
-	require.Equal(t, int32(2), usd.Details().Precision)
+	require.Equal(t, uint32(2), usd.Details().Precision)
 
 	// JPY has 0 subunits
 	jpy, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
 		WithCode(currencyx.Code("JPY")).
 		Build()
 	require.NoError(t, err)
-	require.Equal(t, int32(0), jpy.Details().Precision)
+	require.Equal(t, uint32(0), jpy.Details().Precision)
 }
 
 func TestFormatAmount(t *testing.T) {
@@ -246,7 +246,7 @@ func TestFormatAmount(t *testing.T) {
 		name         string
 		currencyType currencyx.CurrencyType
 		code         string
-		precision    int32
+		precision    uint32
 		symbol       string
 		amount       string
 		expected     string
@@ -361,7 +361,7 @@ func TestUnit(t *testing.T) {
 		name         string
 		currencyType currencyx.CurrencyType
 		code         string
-		precision    int32
+		precision    uint32
 		expected     string
 	}{
 		{
@@ -450,7 +450,7 @@ func TestCurrencyValidateWith(t *testing.T) {
 func TestRoundingBehavior(t *testing.T) {
 	cases := []struct {
 		name      string
-		precision int32
+		precision uint32
 		amount    string
 		expected  string
 	}{

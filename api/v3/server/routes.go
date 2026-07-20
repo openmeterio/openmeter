@@ -284,6 +284,10 @@ func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyI
 	s.currenciesHandler.ListCostBases().With(currencieshandler.ListCostBasesArgs{CurrencyID: currencyId, Params: params}).ServeHTTP(w, r)
 }
 
+func (s *Server) GetCustomCurrency(w http.ResponseWriter, r *http.Request, currencyId api.ULID) {
+	s.currenciesHandler.GetCurrency().With(currencyId).ServeHTTP(w, r)
+}
+
 // Features
 
 func (s *Server) ListFeatures(w http.ResponseWriter, r *http.Request, params api.ListFeaturesParams) {

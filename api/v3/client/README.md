@@ -245,6 +245,7 @@ The full call path, HTTP route, and a short description are listed below.
 | --- | --- | --- |
 | `om.Currencies.List` | `GET /openmeter/currencies` | List currencies supported by the billing system. |
 | `om.Currencies.CreateCustomCurrency` | `POST /openmeter/currencies/custom` | Create a custom currency. This operation allows defining your own custom currency for billing purposes. |
+| `om.Currencies.GetCustomCurrency` | `GET /openmeter/currencies/custom/{currencyId}` | Get a custom currency. |
 | `om.Currencies.ListCostBases` | `GET /openmeter/currencies/custom/{currencyId}/cost-bases` | List cost bases for a currency. For custom currencies, there can be multiple cost bases with different `effective_from` dates. |
 | `om.Currencies.CreateCostBasis` | `POST /openmeter/currencies/custom/{currencyId}/cost-bases` | Create a cost basis for a currency. |
 

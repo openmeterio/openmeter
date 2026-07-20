@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // CustomCurrency is the model entity for the CustomCurrency schema.
@@ -26,11 +27,17 @@ type CustomCurrency struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Code holds the value of the "code" field.
-	Code string `json:"code,omitempty"`
+	Code currencyx.Code `json:"code,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Symbol holds the value of the "symbol" field.
 	Symbol string `json:"symbol,omitempty"`
+	// Precision holds the value of the "precision" field.
+	Precision uint32 `json:"precision,omitempty"`
+	// DecimalMark holds the value of the "decimal_mark" field.
+	DecimalMark string `json:"decimal_mark,omitempty"`
+	// ThousandsSeparator holds the value of the "thousands_separator" field.
+	ThousandsSeparator string `json:"thousands_separator,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomCurrencyQuery when eager-loading is set.
 	Edges        CustomCurrencyEdges `json:"edges"`
@@ -60,7 +67,9 @@ func (*CustomCurrency) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case customcurrency.FieldID, customcurrency.FieldNamespace, customcurrency.FieldCode, customcurrency.FieldName, customcurrency.FieldSymbol:
+		case customcurrency.FieldPrecision:
+			values[i] = new(sql.NullInt64)
+		case customcurrency.FieldID, customcurrency.FieldNamespace, customcurrency.FieldCode, customcurrency.FieldName, customcurrency.FieldSymbol, customcurrency.FieldDecimalMark, customcurrency.FieldThousandsSeparator:
 			values[i] = new(sql.NullString)
 		case customcurrency.FieldCreatedAt, customcurrency.FieldUpdatedAt, customcurrency.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -114,7 +123,7 @@ func (_m *CustomCurrency) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field code", values[i])
 			} else if value.Valid {
-				_m.Code = value.String
+				_m.Code = currencyx.Code(value.String)
 			}
 		case customcurrency.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -127,6 +136,24 @@ func (_m *CustomCurrency) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field symbol", values[i])
 			} else if value.Valid {
 				_m.Symbol = value.String
+			}
+		case customcurrency.FieldPrecision:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field precision", values[i])
+			} else if value.Valid {
+				_m.Precision = uint32(value.Int64)
+			}
+		case customcurrency.FieldDecimalMark:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field decimal_mark", values[i])
+			} else if value.Valid {
+				_m.DecimalMark = value.String
+			}
+		case customcurrency.FieldThousandsSeparator:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field thousands_separator", values[i])
+			} else if value.Valid {
+				_m.ThousandsSeparator = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -184,13 +211,22 @@ func (_m *CustomCurrency) String() string {
 	}
 	builder.WriteString(", ")
 	builder.WriteString("code=")
-	builder.WriteString(_m.Code)
+	builder.WriteString(fmt.Sprintf("%v", _m.Code))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
 	builder.WriteString("symbol=")
 	builder.WriteString(_m.Symbol)
+	builder.WriteString(", ")
+	builder.WriteString("precision=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Precision))
+	builder.WriteString(", ")
+	builder.WriteString("decimal_mark=")
+	builder.WriteString(_m.DecimalMark)
+	builder.WriteString(", ")
+	builder.WriteString("thousands_separator=")
+	builder.WriteString(_m.ThousandsSeparator)
 	builder.WriteByte(')')
 	return builder.String()
 }

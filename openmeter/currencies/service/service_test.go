@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -40,7 +41,7 @@ func (f *fakeAdapter) Tx(ctx context.Context) (context.Context, transaction.Driv
 func (f *fakeAdapter) ListCustomCurrencies(_ context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
 	items := make([]currencies.Currency, 0, len(f.custom))
 	for _, c := range f.custom {
-		if ok, _ := params.Code.Match(c.Code); ok {
+		if ok, _ := params.Code.Match(c.Details().Code.String()); ok {
 			items = append(items, c)
 		}
 	}
@@ -67,16 +68,25 @@ func (f *fakeAdapter) ListCostBases(_ context.Context, _ currencies.ListCostBase
 	return pagination.Result[currencies.CostBasis]{}, errors.New("fakeAdapter.ListCostBases is not implemented")
 }
 
+func (f *fakeAdapter) GetCurrency(_ context.Context, _ currencies.GetCurrencyInput) (currencies.Currency, error) {
+	return currencies.Currency{}, errors.New("fakeAdapter.GetCurrency is not implemented")
+}
+
 // newTestService creates a Service backed by a fake adapter seeded with custom currencies.
 func newTestService(custom []currencies.Currency) (currencies.Service, error) {
 	return New(&fakeAdapter{custom: custom})
 }
 
 func TestListCurrencies_CombinedPath(t *testing.T) {
+	curr, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode("MYCUSTOM").
+		WithSymbol("MC").
+		WithName("My Custom Currency").
+		Build()
+	require.NoError(t, err)
+
 	customCurrency := currencies.Currency{
-		Code:   "MYCUSTOM",
-		Name:   "My Custom Currency",
-		Symbol: lo.ToPtr("MC"),
+		Currency: curr,
 	}
 
 	svc, err := newTestService([]currencies.Currency{customCurrency})
@@ -98,7 +108,7 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 				t.Helper()
 				require.Equal(t, 5, len(result.Items))
 				for i := 1; i < len(result.Items); i++ {
-					assert.LessOrEqual(t, result.Items[i-1].Code, result.Items[i].Code, "items should be sorted by code asc")
+					assert.LessOrEqual(t, result.Items[i-1].Details().Code, result.Items[i].Details().Code, "items should be sorted by code asc")
 				}
 			},
 		},
@@ -111,7 +121,7 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
 				t.Helper()
 				require.Equal(t, 1, result.TotalCount)
-				assert.Equal(t, "USD", result.Items[0].Code)
+				assert.Equal(t, "USD", result.Items[0].Details().Code.String())
 			},
 		},
 		{
@@ -123,7 +133,7 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
 				t.Helper()
 				require.Equal(t, 2, result.TotalCount)
-				codes := []string{result.Items[0].Code, result.Items[1].Code}
+				codes := []string{result.Items[0].Details().Code.String(), result.Items[1].Details().Code.String()}
 				assert.ElementsMatch(t, []string{"USD", "EUR"}, codes)
 			},
 		},
@@ -136,7 +146,7 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
 				t.Helper()
 				require.Equal(t, 1, result.TotalCount)
-				assert.Equal(t, "MYCUSTOM", result.Items[0].Code)
+				assert.Equal(t, "MYCUSTOM", result.Items[0].Details().Code.String())
 			},
 		},
 		{
@@ -150,7 +160,7 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 				t.Helper()
 				require.Equal(t, 3, result.TotalCount)
 				for i := 1; i < len(result.Items); i++ {
-					assert.LessOrEqual(t, result.Items[i-1].Name, result.Items[i].Name, "items should be sorted by name asc")
+					assert.LessOrEqual(t, result.Items[i-1].Details().Name, result.Items[i].Details().Name, "items should be sorted by name asc")
 				}
 			},
 		},
@@ -165,7 +175,7 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 				t.Helper()
 				require.Equal(t, 3, result.TotalCount)
 				for i := 1; i < len(result.Items); i++ {
-					assert.GreaterOrEqual(t, result.Items[i-1].Code, result.Items[i].Code, "items should be sorted by code desc")
+					assert.GreaterOrEqual(t, result.Items[i-1].Details().Code, result.Items[i].Details().Code, "items should be sorted by code desc")
 				}
 			},
 		},
@@ -180,7 +190,7 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
 				t.Helper()
 				for _, item := range result.Items {
-					assert.NotEqual(t, "USD", item.Code, "USD should be excluded")
+					assert.NotEqual(t, "USD", item.Details().Code, "USD should be excluded")
 				}
 			},
 		},
@@ -209,11 +219,17 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 }
 
 func TestListCurrencies_CustomOnlyPath(t *testing.T) {
+	curr, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode("MYCUSTOM").
+		WithSymbol("MC").
+		WithName("My Custom Currency").
+		Build()
+	require.NoError(t, err)
+
 	customCurrency := currencies.Currency{
-		Code:   "MYCUSTOM",
-		Name:   "My Custom Currency",
-		Symbol: lo.ToPtr("MC"),
+		Currency: curr,
 	}
+
 	svc, err := newTestService([]currencies.Currency{customCurrency})
 	require.NoErrorf(t, err, "failed to create test service")
 
@@ -226,7 +242,7 @@ func TestListCurrencies_CustomOnlyPath(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, 1, result.TotalCount)
-		assert.Equal(t, "MYCUSTOM", result.Items[0].Code)
+		assert.Equal(t, "MYCUSTOM", result.Items[0].Details().Code.String())
 	})
 
 	t.Run("filter by type custom returns no fiat currencies", func(t *testing.T) {
@@ -237,7 +253,7 @@ func TestListCurrencies_CustomOnlyPath(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, 1, result.TotalCount)
-		assert.Equal(t, "MYCUSTOM", result.Items[0].Code)
+		assert.Equal(t, "MYCUSTOM", result.Items[0].Details().Code.String())
 	})
 }
 
@@ -255,11 +271,13 @@ func TestCreateCostBasis_EffectiveTo(t *testing.T) {
 					ID:        "01K00000000000000000000000",
 					Namespace: input.Namespace,
 				},
-				CurrencyID:    input.CurrencyID,
-				FiatCode:      input.FiatCode,
-				Rate:          input.Rate,
-				EffectiveFrom: *input.EffectiveFrom,
-				EffectiveTo:   input.EffectiveTo,
+				CurrencyID: input.CurrencyID,
+				CostBasis: currencyx.CostBasis{
+					FiatCode:      input.FiatCode,
+					Rate:          input.Rate,
+					EffectiveFrom: lo.FromPtr(input.EffectiveFrom),
+					EffectiveTo:   input.EffectiveTo,
+				},
 			}, nil
 		},
 	})
@@ -291,11 +309,13 @@ func TestCreateCostBasis_DefaultEffectiveFromAllowsOpenEndedCostBasis(t *testing
 			gotInput = input
 
 			return currencies.CostBasis{
-				CurrencyID:    input.CurrencyID,
-				FiatCode:      input.FiatCode,
-				Rate:          input.Rate,
-				EffectiveFrom: *input.EffectiveFrom,
-				EffectiveTo:   input.EffectiveTo,
+				CurrencyID: input.CurrencyID,
+				CostBasis: currencyx.CostBasis{
+					FiatCode:      input.FiatCode,
+					Rate:          input.Rate,
+					EffectiveFrom: lo.FromPtr(input.EffectiveFrom),
+					EffectiveTo:   input.EffectiveTo,
+				},
 			}, nil
 		},
 	})

@@ -561,6 +561,22 @@ export interface CurrencyFiat {
    * the currency, such as "$" for US Dollar or "€" for Euro.
    */
   symbol?: string
+  /**
+   * The precision of the currency. It should be a number that represents the number
+   * of decimal places used for the currency, such as 2 for US Dollar or Euro.
+   */
+  precision: number
+  /**
+   * The decimal mark for the currency. It should be a string that represents the
+   * decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+   */
+  decimalMark: string
+  /**
+   * The thousand separator for the currency. It should be a string that represents
+   * the thousand separator of the currency, such as "," for US Dollar or "." for
+   * Euro.
+   */
+  thousandSeparator: string
   code: string
 }
 
@@ -2100,26 +2116,6 @@ export interface ListCurrenciesParamsFilter {
   code?: StringFieldFilter
 }
 
-/** Describes custom currency. */
-export interface CurrencyCustom {
-  /** The type of the currency. */
-  type: 'custom'
-  /**
-   * The name of the currency. It should be a human-readable string that represents
-   * the name of the currency, such as "US Dollar" or "Euro".
-   */
-  name: string
-  /**
-   * The symbol of the currency. It should be a string that represents the symbol of
-   * the currency, such as "$" for US Dollar or "€" for Euro.
-   */
-  symbol?: string
-  id: string
-  code: string
-  /** An ISO-8601 timestamp representation of the custom currency creation date. */
-  createdAt: Date
-}
-
 /** CurrencyCustom create request. */
 export interface CreateCurrencyCustomRequest {
   /**
@@ -2132,6 +2128,22 @@ export interface CreateCurrencyCustomRequest {
    * the currency, such as "$" for US Dollar or "€" for Euro.
    */
   symbol?: string
+  /**
+   * The precision of the currency. It should be a number that represents the number
+   * of decimal places used for the currency, such as 2 for US Dollar or Euro.
+   */
+  precision: number
+  /**
+   * The decimal mark for the currency. It should be a string that represents the
+   * decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+   */
+  decimalMark: string
+  /**
+   * The thousand separator for the currency. It should be a string that represents
+   * the thousand separator of the currency, such as "," for US Dollar or "." for
+   * Euro.
+   */
+  thousandSeparator: string
   code: string
 }
 
@@ -2758,6 +2770,44 @@ export interface MeterQueryResult {
   to?: Date
   /** The usage data. If no data is available, an empty array is returned. */
   data: MeterQueryRow[]
+}
+
+/** Describes custom currency. */
+export interface CurrencyCustom {
+  /** The type of the currency. */
+  type: 'custom'
+  /**
+   * The name of the currency. It should be a human-readable string that represents
+   * the name of the currency, such as "US Dollar" or "Euro".
+   */
+  name: string
+  /**
+   * The symbol of the currency. It should be a string that represents the symbol of
+   * the currency, such as "$" for US Dollar or "€" for Euro.
+   */
+  symbol?: string
+  /**
+   * The precision of the currency. It should be a number that represents the number
+   * of decimal places used for the currency, such as 2 for US Dollar or Euro.
+   */
+  precision: number
+  /**
+   * The decimal mark for the currency. It should be a string that represents the
+   * decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+   */
+  decimalMark: string
+  /**
+   * The thousand separator for the currency. It should be a string that represents
+   * the thousand separator of the currency, such as "," for US Dollar or "." for
+   * Euro.
+   */
+  thousandSeparator: string
+  id: string
+  code: string
+  /** An ISO-8601 timestamp representation of the custom currency creation date. */
+  createdAt: Date
+  /** The list of active cost basis for the custom currency. */
+  costBasis?: CostBasis[]
 }
 
 /** Result of a feature cost query. */
@@ -4003,12 +4053,6 @@ export interface UpdateInvoiceWorkflowSettings {
   workflow: UpdateBillingInvoiceWorkflow
 }
 
-/** Page paginated response. */
-export interface CurrencyPagePaginatedResponse {
-  data: Currency[]
-  meta: PaginatedMeta
-}
-
 /** Access evaluation result for a single resolved customer. */
 export interface GovernanceQueryResult {
   /**
@@ -4118,6 +4162,12 @@ export interface UpdateFeatureRequest {
 /** Page paginated response. */
 export interface CreditGrantPagePaginatedResponse {
   data: CreditGrant[]
+  meta: PaginatedMeta
+}
+
+/** Page paginated response. */
+export interface CurrencyPagePaginatedResponse {
+  data: Currency[]
   meta: PaginatedMeta
 }
 
@@ -5391,14 +5441,14 @@ export type RateCardEntitlement =
   | RateCardStaticEntitlement
   | RateCardBooleanEntitlement
 
-/** Fiat or custom currency. */
-export type Currency = CurrencyFiat | CurrencyCustom
-
 /**
  * Per-unit cost configuration for a feature. Either a fixed manual amount or a
  * dynamic LLM cost lookup.
  */
 export type FeatureUnitCost = FeatureManualUnitCost | FeatureLlmUnitCost
+
+/** Fiat or custom currency. */
+export type Currency = CurrencyFiat | CurrencyCustom
 
 /**
  * The alignment for collecting the pending line items into an invoice.

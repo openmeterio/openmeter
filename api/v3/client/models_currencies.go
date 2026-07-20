@@ -57,7 +57,17 @@ type CreateCurrencyCustomRequest struct {
 	// The symbol of the currency. It should be a string that represents the symbol of
 	// the currency, such as "$" for US Dollar or "€" for Euro.
 	Symbol *string `json:"symbol,omitempty"`
-	Code   string  `json:"code"`
+	// The precision of the currency. It should be a number that represents the number
+	// of decimal places used for the currency, such as 2 for US Dollar or Euro.
+	Precision uint32 `json:"precision"`
+	// The decimal mark for the currency. It should be a string that represents the
+	// decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+	DecimalMark string `json:"decimal_mark"`
+	// The thousand separator for the currency. It should be a string that represents
+	// the thousand separator of the currency, such as "," for US Dollar or "." for
+	// Euro.
+	ThousandSeparator string `json:"thousand_separator"`
+	Code              string `json:"code"`
 }
 
 // Fiat or custom currency.
@@ -151,10 +161,22 @@ type CurrencyCustom struct {
 	// The symbol of the currency. It should be a string that represents the symbol of
 	// the currency, such as "$" for US Dollar or "€" for Euro.
 	Symbol *string `json:"symbol,omitempty"`
-	ID     string  `json:"id"`
-	Code   string  `json:"code"`
+	// The precision of the currency. It should be a number that represents the number
+	// of decimal places used for the currency, such as 2 for US Dollar or Euro.
+	Precision uint32 `json:"precision"`
+	// The decimal mark for the currency. It should be a string that represents the
+	// decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+	DecimalMark string `json:"decimal_mark"`
+	// The thousand separator for the currency. It should be a string that represents
+	// the thousand separator of the currency, such as "," for US Dollar or "." for
+	// Euro.
+	ThousandSeparator string `json:"thousand_separator"`
+	ID                string `json:"id"`
+	Code              string `json:"code"`
 	// An ISO-8601 timestamp representation of the custom currency creation date.
 	CreatedAt time.Time `json:"created_at"`
+	// The list of active cost basis for the custom currency.
+	CostBasis []CostBasis `json:"cost_basis,omitempty"`
 }
 
 // Currency describes a currency supported by the billing system.
@@ -167,7 +189,17 @@ type CurrencyFiat struct {
 	// The symbol of the currency. It should be a string that represents the symbol of
 	// the currency, such as "$" for US Dollar or "€" for Euro.
 	Symbol *string `json:"symbol,omitempty"`
-	Code   string  `json:"code"`
+	// The precision of the currency. It should be a number that represents the number
+	// of decimal places used for the currency, such as 2 for US Dollar or Euro.
+	Precision uint32 `json:"precision"`
+	// The decimal mark for the currency. It should be a string that represents the
+	// decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+	DecimalMark string `json:"decimal_mark"`
+	// The thousand separator for the currency. It should be a string that represents
+	// the thousand separator of the currency, such as "," for US Dollar or "." for
+	// Euro.
+	ThousandSeparator string `json:"thousand_separator"`
+	Code              string `json:"code"`
 }
 
 // Page paginated response.

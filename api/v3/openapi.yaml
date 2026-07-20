@@ -806,6 +806,34 @@ paths:
               $ref: '#/components/schemas/CreateCurrencyCustomRequest'
       x-internal: true
       x-unstable: true
+  /openmeter/currencies/custom/{currencyId}:
+    get:
+      operationId: get-custom-currency
+      summary: Get custom currency
+      description: Get a custom currency.
+      parameters:
+        - name: currencyId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CurrencyCustom response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCurrencyCustom'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Currencies
+      x-internal: true
+      x-unstable: true
   /openmeter/currencies/custom/{currencyId}/cost-bases:
     get:
       operationId: list-cost-bases
@@ -5718,7 +5746,7 @@ components:
       x-go-type: string
     BillingCurrencyCodeCustom:
       type: string
-      minLength: 3
+      minLength: 4
       maxLength: 24
       description: |-
         Custom currency code. It should be a unique code but not conflicting with any
@@ -5728,6 +5756,9 @@ components:
       required:
         - type
         - name
+        - precision
+        - decimal_mark
+        - thousand_separator
         - id
         - code
         - created_at
@@ -5751,6 +5782,27 @@ components:
           description: |-
             The symbol of the currency. It should be a string that represents the symbol of
             the currency, such as "$" for US Dollar or "€" for Euro.
+        precision:
+          type: integer
+          format: uint32
+          description: |-
+            The precision of the currency. It should be a number that represents the number
+            of decimal places used for the currency, such as 2 for US Dollar or Euro.
+        decimal_mark:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The decimal mark for the currency. It should be a string that represents the
+            decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+        thousand_separator:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The thousand separator for the currency. It should be a string that represents
+            the thousand separator of the currency, such as "," for US Dollar or "." for
+            Euro.
         id:
           allOf:
             - $ref: '#/components/schemas/ULID'
@@ -5762,6 +5814,12 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of the custom currency creation date.
           readOnly: true
+        cost_basis:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCostBasis'
+          description: The list of active cost basis for the custom currency.
+          readOnly: true
       additionalProperties: false
       description: Describes custom currency.
     BillingCurrencyFiat:
@@ -5769,6 +5827,9 @@ components:
       required:
         - type
         - name
+        - precision
+        - decimal_mark
+        - thousand_separator
         - code
       properties:
         type:
@@ -5790,6 +5851,27 @@ components:
           description: |-
             The symbol of the currency. It should be a string that represents the symbol of
             the currency, such as "$" for US Dollar or "€" for Euro.
+        precision:
+          type: integer
+          format: uint32
+          description: |-
+            The precision of the currency. It should be a number that represents the number
+            of decimal places used for the currency, such as 2 for US Dollar or Euro.
+        decimal_mark:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The decimal mark for the currency. It should be a string that represents the
+            decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+        thousand_separator:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The thousand separator for the currency. It should be a string that represents
+            the thousand separator of the currency, such as "," for US Dollar or "." for
+            Euro.
         code:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -9474,6 +9556,9 @@ components:
       type: object
       required:
         - name
+        - precision
+        - decimal_mark
+        - thousand_separator
         - code
       properties:
         name:
@@ -9489,6 +9574,27 @@ components:
           description: |-
             The symbol of the currency. It should be a string that represents the symbol of
             the currency, such as "$" for US Dollar or "€" for Euro.
+        precision:
+          type: integer
+          format: uint32
+          description: |-
+            The precision of the currency. It should be a number that represents the number
+            of decimal places used for the currency, such as 2 for US Dollar or Euro.
+        decimal_mark:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The decimal mark for the currency. It should be a string that represents the
+            decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+        thousand_separator:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The thousand separator for the currency. It should be a string that represents
+            the thousand separator of the currency, such as "," for US Dollar or "." for
+            Euro.
         code:
           $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       additionalProperties: false

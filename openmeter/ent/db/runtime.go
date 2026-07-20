@@ -1789,10 +1789,22 @@ func init() {
 	customcurrencyDescName := customcurrencyFields[1].Descriptor()
 	// customcurrency.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	customcurrency.NameValidator = customcurrencyDescName.Validators[0].(func(string) error)
-	// customcurrencyDescSymbol is the schema descriptor for symbol field.
-	customcurrencyDescSymbol := customcurrencyFields[2].Descriptor()
-	// customcurrency.SymbolValidator is a validator for the "symbol" field. It is called by the builders before save.
-	customcurrency.SymbolValidator = customcurrencyDescSymbol.Validators[0].(func(string) error)
+	// customcurrencyDescPrecision is the schema descriptor for precision field.
+	customcurrencyDescPrecision := customcurrencyFields[3].Descriptor()
+	// customcurrency.DefaultPrecision holds the default value on creation for the precision field.
+	customcurrency.DefaultPrecision = customcurrencyDescPrecision.Default.(uint32)
+	// customcurrencyDescDecimalMark is the schema descriptor for decimal_mark field.
+	customcurrencyDescDecimalMark := customcurrencyFields[4].Descriptor()
+	// customcurrency.DefaultDecimalMark holds the default value on creation for the decimal_mark field.
+	customcurrency.DefaultDecimalMark = customcurrencyDescDecimalMark.Default.(string)
+	// customcurrency.DecimalMarkValidator is a validator for the "decimal_mark" field. It is called by the builders before save.
+	customcurrency.DecimalMarkValidator = customcurrencyDescDecimalMark.Validators[0].(func(string) error)
+	// customcurrencyDescThousandsSeparator is the schema descriptor for thousands_separator field.
+	customcurrencyDescThousandsSeparator := customcurrencyFields[5].Descriptor()
+	// customcurrency.DefaultThousandsSeparator holds the default value on creation for the thousands_separator field.
+	customcurrency.DefaultThousandsSeparator = customcurrencyDescThousandsSeparator.Default.(string)
+	// customcurrency.ThousandsSeparatorValidator is a validator for the "thousands_separator" field. It is called by the builders before save.
+	customcurrency.ThousandsSeparatorValidator = customcurrencyDescThousandsSeparator.Validators[0].(func(string) error)
 	// customcurrencyDescID is the schema descriptor for id field.
 	customcurrencyDescID := customcurrencyMixinFields1[0].Descriptor()
 	// customcurrency.DefaultID holds the default value on creation for the id field.

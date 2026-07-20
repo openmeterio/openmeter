@@ -116,6 +116,29 @@ func (s *CurrenciesService) CreateCustomCurrency(ctx context.Context, request Cr
 	return &out, nil
 }
 
+// Get a custom currency.
+func (s *CurrenciesService) GetCustomCurrency(ctx context.Context, currencyID string) (*CurrencyCustom, error) {
+	if currencyID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "currencyID", ErrEmptyID)
+	}
+
+	path := "/openmeter/currencies/custom/{currencyId}"
+
+	path = replacePathParam(path, "currencyId", currencyID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out CurrencyCustom
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // List cost bases for a currency. For custom currencies, there can be multiple
 // cost bases with different `effective_from` dates.
 func (s *CurrenciesService) ListCostBases(ctx context.Context, currencyID string, params CostBasisListParams) (*CostBasisPagePaginatedResponse, error) {
