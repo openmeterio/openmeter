@@ -122,6 +122,74 @@ func TestCurrenciesService(t *testing.T) {
 				assert.Equal(t, now, usd.EffectiveFrom)
 				assert.Nil(t, usd.EffectiveTo)
 
+				t.Run("Get", func(t *testing.T) {
+					// when:
+					// - the newly created cost basis is retrieved without expansions
+					result, err := env.Service.GetCostBasis(t.Context(), currencies.GetCostBasisInput{
+						NamespacedID: usd.NamespacedID,
+					})
+
+					// then:
+					// - the persisted cost basis is returned without its custom currency
+					require.NoError(t, err)
+					assert.Equal(t, usd.ID, result.ID)
+					assert.Equal(t, usd.Namespace, result.Namespace)
+					assert.Equal(t, usd.CurrencyID, result.CurrencyID)
+					assert.Equal(t, usd.FiatCode, result.FiatCode)
+					assert.Equal(t, usd.Rate.InexactFloat64(), result.Rate.InexactFloat64())
+					assert.Equal(t, usd.EffectiveFrom, result.EffectiveFrom)
+					assert.Equal(t, usd.EffectiveTo, result.EffectiveTo)
+					assert.Nil(t, result.CustomCurrency)
+
+					t.Run("WithCustomCurrency", func(t *testing.T) {
+						// when:
+						// - the cost basis is retrieved with its custom currency expanded
+						result, err := env.Service.GetCostBasis(t.Context(), currencies.GetCostBasisInput{
+							NamespacedID: usd.NamespacedID,
+							CostBasisExpandOptions: currencies.CostBasisExpandOptions{
+								CustomCurrency: true,
+							},
+						})
+
+						// then:
+						// - the cost basis includes the custom currency details
+						require.NoError(t, err)
+						assert.Equal(t, usd.ID, result.ID)
+						require.NotNil(t, result.CustomCurrency)
+						assert.Equal(t, createdCurrency.ID, result.CustomCurrency.ID)
+						assert.Equal(t, createdCurrency.Namespace, result.CustomCurrency.Namespace)
+						assert.Equal(t, createdCurrency.Details(), result.CustomCurrency.Details())
+						assert.Nil(t, result.CustomCurrency.CostBasis)
+					})
+
+					t.Run("NotFound", func(t *testing.T) {
+						// when:
+						// - the cost basis is retrieved from another namespace
+						_, err := env.Service.GetCostBasis(t.Context(), currencies.GetCostBasisInput{
+							NamespacedID: models.NamespacedID{
+								Namespace: currenciestestutils.NewTestNamespace(t),
+								ID:        usd.ID,
+							},
+						})
+
+						// then:
+						// - the namespace boundary is enforced
+						require.Error(t, err)
+						assert.True(t, models.IsGenericNotFoundError(err))
+					})
+
+					t.Run("Invalid", func(t *testing.T) {
+						// when:
+						// - a cost basis is retrieved without an identity
+						_, err := env.Service.GetCostBasis(t.Context(), currencies.GetCostBasisInput{})
+
+						// then:
+						// - validation fails before querying the repository
+						require.Error(t, err)
+						assert.True(t, models.IsGenericValidationError(err))
+					})
+				})
+
 				t.Run("Multiple", func(t *testing.T) {
 					// given:
 					// - a custom currency with an active USD cost basis
@@ -154,7 +222,7 @@ func TestCurrenciesService(t *testing.T) {
 						// - the custom currency is retrieved with cost bases expanded
 						result, err := env.Service.GetCurrency(t.Context(), currencies.GetCurrencyInput{
 							NamespacedID: createdCurrency.NamespacedID,
-							ExpandOptions: currencies.ExpandOptions{
+							CurrencyExpandOptions: currencies.CurrencyExpandOptions{
 								CostBasis: true,
 							},
 						})

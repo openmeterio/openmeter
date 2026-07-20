@@ -28,6 +28,7 @@ type CurrencyService interface {
 
 type CostBasisService interface {
 	CreateCostBasis(ctx context.Context, params CreateCostBasisInput) (CostBasis, error)
+	GetCostBasis(ctx context.Context, params GetCostBasisInput) (CostBasis, error)
 	ListCostBases(ctx context.Context, params ListCostBasesInput) (pagination.Result[CostBasis], error)
 }
 
@@ -151,6 +152,23 @@ func (i CreateCostBasisInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+var _ models.Validator = (*GetCostBasisInput)(nil)
+
+type GetCostBasisInput struct {
+	models.NamespacedID
+	CostBasisExpandOptions
+}
+
+func (i GetCostBasisInput) Validate() error {
+	var errs []error
+
+	if err := i.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 var _ models.Validator = (*ListCostBasesInput)(nil)
 
 type ListCostBasesInput struct {
@@ -177,13 +195,17 @@ func (i ListCostBasesInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type ExpandOptions struct {
+type CostBasisExpandOptions struct {
+	CustomCurrency bool
+}
+
+type CurrencyExpandOptions struct {
 	CostBasis bool
 }
 
 type GetCurrencyInput struct {
 	models.NamespacedID
-	ExpandOptions
+	CurrencyExpandOptions
 }
 
 func (i GetCurrencyInput) Validate() error {

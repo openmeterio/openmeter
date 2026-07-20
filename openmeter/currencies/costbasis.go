@@ -10,5 +10,6 @@ type CostBasis struct {
 	models.NamespacedID
 	currencyx.CostBasis
 
-	CurrencyID string
+	CurrencyID     string
+	CustomCurrency *Currency
 }

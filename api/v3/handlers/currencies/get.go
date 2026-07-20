@@ -32,7 +32,7 @@ func (h *handler) GetCurrency() GetCurrencyHandler {
 					Namespace: ns,
 					ID:        params,
 				},
-				ExpandOptions: currencies.ExpandOptions{
+				CurrencyExpandOptions: currencies.CurrencyExpandOptions{
 					CostBasis: true,
 				},
 			}, nil
