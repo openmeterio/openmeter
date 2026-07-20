@@ -1,8 +1,7 @@
-package service
+package service_test
 
 import (
-	"context"
-	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -12,344 +11,281 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-// noopDriver implements transaction.Driver as a no-op for unit tests.
-type noopDriver struct{}
+func TestCurrenciesService(t *testing.T) {
+	now := time.Date(2026, time.July, 20, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
 
-func (noopDriver) Commit() error    { return nil }
-func (noopDriver) Rollback() error  { return nil }
-func (noopDriver) SavePoint() error { return nil }
+	env := currenciestestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
 
-// fakeAdapter implements currencies.Adapter for unit testing the service layer.
-// ListCustomCurrencies applies the Code filter from params to simulate DB-level filtering.
-type fakeAdapter struct {
-	custom          []currencies.Currency
-	createCostBasis func(context.Context, currencies.CreateCostBasisInput) (currencies.CostBasis, error)
-}
+	namespace := currenciestestutils.NewTestNamespace(t)
 
-func (f *fakeAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
-	return ctx, noopDriver{}, nil
-}
-
-func (f *fakeAdapter) ListCustomCurrencies(_ context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
-	items := make([]currencies.Currency, 0, len(f.custom))
-	for _, c := range f.custom {
-		if ok, _ := params.Code.Match(c.Details().Code.String()); ok {
-			items = append(items, c)
-		}
-	}
-	return pagination.Result[currencies.Currency]{
-		Items:      items,
-		TotalCount: len(items),
-		Page:       params.Page,
-	}, nil
-}
-
-func (f *fakeAdapter) CreateCurrency(_ context.Context, _ currencies.CreateCurrencyInput) (currencies.Currency, error) {
-	return currencies.Currency{}, errors.New("fakeAdapter.CreateCurrency is not implemented")
-}
-
-func (f *fakeAdapter) CreateCostBasis(ctx context.Context, input currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
-	if f.createCostBasis != nil {
-		return f.createCostBasis(ctx, input)
-	}
-
-	return currencies.CostBasis{}, errors.New("fakeAdapter.CreateCostBasis is not implemented")
-}
-
-func (f *fakeAdapter) ListCostBases(_ context.Context, _ currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
-	return pagination.Result[currencies.CostBasis]{}, errors.New("fakeAdapter.ListCostBases is not implemented")
-}
-
-func (f *fakeAdapter) GetCurrency(_ context.Context, _ currencies.GetCurrencyInput) (currencies.Currency, error) {
-	return currencies.Currency{}, errors.New("fakeAdapter.GetCurrency is not implemented")
-}
-
-// newTestService creates a Service backed by a fake adapter seeded with custom currencies.
-func newTestService(custom []currencies.Currency) (currencies.Service, error) {
-	return New(&fakeAdapter{custom: custom})
-}
-
-func TestListCurrencies_CombinedPath(t *testing.T) {
-	curr, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
-		WithCode("MYCUSTOM").
-		WithSymbol("MC").
-		WithName("My Custom Currency").
-		Build()
-	require.NoError(t, err)
-
-	customCurrency := currencies.Currency{
-		Currency: curr,
-	}
-
-	svc, err := newTestService([]currencies.Currency{customCurrency})
-	require.NoErrorf(t, err, "failed to create test service")
-
-	tests := []struct {
-		name          string
-		input         currencies.ListCurrenciesInput
-		wantErr       bool
-		assertResults func(t *testing.T, result pagination.Result[currencies.Currency])
-	}{
-		{
-			name: "no filter no sort returns combined list sorted by code asc",
-			input: currencies.ListCurrenciesInput{
-				Namespace: "test",
-				Page:      pagination.NewPage(1, 5),
-			},
-			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
-				t.Helper()
-				require.Equal(t, 5, len(result.Items))
-				for i := 1; i < len(result.Items); i++ {
-					assert.LessOrEqual(t, result.Items[i-1].Details().Code, result.Items[i].Details().Code, "items should be sorted by code asc")
-				}
-			},
-		},
-		{
-			name: "filter by single fiat code returns only that currency",
-			input: currencies.ListCurrenciesInput{
-				Namespace: "test",
-				Code:      &filter.FilterString{Eq: lo.ToPtr("USD")},
-			},
-			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
-				t.Helper()
-				require.Equal(t, 1, result.TotalCount)
-				assert.Equal(t, "USD", result.Items[0].Details().Code.String())
-			},
-		},
-		{
-			name: "filter by multiple fiat codes using In returns only those currencies",
-			input: currencies.ListCurrenciesInput{
-				Namespace: "test",
-				Code:      &filter.FilterString{In: lo.ToPtr([]string{"USD", "EUR"})},
-			},
-			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
-				t.Helper()
-				require.Equal(t, 2, result.TotalCount)
-				codes := []string{result.Items[0].Details().Code.String(), result.Items[1].Details().Code.String()}
-				assert.ElementsMatch(t, []string{"USD", "EUR"}, codes)
-			},
-		},
-		{
-			name: "filter by custom currency code returns only that custom currency",
-			input: currencies.ListCurrenciesInput{
-				Namespace: "test",
-				Code:      &filter.FilterString{Eq: lo.ToPtr("MYCUSTOM")},
-			},
-			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
-				t.Helper()
-				require.Equal(t, 1, result.TotalCount)
-				assert.Equal(t, "MYCUSTOM", result.Items[0].Details().Code.String())
-			},
-		},
-		{
-			name: "sort by name returns items sorted by name asc",
-			input: currencies.ListCurrenciesInput{
-				Namespace: "test",
-				Code:      &filter.FilterString{In: lo.ToPtr([]string{"USD", "EUR", "GBP"})},
-				OrderBy:   currencies.OrderByName,
-			},
-			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
-				t.Helper()
-				require.Equal(t, 3, result.TotalCount)
-				for i := 1; i < len(result.Items); i++ {
-					assert.LessOrEqual(t, result.Items[i-1].Details().Name, result.Items[i].Details().Name, "items should be sorted by name asc")
-				}
-			},
-		},
-		{
-			name: "sort by code desc returns items sorted by code descending",
-			input: currencies.ListCurrenciesInput{
-				Namespace: "test",
-				Code:      &filter.FilterString{In: lo.ToPtr([]string{"USD", "EUR", "GBP"})},
-				Order:     sortx.OrderDesc,
-			},
-			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
-				t.Helper()
-				require.Equal(t, 3, result.TotalCount)
-				for i := 1; i < len(result.Items); i++ {
-					assert.GreaterOrEqual(t, result.Items[i-1].Details().Code, result.Items[i].Details().Code, "items should be sorted by code desc")
-				}
-			},
-		},
-		{
-			name: "filter by Ne excludes a single code from combined results",
-			input: currencies.ListCurrenciesInput{
-				Namespace: "test",
-				Code:      &filter.FilterString{Ne: lo.ToPtr("USD")},
-				// Limit to known codes plus our custom one to make the assertion easy
-				Page: pagination.NewPage(1, 5),
-			},
-			assertResults: func(t *testing.T, result pagination.Result[currencies.Currency]) {
-				t.Helper()
-				for _, item := range result.Items {
-					assert.NotEqual(t, "USD", item.Details().Code, "USD should be excluded")
-				}
-			},
-		},
-		{
-			name: "invalid order by returns validation error",
-			input: currencies.ListCurrenciesInput{
-				Namespace: "test",
-				OrderBy:   currencies.OrderBy("invalid"),
-			},
-			wantErr: true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			tc.input.Namespace = "test"
-			result, err := svc.ListCurrencies(t.Context(), tc.input)
-			if tc.wantErr {
-				require.Error(t, err)
-				return
+	t.Run("CustomCurrency", func(t *testing.T) {
+		t.Run("Create", func(t *testing.T) {
+			// given:
+			// - valid custom currency details
+			input := currencies.CreateCurrencyInput{
+				Namespace: namespace,
+				CurrencyDetails: currencyx.CurrencyDetails{
+					Code:               "TOKENS",
+					Name:               "Tokens",
+					Symbol:             "T",
+					Precision:          2,
+					DecimalMark:        ".",
+					ThousandsSeparator: ",",
+				},
 			}
+
+			// when:
+			// - the custom currency is created
+			createdCurrency, err := env.Service.CreateCurrency(t.Context(), input)
+
+			// then:
+			// - its managed identity and formatting details are persisted
 			require.NoError(t, err)
-			tc.assertResults(t, result)
+			require.NotEmpty(t, createdCurrency.ID)
+			assert.Equal(t, namespace, createdCurrency.Namespace)
+			assert.Equal(t, currencyx.CurrencyTypeCustom, createdCurrency.Type())
+			assert.Equal(t, input.CurrencyDetails, createdCurrency.Details())
+			assert.Nil(t, createdCurrency.CostBasis)
+
+			t.Run("Get", func(t *testing.T) {
+				// when:
+				// - the newly created custom currency is retrieved without expansions
+				result, err := env.Service.GetCurrency(t.Context(), currencies.GetCurrencyInput{
+					NamespacedID: createdCurrency.NamespacedID,
+				})
+
+				// then:
+				// - the same currency is returned without cost-basis data
+				require.NoError(t, err)
+				assert.Equal(t, createdCurrency.ID, result.ID)
+				assert.Equal(t, input.CurrencyDetails, result.Details())
+				assert.Nil(t, result.CostBasis)
+			})
+
+			t.Run("Invalid", func(t *testing.T) {
+				// given:
+				// - custom currency details with an invalid code and missing name
+				invalidInput := currencies.CreateCurrencyInput{
+					Namespace: namespace,
+					CurrencyDetails: currencyx.CurrencyDetails{
+						Code:               "BAD",
+						Precision:          2,
+						DecimalMark:        ".",
+						ThousandsSeparator: ",",
+					},
+				}
+
+				// when:
+				// - the invalid custom currency is created
+				_, err := env.Service.CreateCurrency(t.Context(), invalidInput)
+
+				// then:
+				// - validation fails before persistence
+				require.Error(t, err)
+				assert.True(t, models.IsGenericValidationError(err))
+				assert.Contains(t, err.Error(), "currency code")
+				assert.Contains(t, err.Error(), "name is required")
+			})
+
+			t.Run("CostBasis", func(t *testing.T) {
+				// given:
+				// - the newly created custom currency
+				// when:
+				// - its initial USD cost basis is created
+				usd, err := env.Service.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+					Namespace:  namespace,
+					CurrencyID: createdCurrency.ID,
+					FiatCode:   "USD",
+					Rate:       alpacadecimal.RequireFromString("0.01"),
+				})
+
+				// then:
+				// - the cost basis is immediately effective and open-ended
+				require.NoError(t, err)
+				require.NotEmpty(t, usd.ID)
+				assert.Equal(t, createdCurrency.ID, usd.CurrencyID)
+				assert.Equal(t, currencyx.Code("USD"), usd.FiatCode)
+				assert.Equal(t, float64(0.01), usd.Rate.InexactFloat64())
+				assert.Equal(t, now, usd.EffectiveFrom)
+				assert.Nil(t, usd.EffectiveTo)
+
+				t.Run("Multiple", func(t *testing.T) {
+					// given:
+					// - a custom currency with an active USD cost basis
+					// when:
+					// - an active EUR basis and a future USD replacement are created
+					eur, err := env.Service.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+						Namespace:  namespace,
+						CurrencyID: createdCurrency.ID,
+						FiatCode:   "EUR",
+						Rate:       alpacadecimal.RequireFromString("0.009"),
+					})
+					require.NoError(t, err)
+					assert.Equal(t, now, eur.EffectiveFrom)
+					assert.Nil(t, eur.EffectiveTo)
+
+					futureEffectiveFrom := now.Add(24 * time.Hour)
+					futureUSD, err := env.Service.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+						Namespace:     namespace,
+						CurrencyID:    createdCurrency.ID,
+						FiatCode:      "USD",
+						Rate:          alpacadecimal.RequireFromString("0.012"),
+						EffectiveFrom: &futureEffectiveFrom,
+					})
+					require.NoError(t, err)
+					assert.Equal(t, futureEffectiveFrom, futureUSD.EffectiveFrom)
+					assert.Nil(t, futureUSD.EffectiveTo)
+
+					t.Run("Get", func(t *testing.T) {
+						// when:
+						// - the custom currency is retrieved with cost bases expanded
+						result, err := env.Service.GetCurrency(t.Context(), currencies.GetCurrencyInput{
+							NamespacedID: createdCurrency.NamespacedID,
+							ExpandOptions: currencies.ExpandOptions{
+								CostBasis: true,
+							},
+						})
+
+						// then:
+						// - only the currently active USD and EUR cost bases are returned
+						require.NoError(t, err)
+						require.NotNil(t, result.CostBasis)
+						require.Len(t, *result.CostBasis, 2)
+
+						byFiatCode := lo.SliceToMap(*result.CostBasis, func(item currencies.CostBasis) (currencyx.Code, currencies.CostBasis) {
+							return item.FiatCode, item
+						})
+						require.Contains(t, byFiatCode, currencyx.Code("USD"))
+						require.Contains(t, byFiatCode, currencyx.Code("EUR"))
+						assert.Equal(t, float64(0.01), byFiatCode["USD"].Rate.InexactFloat64())
+						assert.Equal(t, float64(0.009), byFiatCode["EUR"].Rate.InexactFloat64())
+						assert.Equal(t, futureEffectiveFrom, lo.FromPtr(byFiatCode["USD"].EffectiveTo))
+						assert.Nil(t, byFiatCode["EUR"].EffectiveTo)
+					})
+
+					t.Run("List", func(t *testing.T) {
+						// when:
+						// - the complete cost-basis history is listed
+						result, err := env.Service.ListCostBases(t.Context(), currencies.ListCostBasesInput{
+							Page:       pagination.NewPage(1, 10),
+							Namespace:  namespace,
+							CurrencyID: createdCurrency.ID,
+						})
+
+						// then:
+						// - both fiat currencies and the superseding USD entry are returned
+						require.NoError(t, err)
+						require.Equal(t, 3, result.TotalCount)
+						require.Len(t, result.Items, 3)
+						assert.True(t, slices.IsSortedFunc(result.Items, func(a, b currencies.CostBasis) int {
+							return b.EffectiveFrom.Compare(a.EffectiveFrom)
+						}))
+
+						usdItems := lo.Filter(result.Items, func(item currencies.CostBasis, _ int) bool {
+							return item.FiatCode == "USD"
+						})
+						require.Len(t, usdItems, 2)
+						assert.Equal(t, futureUSD.ID, usdItems[0].ID)
+						assert.Equal(t, futureEffectiveFrom, usdItems[0].EffectiveFrom)
+						assert.Equal(t, usd.ID, usdItems[1].ID)
+						assert.Equal(t, now, usdItems[1].EffectiveFrom)
+						assert.Equal(t, futureEffectiveFrom, lo.FromPtr(usdItems[1].EffectiveTo))
+					})
+
+					t.Run("ListByFiatCode", func(t *testing.T) {
+						// when:
+						// - the cost-basis history is filtered to EUR
+						result, err := env.Service.ListCostBases(t.Context(), currencies.ListCostBasesInput{
+							Page:           pagination.NewPage(1, 10),
+							Namespace:      namespace,
+							CurrencyID:     createdCurrency.ID,
+							FilterFiatCode: lo.ToPtr(currencyx.Code("EUR")),
+						})
+
+						// then:
+						// - only the EUR cost basis is returned
+						require.NoError(t, err)
+						require.Equal(t, 1, result.TotalCount)
+						require.Len(t, result.Items, 1)
+						assert.Equal(t, eur.ID, result.Items[0].ID)
+						assert.Equal(t, currencyx.Code("EUR"), result.Items[0].FiatCode)
+					})
+				})
+
+				t.Run("InvalidEffectivePeriod", func(t *testing.T) {
+					// given:
+					// - an effective period whose end equals its start
+					effectiveFrom := now.Add(48 * time.Hour)
+
+					// when:
+					// - a cost basis is created with that period
+					_, err := env.Service.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+						Namespace:     namespace,
+						CurrencyID:    createdCurrency.ID,
+						FiatCode:      "GBP",
+						Rate:          alpacadecimal.RequireFromString("0.008"),
+						EffectiveFrom: &effectiveFrom,
+						EffectiveTo:   &effectiveFrom,
+					})
+
+					// then:
+					// - validation fails before persistence
+					require.Error(t, err)
+					assert.True(t, models.IsGenericValidationError(err))
+					assert.Contains(t, err.Error(), "effective_to")
+				})
+			})
 		})
-	}
-}
 
-func TestListCurrencies_CustomOnlyPath(t *testing.T) {
-	curr, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
-		WithCode("MYCUSTOM").
-		WithSymbol("MC").
-		WithName("My Custom Currency").
-		Build()
-	require.NoError(t, err)
+		t.Run("List", func(t *testing.T) {
+			// given:
+			// - an independently persisted custom currency
+			listNamespace := currenciestestutils.NewTestNamespace(t)
+			_, err := env.Service.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+				Namespace: listNamespace,
+				CurrencyDetails: currencyx.CurrencyDetails{
+					Code:               "POINTS",
+					Name:               "Points",
+					Symbol:             "P",
+					Precision:          2,
+					DecimalMark:        ".",
+					ThousandsSeparator: ",",
+				},
+			})
+			require.NoError(t, err)
 
-	customCurrency := currencies.Currency{
-		Currency: curr,
-	}
+			// when:
+			// - the service lists the custom currency together with selected fiat currencies
+			result, err := env.Service.ListCurrencies(t.Context(), currencies.ListCurrenciesInput{
+				Namespace: listNamespace,
+				Page:      pagination.NewPage(1, 10),
+				Code: &filter.FilterString{
+					In: lo.ToPtr([]string{"POINTS", "USD", "EUR"}),
+				},
+			})
 
-	svc, err := newTestService([]currencies.Currency{customCurrency})
-	require.NoErrorf(t, err, "failed to create test service")
+			// then:
+			// - the custom currency and both fiat currencies are returned
+			require.NoError(t, err)
+			require.Equal(t, 3, result.TotalCount)
 
-	t.Run("filter by type custom with code filter uses custom-only fast path", func(t *testing.T) {
-		ft := currencies.CurrencyTypeCustom
-		result, err := svc.ListCurrencies(t.Context(), currencies.ListCurrenciesInput{
-			Namespace:  "test",
-			FilterType: &ft,
-			Code:       &filter.FilterString{Eq: lo.ToPtr("MYCUSTOM")},
+			codes := lo.Map(result.Items, func(item currencies.Currency, _ int) currencyx.Code {
+				return item.Details().Code
+			})
+			assert.ElementsMatch(t, []currencyx.Code{"POINTS", "USD", "EUR"}, codes)
 		})
-		require.NoError(t, err)
-		require.Equal(t, 1, result.TotalCount)
-		assert.Equal(t, "MYCUSTOM", result.Items[0].Details().Code.String())
 	})
-
-	t.Run("filter by type custom returns no fiat currencies", func(t *testing.T) {
-		ft := currencies.CurrencyTypeCustom
-		result, err := svc.ListCurrencies(t.Context(), currencies.ListCurrenciesInput{
-			Namespace:  "test",
-			FilterType: &ft,
-		})
-		require.NoError(t, err)
-		require.Equal(t, 1, result.TotalCount)
-		assert.Equal(t, "MYCUSTOM", result.Items[0].Details().Code.String())
-	})
-}
-
-func TestCreateCostBasis_EffectiveTo(t *testing.T) {
-	effectiveFrom := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Second)
-	effectiveTo := effectiveFrom.Add(24 * time.Hour)
-
-	var gotInput currencies.CreateCostBasisInput
-	svc, err := New(&fakeAdapter{
-		createCostBasis: func(_ context.Context, input currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
-			gotInput = input
-
-			return currencies.CostBasis{
-				NamespacedID: models.NamespacedID{
-					ID:        "01K00000000000000000000000",
-					Namespace: input.Namespace,
-				},
-				CurrencyID: input.CurrencyID,
-				CostBasis: currencyx.CostBasis{
-					FiatCode:      input.FiatCode,
-					Rate:          input.Rate,
-					EffectiveFrom: lo.FromPtr(input.EffectiveFrom),
-					EffectiveTo:   input.EffectiveTo,
-				},
-			}, nil
-		},
-	})
-	require.NoErrorf(t, err, "failed to create test service")
-
-	result, err := svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
-		Namespace:     "test",
-		CurrencyID:    "01J00000000000000000000000",
-		FiatCode:      "USD",
-		Rate:          alpacadecimal.RequireFromString("0.5"),
-		EffectiveFrom: &effectiveFrom,
-		EffectiveTo:   &effectiveTo,
-	})
-	require.NoError(t, err)
-
-	require.NotNil(t, gotInput.EffectiveFrom)
-	require.NotNil(t, gotInput.EffectiveTo)
-	require.Equal(t, effectiveFrom, *gotInput.EffectiveFrom)
-	require.Equal(t, effectiveTo, *gotInput.EffectiveTo)
-	require.Equal(t, "01K00000000000000000000000", result.ID)
-	require.NotNil(t, result.EffectiveTo)
-	require.Equal(t, effectiveTo, *result.EffectiveTo)
-}
-
-func TestCreateCostBasis_DefaultEffectiveFromAllowsOpenEndedCostBasis(t *testing.T) {
-	var gotInput currencies.CreateCostBasisInput
-	svc, err := New(&fakeAdapter{
-		createCostBasis: func(_ context.Context, input currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
-			gotInput = input
-
-			return currencies.CostBasis{
-				CurrencyID: input.CurrencyID,
-				CostBasis: currencyx.CostBasis{
-					FiatCode:      input.FiatCode,
-					Rate:          input.Rate,
-					EffectiveFrom: lo.FromPtr(input.EffectiveFrom),
-					EffectiveTo:   input.EffectiveTo,
-				},
-			}, nil
-		},
-	})
-	require.NoErrorf(t, err, "failed to create test service")
-
-	_, err = svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
-		Namespace:  "test",
-		CurrencyID: "01J00000000000000000000000",
-		FiatCode:   "USD",
-		Rate:       alpacadecimal.RequireFromString("0.5"),
-	})
-	require.NoError(t, err)
-
-	require.NotNil(t, gotInput.EffectiveFrom)
-	require.Nil(t, gotInput.EffectiveTo)
-}
-
-func TestCreateCostBasis_RejectsInvalidEffectiveTo(t *testing.T) {
-	effectiveFrom := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Second)
-	effectiveTo := effectiveFrom
-
-	svc, err := New(&fakeAdapter{})
-	require.NoErrorf(t, err, "failed to create test service")
-
-	_, err = svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
-		Namespace:     "test",
-		CurrencyID:    "01J00000000000000000000000",
-		FiatCode:      "USD",
-		Rate:          alpacadecimal.RequireFromString("0.5"),
-		EffectiveFrom: &effectiveFrom,
-		EffectiveTo:   &effectiveTo,
-	})
-	require.Error(t, err)
-	require.True(t, models.IsGenericValidationError(err), "error must be a validation error")
-	require.Contains(t, err.Error(), "effective_to")
-	require.Contains(t, err.Error(), "must be after effective_from")
 }
