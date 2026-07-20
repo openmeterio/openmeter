@@ -718,6 +718,7 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 		if params.RejectCurrencyOverrides && sourceAddon.AsProductCatalogAddon().HasCurrencyOverrides() {
 			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 		}
+
 		if err := s.validateCustomCurrency(sourceAddon.AsProductCatalogAddon()); err != nil {
 			return nil, err
 		}

@@ -754,9 +754,11 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		if params.RejectUnitConfig && sourcePlan.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+
 		if params.RejectCurrencyOverrides && sourcePlan.HasCurrencyOverrides() {
 			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 		}
+
 		if err := s.validateCustomCurrency(sourcePlan.AsProductCatalogPlan()); err != nil {
 			return nil, err
 		}
