@@ -36,8 +36,7 @@ func mapCurrencyFromDB(c *entdb.CustomCurrency) (currencies.Currency, error) {
 
 	var costBasisList []currencies.CostBasis
 
-	costBasisEntities, _ := c.Edges.CostBasisHistoryOrErr()
-	for _, cb := range costBasisEntities {
+	for _, cb := range c.Edges.CostBasisHistory {
 		if cb != nil {
 			costBasisList = append(costBasisList, mapCostBasisFromDB(cb))
 		}
