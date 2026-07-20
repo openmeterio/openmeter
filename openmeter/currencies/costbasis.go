@@ -10,5 +10,8 @@ type CostBasis struct {
 	models.NamespacedID
 	currencyx.CostBasis
 
-	CurrencyID string
+	CurrencyID string `json:"currency_id"`
+
+	// CustomCurrency is included only if the CostBasis is expanded
+	CustomCurrency *Currency `json:"-"`
 }

@@ -36,5 +36,6 @@ type Currency struct {
 	models.NamespacedID
 	currencyx.Currency
 
-	CostBasis *[]CostBasis
+	// CostBasis is included only if the Currency is expanded.
+	CostBasis *[]CostBasis `json:"-"`
 }

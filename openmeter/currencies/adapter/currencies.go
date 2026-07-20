@@ -195,6 +195,42 @@ func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateC
 	})
 }
 
+func (a *adapter) GetCostBasis(ctx context.Context, params currencies.GetCostBasisInput) (currencies.CostBasis, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.CostBasis, error) {
+		q := tx.db.CurrencyCostBasis.Query().
+			Where(
+				currencycostbasis.Namespace(params.Namespace),
+				currencycostbasis.ID(params.ID),
+			)
+
+		if params.CustomCurrency {
+			q = q.WithCurrency()
+		}
+
+		costBasis, err := q.Only(ctx)
+		if err != nil {
+			if entdb.IsNotFound(err) {
+				return currencies.CostBasis{}, models.NewGenericNotFoundError(fmt.Errorf("cost basis %q not found", params.ID))
+			}
+
+			return currencies.CostBasis{}, fmt.Errorf("failed to get cost basis: %w", err)
+		}
+
+		result := mapCostBasisFromDB(costBasis)
+
+		if params.CustomCurrency {
+			customCurrency, err := mapCurrencyFromDB(costBasis.Edges.Currency)
+			if err != nil {
+				return currencies.CostBasis{}, fmt.Errorf("failed to map custom currency: %w", err)
+			}
+
+			result.CustomCurrency = &customCurrency
+		}
+
+		return result, nil
+	})
+}
+
 func (a *adapter) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[currencies.CostBasis], error) {
 		q := tx.db.CurrencyCostBasis.Query().

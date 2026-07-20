@@ -2097,9 +2097,9 @@ func (n NoopIngestService) IngestEvents(ctx context.Context, request ingest.Inge
 	return true, nil
 }
 
-// NoopCurrencyService implements currencies.CurrencyService with no-op operations
+// NoopCurrencyService implements currencies.Service with no-op operations
 // for use in testing
-var _ currencies.CurrencyService = (*NoopCurrencyService)(nil)
+var _ currencies.Service = (*NoopCurrencyService)(nil)
 
 type NoopCurrencyService struct{}
 
@@ -2116,6 +2116,10 @@ func (n NoopCurrencyService) CreateCurrency(ctx context.Context, params currenci
 }
 
 func (n NoopCurrencyService) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
+	return currencies.CostBasis{}, nil
+}
+
+func (n NoopCurrencyService) GetCostBasis(ctx context.Context, params currencies.GetCostBasisInput) (currencies.CostBasis, error) {
 	return currencies.CostBasis{}, nil
 }
 

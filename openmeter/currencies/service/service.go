@@ -177,6 +177,16 @@ func (s *service) CreateCostBasis(ctx context.Context, params currencies.CreateC
 	})
 }
 
+func (s *service) GetCostBasis(ctx context.Context, params currencies.GetCostBasisInput) (currencies.CostBasis, error) {
+	if err := params.Validate(); err != nil {
+		return currencies.CostBasis{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (currencies.CostBasis, error) {
+		return s.adapter.GetCostBasis(ctx, params)
+	})
+}
+
 func (s *service) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
 	if err := params.Validate(); err != nil {
 		return pagination.Result[currencies.CostBasis]{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
