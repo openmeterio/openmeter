@@ -1,7 +1,7 @@
 ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1 h1:NPPfBaVZgz4LKBCIc0FbMogCjvXN+yGf7CZwotOwJo8=
 ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1/go.mod h1:Ex5l1xHsnWQUc3wYnrJ9gD7RUEzG76P7ZRQp8wNr0wc=
-cirello.io/pglock v1.16.1 h1:NKVe133vhtJMnzdL0UlCtyEb9rm3vSnT2/R7MNu6mfA=
-cirello.io/pglock v1.16.1/go.mod h1:aCm2qCmp8jc2cNSFUW+n94Ie6ZGXmauBBSXVkWSKD/M=
+cirello.io/pglock v1.16.2 h1:BUBqB8z6yM5E74ojrxlU9SOQKuma9InUjlU/H12wBqg=
+cirello.io/pglock v1.16.2/go.mod h1:WqfW+PnFIsal+c8pv+dQeyEORgA+AVWL15RPZFxFVEs=
 cloud.google.com/go v0.123.0 h1:2NAUJwPR47q+E35uaJeYoNhuNEM9kM8SjgRgdeOJUSE=
 cloud.google.com/go v0.123.0/go.mod h1:xBoMV08QcqUGuPW65Qfm1o9Y4zKZBpGS+7bImXLTAZU=
 entgo.io/ent v0.14.6 h1:/f2696BpwuWAEEG6PVGWflg6+Inrpq4pRWuNlWz/Skk=

@@ -7,7 +7,7 @@ replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527
 
 require (
 	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1
-	cirello.io/pglock v1.16.1
+	cirello.io/pglock v1.16.2
 	entgo.io/ent v0.14.6
 	github.com/AppsFlyer/go-sundheit v0.6.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.47.0
