@@ -46,6 +46,7 @@ postgres:
 # tests run from e2e/creditsdisabled with CREDITS_* env overrides.
 credits:
   enabled: true
+  customCurrency: true
   enableCreditThenInvoice: true
 
 unitConfig:

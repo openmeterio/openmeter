@@ -78,6 +78,15 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 	return nil
 }
 
+// validateCustomCurrency rejects add-ons that use custom currency when the deployment does not support it.
+func (s service) validateCustomCurrency(a productcatalog.Addon) error {
+	if !s.customCurrencyEnabled && a.UsesCustomCurrency() {
+		return productcatalog.ErrCustomCurrencyDisabled
+	}
+
+	return nil
+}
+
 // addonVersions is a collection of add-ons versions (all of them have the same namespace key pair).
 type addonVersions []addon.Addon
 
@@ -179,6 +188,10 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 
 		if err := params.ResolveCurrencies(ctx, s.currencyResolver); err != nil {
 			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
+		}
+
+		if err := s.validateCustomCurrency(params.Addon); err != nil {
+			return nil, err
 		}
 
 		if err := params.Validate(); err != nil {
@@ -372,9 +385,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
 		}
 
-		// Validate the full candidate only after all authoring currencies have
-		// become stable currency identities.
-		if err = params.ValidateWithAddon(add.AsProductCatalogAddon()); err != nil {
+		if err = params.ValidateWithAddon(add.AsProductCatalogAddon(), s.validateCustomCurrency); err != nil {
 			return nil, fmt.Errorf("invalid add-on update: %w", err)
 		}
 
@@ -445,6 +456,9 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 		}
 
 		pa := add.AsProductCatalogAddon()
+		if err = s.validateCustomCurrency(pa); err != nil {
+			return nil, err
+		}
 
 		// Run validations prior publishing add-on.
 
@@ -703,6 +717,9 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 
 		if params.RejectCurrencyOverrides && sourceAddon.AsProductCatalogAddon().HasCurrencyOverrides() {
 			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
+		if err := s.validateCustomCurrency(sourceAddon.AsProductCatalogAddon()); err != nil {
+			return nil, err
 		}
 
 		nextAddon, err := s.adapter.CreateAddon(ctx, addon.CreateAddonInput{

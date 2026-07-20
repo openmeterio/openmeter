@@ -16,8 +16,9 @@ type Config struct {
 	Logger    *slog.Logger
 	Publisher eventbus.Publisher
 
-	FeatureResolver  productcatalog.FeatureResolver
-	CurrencyResolver productcatalog.CurrencyResolver
+	FeatureResolver       productcatalog.FeatureResolver
+	CurrencyResolver      productcatalog.CurrencyResolver
+	CustomCurrencyEnabled bool
 }
 
 func New(config Config) (plan.Service, error) {
@@ -51,8 +52,9 @@ func New(config Config) (plan.Service, error) {
 		logger:    config.Logger,
 		publisher: config.Publisher,
 
-		featureResolver:  config.FeatureResolver,
-		currencyResolver: config.CurrencyResolver,
+		featureResolver:       config.FeatureResolver,
+		currencyResolver:      config.CurrencyResolver,
+		customCurrencyEnabled: config.CustomCurrencyEnabled,
 	}, nil
 }
 
@@ -64,6 +66,7 @@ type service struct {
 	logger    *slog.Logger
 	publisher eventbus.Publisher
 
-	featureResolver  productcatalog.FeatureResolver
-	currencyResolver productcatalog.CurrencyResolver
+	featureResolver       productcatalog.FeatureResolver
+	currencyResolver      productcatalog.CurrencyResolver
+	customCurrencyEnabled bool
 }

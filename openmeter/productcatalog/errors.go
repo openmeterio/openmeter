@@ -478,6 +478,15 @@ var ErrRateCardCurrencyNotRepresentable = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeCustomCurrencyDisabled models.ErrorCode = "custom_currency_disabled"
+
+var ErrCustomCurrencyDisabled = models.NewValidationIssue(
+	ErrCodeCustomCurrencyDisabled,
+	"custom currencies are not enabled on this deployment",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeRateCardUsageBasedPriceWithFeatureAndNoMeter models.ErrorCode = "usage_based_price_with_feature_and_no_meter"
 
 var ErrRateCardUsageBasedPriceWithFeatureAndNoMeter = models.NewValidationIssue(

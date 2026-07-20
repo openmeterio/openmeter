@@ -731,6 +731,15 @@ func (c RateCards) HasCurrencyOverride() bool {
 	})
 }
 
+// HasCustomCurrency reports whether any rate card explicitly uses a custom
+// currency instead of inheriting the containing plan or add-on currency.
+func (c RateCards) HasCustomCurrency() bool {
+	return slices.ContainsFunc(c, func(rc RateCard) bool {
+		currency := rc.AsMeta().Currency
+		return currency != nil && currency.IsCustom()
+	})
+}
+
 func (c RateCards) Billables() RateCards {
 	var billables RateCards
 	for _, rc := range c {

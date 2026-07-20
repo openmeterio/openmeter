@@ -406,3 +406,54 @@ func TestPlanHasCurrencyOverrides(t *testing.T) {
 		assert.True(t, p.HasCurrencyOverrides())
 	})
 }
+
+func TestPlanUsesCustomCurrency(t *testing.T) {
+	customCurrency := currencyx.Code("TOK")
+	fiatCurrency := currencyx.Code(currency.USD)
+	card := func(currencyOverride currencyx.CurrencyIdentity) productcatalog.RateCard {
+		return &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:      "flat-fee",
+				Name:     "Flat fee",
+				Currency: currencyOverride,
+			},
+		}
+	}
+
+	tests := []struct {
+		name     string
+		plan     productcatalog.Plan
+		expected bool
+	}{
+		{name: "empty plan"},
+		{
+			name: "fiat plan",
+			plan: productcatalog.Plan{PlanMeta: productcatalog.PlanMeta{
+				Currency: fiatCurrency,
+			}},
+		},
+		{
+			name: "custom plan currency",
+			plan: productcatalog.Plan{PlanMeta: productcatalog.PlanMeta{
+				Currency: customCurrency,
+			}},
+			expected: true,
+		},
+		{
+			name: "custom rate card currency",
+			plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{Currency: fiatCurrency},
+				Phases: []productcatalog.Phase{{
+					RateCards: productcatalog.RateCards{card(customCurrency)},
+				}},
+			},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.plan.UsesCustomCurrency())
+		})
+	}
+}
