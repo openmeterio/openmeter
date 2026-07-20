@@ -153,6 +153,7 @@ func (f *FiatCurrency) Details() CurrencyDetails {
 		Code:               Code(f.def.ISOCode),
 		Name:               f.def.Name,
 		Precision:          f.def.Subunits,
+		Symbol:             f.def.Symbol,
 		DecimalMark:        f.def.DecimalMark,
 		ThousandsSeparator: f.def.ThousandsSeparator,
 	}
