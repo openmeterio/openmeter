@@ -39,7 +39,7 @@ require (
 	github.com/expr-lang/expr v1.17.8 // indirect
 	github.com/forscht/namegen v1.0.1 // indirect
 	github.com/getkin/kin-openapi v0.140.0 // indirect
-	github.com/go-chi/chi/v5 v5.3.0 // indirect
+	github.com/go-chi/chi/v5 v5.3.1 // indirect
 	github.com/go-chi/render v1.0.3 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
