@@ -39,7 +39,11 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 			discType, err := body.Discriminator()
 			if err != nil {
 				return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					{Field: "type", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
+					{
+						Field:  "type",
+						Reason: err.Error(),
+						Source: apierrors.InvalidParamSourceBody,
+					},
 				})
 			}
 
@@ -48,7 +52,11 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 			if !convertedType.Valid() {
 				err := fmt.Errorf("invalid app type: %s", discType)
 				return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					{Field: "type", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
+					{
+						Field:  "type",
+						Reason: err.Error(),
+						Source: apierrors.InvalidParamSourceBody,
+					},
 				})
 			}
 
@@ -62,14 +70,22 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				sandbox, err := body.AsUpdateAppSandboxRequest()
 				if err != nil {
 					return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "body", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
+						{
+							Field:  "body",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceBody,
+						},
 					})
 				}
 
-				metadata, err := metadataFromAPILabels(sandbox.Labels)
+				metadata, err := labels.ToMetadataPtr(sandbox.Labels)
 				if err != nil {
 					return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "labels", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
+						{
+							Field:  "labels",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceBody,
+						},
 					})
 				}
 
@@ -84,14 +100,22 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				stripe, err := body.AsUpdateAppStripeRequest()
 				if err != nil {
 					return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "body", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
+						{
+							Field:  "body",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceBody,
+						},
 					})
 				}
 
-				metadata, err := metadataFromAPILabels(stripe.Labels)
+				metadata, err := labels.ToMetadataPtr(stripe.Labels)
 				if err != nil {
 					return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "labels", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
+						{
+							Field:  "labels",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceBody,
+						},
 					})
 				}
 
@@ -108,14 +132,22 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				externalInvoicing, err := body.AsUpdateAppExternalInvoicingRequest()
 				if err != nil {
 					return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "body", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
+						{
+							Field:  "body",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceBody,
+						},
 					})
 				}
 
-				metadata, err := metadataFromAPILabels(externalInvoicing.Labels)
+				metadata, err := labels.ToMetadataPtr(externalInvoicing.Labels)
 				if err != nil {
 					return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "labels", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
+						{
+							Field:  "labels",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceBody,
+						},
 					})
 				}
 
@@ -148,24 +180,4 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
-}
-
-// metadataFromAPILabels converts the API labels of an app update request into the
-// domain Metadata pointer expected by app.UpdateAppInput. Update is a full replace
-// (mirrors the v1 PUT semantics), so a nil labels field is passed through as a nil
-// pointer, which the adapter's SetOrClearMetadata interprets as "clear metadata" -
-// omitting "labels" in the request body removes any previously configured labels.
-func metadataFromAPILabels(l *api.Labels) (*map[string]string, error) {
-	if l == nil {
-		return nil, nil
-	}
-
-	metadata, err := labels.ToMetadata(l)
-	if err != nil {
-		return nil, err
-	}
-
-	m := map[string]string(metadata)
-
-	return &m, nil
 }
