@@ -119,7 +119,6 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchaseWithCustomCurrenc
 		s.NotEmpty(cust.ID)
 		customerID = cust.ID
 		customCurrency = s.createTestCustomCurrency(ctx, ns)
-
 	})
 
 	s.Run("#2 create promotional credit purchase", func() {
