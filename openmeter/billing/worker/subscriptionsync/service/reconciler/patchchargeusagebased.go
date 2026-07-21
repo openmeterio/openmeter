@@ -101,7 +101,7 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 			ManagedBy:         billing.SubscriptionManagedLine,
 			CustomerID:        target.Subscription.CustomerId,
 			Annotations:       annotations,
-			Currency:          target.CurrencyCalculator.Details().Code,
+			Currency:          target.Currency,
 			UniqueReferenceID: &target.UniqueID,
 			TaxConfig:         productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
 			Subscription: &chargesmeta.SubscriptionReference{

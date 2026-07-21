@@ -14,8 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -83,7 +83,7 @@ func NewIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod, price p
 		Intent: chargesmeta.Intent{
 			ManagedBy:  billing.SubscriptionManagedLine,
 			CustomerID: "customer-1",
-			Currency:   currencyx.Code("USD"),
+			Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 			TaxConfig: productcatalog.TaxCodeConfig{
 				TaxCodeID: "tax-code-id",
 			},

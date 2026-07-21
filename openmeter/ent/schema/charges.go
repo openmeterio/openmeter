@@ -9,10 +9,13 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"entgo.io/ent/schema/mixin"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -36,6 +39,7 @@ var chargesSearchV1Columns = []string{
 	"status",
 	"unique_reference_id",
 	"currency",
+	"custom_currency_id",
 	"managed_by",
 	"subscription_id",
 	"subscription_phase_id",
@@ -83,7 +87,7 @@ func (ChargesSearchV1) buildChargesSearchV1TableSelector(s *sql.Selector, table 
 
 func (ChargesSearchV1) Fields() []ent.Field {
 	mixins := []ent.Mixin{
-		chargemeta.Mixin{},
+		ChargesMetaMixin{},
 	}
 
 	fields := []ent.Field{
@@ -180,5 +184,116 @@ func (Charge) Indexes() []ent.Index {
 				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
 			).
 			Unique(),
+	}
+}
+
+type ChargesMetaMixin = entutils.RecursiveMixin[chargesMetaMixin]
+
+type chargesMetaMixin struct {
+	mixin.Schema
+}
+
+func (chargesMetaMixin) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.AnnotationsMixin{},
+		entutils.ResourceMixin{},
+	}
+}
+
+func (chargesMetaMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("customer_id").
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
+		field.Time("service_period_from"),
+		field.Time("service_period_to"),
+		field.Time("billing_period_from"),
+		field.Time("billing_period_to"),
+		field.Time("full_service_period_from"),
+		field.Time("full_service_period_to"),
+
+		field.Enum("status").
+			GoType(meta.ChargeStatus("")),
+
+		field.String("unique_reference_id").
+			Immutable().
+			Optional().
+			Nillable(),
+
+		field.String("fiat_currency_code").
+			StorageKey("currency").
+			GoType(currencyx.Code("")).
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "varchar(3)",
+			}).
+			NotEmpty().
+			Optional().
+			Nillable(),
+
+		field.String("custom_currency_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			NotEmpty().
+			Optional().
+			Nillable().
+			Immutable(),
+
+		field.Enum("managed_by").
+			GoType(billing.InvoiceLineManagedBy("")).
+			Immutable(),
+
+		// Subscriptions metadata
+		field.String("subscription_id").
+			Optional().
+			Nillable().
+			Immutable(),
+
+		field.String("subscription_phase_id").
+			Optional().
+			Nillable().
+			Immutable(),
+
+		field.String("subscription_item_id").
+			Optional().
+			Nillable(),
+
+		field.Time("advance_after").
+			Optional().
+			Nillable(),
+		field.String("tax_code_id").
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.Enum("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable().
+			Immutable(),
+	}
+}
+
+func (chargesMetaMixin) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "customer_id", "unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).
+			Unique(),
+	}
+}
+
+func (chargesMetaMixin) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"currency_reference": `(currency IS NULL) <> (custom_currency_id IS NULL)`,
+		}),
 	}
 }

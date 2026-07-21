@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -15,15 +16,19 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) (creditpurchase.ChargeWithGatheringLine, error) {
-	input.Intent.IntentMutableFields = input.Intent.IntentMutableFields.Normalized(input.Intent.Currency)
-
 	if err := input.Validate(); err != nil {
 		return creditpurchase.ChargeWithGatheringLine{}, err
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) {
+		if input.Intent.Currency.Type() == currencyx.CurrencyTypeCustom {
+			return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("custom currency %s is not supported for credit purchases: %w", input.Intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
+		}
+
+		input.Intent = input.Intent.Normalized()
+
 		// Let's create the credit purchase charge
-		charge, err := s.adapter.CreateCharge(ctx, creditpurchase.CreateChargeInput(input))
+		charge, err := s.adapter.CreateCharge(ctx, input)
 		if err != nil {
 			return creditpurchase.ChargeWithGatheringLine{}, err
 		}

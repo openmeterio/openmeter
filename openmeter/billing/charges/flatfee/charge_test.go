@@ -9,8 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -38,7 +39,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 		return Intent{
 			Intent: meta.Intent{
 				CustomerID: "cust-1",
-				Currency:   currencyx.Code("USD"),
+				Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 				ManagedBy:  "system",
 			},
 			IntentMutableFields: IntentMutableFields{
@@ -135,7 +136,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 
 	t.Run("JPY rounds to zero decimal places", func(t *testing.T) {
 		intent := baseIntent()
-		intent.Currency = currencyx.Code("JPY")
+		intent.Currency = currenciestestutils.NewFiatCurrency(t, "JPY")
 		intent.AmountBeforeProration = alpacadecimal.NewFromInt(1000)
 		// 10 days out of 31 = 1000 * 10/31 = 322.580... rounded to 323 for JPY
 		tenDaysEnd := datetime.MustParseTimeInLocation(t, "2026-01-11T00:00:00Z", time.UTC).AsTime()
@@ -166,7 +167,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 
 	t.Run("invalid currency returns error", func(t *testing.T) {
 		intent := baseIntent()
-		intent.Currency = currencyx.Code("INVALID")
+		intent.Currency = currencies.Currency{}
 
 		_, err := intent.CalculateAmountAfterProration()
 		require.Error(t, err)

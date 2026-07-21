@@ -11,7 +11,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -28,7 +27,7 @@ type ChargeFlatFee struct {
 
 func (ChargeFlatFee) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		chargemeta.Mixin{},
+		ChargesMetaMixin{},
 	}
 }
 
@@ -140,6 +139,12 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 			Required().
 			Immutable().
 			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.From("custom_currency", CustomCurrency.Type).
+			Ref("charges_flat_fee").
+			Field("custom_currency_id").
+			Unique().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }

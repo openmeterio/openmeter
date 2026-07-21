@@ -13,6 +13,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -21,12 +24,15 @@ import (
 // CustomCurrencyQuery is the builder for querying CustomCurrency entities.
 type CustomCurrencyQuery struct {
 	config
-	ctx                  *QueryContext
-	order                []customcurrency.OrderOption
-	inters               []Interceptor
-	predicates           []predicate.CustomCurrency
-	withCostBasisHistory *CurrencyCostBasisQuery
-	modifiers            []func(*sql.Selector)
+	ctx                       *QueryContext
+	order                     []customcurrency.OrderOption
+	inters                    []Interceptor
+	predicates                []predicate.CustomCurrency
+	withCostBasisHistory      *CurrencyCostBasisQuery
+	withChargesCreditPurchase *ChargeCreditPurchaseQuery
+	withChargesFlatFee        *ChargeFlatFeeQuery
+	withChargesUsageBased     *ChargeUsageBasedQuery
+	modifiers                 []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -78,6 +84,72 @@ func (_q *CustomCurrencyQuery) QueryCostBasisHistory() *CurrencyCostBasisQuery {
 			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, selector),
 			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.CostBasisHistoryTable, customcurrency.CostBasisHistoryColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargesCreditPurchase chains the current query on the "charges_credit_purchase" edge.
+func (_q *CustomCurrencyQuery) QueryChargesCreditPurchase() *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, selector),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.ChargesCreditPurchaseTable, customcurrency.ChargesCreditPurchaseColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargesFlatFee chains the current query on the "charges_flat_fee" edge.
+func (_q *CustomCurrencyQuery) QueryChargesFlatFee() *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, selector),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.ChargesFlatFeeTable, customcurrency.ChargesFlatFeeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargesUsageBased chains the current query on the "charges_usage_based" edge.
+func (_q *CustomCurrencyQuery) QueryChargesUsageBased() *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, selector),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.ChargesUsageBasedTable, customcurrency.ChargesUsageBasedColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -272,12 +344,15 @@ func (_q *CustomCurrencyQuery) Clone() *CustomCurrencyQuery {
 		return nil
 	}
 	return &CustomCurrencyQuery{
-		config:               _q.config,
-		ctx:                  _q.ctx.Clone(),
-		order:                append([]customcurrency.OrderOption{}, _q.order...),
-		inters:               append([]Interceptor{}, _q.inters...),
-		predicates:           append([]predicate.CustomCurrency{}, _q.predicates...),
-		withCostBasisHistory: _q.withCostBasisHistory.Clone(),
+		config:                    _q.config,
+		ctx:                       _q.ctx.Clone(),
+		order:                     append([]customcurrency.OrderOption{}, _q.order...),
+		inters:                    append([]Interceptor{}, _q.inters...),
+		predicates:                append([]predicate.CustomCurrency{}, _q.predicates...),
+		withCostBasisHistory:      _q.withCostBasisHistory.Clone(),
+		withChargesCreditPurchase: _q.withChargesCreditPurchase.Clone(),
+		withChargesFlatFee:        _q.withChargesFlatFee.Clone(),
+		withChargesUsageBased:     _q.withChargesUsageBased.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -292,6 +367,39 @@ func (_q *CustomCurrencyQuery) WithCostBasisHistory(opts ...func(*CurrencyCostBa
 		opt(query)
 	}
 	_q.withCostBasisHistory = query
+	return _q
+}
+
+// WithChargesCreditPurchase tells the query-builder to eager-load the nodes that are connected to
+// the "charges_credit_purchase" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CustomCurrencyQuery) WithChargesCreditPurchase(opts ...func(*ChargeCreditPurchaseQuery)) *CustomCurrencyQuery {
+	query := (&ChargeCreditPurchaseClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargesCreditPurchase = query
+	return _q
+}
+
+// WithChargesFlatFee tells the query-builder to eager-load the nodes that are connected to
+// the "charges_flat_fee" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CustomCurrencyQuery) WithChargesFlatFee(opts ...func(*ChargeFlatFeeQuery)) *CustomCurrencyQuery {
+	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargesFlatFee = query
+	return _q
+}
+
+// WithChargesUsageBased tells the query-builder to eager-load the nodes that are connected to
+// the "charges_usage_based" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CustomCurrencyQuery) WithChargesUsageBased(opts ...func(*ChargeUsageBasedQuery)) *CustomCurrencyQuery {
+	query := (&ChargeUsageBasedClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargesUsageBased = query
 	return _q
 }
 
@@ -373,8 +481,11 @@ func (_q *CustomCurrencyQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	var (
 		nodes       = []*CustomCurrency{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [4]bool{
 			_q.withCostBasisHistory != nil,
+			_q.withChargesCreditPurchase != nil,
+			_q.withChargesFlatFee != nil,
+			_q.withChargesUsageBased != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -407,6 +518,31 @@ func (_q *CustomCurrencyQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 			return nil, err
 		}
 	}
+	if query := _q.withChargesCreditPurchase; query != nil {
+		if err := _q.loadChargesCreditPurchase(ctx, query, nodes,
+			func(n *CustomCurrency) { n.Edges.ChargesCreditPurchase = []*ChargeCreditPurchase{} },
+			func(n *CustomCurrency, e *ChargeCreditPurchase) {
+				n.Edges.ChargesCreditPurchase = append(n.Edges.ChargesCreditPurchase, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargesFlatFee; query != nil {
+		if err := _q.loadChargesFlatFee(ctx, query, nodes,
+			func(n *CustomCurrency) { n.Edges.ChargesFlatFee = []*ChargeFlatFee{} },
+			func(n *CustomCurrency, e *ChargeFlatFee) { n.Edges.ChargesFlatFee = append(n.Edges.ChargesFlatFee, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargesUsageBased; query != nil {
+		if err := _q.loadChargesUsageBased(ctx, query, nodes,
+			func(n *CustomCurrency) { n.Edges.ChargesUsageBased = []*ChargeUsageBased{} },
+			func(n *CustomCurrency, e *ChargeUsageBased) {
+				n.Edges.ChargesUsageBased = append(n.Edges.ChargesUsageBased, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -435,6 +571,105 @@ func (_q *CustomCurrencyQuery) loadCostBasisHistory(ctx context.Context, query *
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "currency_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CustomCurrencyQuery) loadChargesCreditPurchase(ctx context.Context, query *ChargeCreditPurchaseQuery, nodes []*CustomCurrency, init func(*CustomCurrency), assign func(*CustomCurrency, *ChargeCreditPurchase)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*CustomCurrency)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargecreditpurchase.FieldCustomCurrencyID)
+	}
+	query.Where(predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customcurrency.ChargesCreditPurchaseColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomCurrencyID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "custom_currency_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "custom_currency_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CustomCurrencyQuery) loadChargesFlatFee(ctx context.Context, query *ChargeFlatFeeQuery, nodes []*CustomCurrency, init func(*CustomCurrency), assign func(*CustomCurrency, *ChargeFlatFee)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*CustomCurrency)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfee.FieldCustomCurrencyID)
+	}
+	query.Where(predicate.ChargeFlatFee(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customcurrency.ChargesFlatFeeColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomCurrencyID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "custom_currency_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "custom_currency_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CustomCurrencyQuery) loadChargesUsageBased(ctx context.Context, query *ChargeUsageBasedQuery, nodes []*CustomCurrency, init func(*CustomCurrency), assign func(*CustomCurrency, *ChargeUsageBased)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*CustomCurrency)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebased.FieldCustomCurrencyID)
+	}
+	query.Where(predicate.ChargeUsageBased(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customcurrency.ChargesUsageBasedColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CustomCurrencyID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "custom_currency_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "custom_currency_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

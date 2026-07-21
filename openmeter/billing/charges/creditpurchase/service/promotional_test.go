@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -74,7 +74,7 @@ func TestPromotionalCreditPurchaseStateMachineRejectsExistingCreditGrant(t *test
 	// - the promotional state machine attempts to grant credits
 	// then:
 	// - it fails before creating another grant
-	charge := newPromotionalStateMachineTestCharge(creditpurchase.StatusCreated)
+	charge := newPromotionalStateMachineTestCharge(t, creditpurchase.StatusCreated)
 	charge.Realizations.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
 		GroupReference: ledgertransaction.GroupReference{
 			TransactionGroupID: "existing-ledger-tx",
@@ -122,7 +122,7 @@ func TestPromotionalCreditPurchaseStateMachineReturnsNilForFinalCharge(t *testin
 	}
 
 	stateMachine, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:  newPromotionalStateMachineTestCharge(creditpurchase.StatusFinal),
+		Charge:  newPromotionalStateMachineTestCharge(t, creditpurchase.StatusFinal),
 		Adapter: adapter,
 		Service: svc,
 	})
@@ -143,7 +143,7 @@ func TestPromotionalCreditPurchaseStateMachineRejectsNonPromotionalCharge(t *tes
 	// - the promotional state machine is constructed
 	// then:
 	// - construction fails before any lifecycle side effect can happen
-	charge := newPromotionalStateMachineTestCharge(creditpurchase.StatusCreated)
+	charge := newPromotionalStateMachineTestCharge(t, creditpurchase.StatusCreated)
 	charge.Intent.Settlement = creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{})
 
 	_, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
@@ -164,7 +164,7 @@ func TestPromotionalCreditPurchaseStateMachineRejectsMissingAdapter(t *testing.T
 	// then:
 	// - construction fails before lifecycle methods can dereference the adapter
 	_, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:  newPromotionalStateMachineTestCharge(creditpurchase.StatusCreated),
+		Charge:  newPromotionalStateMachineTestCharge(t, creditpurchase.StatusCreated),
 		Service: &service{},
 	})
 
@@ -180,7 +180,7 @@ func TestPromotionalCreditPurchaseStateMachineRejectsMissingService(t *testing.T
 	// then:
 	// - construction fails before final-state entry can dereference the service
 	_, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:  newPromotionalStateMachineTestCharge(creditpurchase.StatusCreated),
+		Charge:  newPromotionalStateMachineTestCharge(t, creditpurchase.StatusCreated),
 		Adapter: &promotionalStateMachineAdapter{},
 	})
 
@@ -194,7 +194,7 @@ func newPromotionalStateMachineTestMachine(
 ) (*PromotionalCreditpurchaseStateMachine, creditpurchase.Charge, *promotionalStateMachineAdapter, *promotionalStateMachineLineage) {
 	t.Helper()
 
-	charge := newPromotionalStateMachineTestCharge(status)
+	charge := newPromotionalStateMachineTestCharge(t, status)
 	adapter := &promotionalStateMachineAdapter{}
 	lineageService := &promotionalStateMachineLineage{}
 	handler := &promotionalStateMachineHandler{
@@ -215,7 +215,7 @@ func newPromotionalStateMachineTestMachine(
 		mock.MatchedBy(func(input lineage.BackfillAdvanceLineageSegmentsInput) bool {
 			return input.Namespace == charge.Namespace &&
 				input.CustomerID == charge.Intent.CustomerID &&
-				input.Currency == charge.Intent.Currency &&
+				input.Currency.GetCode() == charge.Intent.Currency.GetCode() &&
 				input.Amount.Equal(charge.Intent.CreditAmount) &&
 				input.BackingTransactionGroupID != ""
 		})).
@@ -232,7 +232,9 @@ func newPromotionalStateMachineTestMachine(
 	return stateMachine, charge, adapter, lineageService
 }
 
-func newPromotionalStateMachineTestCharge(status creditpurchase.Status) creditpurchase.Charge {
+func newPromotionalStateMachineTestCharge(t *testing.T, status creditpurchase.Status) creditpurchase.Charge {
+	t.Helper()
+
 	period := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -253,7 +255,7 @@ func newPromotionalStateMachineTestCharge(status creditpurchase.Status) creditpu
 			Intent: creditpurchase.Intent{
 				Intent: meta.Intent{
 					CustomerID: "customer-1",
-					Currency:   currencyx.Code("USD"),
+					Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{

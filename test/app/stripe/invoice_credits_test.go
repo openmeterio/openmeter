@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -383,7 +384,7 @@ func (s *StripeInvoiceTestSuite) createMockChargeIntent(input createMockChargeIn
 			ManagedBy:         input.managedBy,
 			UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
 			CustomerID:        input.customer.ID,
-			Currency:          input.currency,
+			Currency:          currenciestestutils.NewFiatCurrency(s.T(), input.currency),
 		},
 		IntentMutableFields: usagebased.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{
@@ -420,7 +421,7 @@ func (s *StripeInvoiceTestSuite) createCreditPurchaseIntent(input createCreditPu
 		Intent: meta.Intent{
 			ManagedBy:  billing.ManuallyManagedLine,
 			CustomerID: input.customer.ID,
-			Currency:   input.currency,
+			Currency:   currenciestestutils.NewFiatCurrency(s.T(), input.currency),
 		},
 		IntentMutableFields: creditpurchase.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{

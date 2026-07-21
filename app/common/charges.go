@@ -27,6 +27,7 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -352,6 +353,7 @@ func NewChargesService(
 	billingService billing.Service,
 	recognizerService recognizer.Service,
 	taxCodeService taxcode.Service,
+	currencyResolver currencies.CurrencyResolver,
 	fsNamespaceLockdown []string,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
@@ -365,6 +367,7 @@ func NewChargesService(
 		BillingService:        billingService,
 		RecognizerService:     recognizerService,
 		TaxCodeService:        taxCodeService,
+		CurrencyResolver:      currencyResolver,
 		FSNamespaceLockdown:   fsNamespaceLockdown,
 	})
 	if err != nil {
@@ -410,6 +413,7 @@ func newChargesRegistry(
 	accountService ledgeraccount.Service,
 	breakageService ledgerbreakage.Service,
 	taxCodeService taxcode.Service,
+	currencyResolver currencies.CurrencyResolver,
 	fsNamespaceLockdown []string,
 	creditsConfig config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
@@ -557,6 +561,7 @@ func newChargesRegistry(
 		billingService,
 		recognizerService,
 		taxCodeService,
+		currencyResolver,
 		fsNamespaceLockdown,
 	)
 	if err != nil {

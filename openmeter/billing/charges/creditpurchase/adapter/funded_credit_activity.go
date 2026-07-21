@@ -11,10 +11,13 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	currenciesadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	dbchargecreditpurchasecreditgrant "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
+	dbcustomcurrency "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entedge"
 )
 
 func (a *adapter) ListFundedCreditActivities(ctx context.Context, input creditpurchase.ListFundedCreditActivitiesInput) (creditpurchase.ListFundedCreditActivitiesResult, error) {
@@ -41,7 +44,8 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 			q.Where(
 				dbchargecreditpurchase.Namespace(input.Customer.Namespace),
 				dbchargecreditpurchase.DeletedAtIsNil(),
-			)
+			).
+				WithCustomCurrency()
 		}).
 		Limit(input.Limit + 1)
 
@@ -60,7 +64,14 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 	}
 
 	if input.Currency != nil {
-		query = query.Where(dbchargecreditpurchasecreditgrant.HasCreditPurchaseWith(dbchargecreditpurchase.CurrencyEQ(*input.Currency)))
+		query = query.Where(dbchargecreditpurchasecreditgrant.HasCreditPurchaseWith(
+			dbchargecreditpurchase.HasCustomCurrencyWith(
+				dbcustomcurrency.CodeEQ(*input.Currency),
+				dbcustomcurrency.Namespace(input.Customer.Namespace),
+				dbcustomcurrency.DeletedAtIsNil(),
+			),
+			dbchargecreditpurchase.FiatCurrencyCodeEQ(*input.Currency),
+		))
 	}
 
 	if input.AsOf != nil {
@@ -92,6 +103,19 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 			return creditpurchase.ListFundedCreditActivitiesResult{}, fmt.Errorf("credit purchase not loaded for grant %s: %w", entity.ID, err)
 		}
 
+		dbCustomCurrency, err := entedge.OrNilIfNotFound(creditPurchase.Edges.CustomCurrencyOrErr())
+		if err != nil {
+			return creditpurchase.ListFundedCreditActivitiesResult{}, fmt.Errorf("failed to get custom currency: %w", err)
+		}
+
+		resolvedCurrency, err := currenciesadapter.MapCustomCurrencyOrFiatCurrencyFromDB(currenciesadapter.CustomCurrencyOrFiatCurrency{
+			CustomCurrency: dbCustomCurrency,
+			FiatCurrency:   creditPurchase.FiatCurrencyCode,
+		})
+		if err != nil {
+			return creditpurchase.ListFundedCreditActivitiesResult{}, fmt.Errorf("failed to resolve currency: %w", err)
+		}
+
 		items = append(items, creditpurchase.FundedCreditActivity{
 			ChargeID: meta.ChargeID{
 				Namespace: creditPurchase.Namespace,
@@ -100,7 +124,7 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 			ChargeCreatedAt:    creditPurchase.CreatedAt,
 			FundedAt:           entity.GrantedAt,
 			TransactionGroupID: entity.TransactionGroupID,
-			Currency:           creditPurchase.Currency,
+			Currency:           resolvedCurrency.GetCode(),
 			Amount:             creditPurchase.CreditAmount,
 			Name:               creditPurchase.Name,
 			Description:        creditPurchase.Description,

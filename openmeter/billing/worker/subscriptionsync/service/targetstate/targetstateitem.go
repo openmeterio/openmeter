@@ -8,9 +8,9 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -18,7 +18,7 @@ import (
 type StateItem struct {
 	SubscriptionItemWithPeriods
 
-	CurrencyCalculator           currencyx.Currency
+	Currency                     currencies.Currency
 	Subscription                 subscription.Subscription
 	SubscriptionEndProrationMode billing.SubscriptionEndProrationMode
 }
@@ -58,7 +58,7 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 				Description: r.Spec.RateCard.AsMeta().Description,
 			}),
 			ManagedBy:              billing.SubscriptionManagedLine,
-			Currency:               r.CurrencyCalculator.Details().Code,
+			Currency:               r.Currency.GetCode(),
 			ChildUniqueReferenceID: &r.UniqueID,
 			TaxConfig:              r.Spec.RateCard.AsMeta().TaxConfig,
 			ServicePeriod:          r.GetServicePeriod(),
@@ -94,9 +94,9 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 			return nil, fmt.Errorf("converting price to flat: %w", err)
 		}
 
-		perUnitAmount := r.CurrencyCalculator.RoundToPrecision(price.Amount)
+		perUnitAmount := r.Currency.RoundToPrecision(price.Amount)
 		if !r.ServicePeriod.IsEmpty() && r.shouldProrate() {
-			perUnitAmount = r.CurrencyCalculator.RoundToPrecision(price.Amount.Mul(r.PeriodPercentage()))
+			perUnitAmount = r.Currency.RoundToPrecision(price.Amount.Mul(r.PeriodPercentage()))
 		}
 
 		if perUnitAmount.IsZero() {

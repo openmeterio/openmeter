@@ -6273,6 +6273,22 @@ func (c *ChargeCreditPurchaseClient) QueryTaxCode(_m *ChargeCreditPurchase) *Tax
 	return query
 }
 
+// QueryCustomCurrency queries the custom_currency edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QueryCustomCurrency(_m *ChargeCreditPurchase) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditpurchase.CustomCurrencyTable, chargecreditpurchase.CustomCurrencyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChargeCreditPurchaseClient) Hooks() []Hook {
 	return c.hooks.ChargeCreditPurchase
@@ -7022,6 +7038,22 @@ func (c *ChargeFlatFeeClient) QueryTaxCode(_m *ChargeFlatFee) *TaxCodeQuery {
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
 			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.TaxCodeTable, chargeflatfee.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency queries the custom_currency edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QueryCustomCurrency(_m *ChargeFlatFee) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.CustomCurrencyTable, chargeflatfee.CustomCurrencyColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -8401,6 +8433,22 @@ func (c *ChargeUsageBasedClient) QueryTaxCode(_m *ChargeUsageBased) *TaxCodeQuer
 			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
 			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.TaxCodeTable, chargeusagebased.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency queries the custom_currency edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryCustomCurrency(_m *ChargeUsageBased) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.CustomCurrencyTable, chargeusagebased.CustomCurrencyColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -10145,6 +10193,54 @@ func (c *CustomCurrencyClient) QueryCostBasisHistory(_m *CustomCurrency) *Curren
 			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
 			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.CostBasisHistoryTable, customcurrency.CostBasisHistoryColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesCreditPurchase queries the charges_credit_purchase edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QueryChargesCreditPurchase(_m *CustomCurrency) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.ChargesCreditPurchaseTable, customcurrency.ChargesCreditPurchaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesFlatFee queries the charges_flat_fee edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QueryChargesFlatFee(_m *CustomCurrency) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.ChargesFlatFeeTable, customcurrency.ChargesFlatFeeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesUsageBased queries the charges_usage_based edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QueryChargesUsageBased(_m *CustomCurrency) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.ChargesUsageBasedTable, customcurrency.ChargesUsageBasedColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

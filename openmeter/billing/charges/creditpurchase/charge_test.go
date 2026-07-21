@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -18,6 +19,9 @@ func TestIntentNormalizedPinsServicePeriodsToEffectiveAt(t *testing.T) {
 	}
 
 	intent := Intent{
+		Intent: meta.Intent{
+			Currency: currenciestestutils.NewFiatCurrency(t, "USD"),
+		},
 		IntentMutableFields: IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{
 				ServicePeriod:     originalPeriod,

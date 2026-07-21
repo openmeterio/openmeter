@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeeoverride "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
@@ -65,7 +66,9 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge flatfee.Charg
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.ChargeBase, error) {
-		dbIntentOverride, err := tx.createIntentOverride(ctx, charge.GetChargeID(), override)
+		currency := charge.Intent.GetBaseIntent().Currency
+
+		dbIntentOverride, err := tx.createIntentOverride(ctx, charge.GetChargeID(), override, currency)
 		if err != nil {
 			return flatfee.ChargeBase{}, err
 		}
@@ -81,7 +84,7 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge flatfee.Charg
 
 		dbCharge.Edges.IntentOverride = dbIntentOverride
 
-		return MapChargeBaseFromDB(dbCharge), nil
+		return MapChargeBaseFromDB(dbCharge, charge.Intent.GetBaseIntent().Currency)
 	})
 }
 
@@ -128,12 +131,12 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge flatfee.Charg
 	})
 }
 
-func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.ChargeID, override flatfee.IntentMutableFields) (*entdb.ChargeFlatFeeOverride, error) {
+func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.ChargeID, override flatfee.IntentMutableFields, currency currencies.Currency) (*entdb.ChargeFlatFeeOverride, error) {
 	if err := chargeID.Validate(); err != nil {
 		return nil, fmt.Errorf("charge id: %w", err)
 	}
 
-	normalized := override.Normalized("")
+	normalized := override.Normalized(currency)
 	if err := normalized.Validate(); err != nil {
 		return nil, fmt.Errorf("validating intent override: %w", err)
 	}
@@ -165,12 +168,12 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 	return create.Save(ctx)
 }
 
-func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *flatfee.IntentMutableFields) (*entdb.ChargeFlatFeeOverride, error) {
+func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *flatfee.IntentMutableFields, currency currencies.Currency) (*entdb.ChargeFlatFeeOverride, error) {
 	if err := chargeID.Validate(); err != nil {
 		return nil, fmt.Errorf("charge id: %w", err)
 	}
 
-	normalized := override.Normalized("")
+	normalized := override.Normalized(currency)
 	if err := normalized.Validate(); err != nil {
 		return nil, fmt.Errorf("validating intent override: %w", err)
 	}

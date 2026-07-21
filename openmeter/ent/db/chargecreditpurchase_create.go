@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -102,9 +103,31 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableUniqueReferenceID(v *string) *C
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *ChargeCreditPurchaseCreate) SetCurrency(v currencyx.Code) *ChargeCreditPurchaseCreate {
-	_c.mutation.SetCurrency(v)
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_c *ChargeCreditPurchaseCreate) SetFiatCurrencyCode(v currencyx.Code) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetFiatCurrencyCode(v)
+	return _c
+}
+
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableFiatCurrencyCode(v *currencyx.Code) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetFiatCurrencyCode(*v)
+	}
+	return _c
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetCustomCurrencyID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableCustomCurrencyID(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
+	}
 	return _c
 }
 
@@ -479,6 +502,11 @@ func (_c *ChargeCreditPurchaseCreate) SetTaxCode(v *TaxCode) *ChargeCreditPurcha
 	return _c.SetTaxCodeID(v.ID)
 }
 
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *ChargeCreditPurchaseCreate) SetCustomCurrency(v *CustomCurrency) *ChargeCreditPurchaseCreate {
+	return _c.SetCustomCurrencyID(v.ID)
+}
+
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
 func (_c *ChargeCreditPurchaseCreate) Mutation() *ChargeCreditPurchaseMutation {
 	return _c.mutation
@@ -564,12 +592,14 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeCreditPurchase.currency"`)}
+	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
+		if err := chargecreditpurchase.FiatCurrencyCodeValidator(string(v)); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.fiat_currency_code": %w`, err)}
+		}
 	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := chargecreditpurchase.CurrencyValidator(string(v)); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.currency": %w`, err)}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := chargecreditpurchase.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.custom_currency_id": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ManagedBy(); !ok {
@@ -706,9 +736,9 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_spec.SetField(chargecreditpurchase.FieldUniqueReferenceID, field.TypeString, value)
 		_node.UniqueReferenceID = &value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(chargecreditpurchase.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(chargecreditpurchase.FieldFiatCurrencyCode, field.TypeString, value)
+		_node.FiatCurrencyCode = &value
 	}
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargecreditpurchase.FieldManagedBy, field.TypeEnum, value)
@@ -941,6 +971,23 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.TaxCodeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.CustomCurrencyTable,
+			Columns: []string{chargecreditpurchase.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1288,8 +1335,11 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldUniqueReferenceID)
 		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(chargecreditpurchase.FieldCurrency)
+		if _, exists := u.create.mutation.FiatCurrencyCode(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldFiatCurrencyCode)
+		}
+		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldCustomCurrencyID)
 		}
 		if _, exists := u.create.mutation.ManagedBy(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldManagedBy)
@@ -1865,8 +1915,11 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			if _, exists := b.mutation.UniqueReferenceID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldUniqueReferenceID)
 			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(chargecreditpurchase.FieldCurrency)
+			if _, exists := b.mutation.FiatCurrencyCode(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldFiatCurrencyCode)
+			}
+			if _, exists := b.mutation.CustomCurrencyID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldCustomCurrencyID)
 			}
 			if _, exists := b.mutation.ManagedBy(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldManagedBy)

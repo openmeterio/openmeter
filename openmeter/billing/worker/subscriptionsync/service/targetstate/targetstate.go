@@ -14,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -122,8 +123,9 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 		return State{
 			Items: lo.Map(inScopeLines, func(item SubscriptionItemWithPeriods, _ int) StateItem {
 				return StateItem{
-					SubscriptionItemWithPeriods:  item,
-					CurrencyCalculator:           currency,
+					SubscriptionItemWithPeriods: item,
+					// TODO[later]: Once subscriptions supports custom currencies, we need to use the currency from the subscription item.
+					Currency:                     currencies.Currency{Currency: currency},
 					Subscription:                 subs.Subscription,
 					SubscriptionEndProrationMode: input.SubscriptionEndProrationMode,
 				}

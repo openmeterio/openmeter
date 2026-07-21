@@ -28,6 +28,10 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
 		createIntents, err := slicesx.MapWithErr(input.Intents, func(intent usagebased.Intent) (usagebased.CreateIntent, error) {
+			if intent.Currency.IsCustom() {
+				return usagebased.CreateIntent{}, fmt.Errorf("creating usage based charge with custom currency %q: %w", intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
+			}
+
 			chargeIntent := intent.Normalized()
 
 			featureMeter, err := input.FeatureMeters.Get(chargeIntent.FeatureKey, false)
@@ -124,7 +128,7 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 			FeatureKey: intent.FeatureKey,
 			UnitConfig: unitConfig,
 
-			Currency:      intent.Currency,
+			Currency:      intent.Currency.GetCode(),
 			ServicePeriod: servicePeriod,
 			InvoiceAt:     invoiceAt,
 

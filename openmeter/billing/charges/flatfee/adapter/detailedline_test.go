@@ -16,13 +16,13 @@ import (
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -97,7 +97,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 					Intent: chargesmeta.Intent{
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
-						Currency:   currencyx.Code("USD"),
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},
@@ -271,7 +271,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) newDetailedLine(input newDetailedLineI
 			Description: input.Description,
 		}),
 		ServicePeriod:          input.ServicePeriod,
-		Currency:               input.Charge.Intent.GetCurrency(),
+		Currency:               input.Charge.Intent.GetCurrency().GetCode(),
 		ChildUniqueReferenceID: input.ChildUniqueReferenceID,
 		PaymentTerm:            baseIntent.PaymentTerm,
 		PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),

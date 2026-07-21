@@ -11,9 +11,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -63,7 +63,7 @@ func (c ChargeBase) GetCustomerID() customer.CustomerID {
 	}
 }
 
-func (c ChargeBase) GetCurrency() currencyx.Code {
+func (c ChargeBase) GetCurrency() currencies.Currency {
 	return c.Intent.GetCurrency()
 }
 
@@ -123,7 +123,7 @@ type Intent struct {
 }
 
 func (i Intent) Normalized() Intent {
-	i.IntentMutableFields = i.IntentMutableFields.Normalized(i.Currency)
+	i.IntentMutableFields = i.IntentMutableFields.Normalized(i.Intent.Currency)
 
 	return i
 }
@@ -180,14 +180,11 @@ func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
 	percentage := alpacadecimal.NewFromInt(servicePeriodDuration).Div(alpacadecimal.NewFromInt(fullServicePeriodDuration))
 	amount := i.AmountBeforeProration.Mul(percentage)
 
-	calc, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(i.Currency).
-		Build()
-	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("creating currency calculator: %w", err)
+	if err := i.Currency.Validate(); err != nil {
+		return alpacadecimal.Decimal{}, fmt.Errorf("currency: %w", err)
 	}
 
-	return calc.RoundToPrecision(amount), nil
+	return i.Intent.Currency.RoundToPrecision(amount), nil
 }
 
 // OverridableIntent stores the immutable intent plus the base and optional
@@ -228,7 +225,7 @@ func (i OverridableIntent) GetCustomerID() string {
 	return i.intent.CustomerID
 }
 
-func (i OverridableIntent) GetCurrency() currencyx.Code {
+func (i OverridableIntent) GetCurrency() currencies.Currency {
 	return i.intent.Currency
 }
 
@@ -492,16 +489,10 @@ type IntentMutableFields struct {
 	AmountBeforeProration alpacadecimal.Decimal          `json:"amountBeforeProration"`
 }
 
-func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFields {
+func (f IntentMutableFields) Normalized(currency currencies.Currency) IntentMutableFields {
 	f.IntentMutableFields = f.IntentMutableFields.Normalized()
 	f.InvoiceAt = meta.NormalizeTimestamp(f.InvoiceAt)
-
-	calc, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(currency).
-		Build()
-	if err == nil {
-		f.AmountBeforeProration = calc.RoundToPrecision(f.AmountBeforeProration)
-	}
+	f.AmountBeforeProration = currency.RoundToPrecision(f.AmountBeforeProration)
 
 	return f
 }

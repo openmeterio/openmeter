@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
@@ -245,7 +246,7 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 	err = service.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
 		Namespace:                 ns,
 		CustomerID:                customerID,
-		Currency:                  currencyx.Code(currency.USD),
+		Currency:                  currenciestestutils.NewFiatCurrency(s.T(), currency.USD),
 		Amount:                    alpacadecimal.NewFromInt(50),
 		BackingTransactionGroupID: backingTransactionGroupID,
 		FeatureFilters:            []string{"api-calls"},

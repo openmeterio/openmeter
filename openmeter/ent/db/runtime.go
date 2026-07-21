@@ -992,24 +992,28 @@ func init() {
 	chargecreditpurchaseDescCustomerID := chargecreditpurchaseMixinFields0[0].Descriptor()
 	// chargecreditpurchase.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	chargecreditpurchase.CustomerIDValidator = chargecreditpurchaseDescCustomerID.Validators[0].(func(string) error)
-	// chargecreditpurchaseDescCurrency is the schema descriptor for currency field.
-	chargecreditpurchaseDescCurrency := chargecreditpurchaseMixinFields0[9].Descriptor()
-	// chargecreditpurchase.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	chargecreditpurchase.CurrencyValidator = chargecreditpurchaseDescCurrency.Validators[0].(func(string) error)
+	// chargecreditpurchaseDescFiatCurrencyCode is the schema descriptor for fiat_currency_code field.
+	chargecreditpurchaseDescFiatCurrencyCode := chargecreditpurchaseMixinFields0[9].Descriptor()
+	// chargecreditpurchase.FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	chargecreditpurchase.FiatCurrencyCodeValidator = chargecreditpurchaseDescFiatCurrencyCode.Validators[0].(func(string) error)
+	// chargecreditpurchaseDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
+	chargecreditpurchaseDescCustomCurrencyID := chargecreditpurchaseMixinFields0[10].Descriptor()
+	// chargecreditpurchase.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	chargecreditpurchase.CustomCurrencyIDValidator = chargecreditpurchaseDescCustomCurrencyID.Validators[0].(func(string) error)
 	// chargecreditpurchaseDescTaxCodeID is the schema descriptor for tax_code_id field.
-	chargecreditpurchaseDescTaxCodeID := chargecreditpurchaseMixinFields0[15].Descriptor()
+	chargecreditpurchaseDescTaxCodeID := chargecreditpurchaseMixinFields0[16].Descriptor()
 	// chargecreditpurchase.TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
 	chargecreditpurchase.TaxCodeIDValidator = chargecreditpurchaseDescTaxCodeID.Validators[0].(func(string) error)
 	// chargecreditpurchaseDescNamespace is the schema descriptor for namespace field.
-	chargecreditpurchaseDescNamespace := chargecreditpurchaseMixinFields0[19].Descriptor()
+	chargecreditpurchaseDescNamespace := chargecreditpurchaseMixinFields0[20].Descriptor()
 	// chargecreditpurchase.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargecreditpurchase.NamespaceValidator = chargecreditpurchaseDescNamespace.Validators[0].(func(string) error)
 	// chargecreditpurchaseDescCreatedAt is the schema descriptor for created_at field.
-	chargecreditpurchaseDescCreatedAt := chargecreditpurchaseMixinFields0[21].Descriptor()
+	chargecreditpurchaseDescCreatedAt := chargecreditpurchaseMixinFields0[22].Descriptor()
 	// chargecreditpurchase.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargecreditpurchase.DefaultCreatedAt = chargecreditpurchaseDescCreatedAt.Default.(func() time.Time)
 	// chargecreditpurchaseDescUpdatedAt is the schema descriptor for updated_at field.
-	chargecreditpurchaseDescUpdatedAt := chargecreditpurchaseMixinFields0[22].Descriptor()
+	chargecreditpurchaseDescUpdatedAt := chargecreditpurchaseMixinFields0[23].Descriptor()
 	// chargecreditpurchase.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargecreditpurchase.DefaultUpdatedAt = chargecreditpurchaseDescUpdatedAt.Default.(func() time.Time)
 	// chargecreditpurchase.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -1018,7 +1022,7 @@ func init() {
 	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[5].Descriptor()
 	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[creditpurchase.Settlement])
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
-	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[18].Descriptor()
+	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[19].Descriptor()
 	// chargecreditpurchase.DefaultID holds the default value on creation for the id field.
 	chargecreditpurchase.DefaultID = chargecreditpurchaseDescID.Default.(func() string)
 	chargecreditpurchasecreditgrantMixin := schema.ChargeCreditPurchaseCreditGrant{}.Mixin()
@@ -1123,24 +1127,28 @@ func init() {
 	chargeflatfeeDescCustomerID := chargeflatfeeMixinFields0[0].Descriptor()
 	// chargeflatfee.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	chargeflatfee.CustomerIDValidator = chargeflatfeeDescCustomerID.Validators[0].(func(string) error)
-	// chargeflatfeeDescCurrency is the schema descriptor for currency field.
-	chargeflatfeeDescCurrency := chargeflatfeeMixinFields0[9].Descriptor()
-	// chargeflatfee.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	chargeflatfee.CurrencyValidator = chargeflatfeeDescCurrency.Validators[0].(func(string) error)
+	// chargeflatfeeDescFiatCurrencyCode is the schema descriptor for fiat_currency_code field.
+	chargeflatfeeDescFiatCurrencyCode := chargeflatfeeMixinFields0[9].Descriptor()
+	// chargeflatfee.FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	chargeflatfee.FiatCurrencyCodeValidator = chargeflatfeeDescFiatCurrencyCode.Validators[0].(func(string) error)
+	// chargeflatfeeDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
+	chargeflatfeeDescCustomCurrencyID := chargeflatfeeMixinFields0[10].Descriptor()
+	// chargeflatfee.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	chargeflatfee.CustomCurrencyIDValidator = chargeflatfeeDescCustomCurrencyID.Validators[0].(func(string) error)
 	// chargeflatfeeDescTaxCodeID is the schema descriptor for tax_code_id field.
-	chargeflatfeeDescTaxCodeID := chargeflatfeeMixinFields0[15].Descriptor()
+	chargeflatfeeDescTaxCodeID := chargeflatfeeMixinFields0[16].Descriptor()
 	// chargeflatfee.TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
 	chargeflatfee.TaxCodeIDValidator = chargeflatfeeDescTaxCodeID.Validators[0].(func(string) error)
 	// chargeflatfeeDescNamespace is the schema descriptor for namespace field.
-	chargeflatfeeDescNamespace := chargeflatfeeMixinFields0[19].Descriptor()
+	chargeflatfeeDescNamespace := chargeflatfeeMixinFields0[20].Descriptor()
 	// chargeflatfee.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargeflatfee.NamespaceValidator = chargeflatfeeDescNamespace.Validators[0].(func(string) error)
 	// chargeflatfeeDescCreatedAt is the schema descriptor for created_at field.
-	chargeflatfeeDescCreatedAt := chargeflatfeeMixinFields0[21].Descriptor()
+	chargeflatfeeDescCreatedAt := chargeflatfeeMixinFields0[22].Descriptor()
 	// chargeflatfee.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargeflatfee.DefaultCreatedAt = chargeflatfeeDescCreatedAt.Default.(func() time.Time)
 	// chargeflatfeeDescUpdatedAt is the schema descriptor for updated_at field.
-	chargeflatfeeDescUpdatedAt := chargeflatfeeMixinFields0[22].Descriptor()
+	chargeflatfeeDescUpdatedAt := chargeflatfeeMixinFields0[23].Descriptor()
 	// chargeflatfee.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargeflatfee.DefaultUpdatedAt = chargeflatfeeDescUpdatedAt.Default.(func() time.Time)
 	// chargeflatfee.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -1157,7 +1165,7 @@ func init() {
 	// chargeflatfee.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	chargeflatfee.FeatureKeyValidator = chargeflatfeeDescFeatureKey.Validators[0].(func(string) error)
 	// chargeflatfeeDescID is the schema descriptor for id field.
-	chargeflatfeeDescID := chargeflatfeeMixinFields0[18].Descriptor()
+	chargeflatfeeDescID := chargeflatfeeMixinFields0[19].Descriptor()
 	// chargeflatfee.DefaultID holds the default value on creation for the id field.
 	chargeflatfee.DefaultID = chargeflatfeeDescID.Default.(func() string)
 	chargeflatfeeoverrideMixin := schema.ChargeFlatFeeOverride{}.Mixin()
@@ -1371,24 +1379,28 @@ func init() {
 	chargeusagebasedDescCustomerID := chargeusagebasedMixinFields0[0].Descriptor()
 	// chargeusagebased.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	chargeusagebased.CustomerIDValidator = chargeusagebasedDescCustomerID.Validators[0].(func(string) error)
-	// chargeusagebasedDescCurrency is the schema descriptor for currency field.
-	chargeusagebasedDescCurrency := chargeusagebasedMixinFields0[9].Descriptor()
-	// chargeusagebased.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	chargeusagebased.CurrencyValidator = chargeusagebasedDescCurrency.Validators[0].(func(string) error)
+	// chargeusagebasedDescFiatCurrencyCode is the schema descriptor for fiat_currency_code field.
+	chargeusagebasedDescFiatCurrencyCode := chargeusagebasedMixinFields0[9].Descriptor()
+	// chargeusagebased.FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	chargeusagebased.FiatCurrencyCodeValidator = chargeusagebasedDescFiatCurrencyCode.Validators[0].(func(string) error)
+	// chargeusagebasedDescCustomCurrencyID is the schema descriptor for custom_currency_id field.
+	chargeusagebasedDescCustomCurrencyID := chargeusagebasedMixinFields0[10].Descriptor()
+	// chargeusagebased.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	chargeusagebased.CustomCurrencyIDValidator = chargeusagebasedDescCustomCurrencyID.Validators[0].(func(string) error)
 	// chargeusagebasedDescTaxCodeID is the schema descriptor for tax_code_id field.
-	chargeusagebasedDescTaxCodeID := chargeusagebasedMixinFields0[15].Descriptor()
+	chargeusagebasedDescTaxCodeID := chargeusagebasedMixinFields0[16].Descriptor()
 	// chargeusagebased.TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
 	chargeusagebased.TaxCodeIDValidator = chargeusagebasedDescTaxCodeID.Validators[0].(func(string) error)
 	// chargeusagebasedDescNamespace is the schema descriptor for namespace field.
-	chargeusagebasedDescNamespace := chargeusagebasedMixinFields0[19].Descriptor()
+	chargeusagebasedDescNamespace := chargeusagebasedMixinFields0[20].Descriptor()
 	// chargeusagebased.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargeusagebased.NamespaceValidator = chargeusagebasedDescNamespace.Validators[0].(func(string) error)
 	// chargeusagebasedDescCreatedAt is the schema descriptor for created_at field.
-	chargeusagebasedDescCreatedAt := chargeusagebasedMixinFields0[21].Descriptor()
+	chargeusagebasedDescCreatedAt := chargeusagebasedMixinFields0[22].Descriptor()
 	// chargeusagebased.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargeusagebased.DefaultCreatedAt = chargeusagebasedDescCreatedAt.Default.(func() time.Time)
 	// chargeusagebasedDescUpdatedAt is the schema descriptor for updated_at field.
-	chargeusagebasedDescUpdatedAt := chargeusagebasedMixinFields0[22].Descriptor()
+	chargeusagebasedDescUpdatedAt := chargeusagebasedMixinFields0[23].Descriptor()
 	// chargeusagebased.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargeusagebased.DefaultUpdatedAt = chargeusagebasedDescUpdatedAt.Default.(func() time.Time)
 	// chargeusagebased.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -1411,7 +1423,7 @@ func init() {
 	chargeusagebasedDescUnitConfig := chargeusagebasedFields[8].Descriptor()
 	chargeusagebased.ValueScanner.UnitConfig = chargeusagebasedDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
 	// chargeusagebasedDescID is the schema descriptor for id field.
-	chargeusagebasedDescID := chargeusagebasedMixinFields0[18].Descriptor()
+	chargeusagebasedDescID := chargeusagebasedMixinFields0[19].Descriptor()
 	// chargeusagebased.DefaultID holds the default value on creation for the id field.
 	chargeusagebased.DefaultID = chargeusagebasedDescID.Default.(func() string)
 	chargeusagebasedoverrideMixin := schema.ChargeUsageBasedOverride{}.Mixin()
@@ -1626,28 +1638,32 @@ func init() {
 	chargessearchv1DescCustomerID := chargessearchv1Fields[2].Descriptor()
 	// chargessearchv1.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	chargessearchv1.CustomerIDValidator = chargessearchv1DescCustomerID.Validators[0].(func(string) error)
-	// chargessearchv1DescCurrency is the schema descriptor for currency field.
-	chargessearchv1DescCurrency := chargessearchv1Fields[11].Descriptor()
-	// chargessearchv1.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	chargessearchv1.CurrencyValidator = chargessearchv1DescCurrency.Validators[0].(func(string) error)
+	// chargessearchv1DescFiatCurrencyCode is the schema descriptor for fiat_currency_code field.
+	chargessearchv1DescFiatCurrencyCode := chargessearchv1Fields[11].Descriptor()
+	// chargessearchv1.FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	chargessearchv1.FiatCurrencyCodeValidator = chargessearchv1DescFiatCurrencyCode.Validators[0].(func(string) error)
+	// chargessearchv1DescCustomCurrencyID is the schema descriptor for custom_currency_id field.
+	chargessearchv1DescCustomCurrencyID := chargessearchv1Fields[12].Descriptor()
+	// chargessearchv1.CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	chargessearchv1.CustomCurrencyIDValidator = chargessearchv1DescCustomCurrencyID.Validators[0].(func(string) error)
 	// chargessearchv1DescTaxCodeID is the schema descriptor for tax_code_id field.
-	chargessearchv1DescTaxCodeID := chargessearchv1Fields[17].Descriptor()
+	chargessearchv1DescTaxCodeID := chargessearchv1Fields[18].Descriptor()
 	// chargessearchv1.TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
 	chargessearchv1.TaxCodeIDValidator = chargessearchv1DescTaxCodeID.Validators[0].(func(string) error)
 	// chargessearchv1DescID is the schema descriptor for id field.
-	chargessearchv1DescID := chargessearchv1Fields[20].Descriptor()
+	chargessearchv1DescID := chargessearchv1Fields[21].Descriptor()
 	// chargessearchv1.DefaultID holds the default value on creation for the id field.
 	chargessearchv1.DefaultID = chargessearchv1DescID.Default.(func() string)
 	// chargessearchv1DescNamespace is the schema descriptor for namespace field.
-	chargessearchv1DescNamespace := chargessearchv1Fields[21].Descriptor()
+	chargessearchv1DescNamespace := chargessearchv1Fields[22].Descriptor()
 	// chargessearchv1.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargessearchv1.NamespaceValidator = chargessearchv1DescNamespace.Validators[0].(func(string) error)
 	// chargessearchv1DescCreatedAt is the schema descriptor for created_at field.
-	chargessearchv1DescCreatedAt := chargessearchv1Fields[23].Descriptor()
+	chargessearchv1DescCreatedAt := chargessearchv1Fields[24].Descriptor()
 	// chargessearchv1.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargessearchv1.DefaultCreatedAt = chargessearchv1DescCreatedAt.Default.(func() time.Time)
 	// chargessearchv1DescUpdatedAt is the schema descriptor for updated_at field.
-	chargessearchv1DescUpdatedAt := chargessearchv1Fields[24].Descriptor()
+	chargessearchv1DescUpdatedAt := chargessearchv1Fields[25].Descriptor()
 	// chargessearchv1.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargessearchv1.DefaultUpdatedAt = chargessearchv1DescUpdatedAt.Default.(func() time.Time)
 	// chargessearchv1.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

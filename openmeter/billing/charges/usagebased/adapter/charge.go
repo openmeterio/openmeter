@@ -81,7 +81,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			dbUpdatedChargeBase.Edges.IntentOverride = intentOverride
 		}
 
-		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
+		return MapChargeBaseFromDB(dbUpdatedChargeBase, baseIntent.Currency)
 	})
 }
 
@@ -110,7 +110,11 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebase
 		}
 
 		overrideLayer := charge.Intent.GetOverrideLayerMutableFields()
-		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
+		mappedChargeBase, err := MapChargeBaseFromDB(updatedChargeBase, charge.Intent.GetBaseIntent().Currency)
+		if err != nil {
+			return usagebased.Charge{}, err
+		}
+		charge.ChargeBase = mappedChargeBase
 		charge.Intent = usagebased.NewOverridableIntent(charge.Intent.GetBaseIntent(), overrideLayer)
 
 		return charge, nil
@@ -196,8 +200,8 @@ func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateCharges
 			return nil, metaadapter.MapChargeConstraintError(err)
 		}
 
-		return slicesx.MapWithErr(entities, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
-			return MapChargeFromDB(entity, meta.ExpandNone)
+		return lo.MapErr(entities, func(entity *db.ChargeUsageBased, idx int) (usagebased.Charge, error) {
+			return FromDBChargeUsageBasedWithCurrency(entity, in.Intents[idx].Intent.GetBaseIntent().Currency, meta.ExpandNone)
 		})
 	})
 }
@@ -212,7 +216,8 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			// Note: we are skipping the namespace filter here to allow multi-namespace expansions as needed, but InIDOrder filters for namespaces.
 			Where(dbchargeusagebased.Namespace(input.Namespace)).
 			Where(dbchargeusagebased.IDIn(input.IDs...)).
-			WithIntentOverride()
+			WithIntentOverride().
+			WithCustomCurrency()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query, input.Expands)
@@ -257,7 +262,8 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 		query := tx.db.ChargeUsageBased.Query().
 			Where(dbchargeusagebased.Namespace(input.ChargeID.Namespace)).
 			Where(dbchargeusagebased.ID(input.ChargeID.ID)).
-			WithIntentOverride()
+			WithIntentOverride().
+			WithCustomCurrency()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query, input.Expands)

@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -15,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // flatFeeHandler maps charge lifecycle events to ledger transaction templates
@@ -53,6 +53,10 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 	intent := input.Charge.Intent
 	taxConfig := intent.GetTaxConfig()
 
+	if intent.GetCurrency().IsCustom() {
+		return nil, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
@@ -68,7 +72,7 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: intent.GetEffectiveInvoiceAt(),
-		Currency:          intent.GetCurrency(),
+		Currency:          intent.GetCurrency().GetCode(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
 		SettlementMode:    intent.GetSettlementMode(),
@@ -102,6 +106,10 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 	intent := input.Charge.Intent
 	taxConfig := intent.GetTaxConfig()
 
+	if intent.GetCurrency().IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
@@ -125,7 +133,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 		transactions.TransferCustomerReceivableToAccruedTemplate{
 			At:            input.BookedAt,
 			Amount:        amount,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().GetCode(),
 			TaxCode:       lo.ToPtr(taxConfig.TaxCodeID),
 			TaxBehavior:   (*ledger.TaxBehavior)(taxConfig.Behavior),
 			CostBasis:     invoiceCostBasis,
@@ -159,11 +167,10 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
 	intent := input.Charge.Intent
 
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(intent.GetCurrency()).
-		Build()
-	if err != nil {
-		return nil, fmt.Errorf("get currency calculator: %w", err)
+	currency := intent.GetCurrency()
+
+	if currency.IsCustom() {
+		return nil, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
 	if err := input.ValidateWith(currency); err != nil {
@@ -194,6 +201,10 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 
 	intent := input.Charge.Intent
 
+	if intent.GetCurrency().IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
 		ID:        intent.GetCustomerID(),
@@ -210,7 +221,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:            input.EventAt,
 			Amount:        input.Amount,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().GetCode(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},
@@ -250,6 +261,10 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 
 	intent := input.Charge.Intent
 
+	if intent.GetCurrency().IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
 		ID:        intent.GetCustomerID(),
@@ -266,7 +281,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:            input.EventAt,
 			Amount:        input.Amount,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().GetCode(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},

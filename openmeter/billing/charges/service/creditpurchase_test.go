@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -223,7 +224,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveSettlement
 				Intent: meta.Intent{
 					ManagedBy:  billing.ManuallyManagedLine,
 					CustomerID: cust.ID,
-					Currency:   USD,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -300,7 +301,7 @@ func CreateCreditPurchaseIntent(t *testing.T, input createCreditPurchaseIntentIn
 		Intent: meta.Intent{
 			ManagedBy:  billing.ManuallyManagedLine,
 			CustomerID: input.customer.ID,
-			Currency:   input.currency,
+			Currency:   currenciestestutils.NewFiatCurrency(t, input.currency),
 		},
 		IntentMutableFields: creditpurchase.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{

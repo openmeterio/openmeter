@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -22,12 +23,27 @@ import (
 )
 
 func MapChargeFromDB(entity *entdb.ChargeUsageBased, expands meta.Expands) (usagebased.Charge, error) {
-	chargeBase := MapChargeBaseFromDB(entity)
+	chargeMeta, err := chargemeta.FromDBChargeWithCurrencyEdge(entity, entity.Edges)
+	if err != nil {
+		return usagebased.Charge{}, fmt.Errorf("mapping usage based charge meta [id=%s]: %w", entity.ID, err)
+	}
 
+	return mapChargeFromDB(entity, chargeMeta, expands)
+}
+
+func FromDBChargeUsageBasedWithCurrency(entity *entdb.ChargeUsageBased, currency currencies.Currency, expands meta.Expands) (usagebased.Charge, error) {
+	chargeMeta, err := chargemeta.FromDBCharge(entity, currency)
+	if err != nil {
+		return usagebased.Charge{}, fmt.Errorf("mapping usage based charge meta [id=%s]: %w", entity.ID, err)
+	}
+
+	return mapChargeFromDB(entity, chargeMeta, expands)
+}
+
+func mapChargeFromDB(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge, expands meta.Expands) (usagebased.Charge, error) {
 	var realizations usagebased.RealizationRuns
 	if expands.Has(meta.ExpandRealizations) {
 		var err error
-
 		realizations, err = MapRealizationRunsFromDB(entity)
 		if err != nil {
 			return usagebased.Charge{}, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
@@ -35,13 +51,21 @@ func MapChargeFromDB(entity *entdb.ChargeUsageBased, expands meta.Expands) (usag
 	}
 
 	return usagebased.Charge{
-		ChargeBase:   chargeBase,
+		ChargeBase:   mapChargeBaseFromDB(entity, chargeMeta),
 		Realizations: realizations,
 	}, nil
 }
 
-func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
-	chargeMeta := chargemeta.MapFromDB(entity)
+func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased, currency currencies.Currency) (usagebased.ChargeBase, error) {
+	chargeMeta, err := chargemeta.FromDBCharge(entity, currency)
+	if err != nil {
+		return usagebased.ChargeBase{}, fmt.Errorf("mapping charge meta: %w", err)
+	}
+
+	return mapChargeBaseFromDB(entity, chargeMeta), nil
+}
+
+func mapChargeBaseFromDB(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge) usagebased.ChargeBase {
 	intent := usagebased.Intent{
 		Intent:     chargeMeta.Intent,
 		FeatureKey: entity.FeatureKey,

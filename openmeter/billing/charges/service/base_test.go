@@ -29,6 +29,7 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -262,7 +263,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		ManagedBy:         input.managedBy,
 		UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
 		CustomerID:        input.customer.ID,
-		Currency:          input.currency,
+		Currency:          currenciestestutils.NewFiatCurrency(s.T(), input.currency),
 		TaxConfig:         input.taxConfig,
 	}
 	intentMutableFields := meta.IntentMutableFields{

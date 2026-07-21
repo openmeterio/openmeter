@@ -9,8 +9,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -21,7 +21,7 @@ type Intent struct {
 
 	Annotations models.Annotations `json:"annotations"`
 
-	Currency  currencyx.Code               `json:"currency"`
+	Currency  currencies.Currency          `json:"-"`
 	TaxConfig productcatalog.TaxCodeConfig `json:"taxConfig"`
 
 	UniqueReferenceID *string                `json:"childUniqueReferenceID"`
@@ -34,6 +34,7 @@ func (i Intent) Clone() Intent {
 	// Keep intent cloning infallible for developer ergonomics; annotations are
 	// only shallow-cloned here so GetEffectiveIntent does not need an error return.
 	out.Annotations = maps.Clone(i.Annotations)
+	out.Currency = i.Currency.Clone()
 
 	if i.UniqueReferenceID != nil {
 		out.UniqueReferenceID = lo.ToPtr(*i.UniqueReferenceID)

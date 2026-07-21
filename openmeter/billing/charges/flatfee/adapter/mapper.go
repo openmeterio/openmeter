@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -25,8 +26,26 @@ import (
 
 // MapFlatFeeChargeFromDB converts a DB Charge entity (with loaded FlatFee edge) to a FlatFeeCharge.
 func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (flatfee.Charge, error) {
+	mappedMeta, err := chargemeta.FromDBChargeWithCurrencyEdge(entity, entity.Edges)
+	if err != nil {
+		return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge meta [id=%s]: %w", entity.ID, err)
+	}
+
+	return mapChargeFlatFeeFromDB(entity, mappedMeta, expands)
+}
+
+func FromDBChargeFlatFeeWithCurrency(entity *entdb.ChargeFlatFee, currency currencies.Currency, expands meta.Expands) (flatfee.Charge, error) {
+	mappedMeta, err := chargemeta.FromDBCharge(entity, currency)
+	if err != nil {
+		return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge meta [id=%s]: %w", entity.ID, err)
+	}
+
+	return mapChargeFlatFeeFromDB(entity, mappedMeta, expands)
+}
+
+func mapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge, expands meta.Expands) (flatfee.Charge, error) {
 	charge := flatfee.Charge{
-		ChargeBase: MapChargeBaseFromDB(entity),
+		ChargeBase: mapChargeBaseFromDB(entity, mappedMeta),
 	}
 
 	if expands.Has(meta.ExpandRealizations) {
@@ -129,13 +148,20 @@ func sortDetailedLines(lines flatfee.DetailedLines) {
 	slices.SortStableFunc(lines, stddetailedline.Compare[flatfee.DetailedLine])
 }
 
-func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
+func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee, currency currencies.Currency) (flatfee.ChargeBase, error) {
+	mappedMeta, err := chargemeta.FromDBCharge(entity, currency)
+	if err != nil {
+		return flatfee.ChargeBase{}, fmt.Errorf("mapping charge meta: %w", err)
+	}
+
+	return mapChargeBaseFromDB(entity, mappedMeta), nil
+}
+
+func mapChargeBaseFromDB(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge) flatfee.ChargeBase {
 	var percentageDiscounts *billing.PercentageDiscount
 	if entity.Discounts != nil {
 		percentageDiscounts = entity.Discounts.Percentage
 	}
-
-	mappedMeta := chargemeta.MapFromDB(entity)
 
 	return flatfee.ChargeBase{
 		ManagedResource: mappedMeta.ManagedResource,

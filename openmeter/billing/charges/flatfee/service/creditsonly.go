@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
@@ -91,12 +90,7 @@ func (s *CreditsOnlyStateMachine) AdvanceAfterBookedAt(ctx context.Context) erro
 }
 
 func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(s.Charge.Intent.GetCurrency()).
-		Build()
-	if err != nil {
-		return fmt.Errorf("get currency calculator: %w", err)
-	}
+	currency := s.Charge.Intent.GetCurrency()
 
 	amount := currency.RoundToPrecision(s.Charge.State.AmountAfterProration)
 
@@ -195,12 +189,7 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context
 		return nil
 	}
 
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(s.Charge.Intent.GetCurrency()).
-		Build()
-	if err != nil {
-		return fmt.Errorf("get currency calculator: %w", err)
-	}
+	currency := s.Charge.Intent.GetCurrency()
 
 	amount = currency.RoundToPrecision(amount)
 	servicePeriod := s.Charge.Intent.GetEffectiveServicePeriod()
@@ -260,12 +249,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 	s.Charge.Status = flatfee.StatusDeleted
 
 	if patch.GetPolicy().CreditRefundPolicy == meta.CreditRefundPolicyCorrect && s.Charge.Realizations.CurrentRun != nil {
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(s.Charge.Intent.GetCurrency()).
-			Build()
-		if err != nil {
-			return fmt.Errorf("get currency calculator: %w", err)
-		}
+		currency := s.Charge.Intent.GetCurrency()
 
 		if _, err := s.Realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
 			Charge:             s.Charge,

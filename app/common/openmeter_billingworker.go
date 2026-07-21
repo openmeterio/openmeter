@@ -31,6 +31,7 @@ var BillingWorker = wire.NewSet(
 	App,
 	Customer,
 	Secret,
+	Currency,
 
 	BillingWorkerProvisionTopics,
 	BillingWorkerSubscriber,

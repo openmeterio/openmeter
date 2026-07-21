@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -343,7 +344,7 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 				Intent: chargemeta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: env.CustomerID.ID,
-					Currency:   env.Currency,
+					Currency:   currenciestestutils.NewFiatCurrency(t, env.Currency),
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: env.taxCodeID,
 					},
@@ -807,7 +808,7 @@ func TestIsPendingCreditGrantAt(t *testing.T) {
 				Intent: creditpurchase.Intent{
 					Intent: chargemeta.Intent{
 						CustomerID: "customer-id",
-						Currency:   currency,
+						Currency:   currenciestestutils.NewFiatCurrency(t, currency),
 					},
 					IntentMutableFields: creditpurchase.IntentMutableFields{
 						IntentMutableFields: chargemeta.IntentMutableFields{

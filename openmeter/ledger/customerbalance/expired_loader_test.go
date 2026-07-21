@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -668,7 +669,7 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 			Intent: chargemeta.Intent{
 				ManagedBy:  billing.SubscriptionManagedLine,
 				CustomerID: e.CustomerID.ID,
-				Currency:   e.Currency,
+				Currency:   currenciestestutils.NewFiatCurrency(t, e.Currency),
 				TaxConfig: productcatalog.TaxCodeConfig{
 					TaxCodeID: e.taxCodeID,
 				},

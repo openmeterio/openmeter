@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -53,8 +54,10 @@ type ChargeCreditPurchase struct {
 	Status meta.ChargeStatus `json:"status,omitempty"`
 	// UniqueReferenceID holds the value of the "unique_reference_id" field.
 	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
+	FiatCurrencyCode *currencyx.Code `json:"fiat_currency_code,omitempty"`
+	// CustomCurrencyID holds the value of the "custom_currency_id" field.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
@@ -129,9 +132,11 @@ type ChargeCreditPurchaseEdges struct {
 	Customer *Customer `json:"customer,omitempty"`
 	// TaxCode holds the value of the tax_code edge.
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
+	// CustomCurrency holds the value of the custom_currency edge.
+	CustomCurrency *CustomCurrency `json:"custom_currency,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [10]bool
 }
 
 // ExternalPaymentOrErr returns the ExternalPayment value or an error if the edge
@@ -233,6 +238,17 @@ func (e ChargeCreditPurchaseEdges) TaxCodeOrErr() (*TaxCode, error) {
 	return nil, &NotLoadedError{edge: "tax_code"}
 }
 
+// CustomCurrencyOrErr returns the CustomCurrency value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) CustomCurrencyOrErr() (*CustomCurrency, error) {
+	if e.CustomCurrency != nil {
+		return e.CustomCurrency, nil
+	} else if e.loadedTypes[9] {
+		return nil, &NotFoundError{label: customcurrency.Label}
+	}
+	return nil, &NotLoadedError{edge: "custom_currency"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -246,7 +262,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(pq.StringArray)
 		case chargecreditpurchase.FieldPriority:
 			values[i] = new(sql.NullInt64)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed, chargecreditpurchase.FieldKey:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldFiatCurrencyCode, chargecreditpurchase.FieldCustomCurrencyID, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed, chargecreditpurchase.FieldKey:
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldExpiresAt, chargecreditpurchase.FieldVoidedAt:
 			values[i] = new(sql.NullTime)
@@ -328,11 +344,19 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				_m.UniqueReferenceID = new(string)
 				*_m.UniqueReferenceID = value.String
 			}
-		case chargecreditpurchase.FieldCurrency:
+		case chargecreditpurchase.FieldFiatCurrencyCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
+				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.FiatCurrencyCode = new(currencyx.Code)
+				*_m.FiatCurrencyCode = currencyx.Code(value.String)
+			}
+		case chargecreditpurchase.FieldCustomCurrencyID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyID = new(string)
+				*_m.CustomCurrencyID = value.String
 			}
 		case chargecreditpurchase.FieldManagedBy:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -552,6 +576,11 @@ func (_m *ChargeCreditPurchase) QueryTaxCode() *TaxCodeQuery {
 	return NewChargeCreditPurchaseClient(_m.config).QueryTaxCode(_m)
 }
 
+// QueryCustomCurrency queries the "custom_currency" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QueryCustomCurrency() *CustomCurrencyQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QueryCustomCurrency(_m)
+}
+
 // Update returns a builder for updating this ChargeCreditPurchase.
 // Note that you need to call ChargeCreditPurchase.Unwrap() before calling this method if this ChargeCreditPurchase
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -604,8 +633,15 @@ func (_m *ChargeCreditPurchase) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	if v := _m.FiatCurrencyCode; v != nil {
+		builder.WriteString("fiat_currency_code=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyID; v != nil {
+		builder.WriteString("custom_currency_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("managed_by=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))

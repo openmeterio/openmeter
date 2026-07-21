@@ -74,7 +74,7 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge usagebased.Ch
 
 		dbCharge.Edges.IntentOverride = dbIntentOverride
 
-		return MapChargeBaseFromDB(dbCharge), nil
+		return MapChargeBaseFromDB(dbCharge, charge.Intent.GetBaseIntent().Currency)
 	})
 }
 

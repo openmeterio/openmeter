@@ -77,7 +77,7 @@ func NewDetailedLinesFromBilling(
 				}),
 				ServicePeriod:          period,
 				Index:                  lo.ToPtr(idx),
-				Currency:               intent.Currency,
+				Currency:               intent.Intent.Currency.GetCode(),
 				ChildUniqueReferenceID: line.ChildUniqueReferenceID,
 				PaymentTerm:            lo.CoalesceOrEmpty(line.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 				PerUnitAmount:          line.PerUnitAmount,

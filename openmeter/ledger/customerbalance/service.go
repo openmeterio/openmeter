@@ -497,7 +497,11 @@ func (s *service) getPendingGrantCurrencies(
 			continue
 		}
 
-		codes = append(codes, creditPurchaseCharge.Intent.Currency)
+		if creditPurchaseCharge.Intent.Currency.IsCustom() {
+			return nil, fmt.Errorf("credit purchase charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+		}
+
+		codes = append(codes, creditPurchaseCharge.Intent.Currency.GetCode())
 	}
 
 	return dedupeCurrencies(codes), nil
@@ -522,7 +526,7 @@ func (s *service) getPendingGrantAmount(
 			return alpacadecimal.Zero, fmt.Errorf("map credit purchase charge: %w", err)
 		}
 
-		if creditPurchaseCharge.Intent.Currency != currency {
+		if creditPurchaseCharge.Intent.Currency.GetCode() != currency {
 			continue
 		}
 
@@ -696,8 +700,12 @@ func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency curren
 		return nil, fmt.Errorf("map flat fee charge: %w", err)
 	}
 
-	if flatFeeCharge.Intent.GetCurrency() != currency {
+	if flatFeeCharge.Intent.GetCurrency().GetCode() != currency {
 		return nil, nil
+	}
+
+	if flatFeeCharge.Intent.GetCurrency().IsCustom() {
+		return nil, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
 	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.GetFeatureKey()) {
@@ -713,8 +721,12 @@ func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, c
 		return nil, fmt.Errorf("map usage based charge: %w", err)
 	}
 
-	if usageBasedCharge.Intent.GetCurrency() != currency {
+	if usageBasedCharge.Intent.GetCurrency().GetCode() != currency {
 		return nil, nil
+	}
+
+	if usageBasedCharge.Intent.GetCurrency().IsCustom() {
+		return nil, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
 	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.GetFeatureKey()) {

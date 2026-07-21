@@ -2,7 +2,6 @@ package charges
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -15,7 +14,7 @@ import (
 )
 
 type (
-	CreateCustomerChargesRequest  = billingcharges.CreateInput
+	CreateCustomerChargesRequest  = billingcharges.CreateCustomerChargeInput
 	CreateCustomerChargesResponse = api.BillingCharge
 	CreateCustomerChargesParams   struct {
 		CustomerID api.ULID
@@ -29,10 +28,6 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return CreateCustomerChargesRequest{}, err
-			}
-
-			input := billingcharges.CreateInput{
-				Namespace: ns,
 			}
 
 			body := api.CreateCustomerChargesJSONRequestBody{}
@@ -51,6 +46,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				})
 			}
 
+			var input billingcharges.CreateCustomerChargeInput
 			switch discriminator {
 			case string(api.BillingChargeFlatFeeTypeFlatFee):
 				flatFee, err := body.AsCreateChargeFlatFeeRequest()
@@ -64,7 +60,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 					})
 				}
 
-				intent, err := convertFlatFeeChargeAPIToIntent(param.CustomerID, flatFee)
+				input, err = fromAPICreateChargeFlatFeeRequest(ns, param.CustomerID, flatFee)
 				if err != nil {
 					return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
@@ -74,8 +70,6 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 						},
 					})
 				}
-
-				input.Intents = append(input.Intents, intent)
 			case string(api.BillingChargeUsageBasedTypeUsageBased):
 				usageBasedFee, err := body.AsCreateChargeUsageBasedRequest()
 				if err != nil {
@@ -88,7 +82,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 					})
 				}
 
-				intent, err := convertUsageBaseChargeAPIToIntent(param.CustomerID, usageBasedFee)
+				input, err = fromAPICreateChargeUsageBasedRequest(ns, param.CustomerID, usageBasedFee)
 				if err != nil {
 					return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
@@ -98,8 +92,6 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 						},
 					})
 				}
-
-				input.Intents = append(input.Intents, intent)
 			default:
 				err := fmt.Errorf("invalid charge type: %s", discriminator)
 				return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
@@ -124,17 +116,12 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 			return input, nil
 		},
 		func(ctx context.Context, request CreateCustomerChargesRequest) (CreateCustomerChargesResponse, error) {
-			res, err := h.service.Create(ctx, request)
+			charge, err := h.service.CreateCustomerCharge(ctx, request)
 			if err != nil {
 				return CreateCustomerChargesResponse{}, err
 			}
-			if len(res) < 1 {
-				return CreateCustomerChargesResponse{}, errors.New("no charge created")
-			}
-			if len(res) > 1 {
-				return CreateCustomerChargesResponse{}, errors.New("too many results")
-			}
-			return convertChargeToAPI(res[0])
+
+			return convertChargeToAPI(charge)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerChargesResponse](http.StatusCreated),
 		httptransport.AppendOptions(

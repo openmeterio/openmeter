@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	dbcustomcurrency "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -52,11 +53,11 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 			return creditpurchase.ChargeBase{}, err
 		}
 
-		return MapChargeBaseFromDB(dbCreditPurchase), nil
+		return MapChargeBaseFromDB(dbCreditPurchase, charge.Intent.Currency)
 	})
 }
 
-func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChargeInput) (creditpurchase.Charge, error) {
+func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInput) (creditpurchase.Charge, error) {
 	if err := in.Validate(); err != nil {
 		return creditpurchase.Charge{}, err
 	}
@@ -109,25 +110,25 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 			return creditpurchase.Charge{}, err
 		}
 
-		return MapCreditPurchaseChargeFromDB(dbCreditPurchase, meta.ExpandNone)
+		return FromDBChargeCreditPurchaseWithCurrency(dbCreditPurchase, in.Intent.Currency, meta.ExpandNone)
 	})
 }
 
-func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoidedInput) (creditpurchase.ChargeBase, error) {
+func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoidedAdapterInput) (creditpurchase.ChargeBase, error) {
 	if err := input.Validate(); err != nil {
 		return creditpurchase.ChargeBase{}, err
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.ChargeBase, error) {
-		dbCreditPurchase, err := tx.db.ChargeCreditPurchase.UpdateOneID(input.ChargeID.ID).
-			Where(dbchargecreditpurchase.NamespaceEQ(input.ChargeID.Namespace)).
+		dbCreditPurchase, err := tx.db.ChargeCreditPurchase.UpdateOneID(input.Charge.ID).
+			Where(dbchargecreditpurchase.NamespaceEQ(input.Charge.Namespace)).
 			SetVoidedAt(input.VoidedAt).
 			Save(ctx)
 		if err != nil {
-			return creditpurchase.ChargeBase{}, fmt.Errorf("marking credit purchase charge voided [id=%s]: %w", input.ChargeID.ID, err)
+			return creditpurchase.ChargeBase{}, fmt.Errorf("marking credit purchase charge voided [id=%s]: %w", input.Charge.ID, err)
 		}
 
-		return MapChargeBaseFromDB(dbCreditPurchase), nil
+		return MapChargeBaseFromDB(dbCreditPurchase, input.Charge.Intent.Currency)
 	})
 }
 
@@ -204,7 +205,16 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 		}
 
 		if len(input.Currencies) > 0 {
-			query = query.Where(dbchargecreditpurchase.CurrencyIn(input.Currencies...))
+			query = query.Where(
+				dbchargecreditpurchase.Or(
+					dbchargecreditpurchase.FiatCurrencyCodeIn(input.Currencies...),
+					dbchargecreditpurchase.HasCustomCurrencyWith(
+						dbcustomcurrency.CodeIn(input.Currencies...),
+						dbcustomcurrency.Namespace(input.Namespace),
+						dbcustomcurrency.DeletedAtIsNil(),
+					),
+				),
+			)
 		}
 
 		if input.Voided != nil {
@@ -251,6 +261,8 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 }
 
 func withExpands(query *db.ChargeCreditPurchaseQuery, expands meta.Expands) *db.ChargeCreditPurchaseQuery {
+	query = query.WithCustomCurrency()
+
 	if expands.Has(meta.ExpandRealizations) {
 		query = query.WithCreditGrant().WithExternalPayment().WithInvoicedPayment()
 	}

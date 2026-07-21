@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -27,13 +26,6 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			return nil, fmt.Errorf("get feature meter: %w", err)
 		}
 
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(charge.Intent.GetCurrency()).
-			Build()
-		if err != nil {
-			return nil, fmt.Errorf("get currency calculator: %w", err)
-		}
-
 		stateMachine, err := s.newStateMachine(StateMachineConfig{
 			Charge:             charge,
 			Adapter:            s.adapter,
@@ -41,7 +33,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			Runs:               s.runs,
 			CustomerOverride:   input.CustomerOverride,
 			FeatureMeter:       featureMeter,
-			CurrencyCalculator: currency,
+			CurrencyCalculator: charge.Intent.GetCurrency(),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
@@ -228,12 +220,7 @@ func (s *service) getStateMachineConfigForCharge(ctx context.Context, charge usa
 		return StateMachineConfig{}, err
 	}
 
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(charge.Intent.GetCurrency()).
-		Build()
-	if err != nil {
-		return StateMachineConfig{}, fmt.Errorf("get currency calculator: %w", err)
-	}
+	currency := charge.Intent.GetCurrency()
 
 	return StateMachineConfig{
 		Charge:             charge,

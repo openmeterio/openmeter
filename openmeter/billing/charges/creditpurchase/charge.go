@@ -11,9 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -63,7 +63,7 @@ func (c ChargeBase) GetCustomerID() customer.CustomerID {
 	}
 }
 
-func (c ChargeBase) GetCurrency() currencyx.Code {
+func (c ChargeBase) GetCurrency() currencies.Currency {
 	return c.Intent.Currency
 }
 
@@ -145,7 +145,7 @@ func (i Intent) Normalized() Intent {
 	return i
 }
 
-func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFields {
+func (f IntentMutableFields) Normalized(currency currencies.Currency) IntentMutableFields {
 	f.IntentMutableFields = f.IntentMutableFields.Normalized()
 	f.EffectiveAt = meta.NormalizeOptionalTimestamp(f.EffectiveAt)
 	f.ExpiresAt = meta.NormalizeOptionalTimestamp(f.ExpiresAt)
@@ -161,12 +161,7 @@ func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFi
 		f.BillingPeriod = period
 	}
 
-	calc, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(currency).
-		Build()
-	if err == nil {
-		f.CreditAmount = calc.RoundToPrecision(f.CreditAmount)
-	}
+	f.CreditAmount = currency.RoundToPrecision(f.CreditAmount)
 
 	return f
 }
@@ -230,14 +225,18 @@ func (i Intent) Validate() error {
 	switch i.Settlement.Type() {
 	case SettlementTypeInvoice:
 		settlement, err := i.Settlement.AsInvoiceSettlement()
-		if err == nil && settlement.Currency != i.Currency {
-			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
+		if err == nil && settlement.Currency != i.Currency.GetCode() {
+			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency.GetCode()))
 		}
 	case SettlementTypeExternal:
 		settlement, err := i.Settlement.AsExternalSettlement()
-		if err == nil && settlement.Currency != i.Currency {
-			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
+		if err == nil && settlement.Currency != i.Currency.GetCode() {
+			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency.GetCode()))
 		}
+	}
+
+	if i.Key != nil && *i.Key == "" {
+		errs = append(errs, errors.New("key cannot be empty"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

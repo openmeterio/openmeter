@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -57,12 +56,7 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(in BuildCreditThenIn
 		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, err
 	}
 
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(in.Charge.Intent.GetCurrency()).
-		Build()
-	if err != nil {
-		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("get currency calculator: %w", err)
-	}
+	currency := in.Charge.Intent.GetCurrency()
 
 	amountAfterProration, err := invoiceupdater.GetFlatFeePerUnitAmount(&in.Line)
 	if err != nil {

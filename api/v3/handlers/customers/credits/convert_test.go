@@ -11,8 +11,8 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -34,7 +34,7 @@ func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 			Intent: creditpurchase.Intent{
 				Intent: meta.Intent{
 					CustomerID: "cust-1",
-					Currency:   currencyx.Code("USD"),
+					Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -79,7 +79,7 @@ func TestToAPIBillingCreditGrantStatusUsesExpiry(t *testing.T) {
 			Intent: creditpurchase.Intent{
 				Intent: meta.Intent{
 					CustomerID: "cust-1",
-					Currency:   currencyx.Code("USD"),
+					Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
 					CreditAmount: alpacadecimal.RequireFromString("25"),
@@ -151,7 +151,7 @@ func TestToAPIBillingCreditGrantKey(t *testing.T) {
 				Intent: creditpurchase.Intent{
 					Intent: meta.Intent{
 						CustomerID: "cust-1",
-						Currency:   currencyx.Code("USD"),
+						Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 					},
 					IntentMutableFields: creditpurchase.IntentMutableFields{
 						IntentMutableFields: meta.IntentMutableFields{
