@@ -132,7 +132,7 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 		codes = dedupeCurrencies(input.Currencies.Codes)
 
 		for _, code := range codes {
-			if err := code.Validate(); err != nil {
+			if err := ledger.ValidateCurrency(code); err != nil {
 				return nil, fmt.Errorf("currency %q is not supported by ledger: %w", code, err)
 			}
 		}

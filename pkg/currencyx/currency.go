@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
@@ -180,11 +179,13 @@ func (f *FiatCurrency) Validate() error {
 
 	var errs []error
 
-	if f.def == nil || f.def.ISOCode == "" {
-		errs = append(errs, errors.New("invalid fiat currency: empty code"))
-	}
+	if f.def == nil {
+		errs = append(errs, errors.New("fiat currency is not initialized"))
+	} else {
+		if err := validateFiatCurrencyCode(Code(f.def.ISOCode)); err != nil {
+			errs = append(errs, err)
+		}
 
-	if f.def != nil {
 		if f.def.Name == "" {
 			errs = append(errs, errors.New("invalid fiat currency: empty name"))
 		}
@@ -194,10 +195,11 @@ func (f *FiatCurrency) Validate() error {
 }
 
 func newFiatCurrency(code string) (Currency, error) {
-	definition := currency.Get(currency.Code(code))
-	if definition == nil || definition.ISONumeric == "" {
-		return nil, fmt.Errorf("invalid fiat currency code: %s", code)
+	if err := validateFiatCurrencyCode(Code(code)); err != nil {
+		return nil, err
 	}
+
+	definition := currency.Get(currency.Code(code))
 
 	if definition.Subunits > math.MaxInt32 {
 		return nil, fmt.Errorf("value %d overflows int32", definition.Subunits)
@@ -275,12 +277,7 @@ func (c *CustomCurrency) ValidateWith(v ...models.ValidatorFunc[Currency]) error
 	return models.Validate[Currency](c, v...)
 }
 
-const (
-	CustomCurrencyCodeMinLength = 4
-	CustomCurrencyCodeMaxLength = 24
-
-	CustomCurrencyMaxPrecision uint32 = 12
-)
+const CustomCurrencyMaxPrecision uint32 = 12
 
 func (c *CustomCurrency) Validate() error {
 	if c == nil {
@@ -294,24 +291,8 @@ func (c *CustomCurrency) Validate() error {
 	}
 
 	if c.def != nil {
-		if c.def.ISOCode == "" {
-			errs = append(errs, errors.New("code is required"))
-		}
-
-		if len(c.def.ISOCode) != len(strings.TrimSpace(c.def.ISOCode.String())) {
-			errs = append(errs, fmt.Errorf("invalid currency code: cannot contain leading or trailing spaces: %s", c.def.ISOCode))
-		}
-
-		if strings.Contains(c.def.ISOCode.String(), "|") {
-			errs = append(errs, fmt.Errorf("invalid currency code: cannot contain route delimiter: %s", c.def.ISOCode))
-		}
-
-		if fiatDef := currency.Get(c.def.ISOCode); fiatDef != nil {
-			errs = append(errs, fmt.Errorf("currency code %s is a fiat currency", c.def.ISOCode))
-		}
-
-		if cl := len(c.def.ISOCode); cl < CustomCurrencyCodeMinLength || cl > CustomCurrencyCodeMaxLength {
-			errs = append(errs, fmt.Errorf("invalid currency code: it must be between %d and %d characters", CustomCurrencyCodeMinLength, CustomCurrencyCodeMaxLength))
+		if err := validateCustomCurrencyCode(Code(c.def.ISOCode)); err != nil {
+			errs = append(errs, err)
 		}
 
 		if c.def.Name == "" {
