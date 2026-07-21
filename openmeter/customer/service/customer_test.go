@@ -22,19 +22,19 @@ func Test_resolveCustomersByKeyWithPrecedence(t *testing.T) {
 	t.Run("MatchByKey", func(t *testing.T) {
 		resolved := resolveCustomersByKeyWithPrecedence([]customer.Customer{customerA}, []string{"key-a"})
 
-		assert.Equal(t, map[string]customer.Customer{"key-a": customerA}, resolved)
+		assert.Equal(t, map[string]*customer.Customer{"key-a": &customerA}, resolved)
 	})
 
 	t.Run("MatchBySubject", func(t *testing.T) {
 		resolved := resolveCustomersByKeyWithPrecedence([]customer.Customer{customerA}, []string{"subject-a"})
 
-		assert.Equal(t, map[string]customer.Customer{"subject-a": customerA}, resolved)
+		assert.Equal(t, map[string]*customer.Customer{"subject-a": &customerA}, resolved)
 	})
 
-	t.Run("UnmatchedKeyIsAbsent", func(t *testing.T) {
+	t.Run("UnmatchedKeyIsNil", func(t *testing.T) {
 		resolved := resolveCustomersByKeyWithPrecedence([]customer.Customer{customerA}, []string{"no-such-key"})
 
-		assert.Empty(t, resolved)
+		assert.Equal(t, map[string]*customer.Customer{"no-such-key": nil}, resolved)
 	})
 
 	t.Run("KeyOwnerTakesPrecedenceOverDistinctSubjectOwner", func(t *testing.T) {
@@ -55,7 +55,7 @@ func Test_resolveCustomersByKeyWithPrecedence(t *testing.T) {
 			[]string{"shared"},
 		)
 
-		assert.Equal(t, map[string]customer.Customer{"shared": sharedKeyCustomer}, resolved)
+		assert.Equal(t, map[string]*customer.Customer{"shared": &sharedKeyCustomer}, resolved)
 	})
 
 	t.Run("SameCustomerMatchedByOwnKeyAndSubjectKey", func(t *testing.T) {
@@ -69,7 +69,7 @@ func Test_resolveCustomersByKeyWithPrecedence(t *testing.T) {
 
 		resolved := resolveCustomersByKeyWithPrecedence([]customer.Customer{selfMatched}, []string{"dual"})
 
-		assert.Equal(t, map[string]customer.Customer{"dual": selfMatched}, resolved)
+		assert.Equal(t, map[string]*customer.Customer{"dual": &selfMatched}, resolved)
 	})
 
 	t.Run("CrossCollisionResolvesEachKeyToItsOwnKeyOwner", func(t *testing.T) {
@@ -96,9 +96,9 @@ func Test_resolveCustomersByKeyWithPrecedence(t *testing.T) {
 			[]string{"key-1", "key-2"},
 		)
 
-		assert.Equal(t, map[string]customer.Customer{
-			"key-1": crossA,
-			"key-2": crossB,
+		assert.Equal(t, map[string]*customer.Customer{
+			"key-1": &crossA,
+			"key-2": &crossB,
 		}, resolved)
 	})
 }

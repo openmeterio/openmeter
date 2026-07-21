@@ -1458,7 +1458,7 @@ func (n NoopCustomerService) GetCustomerByUsageAttribution(ctx context.Context, 
 	return &customer.Customer{}, nil
 }
 
-func (n NoopCustomerService) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) (map[string]customer.Customer, error) {
+func (n NoopCustomerService) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) (map[string]*customer.Customer, error) {
 	return nil, nil
 }
 

@@ -220,7 +220,7 @@ func Test_CustomerService(t *testing.T) {
 
 // Test_GetCustomersByUsageAttribution protects the bulk method's contract with the same rigor as
 // Test_GetCustomerByUsageAttribution does the single-key one: each input key maps to its customer
-// with key-over-subject precedence, and unmatched keys are simply absent (no error). The predicate
+// with key-over-subject precedence, and unmatched keys are present with a nil value (no error). The predicate
 // itself is covered by the adapter's TestGetCustomersByUsageAttribution, and the fully symmetric
 // {K1,K2} cross-collision by Test_resolveCustomersByKeyWithPrecedence — that state cannot be built
 // through the service here, because CreateCustomer rejects a customer whose key overlaps another
@@ -283,12 +283,12 @@ func Test_GetCustomersByUsageAttribution(t *testing.T) {
 		assert.Equal(t, p.ID, got["shared"].ID, "a direct customer-key match must win over a subject-key match")
 	})
 
-	t.Run("UnmatchedKeysAbsentNoError", func(t *testing.T) {
+	t.Run("UnmatchedKeysNil", func(t *testing.T) {
 		// given:
 		// - a mix of a known key and an unknown one
 		// then:
-		// - the unknown key is simply absent from the map (unlike the single-key method, the bulk
-		//   method does NOT return a not-found error)
+		// - every input key is present in the map; the unknown key has a nil value (unlike the
+		//   single-key method, the bulk method does NOT return a not-found error)
 		known := create(t, "known-key")
 
 		got, err := env.CustomerService.GetCustomersByUsageAttribution(ctx, customer.GetCustomersByUsageAttributionInput{
@@ -296,10 +296,12 @@ func Test_GetCustomersByUsageAttribution(t *testing.T) {
 			Keys:      []string{"known-key", "totally-unknown"},
 		})
 		require.NoError(t, err)
-		require.Len(t, got, 1)
+		require.Len(t, got, 2)
+		require.NotNil(t, got["known-key"])
 		assert.Equal(t, known.ID, got["known-key"].ID)
-		_, ok := got["totally-unknown"]
-		assert.False(t, ok, "unmatched key must be absent from the result map")
+		unknown, ok := got["totally-unknown"]
+		assert.True(t, ok, "every input key must be present in the result map")
+		assert.Nil(t, unknown, "unmatched key must have a nil value")
 	})
 
 	t.Run("EmptyKeysFailsValidation", func(t *testing.T) {

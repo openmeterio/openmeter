@@ -303,9 +303,9 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 
 		// Iterate the input keys in order so matched keys and not-found errors keep input ordering.
 		for _, key := range input.CustomerKeys {
-			cus, ok := keyToCustomer[key]
+			cus := keyToCustomer[key]
 
-			if !ok {
+			if cus == nil {
 				queryErrors = append(queryErrors, governance.QueryError{
 					CustomerKey: key,
 					Code:        governance.QueryErrorCustomerNotFound,
@@ -318,7 +318,7 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 				rc.matched = append(rc.matched, key)
 			} else {
 				customerMap[cus.ID] = &resolvedCustomer{
-					customer: cus,
+					customer: *cus,
 					matched:  []string{key},
 				}
 			}

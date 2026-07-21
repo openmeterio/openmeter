@@ -125,6 +125,8 @@ func BenchmarkCustomersUsageAttributionBulkLookup(b *testing.B) {
 
 	keys := uabench.BulkKeys(customerCount)
 
+	// Count non-nil entries: every input key is present in the result map, with a nil value for
+	// keys that resolved to no customer.
 	get := func(ctx context.Context) (int, error) {
 		resolved, err := svc.GetCustomersByUsageAttribution(ctx, customer.GetCustomersByUsageAttributionInput{
 			Namespace: namespace,
@@ -133,7 +135,13 @@ func BenchmarkCustomersUsageAttributionBulkLookup(b *testing.B) {
 		if err != nil {
 			return 0, err
 		}
-		return len(resolved), nil
+		matched := 0
+		for _, c := range resolved {
+			if c != nil {
+				matched++
+			}
+		}
+		return matched, nil
 	}
 
 	count, err := get(b.Context())

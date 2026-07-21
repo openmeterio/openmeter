@@ -150,19 +150,20 @@ func (s *Service) GetCustomerByUsageAttribution(ctx context.Context, input custo
 		return nil, err
 	}
 
-	c, ok := resolved[input.Key]
-	if !ok {
+	c := resolved[input.Key]
+	if c == nil {
 		return nil, models.NewGenericNotFoundError(
 			fmt.Errorf("customer with subject key %s not found in %s namespace", input.Key, input.Namespace),
 		)
 	}
 
-	return &c, nil
+	return c, nil
 }
 
 // GetCustomersByUsageAttribution resolves multiple customers by usage attribution keys in a single
 // query, mapping each input key to the customer it matches with key-over-subject precedence applied.
-func (s *Service) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) (map[string]customer.Customer, error) {
+// Every input key is present in the returned map; keys that match no customer map to a nil value.
+func (s *Service) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) (map[string]*customer.Customer, error) {
 	if err := input.Validate(); err != nil {
 		return nil, models.NewGenericValidationError(
 			fmt.Errorf("error getting customers by usage attribution: %w", err),
@@ -175,7 +176,7 @@ func (s *Service) GetCustomersByUsageAttribution(ctx context.Context, input cust
 // resolveCustomersByUsageAttribution runs the shared usage-attribution lookup: fetch the raw
 // candidate customers from the adapter, then apply key-over-subject precedence. Both the single-key
 // and bulk service methods route through this so their core resolution stays identical.
-func (s *Service) resolveCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) (map[string]customer.Customer, error) {
+func (s *Service) resolveCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) (map[string]*customer.Customer, error) {
 	customers, err := s.adapter.GetCustomersByUsageAttribution(ctx, input)
 	if err != nil {
 		return nil, err
@@ -188,13 +189,15 @@ func (s *Service) resolveCustomersByUsageAttribution(ctx context.Context, input 
 // either by the customer's own key or by one of its subject keys; when a key matches both a
 // distinct key-owner and a distinct subject-owner, the key-owner takes precedence. Key-over-subject
 // collisions are structurally rare and resolved deterministically here, so they are not surfaced as
-// errors or logs; investigate the underlying data via the database if ever needed. Keys with no
-// match are absent from the returned map.
-func resolveCustomersByKeyWithPrecedence(customers []customer.Customer, keys []string) map[string]customer.Customer {
-	byKey := make(map[string]customer.Customer, len(customers))
-	bySubject := make(map[string]customer.Customer, len(customers))
+// errors or logs; investigate the underlying data via the database if ever needed. Every input key
+// is present in the returned map; keys that match no customer have a nil value.
+func resolveCustomersByKeyWithPrecedence(customers []customer.Customer, keys []string) map[string]*customer.Customer {
+	byKey := make(map[string]*customer.Customer, len(customers))
+	bySubject := make(map[string]*customer.Customer, len(customers))
 
-	for _, c := range customers {
+	for i := range customers {
+		c := &customers[i]
+
 		if c.Key != nil {
 			byKey[*c.Key] = c
 		}
@@ -208,7 +211,7 @@ func resolveCustomersByKeyWithPrecedence(customers []customer.Customer, keys []s
 		}
 	}
 
-	resolved := make(map[string]customer.Customer, len(keys))
+	resolved := make(map[string]*customer.Customer, len(keys))
 
 	for _, k := range keys {
 		if keyOwner, ok := byKey[k]; ok {
@@ -218,7 +221,10 @@ func resolveCustomersByKeyWithPrecedence(customers []customer.Customer, keys []s
 
 		if subjectOwner, ok := bySubject[k]; ok {
 			resolved[k] = subjectOwner
+			continue
 		}
+
+		resolved[k] = nil // present, but no matching customer
 	}
 
 	return resolved
