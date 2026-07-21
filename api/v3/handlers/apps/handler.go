@@ -13,6 +13,7 @@ type Handler interface {
 	// App handlers
 	ListApps() ListAppsHandler
 	GetApp() GetAppHandler
+	UninstallApp() UninstallAppHandler
 
 	CatalogHandler
 }

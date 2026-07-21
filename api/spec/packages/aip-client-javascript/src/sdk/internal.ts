@@ -5,6 +5,14 @@ import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
 import { createSubscriptionAddon } from '../funcs/subscriptions.js'
 import {
+  listApps,
+  getApp,
+  uninstallApp,
+  listAppCatalog,
+  getAppCatalogItem,
+  installApp,
+} from '../funcs/apps.js'
+import {
   listInvoices,
   getInvoice,
   updateInvoice,
@@ -26,6 +34,20 @@ import type {
   CreateSubscriptionAddonRequest,
   CreateSubscriptionAddonResponse,
 } from '../models/operations/subscriptions.js'
+import type {
+  ListAppsRequest,
+  ListAppsResponse,
+  GetAppRequest,
+  GetAppResponse,
+  UninstallAppRequest,
+  UninstallAppResponse,
+  ListAppCatalogRequest,
+  ListAppCatalogResponse,
+  GetAppCatalogItemRequest,
+  GetAppCatalogItemResponse,
+  InstallAppRequest,
+  InstallAppResponse,
+} from '../models/operations/apps.js'
 import type {
   ListInvoicesRequest,
   ListInvoicesResponse,
@@ -60,7 +82,13 @@ import type {
   QueryGovernanceAccessRequest,
   QueryGovernanceAccessResponse,
 } from '../models/operations/governance.js'
-import type { CostBasis, Currency, Invoice } from '../models/types.js'
+import type {
+  App,
+  AppCatalogItem,
+  CostBasis,
+  Currency,
+  Invoice,
+} from '../models/types.js'
 
 /**
  * Operations marked internal in the API definition. They are not part of
@@ -73,6 +101,11 @@ export class Internal {
   private _subscriptions?: InternalSubscriptions
   get subscriptions(): InternalSubscriptions {
     return (this._subscriptions ??= new InternalSubscriptions(this._client))
+  }
+
+  private _apps?: InternalApps
+  get apps(): InternalApps {
+    return (this._apps ??= new InternalApps(this._client))
   }
 
   private _invoices?: InternalInvoices
@@ -106,6 +139,134 @@ export class InternalSubscriptions {
     options?: RequestOptions,
   ): Promise<CreateSubscriptionAddonResponse> {
     return unwrap(await createSubscriptionAddon(this._client, request, options))
+  }
+}
+
+export class InternalApps {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List apps
+   *
+   * List installed apps.
+   *
+   * GET /openmeter/apps
+   */
+  async list(
+    request?: ListAppsRequest,
+    options?: RequestOptions,
+  ): Promise<ListAppsResponse> {
+    return unwrap(await listApps(this._client, request, options))
+  }
+
+  /**
+   * List apps
+   *
+   * List installed apps.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/apps
+   */
+  listAll(
+    request?: ListAppsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<App> {
+    return paginatePages(
+      (req, opts) => listApps(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get app
+   *
+   * Get an installed app.
+   *
+   * GET /openmeter/apps/{appId}
+   */
+  async get(
+    request: GetAppRequest,
+    options?: RequestOptions,
+  ): Promise<GetAppResponse> {
+    return unwrap(await getApp(this._client, request, options))
+  }
+
+  /**
+   * Uninstall app
+   *
+   * Uninstall an app by ID.
+   *
+   * DELETE /openmeter/apps/{appId}
+   */
+  async uninstall(
+    request: UninstallAppRequest,
+    options?: RequestOptions,
+  ): Promise<UninstallAppResponse> {
+    return unwrap(await uninstallApp(this._client, request, options))
+  }
+
+  /**
+   * List app catalog
+   *
+   * List available apps.
+   *
+   * GET /openmeter/app-catalog
+   */
+  async listCatalog(
+    request?: ListAppCatalogRequest,
+    options?: RequestOptions,
+  ): Promise<ListAppCatalogResponse> {
+    return unwrap(await listAppCatalog(this._client, request, options))
+  }
+
+  /**
+   * List app catalog
+   *
+   * List available apps.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/app-catalog
+   */
+  listCatalogAll(
+    request?: ListAppCatalogRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<AppCatalogItem> {
+    return paginatePages(
+      (req, opts) => listAppCatalog(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get app catalog item by type
+   *
+   * Get an app catalog item by type.
+   *
+   * GET /openmeter/app-catalog/{appType}
+   */
+  async getCatalogItem(
+    request: GetAppCatalogItemRequest,
+    options?: RequestOptions,
+  ): Promise<GetAppCatalogItemResponse> {
+    return unwrap(await getAppCatalogItem(this._client, request, options))
+  }
+
+  /**
+   * Install app from the catalog
+   *
+   * Install an app from the catalog.
+   *
+   * POST /openmeter/app-catalog/install
+   */
+  async install(
+    request: InstallAppRequest,
+    options?: RequestOptions,
+  ): Promise<InstallAppResponse> {
+    return unwrap(await installApp(this._client, request, options))
   }
 }
 

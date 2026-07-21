@@ -150,6 +150,10 @@ func (s *Server) GetApp(w http.ResponseWriter, r *http.Request, appId api.ULID) 
 	s.appsHandler.GetApp().With(appId).ServeHTTP(w, r)
 }
 
+func (s *Server) UninstallApp(w http.ResponseWriter, r *http.Request, appId api.ULID) {
+	s.appsHandler.UninstallApp().With(appId).ServeHTTP(w, r)
+}
+
 func (s *Server) ListAppCatalog(w http.ResponseWriter, r *http.Request, params api.ListAppCatalogParams) {
 	s.appsHandler.ListAppCatalog().With(params).ServeHTTP(w, r)
 }

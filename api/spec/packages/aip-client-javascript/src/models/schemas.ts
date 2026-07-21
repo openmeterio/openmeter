@@ -6244,6 +6244,10 @@ export const getAppPathParams = z.object({
 
 export const getAppResponse = app
 
+export const uninstallAppPathParams = z.object({
+  appId: ulid,
+})
+
 export const listAppCatalogQueryParams = z.object({
   page: z
     .object({
@@ -13031,6 +13035,10 @@ export const getAppPathParamsWire = z.object({
 })
 
 export const getAppResponseWire = appWire
+
+export const uninstallAppPathParamsWire = z.object({
+  appId: ulidWire,
+})
 
 export const listAppCatalogQueryParamsWire = z.object({
   page: z

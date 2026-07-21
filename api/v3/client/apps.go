@@ -93,6 +93,25 @@ func (s *AppsService) Get(ctx context.Context, appID string) (*App, error) {
 	return &out, nil
 }
 
+// Uninstall an app by ID.
+func (s *AppsService) Uninstall(ctx context.Context, appID string) error {
+	if appID == "" {
+		return fmt.Errorf("openmeter: %s must not be empty: %w", "appID", ErrEmptyID)
+	}
+
+	path := "/openmeter/apps/{appId}"
+
+	path = replacePathParam(path, "appId", appID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodDelete, path, nil, nil, "", "")
+	if err != nil {
+		return err
+	}
+
+	_, err = s.client.doRaw(req)
+	return err
+}
+
 // List available apps.
 func (s *AppsService) ListCatalog(ctx context.Context, params AppCatalogItemListParams) (*AppCatalogItemPagePaginatedResponse, error) {
 	path := "/openmeter/app-catalog"

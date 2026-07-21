@@ -6,6 +6,7 @@ import { paginatePages } from '../lib/paginate.js'
 import {
   listApps,
   getApp,
+  uninstallApp,
   listAppCatalog,
   getAppCatalogItem,
   installApp,
@@ -15,6 +16,8 @@ import type {
   ListAppsResponse,
   GetAppRequest,
   GetAppResponse,
+  UninstallAppRequest,
+  UninstallAppResponse,
   ListAppCatalogRequest,
   ListAppCatalogResponse,
   GetAppCatalogItemRequest,
@@ -73,6 +76,20 @@ export class Apps {
     options?: RequestOptions,
   ): Promise<GetAppResponse> {
     return unwrap(await getApp(this._client, request, options))
+  }
+
+  /**
+   * Uninstall app
+   *
+   * Uninstall an app by ID.
+   *
+   * DELETE /openmeter/apps/{appId}
+   */
+  async uninstall(
+    request: UninstallAppRequest,
+    options?: RequestOptions,
+  ): Promise<UninstallAppResponse> {
+    return unwrap(await uninstallApp(this._client, request, options))
   }
 
   /**

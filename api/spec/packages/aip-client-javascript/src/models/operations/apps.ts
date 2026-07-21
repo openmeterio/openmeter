@@ -25,6 +25,11 @@ export type GetAppRequest = {
 }
 export type GetAppResponse = App
 
+export type UninstallAppRequest = {
+  appId: string
+}
+export type UninstallAppResponse = void
+
 export interface ListAppCatalogQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
