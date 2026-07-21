@@ -90,6 +90,28 @@ func NewTaxCodeAddonServiceHook(
 	return h, nil
 }
 
+// TaxCodeSubscriptionHook prevents deleting tax codes that are still referenced by subscriptions.
+type TaxCodeSubscriptionHook taxcodehooks.SubscriptionHook
+
+// NewTaxCodeSubscriptionServiceHook builds the subscription-reference hook and registers it
+// on the tax code service. It depends on both the subscription and tax code services so wire constructs
+// it only after both exist, avoiding a construction cycle (subscription already depends on tax code).
+func NewTaxCodeSubscriptionServiceHook(
+	subscriptionServices SubscriptionServiceWithWorkflow,
+	taxCodeService taxcode.Service,
+) (TaxCodeSubscriptionHook, error) {
+	h, err := taxcodehooks.NewSubscriptionHook(taxcodehooks.SubscriptionHookConfig{
+		SubscriptionService: subscriptionServices.Service,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tax code subscription hook: %w", err)
+	}
+
+	taxCodeService.RegisterHooks(h)
+
+	return h, nil
+}
+
 func NewTaxCodeNamespaceHandler(
 	logger *slog.Logger,
 	service taxcode.Service,
