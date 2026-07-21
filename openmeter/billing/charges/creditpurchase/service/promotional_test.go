@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -25,6 +26,10 @@ func TestPromotionalCreditPurchaseStateMachineAdvancesCreatedChargeToFinal(t *te
 	// - the promotional state machine advances until stable
 	// then:
 	// - it grants the promotional credits, backfills lineage, and persists the final status
+	purchasedAt := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(purchasedAt)
+	defer clock.UnFreeze()
+
 	stateMachine, charge, adapter, lineageService := newPromotionalStateMachineTestMachine(
 		t,
 		creditpurchase.StatusCreated,
@@ -37,11 +42,12 @@ func TestPromotionalCreditPurchaseStateMachineAdvancesCreatedChargeToFinal(t *te
 	require.Equal(t, creditpurchase.StatusFinal, advancedCharge.Status)
 	require.Equal(t, creditpurchase.StatusFinal, adapter.updatedBase.Status)
 	require.NotNil(t, advancedCharge.Realizations.CreditGrantRealization)
-	require.NotEmpty(t, advancedCharge.Realizations.CreditGrantRealization.TransactionGroupID)
+	require.Equal(t, "ledger-tx-1", advancedCharge.Realizations.CreditGrantRealization.TransactionGroupID)
+	require.Equal(t, purchasedAt, advancedCharge.Realizations.CreditGrantRealization.Time)
 	require.Equal(t, 1, adapter.createCreditGrantCalls)
 	require.Equal(t, charge.GetChargeID(), adapter.createdGrantChargeID)
 	require.Equal(t, advancedCharge.Realizations.CreditGrantRealization.TransactionGroupID, adapter.createdGrantInput.TransactionGroupID)
-	require.False(t, adapter.createdGrantInput.GrantedAt.IsZero())
+	require.Equal(t, purchasedAt, adapter.createdGrantInput.GrantedAt)
 	lineageService.AssertExpectations(t)
 }
 
@@ -217,7 +223,7 @@ func newPromotionalStateMachineTestMachine(
 				input.CustomerID == charge.Intent.CustomerID &&
 				input.Currency == charge.Intent.Currency &&
 				input.Amount.Equal(charge.Intent.CreditAmount) &&
-				input.BackingTransactionGroupID != ""
+				input.BackingTransactionGroupID == "ledger-tx-1"
 		})).
 		Return(nil).
 		Once()
