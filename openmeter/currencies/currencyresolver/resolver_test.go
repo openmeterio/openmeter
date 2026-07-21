@@ -79,12 +79,14 @@ func TestCurrencyResolver(t *testing.T) {
 			expected      *currencies.Currency
 			expectedType  currencyx.CurrencyType
 			expectedError string
+			validationErr bool
 			notFound      bool
 		}{
 			{
 				name:          "empty reference",
 				ref:           currencies.CurrencyRef{},
-				expectedError: "currency id or code is required",
+				expectedError: "validation error: currency id or code is required",
+				validationErr: true,
 			},
 			{
 				name: "custom currency by id",
@@ -141,6 +143,7 @@ func TestCurrencyResolver(t *testing.T) {
 				switch {
 				case test.expectedError != "":
 					require.EqualError(t, err, test.expectedError)
+					assert.Equal(t, test.validationErr, models.IsGenericValidationError(err))
 					assert.Nil(t, result)
 				case test.notFound:
 					require.Error(t, err)

@@ -23,7 +23,7 @@ func (r CurrencyRef) Validate() error {
 	}
 
 	if r.Code == "" {
-		return errors.New("currency id or code is required")
+		return models.NewNillableGenericValidationError(errors.New("currency id or code is required"))
 	}
 
 	return nil
