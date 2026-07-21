@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	_ fmt.Stringer     = (*Code)(nil)
-	_ models.Validator = (*Code)(nil)
+	_ fmt.Stringer         = (*Code)(nil)
+	_ models.Validator     = (*Code)(nil)
+	_ models.Equaler[Code] = (*Code)(nil)
 )
 
 // Code represents a fiat or custom currency code. Code values used directly as
@@ -26,6 +27,10 @@ const (
 
 func (c Code) String() string {
 	return string(c)
+}
+
+func (c Code) Equal(other Code) bool {
+	return c == other
 }
 
 func (c Code) Validate() error {

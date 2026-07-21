@@ -79,3 +79,43 @@ func TestCodeValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestCodeEqual(t *testing.T) {
+	testCases := []struct {
+		name     string
+		code     currencyx.Code
+		other    currencyx.Code
+		expected bool
+	}{
+		{
+			name:     "same fiat code",
+			code:     "USD",
+			other:    "USD",
+			expected: true,
+		},
+		{
+			name:     "different fiat code",
+			code:     "USD",
+			other:    "EUR",
+			expected: false,
+		},
+		{
+			name:     "same custom code",
+			code:     "CREDITS",
+			other:    "CREDITS",
+			expected: true,
+		},
+		{
+			name:     "case sensitive",
+			code:     "CREDITS",
+			other:    "credits",
+			expected: false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			require.Equal(t, testCase.expected, testCase.code.Equal(testCase.other))
+		})
+	}
+}
