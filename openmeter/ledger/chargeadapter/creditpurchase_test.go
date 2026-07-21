@@ -75,6 +75,68 @@ func TestOnPromotionalCreditPurchase_BacksAdvanceBeforeTopUp(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.washSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(-100)))
 }
 
+func TestOnCreditPurchaseInitiated_PastEffectiveGrantBackdatesAdvanceAttribution(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+
+	// given:
+	// - advance exposure that predates a credit purchase's effective time
+	// - the purchase is materialized after that effective time
+	// when:
+	// - the purchase is initiated
+	// then:
+	// - recording time stays current while every purchase posting is effective in the past
+	recordedAt := env.Now()
+	effectiveAt := recordedAt.Add(-2 * time.Hour)
+	func() {
+		clock.FreezeTime(effectiveAt.Add(-time.Hour))
+		defer clock.UnFreeze()
+		env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
+	}()
+	clock.FreezeTime(recordedAt)
+	defer clock.UnFreeze()
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	effectivePeriod := timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt}
+	charge.Intent.ServicePeriod = effectivePeriod
+	charge.Intent.FullServicePeriod = effectivePeriod
+	charge.Intent.BillingPeriod = effectivePeriod
+
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	bookedAtByTemplate := env.transactionBookedAtByTemplateCode(t, ref.TransactionGroupID)
+	for _, template := range []transactions.TransactionTemplate{
+		transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{},
+		transactions.TranslateCustomerAccruedCostBasisTemplate{},
+		transactions.IssueCustomerReceivableTemplate{},
+	} {
+		bookedAt := bookedAtByTemplate[transactions.TemplateCode(template)]
+		require.Len(t, bookedAt, 1)
+		requireLedgerBookedAtEqual(t, effectiveAt, bookedAt[0])
+	}
+
+	transactionRows, err := env.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(env.Namespace),
+			ledgertransactiondb.GroupID(ref.TransactionGroupID),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, transactionRows)
+	for _, transactionRow := range transactionRows {
+		require.False(t, transactionRow.CreatedAt.Before(recordedAt))
+	}
+
+	require.Equal(t, float64(0), env.sumBalanceAsOf(t, env.unknownReceivableSubAccount(t), effectiveAt).InexactFloat64())
+	require.Equal(t, float64(-100), env.sumBalanceAsOf(t, env.receivableSubAccount(t, costBasis), effectiveAt).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalanceAsOf(t, env.authorizedReceivableSubAccount(t, costBasis), effectiveAt).InexactFloat64())
+	require.Equal(t, float64(40), env.sumBalanceAsOf(t, env.accruedSubAccount(t, costBasis), effectiveAt).InexactFloat64())
+	require.Equal(t, float64(60), env.sumBalanceAsOf(t, env.fboSubAccount(t, costBasis), effectiveAt).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalanceAsOf(t, env.washSubAccount(t, costBasis), effectiveAt).InexactFloat64())
+}
+
 func TestOnCreditPurchaseInitiated_BackfillsOnlyMatchingFeatureAdvances(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
 	env.createAdvanceExposureWithFeatures(t, alpacadecimal.NewFromInt(40), []string{"api-calls"})
@@ -140,12 +202,21 @@ func TestOnCreditPurchaseInitiated(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
 }
 
-func TestOnCreditPurchaseInitiated_UsesServicePeriodEndAsBookedAt(t *testing.T) {
+func TestOnCreditPurchaseInitiated_FutureEffectiveGrantBackfillsAdvanceAtPurchaseTime(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
+
+	// given:
+	// - existing advance and a credit purchase whose remainder becomes effective later
+	// when:
+	// - the materialized charge initiates the purchase now
+	// then:
+	// - advance attribution is booked now while only the remainder is issued later
+	purchasedAt := env.Now()
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
 
 	costBasis := mustDecimal(t, "0.5")
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
-	effectiveAt := charge.CreatedAt.Add(2 * time.Hour)
+	effectiveAt := purchasedAt.Add(2 * time.Hour)
 	effectivePeriod := timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt}
 	charge.Intent.ServicePeriod = effectivePeriod
 	charge.Intent.FullServicePeriod = effectivePeriod
@@ -155,10 +226,71 @@ func TestOnCreditPurchaseInitiated_UsesServicePeriodEndAsBookedAt(t *testing.T) 
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
 
-	for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
-		requireLedgerBookedAtEqual(t, effectiveAt, bookedAt)
-		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
+	bookedAtByTemplate := env.transactionBookedAtByTemplateCode(t, ref.TransactionGroupID)
+	for _, template := range []transactions.TransactionTemplate{
+		transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{},
+		transactions.TranslateCustomerAccruedCostBasisTemplate{},
+	} {
+		bookedAt := bookedAtByTemplate[transactions.TemplateCode(template)]
+		require.Len(t, bookedAt, 1)
+		requireLedgerBookedAtEqual(t, purchasedAt, bookedAt[0])
 	}
+
+	issuanceBookedAt := bookedAtByTemplate[transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{})]
+	require.Len(t, issuanceBookedAt, 1)
+	requireLedgerBookedAtEqual(t, effectiveAt, issuanceBookedAt[0])
+
+	// The backfilled amount is reflected now, but the future remainder is not spendable yet.
+	require.Equal(t, float64(40), env.sumBalanceAsOf(t, env.accruedSubAccount(t, costBasis), purchasedAt).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalanceAsOf(t, env.fboSubAccount(t, costBasis), purchasedAt).InexactFloat64())
+	require.Equal(t, float64(60), env.sumBalanceAsOf(t, env.fboSubAccount(t, costBasis), effectiveAt).InexactFloat64())
+}
+
+func TestOnCreditPurchaseInitiated_SubsequentFuturePurchaseCannotOverAttributeAdvance(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+
+	// given:
+	// - 100 of existing advance and two future-effective purchases of 60 each
+	// when:
+	// - both purchases are initiated now
+	// then:
+	// - the first attributes 60, the second attributes only the remaining 40, and 20 stays future issuance
+	purchasedAt := env.Now()
+	effectiveAt := purchasedAt.Add(2 * time.Hour)
+	effectivePeriod := timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt}
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(100))
+
+	costBasis := mustDecimal(t, "0.5")
+	firstCharge := env.newExternalCharge(alpacadecimal.NewFromInt(60), costBasis)
+	firstCharge.ID = "01JABCDEF0123456789ABCDEFG"
+	firstCharge.Intent.ServicePeriod = effectivePeriod
+	firstCharge.Intent.FullServicePeriod = effectivePeriod
+	firstCharge.Intent.BillingPeriod = effectivePeriod
+
+	secondCharge := env.newExternalCharge(alpacadecimal.NewFromInt(60), costBasis)
+	secondCharge.ID = "01JBCDEF0123456789ABCDEFGH"
+	secondCharge.Intent.ServicePeriod = effectivePeriod
+	secondCharge.Intent.FullServicePeriod = effectivePeriod
+	secondCharge.Intent.BillingPeriod = effectivePeriod
+
+	firstRef, err := env.handler.OnCreditPurchaseInitiated(t.Context(), firstCharge)
+	require.NoError(t, err)
+	secondRef, err := env.handler.OnCreditPurchaseInitiated(t.Context(), secondCharge)
+	require.NoError(t, err)
+
+	require.NotContains(t, env.transactionTemplateCodes(t, firstRef.TransactionGroupID), transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}))
+	secondBookedAtByTemplate := env.transactionBookedAtByTemplateCode(t, secondRef.TransactionGroupID)
+	secondAttributionBookedAt := secondBookedAtByTemplate[transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{})]
+	require.Len(t, secondAttributionBookedAt, 1)
+	requireLedgerBookedAtEqual(t, purchasedAt, secondAttributionBookedAt[0])
+	secondIssuanceBookedAt := secondBookedAtByTemplate[transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{})]
+	require.Len(t, secondIssuanceBookedAt, 1)
+	requireLedgerBookedAtEqual(t, effectiveAt, secondIssuanceBookedAt[0])
+
+	require.Equal(t, float64(0), env.sumBalanceAsOf(t, env.unknownReceivableSubAccount(t), purchasedAt).InexactFloat64())
+	require.Equal(t, float64(100), env.sumBalanceAsOf(t, env.accruedSubAccount(t, costBasis), purchasedAt).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalanceAsOf(t, env.fboSubAccount(t, costBasis), purchasedAt).InexactFloat64())
+	require.Equal(t, float64(20), env.sumBalanceAsOf(t, env.fboSubAccount(t, costBasis), effectiveAt).InexactFloat64())
 }
 
 func TestOnCreditPurchaseInitiated_SeparatesSourceChargeBuckets(t *testing.T) {
@@ -871,6 +1003,32 @@ func (e *creditPurchaseHandlerTestEnv) transactionBookedAtTimes(t *testing.T, gr
 	out := make([]time.Time, 0, len(transactions))
 	for _, tx := range transactions {
 		out = append(out, tx.BookedAt)
+	}
+
+	return out
+}
+
+func (e *creditPurchaseHandlerTestEnv) transactionBookedAtByTemplateCode(t *testing.T, groupID string) map[string][]time.Time {
+	t.Helper()
+
+	transactionRows, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, transactionRows, "expected at least one ledger transaction for group")
+
+	out := make(map[string][]time.Time, len(transactionRows))
+	for _, transactionRow := range transactionRows {
+		code, err := ledger.TransactionTemplateCodeFromAnnotations(transactionRow.Annotations)
+		require.NoError(t, err)
+		out[code] = append(out[code], transactionRow.BookedAt)
 	}
 
 	return out
