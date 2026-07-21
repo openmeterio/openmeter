@@ -141,6 +141,8 @@ func TestCodeType(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			require.Equal(t, testCase.expected, testCase.code.Type())
+			require.Equal(t, testCase.expected == currencyx.CurrencyTypeFiat, testCase.code.IsFiat())
+			require.Equal(t, testCase.expected == currencyx.CurrencyTypeCustom, testCase.code.IsCustom())
 		})
 	}
 }

@@ -41,6 +41,14 @@ func (c Code) Type() CurrencyType {
 	return CurrencyTypeCustom
 }
 
+func (c Code) IsFiat() bool {
+	return c.Type() == CurrencyTypeFiat
+}
+
+func (c Code) IsCustom() bool {
+	return c.Type() == CurrencyTypeCustom
+}
+
 func (c Code) Validate() error {
 	var errs []error
 
