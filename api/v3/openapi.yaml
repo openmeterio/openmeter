@@ -1816,7 +1816,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - Metering Events
-      x-unstable: true
     post:
       operationId: ingest-metering-events
       description: Ingests an event or batch of events following the CloudEvents specification.
@@ -1900,7 +1899,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Features
-      x-unstable: true
     post:
       operationId: create-feature
       summary: Create feature
@@ -1926,7 +1924,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateFeatureRequest'
-      x-unstable: true
   /openmeter/features/{featureId}:
     get:
       operationId: get-feature
@@ -1957,7 +1954,6 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Features
-      x-unstable: true
     patch:
       operationId: update-feature
       summary: Update feature
@@ -1991,7 +1987,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateFeatureRequest'
-      x-unstable: true
     delete:
       operationId: delete-feature
       summary: Delete feature
@@ -2015,7 +2010,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Features
-      x-unstable: true
   /openmeter/features/{featureId}/cost/query:
     post:
       operationId: query-feature-cost
@@ -2385,7 +2379,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateMeterRequest'
-      x-unstable: true
     delete:
       operationId: delete-meter
       summary: Delete meter
@@ -2464,7 +2457,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-      x-unstable: true
       tags:
         - Meters
       requestBody:
