@@ -55,7 +55,10 @@ model AppBase<T extends AppType> {
   /**
    * The app type.
    */
-  @visibility(Lifecycle.Read)
+  // Update-visible so the discriminator survives visibility filtering in
+  // UpdateRequestNested-derived request models; being a single-value enum per
+  // variant, it only echoes the app's immutable type.
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   type: T;
 
   /**
@@ -96,4 +99,20 @@ model AppReference {
    * The ID of the app.
    */
   id: Shared.ULID;
+}
+
+/**
+ * Request to update an installed app.
+ */
+@friendlyName("BillingUpdateAppRequest")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union UpdateAppRequest {
+  @summary("Stripe")
+  stripe: Shared.UpdateRequestNested<AppStripe>,
+
+  @summary("Sandbox")
+  sandbox: Shared.UpdateRequestNested<AppSandbox>,
+
+  @summary("External Invoicing")
+  external_invoicing: Shared.UpdateRequestNested<AppExternalInvoicing>,
 }

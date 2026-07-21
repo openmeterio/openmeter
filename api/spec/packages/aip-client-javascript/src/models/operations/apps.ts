@@ -10,6 +10,7 @@ import type {
   AppPagePaginatedResponse,
   BillingInstallAppResponse,
   InstallAppRequest as InstallAppRequestBody,
+  UpdateAppRequest as UpdateAppRequestBody,
 } from '../types.js'
 
 export interface ListAppsQuery {
@@ -29,6 +30,12 @@ export type UninstallAppRequest = {
   appId: string
 }
 export type UninstallAppResponse = void
+
+export type UpdateAppRequest = AcceptDateStrings<{
+  appId: string
+  body: UpdateAppRequestBody
+}>
+export type UpdateAppResponse = App
 
 export interface ListAppCatalogQuery {
   /** Determines which page of the collection to retrieve. */

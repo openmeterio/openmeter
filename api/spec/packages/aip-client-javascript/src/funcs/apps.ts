@@ -13,6 +13,8 @@ import type {
   GetAppResponse,
   UninstallAppRequest,
   UninstallAppResponse,
+  UpdateAppRequest,
+  UpdateAppResponse,
   ListAppCatalogRequest,
   ListAppCatalogResponse,
   GetAppCatalogItemRequest,
@@ -125,6 +127,50 @@ export function uninstallApp(
       return encodeURIComponent(String(pathParams.appId))
     })()}`
     await http(client).delete(path, options)
+  })
+}
+
+/**
+ * Update app
+ *
+ * Update an installed app.
+ *
+ * PUT /openmeter/apps/{appId}
+ */
+export function updateApp(
+  client: Client,
+  req: UpdateAppRequest,
+  options?: RequestOptions,
+): Promise<Result<UpdateAppResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      appId: req.appId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.updateAppPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.updateAppPathParamsWire, pathParams)
+    }
+    const path = `openmeter/apps/${(() => {
+      if (pathParams.appId === undefined) {
+        throw new Error('missing path parameter: appId')
+      }
+      return encodeURIComponent(String(pathParams.appId))
+    })()}`
+    const body = toWire(req.body, schemas.updateAppBody)
+    if (client._options.validate) {
+      assertValid(schemas.updateAppBodyWire, body)
+    }
+    return http(client)
+      .put(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.updateAppResponseWire, data)
+        }
+        return fromWire(data, schemas.updateAppResponse)
+      })
   })
 }
 

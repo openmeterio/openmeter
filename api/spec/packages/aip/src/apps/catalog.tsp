@@ -141,6 +141,7 @@ model InstallAppWithApiKey<T extends AppType> {
   /**
    * API key for the app.
    */
+  @secret
   api_key: string;
 }
 

@@ -8,6 +8,7 @@ import {
   listApps,
   getApp,
   uninstallApp,
+  updateApp,
   listAppCatalog,
   getAppCatalogItem,
   installApp,
@@ -41,6 +42,8 @@ import type {
   GetAppResponse,
   UninstallAppRequest,
   UninstallAppResponse,
+  UpdateAppRequest,
+  UpdateAppResponse,
   ListAppCatalogRequest,
   ListAppCatalogResponse,
   GetAppCatalogItemRequest,
@@ -205,6 +208,20 @@ export class InternalApps {
     options?: RequestOptions,
   ): Promise<UninstallAppResponse> {
     return unwrap(await uninstallApp(this._client, request, options))
+  }
+
+  /**
+   * Update app
+   *
+   * Update an installed app.
+   *
+   * PUT /openmeter/apps/{appId}
+   */
+  async update(
+    request: UpdateAppRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateAppResponse> {
+    return unwrap(await updateApp(this._client, request, options))
   }
 
   /**

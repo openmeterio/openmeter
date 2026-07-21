@@ -735,6 +735,13 @@ export const appStatus = z
   .enum(['ready', 'unauthorized'])
   .describe('Connection status of an installed app.')
 
+export const updateLabels = z
+  .record(z.string(), z.string())
+
+  .describe(
+    'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
+  )
+
 export const installAppStripeWithApiKey = z
   .object({
     type: z.literal('stripe').describe('Type of the app.'),
@@ -939,13 +946,6 @@ export const invoiceLineExternalReferences = z
 export const invoiceDetailedLineCostCategory = z
   .enum(['regular', 'commitment'])
   .describe('Cost category of a detailed invoice line item.')
-
-export const updateLabels = z
-  .record(z.string(), z.string())
-
-  .describe(
-    'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
-  )
 
 export const updateBillingInvoiceWorkflowInvoicingSettings = z
   .object({
@@ -2877,6 +2877,82 @@ export const appCapability = z
   })
   .describe('App capability describes a function that an App can perform.')
 
+export const updateAppStripeRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: updateLabels.optional(),
+    type: z.literal('stripe').describe('The app type.'),
+    secretApiKey: z
+      .string()
+      .optional()
+      .describe('The Stripe secret API key used to authenticate API requests.'),
+  })
+  .describe('AppStripe update request.')
+
+export const updateAppSandboxRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: updateLabels.optional(),
+    type: z.literal('sandbox').describe('The app type.'),
+  })
+  .describe('AppSandbox update request.')
+
+export const updateAppExternalInvoicingRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: updateLabels.optional(),
+    type: z.literal('external_invoicing').describe('The app type.'),
+    enableDraftSyncHook: z
+      .boolean()
+
+      .describe(
+        'Enable draft synchronization hook. When enabled, invoices will pause at the draft state and wait for the integration to call the draft synchronized endpoint before progressing to the issuing state. This allows the external system to validate and prepare the invoice data. When disabled, invoices automatically progress through the draft state based on the configured workflow timing.',
+      ),
+    enableIssuingSyncHook: z
+      .boolean()
+
+      .describe(
+        'Enable issuing synchronization hook. When enabled, invoices will pause at the issuing state and wait for the integration to call the issuing synchronized endpoint before progressing to the issued state. This ensures the external invoicing system has successfully created and finalized the invoice before it is marked as issued. When disabled, invoices automatically progress through the issuing state and are immediately marked as issued.',
+      ),
+  })
+  .describe('AppExternalInvoicing update request.')
+
 export const installAppRequest = z
   .discriminatedUnion('type', [
     installAppStripeWithApiKey,
@@ -4085,6 +4161,14 @@ export const appCatalogItem = z
   .describe(
     'Available apps for billing integrations to connect with third-party services. Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.',
   )
+
+export const updateAppRequest = z
+  .discriminatedUnion('type', [
+    updateAppStripeRequest,
+    updateAppSandboxRequest,
+    updateAppExternalInvoicingRequest,
+  ])
+  .describe('Request to update an installed app.')
 
 export const invoiceWorkflow = z
   .object({
@@ -6248,6 +6332,14 @@ export const uninstallAppPathParams = z.object({
   appId: ulid,
 })
 
+export const updateAppPathParams = z.object({
+  appId: ulid,
+})
+
+export const updateAppBody = updateAppRequest
+
+export const updateAppResponse = app
+
 export const listAppCatalogQueryParams = z.object({
   page: z
     .object({
@@ -7507,6 +7599,13 @@ export const appStatusWire = z
   .enum(['ready', 'unauthorized'])
   .describe('Connection status of an installed app.')
 
+export const updateLabelsWire = z
+  .record(z.string(), z.string())
+
+  .describe(
+    'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
+  )
+
 export const installAppStripeWithApiKeyWire = z
   .strictObject({
     type: z.literal('stripe').describe('Type of the app.'),
@@ -7708,13 +7807,6 @@ export const invoiceLineExternalReferencesWire = z
 export const invoiceDetailedLineCostCategoryWire = z
   .enum(['regular', 'commitment'])
   .describe('Cost category of a detailed invoice line item.')
-
-export const updateLabelsWire = z
-  .record(z.string(), z.string())
-
-  .describe(
-    'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
-  )
 
 export const updateBillingInvoiceWorkflowInvoicingSettingsWire = z
   .strictObject({
@@ -9630,6 +9722,82 @@ export const appCapabilityWire = z
   })
   .describe('App capability describes a function that an App can perform.')
 
+export const updateAppStripeRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: updateLabelsWire.optional(),
+    type: z.literal('stripe').describe('The app type.'),
+    secret_api_key: z
+      .string()
+      .optional()
+      .describe('The Stripe secret API key used to authenticate API requests.'),
+  })
+  .describe('AppStripe update request.')
+
+export const updateAppSandboxRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: updateLabelsWire.optional(),
+    type: z.literal('sandbox').describe('The app type.'),
+  })
+  .describe('AppSandbox update request.')
+
+export const updateAppExternalInvoicingRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: updateLabelsWire.optional(),
+    type: z.literal('external_invoicing').describe('The app type.'),
+    enable_draft_sync_hook: z
+      .boolean()
+
+      .describe(
+        'Enable draft synchronization hook. When enabled, invoices will pause at the draft state and wait for the integration to call the draft synchronized endpoint before progressing to the issuing state. This allows the external system to validate and prepare the invoice data. When disabled, invoices automatically progress through the draft state based on the configured workflow timing.',
+      ),
+    enable_issuing_sync_hook: z
+      .boolean()
+
+      .describe(
+        'Enable issuing synchronization hook. When enabled, invoices will pause at the issuing state and wait for the integration to call the issuing synchronized endpoint before progressing to the issued state. This ensures the external invoicing system has successfully created and finalized the invoice before it is marked as issued. When disabled, invoices automatically progress through the issuing state and are immediately marked as issued.',
+      ),
+  })
+  .describe('AppExternalInvoicing update request.')
+
 export const installAppRequestWire = z
   .discriminatedUnion('type', [
     installAppStripeWithApiKeyWire,
@@ -10835,6 +11003,14 @@ export const appCatalogItemWire = z
   .describe(
     'Available apps for billing integrations to connect with third-party services. Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.',
   )
+
+export const updateAppRequestWire = z
+  .discriminatedUnion('type', [
+    updateAppStripeRequestWire,
+    updateAppSandboxRequestWire,
+    updateAppExternalInvoicingRequestWire,
+  ])
+  .describe('Request to update an installed app.')
 
 export const invoiceWorkflowWire = z
   .strictObject({
@@ -13039,6 +13215,14 @@ export const getAppResponseWire = appWire
 export const uninstallAppPathParamsWire = z.object({
   appId: ulidWire,
 })
+
+export const updateAppPathParamsWire = z.object({
+  appId: ulidWire,
+})
+
+export const updateAppBodyWire = updateAppRequestWire
+
+export const updateAppResponseWire = appWire
 
 export const listAppCatalogQueryParamsWire = z.object({
   page: z

@@ -199,6 +199,15 @@ export interface RateCardBooleanEntitlement {
   type: 'boolean'
 }
 
+/**
+ * Labels store metadata of an entity that can be used for filtering an entity list
+ * or for searching across entity types.
+ *
+ * Keys must be of length 1-63 characters, and cannot start with "kong", "konnect",
+ * "mesh", "kic", or "\_".
+ */
+export type UpdateLabels = Record<string, string>
+
 /** Model for installing an app from the catalog with an API key. */
 export interface InstallAppStripeWithApiKey {
   /** Type of the app. */
@@ -307,15 +316,6 @@ export interface InvoiceLineExternalReferences {
   /** The ID assigned by the external invoicing app. */
   invoicingId?: string
 }
-
-/**
- * Labels store metadata of an entity that can be used for filtering an entity list
- * or for searching across entity types.
- *
- * Keys must be of length 1-63 characters, and cannot start with "kong", "konnect",
- * "mesh", "kic", or "\_".
- */
-export type UpdateLabels = Record<string, string>
 
 /**
  * Invoice-level invoicing settings.
@@ -1995,6 +1995,89 @@ export interface AppCapability {
   name: string
   /** Description of the capability. */
   description: string
+}
+
+/** AppStripe update request. */
+export interface UpdateAppStripeRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: UpdateLabels
+  /** The app type. */
+  type: 'stripe'
+  /** The Stripe secret API key used to authenticate API requests. */
+  secretApiKey?: string
+}
+
+/** AppSandbox update request. */
+export interface UpdateAppSandboxRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: UpdateLabels
+  /** The app type. */
+  type: 'sandbox'
+}
+
+/** AppExternalInvoicing update request. */
+export interface UpdateAppExternalInvoicingRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: UpdateLabels
+  /** The app type. */
+  type: 'external_invoicing'
+  /**
+   * Enable draft synchronization hook.
+   *
+   * When enabled, invoices will pause at the draft state and wait for the
+   * integration to call the draft synchronized endpoint before progressing to the
+   * issuing state. This allows the external system to validate and prepare the
+   * invoice data.
+   *
+   * When disabled, invoices automatically progress through the draft state based on
+   * the configured workflow timing.
+   */
+  enableDraftSyncHook: boolean
+  /**
+   * Enable issuing synchronization hook.
+   *
+   * When enabled, invoices will pause at the issuing state and wait for the
+   * integration to call the issuing synchronized endpoint before progressing to the
+   * issued state. This ensures the external invoicing system has successfully
+   * created and finalized the invoice before it is marked as issued.
+   *
+   * When disabled, invoices automatically progress through the issuing state and are
+   * immediately marked as issued.
+   */
+  enableIssuingSyncHook: boolean
 }
 
 /**
@@ -5440,6 +5523,12 @@ export type RateCardEntitlement =
   | RateCardMeteredEntitlement
   | RateCardStaticEntitlement
   | RateCardBooleanEntitlement
+
+/** Request to update an installed app. */
+export type UpdateAppRequest =
+  | UpdateAppStripeRequest
+  | UpdateAppSandboxRequest
+  | UpdateAppExternalInvoicingRequest
 
 /**
  * Per-unit cost configuration for a feature. Either a fixed manual amount or a
