@@ -44,6 +44,9 @@ type ListSubscriptionsInput struct {
 	PlanID    *filter.FilterULID
 	PlanKey   *filter.FilterString
 	DeletedAt *filter.FilterTime
+
+	// TaxCodes filters subscriptions by the tax code IDs referenced on their rate cards.
+	TaxCodes *filter.FilterString
 }
 
 func (i ListSubscriptionsInput) Validate() error {
@@ -94,6 +97,12 @@ func (i ListSubscriptionsInput) Validate() error {
 	if i.DeletedAt != nil {
 		if err := i.DeletedAt.Validate(); err != nil {
 			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid deleted_at filter: %w", err)))
+		}
+	}
+
+	if i.TaxCodes != nil {
+		if err := i.TaxCodes.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid tax_codes filter: %w", err)))
 		}
 	}
 

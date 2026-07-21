@@ -12,6 +12,8 @@ import (
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -172,6 +174,26 @@ func (r *subscriptionRepo) List(ctx context.Context, in subscription.ListSubscri
 				query = query.Where(dbsubscription.HasPlanWith(*p))
 			}
 		}
+
+		if in.TaxCodes != nil {
+			if p := filter.SelectPredicate[predicate.SubscriptionItem](filter.Filter(*in.TaxCodes), dbsubscriptionitem.FieldTaxCodeID); p != nil {
+				// Match only items the subscription view would still surface. The view loads items
+				// with "deleted_at IS NULL OR deleted_at > now" (see subscriptionItemRepo item load),
+				// so mirror that here: without it the filter would also match items soft-deleted in
+				// the past, which the view drops, making the tax-code delete guard fail with a
+				// spurious "matched filter but no rate card references" error.
+				query = query.Where(dbsubscription.HasPhasesWith(
+					dbsubscriptionphase.HasItemsWith(
+						*p,
+						dbsubscriptionitem.Or(
+							dbsubscriptionitem.DeletedAtIsNil(),
+							dbsubscriptionitem.DeletedAtGT(now),
+						),
+					),
+				))
+			}
+		}
+
 		query = filter.ApplyToQuery(query, in.ID, dbsubscription.FieldID)
 		query = filter.ApplyToQuery(query, in.CustomerID, dbsubscription.FieldCustomerID)
 		query = filter.ApplyToQuery(query, in.PlanID, dbsubscription.FieldPlanID)
