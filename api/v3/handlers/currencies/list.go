@@ -73,7 +73,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 			if params.Filter != nil {
 				if params.Filter.Type != nil {
 					ft := FromAPIBillingCurrencyType(*params.Filter.Type)
-					req.FilterType = &ft
+					req.CurrencyType = &ft
 				}
 
 				code, err := filters.FromAPIFilterString(params.Filter.Code)

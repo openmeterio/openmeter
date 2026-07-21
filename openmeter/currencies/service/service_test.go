@@ -320,15 +320,28 @@ func TestCurrenciesService(t *testing.T) {
 
 		t.Run("List", func(t *testing.T) {
 			// given:
-			// - an independently persisted custom currency
+			// - independently persisted custom currencies
 			listNamespace := currenciestestutils.NewTestNamespace(t)
-			_, err := env.Service.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+			points, err := env.Service.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
 				Namespace: listNamespace,
 				CurrencyDetails: currencyx.CurrencyDetails{
 					Code:               "POINTS",
 					Name:               "Points",
 					Symbol:             "P",
 					Precision:          2,
+					DecimalMark:        ".",
+					ThousandsSeparator: ",",
+				},
+			})
+			require.NoError(t, err)
+
+			_, err = env.Service.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+				Namespace: listNamespace,
+				CurrencyDetails: currencyx.CurrencyDetails{
+					Code:               "TOKENS",
+					Name:               "Tokens",
+					Symbol:             "T",
+					Precision:          4,
 					DecimalMark:        ".",
 					ThousandsSeparator: ",",
 				},
@@ -354,6 +367,103 @@ func TestCurrenciesService(t *testing.T) {
 				return item.Details().Code
 			})
 			assert.ElementsMatch(t, []currencyx.Code{"POINTS", "USD", "EUR"}, codes)
+
+			t.Run("FilterCombination", func(t *testing.T) {
+				// given:
+				// - ID and code filters that identify different currencies
+				testCases := []struct {
+					name             string
+					filteringOptions currencies.FilteringOptions
+					currencyType     *currencies.CurrencyType
+					id               *filter.FilterString
+					code             *filter.FilterString
+					expectedCodes    []currencyx.Code
+				}{
+					{
+						name: "filter by id",
+						id: &filter.FilterString{
+							In: lo.ToPtr([]string{points.ID}),
+						},
+						expectedCodes: []currencyx.Code{"POINTS"},
+					},
+					{
+						name:         "filter by custom currency type",
+						currencyType: lo.ToPtr(currencies.CurrencyTypeCustom),
+						code: &filter.FilterString{
+							In: lo.ToPtr([]string{"POINTS", "USD"}),
+						},
+						expectedCodes: []currencyx.Code{"POINTS"},
+					},
+					{
+						name:         "filter by fiat currency type",
+						currencyType: lo.ToPtr(currencies.CurrencyTypeFiat),
+						code: &filter.FilterString{
+							In: lo.ToPtr([]string{"POINTS", "USD"}),
+						},
+						expectedCodes: []currencyx.Code{"USD"},
+					},
+					{
+						name: "intersection",
+						id: &filter.FilterString{
+							In: lo.ToPtr([]string{points.ID}),
+						},
+						code: &filter.FilterString{
+							In: lo.ToPtr([]string{"TOKENS"}),
+						},
+						expectedCodes: nil,
+					},
+					{
+						name: "union custom currencies",
+						filteringOptions: currencies.FilteringOptions{
+							Union: true,
+						},
+						currencyType: lo.ToPtr(currencies.CurrencyTypeCustom),
+						id: &filter.FilterString{
+							In: lo.ToPtr([]string{points.ID}),
+						},
+						code: &filter.FilterString{
+							In: lo.ToPtr([]string{"TOKENS"}),
+						},
+						expectedCodes: []currencyx.Code{"POINTS", "TOKENS"},
+					},
+					{
+						name: "union custom and fiat currencies",
+						filteringOptions: currencies.FilteringOptions{
+							Union: true,
+						},
+						id: &filter.FilterString{
+							In: lo.ToPtr([]string{points.ID}),
+						},
+						code: &filter.FilterString{
+							In: lo.ToPtr([]string{"USD"}),
+						},
+						expectedCodes: []currencyx.Code{"POINTS", "USD"},
+					},
+				}
+
+				for _, testCase := range testCases {
+					t.Run(testCase.name, func(t *testing.T) {
+						// when:
+						// - currencies are listed with the selected filter combination mode
+						result, err := env.Service.ListCurrencies(t.Context(), currencies.ListCurrenciesInput{
+							Page:             pagination.NewPage(1, 10),
+							FilteringOptions: testCase.filteringOptions,
+							Namespace:        listNamespace,
+							CurrencyType:     testCase.currencyType,
+							ID:               testCase.id,
+							Code:             testCase.code,
+						})
+
+						// then:
+						// - sibling filters are intersected by default or unioned when requested
+						require.NoError(t, err)
+						actualCodes := lo.Map(result.Items, func(item currencies.Currency, _ int) currencyx.Code {
+							return item.Details().Code
+						})
+						assert.ElementsMatch(t, testCase.expectedCodes, actualCodes)
+					})
+				}
+			})
 		})
 	})
 }

@@ -50,13 +50,24 @@ func (o OrderBy) Validate() error {
 
 var _ models.Validator = (*ListCurrenciesInput)(nil)
 
+// FilteringOptions controls how sibling currency filters are combined.
+// The default behavior intersects filters; Union combines them with OR.
+// This option is internal to the currencies service until cross-field filter
+// composition is supported by pkg/filter.
+type FilteringOptions struct {
+	Union bool `json:"-"`
+}
+
 type ListCurrenciesInput struct {
 	pagination.Page
+	FilteringOptions
 
 	Namespace string `json:"namespace"`
 
-	// FilterType filters currencies by type: "custom" or "fiat". Nil means no filter.
-	FilterType *CurrencyType `json:"filter_type,omitempty"`
+	// CurrencyType filters currencies by type: "custom" or "fiat". Nil means no filter.
+	CurrencyType *CurrencyType `json:"currency_type,omitempty"`
+	// ID filters currencies by managed resource ID. Fiat currencies have no ID.
+	ID *filter.FilterString `json:"id,omitempty"`
 	// Code filters currencies by code field. Nil means no filter.
 	Code *filter.FilterString `json:"code,omitempty"`
 
@@ -71,9 +82,15 @@ func (i ListCurrenciesInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	if i.FilterType != nil {
-		if err := i.FilterType.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("filter_type: %w", err))
+	if i.CurrencyType != nil {
+		if err := i.CurrencyType.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("currency_type: %w", err))
+		}
+	}
+
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("id: %w", err))
 		}
 	}
 
