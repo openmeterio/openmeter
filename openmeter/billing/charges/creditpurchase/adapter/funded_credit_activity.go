@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	dbchargecreditpurchasecreditgrant "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
-	dbcustomcurrency "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entedge"
 )
@@ -66,11 +65,7 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 	if input.Currency != nil {
 		query = query.Where(dbchargecreditpurchasecreditgrant.HasCreditPurchaseWith(
 			dbchargecreditpurchase.Or(
-				dbchargecreditpurchase.HasCustomCurrencyWith(
-					dbcustomcurrency.CodeEQ(*input.Currency),
-					dbcustomcurrency.Namespace(input.Customer.Namespace),
-					dbcustomcurrency.DeletedAtIsNil(),
-				),
+				hasCustomCurrencyCode(input.Customer.Namespace, *input.Currency),
 				dbchargecreditpurchase.FiatCurrencyCodeEQ(*input.Currency),
 			),
 		))
@@ -110,7 +105,7 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 			return creditpurchase.ListFundedCreditActivitiesResult{}, fmt.Errorf("failed to get custom currency: %w", err)
 		}
 
-		resolvedCurrency, err := currenciesadapter.MapCustomCurrencyOrFiatCurrencyFromDB(currenciesadapter.CustomCurrencyOrFiatCurrency{
+		resolvedCurrency, err := currenciesadapter.FromDBCustomCurrencyOrFiatCurrency(currenciesadapter.CustomCurrencyOrFiatCurrency{
 			CustomCurrency: dbCustomCurrency,
 			FiatCurrency:   creditPurchase.FiatCurrencyCode,
 		})

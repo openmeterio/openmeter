@@ -20,7 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func mapIntentOverrideFromDB(dbOverride *entdb.ChargeFlatFeeOverride) *flatfee.IntentMutableFields {
+func fromDBOverride(dbOverride *entdb.ChargeFlatFeeOverride) *flatfee.IntentMutableFields {
 	if dbOverride == nil {
 		return nil
 	}
@@ -35,9 +35,9 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeFlatFeeOverride) *flatfee.I
 			Name:              dbOverride.Name,
 			Description:       dbOverride.Description,
 			Metadata:          lo.FromPtr(dbOverride.Metadata),
-			ServicePeriod:     closedPeriodFromDB(dbOverride.ServicePeriodFrom, dbOverride.ServicePeriodTo),
-			FullServicePeriod: closedPeriodFromDB(dbOverride.FullServicePeriodFrom, dbOverride.FullServicePeriodTo),
-			BillingPeriod:     closedPeriodFromDB(dbOverride.BillingPeriodFrom, dbOverride.BillingPeriodTo),
+			ServicePeriod:     fromDBClosedPeriod(dbOverride.ServicePeriodFrom, dbOverride.ServicePeriodTo),
+			FullServicePeriod: fromDBClosedPeriod(dbOverride.FullServicePeriodFrom, dbOverride.FullServicePeriodTo),
+			BillingPeriod:     fromDBClosedPeriod(dbOverride.BillingPeriodFrom, dbOverride.BillingPeriodTo),
 		},
 		IntentDeletedAt:       convert.TimePtrIn(dbOverride.IntentDeletedAt, time.UTC),
 		InvoiceAt:             dbOverride.InvoiceAt.UTC(),
@@ -84,7 +84,7 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge flatfee.Charg
 
 		dbCharge.Edges.IntentOverride = dbIntentOverride
 
-		return MapChargeBaseFromDB(dbCharge, charge.Intent.GetBaseIntent().Currency)
+		return fromDBBaseWithCurrency(dbCharge, charge.Intent.GetBaseIntent().Currency)
 	})
 }
 
@@ -225,7 +225,7 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 	return dbOverride, nil
 }
 
-func closedPeriodFromDB(from, to time.Time) timeutil.ClosedPeriod {
+func fromDBClosedPeriod(from, to time.Time) timeutil.ClosedPeriod {
 	return timeutil.ClosedPeriod{
 		From: from.UTC(),
 		To:   to.UTC(),

@@ -21,7 +21,7 @@ type Intent struct {
 
 	Annotations models.Annotations `json:"annotations"`
 
-	Currency  currencies.Currency          `json:"-"`
+	Currency  currencies.Currency          `json:"currency"`
 	TaxConfig productcatalog.TaxCodeConfig `json:"taxConfig"`
 
 	UniqueReferenceID *string                `json:"childUniqueReferenceID"`

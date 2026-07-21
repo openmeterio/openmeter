@@ -43,7 +43,7 @@ func (a *adapter) CreateRealizationRun(ctx context.Context, chargeID meta.Charge
 			return usagebased.RealizationRunBase{}, err
 		}
 
-		return MapRealizationRunBaseFromDB(dbRun), nil
+		return fromDBRunBase(dbRun), nil
 	})
 }
 
@@ -91,6 +91,6 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input usagebased.Upd
 			return usagebased.RealizationRunBase{}, err
 		}
 
-		return MapRealizationRunBaseFromDB(dbRun), nil
+		return fromDBRunBase(dbRun), nil
 	})
 }

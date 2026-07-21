@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
-	dbcustomcurrency "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -53,7 +52,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 			return creditpurchase.ChargeBase{}, err
 		}
 
-		return MapChargeBaseFromDB(dbCreditPurchase, charge.Intent.Currency)
+		return fromDBBaseWithCurrency(dbCreditPurchase, charge.Intent.Currency)
 	})
 }
 
@@ -110,7 +109,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInpu
 			return creditpurchase.Charge{}, err
 		}
 
-		return FromDBChargeCreditPurchaseWithCurrency(dbCreditPurchase, in.Intent.Currency, meta.ExpandNone)
+		return FromDBWithCurrency(dbCreditPurchase, in.Intent.Currency, meta.ExpandNone)
 	})
 }
 
@@ -128,7 +127,7 @@ func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoide
 			return creditpurchase.ChargeBase{}, fmt.Errorf("marking credit purchase charge voided [id=%s]: %w", input.Charge.ID, err)
 		}
 
-		return MapChargeBaseFromDB(dbCreditPurchase, input.Charge.Intent.Currency)
+		return fromDBBaseWithCurrency(dbCreditPurchase, input.Charge.Intent.Currency)
 	})
 }
 
@@ -151,7 +150,7 @@ func (a *adapter) GetByID(ctx context.Context, input creditpurchase.GetByIDInput
 			return creditpurchase.Charge{}, fmt.Errorf("getting credit purchase charge [id=%s]: %w", input.ChargeID.ID, err)
 		}
 
-		return MapCreditPurchaseChargeFromDB(entity, input.Expands)
+		return FromDB(entity, input.Expands)
 	})
 }
 
@@ -178,7 +177,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input creditpurchase.GetByIDsInp
 		}
 
 		return slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeCreditPurchase) (creditpurchase.Charge, error) {
-			return MapCreditPurchaseChargeFromDB(entity, input.Expands)
+			return FromDB(entity, input.Expands)
 		})
 	})
 }
@@ -208,11 +207,7 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 			query = query.Where(
 				dbchargecreditpurchase.Or(
 					dbchargecreditpurchase.FiatCurrencyCodeIn(input.Currencies...),
-					dbchargecreditpurchase.HasCustomCurrencyWith(
-						dbcustomcurrency.CodeIn(input.Currencies...),
-						dbcustomcurrency.Namespace(input.Namespace),
-						dbcustomcurrency.DeletedAtIsNil(),
-					),
+					hasCustomCurrencyCode(input.Namespace, input.Currencies...),
 				),
 			)
 		}
@@ -246,7 +241,7 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 		}
 
 		charges, err := slicesx.MapWithErr(res.Items, func(entity *db.ChargeCreditPurchase) (creditpurchase.Charge, error) {
-			return MapCreditPurchaseChargeFromDB(entity, input.Expands)
+			return FromDB(entity, input.Expands)
 		})
 		if err != nil {
 			return pagination.Result[creditpurchase.Charge]{}, err

@@ -95,7 +95,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 			dbUpdatedChargeBase.Edges.IntentOverride = intentOverride
 		}
 
-		return MapChargeBaseFromDB(dbUpdatedChargeBase, intent.Currency)
+		return fromDBBaseWithCurrency(dbUpdatedChargeBase, intent.Currency)
 	})
 }
 
@@ -132,7 +132,7 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.C
 		}
 
 		updatedChargeBase.Edges.IntentOverride = override
-		mappedChargeBase, err := MapChargeBaseFromDB(updatedChargeBase, charge.Intent.GetBaseIntent().Currency)
+		mappedChargeBase, err := fromDBBaseWithCurrency(updatedChargeBase, charge.Intent.GetBaseIntent().Currency)
 		if err != nil {
 			return flatfee.Charge{}, err
 		}
@@ -236,7 +236,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 		}
 
 		return lo.MapErr(entities, func(entity *db.ChargeFlatFee, idx int) (flatfee.Charge, error) {
-			return FromDBChargeFlatFeeWithCurrency(entity, in.Intents[idx].Intent.Currency, meta.ExpandNone)
+			return FromDBWithCurrency(entity, in.Intents[idx].Intent.Currency, meta.ExpandNone)
 		})
 	})
 }
@@ -268,7 +268,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 		}
 
 		out, err := slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeFlatFee) (flatfee.Charge, error) {
-			return MapChargeFlatFeeFromDB(entity, input.Expands)
+			return FromDB(entity, input.Expands)
 		})
 		if err != nil {
 			return nil, err
@@ -309,7 +309,7 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 			return flatfee.Charge{}, fmt.Errorf("querying flat fee charge [id=%s]: %w", input.ChargeID, err)
 		}
 
-		charge, err := MapChargeFlatFeeFromDB(entity, input.Expands)
+		charge, err := FromDB(entity, input.Expands)
 		if err != nil {
 			return flatfee.Charge{}, err
 		}

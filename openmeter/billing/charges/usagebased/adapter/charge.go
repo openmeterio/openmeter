@@ -81,7 +81,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			dbUpdatedChargeBase.Edges.IntentOverride = intentOverride
 		}
 
-		return MapChargeBaseFromDB(dbUpdatedChargeBase, baseIntent.Currency)
+		return fromDBBaseWithCurrency(dbUpdatedChargeBase, baseIntent.Currency)
 	})
 }
 
@@ -110,7 +110,7 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebase
 		}
 
 		overrideLayer := charge.Intent.GetOverrideLayerMutableFields()
-		mappedChargeBase, err := MapChargeBaseFromDB(updatedChargeBase, charge.Intent.GetBaseIntent().Currency)
+		mappedChargeBase, err := fromDBBaseWithCurrency(updatedChargeBase, charge.Intent.GetBaseIntent().Currency)
 		if err != nil {
 			return usagebased.Charge{}, err
 		}
@@ -201,7 +201,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateCharges
 		}
 
 		return lo.MapErr(entities, func(entity *db.ChargeUsageBased, idx int) (usagebased.Charge, error) {
-			return FromDBChargeUsageBasedWithCurrency(entity, in.Intents[idx].Intent.GetBaseIntent().Currency, meta.ExpandNone)
+			return FromDBWithCurrency(entity, in.Intents[idx].Intent.GetBaseIntent().Currency, meta.ExpandNone)
 		})
 	})
 }
@@ -234,7 +234,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 		}
 
 		out, err := slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
-			return MapChargeFromDB(entity, input.Expands)
+			return FromDB(entity, input.Expands)
 		})
 		if err != nil {
 			return nil, err
@@ -278,7 +278,7 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 			return usagebased.Charge{}, fmt.Errorf("querying usage based charge [id=%s]: %w", input.ChargeID, err)
 		}
 
-		charge, err := MapChargeFromDB(entity, input.Expands)
+		charge, err := FromDB(entity, input.Expands)
 		if err != nil {
 			return usagebased.Charge{}, err
 		}

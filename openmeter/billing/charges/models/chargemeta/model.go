@@ -236,7 +236,7 @@ type EdgeGetter interface {
 	CustomCurrencyOrErr() (*entdb.CustomCurrency, error)
 }
 
-func FromDBChargeWithCurrencyEdge[T Getter[T]](entity T, edges EdgeGetter) (meta.Charge, error) {
+func FromDB[T Getter[T]](entity T, edges EdgeGetter) (meta.Charge, error) {
 	var dbCustomCurrency *entdb.CustomCurrency
 	if entity.GetCustomCurrencyID() != nil {
 		var err error
@@ -246,7 +246,7 @@ func FromDBChargeWithCurrencyEdge[T Getter[T]](entity T, edges EdgeGetter) (meta
 		}
 	}
 
-	resolvedCurrency, err := currenciesadapter.MapCustomCurrencyOrFiatCurrencyFromDB(currenciesadapter.CustomCurrencyOrFiatCurrency{
+	resolvedCurrency, err := currenciesadapter.FromDBCustomCurrencyOrFiatCurrency(currenciesadapter.CustomCurrencyOrFiatCurrency{
 		CustomCurrency: dbCustomCurrency,
 		FiatCurrency:   entity.GetFiatCurrencyCode(),
 	})
@@ -254,10 +254,10 @@ func FromDBChargeWithCurrencyEdge[T Getter[T]](entity T, edges EdgeGetter) (meta
 		return meta.Charge{}, fmt.Errorf("failed to resolve currency: %w", err)
 	}
 
-	return FromDBCharge(entity, resolvedCurrency)
+	return FromDBWithCurrency(entity, resolvedCurrency)
 }
 
-func FromDBCharge[T Getter[T]](entity T, currency currencies.Currency) (meta.Charge, error) {
+func FromDBWithCurrency[T Getter[T]](entity T, currency currencies.Currency) (meta.Charge, error) {
 	if err := currency.Validate(); err != nil {
 		return meta.Charge{}, fmt.Errorf("currency: %w", err)
 	}

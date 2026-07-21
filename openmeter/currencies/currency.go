@@ -58,11 +58,17 @@ func NewFiatCurrency(code currencyx.Code) (Currency, error) {
 }
 
 func (c Currency) Validate() error {
+	var errs []error
+
 	if c.Currency == nil {
-		return errors.New("currency is required")
+		errs = append(errs, errors.New("currency is required"))
+	} else {
+		if err := c.Currency.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("currency: %w", err))
+		}
 	}
 
-	return c.Currency.Validate()
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // GetCode returns the resolved currency code, or an empty code when the currency is missing.

@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -28,24 +29,26 @@ type CustomCurrencyOrFiatCurrency struct {
 }
 
 func (c *CustomCurrencyOrFiatCurrency) Validate() error {
+	var errs []error
+
 	if c.CustomCurrency != nil && c.FiatCurrency != nil {
-		return fmt.Errorf("both custom currency and fiat currency cannot be set")
+		errs = append(errs, errors.New("both custom currency and fiat currency cannot be set"))
 	}
 
 	if c.CustomCurrency == nil && c.FiatCurrency == nil {
-		return fmt.Errorf("either custom currency or fiat currency must be set")
+		errs = append(errs, errors.New("either custom currency or fiat currency must be set"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func MapCustomCurrencyOrFiatCurrencyFromDB(in CustomCurrencyOrFiatCurrency) (currencies.Currency, error) {
+func FromDBCustomCurrencyOrFiatCurrency(in CustomCurrencyOrFiatCurrency) (currencies.Currency, error) {
 	if err := in.Validate(); err != nil {
 		return currencies.Currency{}, err
 	}
 
 	if in.CustomCurrency != nil {
-		return MapCurrencyFromDB(in.CustomCurrency)
+		return FromDBCustomCurrency(in.CustomCurrency)
 	}
 
 	fiatCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
@@ -60,7 +63,7 @@ func MapCustomCurrencyOrFiatCurrencyFromDB(in CustomCurrencyOrFiatCurrency) (cur
 	}, nil
 }
 
-func MapCurrencyFromDB(c *entdb.CustomCurrency) (currencies.Currency, error) {
+func FromDBCustomCurrency(c *entdb.CustomCurrency) (currencies.Currency, error) {
 	curr, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
 		WithCode(c.Code).
 		WithName(c.Name).
@@ -182,7 +185,7 @@ func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.Li
 			return pagination.Result[currencies.Currency]{}, fmt.Errorf("failed to list currencies: %w", err)
 		}
 
-		return pagination.MapResultErr(paged, MapCurrencyFromDB)
+		return pagination.MapResultErr(paged, FromDBCustomCurrency)
 	})
 }
 
@@ -206,7 +209,7 @@ func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCu
 			return currencies.Currency{}, fmt.Errorf("failed to create currency: %w", err)
 		}
 
-		return MapCurrencyFromDB(curr)
+		return FromDBCustomCurrency(curr)
 	})
 }
 
@@ -286,7 +289,7 @@ func (a *adapter) GetCostBasis(ctx context.Context, params currencies.GetCostBas
 		result := mapCostBasisFromDB(costBasis)
 
 		if params.CustomCurrency {
-			customCurrency, err := MapCurrencyFromDB(costBasis.Edges.Currency)
+			customCurrency, err := FromDBCustomCurrency(costBasis.Edges.Currency)
 			if err != nil {
 				return currencies.CostBasis{}, fmt.Errorf("failed to map custom currency: %w", err)
 			}
@@ -345,7 +348,7 @@ func (a *adapter) GetCurrency(ctx context.Context, params currencies.GetCurrency
 			return currencies.Currency{}, fmt.Errorf("failed to get currency: %w", err)
 		}
 
-		curr, err := MapCurrencyFromDB(c)
+		curr, err := FromDBCustomCurrency(c)
 		if err != nil {
 			return currencies.Currency{}, fmt.Errorf("failed to map currency from database: %w", err)
 		}
