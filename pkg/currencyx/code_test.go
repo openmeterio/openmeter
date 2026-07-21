@@ -119,3 +119,28 @@ func TestCodeEqual(t *testing.T) {
 		})
 	}
 }
+
+func TestCodeType(t *testing.T) {
+	testCases := []struct {
+		name     string
+		code     currencyx.Code
+		expected currencyx.CurrencyType
+	}{
+		{
+			name:     "fiat",
+			code:     "USD",
+			expected: currencyx.CurrencyTypeFiat,
+		},
+		{
+			name:     "custom",
+			code:     "CREDITS",
+			expected: currencyx.CurrencyTypeCustom,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			require.Equal(t, testCase.expected, testCase.code.Type())
+		})
+	}
+}

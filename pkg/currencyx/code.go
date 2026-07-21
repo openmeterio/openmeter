@@ -33,6 +33,14 @@ func (c Code) Equal(other Code) bool {
 	return c == other
 }
 
+func (c Code) Type() CurrencyType {
+	if len(c) == 3 {
+		return CurrencyTypeFiat
+	}
+
+	return CurrencyTypeCustom
+}
+
 func (c Code) Validate() error {
 	var errs []error
 
