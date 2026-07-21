@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -214,7 +215,10 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
-	bookedAt := charge.Intent.ServicePeriod.To
+	// Advance attribution belongs to the purchase event so a later purchase cannot
+	// reuse the same advance. Only newly issued credit waits for grant effectiveness.
+	purchasedAt := clock.Now()
+	effectiveAt := charge.Intent.ServicePeriod.To
 
 	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
 	if err != nil {
@@ -235,7 +239,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 	for _, attribution := range advanceAttributions {
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
-			At:                 bookedAt,
+			At:                 purchasedAt,
 			Amount:             attribution.advanceAmount,
 			Currency:           charge.Intent.Currency,
 			CostBasis:          &costBasis,
@@ -247,7 +251,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 		if attribution.accruedAmount.IsPositive() {
 			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
-				At:             bookedAt,
+				At:             purchasedAt,
 				Amount:         attribution.accruedAmount,
 				Currency:       charge.Intent.Currency,
 				TaxCode:        attribution.taxCode,
@@ -262,7 +266,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 	if issuableAmount.IsPositive() {
 		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
-			At:             bookedAt,
+			At:             effectiveAt,
 			Amount:         issuableAmount,
 			Currency:       charge.Intent.Currency,
 			CostBasis:      &costBasis,
@@ -278,7 +282,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		// does not leave an unsettled receivable behind.
 		templates = append(templates,
 			transactions.AuthorizeCustomerReceivablePaymentTemplate{
-				At:             bookedAt,
+				At:             effectiveAt,
 				Amount:         charge.Intent.CreditAmount,
 				Currency:       charge.Intent.Currency,
 				CostBasis:      &costBasis,
@@ -286,7 +290,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 				SourceChargeID: &charge.ID,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
-				At:             bookedAt,
+				At:             effectiveAt,
 				Amount:         charge.Intent.CreditAmount,
 				Currency:       charge.Intent.Currency,
 				CostBasis:      &costBasis,
