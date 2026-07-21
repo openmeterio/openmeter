@@ -40,14 +40,21 @@ func TestEventSubjectsV3(t *testing.T) {
 
 	c.requireStatus(http.StatusAccepted, c.Events.IngestEventsJSON(ctx, v3sdk.Many(events)))
 
-	// Attribute the middle subject to a customer so the attributed filter has
-	// both kinds of subjects to work with.
+	// Attribute the middle subject via usage attribution subject keys and the
+	// last subject via the customer's own key, so the attributed filter
+	// exercises both attribution legs and leaves one subject unattributed.
 	_, err := c.Customers.Create(ctx, v3sdk.CreateCustomerRequest{
 		Key:  uniqueKey("subj_customer"),
 		Name: "Event Subjects Test Customer",
 		UsageAttribution: &v3sdk.CustomerUsageAttribution{
 			SubjectKeys: []string{keys[1]},
 		},
+	})
+	c.requireStatus(http.StatusCreated, err)
+
+	_, err = c.Customers.Create(ctx, v3sdk.CreateCustomerRequest{
+		Key:  keys[2],
+		Name: "Event Subjects Test Customer By Key",
 	})
 	c.requireStatus(http.StatusCreated, err)
 
@@ -115,6 +122,8 @@ func TestEventSubjectsV3(t *testing.T) {
 	})
 
 	t.Run("AttributedFilter", func(t *testing.T) {
+		// keys[1] is attributed via usage attribution subject keys, keys[2]
+		// via the customer's own key.
 		resp, err := c.Events.ListSubjects(ctx, v3sdk.EventSubjectListParams{
 			Filter: &v3sdk.EventSubjectFilter{
 				Key:        keyFilter.Key,
@@ -122,7 +131,7 @@ func TestEventSubjectsV3(t *testing.T) {
 			},
 		})
 		c.requireStatus(http.StatusOK, err)
-		require.Equal(t, []string{keys[1]}, subjectKeys(resp))
+		require.Equal(t, []string{keys[1], keys[2]}, subjectKeys(resp))
 	})
 
 	t.Run("UnattributedFilter", func(t *testing.T) {
@@ -133,7 +142,7 @@ func TestEventSubjectsV3(t *testing.T) {
 			},
 		})
 		c.requireStatus(http.StatusOK, err)
-		require.Equal(t, []string{keys[0], keys[2]}, subjectKeys(resp))
+		require.Equal(t, []string{keys[0]}, subjectKeys(resp))
 	})
 
 	t.Run("KeyFilterNoMatch", func(t *testing.T) {
