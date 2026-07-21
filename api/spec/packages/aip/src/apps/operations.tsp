@@ -36,6 +36,17 @@ interface AppsOperations {
     | Shared.GetResponse<App>
     | Common.NotFound
     | Common.ErrorResponses;
+
+  /**
+   * Uninstall an app by ID.
+   */
+  @delete
+  @operationId("uninstall-app")
+  @summary("Uninstall app")
+  uninstall(@path appId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
 
 interface AppCatalogOperations {

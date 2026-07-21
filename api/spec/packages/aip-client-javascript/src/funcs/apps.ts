@@ -11,6 +11,8 @@ import type {
   ListAppsResponse,
   GetAppRequest,
   GetAppResponse,
+  UninstallAppRequest,
+  UninstallAppResponse,
   ListAppCatalogRequest,
   ListAppCatalogResponse,
   GetAppCatalogItemRequest,
@@ -91,6 +93,38 @@ export function getApp(
         }
         return fromWire(data, schemas.getAppResponse)
       })
+  })
+}
+
+/**
+ * Uninstall app
+ *
+ * Uninstall an app by ID.
+ *
+ * DELETE /openmeter/apps/{appId}
+ */
+export function uninstallApp(
+  client: Client,
+  req: UninstallAppRequest,
+  options?: RequestOptions,
+): Promise<Result<UninstallAppResponse>> {
+  return request(async () => {
+    const pathParamsInput = {
+      appId: req.appId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.uninstallAppPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.uninstallAppPathParamsWire, pathParams)
+    }
+    const path = `openmeter/apps/${(() => {
+      if (pathParams.appId === undefined) {
+        throw new Error('missing path parameter: appId')
+      }
+      return encodeURIComponent(String(pathParams.appId))
+    })()}`
+    await http(client).delete(path, options)
   })
 }
 

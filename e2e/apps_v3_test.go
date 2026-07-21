@@ -97,3 +97,39 @@ func TestV3AppInstall(t *testing.T) {
 		assert.Equal(t, string(v3sdk.AppTypeExternalInvoicing), resp.App.Type)
 	})
 }
+
+func TestV3AppUninstall(t *testing.T) {
+	c := newV3Client(t)
+
+	t.Run("Should uninstall an installed app", func(t *testing.T) {
+		req, err := v3sdk.InstallAppRequestFromInstallAppExternalInvoicing(v3sdk.InstallAppExternalInvoicing{
+			Type:                 v3sdk.AppTypeExternalInvoicing,
+			Name:                 gofakeit.LoremIpsumSentence(3),
+			CreateBillingProfile: false,
+		})
+		require.NoError(t, err)
+		installResp, err := c.Apps.Install(t.Context(), req)
+		require.NoError(t, err)
+		require.NotNil(t, installResp)
+
+		installed, err := installResp.App.AsAppExternalInvoicing()
+		require.NoError(t, err)
+		require.NotEmpty(t, installed.ID)
+
+		c.requireStatus(http.StatusNoContent, c.Apps.Uninstall(t.Context(), installed.ID))
+
+		// UninstallApp soft-deletes external-invoicing apps (sets deleted_at) rather
+		// than removing the row, and GetApp does not filter on deleted_at, so the
+		// app is still readable afterwards — just marked deleted. This mirrors the
+		// v1 behavior for this app type; other app types (e.g. Stripe) hard-delete
+		// their sub-table data on uninstall and surface a not-found error instead.
+		getResp, err := c.Apps.Get(t.Context(), installed.ID)
+		require.Equal(t, http.StatusOK, c.statuses.last())
+		require.NoError(t, err)
+		require.NotNil(t, getResp)
+
+		gotten, err := getResp.AsAppExternalInvoicing()
+		require.NoError(t, err)
+		require.NotNil(t, gotten.DeletedAt, "expected deleted_at to be set after uninstall")
+	})
+}

@@ -404,6 +404,29 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+    delete:
+      operationId: uninstall-app
+      summary: Uninstall app
+      description: Uninstall an app by ID.
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Apps
   /openmeter/billing/invoices:
     get:
       operationId: list-invoices
