@@ -525,4 +525,11 @@ func TestFiatCurrencyReceivers(t *testing.T) {
 	currency := fiat.(*currencyx.FiatCurrency)
 	require.NoError(t, currency.Validate())
 	require.NoError(t, (*currency).Validate())
+
+	// Does not work
+	// require.NoError(t, returnFiatCurrency(*currency).Validate())
+}
+
+func returnFiatCurrency(x currencyx.FiatCurrency) currencyx.FiatCurrency {
+	return x
 }

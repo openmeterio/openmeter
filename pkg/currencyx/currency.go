@@ -172,11 +172,7 @@ func (f *FiatCurrency) ValidateWith(v ...models.ValidatorFunc[Currency]) error {
 	return models.Validate[Currency](f, v...)
 }
 
-func (f *FiatCurrency) Validate() error {
-	if f == nil {
-		return errors.New("fiat currency is not initialized")
-	}
-
+func (f FiatCurrency) Validate() error {
 	var errs []error
 
 	if f.def == nil {
