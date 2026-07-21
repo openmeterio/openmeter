@@ -494,6 +494,13 @@ func ValidateCurrency(value currencyx.Code) error {
 		})
 	}
 
+	if !value.IsFiat() {
+		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+			"currency": value,
+			"reason":   "custom_currency_not_supported",
+		})
+	}
+
 	return nil
 }
 

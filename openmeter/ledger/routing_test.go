@@ -146,6 +146,42 @@ func TestTaxBehaviorValidate(t *testing.T) {
 	require.Error(t, TaxBehavior("").Validate())
 }
 
+func TestValidateCurrency(t *testing.T) {
+	testCases := []struct {
+		name    string
+		code    currencyx.Code
+		wantErr bool
+	}{
+		{
+			name: "fiat currency",
+			code: "USD",
+		},
+		{
+			name:    "custom currency",
+			code:    "CREDITS",
+			wantErr: true,
+		},
+		{
+			name:    "invalid currency",
+			code:    "INVALID|CURRENCY",
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := ValidateCurrency(testCase.code)
+			if testCase.wantErr {
+				require.ErrorIs(t, err, ErrCurrencyInvalid)
+
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestRouteValidate_InvalidTaxBehavior(t *testing.T) {
 	r := Route{
 		Currency:    currencyx.Code("USD"),
