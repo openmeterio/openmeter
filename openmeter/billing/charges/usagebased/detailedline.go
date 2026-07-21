@@ -54,7 +54,6 @@ func (l DetailedLine) Validate() error {
 type DetailedLines []DetailedLine
 
 func NewDetailedLinesFromBilling(
-	intent Intent,
 	defaultServicePeriod timeutil.ClosedPeriod,
 	lines billingrating.DetailedLines,
 ) DetailedLines {
@@ -77,7 +76,6 @@ func NewDetailedLinesFromBilling(
 				}),
 				ServicePeriod:          period,
 				Index:                  lo.ToPtr(idx),
-				Currency:               intent.Intent.Currency.GetCode(),
 				ChildUniqueReferenceID: line.ChildUniqueReferenceID,
 				PaymentTerm:            lo.CoalesceOrEmpty(line.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 				PerUnitAmount:          line.PerUnitAmount,

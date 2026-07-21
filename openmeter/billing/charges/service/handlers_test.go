@@ -7,13 +7,32 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 )
+
+type mockLineageService struct {
+	lineage.Service
+	mock.Mock
+}
+
+func (m *mockLineageService) CreateInitialLineages(ctx context.Context, input lineage.CreateInitialLineagesInput) error {
+	return m.Called(ctx, input).Error(0)
+}
+
+func (m *mockLineageService) PersistCorrectionLineageSegments(ctx context.Context, input lineage.PersistCorrectionLineageSegmentsInput) error {
+	return m.Called(ctx, input).Error(0)
+}
+
+func (m *mockLineageService) BackfillAdvanceLineageSegments(ctx context.Context, input lineage.BackfillAdvanceLineageSegmentsInput) error {
+	return m.Called(ctx, input).Error(0)
+}
 
 var _ flatfee.Handler = (*flatFeeTestHandler)(nil)
 

@@ -178,7 +178,6 @@ func validDetailedLineForValidation() DetailedLine {
 					From: start,
 					To:   start.Add(time.Hour),
 				},
-				Currency:      currencyx.Code("USD"),
 				PerUnitAmount: alpacadecimal.NewFromInt(10),
 				Quantity:      alpacadecimal.NewFromInt(1),
 			},

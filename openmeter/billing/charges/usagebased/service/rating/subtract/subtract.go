@@ -3,7 +3,6 @@ package subtract
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -70,10 +69,6 @@ func SubtractRatedRunDetails(
 		return nil, fmt.Errorf("previous detailed lines: %w", err)
 	}
 
-	if err := validateCurrencyForSubtract(current, previous); err != nil {
-		return nil, err
-	}
-
 	out, err := subtractDetailedLinesByKey(
 		sumDetailedLinesByKey(current),
 		sumDetailedLinesByKey(previous),
@@ -102,34 +97,6 @@ func validateDetailedLinesForSubtract(lines usagebased.DetailedLines) error {
 		if err := line.Validate(); err != nil {
 			return fmt.Errorf("[%d]: %w", idx, err)
 		}
-	}
-
-	return nil
-}
-
-func validateCurrencyForSubtract(current, previous usagebased.DetailedLines) error {
-	currentCurrencies := lo.Uniq(lo.Map(current, func(line usagebased.DetailedLine, _ int) string {
-		return string(line.Currency)
-	}))
-
-	previousCurrencies := lo.Uniq(lo.Map(previous, func(line usagebased.DetailedLine, _ int) string {
-		return string(line.Currency)
-	}))
-
-	if len(currentCurrencies) > 1 {
-		return fmt.Errorf("current detailed lines: multiple currencies: %v", strings.Join(currentCurrencies, ", "))
-	}
-
-	if len(previousCurrencies) > 1 {
-		return fmt.Errorf("previous detailed lines: multiple currencies: %v", strings.Join(previousCurrencies, ", "))
-	}
-
-	if len(currentCurrencies) == 0 || len(previousCurrencies) == 0 {
-		return nil
-	}
-
-	if currentCurrencies[0] != previousCurrencies[0] {
-		return fmt.Errorf("current and previous detailed lines: currency mismatch: %s != %s", currentCurrencies[0], previousCurrencies[0])
 	}
 
 	return nil

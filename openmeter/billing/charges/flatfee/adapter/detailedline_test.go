@@ -271,7 +271,6 @@ func (s *FlatFeeDetailedLineAdapterSuite) newDetailedLine(input newDetailedLineI
 			Description: input.Description,
 		}),
 		ServicePeriod:          input.ServicePeriod,
-		Currency:               input.Charge.Intent.GetCurrency().GetCode(),
 		ChildUniqueReferenceID: input.ChildUniqueReferenceID,
 		PaymentTerm:            baseIntent.PaymentTerm,
 		PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),

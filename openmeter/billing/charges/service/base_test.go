@@ -20,6 +20,7 @@ import (
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
@@ -29,6 +30,7 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
@@ -56,6 +58,14 @@ type BaseSuite struct {
 
 	Charges                   *service
 	UsageBasedService         usagebased.Service
+	CurrencyService           currencies.Service
+	MetaAdapter               meta.Adapter
+	LineageService            lineage.Service
+	Locker                    *lockr.Locker
+	InvoiceUpdater            invoiceupdater.Updater
+	FlatFeeAdapter            flatfee.Adapter
+	CreditPurchaseAdapter     creditpurchase.Adapter
+	UsageBasedAdapter         usagebased.Adapter
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
 	UsageBasedTestHandler     *usageBasedTestHandler
@@ -73,11 +83,13 @@ func (s *BaseSuite) SetupSuite() {
 		Logger: slog.Default(),
 	})
 	s.NoError(err)
+	s.MetaAdapter = metaAdapter
 
 	locker, err := lockr.NewLocker(&lockr.LockerConfig{
 		Logger: slog.Default(),
 	})
 	s.NoError(err)
+	s.Locker = locker
 
 	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
 		Client: s.DBClient,
@@ -88,6 +100,7 @@ func (s *BaseSuite) SetupSuite() {
 		Adapter: lineageAdapter,
 	})
 	s.NoError(err)
+	s.LineageService = lineageService
 
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      s.DBClient,
@@ -95,6 +108,7 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter: metaAdapter,
 	})
 	s.NoError(err)
+	s.FlatFeeAdapter = flatFeeAdapter
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:       flatFeeAdapter,
@@ -115,12 +129,14 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter: metaAdapter,
 	})
 	s.NoError(err)
+	s.UsageBasedAdapter = usageBasedAdapter
 
 	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
 		BillingService: s.BillingService,
 		Logger:         slog.Default(),
 	})
 	s.NoError(err)
+	s.InvoiceUpdater = invoiceUpdater
 
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
@@ -146,6 +162,7 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter: metaAdapter,
 	})
 	s.NoError(err)
+	s.CreditPurchaseAdapter = creditPurchaseAdapter
 
 	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
 		Adapter:     creditPurchaseAdapter,
@@ -185,6 +202,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 	currencyService, err := currencyservice.New(currencyAdapter)
 	s.NoError(err)
+	s.CurrencyService = currencyService
 	currencyResolver, err := currencyresolver.New(currencyService)
 	s.NoError(err)
 
@@ -214,6 +232,25 @@ func (s *BaseSuite) TearDownTest() {
 	s.MockStreamingConnector.Reset()
 	clock.UnFreeze()
 	clock.ResetTime()
+}
+
+func (s *BaseSuite) createTestCustomCurrency(ctx context.Context, namespace string) currencies.Currency {
+	s.T().Helper()
+
+	currency, err := s.CurrencyService.CreateCurrency(ctx, currencies.CreateCurrencyInput{
+		Namespace: namespace,
+		CurrencyDetails: currencyx.CurrencyDetails{
+			Code:               "TOKENS",
+			Name:               "Tokens",
+			Symbol:             "T",
+			Precision:          3,
+			DecimalMark:        ".",
+			ThousandsSeparator: ",",
+		},
+	})
+	s.Require().NoError(err)
+
+	return currency
 }
 
 type createMockChargeIntentInput struct {

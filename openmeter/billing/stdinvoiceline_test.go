@@ -53,7 +53,6 @@ func TestStandardLineValidateAllowsNegativeDetailedLineQuantityWithPositiveTotal
 					ChildUniqueReferenceID: "detail_123",
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					ServicePeriod:          line.Period,
-					Currency:               line.Currency,
 					PerUnitAmount:          alpacadecimal.NewFromInt(10),
 					Quantity:               alpacadecimal.NewFromInt(-1),
 				},

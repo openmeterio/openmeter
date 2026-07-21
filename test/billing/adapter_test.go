@@ -137,7 +137,6 @@ func newDetailedLine(in newLineInput) billing.DetailedLine {
 					Namespace: in.Namespace,
 					Name:      in.Name,
 				}),
-				Currency:               in.Invoice.Currency,
 				ServicePeriod:          in.Period,
 				ChildUniqueReferenceID: in.ChildUniqueReferenceID,
 				PerUnitAmount:          alpacadecimal.NewFromFloat(100),

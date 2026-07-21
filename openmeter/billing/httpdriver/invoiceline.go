@@ -259,9 +259,9 @@ func mapTaxConfigToAPI(to *productcatalog.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(productcataloghttp.FromTaxConfig(*to))
 }
 
-func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (*[]api.InvoiceDetailedLine, error) {
+func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.Code, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (*[]api.InvoiceDetailedLine, error) {
 	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (api.InvoiceDetailedLine, error) {
-		return mapDetailedLineToAPI(line, invoiceAt, taxConfig)
+		return mapDetailedLineToAPI(line, currency, invoiceAt, taxConfig)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to map detailed lines: %w", err)
@@ -270,7 +270,7 @@ func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time, tax
 	return lo.ToPtr(mappedLines), nil
 }
 
-func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (api.InvoiceDetailedLine, error) {
+func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.Code, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (api.InvoiceDetailedLine, error) {
 	amountDiscountsAPI, err := mapInvoiceLineAmountDiscountsToAPI(line.AmountDiscounts)
 	if err != nil {
 		return api.InvoiceDetailedLine{}, fmt.Errorf("failed to map amount discounts: %w", err)
@@ -292,7 +292,7 @@ func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time, taxCon
 		UpdatedAt: line.UpdatedAt,
 		InvoiceAt: invoiceAt,
 
-		Currency: string(line.Currency),
+		Currency: string(currency),
 		Status:   api.InvoiceLineStatusDetailed,
 
 		Description: line.Description,
@@ -356,7 +356,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
-	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.InvoiceAt, line.TaxConfig.ToProductCatalog())
+	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.Currency, line.InvoiceAt, line.TaxConfig.ToProductCatalog())
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
 	}

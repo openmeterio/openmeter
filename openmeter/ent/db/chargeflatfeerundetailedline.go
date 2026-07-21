@@ -26,7 +26,9 @@ type ChargeFlatFeeRunDetailedLine struct {
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	//
+	// Deprecated: currency is defined by the parent line or charge
+	Currency *currencyx.Code `json:"currency,omitempty"`
 	// ServicePeriodStart holds the value of the "service_period_start" field.
 	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
 	// ServicePeriodEnd holds the value of the "service_period_end" field.
@@ -153,7 +155,8 @@ func (_m *ChargeFlatFeeRunDetailedLine) assignValues(columns []string, values []
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.Currency = new(currencyx.Code)
+				*_m.Currency = currencyx.Code(value.String)
 			}
 		case chargeflatfeerundetailedline.FieldServicePeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -374,8 +377,10 @@ func (_m *ChargeFlatFeeRunDetailedLine) String() string {
 	var builder strings.Builder
 	builder.WriteString("ChargeFlatFeeRunDetailedLine(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	if v := _m.Currency; v != nil {
+		builder.WriteString("currency=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("service_period_start=")
 	builder.WriteString(_m.ServicePeriodStart.Format(time.ANSIC))

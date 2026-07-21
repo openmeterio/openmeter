@@ -11,6 +11,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -18,8 +19,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -96,6 +99,117 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	s.NoError(err)
 	s.Equal(promotionalCallback.id, updatedCPCharge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
 	s.Equal(creditpurchase.StatusFinal, updatedCPCharge.Status)
+}
+
+func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchaseWithCustomCurrency() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-promotional-credit-purchase-custom-currency")
+
+	var customCurrency currencies.Currency
+	var customerID string
+	var createdCharge creditpurchase.Charge
+	var promotionalTransactionGroupID string
+
+	s.Run("#1 setup customer and custom currency", func() {
+		// given:
+		// - a customer and a persisted custom currency
+		s.ProvisionDefaultTaxCodes(ctx, ns)
+
+		cust := s.CreateTestCustomer(ns, "test-subject")
+		s.NotEmpty(cust.ID)
+		customerID = cust.ID
+		customCurrency = s.createTestCustomCurrency(ctx, ns)
+	})
+
+	s.Run("#2 create promotional credit purchase", func() {
+		// given:
+		// - a promotional credit-purchase intent in the custom currency
+		// - mocked ledger and lineage callbacks
+		// when:
+		// - the charge is created through the root charges service
+		// then:
+		// - the callbacks run once and the charge reaches final with a persisted realization
+		servicePeriod := timeutil.ClosedPeriod{
+			From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+		}
+		intent := charges.NewChargeIntent(creditpurchase.Intent{
+			Intent: meta.Intent{
+				ManagedBy:  billing.ManuallyManagedLine,
+				CustomerID: customerID,
+				Currency:   customCurrency,
+			},
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "Custom Currency Credit Purchase",
+					ServicePeriod:     servicePeriod,
+					BillingPeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+				},
+				CreditAmount: alpacadecimal.NewFromFloat(100.1234),
+				Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			},
+		})
+
+		promotionalCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+		promotionalTransactionGroupID = promotionalCallback.id
+		s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = promotionalCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
+			assert.Equal(t, creditpurchase.SettlementTypePromotional, charge.Intent.Settlement.Type())
+			assert.True(t, charge.Intent.Currency.IsCustom())
+			assert.Equal(t, customCurrency.ID, charge.Intent.Currency.ID)
+			assert.Nil(t, charge.Realizations.CreditGrantRealization)
+		})
+
+		lineageMock := &mockLineageService{Service: s.LineageService}
+		lineageMock.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).
+			Return(nil).
+			Once()
+
+		customCurrencyCreditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
+			Adapter:     s.CreditPurchaseAdapter,
+			Handler:     s.CreditPurchaseTestHandler,
+			Lineage:     lineageMock,
+			MetaAdapter: s.MetaAdapter,
+		})
+		s.Require().NoError(err)
+		originalCreditPurchaseService := s.Charges.creditPurchaseService
+		s.Charges.creditPurchaseService = customCurrencyCreditPurchaseService
+		defer func() {
+			s.Charges.creditPurchaseService = originalCreditPurchaseService
+		}()
+
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents:   charges.ChargeIntents{intent},
+		})
+		s.Require().NoError(err)
+		s.Require().Len(created, 1)
+		s.Equal(1, promotionalCallback.nrInvocations)
+		lineageMock.AssertExpectations(s.T())
+
+		createdCharge, err = created[0].AsCreditPurchaseCharge()
+		s.Require().NoError(err)
+		s.Equal(creditpurchase.StatusFinal, createdCharge.Status)
+		s.True(createdCharge.Intent.Currency.IsCustom())
+		s.Equal(customCurrency.ID, createdCharge.Intent.Currency.ID)
+		s.Equal(float64(100.123), createdCharge.Intent.CreditAmount.InexactFloat64())
+		s.Require().NotNil(createdCharge.Realizations.CreditGrantRealization)
+		s.Equal(promotionalTransactionGroupID, createdCharge.Realizations.CreditGrantRealization.TransactionGroupID)
+	})
+
+	s.Run("#3 reload persisted charge", func() {
+		// when:
+		// - the charge is loaded again from Postgres
+		// then:
+		// - its final state, custom currency, and realization are preserved
+		persisted, err := s.mustGetChargeByID(createdCharge.GetChargeID()).AsCreditPurchaseCharge()
+		s.Require().NoError(err)
+		s.Equal(creditpurchase.StatusFinal, persisted.Status)
+		s.True(persisted.Intent.Currency.IsCustom())
+		s.Equal(customCurrency.ID, persisted.Intent.Currency.ID)
+		s.Require().NotNil(persisted.Realizations.CreditGrantRealization)
+		s.Equal(promotionalTransactionGroupID, persisted.Realizations.CreditGrantRealization.TransactionGroupID)
+	})
 }
 
 func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementCurrency() {
@@ -725,7 +839,6 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		detailedLine := line.DetailedLines[0]
 
-		s.Equal(USD, detailedLine.Currency)
 		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.PerUnitAmount)
 		s.Equal(alpacadecimal.NewFromFloat(1), detailedLine.Quantity)
 		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.Totals.Amount)

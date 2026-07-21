@@ -571,6 +571,9 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) sqlSave(ctx context.Context)
 			}
 		}
 	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldCurrency, field.TypeString)
+	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodStart, field.TypeTime, value)
 	}
@@ -1354,6 +1357,9 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) sqlSave(ctx context.Conte
 				ps[i](selector)
 			}
 		}
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldCurrency, field.TypeString)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodStart, field.TypeTime, value)

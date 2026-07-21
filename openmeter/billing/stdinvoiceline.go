@@ -713,12 +713,6 @@ func (i StandardLine) Validate() error {
 		errs = append(errs, fmt.Errorf("detailed lines: %w", err))
 	}
 
-	for _, detailedLine := range i.DetailedLines {
-		if detailedLine.Currency != i.Currency {
-			errs = append(errs, fmt.Errorf("detailed line[%s]: currency[%s] is not equal to line currency[%s]", detailedLine.ID, detailedLine.Currency, i.Currency))
-		}
-	}
-
 	if err := i.UsageBased.Validate(); err != nil {
 		errs = append(errs, err)
 	}

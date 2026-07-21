@@ -25,7 +25,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -87,10 +86,7 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 		From: time.Date(2025, 1, 15, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
-	intent := newDetailedRatingTestCharge(t, defaultServicePeriod, nil).Intent
-
 	out := usagebased.NewDetailedLinesFromBilling(
-		intent.GetEffectiveIntent(),
 		defaultServicePeriod,
 		billingrating.DetailedLines{
 			{
@@ -119,7 +115,6 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 	require.Empty(t, out[0].Namespace)
 	require.Equal(t, "Usage", out[0].Name)
 	require.Equal(t, defaultServicePeriod, out[0].ServicePeriod)
-	require.Equal(t, currencyx.Code("USD"), out[0].Currency)
 	require.Equal(t, productcatalog.InArrearsPaymentTerm, out[0].PaymentTerm)
 	require.Equal(t, stddetailedline.CategoryRegular, out[0].Category)
 	require.Equal(t, float64(12), out[0].Quantity.InexactFloat64())
@@ -174,7 +169,6 @@ func TestGetDetailedRatingForUsageUsesPeriodPreservingRatingEngine(t *testing.T)
 					Name: "Usage",
 				}),
 				ServicePeriod:          priorPeriod,
-				Currency:               currencyx.Code("USD"),
 				ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				PerUnitAmount:          alpacadecimal.NewFromInt(3),

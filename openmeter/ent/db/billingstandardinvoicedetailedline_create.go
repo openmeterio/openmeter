@@ -38,6 +38,14 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) SetCurrency(v currencyx.Code
 	return _c
 }
 
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_c *BillingStandardInvoiceDetailedLineCreate) SetNillableCurrency(v *currencyx.Code) *BillingStandardInvoiceDetailedLineCreate {
+	if v != nil {
+		_c.SetCurrency(*v)
+	}
+	return _c
+}
+
 // SetServicePeriodStart sets the "service_period_start" field.
 func (_c *BillingStandardInvoiceDetailedLineCreate) SetServicePeriodStart(v time.Time) *BillingStandardInvoiceDetailedLineCreate {
 	_c.mutation.SetServicePeriodStart(v)
@@ -380,11 +388,8 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *BillingStandardInvoiceDetailedLineCreate) check() error {
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingStandardInvoiceDetailedLine.currency"`)}
-	}
 	if v, ok := _c.mutation.Currency(); ok {
-		if err := billingstandardinvoicedetailedline.CurrencyValidator(string(v)); err != nil {
+		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.currency": %w`, err)}
 		}
 	}
@@ -520,7 +525,7 @@ func (_c *BillingStandardInvoiceDetailedLineCreate) createSpec() (*BillingStanda
 	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+		_node.Currency = &value
 	}
 	if value, ok := _c.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodStart, field.TypeTime, value)
