@@ -36,8 +36,10 @@ func (mixinBase) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("currency").
 			GoType(currencyx.Code("")).
-			NotEmpty().
+			Optional().
+			Nillable().
 			Immutable().
+			Deprecated("currency is defined by the parent line or charge").
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(3)",
 			}),

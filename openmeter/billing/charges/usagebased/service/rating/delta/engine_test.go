@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -164,7 +163,6 @@ func TestRateSubtractsAlreadyBilledLinesAndBooksDeltaOnCurrentPeriod(t *testing.
 						Name: "Usage",
 					}),
 					ServicePeriod:          priorPeriod,
-					Currency:               currencyx.Code("USD"),
 					ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					PerUnitAmount:          alpacadecimal.NewFromInt(10),
@@ -232,7 +230,6 @@ func TestRateGeneratesCorrectionChildUniqueReferenceIDForPreviousOnlyReversal(t 
 						Name: "Usage",
 					}),
 					ServicePeriod:          priorPeriod,
-					Currency:               currencyx.Code("USD"),
 					ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					PerUnitAmount:          alpacadecimal.NewFromInt(10),
@@ -300,7 +297,6 @@ func TestRateErrorsWhenPreviousOnlyReversalDetailedLineIDIsMissing(t *testing.T)
 						Name: "Usage",
 					}),
 					ServicePeriod:          priorPeriod,
-					Currency:               currencyx.Code("USD"),
 					ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					PerUnitAmount:          alpacadecimal.NewFromInt(10),

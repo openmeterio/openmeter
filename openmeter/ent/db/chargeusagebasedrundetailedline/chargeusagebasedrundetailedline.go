@@ -113,7 +113,6 @@ const (
 // Columns holds all SQL columns for chargeusagebasedrundetailedline fields.
 var Columns = []string{
 	FieldID,
-	FieldCurrency,
 	FieldServicePeriodStart,
 	FieldServicePeriodEnd,
 	FieldQuantity,
@@ -151,7 +150,7 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
-	for _, f := range [...]string{FieldAnnotations, FieldMetadata} {
+	for _, f := range [...]string{FieldCurrency, FieldAnnotations, FieldMetadata} {
 		if column == f {
 			return true
 		}
@@ -160,8 +159,6 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
 	// ChildUniqueReferenceIDValidator is a validator for the "child_unique_reference_id" field. It is called by the builders before save.
 	ChildUniqueReferenceIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.

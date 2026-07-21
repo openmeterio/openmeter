@@ -805,7 +805,7 @@ func (e *BillingStandardInvoiceDetailedLine) GetID() string {
 	return e.ID
 }
 
-func (e *BillingStandardInvoiceDetailedLine) GetCurrency() currencyx.Code {
+func (e *BillingStandardInvoiceDetailedLine) GetCurrency() *currencyx.Code {
 	return e.Currency
 }
 
@@ -1465,7 +1465,7 @@ func (e *ChargeFlatFeeRunDetailedLine) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeFlatFeeRunDetailedLine) GetCurrency() currencyx.Code {
+func (e *ChargeFlatFeeRunDetailedLine) GetCurrency() *currencyx.Code {
 	return e.Currency
 }
 
@@ -1881,7 +1881,7 @@ func (e *ChargeUsageBasedRunDetailedLine) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeUsageBasedRunDetailedLine) GetCurrency() currencyx.Code {
+func (e *ChargeUsageBasedRunDetailedLine) GetCurrency() *currencyx.Code {
 	return e.Currency
 }
 

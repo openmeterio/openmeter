@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -53,7 +52,6 @@ type Base struct {
 	PaymentTerm            productcatalog.PaymentTermType `json:"paymentTerm"`
 	ServicePeriod          timeutil.ClosedPeriod          `json:"servicePeriod"`
 
-	Currency      currencyx.Code        `json:"currency"`
 	PerUnitAmount alpacadecimal.Decimal `json:"perUnitAmount"`
 	Quantity      alpacadecimal.Decimal `json:"quantity"`
 	Totals        totals.Totals         `json:"totals"`
@@ -104,10 +102,6 @@ func (l Base) Validate(opts ...ValidateOption) error {
 
 	if err := l.ServicePeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
-	}
-
-	if err := l.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
 	if err := l.CreditsApplied.Validate(); err != nil {

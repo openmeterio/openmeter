@@ -548,7 +548,6 @@ func (s *DetailedLineAdapterSuite) newDetailedLine(input newDetailedLineInput) u
 				Description: input.Description,
 			}),
 			ServicePeriod:          input.ServicePeriod,
-			Currency:               input.Charge.Intent.GetCurrency().GetCode(),
 			ChildUniqueReferenceID: input.ChildUniqueReferenceID,
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),

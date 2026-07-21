@@ -21,7 +21,7 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) {
-		if input.Intent.Currency.Type() == currencyx.CurrencyTypeCustom {
+		if input.Intent.Currency.IsCustom() && input.Intent.Settlement.Type() != creditpurchase.SettlementTypePromotional {
 			return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("custom currency %s is not supported for credit purchases: %w", input.Intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
 		}
 

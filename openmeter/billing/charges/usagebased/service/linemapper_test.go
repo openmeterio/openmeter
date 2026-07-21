@@ -259,7 +259,6 @@ func newUsageBasedDetailedLineForTest(ref string, period timeutil.ClosedPeriod, 
 			Index:                  lo.ToPtr(0),
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			ServicePeriod:          period,
-			Currency:               currencyx.Code("USD"),
 			PerUnitAmount:          amount,
 			Quantity:               alpacadecimal.NewFromInt(1),
 			Totals: totals.Totals{

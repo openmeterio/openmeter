@@ -327,7 +327,7 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				SetType(billing.InvoiceLineAdapterTypeFee).
 				SetName(line.Name).
 				SetNillableDescription(line.Description).
-				SetCurrency(line.Currency).
+				SetCurrency(lineWithParent.Parent.Currency).
 				SetNillableChildUniqueReferenceID(lo.EmptyableToPtr(line.ChildUniqueReferenceID))
 
 			create = externalid.CreateLineExternalID(create, line.ExternalIDs)

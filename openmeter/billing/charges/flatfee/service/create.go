@@ -29,7 +29,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]flatfee.ChargeWithGatheringLine, error) {
 		// Let's create all the flat fee charges in bulk
 		intentsWithStatus, err := slicesx.MapWithErr(input.Intents, func(intent flatfee.Intent) (flatfee.IntentWithInitialStatus, error) {
-			if intent.Currency.IsCustom() {
+			if intent.Currency.IsCustom() && intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
 				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("creating flat fee charge with custom currency %q: %w", intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
 			}
 

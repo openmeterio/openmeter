@@ -37,6 +37,14 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) SetCurrency(v currencyx.Code) *
 	return _c
 }
 
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunDetailedLineCreate) SetNillableCurrency(v *currencyx.Code) *ChargeUsageBasedRunDetailedLineCreate {
+	if v != nil {
+		_c.SetCurrency(*v)
+	}
+	return _c
+}
+
 // SetServicePeriodStart sets the "service_period_start" field.
 func (_c *ChargeUsageBasedRunDetailedLineCreate) SetServicePeriodStart(v time.Time) *ChargeUsageBasedRunDetailedLineCreate {
 	_c.mutation.SetServicePeriodStart(v)
@@ -377,11 +385,8 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeUsageBasedRunDetailedLineCreate) check() error {
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeUsageBasedRunDetailedLine.currency"`)}
-	}
 	if v, ok := _c.mutation.Currency(); ok {
-		if err := chargeusagebasedrundetailedline.CurrencyValidator(string(v)); err != nil {
+		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.currency": %w`, err)}
 		}
 	}
@@ -530,7 +535,7 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBased
 	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+		_node.Currency = &value
 	}
 	if value, ok := _c.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldServicePeriodStart, field.TypeTime, value)
