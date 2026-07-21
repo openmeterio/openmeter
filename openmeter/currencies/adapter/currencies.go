@@ -12,6 +12,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -93,10 +94,38 @@ func mapCostBasisFromDB(c *entdb.CurrencyCostBasis) currencies.CostBasis {
 
 func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[currencies.Currency], error) {
+		if params.CurrencyType != nil && *params.CurrencyType != currencies.CurrencyTypeCustom {
+			return pagination.Result[currencies.Currency]{
+				Page:  params.Page,
+				Items: []currencies.Currency{},
+			}, nil
+		}
+
 		q := tx.db.CustomCurrency.Query().
 			Where(customcurrency.Namespace(params.Namespace))
 
-		q = filter.ApplyToQuery(q, params.Code, customcurrency.FieldCode)
+		if params.Union {
+			predicates := make([]predicate.CustomCurrency, 0, 2)
+
+			if params.ID != nil {
+				if idPredicate := filter.SelectPredicate[predicate.CustomCurrency](params.ID, customcurrency.FieldID); idPredicate != nil {
+					predicates = append(predicates, *idPredicate)
+				}
+			}
+
+			if params.Code != nil {
+				if codePredicate := filter.SelectPredicate[predicate.CustomCurrency](params.Code, customcurrency.FieldCode); codePredicate != nil {
+					predicates = append(predicates, *codePredicate)
+				}
+			}
+
+			if len(predicates) > 0 {
+				q = q.Where(customcurrency.Or(predicates...))
+			}
+		} else {
+			q = filter.ApplyToQuery(q, params.ID, customcurrency.FieldID)
+			q = filter.ApplyToQuery(q, params.Code, customcurrency.FieldCode)
+		}
 
 		order := entutils.GetOrdering(sortx.OrderDefault)
 		if !params.Order.IsDefaultValue() {

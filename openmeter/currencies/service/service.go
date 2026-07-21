@@ -41,8 +41,8 @@ func (s *service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[currencies.Currency], error) {
-		includeCustom := params.FilterType == nil || *params.FilterType == currencies.CurrencyTypeCustom
-		includeFiat := params.FilterType == nil || *params.FilterType == currencies.CurrencyTypeFiat
+		includeCustom := params.CurrencyType == nil || *params.CurrencyType == currencies.CurrencyTypeCustom
+		includeFiat := params.CurrencyType == nil || *params.CurrencyType == currencies.CurrencyTypeFiat
 
 		// Custom-only: delegate pagination entirely to the adapter (DB-level)
 		if includeCustom && !includeFiat {
@@ -64,17 +64,18 @@ func (s *service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 		}
 
 		if includeFiat {
-			matchCode := params.Code.LoFilterPredicate()
 			filteredMatchCode, err := lo.FilterErr(currency.Definitions(), func(def *currency.Def, _ int) (bool, error) {
 				// NOTE: this filters out non-iso currencies such as crypto
 				if def.ISONumeric == "" {
 					return false, nil
 				}
-				return matchCode(def.ISOCode.String(), 0)
+
+				return matchesCurrencyFilters(params, "", def.ISOCode.String())
 			})
 			if err != nil {
 				return pagination.Result[currencies.Currency]{}, fmt.Errorf("filtering fiat currencies by code: %w", err)
 			}
+
 			for _, def := range filteredMatchCode {
 				curr, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
 					WithCode(currencyx.Code(def.ISOCode)).
@@ -131,6 +132,39 @@ func (s *service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 			Items:      items,
 		}, nil
 	})
+}
+
+func matchesCurrencyFilters(params currencies.ListCurrenciesInput, id, code string) (bool, error) {
+	hasIDFilter := params.ID != nil && !params.ID.IsEmpty()
+	hasCodeFilter := params.Code != nil && !params.Code.IsEmpty()
+
+	if !hasIDFilter && !hasCodeFilter {
+		return true, nil
+	}
+
+	idMatches := false
+	if hasIDFilter {
+		var err error
+		idMatches, err = params.ID.Match(id)
+		if err != nil {
+			return false, fmt.Errorf("matching currency id: %w", err)
+		}
+	}
+
+	codeMatches := false
+	if hasCodeFilter {
+		var err error
+		codeMatches, err = params.Code.Match(code)
+		if err != nil {
+			return false, fmt.Errorf("matching currency code: %w", err)
+		}
+	}
+
+	if params.Union {
+		return idMatches || codeMatches, nil
+	}
+
+	return (!hasIDFilter || idMatches) && (!hasCodeFilter || codeMatches), nil
 }
 
 func (s *service) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
