@@ -34,7 +34,7 @@ func (c Code) Equal(other Code) bool {
 }
 
 func (c Code) Type() CurrencyType {
-	if len(c) <= 3 {
+	if len(c) == 3 {
 		return CurrencyTypeFiat
 	}
 
@@ -58,7 +58,7 @@ func (c Code) Validate() error {
 		return models.NewNillableGenericValidationError(errors.Join(errs...))
 	}
 
-	if c.IsFiat() {
+	if len(c) == 3 {
 		if err := validateFiatCurrencyCode(c); err != nil {
 			errs = append(errs, err)
 		}

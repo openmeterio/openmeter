@@ -294,6 +294,7 @@ func (chargesMetaMixin) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Checks(map[string]string{
 			"currency_reference": `(currency IS NULL) <> (custom_currency_id IS NULL)`,
+			"currency_not_empty": `currency IS NULL OR currency <> ''`,
 		}),
 	}
 }

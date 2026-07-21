@@ -29,6 +29,9 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -176,6 +179,15 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+	currencyService, err := currencyservice.New(currencyAdapter)
+	s.NoError(err)
+	currencyResolver, err := currencyresolver.New(currencyService)
+	s.NoError(err)
+
 	chargesService, err := New(Config{
 		Logger:  slog.Default(),
 		Adapter: chargesAdapter,
@@ -187,8 +199,9 @@ func (s *BaseSuite) SetupSuite() {
 		UsageBasedService:     usageBasedService,
 		RecognizerService:     recognizer.NoopService{},
 
-		BillingService: s.BillingService,
-		TaxCodeService: s.TaxCodeService,
+		BillingService:   s.BillingService,
+		TaxCodeService:   s.TaxCodeService,
+		CurrencyResolver: currencyResolver,
 	})
 	s.NoError(err)
 	s.Charges = chargesService

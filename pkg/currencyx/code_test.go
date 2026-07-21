@@ -43,9 +43,9 @@ func TestCodeValidate(t *testing.T) {
 			code: currencyx.Code(strings.Repeat("A", currencyx.CustomCurrencyCodeMaxLength)),
 		},
 		{
-			name:          "invalid short fiat code",
+			name:          "custom code too short",
 			code:          "AB",
-			expectedError: "invalid fiat currency code",
+			expectedError: "between 4 and 24 characters",
 		},
 		{
 			name:          "custom code too long",
@@ -126,16 +126,6 @@ func TestCodeType(t *testing.T) {
 		code     currencyx.Code
 		expected currencyx.CurrencyType
 	}{
-		{
-			name:     "one-character fiat classification",
-			code:     "C",
-			expected: currencyx.CurrencyTypeFiat,
-		},
-		{
-			name:     "two-character fiat classification",
-			code:     "CR",
-			expected: currencyx.CurrencyTypeFiat,
-		},
 		{
 			name:     "fiat",
 			code:     "USD",

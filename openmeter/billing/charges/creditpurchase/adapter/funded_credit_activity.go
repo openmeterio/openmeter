@@ -65,12 +65,14 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 
 	if input.Currency != nil {
 		query = query.Where(dbchargecreditpurchasecreditgrant.HasCreditPurchaseWith(
-			dbchargecreditpurchase.HasCustomCurrencyWith(
-				dbcustomcurrency.CodeEQ(*input.Currency),
-				dbcustomcurrency.Namespace(input.Customer.Namespace),
-				dbcustomcurrency.DeletedAtIsNil(),
+			dbchargecreditpurchase.Or(
+				dbchargecreditpurchase.HasCustomCurrencyWith(
+					dbcustomcurrency.CodeEQ(*input.Currency),
+					dbcustomcurrency.Namespace(input.Customer.Namespace),
+					dbcustomcurrency.DeletedAtIsNil(),
+				),
+				dbchargecreditpurchase.FiatCurrencyCodeEQ(*input.Currency),
 			),
-			dbchargecreditpurchase.FiatCurrencyCodeEQ(*input.Currency),
 		))
 	}
 

@@ -501,7 +501,7 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		s.Equal(expectedCharge.Status, string(usageBasedCharge.Status), "%s: status", childID)
 		s.Equal(subsView.Subscription.SettlementMode, usageBasedCharge.Intent.GetSettlementMode(), "%s: settlement mode", childID)
 		s.Equal(s.Customer.ID, usageBasedCharge.Intent.GetCustomerID(), "%s: customer id", childID)
-		s.Equal(subsView.Subscription.Currency, usageBasedCharge.Intent.GetCurrency(), "%s: currency", childID)
+		s.Equal(subsView.Subscription.Currency, usageBasedCharge.Intent.GetCurrency().GetCode(), "%s: currency", childID)
 		s.Equal(expectedCharge.Periods[idx], baseIntent.ServicePeriod, "%s: service period", childID)
 		if len(expectedCharge.FullServicePeriods) > 0 {
 			s.Equal(expectedCharge.FullServicePeriods[idx], baseIntent.FullServicePeriod, "%s: full service period", childID)
@@ -535,7 +535,7 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		s.Equal(expectedCharge.Status, string(flatFeeCharge.Status), "%s: status", childID)
 		s.Equal(subsView.Subscription.SettlementMode, flatFeeCharge.Intent.GetSettlementMode(), "%s: settlement mode", childID)
 		s.Equal(s.Customer.ID, flatFeeCharge.Intent.GetCustomerID(), "%s: customer id", childID)
-		s.Equal(subsView.Subscription.Currency, flatFeeCharge.Intent.GetCurrency(), "%s: currency", childID)
+		s.Equal(subsView.Subscription.Currency, flatFeeCharge.Intent.GetCurrency().GetCode(), "%s: currency", childID)
 		s.Equal(expectedCharge.Periods[idx], baseIntent.ServicePeriod, "%s: service period", childID)
 		if len(expectedCharge.FullServicePeriods) > 0 {
 			s.Equal(expectedCharge.FullServicePeriods[idx], baseIntent.FullServicePeriod, "%s: full service period", childID)

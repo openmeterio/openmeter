@@ -5759,6 +5759,7 @@ func init() {
 	ChargeCreditPurchasesTable.ForeignKeys[5].RefTable = TaxCodesTable
 	ChargeCreditPurchasesTable.Annotation = &entsql.Annotation{}
 	ChargeCreditPurchasesTable.Annotation.Checks = map[string]string{
+		"currency_not_empty": "currency IS NULL OR currency <> ''",
 		"currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
 	}
 	ChargeCreditPurchaseCreditGrantsTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
@@ -5775,6 +5776,7 @@ func init() {
 	ChargeFlatFeesTable.ForeignKeys[7].RefTable = TaxCodesTable
 	ChargeFlatFeesTable.Annotation = &entsql.Annotation{}
 	ChargeFlatFeesTable.Annotation.Checks = map[string]string{
+		"currency_not_empty": "currency IS NULL OR currency <> ''",
 		"currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
 	}
 	ChargeFlatFeeOverridesTable.ForeignKeys[0].RefTable = ChargeFlatFeesTable
@@ -5805,6 +5807,7 @@ func init() {
 		Table: "charge_usage_based",
 	}
 	ChargeUsageBasedTable.Annotation.Checks = map[string]string{
+		"currency_not_empty": "currency IS NULL OR currency <> ''",
 		"currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
 	}
 	ChargeUsageBasedOverridesTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
