@@ -15,33 +15,57 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func MapChargeFromDB(entity *entdb.ChargeUsageBased, expands meta.Expands) (usagebased.Charge, error) {
-	chargeBase := MapChargeBaseFromDB(entity)
+func FromDB(entity *entdb.ChargeUsageBased, expands meta.Expands) (usagebased.Charge, error) {
+	chargeMeta, err := chargemeta.FromDB(entity, entity.Edges)
+	if err != nil {
+		return usagebased.Charge{}, fmt.Errorf("mapping usage based charge meta [id=%s]: %w", entity.ID, err)
+	}
 
+	return fromDBWithMeta(entity, chargeMeta, expands)
+}
+
+func FromDBWithCurrency(entity *entdb.ChargeUsageBased, currency currencies.Currency, expands meta.Expands) (usagebased.Charge, error) {
+	chargeMeta, err := chargemeta.FromDBWithCurrency(entity, currency)
+	if err != nil {
+		return usagebased.Charge{}, fmt.Errorf("mapping usage based charge meta [id=%s]: %w", entity.ID, err)
+	}
+
+	return fromDBWithMeta(entity, chargeMeta, expands)
+}
+
+func fromDBWithMeta(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge, expands meta.Expands) (usagebased.Charge, error) {
 	var realizations usagebased.RealizationRuns
 	if expands.Has(meta.ExpandRealizations) {
 		var err error
-
-		realizations, err = MapRealizationRunsFromDB(entity)
+		realizations, err = fromDBRuns(entity)
 		if err != nil {
 			return usagebased.Charge{}, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
 		}
 	}
 
 	return usagebased.Charge{
-		ChargeBase:   chargeBase,
+		ChargeBase:   fromDBBase(entity, chargeMeta),
 		Realizations: realizations,
 	}, nil
 }
 
-func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
-	chargeMeta := chargemeta.MapFromDB(entity)
+func fromDBBaseWithCurrency(entity *entdb.ChargeUsageBased, currency currencies.Currency) (usagebased.ChargeBase, error) {
+	chargeMeta, err := chargemeta.FromDBWithCurrency(entity, currency)
+	if err != nil {
+		return usagebased.ChargeBase{}, fmt.Errorf("mapping charge meta: %w", err)
+	}
+
+	return fromDBBase(entity, chargeMeta), nil
+}
+
+func fromDBBase(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge) usagebased.ChargeBase {
 	intent := usagebased.Intent{
 		Intent:     chargeMeta.Intent,
 		FeatureKey: entity.FeatureKey,
@@ -59,7 +83,7 @@ func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
 	return usagebased.ChargeBase{
 		ManagedResource: chargeMeta.ManagedResource,
 		Status:          entity.StatusDetailed,
-		Intent:          usagebased.NewOverridableIntent(intent, mapIntentOverrideFromDB(entity.Edges.IntentOverride)),
+		Intent:          usagebased.NewOverridableIntent(intent, fromDBOverride(entity.Edges.IntentOverride)),
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,
 			AdvanceAfter:            entity.AdvanceAfter,
@@ -69,15 +93,14 @@ func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
 	}
 }
 
-// MapRealizationRunsFromDB converts a DB Charge entity (with loaded UsageBased edge) to a UsageBasedCharge.
-func MapRealizationRunsFromDB(entity *entdb.ChargeUsageBased) (usagebased.RealizationRuns, error) {
+func fromDBRuns(entity *entdb.ChargeUsageBased) (usagebased.RealizationRuns, error) {
 	dbRuns, err := entity.Edges.RunsOrErr()
 	if err != nil {
 		return nil, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
 	}
 
 	runs, err := slicesx.MapWithErr(dbRuns, func(run *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun, error) {
-		return MapRealizationRunFromDB(run)
+		return fromDBRun(run)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
@@ -96,7 +119,7 @@ func MapRealizationRunsFromDB(entity *entdb.ChargeUsageBased) (usagebased.Realiz
 	return runs, nil
 }
 
-func MapRealizationRunBaseFromDB(dbRun *entdb.ChargeUsageBasedRuns) usagebased.RealizationRunBase {
+func fromDBRunBase(dbRun *entdb.ChargeUsageBasedRuns) usagebased.RealizationRunBase {
 	return usagebased.RealizationRunBase{
 		ID: usagebased.RealizationRunID{
 			Namespace: dbRun.Namespace,
@@ -117,9 +140,9 @@ func MapRealizationRunBaseFromDB(dbRun *entdb.ChargeUsageBasedRuns) usagebased.R
 	}
 }
 
-func MapRealizationRunFromDB(dbRun *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun, error) {
+func fromDBRun(dbRun *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun, error) {
 	run := usagebased.RealizationRun{
-		RealizationRunBase: MapRealizationRunBaseFromDB(dbRun),
+		RealizationRunBase: fromDBRunBase(dbRun),
 	}
 
 	dbCreditsAllocated, err := dbRun.Edges.CreditAllocationsOrErr()

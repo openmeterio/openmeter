@@ -9,10 +9,11 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -85,7 +86,7 @@ type service struct {
 type RecognizeEarningsInput struct {
 	CustomerID customer.CustomerID
 	At         time.Time
-	Currency   currencyx.Code
+	Currency   currencies.Currency
 }
 
 func (i RecognizeEarningsInput) Validate() error {
@@ -97,8 +98,13 @@ func (i RecognizeEarningsInput) Validate() error {
 	if i.At.IsZero() {
 		errs = append(errs, errors.New("at is required"))
 	}
+
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if i.Currency.IsCustom() {
+		errs = append(errs, fmt.Errorf("custom currency: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 
 	return errors.Join(errs...)

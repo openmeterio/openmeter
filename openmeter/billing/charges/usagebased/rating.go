@@ -41,8 +41,8 @@ func (r RateableIntent) GetFeatureKey() string {
 	return r.FeatureKey
 }
 
-func (r RateableIntent) GetCurrency() currencyx.Code {
-	return r.Currency
+func (r RateableIntent) GetCurrencyCalculator() (currencyx.Currency, error) {
+	return r.Intent.Intent.Currency, nil
 }
 
 func (r RateableIntent) GetName() string {

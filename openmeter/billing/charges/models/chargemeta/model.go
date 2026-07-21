@@ -1,115 +1,25 @@
 package chargemeta
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
-	"entgo.io/ent"
-	"entgo.io/ent/dialect"
-	"entgo.io/ent/dialect/entsql"
-	"entgo.io/ent/schema/field"
-	"entgo.io/ent/schema/index"
-	"entgo.io/ent/schema/mixin"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciesadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entedge"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
-
-type Mixin = entutils.RecursiveMixin[metaMixin]
-
-type metaMixin struct {
-	mixin.Schema
-}
-
-func (metaMixin) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entutils.AnnotationsMixin{},
-		entutils.ResourceMixin{},
-	}
-}
-
-func (metaMixin) Fields() []ent.Field {
-	return []ent.Field{
-		field.String("customer_id").
-			NotEmpty().
-			Immutable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}),
-
-		field.Time("service_period_from"),
-		field.Time("service_period_to"),
-		field.Time("billing_period_from"),
-		field.Time("billing_period_to"),
-		field.Time("full_service_period_from"),
-		field.Time("full_service_period_to"),
-
-		field.Enum("status").
-			GoType(meta.ChargeStatus("")),
-
-		field.String("unique_reference_id").
-			Immutable().
-			Optional().
-			Nillable(),
-
-		field.String("currency").
-			GoType(currencyx.Code("")).
-			NotEmpty().
-			Immutable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
-			}),
-
-		field.Enum("managed_by").
-			GoType(billing.InvoiceLineManagedBy("")).
-			Immutable(),
-
-		// Subscriptions metadata
-		field.String("subscription_id").
-			Optional().
-			Nillable().
-			Immutable(),
-
-		field.String("subscription_phase_id").
-			Optional().
-			Nillable().
-			Immutable(),
-
-		field.String("subscription_item_id").
-			Optional().
-			Nillable(),
-
-		field.Time("advance_after").
-			Optional().
-			Nillable(),
-		field.String("tax_code_id").
-			NotEmpty().
-			Immutable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}),
-		field.Enum("tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
-			Optional().
-			Nillable().
-			Immutable(),
-	}
-}
-
-func (metaMixin) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("namespace", "customer_id", "unique_reference_id").
-			Annotations(
-				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
-			).
-			Unique(),
-	}
-}
 
 type CreateInput struct {
 	Namespace string
@@ -121,13 +31,36 @@ type CreateInput struct {
 	AdvanceAfter *time.Time
 }
 
+func (i CreateInput) Validate() error {
+	var errs []error
+
+	if err := i.Intent.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := i.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	if i.Status == "" {
+		errs = append(errs, fmt.Errorf("status is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type Creator[T any] interface {
 	entutils.NamespaceMixinCreator[T]
 	entutils.AnnotationsMixinSetter[T]
 	entutils.TimeMixinCreator[T]
 
 	SetCustomerID(customerID string) T
-	SetCurrency(currency currencyx.Code) T
+	SetNillableFiatCurrencyCode(currency *currencyx.Code) T
+	SetNillableCustomCurrencyID(customCurrencyID *string) T
 	SetNillableUniqueReferenceID(uniqueReferenceID *string) T
 	SetNillableSubscriptionID(subscriptionID *string) T
 	SetNillableSubscriptionPhaseID(subscriptionPhaseID *string) T
@@ -170,14 +103,8 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 	in.IntentMutableFields = in.IntentMutableFields.Normalized()
 	in.AdvanceAfter = meta.NormalizeOptionalTimestamp(in.AdvanceAfter)
 
-	if err := in.Intent.Validate(); err != nil {
-		var empty T
-		return empty, err
-	}
-
-	if err := in.IntentMutableFields.Validate(); err != nil {
-		var empty T
-		return empty, err
+	if err := in.Validate(); err != nil {
+		return lo.Empty[T](), err
 	}
 
 	var subscriptionID *string
@@ -191,6 +118,26 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 	var subscriptionItemID *string
 	if in.Intent.Subscription != nil {
 		subscriptionItemID = &in.Intent.Subscription.ItemID
+	}
+
+	switch in.Intent.Currency.Type() {
+	case currencyx.CurrencyTypeFiat:
+		def := in.Intent.Currency.Definition()
+
+		if def == nil {
+			return lo.Empty[T](), fmt.Errorf("resolved currency definition is required")
+		}
+
+		creator = creator.SetNillableFiatCurrencyCode(lo.ToPtr(currencyx.Code(def.ISOCode)))
+
+	case currencyx.CurrencyTypeCustom:
+		if in.Intent.Currency.ID == "" {
+			return lo.Empty[T](), fmt.Errorf("resolved currency ID is required")
+		}
+
+		creator = creator.SetNillableCustomCurrencyID(lo.ToPtr(in.Intent.Currency.ID))
+	default:
+		return lo.Empty[T](), fmt.Errorf("unsupported currency type: %s", in.Intent.Currency.Type())
 	}
 
 	return creator.
@@ -207,7 +154,6 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		SetFullServicePeriodFrom(in.IntentMutableFields.FullServicePeriod.From.UTC()).
 		SetFullServicePeriodTo(in.IntentMutableFields.FullServicePeriod.To.UTC()).
 		SetStatus(in.Status).
-		SetCurrency(in.Intent.Currency).
 		SetManagedBy(in.Intent.ManagedBy).
 		SetNillableUniqueReferenceID(in.Intent.UniqueReferenceID).
 		SetNillableAdvanceAfter(convert.SafeToUTC(in.AdvanceAfter)).
@@ -269,7 +215,6 @@ type Getter[T any] interface {
 	GetAnnotations() models.Annotations
 	GetManagedBy() billing.InvoiceLineManagedBy
 	GetCustomerID() string
-	GetCurrency() currencyx.Code
 	GetServicePeriodFrom() time.Time
 	GetServicePeriodTo() time.Time
 	GetAdvanceAfter() *time.Time
@@ -283,9 +228,40 @@ type Getter[T any] interface {
 	GetSubscriptionItemID() *string
 	GetTaxCodeID() string
 	GetTaxBehavior() *productcatalog.TaxBehavior
+	GetFiatCurrencyCode() *currencyx.Code
+	GetCustomCurrencyID() *string
 }
 
-func MapFromDB[T Getter[T]](entity T) meta.Charge {
+type EdgeGetter interface {
+	CustomCurrencyOrErr() (*entdb.CustomCurrency, error)
+}
+
+func FromDB[T Getter[T]](entity T, edges EdgeGetter) (meta.Charge, error) {
+	var dbCustomCurrency *entdb.CustomCurrency
+	if entity.GetCustomCurrencyID() != nil {
+		var err error
+		dbCustomCurrency, err = entedge.OrNilIfNotFound(edges.CustomCurrencyOrErr())
+		if err != nil {
+			return meta.Charge{}, fmt.Errorf("failed to get custom currency: %w", err)
+		}
+	}
+
+	resolvedCurrency, err := currenciesadapter.FromDBCustomCurrencyOrFiatCurrency(currenciesadapter.CustomCurrencyOrFiatCurrency{
+		CustomCurrency: dbCustomCurrency,
+		FiatCurrency:   entity.GetFiatCurrencyCode(),
+	})
+	if err != nil {
+		return meta.Charge{}, fmt.Errorf("failed to resolve currency: %w", err)
+	}
+
+	return FromDBWithCurrency(entity, resolvedCurrency)
+}
+
+func FromDBWithCurrency[T Getter[T]](entity T, currency currencies.Currency) (meta.Charge, error) {
+	if err := currency.Validate(); err != nil {
+		return meta.Charge{}, fmt.Errorf("currency: %w", err)
+	}
+
 	var subscriptionReference *meta.SubscriptionReference
 	if entity.GetSubscriptionID() != nil && entity.GetSubscriptionPhaseID() != nil && entity.GetSubscriptionItemID() != nil {
 		subscriptionReference = &meta.SubscriptionReference{
@@ -307,7 +283,7 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 			ManagedBy:   entity.GetManagedBy(),
 			CustomerID:  entity.GetCustomerID(),
 			Annotations: entity.GetAnnotations(),
-			Currency:    entity.GetCurrency(),
+			Currency:    currency,
 			TaxConfig: productcatalog.TaxCodeConfig{
 				TaxCodeID: entity.GetTaxCodeID(),
 				Behavior:  entity.GetTaxBehavior(),
@@ -334,5 +310,5 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 		},
 		Status:       entity.GetStatus(),
 		AdvanceAfter: entity.GetAdvanceAfter(),
-	}
+	}, nil
 }

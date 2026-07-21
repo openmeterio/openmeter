@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -114,17 +114,15 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 	return advancedCharges, nil
 }
 
-func collectCurrencies(chargeList charges.Charges) ([]currencyx.Code, error) {
-	out := make([]currencyx.Code, 0, len(chargeList))
-
-	for _, c := range chargeList {
-		currency, err := c.GetCurrency()
-		if err != nil {
-			return nil, fmt.Errorf("get charge currency: %w", err)
-		}
-
-		out = append(out, currency)
+func collectCurrencies(chargeList charges.Charges) ([]currencies.Currency, error) {
+	out, err := lo.MapErr(chargeList, func(c charges.Charge, _ int) (currencies.Currency, error) {
+		return c.GetCurrency()
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get currencies: %w", err)
 	}
 
-	return lo.Uniq(out), nil
+	return lo.UniqByErr(out, func(c currencies.Currency) (string, error) {
+		return c.Identity()
+	})
 }

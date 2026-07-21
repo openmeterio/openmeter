@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -257,7 +258,7 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 		ManagedBy:         input.ManagedBy,
 		UniqueReferenceID: lo.EmptyableToPtr(input.UniqueReferenceID),
 		CustomerID:        input.Customer.ID,
-		Currency:          input.Currency,
+		Currency:          currenciestestutils.NewFiatCurrency(s.T(), input.Currency),
 		TaxConfig:         input.TaxConfig,
 	}
 	intentMutableFields := meta.IntentMutableFields{
@@ -748,7 +749,7 @@ func (s *BaseSuite) MustRecognizeRevenue(customerID customer.CustomerID, code cu
 	result, err := s.RevenueRecognizer.RecognizeEarnings(s.T().Context(), recognizer.RecognizeEarningsInput{
 		CustomerID: customerID,
 		At:         clock.Now(),
-		Currency:   code,
+		Currency:   currenciestestutils.NewFiatCurrency(s.T(), code),
 	})
 	s.NoError(err)
 	s.True(result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
@@ -811,7 +812,7 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 		Intent: meta.Intent{
 			ManagedBy:  billing.ManuallyManagedLine,
 			CustomerID: input.Customer.ID,
-			Currency:   input.Currency,
+			Currency:   currenciestestutils.NewFiatCurrency(s.T(), input.Currency),
 			TaxConfig:  input.TaxConfig,
 		},
 		IntentMutableFields: creditpurchase.IntentMutableFields{

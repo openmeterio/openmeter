@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -87,7 +88,12 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 		return err
 	}
 
-	return s.recognizeCustomerEarnings(ctx, invoice.CustomerID(), invoice.Currency)
+	currency, err := currencies.NewFiatCurrency(invoice.Currency)
+	if err != nil {
+		return fmt.Errorf("resolving fiat invoice currency %q: %w", invoice.Currency, err)
+	}
+
+	return s.recognizeCustomerEarnings(ctx, invoice.CustomerID(), currency)
 }
 
 func (s *service) handleChargeEvent(ctx context.Context, invoice billing.StandardInvoice, processorByType processorByType) error {

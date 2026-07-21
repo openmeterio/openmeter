@@ -18,13 +18,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebasedrundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -104,7 +104,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
+						Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},
@@ -465,7 +465,7 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
+						Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},
@@ -548,7 +548,7 @@ func (s *DetailedLineAdapterSuite) newDetailedLine(input newDetailedLineInput) u
 				Description: input.Description,
 			}),
 			ServicePeriod:          input.ServicePeriod,
-			Currency:               input.Charge.Intent.GetCurrency(),
+			Currency:               input.Charge.Intent.GetCurrency().GetCode(),
 			ChildUniqueReferenceID: input.ChildUniqueReferenceID,
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),

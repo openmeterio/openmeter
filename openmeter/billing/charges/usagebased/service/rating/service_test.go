@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -86,7 +87,7 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 		From: time.Date(2025, 1, 15, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
-	intent := newDetailedRatingTestCharge(defaultServicePeriod, nil).Intent
+	intent := newDetailedRatingTestCharge(t, defaultServicePeriod, nil).Intent
 
 	out := usagebased.NewDetailedLinesFromBilling(
 		intent.GetEffectiveIntent(),
@@ -187,7 +188,7 @@ func TestGetDetailedRatingForUsageUsesPeriodPreservingRatingEngine(t *testing.T)
 		},
 	})
 
-	charge := newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{priorRun})
+	charge := newDetailedRatingTestCharge(t, servicePeriod, usagebased.RealizationRuns{priorRun})
 	charge.State.RatingEngine = usagebased.RatingEnginePeriodPreserving
 
 	svc, err := New(Config{
@@ -346,7 +347,7 @@ func TestGetDetailedRatingForUsageFiltersQuantityByServicePeriodToAndStoredAtLT(
 	require.NoError(t, err)
 
 	out, err := svc.GetDetailedRatingForUsage(t.Context(), GetDetailedRatingForUsageInput{
-		Charge:          newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{}),
+		Charge:          newDetailedRatingTestCharge(t, servicePeriod, usagebased.RealizationRuns{}),
 		ServicePeriodTo: servicePeriodTo,
 		StoredAtLT:      storedAtLT,
 		Customer:        newDetailedRatingTestCustomer(),
@@ -396,7 +397,7 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			charge := newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{})
+			charge := newDetailedRatingTestCharge(t, servicePeriod, usagebased.RealizationRuns{})
 			err = charge.Intent.MutateEffective(func(fields *usagebased.IntentMutableFields) error {
 				fields.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromInt(3),
@@ -446,7 +447,7 @@ func newGetDetailedRatingForUsageFixture(t *testing.T, result billingrating.Gene
 			DetailedLinesFetcher: passthroughDetailedLinesFetcher,
 		},
 		input: GetDetailedRatingForUsageInput{
-			Charge:          newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{}),
+			Charge:          newDetailedRatingTestCharge(t, servicePeriod, usagebased.RealizationRuns{}),
 			ServicePeriodTo: servicePeriod.To,
 			StoredAtLT:      currentRun.StoredAtLT,
 			Customer:        newDetailedRatingTestCustomer(),
@@ -479,7 +480,9 @@ func newDetailedRatingTestRun(id string, servicePeriodTo time.Time, meteredQuant
 	}
 }
 
-func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.RealizationRuns) usagebased.Charge {
+func newDetailedRatingTestCharge(t testing.TB, period timeutil.ClosedPeriod, runs usagebased.RealizationRuns) usagebased.Charge {
+	t.Helper()
+
 	return usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
 			ManagedResource: chargesmeta.ManagedResource{
@@ -494,7 +497,7 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 				Intent: chargesmeta.Intent{
 					ManagedBy:  billing.SubscriptionManagedLine,
 					CustomerID: "customer-1",
-					Currency:   currencyx.Code("USD"),
+					Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: "tax-code-id",
 					},

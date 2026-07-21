@@ -1029,8 +1029,12 @@ func (e *ChargeCreditPurchase) GetUniqueReferenceID() *string {
 	return e.UniqueReferenceID
 }
 
-func (e *ChargeCreditPurchase) GetCurrency() currencyx.Code {
-	return e.Currency
+func (e *ChargeCreditPurchase) GetFiatCurrencyCode() *currencyx.Code {
+	return e.FiatCurrencyCode
+}
+
+func (e *ChargeCreditPurchase) GetCustomCurrencyID() *string {
+	return e.CustomCurrencyID
 }
 
 func (e *ChargeCreditPurchase) GetManagedBy() billing.InvoiceLineManagedBy {
@@ -1273,8 +1277,12 @@ func (e *ChargeFlatFee) GetUniqueReferenceID() *string {
 	return e.UniqueReferenceID
 }
 
-func (e *ChargeFlatFee) GetCurrency() currencyx.Code {
-	return e.Currency
+func (e *ChargeFlatFee) GetFiatCurrencyCode() *currencyx.Code {
+	return e.FiatCurrencyCode
+}
+
+func (e *ChargeFlatFee) GetCustomCurrencyID() *string {
+	return e.CustomCurrencyID
 }
 
 func (e *ChargeFlatFee) GetManagedBy() billing.InvoiceLineManagedBy {
@@ -1737,8 +1745,12 @@ func (e *ChargeUsageBased) GetUniqueReferenceID() *string {
 	return e.UniqueReferenceID
 }
 
-func (e *ChargeUsageBased) GetCurrency() currencyx.Code {
-	return e.Currency
+func (e *ChargeUsageBased) GetFiatCurrencyCode() *currencyx.Code {
+	return e.FiatCurrencyCode
+}
+
+func (e *ChargeUsageBased) GetCustomCurrencyID() *string {
+	return e.CustomCurrencyID
 }
 
 func (e *ChargeUsageBased) GetManagedBy() billing.InvoiceLineManagedBy {

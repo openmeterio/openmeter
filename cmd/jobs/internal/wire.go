@@ -75,6 +75,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ClickHouse,
 		common.Config,
 		common.Customer,
+		common.Currency,
 		common.Subject,
 		common.Database,
 		common.Entitlement,

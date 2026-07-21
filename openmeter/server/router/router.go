@@ -106,7 +106,7 @@ type Config struct {
 	AppCustomInvoicing          appcustominvoicing.SyncService
 	Billing                     billing.Service
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
-	ChargeService               billingcharges.ChargeService
+	ChargeService               billingcharges.Service
 	Credits                     config.CreditsConfiguration
 	UnitConfig                  config.UnitConfigConfiguration
 	CurrencyService             currencies.Service

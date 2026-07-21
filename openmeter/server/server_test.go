@@ -28,6 +28,7 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	costpkg "github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -834,7 +835,7 @@ func TestListCustomerChargesRoute(t *testing.T) {
 	})
 }
 
-// NoopChargeService is a no-op implementation of billingcharges.ChargeService for testing.
+// NoopChargeService is a no-op implementation of billingcharges.Service for testing.
 type NoopChargeService struct{}
 
 func (n NoopChargeService) GetByID(_ context.Context, _ billingcharges.GetByIDInput) (billingcharges.Charge, error) {
@@ -877,11 +878,19 @@ func (n NoopChargeService) ListCharges(_ context.Context, input billingcharges.L
 	}, nil
 }
 
+func (n NoopChargeService) HandleCreditPurchaseExternalPaymentStateTransition(_ context.Context, _ billingcharges.HandleCreditPurchaseExternalPaymentStateTransitionInput) (creditpurchase.Charge, error) {
+	return creditpurchase.Charge{}, nil
+}
+
+func (n NoopChargeService) CreateCustomerCharge(_ context.Context, _ billingcharges.CreateCustomerChargeInput) (billingcharges.Charge, error) {
+	return billingcharges.Charge{}, nil
+}
+
 func (n NoopChargeService) GetCurrentTotals(_ context.Context, _ usagebased.GetCurrentTotalsInput) (usagebased.GetCurrentTotalsResult, error) {
 	return usagebased.GetCurrentTotalsResult{}, nil
 }
 
-var _ billingcharges.ChargeService = NoopChargeService{}
+var _ billingcharges.Service = NoopChargeService{}
 
 // NoopPublisher is a publisher that does nothing (no-operation)
 // Useful for testing or when publishing needs to be disabled

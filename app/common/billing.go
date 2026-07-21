@@ -30,6 +30,7 @@ import (
 	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -171,6 +172,7 @@ func NewBillingRegistry(
 	creditsConfig config.CreditsConfiguration,
 	tracer trace.Tracer,
 	taxCodeService taxcode.Service,
+	currencyResolver currencies.CurrencyResolver,
 	locker *lockr.Locker,
 	ledgerService ledger.Ledger,
 	balanceQuerier ledger.BalanceQuerier,
@@ -223,6 +225,7 @@ func NewBillingRegistry(
 			accountService,
 			breakageService,
 			taxCodeService,
+			currencyResolver,
 			fsConfig.NamespaceLockdown,
 			creditsConfig,
 			featureGate,

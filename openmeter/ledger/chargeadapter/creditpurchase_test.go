@@ -10,6 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerbreakagerecorddb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
@@ -492,7 +494,8 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 
 type creditPurchaseHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
-	handler chargecreditpurchase.Handler
+	handler  chargecreditpurchase.Handler
+	currency currencies.Currency
 }
 
 func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv {
@@ -525,6 +528,7 @@ func newCreditPurchaseHandlerTestEnv(t *testing.T) *creditPurchaseHandlerTestEnv
 	return &creditPurchaseHandlerTestEnv{
 		IntegrationEnv: base,
 		handler:        handler,
+		currency:       currenciestestutils.NewFiatCurrency(t, "USD"),
 	}
 }
 
@@ -551,7 +555,7 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currencyx.Code("USD"),
+					Currency:   e.currency,
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: "tax-code-id",
 					},
@@ -595,7 +599,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currencyx.Code("USD"),
+					Currency:   e.currency,
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: "tax-code-id",
 					},

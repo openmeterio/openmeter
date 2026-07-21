@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -34,7 +35,7 @@ func TestExternalCreditPurchaseStateMachineAdvancesThroughGrantToPaymentPending(
 			// - the external state machine advances until stable
 			// then:
 			// - it enters the initial credit grant state, grants credits, then persists payment-pending
-			charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
+			charge := newExternalStateMachineTestChargeWithInput(t, externalStateMachineTestChargeInput{
 				status:         status,
 				costBasis:      alpacadecimal.NewFromFloat(0.5),
 				creditAmount:   alpacadecimal.NewFromFloat(100),
@@ -58,7 +59,7 @@ func TestExternalCreditPurchaseStateMachineAdvancesThroughGrantToPaymentPending(
 				mock.MatchedBy(func(input lineage.BackfillAdvanceLineageSegmentsInput) bool {
 					return input.Namespace == charge.Namespace &&
 						input.CustomerID == charge.Intent.CustomerID &&
-						input.Currency == charge.Intent.Currency &&
+						input.Currency.GetCode() == charge.Intent.Currency.GetCode() &&
 						input.Amount.Equal(charge.Intent.CreditAmount) &&
 						input.BackingTransactionGroupID == "initiated-ledger-tx" &&
 						len(input.FeatureFilters) == 2 &&
@@ -104,18 +105,14 @@ func TestExternalCreditPurchaseStateMachineUsesRoundedCreditAmount(t *testing.T)
 	// then:
 	// - lineage and payment realization both use the currency-rounded credit amount
 	expectedAmount := alpacadecimal.NewFromFloat(100.12)
-	charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
+	charge := newExternalStateMachineTestChargeWithInput(t, externalStateMachineTestChargeInput{
 		status:        creditpurchase.StatusActivePaymentPending,
 		costBasis:     alpacadecimal.NewFromFloat(0.5),
 		creditAmount:  alpacadecimal.NewFromFloat(100.123),
 		initialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 	})
 
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(charge.Intent.Currency).
-		Build()
-	require.NoError(t, err)
-	require.True(t, currency.IsRoundedToPrecision(charge.Intent.CreditAmount))
+	require.True(t, charge.Intent.Currency.IsRoundedToPrecision(charge.Intent.CreditAmount))
 	require.Equal(t, 100.12, charge.Intent.CreditAmount.InexactFloat64())
 
 	adapter := &externalStateMachineAdapter{}
@@ -227,7 +224,7 @@ func TestExternalCreditPurchaseServiceRoutesInitialStatuses(t *testing.T) {
 			// - the credit-purchase service starts the external lifecycle
 			// then:
 			// - it grants credits first, then routes the initial payment status through the expected transitions
-			charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
+			charge := newExternalStateMachineTestChargeWithInput(t, externalStateMachineTestChargeInput{
 				status:        creditpurchase.StatusCreated,
 				costBasis:     alpacadecimal.NewFromFloat(0.5),
 				creditAmount:  alpacadecimal.NewFromFloat(100),
@@ -252,7 +249,7 @@ func TestExternalCreditPurchaseServiceRoutesInitialStatuses(t *testing.T) {
 				mock.MatchedBy(func(input lineage.BackfillAdvanceLineageSegmentsInput) bool {
 					return input.Namespace == charge.Namespace &&
 						input.CustomerID == charge.Intent.CustomerID &&
-						input.Currency == charge.Intent.Currency &&
+						input.Currency.GetCode() == charge.Intent.Currency.GetCode() &&
 						input.Amount.Equal(charge.Intent.CreditAmount) &&
 						input.BackingTransactionGroupID == "initiated-ledger-tx" &&
 						len(input.FeatureFilters) == 0
@@ -345,7 +342,7 @@ func TestExternalCreditPurchaseStateMachineGrantCreditsRejectsInvalidExternalSet
 			// - the grant-credit action tries to create the credit grant realization
 			// then:
 			// - it fails with a validation error before creating realizations
-			charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
+			charge := newExternalStateMachineTestChargeWithInput(t, externalStateMachineTestChargeInput{
 				status:        creditpurchase.StatusActivePaymentPending,
 				costBasis:     tc.costBasis,
 				creditAmount:  alpacadecimal.NewFromFloat(100),
@@ -384,7 +381,7 @@ func TestExternalCreditPurchaseStateMachineAuthorizesAndSettlesPayment(t *testin
 	// - the payment is authorized and then settled
 	// then:
 	// - payment realization moves to settled and the charge becomes final
-	charge := newGrantedExternalCreditPurchaseCharge(creditpurchase.StatusActivePaymentPending)
+	charge := newGrantedExternalCreditPurchaseCharge(t, creditpurchase.StatusActivePaymentPending)
 	handler := &externalStateMachineHandler{}
 	handler.On("OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
@@ -451,7 +448,7 @@ func TestExternalCreditPurchaseStateMachineAuthorizationUsesRealizationDuplicate
 	// - the state machine receives another authorized trigger
 	// then:
 	// - the realization service reports the duplicate payment and the charge status is not persisted
-	charge := newExternalStateMachineTestCharge(creditpurchase.StatusActivePaymentPending, alpacadecimal.NewFromFloat(0.5))
+	charge := newExternalStateMachineTestCharge(t, creditpurchase.StatusActivePaymentPending, alpacadecimal.NewFromFloat(0.5))
 	charge.Realizations.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
 		GroupReference: ledgertransaction.GroupReference{TransactionGroupID: "initiated-ledger-tx"},
 		Time:           time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -502,7 +499,7 @@ func TestExternalCreditPurchaseStateMachineAuthorizesAndSettlesInSingleTransitio
 	// - the state machine receives the paid trigger
 	// then:
 	// - it books authorization before settlement and persists the final charge status
-	charge := newGrantedExternalCreditPurchaseCharge(creditpurchase.StatusActivePaymentPending)
+	charge := newGrantedExternalCreditPurchaseCharge(t, creditpurchase.StatusActivePaymentPending)
 	handler := &externalStateMachineHandler{}
 	handler.On("OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
@@ -552,8 +549,10 @@ func TestExternalCreditPurchaseStateMachineAuthorizesAndSettlesInSingleTransitio
 	handler.AssertExpectations(t)
 }
 
-func newGrantedExternalCreditPurchaseCharge(status creditpurchase.Status) creditpurchase.Charge {
-	charge := newExternalStateMachineTestCharge(status, alpacadecimal.NewFromFloat(0.5))
+func newGrantedExternalCreditPurchaseCharge(t *testing.T, status creditpurchase.Status) creditpurchase.Charge {
+	t.Helper()
+
+	charge := newExternalStateMachineTestCharge(t, status, alpacadecimal.NewFromFloat(0.5))
 	charge.Realizations.CreditGrantRealization = &ledgertransaction.TimedGroupReference{
 		GroupReference: ledgertransaction.GroupReference{TransactionGroupID: "initiated-ledger-tx"},
 		Time:           time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -589,8 +588,10 @@ type externalStateMachineTestChargeInput struct {
 	featureFilters creditpurchase.FeatureFilters
 }
 
-func newExternalStateMachineTestCharge(status creditpurchase.Status, costBasis alpacadecimal.Decimal) creditpurchase.Charge {
-	return newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
+func newExternalStateMachineTestCharge(t *testing.T, status creditpurchase.Status, costBasis alpacadecimal.Decimal) creditpurchase.Charge {
+	t.Helper()
+
+	return newExternalStateMachineTestChargeWithInput(t, externalStateMachineTestChargeInput{
 		status:        status,
 		costBasis:     costBasis,
 		creditAmount:  alpacadecimal.NewFromFloat(100),
@@ -598,7 +599,9 @@ func newExternalStateMachineTestCharge(status creditpurchase.Status, costBasis a
 	})
 }
 
-func newExternalStateMachineTestChargeWithInput(input externalStateMachineTestChargeInput) creditpurchase.Charge {
+func newExternalStateMachineTestChargeWithInput(t *testing.T, input externalStateMachineTestChargeInput) creditpurchase.Charge {
+	t.Helper()
+
 	period := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -607,7 +610,7 @@ func newExternalStateMachineTestChargeWithInput(input externalStateMachineTestCh
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
 			CustomerID: "customer-1",
-			Currency:   currencyx.Code("USD"),
+			Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 		},
 		IntentMutableFields: creditpurchase.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{

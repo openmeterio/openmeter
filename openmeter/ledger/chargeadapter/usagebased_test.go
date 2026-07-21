@@ -19,6 +19,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	chargeusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -29,7 +31,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -182,10 +183,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
 
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(env.Currency).
-			Build()
-		require.NoError(t, err)
+		currency := env.currency
 
 		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
@@ -221,10 +219,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
 
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(env.Currency).
-			Build()
-		require.NoError(t, err)
+		currency := env.currency
 
 		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currency)
 		require.NoError(t, err)
@@ -266,10 +261,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.Equal(t, float64(20), env.sumBalance(t, env.creditEarningsSubAccount(t)).InexactFloat64())
 
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(env.Currency).
-			Build()
-		require.NoError(t, err)
+		currency := env.currency
 
 		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currency)
 		require.NoError(t, err)
@@ -312,10 +304,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.Equal(t, float64(20), env.sumBalance(t, env.creditEarningsSubAccount(t)).InexactFloat64())
 
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(env.Currency).
-			Build()
-		require.NoError(t, err)
+		currency := env.currency
 
 		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currency)
 		require.NoError(t, err)
@@ -557,6 +546,7 @@ type usageBasedHandlerTestEnv struct {
 	handler    chargeusagebased.Handler
 	lineage    lineage.Service
 	recognizer recognizer.Service
+	currency   currencies.Currency
 }
 
 func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
@@ -604,6 +594,7 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 		}, collectorService),
 		lineage:    lineageService,
 		recognizer: recognizerService,
+		currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 	}
 }
 
@@ -635,7 +626,7 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currencyx.Code("USD"),
+					Currency:   e.currency,
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: testChargeTaxCodeID,
 					},
@@ -921,7 +912,7 @@ func (e *usageBasedHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount a
 	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
 		CustomerID: e.CustomerID,
 		At:         e.Now(),
-		Currency:   e.Currency,
+		Currency:   e.currency,
 	})
 	require.NoError(t, err)
 	require.True(t, result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
@@ -938,7 +929,7 @@ func (e *usageBasedHandlerTestEnv) createInitialLineages(t *testing.T, chargeID 
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,
-		Currency:     e.Currency,
+		Currency:     e.currency,
 		Realizations: realizations,
 	})
 	require.NoError(t, err)

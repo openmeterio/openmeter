@@ -60,7 +60,7 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge usagebased.Char
 
 		linesByRunID := make(map[string]usagebased.DetailedLines, len(charge.Realizations))
 		for _, dbLine := range dbLines {
-			line, err := mapDetailedLineFromDB(dbLine)
+			line, err := fromDBDetailedLine(dbLine)
 			if err != nil {
 				return usagebased.Charge{}, err
 			}
@@ -215,7 +215,7 @@ func buildDetailedLineCreate(db *entdb.Client, chargeID chargesmeta.ChargeID, ru
 	return create, nil
 }
 
-func mapDetailedLineFromDB(dbLine *entdb.ChargeUsageBasedRunDetailedLine) (usagebased.DetailedLine, error) {
+func fromDBDetailedLine(dbLine *entdb.ChargeUsageBasedRunDetailedLine) (usagebased.DetailedLine, error) {
 	line := usagebased.DetailedLine{
 		Base:              stddetailedline.FromDB(dbLine),
 		PricerReferenceID: dbLine.PricerReferenceID,

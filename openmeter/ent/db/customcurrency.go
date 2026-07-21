@@ -48,9 +48,15 @@ type CustomCurrency struct {
 type CustomCurrencyEdges struct {
 	// CostBasisHistory holds the value of the cost_basis_history edge.
 	CostBasisHistory []*CurrencyCostBasis `json:"cost_basis_history,omitempty"`
+	// ChargesCreditPurchase holds the value of the charges_credit_purchase edge.
+	ChargesCreditPurchase []*ChargeCreditPurchase `json:"charges_credit_purchase,omitempty"`
+	// ChargesFlatFee holds the value of the charges_flat_fee edge.
+	ChargesFlatFee []*ChargeFlatFee `json:"charges_flat_fee,omitempty"`
+	// ChargesUsageBased holds the value of the charges_usage_based edge.
+	ChargesUsageBased []*ChargeUsageBased `json:"charges_usage_based,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [4]bool
 }
 
 // CostBasisHistoryOrErr returns the CostBasisHistory value or an error if the edge
@@ -60,6 +66,33 @@ func (e CustomCurrencyEdges) CostBasisHistoryOrErr() ([]*CurrencyCostBasis, erro
 		return e.CostBasisHistory, nil
 	}
 	return nil, &NotLoadedError{edge: "cost_basis_history"}
+}
+
+// ChargesCreditPurchaseOrErr returns the ChargesCreditPurchase value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPurchase, error) {
+	if e.loadedTypes[1] {
+		return e.ChargesCreditPurchase, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_credit_purchase"}
+}
+
+// ChargesFlatFeeOrErr returns the ChargesFlatFee value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) ChargesFlatFeeOrErr() ([]*ChargeFlatFee, error) {
+	if e.loadedTypes[2] {
+		return e.ChargesFlatFee, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_flat_fee"}
+}
+
+// ChargesUsageBasedOrErr returns the ChargesUsageBased value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, error) {
+	if e.loadedTypes[3] {
+		return e.ChargesUsageBased, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_usage_based"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -171,6 +204,21 @@ func (_m *CustomCurrency) Value(name string) (ent.Value, error) {
 // QueryCostBasisHistory queries the "cost_basis_history" edge of the CustomCurrency entity.
 func (_m *CustomCurrency) QueryCostBasisHistory() *CurrencyCostBasisQuery {
 	return NewCustomCurrencyClient(_m.config).QueryCostBasisHistory(_m)
+}
+
+// QueryChargesCreditPurchase queries the "charges_credit_purchase" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryChargesCreditPurchase() *ChargeCreditPurchaseQuery {
+	return NewCustomCurrencyClient(_m.config).QueryChargesCreditPurchase(_m)
+}
+
+// QueryChargesFlatFee queries the "charges_flat_fee" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryChargesFlatFee() *ChargeFlatFeeQuery {
+	return NewCustomCurrencyClient(_m.config).QueryChargesFlatFee(_m)
+}
+
+// QueryChargesUsageBased queries the "charges_usage_based" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryChargesUsageBased() *ChargeUsageBasedQuery {
+	return NewCustomCurrencyClient(_m.config).QueryChargesUsageBased(_m)
 }
 
 // Update returns a builder for updating this CustomCurrency.

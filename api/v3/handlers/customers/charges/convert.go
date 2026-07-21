@@ -59,7 +59,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
 		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:              source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency()),
+		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
 		Customer:               ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
 		DeletedAt:              source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:            intent.Description,
@@ -109,7 +109,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		AdvanceAfter:        source.State.AdvanceAfter,
 		BillingPeriod:       ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:           source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:            ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency()),
+		Currency:            ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
 		Customer:            ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
 		DeletedAt:           source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:         intent.Description,
@@ -504,8 +504,8 @@ func convertAPIChargeStatus(s string) (meta.ChargeStatus, error) {
 	}
 }
 
-func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateChargeFlatFeeRequest) (billingcharges.ChargeIntent, error) {
-	var zero billingcharges.ChargeIntent
+func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, error) {
+	var zero billingcharges.CreateCustomerChargeInput
 
 	taxConfig, err := billingprofiles.FromAPIBillingTaxConfig(flatFee.TaxConfig)
 	if err != nil {
@@ -549,37 +549,36 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateCharge
 		}
 	}
 
-	return billingcharges.NewChargeIntent(flatfee.Intent{
-		Intent: meta.Intent{
-			ManagedBy:         billing.ManuallyManagedLine,
-			CustomerID:        customerID,
-			Currency:          currencyx.Code(flatFee.Currency),
-			TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
-			UniqueReferenceID: flatFee.UniqueReferenceId,
-			Subscription:      nil,
-		},
-		IntentMutableFields: flatfee.IntentMutableFields{
-			IntentMutableFields: meta.IntentMutableFields{
-				Name:              flatFee.Name,
-				Description:       flatFee.Description,
-				Metadata:          metadata,
-				ServicePeriod:     timeutil.ClosedPeriod(flatFee.ServicePeriod),
-				FullServicePeriod: timeutil.ClosedPeriod(lo.FromPtrOr(flatFee.FullServicePeriod, flatFee.ServicePeriod)),
-				BillingPeriod:     timeutil.ClosedPeriod(lo.FromPtrOr(flatFee.BillingPeriod, flatFee.ServicePeriod)),
+	return billingcharges.CreateCustomerChargeInput{
+		Namespace:         namespace,
+		CustomerID:        customerID,
+		CurrencyCode:      currencyx.Code(flatFee.Currency),
+		TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
+		UniqueReferenceID: flatFee.UniqueReferenceId,
+		FlatFee: &billingcharges.CreateCustomerChargeFlatFeeInput{
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              flatFee.Name,
+					Description:       flatFee.Description,
+					Metadata:          metadata,
+					ServicePeriod:     timeutil.ClosedPeriod(flatFee.ServicePeriod),
+					FullServicePeriod: timeutil.ClosedPeriod(lo.FromPtrOr(flatFee.FullServicePeriod, flatFee.ServicePeriod)),
+					BillingPeriod:     timeutil.ClosedPeriod(lo.FromPtrOr(flatFee.BillingPeriod, flatFee.ServicePeriod)),
+				},
+				InvoiceAt:             flatFee.InvoiceAt,
+				PaymentTerm:           productcatalog.PaymentTermType(flatFee.PaymentTerm),
+				PercentageDiscounts:   discount,
+				ProRating:             proRating,
+				AmountBeforeProration: amountBeforeProration,
 			},
-			InvoiceAt:             flatFee.InvoiceAt,
-			PaymentTerm:           productcatalog.PaymentTermType(flatFee.PaymentTerm),
-			PercentageDiscounts:   discount,
-			ProRating:             proRating,
-			AmountBeforeProration: amountBeforeProration,
+			FeatureKey:     flatFee.FeatureKey,
+			SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
 		},
-		FeatureKey:     flatFee.FeatureKey,
-		SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
-	}), nil
+	}, nil
 }
 
-func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.CreateChargeUsageBasedRequest) (billingcharges.ChargeIntent, error) {
-	var zero billingcharges.ChargeIntent
+func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee api.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
+	var zero billingcharges.CreateCustomerChargeInput
 
 	taxConfig, err := billingprofiles.FromAPIBillingTaxConfig(usageBasedFee.TaxConfig)
 	if err != nil {
@@ -618,29 +617,28 @@ func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.Crea
 	if err != nil {
 		return zero, fmt.Errorf("invalid price: %w", err)
 	}
-	return billingcharges.NewChargeIntent(usagebased.Intent{
-		Intent: meta.Intent{
-			ManagedBy:         billing.ManuallyManagedLine,
-			CustomerID:        customerID,
-			Currency:          currencyx.Code(usageBasedFee.Currency),
-			TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
-			UniqueReferenceID: usageBasedFee.UniqueReferenceId,
-			Subscription:      nil,
-		},
-		IntentMutableFields: usagebased.IntentMutableFields{
-			IntentMutableFields: meta.IntentMutableFields{
-				Name:              usageBasedFee.Name,
-				Description:       usageBasedFee.Description,
-				Metadata:          metadata,
-				ServicePeriod:     timeutil.ClosedPeriod(usageBasedFee.ServicePeriod),
-				FullServicePeriod: timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.FullServicePeriod, usageBasedFee.ServicePeriod)),
-				BillingPeriod:     timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.BillingPeriod, usageBasedFee.ServicePeriod)),
+	return billingcharges.CreateCustomerChargeInput{
+		Namespace:         namespace,
+		CustomerID:        customerID,
+		CurrencyCode:      currencyx.Code(usageBasedFee.Currency),
+		TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
+		UniqueReferenceID: usageBasedFee.UniqueReferenceId,
+		UsageBased: &billingcharges.CreateCustomerChargeUsageBasedInput{
+			IntentMutableFields: usagebased.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              usageBasedFee.Name,
+					Description:       usageBasedFee.Description,
+					Metadata:          metadata,
+					ServicePeriod:     timeutil.ClosedPeriod(usageBasedFee.ServicePeriod),
+					FullServicePeriod: timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.FullServicePeriod, usageBasedFee.ServicePeriod)),
+					BillingPeriod:     timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.BillingPeriod, usageBasedFee.ServicePeriod)),
+				},
+				InvoiceAt: usageBasedFee.InvoiceAt,
+				Price:     *price,
+				Discounts: discounts,
 			},
-			InvoiceAt: usageBasedFee.InvoiceAt,
-			Price:     *price,
-			Discounts: discounts,
+			FeatureKey:     usageBasedFee.FeatureKey,
+			SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
 		},
-		FeatureKey:     usageBasedFee.FeatureKey,
-		SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
-	}), nil
+	}, nil
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -692,18 +691,11 @@ func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input bill
 			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is still current for charge[%s]", stdLine.ID, run.ID.ID, charge.ID)
 		}
 
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(charge.Intent.GetCurrency()).
-			Build()
-		if err != nil {
-			return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
-		}
-
 		if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
 			Charge:             charge,
 			Run:                run,
 			AllocateAt:         flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod),
-			CurrencyCalculator: currency,
+			CurrencyCalculator: charge.Intent.GetCurrency(),
 		}); err != nil {
 			return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
 		}

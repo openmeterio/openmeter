@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -265,7 +266,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 					Intent: meta.Intent{
 						ManagedBy:  billing.ManuallyManagedLine,
 						CustomerID: cust.GetID().ID,
-						Currency:   USD,
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 						TaxConfig: productcatalog.TaxCodeConfig{
 							Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 							TaxCodeID: tc.ID,
@@ -311,7 +312,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 					Intent: meta.Intent{
 						ManagedBy:  billing.ManuallyManagedLine,
 						CustomerID: cust.GetID().ID,
-						Currency:   USD,
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 					},
 					IntentMutableFields: creditpurchase.IntentMutableFields{
 						IntentMutableFields: meta.IntentMutableFields{
@@ -382,7 +383,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 				Intent: meta.Intent{
 					ManagedBy:  billing.ManuallyManagedLine,
 					CustomerID: cust.GetID().ID,
-					Currency:   USD,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 					TaxConfig:  taxConfig,
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
@@ -502,7 +503,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 				Intent: meta.Intent{
 					ManagedBy:  billing.ManuallyManagedLine,
 					CustomerID: cust.GetID().ID,
-					Currency:   USD,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{

@@ -14,8 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -152,7 +152,7 @@ func TestShrinkChargeKeepsCurrentRunStateWhenCurrentRunSurvivesShrink(t *testing
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
 			Status: usagebased.StatusActiveRealizationProcessing,
 			State: usagebased.State{
 				CurrentRealizationRunID: &currentRunID,
@@ -197,7 +197,7 @@ func TestExtendChargeDeletesPendingGatheringLineWhenRunsCoverExtendedPeriod(t *t
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
 			Status: usagebased.StatusActive,
 		},
 		Realizations: usagebased.RealizationRuns{
@@ -232,7 +232,7 @@ func TestShrinkChargeMovesToAwaitingPaymentWhenKeptRunCoversNewEnd(t *testing.T)
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
 			Status: usagebased.StatusActive,
 			State: usagebased.State{
 				AdvanceAfter: &currentAdvanceAfter,
@@ -279,7 +279,7 @@ func TestShrinkChargeMovesToFinalWhenKeptRunCoversNewEndAndSettlementIsComplete(
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
 			Status: usagebased.StatusActiveAwaitingPaymentSettlement,
 			State: usagebased.State{
 				AdvanceAfter: &currentAdvanceAfter,
@@ -316,7 +316,7 @@ func TestShrinkToRealizedPeriodFinalizesKeptPartialRunAndPreservesChargeState(t 
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
 			Status: usagebased.StatusActive,
 			State: usagebased.State{
 				AdvanceAfter: &currentAdvanceAfter,
@@ -367,7 +367,7 @@ func TestShrinkToRealizedPeriodRejectsPeriodNotCoveredByLatest(t *testing.T) {
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
 			Status: usagebased.StatusActive,
 		},
 		Realizations: usagebased.RealizationRuns{
@@ -396,7 +396,7 @@ func TestShrinkToRealizedPeriodFinalizesCurrentPartialRunAndPreservesChargeState
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
 			Status: usagebased.StatusActiveRealizationProcessing,
 			State: usagebased.State{
 				CurrentRealizationRunID: &currentRunID,
@@ -471,12 +471,14 @@ func newCreditThenInvoiceStateMachineForTest(t *testing.T, status usagebased.Sta
 	return out
 }
 
-func newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod timeutil.ClosedPeriod) usagebased.OverridableIntent {
+func newUsageBasedIntentForCreditThenInvoiceTest(t testing.TB, servicePeriod timeutil.ClosedPeriod) usagebased.OverridableIntent {
+	t.Helper()
+
 	return usagebased.Intent{
 		Intent: meta.Intent{
 			ManagedBy:  billing.SubscriptionManagedLine,
 			CustomerID: "customer-id",
-			Currency:   currencyx.Code("USD"),
+			Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 			TaxConfig: productcatalog.TaxCodeConfig{
 				TaxCodeID: "tax-code-id",
 			},
@@ -648,7 +650,7 @@ func TestGetInvoiceRealizationRunType(t *testing.T) {
 
 	charge := usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
-			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
 		},
 	}
 

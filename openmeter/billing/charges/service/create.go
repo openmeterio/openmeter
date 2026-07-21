@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -388,6 +389,11 @@ func isAdvanceDue(advanceAfter *time.Time) bool {
 }
 
 type currencyAndCustomerID struct {
+	currency   currencies.Currency
+	customerID customer.CustomerID
+}
+
+type currencyCodeAndCustomerID struct {
 	currency   currencyx.Code
 	customerID customer.CustomerID
 }
@@ -439,8 +445,8 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 		return createGatheringLinesResult{}, nil
 	}
 
-	gatheringLinesByCurrencyAndCustomer := lo.GroupBy(gatheringLinesToCreate, func(item gatheringLineWithCustomerID) currencyAndCustomerID {
-		return currencyAndCustomerID{
+	gatheringLinesByCurrencyAndCustomer := lo.GroupBy(gatheringLinesToCreate, func(item gatheringLineWithCustomerID) currencyCodeAndCustomerID {
+		return currencyCodeAndCustomerID{
 			currency:   item.gatheringLine.Currency,
 			customerID: item.customerID,
 		}

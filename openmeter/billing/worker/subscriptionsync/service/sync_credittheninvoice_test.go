@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -10568,7 +10569,7 @@ func (s *CreditThenInvoiceTestSuite) createPromotionalCreditFunding(ctx context.
 				Intent: chargesmeta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: input.Customer.ID,
-					Currency:   input.Currency,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), input.Currency),
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
 					IntentMutableFields: chargesmeta.IntentMutableFields{

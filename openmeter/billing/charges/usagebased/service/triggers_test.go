@@ -21,7 +21,7 @@ func TestApplyBaseIntentPatchForOverriddenChargeShrinksDeletedEffectiveCharge(t 
 	shrunkServicePeriodTo := time.Date(2026, 7, 8, 17, 18, 9, 0, time.UTC)
 	deletedAt := time.Date(2026, 7, 8, 17, 17, 50, 0, time.UTC)
 
-	baseIntent := newUsageBasedIntentForCreditThenInvoiceTest(baseServicePeriod)
+	baseIntent := newUsageBasedIntentForCreditThenInvoiceTest(t, baseServicePeriod)
 	override := baseIntent.GetBaseIntent().IntentMutableFields.Clone()
 	override.IntentDeletedAt = &deletedAt
 
@@ -68,7 +68,7 @@ func TestRejectHiddenIntentTargetRejectsBaseLayerWithOverride(t *testing.T) {
 		From: time.Date(2026, 7, 8, 8, 45, 3, 0, time.UTC),
 		To:   time.Date(2026, 8, 8, 8, 45, 3, 0, time.UTC),
 	}
-	baseIntent := newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod)
+	baseIntent := newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod)
 	override := baseIntent.GetBaseIntent().IntentMutableFields.Clone()
 
 	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, usagebased.Charge{

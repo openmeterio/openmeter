@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -51,8 +52,10 @@ type ChargeUsageBased struct {
 	Status meta.ChargeStatus `json:"status,omitempty"`
 	// UniqueReferenceID holds the value of the "unique_reference_id" field.
 	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
+	FiatCurrencyCode *currencyx.Code `json:"fiat_currency_code,omitempty"`
+	// CustomCurrencyID holds the value of the "custom_currency_id" field.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
@@ -135,9 +138,11 @@ type ChargeUsageBasedEdges struct {
 	Feature *Feature `json:"feature,omitempty"`
 	// TaxCode holds the value of the tax_code edge.
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
+	// CustomCurrency holds the value of the custom_currency edge.
+	CustomCurrency *CustomCurrency `json:"custom_currency,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [11]bool
+	loadedTypes [12]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
@@ -257,6 +262,17 @@ func (e ChargeUsageBasedEdges) TaxCodeOrErr() (*TaxCode, error) {
 	return nil, &NotLoadedError{edge: "tax_code"}
 }
 
+// CustomCurrencyOrErr returns the CustomCurrency value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedEdges) CustomCurrencyOrErr() (*CustomCurrency, error) {
+	if e.CustomCurrency != nil {
+		return e.CustomCurrency, nil
+	} else if e.loadedTypes[11] {
+		return nil, &NotFoundError{label: customcurrency.Label}
+	}
+	return nil, &NotLoadedError{edge: "custom_currency"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -264,7 +280,7 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebased.FieldAnnotations, chargeusagebased.FieldMetadata:
 			values[i] = new([]byte)
-		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
+		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldFiatCurrencyCode, chargeusagebased.FieldCustomCurrencyID, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
 		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldInvoiceAt, chargeusagebased.FieldIntentDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -350,11 +366,19 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 				_m.UniqueReferenceID = new(string)
 				*_m.UniqueReferenceID = value.String
 			}
-		case chargeusagebased.FieldCurrency:
+		case chargeusagebased.FieldFiatCurrencyCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
+				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.FiatCurrencyCode = new(currencyx.Code)
+				*_m.FiatCurrencyCode = currencyx.Code(value.String)
+			}
+		case chargeusagebased.FieldCustomCurrencyID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyID = new(string)
+				*_m.CustomCurrencyID = value.String
 			}
 		case chargeusagebased.FieldManagedBy:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -593,6 +617,11 @@ func (_m *ChargeUsageBased) QueryTaxCode() *TaxCodeQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryTaxCode(_m)
 }
 
+// QueryCustomCurrency queries the "custom_currency" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryCustomCurrency() *CustomCurrencyQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryCustomCurrency(_m)
+}
+
 // Update returns a builder for updating this ChargeUsageBased.
 // Note that you need to call ChargeUsageBased.Unwrap() before calling this method if this ChargeUsageBased
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -645,8 +674,15 @@ func (_m *ChargeUsageBased) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	if v := _m.FiatCurrencyCode; v != nil {
+		builder.WriteString("fiat_currency_code=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyID; v != nil {
+		builder.WriteString("custom_currency_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("managed_by=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))

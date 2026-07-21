@@ -67,12 +67,7 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (StartCreditThenInvoiceRunResult, error) {
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(in.Charge.Intent.GetCurrency()).
-			Build()
-		if err != nil {
-			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("get currency calculator: %w", err)
-		}
+		currency := in.Charge.Intent.GetCurrency()
 
 		amountAfterProration, err := invoiceupdater.GetFlatFeePerUnitAmount(&in.Line)
 		if err != nil {
@@ -255,12 +250,7 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (ReconcileStandardLineToIntentResult, error) {
-		currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-			WithCode(in.Charge.Intent.GetCurrency()).
-			Build()
-		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("get currency calculator: %w", err)
-		}
+		currency := in.Charge.Intent.GetCurrency()
 
 		amountAfterProration, err := invoiceupdater.GetFlatFeePerUnitAmount(&in.Line)
 		if err != nil {

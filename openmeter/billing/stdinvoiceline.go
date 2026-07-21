@@ -188,6 +188,17 @@ func (i StandardLineBase) GetCurrency() currencyx.Code {
 	return i.Currency
 }
 
+func (i StandardLineBase) GetCurrencyCalculator() (currencyx.Currency, error) {
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(i.Currency).
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("building fiat currency calculator: %w", err)
+	}
+
+	return currency, nil
+}
+
 func (i StandardLineBase) GetName() string {
 	return i.Name
 }

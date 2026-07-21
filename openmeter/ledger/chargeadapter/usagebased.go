@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -15,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // usageBasedHandler maps usage-based credit lifecycle events to ledger transaction templates.
@@ -42,6 +42,10 @@ func NewUsageBasedHandler(
 func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usagebased.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
 	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
+	}
+
+	if input.Charge.Intent.GetCurrency().IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
 	amount := input.Amount
@@ -74,7 +78,7 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 		transactions.TransferCustomerReceivableToAccruedTemplate{
 			At:            input.BookedAt,
 			Amount:        amount,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().GetCode(),
 			TaxCode:       lo.ToPtr(taxConfig.TaxCodeID),
 			TaxBehavior:   (*ledger.TaxBehavior)(taxConfig.Behavior),
 			CostBasis:     invoiceCostBasis,
@@ -105,6 +109,10 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 	}
 
 	intent := input.Charge.Intent
+
+	if intent.GetCurrency().IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
 
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
@@ -138,7 +146,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:            input.EventAt,
 			Amount:        receivableReplenishment,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().GetCode(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},
@@ -174,6 +182,10 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 
 	intent := input.Charge.Intent
 
+	if input.Charge.Intent.GetCurrency().IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
@@ -201,7 +213,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:            input.EventAt,
 			Amount:        input.Run.InvoiceUsage.Totals.Total,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().GetCode(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},
@@ -242,6 +254,10 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 	intent := input.Charge.Intent
 	taxConfig := intent.GetTaxConfig()
 
+	if intent.GetCurrency().IsCustom() {
+		return nil, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
 		productcatalog.CreditOnlySettlementMode,
@@ -257,7 +273,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		Annotations:       chargeAnnotationsForUsageBasedCharge(input.Charge),
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: input.BookedAt,
-		Currency:          intent.GetCurrency(),
+		Currency:          intent.GetCurrency().GetCode(),
 		FeatureKey:        intent.GetFeatureKey(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
@@ -286,12 +302,11 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Cont
 		return nil, fmt.Errorf("credits only usage accrued correction: %w", err)
 	}
 
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(intent.GetCurrency()).
-		Build()
-	if err != nil {
-		return nil, fmt.Errorf("get currency calculator: %w", err)
+	if input.Charge.Intent.GetCurrency().IsCustom() {
+		return nil, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
+
+	currency := intent.GetCurrency()
 
 	if err := input.ValidateWith(currency); err != nil {
 		return nil, err

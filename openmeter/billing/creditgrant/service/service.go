@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	customerbilling "github.com/openmeterio/openmeter/openmeter/billing/validators/customerbilling"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
@@ -129,7 +130,10 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 	}
 
 	// Build the credit purchase intent
-	intent := toIntent(input)
+	intent, err := toIntent(input)
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("build credit grant intent: %w", err)
+	}
 
 	result, err := s.chargesService.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
@@ -285,6 +289,10 @@ func (s *service) Void(ctx context.Context, input creditgrant.VoidInput) (credit
 		return creditpurchase.Charge{}, err
 	}
 
+	if charge.Intent.Currency.IsCustom() {
+		return creditpurchase.Charge{}, fmt.Errorf("credit grant with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	if charge.State.VoidedAt != nil {
 		return charge, nil
 	}
@@ -300,7 +308,7 @@ func (s *service) Void(ctx context.Context, input creditgrant.VoidInput) (credit
 				ID:        input.CustomerID,
 			},
 			ChargeID: charge.ID,
-			Currency: charge.Intent.Currency,
+			Currency: charge.Intent.Currency.GetCode(),
 			Annotations: ledger.ChargeAnnotations(models.NamespacedID{
 				Namespace: charge.Namespace,
 				ID:        charge.ID,
@@ -351,14 +359,20 @@ func validateChargeVoidable(charge creditpurchase.Charge) error {
 	return nil
 }
 
-func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
+func toIntent(input creditgrant.CreateInput) (creditpurchase.Intent, error) {
 	effectiveAt := lo.FromPtrOr(input.EffectiveAt, clock.Now()).UTC()
 	period := timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt}
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(input.Currency).
+		Build()
+	if err != nil {
+		return creditpurchase.Intent{}, fmt.Errorf("build fiat currency: %w", err)
+	}
 
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
 			CustomerID: input.CustomerID,
-			Currency:   input.Currency,
+			Currency:   currencies.Currency{Currency: currency},
 			ManagedBy:  billing.ManuallyManagedLine,
 			TaxConfig:  productcatalog.TaxCodeConfigFrom(input.TaxConfig),
 		},
@@ -389,7 +403,7 @@ func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
 		intent.Priority = &p
 	}
 
-	return intent
+	return intent, nil
 }
 
 func calculateExpiresAt(from time.Time, expiresAfter *datetime.ISODuration) *time.Time {

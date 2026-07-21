@@ -8,7 +8,9 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -40,7 +42,7 @@ type CreateInitialLineagesInput struct {
 	Namespace    string
 	ChargeID     string
 	CustomerID   string
-	Currency     currencyx.Code
+	Currency     currencies.Currency
 	Features     []string
 	Realizations creditrealization.Realizations
 }
@@ -60,6 +62,11 @@ func (i CreateInitialLineagesInput) Validate() error {
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
+
+	if i.Currency.IsCustom() {
+		errs = append(errs, fmt.Errorf("create initial lineages: custom currency: %w", meta.ErrCustomCurrencyNotSupported))
+	}
+
 	if err := i.Realizations.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("realizations: %w", err))
 	}
@@ -95,7 +102,7 @@ func (i PersistCorrectionLineageSegmentsInput) Validate() error {
 type BackfillAdvanceLineageSegmentsInput struct {
 	Namespace                 string
 	CustomerID                string
-	Currency                  currencyx.Code
+	Currency                  currencies.Currency
 	Amount                    alpacadecimal.Decimal
 	BackingTransactionGroupID string
 	FeatureFilters            []string
@@ -112,6 +119,9 @@ func (i BackfillAdvanceLineageSegmentsInput) Validate() error {
 	}
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+	if i.Currency.IsCustom() {
+		errs = append(errs, fmt.Errorf("advance lineage backfill: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 	if !i.Amount.IsPositive() {
 		errs = append(errs, errors.New("amount must be positive"))

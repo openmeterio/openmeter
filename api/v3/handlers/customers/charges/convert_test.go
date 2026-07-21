@@ -12,8 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -80,7 +80,7 @@ func TestToAPIBillingChargeUsageBasedSystemIntentReturnsUnsupportedBasePriceErro
 		Intent: meta.Intent{
 			ManagedBy:  billing.SubscriptionManagedLine,
 			CustomerID: "customer-id",
-			Currency:   currencyx.Code("USD"),
+			Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 		},
 		IntentMutableFields: usagebased.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{

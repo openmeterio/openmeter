@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -1383,7 +1384,7 @@ func rateRunDetailsForTest(t *testing.T, ratingService billingrating.Service, in
 	intent := usagebased.RateableIntent{
 		Intent: usagebased.Intent{
 			Intent: meta.Intent{
-				Currency: currencyx.Code("USD"),
+				Currency: currenciestestutils.NewFiatCurrency(t, "USD"),
 			},
 			IntentMutableFields: usagebased.IntentMutableFields{
 				IntentMutableFields: meta.IntentMutableFields{

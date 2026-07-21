@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -23,14 +24,32 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// MapFlatFeeChargeFromDB converts a DB Charge entity (with loaded FlatFee edge) to a FlatFeeCharge.
-func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (flatfee.Charge, error) {
+// FromDB converts a DB ChargeFlatFee entity to a flat fee charge.
+func FromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (flatfee.Charge, error) {
+	mappedMeta, err := chargemeta.FromDB(entity, entity.Edges)
+	if err != nil {
+		return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge meta [id=%s]: %w", entity.ID, err)
+	}
+
+	return fromDBWithMeta(entity, mappedMeta, expands)
+}
+
+func FromDBWithCurrency(entity *entdb.ChargeFlatFee, currency currencies.Currency, expands meta.Expands) (flatfee.Charge, error) {
+	mappedMeta, err := chargemeta.FromDBWithCurrency(entity, currency)
+	if err != nil {
+		return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge meta [id=%s]: %w", entity.ID, err)
+	}
+
+	return fromDBWithMeta(entity, mappedMeta, expands)
+}
+
+func fromDBWithMeta(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge, expands meta.Expands) (flatfee.Charge, error) {
 	charge := flatfee.Charge{
-		ChargeBase: MapChargeBaseFromDB(entity),
+		ChargeBase: fromDBBase(entity, mappedMeta),
 	}
 
 	if expands.Has(meta.ExpandRealizations) {
-		realizations, err := mapRealizationsFromDB(entity)
+		realizations, err := fromDBRealizations(entity)
 		if err != nil {
 			return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
 		}
@@ -40,7 +59,7 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 	return charge, nil
 }
 
-func mapRealizationsFromDB(entity *entdb.ChargeFlatFee) (flatfee.Realizations, error) {
+func fromDBRealizations(entity *entdb.ChargeFlatFee) (flatfee.Realizations, error) {
 	dbRuns, err := entity.Edges.RunsOrErr()
 	if err != nil {
 		return flatfee.Realizations{}, fmt.Errorf("runs not loaded for flat fee charge [id=%s]: %w", entity.ID, err)
@@ -48,7 +67,7 @@ func mapRealizationsFromDB(entity *entdb.ChargeFlatFee) (flatfee.Realizations, e
 
 	var realizations flatfee.Realizations
 	for _, dbRun := range dbRuns {
-		run, err := mapRealizationRunFromDB(dbRun)
+		run, err := fromDBRun(dbRun)
 		if err != nil {
 			return flatfee.Realizations{}, fmt.Errorf("mapping flat fee realization run [id=%s]: %w", dbRun.ID, err)
 		}
@@ -68,7 +87,7 @@ func mapRealizationsFromDB(entity *entdb.ChargeFlatFee) (flatfee.Realizations, e
 	return realizations, nil
 }
 
-func mapRealizationRunBaseFromDB(dbRun *entdb.ChargeFlatFeeRun) flatfee.RealizationRunBase {
+func fromDBRunBase(dbRun *entdb.ChargeFlatFeeRun) flatfee.RealizationRunBase {
 	return flatfee.RealizationRunBase{
 		ID: flatfee.RealizationRunID{
 			Namespace: dbRun.Namespace,
@@ -88,9 +107,9 @@ func mapRealizationRunBaseFromDB(dbRun *entdb.ChargeFlatFeeRun) flatfee.Realizat
 	}
 }
 
-func mapRealizationRunFromDB(dbRun *entdb.ChargeFlatFeeRun) (flatfee.RealizationRun, error) {
+func fromDBRun(dbRun *entdb.ChargeFlatFeeRun) (flatfee.RealizationRun, error) {
 	run := flatfee.RealizationRun{
-		RealizationRunBase: mapRealizationRunBaseFromDB(dbRun),
+		RealizationRunBase: fromDBRunBase(dbRun),
 	}
 
 	dbCreditsAllocated, err := dbRun.Edges.CreditAllocationsOrErr()
@@ -129,13 +148,20 @@ func sortDetailedLines(lines flatfee.DetailedLines) {
 	slices.SortStableFunc(lines, stddetailedline.Compare[flatfee.DetailedLine])
 }
 
-func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
+func fromDBBaseWithCurrency(entity *entdb.ChargeFlatFee, currency currencies.Currency) (flatfee.ChargeBase, error) {
+	mappedMeta, err := chargemeta.FromDBWithCurrency(entity, currency)
+	if err != nil {
+		return flatfee.ChargeBase{}, fmt.Errorf("mapping charge meta: %w", err)
+	}
+
+	return fromDBBase(entity, mappedMeta), nil
+}
+
+func fromDBBase(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge) flatfee.ChargeBase {
 	var percentageDiscounts *billing.PercentageDiscount
 	if entity.Discounts != nil {
 		percentageDiscounts = entity.Discounts.Percentage
 	}
-
-	mappedMeta := chargemeta.MapFromDB(entity)
 
 	return flatfee.ChargeBase{
 		ManagedResource: mappedMeta.ManagedResource,
@@ -155,15 +181,15 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 				IntentDeletedAt:       convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
 				PaymentTerm:           entity.PaymentTerm,
 				PercentageDiscounts:   percentageDiscounts,
-				ProRating:             proRatingConfigFromDB(entity.ProRating),
+				ProRating:             fromDBProRatingConfig(entity.ProRating),
 				AmountBeforeProration: entity.AmountBeforeProration,
 			},
-		}, mapIntentOverrideFromDB(entity.Edges.IntentOverride)),
+		}, fromDBOverride(entity.Edges.IntentOverride)),
 	}
 }
 
-// proRatingConfigFromDB converts a DB ProRatingModeAdapterEnum to a ProRatingConfig.
-func proRatingConfigFromDB(pr flatfee.ProRatingModeAdapterEnum) productcatalog.ProRatingConfig {
+// fromDBProRatingConfig converts a DB ProRatingModeAdapterEnum to a ProRatingConfig.
+func fromDBProRatingConfig(pr flatfee.ProRatingModeAdapterEnum) productcatalog.ProRatingConfig {
 	switch pr {
 	case flatfee.ProratePricesProratingAdapterMode:
 		return productcatalog.ProRatingConfig{

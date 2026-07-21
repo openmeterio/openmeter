@@ -509,6 +509,9 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldUniqueReferenceID, field.TypeString)
 	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldFiatCurrencyCode, field.TypeString)
+	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime, value)
 	}
@@ -1220,6 +1223,9 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldUniqueReferenceID, field.TypeString)
+	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldFiatCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime, value)

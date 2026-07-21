@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -22,7 +23,47 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func mapCurrencyFromDB(c *entdb.CustomCurrency) (currencies.Currency, error) {
+type CustomCurrencyOrFiatCurrency struct {
+	CustomCurrency *entdb.CustomCurrency
+	FiatCurrency   *currencyx.Code
+}
+
+func (c *CustomCurrencyOrFiatCurrency) Validate() error {
+	var errs []error
+
+	if c.CustomCurrency != nil && c.FiatCurrency != nil {
+		errs = append(errs, errors.New("both custom currency and fiat currency cannot be set"))
+	}
+
+	if c.CustomCurrency == nil && c.FiatCurrency == nil {
+		errs = append(errs, errors.New("either custom currency or fiat currency must be set"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func FromDBCustomCurrencyOrFiatCurrency(in CustomCurrencyOrFiatCurrency) (currencies.Currency, error) {
+	if err := in.Validate(); err != nil {
+		return currencies.Currency{}, err
+	}
+
+	if in.CustomCurrency != nil {
+		return FromDBCustomCurrency(in.CustomCurrency)
+	}
+
+	fiatCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(*in.FiatCurrency).
+		Build()
+	if err != nil {
+		return currencies.Currency{}, err
+	}
+
+	return currencies.Currency{
+		Currency: fiatCurrency,
+	}, nil
+}
+
+func FromDBCustomCurrency(c *entdb.CustomCurrency) (currencies.Currency, error) {
 	curr, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
 		WithCode(c.Code).
 		WithName(c.Name).
@@ -144,7 +185,7 @@ func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.Li
 			return pagination.Result[currencies.Currency]{}, fmt.Errorf("failed to list currencies: %w", err)
 		}
 
-		return pagination.MapResultErr(paged, mapCurrencyFromDB)
+		return pagination.MapResultErr(paged, FromDBCustomCurrency)
 	})
 }
 
@@ -168,7 +209,7 @@ func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCu
 			return currencies.Currency{}, fmt.Errorf("failed to create currency: %w", err)
 		}
 
-		return mapCurrencyFromDB(curr)
+		return FromDBCustomCurrency(curr)
 	})
 }
 
@@ -248,7 +289,7 @@ func (a *adapter) GetCostBasis(ctx context.Context, params currencies.GetCostBas
 		result := mapCostBasisFromDB(costBasis)
 
 		if params.CustomCurrency {
-			customCurrency, err := mapCurrencyFromDB(costBasis.Edges.Currency)
+			customCurrency, err := FromDBCustomCurrency(costBasis.Edges.Currency)
 			if err != nil {
 				return currencies.CostBasis{}, fmt.Errorf("failed to map custom currency: %w", err)
 			}
@@ -307,7 +348,7 @@ func (a *adapter) GetCurrency(ctx context.Context, params currencies.GetCurrency
 			return currencies.Currency{}, fmt.Errorf("failed to get currency: %w", err)
 		}
 
-		curr, err := mapCurrencyFromDB(c)
+		curr, err := FromDBCustomCurrency(c)
 		if err != nil {
 			return currencies.Currency{}, fmt.Errorf("failed to map currency from database: %w", err)
 		}

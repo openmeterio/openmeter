@@ -12,6 +12,7 @@ import (
 
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -75,6 +76,10 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	}
 	charge := input.Charge
 
+	if charge.Intent.Currency.IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("credit purchase with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	costBasis, err := charge.Intent.Settlement.GetCostBasis()
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
@@ -97,7 +102,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:             input.EventAt,
 			Amount:         charge.Intent.CreditAmount,
-			Currency:       charge.Intent.Currency,
+			Currency:       charge.Intent.Currency.GetCode(),
 			CostBasis:      &costBasis,
 			Features:       featureFilters,
 			SourceChargeID: &charge.ID,
@@ -133,6 +138,10 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	}
 	charge := input.Charge
 
+	if charge.Intent.Currency.IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("credit purchase with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	costBasis, err := charge.Intent.Settlement.GetCostBasis()
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
@@ -155,7 +164,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:             input.EventAt,
 			Amount:         charge.Intent.CreditAmount,
-			Currency:       charge.Intent.Currency,
+			Currency:       charge.Intent.Currency.GetCode(),
 			CostBasis:      &costBasis,
 			Features:       featureFilters,
 			SourceChargeID: &charge.ID,
@@ -203,6 +212,10 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		return ledgertransaction.GroupReference{}, nil
 	}
 
+	if charge.Intent.Currency.IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("credit purchase with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
 	costBasis, err := charge.Intent.Settlement.GetCostBasis()
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
@@ -216,7 +229,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 	bookedAt := charge.Intent.ServicePeriod.To
 
-	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
+	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency.GetCode(), charge.Intent.CreditAmount, featureFilters)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get advance attributions: %w", err)
 	}
@@ -237,7 +250,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
 			At:                 bookedAt,
 			Amount:             attribution.advanceAmount,
-			Currency:           charge.Intent.Currency,
+			Currency:           charge.Intent.Currency.GetCode(),
 			CostBasis:          &costBasis,
 			AdvanceFeatures:    attribution.advanceFeatures,
 			AttributedFeatures: featureFilters,
@@ -249,7 +262,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
 				At:             bookedAt,
 				Amount:         attribution.accruedAmount,
-				Currency:       charge.Intent.Currency,
+				Currency:       charge.Intent.Currency.GetCode(),
 				TaxCode:        attribution.taxCode,
 				TaxBehavior:    attribution.taxBehavior,
 				FromCostBasis:  nil,
@@ -264,7 +277,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
 			At:             bookedAt,
 			Amount:         issuableAmount,
-			Currency:       charge.Intent.Currency,
+			Currency:       charge.Intent.Currency.GetCode(),
 			CostBasis:      &costBasis,
 			Features:       featureFilters,
 			SourceChargeID: &charge.ID,
@@ -280,7 +293,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			transactions.AuthorizeCustomerReceivablePaymentTemplate{
 				At:             bookedAt,
 				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency,
+				Currency:       charge.Intent.Currency.GetCode(),
 				CostBasis:      &costBasis,
 				Features:       featureFilters,
 				SourceChargeID: &charge.ID,
@@ -288,7 +301,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
 				At:             bookedAt,
 				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency,
+				Currency:       charge.Intent.Currency.GetCode(),
 				CostBasis:      &costBasis,
 				Features:       featureFilters,
 				SourceChargeID: &charge.ID,
@@ -331,7 +344,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			CustomerID:        customerID,
 			Amount:            charge.Intent.CreditAmount,
 			ImmediateReleases: immediateReleases,
-			Currency:          charge.Intent.Currency,
+			Currency:          charge.Intent.Currency.GetCode(),
 			CostBasis:         &costBasis,
 			CreditPriority:    charge.Intent.Priority,
 			Features:          featureFilters,

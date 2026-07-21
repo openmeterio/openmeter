@@ -86,7 +86,7 @@ func (s *ListFundedCreditActivitiesSuite) insertCreditPurchaseWithGrant(
 		SetFullServicePeriodTo(servicePeriodTo).
 		SetStatus(meta.ChargeStatusCreated).
 		SetStatusDetailed(creditpurchase.StatusCreated).
-		SetCurrency(currency).
+		SetFiatCurrencyCode(currency).
 		SetManagedBy(billing.SubscriptionManagedLine).
 		SetName(name).
 		SetNillableDescription(description).

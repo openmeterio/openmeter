@@ -11,13 +11,21 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
-func MapChargeBaseFromDB(dbEntity *entdb.ChargeCreditPurchase) creditpurchase.ChargeBase {
-	mappedMeta := chargemeta.MapFromDB(dbEntity)
+func fromDBBaseWithCurrency(dbEntity *entdb.ChargeCreditPurchase, currency currencies.Currency) (creditpurchase.ChargeBase, error) {
+	mappedMeta, err := chargemeta.FromDBWithCurrency(dbEntity, currency)
+	if err != nil {
+		return creditpurchase.ChargeBase{}, fmt.Errorf("failed to map charge base: %w", err)
+	}
 
+	return fromDBBase(dbEntity, mappedMeta), nil
+}
+
+func fromDBBase(dbEntity *entdb.ChargeCreditPurchase, mappedMeta meta.Charge) creditpurchase.ChargeBase {
 	return creditpurchase.ChargeBase{
 		ManagedResource: mappedMeta.ManagedResource,
 		Status:          dbEntity.StatusDetailed,
@@ -40,8 +48,26 @@ func MapChargeBaseFromDB(dbEntity *entdb.ChargeCreditPurchase) creditpurchase.Ch
 	}
 }
 
-func MapCreditPurchaseChargeFromDB(dbEntity *entdb.ChargeCreditPurchase, expands meta.Expands) (creditpurchase.Charge, error) {
-	chargeBase := MapChargeBaseFromDB(dbEntity)
+func FromDB(dbEntity *entdb.ChargeCreditPurchase, expands meta.Expands) (creditpurchase.Charge, error) {
+	mappedMeta, err := chargemeta.FromDB(dbEntity, dbEntity.Edges)
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("failed to map charge meta: %w", err)
+	}
+
+	return fromDBWithMeta(dbEntity, mappedMeta, expands)
+}
+
+func FromDBWithCurrency(dbEntity *entdb.ChargeCreditPurchase, currency currencies.Currency, expands meta.Expands) (creditpurchase.Charge, error) {
+	mappedMeta, err := chargemeta.FromDBWithCurrency(dbEntity, currency)
+	if err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("failed to map charge meta: %w", err)
+	}
+
+	return fromDBWithMeta(dbEntity, mappedMeta, expands)
+}
+
+func fromDBWithMeta(dbEntity *entdb.ChargeCreditPurchase, mappedMeta meta.Charge, expands meta.Expands) (creditpurchase.Charge, error) {
+	chargeBase := fromDBBase(dbEntity, mappedMeta)
 
 	var creditGrantRealization *ledgertransaction.TimedGroupReference
 	var externalPaymentSettlement *payment.External

@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -101,9 +102,31 @@ func (_c *ChargeUsageBasedCreate) SetNillableUniqueReferenceID(v *string) *Charg
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *ChargeUsageBasedCreate) SetCurrency(v currencyx.Code) *ChargeUsageBasedCreate {
-	_c.mutation.SetCurrency(v)
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_c *ChargeUsageBasedCreate) SetFiatCurrencyCode(v currencyx.Code) *ChargeUsageBasedCreate {
+	_c.mutation.SetFiatCurrencyCode(v)
+	return _c
+}
+
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableFiatCurrencyCode(v *currencyx.Code) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetFiatCurrencyCode(*v)
+	}
+	return _c
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *ChargeUsageBasedCreate) SetCustomCurrencyID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableCustomCurrencyID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
+	}
 	return _c
 }
 
@@ -482,6 +505,11 @@ func (_c *ChargeUsageBasedCreate) SetTaxCode(v *TaxCode) *ChargeUsageBasedCreate
 	return _c.SetTaxCodeID(v.ID)
 }
 
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *ChargeUsageBasedCreate) SetCustomCurrency(v *CustomCurrency) *ChargeUsageBasedCreate {
+	return _c.SetCustomCurrencyID(v.ID)
+}
+
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
 func (_c *ChargeUsageBasedCreate) Mutation() *ChargeUsageBasedMutation {
 	return _c.mutation
@@ -567,12 +595,14 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeUsageBased.currency"`)}
+	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
+		if err := chargeusagebased.FiatCurrencyCodeValidator(string(v)); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.fiat_currency_code": %w`, err)}
+		}
 	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := chargeusagebased.CurrencyValidator(string(v)); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.currency": %w`, err)}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := chargeusagebased.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.custom_currency_id": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ManagedBy(); !ok {
@@ -754,9 +784,9 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_spec.SetField(chargeusagebased.FieldUniqueReferenceID, field.TypeString, value)
 		_node.UniqueReferenceID = &value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(chargeusagebased.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(chargeusagebased.FieldFiatCurrencyCode, field.TypeString, value)
+		_node.FiatCurrencyCode = &value
 	}
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargeusagebased.FieldManagedBy, field.TypeEnum, value)
@@ -1031,6 +1061,23 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.TaxCodeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.CustomCurrencyTable,
+			Columns: []string{chargeusagebased.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1456,8 +1503,11 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
 			s.SetIgnore(chargeusagebased.FieldUniqueReferenceID)
 		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(chargeusagebased.FieldCurrency)
+		if _, exists := u.create.mutation.FiatCurrencyCode(); exists {
+			s.SetIgnore(chargeusagebased.FieldFiatCurrencyCode)
+		}
+		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
+			s.SetIgnore(chargeusagebased.FieldCustomCurrencyID)
 		}
 		if _, exists := u.create.mutation.ManagedBy(); exists {
 			s.SetIgnore(chargeusagebased.FieldManagedBy)
@@ -2115,8 +2165,11 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			if _, exists := b.mutation.UniqueReferenceID(); exists {
 				s.SetIgnore(chargeusagebased.FieldUniqueReferenceID)
 			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(chargeusagebased.FieldCurrency)
+			if _, exists := b.mutation.FiatCurrencyCode(); exists {
+				s.SetIgnore(chargeusagebased.FieldFiatCurrencyCode)
+			}
+			if _, exists := b.mutation.CustomCurrencyID(); exists {
+				s.SetIgnore(chargeusagebased.FieldCustomCurrencyID)
 			}
 			if _, exists := b.mutation.ManagedBy(); exists {
 				s.SetIgnore(chargeusagebased.FieldManagedBy)

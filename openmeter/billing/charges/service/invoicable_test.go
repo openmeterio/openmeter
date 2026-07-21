@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingtotals "github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -905,7 +906,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInvoiceAtBefore
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: lo.ToPtr("flat-fee-invoice-at-before-service-period"),
 						CustomerID:        cust.ID,
-						Currency:          USD,
+						Currency:          currenciestestutils.NewFiatCurrency(s.T(), USD),
 					},
 					IntentMutableFields: flatfee.IntentMutableFields{
 						IntentMutableFields: meta.IntentMutableFields{

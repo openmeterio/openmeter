@@ -29,6 +29,7 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -461,7 +462,7 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 				Intent: chargemeta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currency,
+					Currency:   currenciestestutils.NewFiatCurrency(t, currency),
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: e.taxCodeID,
 					},
@@ -509,7 +510,7 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 				Intent: chargemeta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currency,
+					Currency:   currenciestestutils.NewFiatCurrency(t, currency),
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: e.taxCodeID,
 					},
@@ -620,7 +621,7 @@ func (e *testEnv) createCreditPurchase(
 			Intent: chargemeta.Intent{
 				ManagedBy:  billing.SubscriptionManagedLine,
 				CustomerID: e.CustomerID.ID,
-				Currency:   currency,
+				Currency:   currenciestestutils.NewFiatCurrency(t, currency),
 				TaxConfig: productcatalog.TaxCodeConfig{
 					TaxCodeID: e.taxCodeID,
 				},

@@ -14,9 +14,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -54,7 +54,7 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 				Intent: meta.Intent{
 					ManagedBy:         billing.SubscriptionManagedLine,
 					CustomerID:        cust.ID,
-					Currency:          currencyx.Code("USD"),
+					Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 					UniqueReferenceID: lo.ToPtr("flat-fee-truncation"),
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
@@ -127,7 +127,7 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 				Intent: meta.Intent{
 					ManagedBy:         billing.SubscriptionManagedLine,
 					CustomerID:        cust.ID,
-					Currency:          currencyx.Code("USD"),
+					Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 					UniqueReferenceID: lo.ToPtr("usage-based-truncation"),
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,

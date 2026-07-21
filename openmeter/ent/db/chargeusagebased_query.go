@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -45,6 +46,7 @@ type ChargeUsageBasedQuery struct {
 	withCustomer          *CustomerQuery
 	withFeature           *FeatureQuery
 	withTaxCode           *TaxCodeQuery
+	withCustomCurrency    *CustomCurrencyQuery
 	modifiers             []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -324,6 +326,28 @@ func (_q *ChargeUsageBasedQuery) QueryTaxCode() *TaxCodeQuery {
 	return query
 }
 
+// QueryCustomCurrency chains the current query on the "custom_currency" edge.
+func (_q *ChargeUsageBasedQuery) QueryCustomCurrency() *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.CustomCurrencyTable, chargeusagebased.CustomCurrencyColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first ChargeUsageBased entity from the query.
 // Returns a *NotFoundError when no ChargeUsageBased was found.
 func (_q *ChargeUsageBasedQuery) First(ctx context.Context) (*ChargeUsageBased, error) {
@@ -527,6 +551,7 @@ func (_q *ChargeUsageBasedQuery) Clone() *ChargeUsageBasedQuery {
 		withCustomer:          _q.withCustomer.Clone(),
 		withFeature:           _q.withFeature.Clone(),
 		withTaxCode:           _q.withTaxCode.Clone(),
+		withCustomCurrency:    _q.withCustomCurrency.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -654,6 +679,17 @@ func (_q *ChargeUsageBasedQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *Charg
 	return _q
 }
 
+// WithCustomCurrency tells the query-builder to eager-load the nodes that are connected to
+// the "custom_currency" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedQuery) WithCustomCurrency(opts ...func(*CustomCurrencyQuery)) *ChargeUsageBasedQuery {
+	query := (&CustomCurrencyClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCustomCurrency = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -732,7 +768,7 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*ChargeUsageBased{}
 		_spec       = _q.querySpec()
-		loadedTypes = [11]bool{
+		loadedTypes = [12]bool{
 			_q.withRuns != nil,
 			_q.withDetailedLines != nil,
 			_q.withCurrentRun != nil,
@@ -744,6 +780,7 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 			_q.withCustomer != nil,
 			_q.withFeature != nil,
 			_q.withTaxCode != nil,
+			_q.withCustomCurrency != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -834,6 +871,12 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := _q.withTaxCode; query != nil {
 		if err := _q.loadTaxCode(ctx, query, nodes, nil,
 			func(n *ChargeUsageBased, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCustomCurrency; query != nil {
+		if err := _q.loadCustomCurrency(ctx, query, nodes, nil,
+			func(n *ChargeUsageBased, e *CustomCurrency) { n.Edges.CustomCurrency = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -1172,6 +1215,38 @@ func (_q *ChargeUsageBasedQuery) loadTaxCode(ctx context.Context, query *TaxCode
 	}
 	return nil
 }
+func (_q *ChargeUsageBasedQuery) loadCustomCurrency(ctx context.Context, query *CustomCurrencyQuery, nodes []*ChargeUsageBased, init func(*ChargeUsageBased), assign func(*ChargeUsageBased, *CustomCurrency)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBased)
+	for i := range nodes {
+		if nodes[i].CustomCurrencyID == nil {
+			continue
+		}
+		fk := *nodes[i].CustomCurrencyID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(customcurrency.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "custom_currency_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *ChargeUsageBasedQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -1221,6 +1296,9 @@ func (_q *ChargeUsageBasedQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withTaxCode != nil {
 			_spec.Node.AddColumnOnce(chargeusagebased.FieldTaxCodeID)
+		}
+		if _q.withCustomCurrency != nil {
+			_spec.Node.AddColumnOnce(chargeusagebased.FieldCustomCurrencyID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

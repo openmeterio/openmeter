@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -32,6 +33,13 @@ func intentFromManualCreatedLine(
 
 	if line.GetID() == "" {
 		return usagebased.Intent{}, fmt.Errorf("line id is required")
+	}
+
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(line.GetCurrency()).
+		Build()
+	if err != nil {
+		return usagebased.Intent{}, fmt.Errorf("resolving fiat currency %q: %w", line.GetCurrency(), err)
 	}
 
 	if chargeID := line.GetChargeID(); chargeID != nil && *chargeID != "" {
@@ -73,7 +81,7 @@ func intentFromManualCreatedLine(
 			ManagedBy:   billing.ManuallyManagedLine,
 			CustomerID:  invoice.GetCustomerID().ID,
 			Annotations: annotations,
-			Currency:    line.GetCurrency(),
+			Currency:    currencies.Currency{Currency: currency},
 			TaxConfig:   taxConfig,
 		},
 		IntentMutableFields: usagebased.IntentMutableFields{

@@ -25,6 +25,9 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -242,6 +245,23 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating charges adapter: %w", err)
 	}
 
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{
+		Client: config.Client,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating currency adapter: %w", err)
+	}
+
+	currencyService, err := currencyservice.New(currencyAdapter)
+	if err != nil {
+		return nil, fmt.Errorf("creating currency service: %w", err)
+	}
+
+	currencyResolver, err := currencyresolver.New(currencyService)
+	if err != nil {
+		return nil, fmt.Errorf("creating currency resolver: %w", err)
+	}
+
 	chargesService, err := chargesservice.New(chargesservice.Config{
 		Logger:                logger,
 		Adapter:               rootAdapter,
@@ -253,6 +273,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		RecognizerService:     config.RecognizerService,
 		BillingService:        config.BillingService,
 		TaxCodeService:        config.TaxCodeService,
+		CurrencyResolver:      currencyResolver,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating charges service: %w", err)

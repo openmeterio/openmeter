@@ -52,11 +52,11 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 			return creditpurchase.ChargeBase{}, err
 		}
 
-		return MapChargeBaseFromDB(dbCreditPurchase), nil
+		return fromDBBaseWithCurrency(dbCreditPurchase, charge.Intent.Currency)
 	})
 }
 
-func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChargeInput) (creditpurchase.Charge, error) {
+func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInput) (creditpurchase.Charge, error) {
 	if err := in.Validate(); err != nil {
 		return creditpurchase.Charge{}, err
 	}
@@ -109,25 +109,25 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 			return creditpurchase.Charge{}, err
 		}
 
-		return MapCreditPurchaseChargeFromDB(dbCreditPurchase, meta.ExpandNone)
+		return FromDBWithCurrency(dbCreditPurchase, in.Intent.Currency, meta.ExpandNone)
 	})
 }
 
-func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoidedInput) (creditpurchase.ChargeBase, error) {
+func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoidedAdapterInput) (creditpurchase.ChargeBase, error) {
 	if err := input.Validate(); err != nil {
 		return creditpurchase.ChargeBase{}, err
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.ChargeBase, error) {
-		dbCreditPurchase, err := tx.db.ChargeCreditPurchase.UpdateOneID(input.ChargeID.ID).
-			Where(dbchargecreditpurchase.NamespaceEQ(input.ChargeID.Namespace)).
+		dbCreditPurchase, err := tx.db.ChargeCreditPurchase.UpdateOneID(input.Charge.ID).
+			Where(dbchargecreditpurchase.NamespaceEQ(input.Charge.Namespace)).
 			SetVoidedAt(input.VoidedAt).
 			Save(ctx)
 		if err != nil {
-			return creditpurchase.ChargeBase{}, fmt.Errorf("marking credit purchase charge voided [id=%s]: %w", input.ChargeID.ID, err)
+			return creditpurchase.ChargeBase{}, fmt.Errorf("marking credit purchase charge voided [id=%s]: %w", input.Charge.ID, err)
 		}
 
-		return MapChargeBaseFromDB(dbCreditPurchase), nil
+		return fromDBBaseWithCurrency(dbCreditPurchase, input.Charge.Intent.Currency)
 	})
 }
 
@@ -150,7 +150,7 @@ func (a *adapter) GetByID(ctx context.Context, input creditpurchase.GetByIDInput
 			return creditpurchase.Charge{}, fmt.Errorf("getting credit purchase charge [id=%s]: %w", input.ChargeID.ID, err)
 		}
 
-		return MapCreditPurchaseChargeFromDB(entity, input.Expands)
+		return FromDB(entity, input.Expands)
 	})
 }
 
@@ -177,7 +177,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input creditpurchase.GetByIDsInp
 		}
 
 		return slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeCreditPurchase) (creditpurchase.Charge, error) {
-			return MapCreditPurchaseChargeFromDB(entity, input.Expands)
+			return FromDB(entity, input.Expands)
 		})
 	})
 }
@@ -204,7 +204,12 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 		}
 
 		if len(input.Currencies) > 0 {
-			query = query.Where(dbchargecreditpurchase.CurrencyIn(input.Currencies...))
+			query = query.Where(
+				dbchargecreditpurchase.Or(
+					dbchargecreditpurchase.FiatCurrencyCodeIn(input.Currencies...),
+					hasCustomCurrencyCode(input.Namespace, input.Currencies...),
+				),
+			)
 		}
 
 		if input.Voided != nil {
@@ -236,7 +241,7 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 		}
 
 		charges, err := slicesx.MapWithErr(res.Items, func(entity *db.ChargeCreditPurchase) (creditpurchase.Charge, error) {
-			return MapCreditPurchaseChargeFromDB(entity, input.Expands)
+			return FromDB(entity, input.Expands)
 		})
 		if err != nil {
 			return pagination.Result[creditpurchase.Charge]{}, err
@@ -251,6 +256,8 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 }
 
 func withExpands(query *db.ChargeCreditPurchaseQuery, expands meta.Expands) *db.ChargeCreditPurchaseQuery {
+	query = query.WithCustomCurrency()
+
 	if expands.Has(meta.ExpandRealizations) {
 		query = query.WithCreditGrant().WithExternalPayment().WithInvoicedPayment()
 	}

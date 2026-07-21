@@ -43,11 +43,9 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("validating billable line: %w", err)
 	}
 
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(in.GetCurrency()).
-		Build()
+	currency, err := in.GetCurrencyCalculator()
 	if err != nil {
-		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("creating currency calculator: %w", err)
+		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("getting currency calculator: %w", err)
 	}
 
 	generateOpts := rating.NewGenerateDetailedLinesOptions(opts...)

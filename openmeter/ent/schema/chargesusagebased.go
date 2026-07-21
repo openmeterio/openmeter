@@ -11,7 +11,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -29,7 +28,7 @@ type ChargeUsageBased struct {
 
 func (ChargeUsageBased) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		chargemeta.Mixin{},
+		ChargesMetaMixin{},
 	}
 }
 
@@ -147,6 +146,12 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Required().
 			Immutable().
 			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.From("custom_currency", CustomCurrency.Type).
+			Ref("charges_usage_based").
+			Field("custom_currency_id").
+			Unique().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }

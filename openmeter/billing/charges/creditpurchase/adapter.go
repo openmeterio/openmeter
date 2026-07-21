@@ -26,9 +26,9 @@ type Adapter interface {
 }
 
 type ChargeAdapter interface {
-	CreateCharge(ctx context.Context, in CreateChargeInput) (Charge, error)
+	CreateCharge(ctx context.Context, in CreateInput) (Charge, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
-	MarkVoided(ctx context.Context, input MarkVoidedInput) (ChargeBase, error)
+	MarkVoided(ctx context.Context, input MarkVoidedAdapterInput) (ChargeBase, error)
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
@@ -105,7 +105,6 @@ func (i MarkVoidedInput) Validate() error {
 	if err := i.ChargeID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
-
 	if i.VoidedAt.IsZero() {
 		errs = append(errs, errors.New("voided at is required"))
 	}
@@ -113,19 +112,19 @@ func (i MarkVoidedInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type CreateChargeInput struct {
-	Namespace string
-	Intent    Intent
+type MarkVoidedAdapterInput struct {
+	Charge   Charge
+	VoidedAt time.Time
 }
 
-func (i CreateChargeInput) Validate() error {
+func (i MarkVoidedAdapterInput) Validate() error {
 	var errs []error
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace is required"))
-	}
 
-	if err := i.Intent.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("intent: %w", err))
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+	if i.VoidedAt.IsZero() {
+		errs = append(errs, errors.New("voided at is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

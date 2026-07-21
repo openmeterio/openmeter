@@ -11,7 +11,6 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -24,7 +23,7 @@ type ChargeCreditPurchase struct {
 
 func (ChargeCreditPurchase) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		chargemeta.Mixin{},
+		ChargesMetaMixin{},
 	}
 }
 
@@ -117,6 +116,12 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Required().
 			Immutable().
 			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.From("custom_currency", CustomCurrency.Type).
+			Ref("charges_credit_purchase").
+			Field("custom_currency_id").
+			Unique().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }

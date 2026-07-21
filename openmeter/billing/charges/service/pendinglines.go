@@ -13,12 +13,17 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
+// CreatePendingInvoiceLines creates pending invoice lines for a given input.
+// This is the same interface as billing's, but routes the request through the charges service.
+// TODO[later]: We need to use the CreateLineRouter instead if possible, so that we don't have this duality (or v3 api will not have
+// this method at all)
 func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.CreatePendingInvoiceLinesInput) (*charges.CreatePendingInvoiceLinesResult, error) {
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
@@ -107,10 +112,18 @@ func validateChargePendingInvoiceLinesInput(input charges.CreatePendingInvoiceLi
 }
 
 func mapPendingInvoiceLinesToChargeIntents(input charges.CreatePendingInvoiceLinesInput) (charges.ChargeIntents, error) {
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(input.Currency).
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("resolving fiat currency %q: %w", input.Currency, err)
+	}
+	resolvedCurrency := currencies.Currency{Currency: currency}
+
 	intents := make(charges.ChargeIntents, 0, len(input.Lines))
 
 	for idx, line := range input.Lines {
-		intent, err := mapPendingInvoiceLineToChargeIntent(input.Customer.ID, input.Currency, line)
+		intent, err := mapPendingInvoiceLineToChargeIntent(input.Customer.ID, resolvedCurrency, line)
 		if err != nil {
 			return nil, fmt.Errorf("line.%d: %w", idx, err)
 		}
@@ -121,7 +134,7 @@ func mapPendingInvoiceLinesToChargeIntents(input charges.CreatePendingInvoiceLin
 	return intents, nil
 }
 
-func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.Code, line billing.GatheringLine) (charges.ChargeIntent, error) {
+func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencies.Currency, line billing.GatheringLine) (charges.ChargeIntent, error) {
 	annotations, err := line.Annotations.Clone()
 	if err != nil {
 		return charges.ChargeIntent{}, err

@@ -43,8 +43,10 @@ type ChargesSearchV1 struct {
 	Status meta.ChargeStatus `json:"status,omitempty"`
 	// UniqueReferenceID holds the value of the "unique_reference_id" field.
 	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
+	FiatCurrencyCode *currencyx.Code `json:"fiat_currency_code,omitempty"`
+	// CustomCurrencyID holds the value of the "custom_currency_id" field.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
@@ -87,7 +89,7 @@ func (*ChargesSearchV1) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargessearchv1.FieldAnnotations, chargessearchv1.FieldMetadata:
 			values[i] = new([]byte)
-		case chargessearchv1.FieldType, chargessearchv1.FieldCustomerID, chargessearchv1.FieldStatus, chargessearchv1.FieldUniqueReferenceID, chargessearchv1.FieldCurrency, chargessearchv1.FieldManagedBy, chargessearchv1.FieldSubscriptionID, chargessearchv1.FieldSubscriptionPhaseID, chargessearchv1.FieldSubscriptionItemID, chargessearchv1.FieldTaxCodeID, chargessearchv1.FieldTaxBehavior, chargessearchv1.FieldID, chargessearchv1.FieldNamespace, chargessearchv1.FieldName, chargessearchv1.FieldDescription:
+		case chargessearchv1.FieldType, chargessearchv1.FieldCustomerID, chargessearchv1.FieldStatus, chargessearchv1.FieldUniqueReferenceID, chargessearchv1.FieldFiatCurrencyCode, chargessearchv1.FieldCustomCurrencyID, chargessearchv1.FieldManagedBy, chargessearchv1.FieldSubscriptionID, chargessearchv1.FieldSubscriptionPhaseID, chargessearchv1.FieldSubscriptionItemID, chargessearchv1.FieldTaxCodeID, chargessearchv1.FieldTaxBehavior, chargessearchv1.FieldID, chargessearchv1.FieldNamespace, chargessearchv1.FieldName, chargessearchv1.FieldDescription:
 			values[i] = new(sql.NullString)
 		case chargessearchv1.FieldBaseIntentDeletedAt, chargessearchv1.FieldServicePeriodFrom, chargessearchv1.FieldServicePeriodTo, chargessearchv1.FieldBillingPeriodFrom, chargessearchv1.FieldBillingPeriodTo, chargessearchv1.FieldFullServicePeriodFrom, chargessearchv1.FieldFullServicePeriodTo, chargessearchv1.FieldAdvanceAfter, chargessearchv1.FieldCreatedAt, chargessearchv1.FieldUpdatedAt, chargessearchv1.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -174,11 +176,19 @@ func (_m *ChargesSearchV1) assignValues(columns []string, values []any) error {
 				_m.UniqueReferenceID = new(string)
 				*_m.UniqueReferenceID = value.String
 			}
-		case chargessearchv1.FieldCurrency:
+		case chargessearchv1.FieldFiatCurrencyCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
+				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.FiatCurrencyCode = new(currencyx.Code)
+				*_m.FiatCurrencyCode = currencyx.Code(value.String)
+			}
+		case chargessearchv1.FieldCustomCurrencyID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyID = new(string)
+				*_m.CustomCurrencyID = value.String
 			}
 		case chargessearchv1.FieldManagedBy:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -352,8 +362,15 @@ func (_m *ChargesSearchV1) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	if v := _m.FiatCurrencyCode; v != nil {
+		builder.WriteString("fiat_currency_code=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyID; v != nil {
+		builder.WriteString("custom_currency_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("managed_by=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))

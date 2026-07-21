@@ -10,10 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -66,7 +66,7 @@ func (c ChargeBase) GetCustomerID() customer.CustomerID {
 	}
 }
 
-func (c ChargeBase) GetCurrency() currencyx.Code {
+func (c ChargeBase) GetCurrency() currencies.Currency {
 	return c.Intent.GetCurrency()
 }
 
@@ -275,7 +275,7 @@ func (i OverridableIntent) GetCustomerID() string {
 	return i.intent.CustomerID
 }
 
-func (i OverridableIntent) GetCurrency() currencyx.Code {
+func (i OverridableIntent) GetCurrency() currencies.Currency {
 	return i.intent.Currency
 }
 
