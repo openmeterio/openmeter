@@ -1849,6 +1849,52 @@ paths:
                 - type: array
                   items:
                     $ref: '#/components/schemas/MeteringEvent'
+  /openmeter/events/subjects:
+    get:
+      operationId: list-event-subjects
+      summary: List event subjects
+      description: |-
+        List the subjects of the ingested events. Subjects are ordered by key
+        alphabetically.
+
+        The listing is cursor paginated and only supports forward pagination:
+        page[before] requests are rejected. page[size] defaults to 20 and must
+        be between 1 and 100.
+
+        A page shorter than page[size] — including an empty one — does not mean
+        the listing is exhausted: with the attributed filter the server may
+        return fewer matches than requested while more data remains. The listing
+        is exhausted only when meta.page.next is null.
+      parameters:
+        - $ref: '#/components/parameters/CursorPaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter subjects returned in the response.
+
+            To filter subjects by key add the following query param:
+            filter[key][contains]=customer
+          schema:
+            $ref: '#/components/schemas/ListSubjectsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Cursor paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeteringEventSubjectPaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - Metering Events
+      x-internal: true
+      x-unstable: true
   /openmeter/features:
     get:
       operationId: list-features
@@ -8959,6 +9005,22 @@ components:
       additionalProperties: false
       description: Tax settings for a billing workflow.
       title: Workflow tax settings
+    BooleanFieldFilter:
+      anyOf:
+        - type: boolean
+        - type: object
+          properties:
+            eq:
+              type: boolean
+              description: Value strictly equals the given boolean value.
+          required:
+            - eq
+          additionalProperties: false
+      description: Filter by a boolean value (true/false).
+      title: Boolean Field Filter
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterBoolean
     ChargePagePaginatedResponse:
       type: object
       required:
@@ -10979,6 +11041,19 @@ components:
           $ref: '#/components/schemas/StringFieldFilterExact'
       additionalProperties: false
       description: Filter options for listing plans.
+    ListSubjectsParamsFilter:
+      type: object
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter subjects by key.
+        attributed:
+          allOf:
+            - $ref: '#/components/schemas/BooleanFieldFilter'
+          description: Filter subjects by whether they are attributed to a customer.
+      additionalProperties: false
+      description: Filter options for listing subjects.
     ListSubscriptionsParamsFilter:
       type: object
       properties:
@@ -11338,6 +11413,34 @@ components:
           tokens: 100
           model: gpt-4o
           type: input
+    MeteringEventSubject:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          minLength: 1
+          description: The key of the subject.
+          title: Key
+          example: customer-id
+          readOnly: true
+      additionalProperties: false
+      description: Subject of an event.
+    MeteringEventSubjectPaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeteringEventSubject'
+        meta:
+          $ref: '#/components/schemas/CursorMeta'
+      additionalProperties: false
+      description: Cursor paginated response.
     MeteringIngestedEvent:
       type: object
       required:

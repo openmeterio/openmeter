@@ -3,11 +3,14 @@ package streaming
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 type CountEventsParams struct {
@@ -43,6 +46,9 @@ type Connector interface {
 	ListEventsV2(ctx context.Context, params ListEventsV2Params) ([]RawEvent, error)
 	// ListSubjects lists the subjects that have events in the database
 	ListSubjects(ctx context.Context, params ListSubjectsParams) ([]string, error)
+	// ListSubjectsV2 lists the subjects that have events in the database,
+	// ordered by subject key ascending with keyset pagination.
+	ListSubjectsV2(ctx context.Context, params ListSubjectsV2Params) ([]string, error)
 	// ListGroupByValues lists the group by values that have events in the database
 	ListGroupByValues(ctx context.Context, params ListGroupByValuesParams) ([]string, error)
 	QueryMeter(ctx context.Context, namespace string, meter meter.Meter, params QueryParams) ([]meter.MeterQueryRow, error)
@@ -81,6 +87,43 @@ func (p ListSubjectsParams) Validate() error {
 		if p.From.After(*p.To) {
 			errs = append(errs, errors.New("from time must be before to time"))
 		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ListSubjectsV2Params is a parameter object for listing subjects with keyset pagination.
+type ListSubjectsV2Params struct {
+	// The namespace.
+	Namespace string
+	// The subject key filter.
+	Key *filter.FilterString
+	// The cursor. Only the ID part is used: it holds the last subject key of the previous page.
+	Cursor *pagination.Cursor
+	// The limit.
+	Limit *int
+}
+
+// Validate validates the list subjects v2 parameters.
+func (p ListSubjectsV2Params) Validate() error {
+	var errs []error
+
+	if p.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if p.Key != nil {
+		if err := p.Key.ValidateWithComplexity(1); err != nil {
+			errs = append(errs, fmt.Errorf("key: %w", err))
+		}
+	}
+
+	if p.Cursor != nil && p.Cursor.ID == "" {
+		errs = append(errs, errors.New("cursor id is required"))
+	}
+
+	if p.Limit != nil && *p.Limit < 1 {
+		errs = append(errs, errors.New("limit must be greater than 0"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

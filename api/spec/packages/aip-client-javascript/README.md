@@ -35,6 +35,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [PlanAddons](#planaddons)
   - [Defaults](#defaults)
 - [Internal Operations](#internal-operations)
+  - [Internal Events](#internal-events)
   - [Internal Subscriptions](#internal-subscriptions)
   - [Internal Invoices](#internal-invoices)
   - [Internal Currencies](#internal-currencies)
@@ -419,6 +420,12 @@ Operations marked internal in the API definition are exposed under
 `client.internal.*`, quarantined from the customer surface. They are not
 intended for customer use: they may require additional permissions, and
 they can change or be removed without notice or semver consideration.
+
+### Internal Events
+
+| Method                                | HTTP                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.events.listSubjects` | `GET /openmeter/events/subjects` | List the subjects of the ingested events. Subjects are ordered by key alphabetically. The listing is cursor paginated and only supports forward pagination: page[before] requests are rejected. page[size] defaults to 20 and must be between 1 and 100. A page shorter than page[size] — including an empty one — does not mean the listing is exhausted: with the attributed filter the server may return fewer matches than requested while more data remains. The listing is exhausted only when meta.page.next is null. |
 
 ### Internal Subscriptions
 

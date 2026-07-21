@@ -74,6 +74,12 @@ export interface BaseError {
   [key: string]: unknown
 }
 
+/** Subject of an event. */
+export interface EventSubject {
+  /** The key of the subject. */
+  key: string
+}
+
 /** Pagination information. */
 export interface PageMeta {
   /** Page number. */
@@ -1288,6 +1294,14 @@ export interface NotImplemented extends BaseError {}
 
 /** Not Available. */
 export interface NotAvailable extends BaseError {}
+
+/** Filter options for listing subjects. */
+export interface ListSubjectsParamsFilter {
+  /** Filter subjects by key. */
+  key?: StringFieldFilter
+  /** Filter subjects by whether they are attributed to a customer. */
+  attributed?: BooleanFieldFilter
+}
 
 /** Filters for the credit grant. */
 export interface CreateCreditGrantFilters {
@@ -2729,7 +2743,7 @@ export interface ResourceFilters {
 
 /** Field filters with all supported types. */
 export interface FieldFilters {
-  boolean?: boolean | { eq: boolean }
+  boolean?: BooleanFieldFilter
   numeric?:
     | number
     | {
@@ -2818,6 +2832,12 @@ export interface FeatureCostQueryResult {
   to?: Date
   /** The cost data rows. */
   data: FeatureCostQueryRow[]
+}
+
+/** Cursor paginated response. */
+export interface EventSubjectPaginatedResponse {
+  data: EventSubject[]
+  meta: CursorMeta
 }
 
 /** Page paginated response. */
@@ -5351,6 +5371,9 @@ export type StringFieldFilter =
       lte?: string
       exists?: boolean
     }
+
+/** Filter by a boolean value (true/false). */
+export type BooleanFieldFilter = boolean | { eq: boolean }
 
 /** The aggregation type to use for the meter. */
 export type MeterAggregation =

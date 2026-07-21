@@ -2,7 +2,8 @@
 
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
-import { paginatePages } from '../lib/paginate.js'
+import { paginateCursor, paginatePages } from '../lib/paginate.js'
+import { listEventSubjects } from '../funcs/events.js'
 import { createSubscriptionAddon } from '../funcs/subscriptions.js'
 import {
   listInvoices,
@@ -22,6 +23,10 @@ import {
   createCostBasis,
 } from '../funcs/currencies.js'
 import { queryGovernanceAccess } from '../funcs/governance.js'
+import type {
+  ListEventSubjectsRequest,
+  ListEventSubjectsResponse,
+} from '../models/operations/events.js'
 import type {
   CreateSubscriptionAddonRequest,
   CreateSubscriptionAddonResponse,
@@ -60,7 +65,12 @@ import type {
   QueryGovernanceAccessRequest,
   QueryGovernanceAccessResponse,
 } from '../models/operations/governance.js'
-import type { CostBasis, Currency, Invoice } from '../models/types.js'
+import type {
+  CostBasis,
+  Currency,
+  EventSubject,
+  Invoice,
+} from '../models/types.js'
 
 /**
  * Operations marked internal in the API definition. They are not part of
@@ -69,6 +79,11 @@ import type { CostBasis, Currency, Invoice } from '../models/types.js'
  */
 export class Internal {
   constructor(private readonly _client: Client) {}
+
+  private _events?: InternalEvents
+  get events(): InternalEvents {
+    return (this._events ??= new InternalEvents(this._client))
+  }
 
   private _subscriptions?: InternalSubscriptions
   get subscriptions(): InternalSubscriptions {
@@ -88,6 +103,64 @@ export class Internal {
   private _governance?: InternalGovernance
   get governance(): InternalGovernance {
     return (this._governance ??= new InternalGovernance(this._client))
+  }
+}
+
+export class InternalEvents {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List event subjects
+   *
+   * List the subjects of the ingested events. Subjects are ordered by key
+   * alphabetically.
+   *
+   * The listing is cursor paginated and only supports forward pagination:
+   * page[before] requests are rejected. page[size] defaults to 20 and must
+   * be between 1 and 100.
+   *
+   * A page shorter than page[size] — including an empty one — does not mean
+   * the listing is exhausted: with the attributed filter the server may
+   * return fewer matches than requested while more data remains. The listing
+   * is exhausted only when meta.page.next is null.
+   *
+   * GET /openmeter/events/subjects
+   */
+  async listSubjects(
+    request?: ListEventSubjectsRequest,
+    options?: RequestOptions,
+  ): Promise<ListEventSubjectsResponse> {
+    return unwrap(await listEventSubjects(this._client, request, options))
+  }
+
+  /**
+   * List event subjects
+   *
+   * List the subjects of the ingested events. Subjects are ordered by key
+   * alphabetically.
+   *
+   * The listing is cursor paginated and only supports forward pagination:
+   * page[before] requests are rejected. page[size] defaults to 20 and must
+   * be between 1 and 100.
+   *
+   * A page shorter than page[size] — including an empty one — does not mean
+   * the listing is exhausted: with the attributed filter the server may
+   * return fewer matches than requested while more data remains. The listing
+   * is exhausted only when meta.page.next is null.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/events/subjects
+   */
+  listSubjectsAll(
+    request?: ListEventSubjectsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<EventSubject> {
+    return paginateCursor(
+      (req, opts) => listEventSubjects(this._client, req, opts),
+      request ?? {},
+      options,
+    )
   }
 }
 

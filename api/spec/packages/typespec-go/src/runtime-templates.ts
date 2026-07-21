@@ -443,13 +443,17 @@ func paginateCursor[T any](start *CursorPageParams, fetch func(after, before *st
 					return
 				}
 			}
+			// An empty page does not signal exhaustion: endpoints applying
+			// filters after pagination (e.g. event subjects with the
+			// attributed filter) may return zero items while more data
+			// remains. Only an absent cursor ends the iteration.
 			if reverse {
-				if previous == nil || *previous == "" || len(data) == 0 {
+				if previous == nil || *previous == "" {
 					return
 				}
 				before = previous
 			} else {
-				if next == nil || *next == "" || len(data) == 0 {
+				if next == nil || *next == "" {
 					return
 				}
 				after = next

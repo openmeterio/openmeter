@@ -6,8 +6,10 @@ import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CursorPaginationQueryPage,
   EventInput,
+  EventSubjectPaginatedResponse,
   IngestedEventPaginatedResponse,
   ListEventsParamsFilter,
+  ListSubjectsParamsFilter,
   SortQueryInput,
 } from '../types.js'
 
@@ -42,3 +44,17 @@ export type IngestMeteringEventsRequest = AcceptDateStrings<
   EventInput | EventInput[]
 >
 export type IngestMeteringEventsResponse = void
+
+export interface ListEventSubjectsQuery {
+  page?: CursorPaginationQueryPage
+  /**
+   * Filter subjects returned in the response.
+   *
+   * To filter subjects by key add the following query param:
+   * filter[key][contains]=customer
+   */
+  filter?: ListSubjectsParamsFilter
+}
+
+export type ListEventSubjectsRequest = AcceptDateStrings<ListEventSubjectsQuery>
+export type ListEventSubjectsResponse = EventSubjectPaginatedResponse

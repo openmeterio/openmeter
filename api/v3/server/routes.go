@@ -59,6 +59,10 @@ func (s *Server) ListMeteringEvents(w http.ResponseWriter, r *http.Request, para
 	s.eventsHandler.ListMeteringEvents().With(params).ServeHTTP(w, r)
 }
 
+func (s *Server) ListEventSubjects(w http.ResponseWriter, r *http.Request, params api.ListEventSubjectsParams) {
+	s.eventsHandler.ListEventSubjects().With(params).ServeHTTP(w, r)
+}
+
 // Customers
 
 func (s *Server) CreateCustomer(w http.ResponseWriter, r *http.Request) {

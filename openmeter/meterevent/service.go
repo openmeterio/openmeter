@@ -20,6 +20,7 @@ const (
 type Service interface {
 	ListEvents(ctx context.Context, params ListEventsParams) ([]Event, error)
 	ListEventsV2(ctx context.Context, params ListEventsV2Params) (pagination.Result[Event], error)
+	ListSubjects(ctx context.Context, params ListSubjectsParams) (pagination.Result[Subject], error)
 }
 
 // ListEventsParams represents the input for ListEvents method.
