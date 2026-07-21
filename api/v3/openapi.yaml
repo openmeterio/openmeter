@@ -300,6 +300,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/app-catalog/install:
     post:
       operationId: install-app
@@ -326,6 +329,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingInstallAppRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/app-catalog/{appType}:
     get:
       operationId: get-app-catalog-item
@@ -354,6 +360,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/apps:
     get:
       operationId: list-apps
@@ -376,6 +385,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/apps/{appId}:
     get:
       operationId: get-app
@@ -404,6 +416,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
     delete:
       operationId: uninstall-app
       summary: Uninstall app
@@ -427,6 +442,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/billing/invoices:
     get:
       operationId: list-invoices
