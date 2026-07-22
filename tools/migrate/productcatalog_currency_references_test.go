@@ -29,9 +29,9 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 		stops: stops{
 			{
 				// Populate the last schema where all product-catalog currencies were stored as codes.
-				// Before: 20260721133721_add_rate_card_currency.up.sql
-				// After: 20260721134927_add_product_catalog_currency_references.up.sql
-				version:   20260721133721,
+				// Before: 20260723030215_add_rate_card_currency.up.sql
+				// After: 20260723030938_add_product_catalog_currency_references.up.sql
+				version:   20260723030215,
 				direction: directionUp,
 				action: func(t *testing.T, db *sql.DB) {
 					_, err := db.Exec(`
@@ -135,7 +135,7 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 			{
 				// Legacy fiat codes remain code-backed, while nil rate-card codes continue
 				// to represent inheritance after managed custom-currency references are added.
-				version:   20260721134927,
+				version:   20260723030938,
 				direction: directionUp,
 				action: func(t *testing.T, db *sql.DB) {
 					var (
@@ -215,7 +215,7 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 			{
 				// Rolling back migrated legacy fiat rows restores the old code-only schema
 				// without changing their top-level or explicit override values.
-				version:   20260721133721,
+				version:   20260723030215,
 				direction: directionDown,
 				action: func(t *testing.T, db *sql.DB) {
 					var currency string
