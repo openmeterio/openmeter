@@ -162,7 +162,14 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 					},
 				}, nil
 			default:
-				return UpdateAppRequest{}, fmt.Errorf("unsupported app type: %s", discType)
+				err := fmt.Errorf("unsupported app type: %s", discType)
+				return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+					{
+						Field:  "type",
+						Reason: err.Error(),
+						Source: apierrors.InvalidParamSourceBody,
+					},
+				})
 			}
 		},
 		func(ctx context.Context, request UpdateAppRequest) (UpdateAppResponse, error) {
