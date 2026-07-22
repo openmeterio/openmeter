@@ -190,6 +190,72 @@ func TestCurrenciesService(t *testing.T) {
 					})
 				})
 
+				t.Run("ListWithCostBasis", func(t *testing.T) {
+					// given:
+					// - a custom currency with an active USD cost basis
+					testCases := []struct {
+						name             string
+						currencyType     *currencies.CurrencyType
+						expectedTotal    int
+						expectFiatResult bool
+					}{
+						{
+							name:          "custom currencies",
+							currencyType:  lo.ToPtr(currencies.CurrencyTypeCustom),
+							expectedTotal: 1,
+						},
+						{
+							name:             "custom and fiat currencies",
+							expectedTotal:    2,
+							expectFiatResult: true,
+						},
+					}
+
+					for _, testCase := range testCases {
+						t.Run(testCase.name, func(t *testing.T) {
+							// when:
+							// - currencies are listed with cost-basis data expanded
+							result, err := env.Service.ListCurrencies(t.Context(), currencies.ListCurrenciesInput{
+								Page:         pagination.NewPage(1, 10),
+								Namespace:    namespace,
+								CurrencyType: testCase.currencyType,
+								Code: &filter.FilterString{
+									In: lo.ToPtr([]string{"TOKENS", "USD"}),
+								},
+								CurrencyExpandOptions: currencies.CurrencyExpandOptions{
+									CostBasis: true,
+								},
+							})
+
+							// then:
+							// - custom currencies include active cost-basis data while fiat currencies do not
+							require.NoError(t, err)
+							require.Equal(t, testCase.expectedTotal, result.TotalCount)
+							require.Len(t, result.Items, testCase.expectedTotal)
+
+							customCurrencies := lo.Filter(result.Items, func(item currencies.Currency, _ int) bool {
+								return item.Type() == currencyx.CurrencyTypeCustom
+							})
+							require.Len(t, customCurrencies, 1)
+							assert.Equal(t, createdCurrency.ID, customCurrencies[0].ID)
+							require.NotNil(t, customCurrencies[0].CostBasis)
+							require.Len(t, *customCurrencies[0].CostBasis, 1)
+							assert.Equal(t, usd.ID, (*customCurrencies[0].CostBasis)[0].ID)
+
+							fiatCurrencies := lo.Filter(result.Items, func(item currencies.Currency, _ int) bool {
+								return item.Type() == currencyx.CurrencyTypeFiat
+							})
+							if testCase.expectFiatResult {
+								require.Len(t, fiatCurrencies, 1)
+								assert.Equal(t, currencyx.Code("USD"), fiatCurrencies[0].Details().Code)
+								assert.Nil(t, fiatCurrencies[0].CostBasis)
+							} else {
+								assert.Empty(t, fiatCurrencies)
+							}
+						})
+					}
+				})
+
 				t.Run("Multiple", func(t *testing.T) {
 					// given:
 					// - a custom currency with an active USD cost basis
@@ -316,6 +382,94 @@ func TestCurrenciesService(t *testing.T) {
 					assert.Contains(t, err.Error(), "effective_to")
 				})
 			})
+		})
+
+		t.Run("ListDeletedCurrencyWithCostBasis", func(t *testing.T) {
+			// given:
+			// - a deleted custom currency whose cost-basis history contains entries that were expired, active, and future at deletion
+			deletedNamespace := currenciestestutils.NewTestNamespace(t)
+			deletedCurrency, err := env.Service.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+				Namespace: deletedNamespace,
+				CurrencyDetails: currencyx.CurrencyDetails{
+					Code:               "CREDITS",
+					Name:               "Credits",
+					Symbol:             "C",
+					Precision:          2,
+					DecimalMark:        ".",
+					ThousandsSeparator: ",",
+				},
+			})
+			require.NoError(t, err)
+
+			deletedAt := now.Add(-24 * time.Hour)
+			costBasisFixtures := []struct {
+				fiatCode      currencyx.Code
+				effectiveFrom time.Time
+				effectiveTo   *time.Time
+				active        bool
+			}{
+				{
+					fiatCode:      "EUR",
+					effectiveFrom: deletedAt.Add(-48 * time.Hour),
+					effectiveTo:   lo.ToPtr(deletedAt.Add(-time.Hour)),
+				},
+				{
+					fiatCode:      "USD",
+					effectiveFrom: deletedAt.Add(-time.Hour),
+					effectiveTo:   lo.ToPtr(deletedAt.Add(time.Hour)),
+					active:        true,
+				},
+				{
+					fiatCode:      "GBP",
+					effectiveFrom: deletedAt.Add(time.Hour),
+				},
+			}
+
+			var activeCostBasisID string
+			for _, fixture := range costBasisFixtures {
+				costBasis, err := env.Client.CurrencyCostBasis.Create().
+					SetNamespace(deletedNamespace).
+					SetCurrencyID(deletedCurrency.ID).
+					SetFiatCode(fixture.fiatCode).
+					SetRate(alpacadecimal.RequireFromString("1")).
+					SetEffectiveFrom(fixture.effectiveFrom).
+					SetNillableEffectiveTo(fixture.effectiveTo).
+					SetDeletedAt(deletedAt).
+					Save(t.Context())
+				require.NoError(t, err)
+
+				if fixture.active {
+					activeCostBasisID = costBasis.ID
+				}
+			}
+			require.NotEmpty(t, activeCostBasisID)
+
+			_, err = env.Client.CustomCurrency.UpdateOneID(deletedCurrency.ID).
+				SetDeletedAt(deletedAt).
+				Save(t.Context())
+			require.NoError(t, err)
+
+			// when:
+			// - the deleted currency is listed with cost-basis data expanded
+			result, err := env.Service.ListCurrencies(t.Context(), currencies.ListCurrenciesInput{
+				Page:         pagination.NewPage(1, 10),
+				Namespace:    deletedNamespace,
+				CurrencyType: lo.ToPtr(currencies.CurrencyTypeCustom),
+				Code: &filter.FilterString{
+					In: lo.ToPtr([]string{"CREDITS"}),
+				},
+				CurrencyExpandOptions: currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
+			})
+
+			// then:
+			// - only the cost basis effective at the currency's deletion time is returned
+			require.NoError(t, err)
+			require.Len(t, result.Items, 1)
+			require.NotNil(t, result.Items[0].CostBasis)
+			require.Len(t, *result.Items[0].CostBasis, 1)
+			assert.Equal(t, activeCostBasisID, (*result.Items[0].CostBasis)[0].ID)
 		})
 
 		t.Run("List", func(t *testing.T) {
