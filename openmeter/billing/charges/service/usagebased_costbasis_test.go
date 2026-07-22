@@ -281,6 +281,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeB
 	})
 	s.setCustomCurrencyEnabled(true)
 	clock.FreezeTime(activationAt)
+	defer clock.UnFreeze()
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
 		Intents: []usagebased.Intent{

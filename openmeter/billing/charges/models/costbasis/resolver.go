@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 type Resolver interface {
