@@ -168,19 +168,10 @@ func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.Li
 			q = filter.ApplyToQuery(q, params.Code, customcurrency.FieldCode)
 		}
 
-		now := time.Now()
+		now := clock.Now()
 
 		if params.CurrencyExpandOptions.CostBasis {
-			q = q.WithCostBasisHistory(func(cbq *entdb.CurrencyCostBasisQuery) {
-				cbq.Where(
-					currencycostbasis.Namespace(params.Namespace),
-					currencycostbasis.EffectiveFromLTE(now),
-					currencycostbasis.Or(
-						currencycostbasis.EffectiveToIsNil(),
-						currencycostbasis.EffectiveToGT(now),
-					),
-				)
-			})
+			q = WithCostBasis(q, now)
 		}
 
 		order := entutils.GetOrdering(sortx.OrderDefault)
@@ -342,7 +333,7 @@ func (a *adapter) GetCurrency(ctx context.Context, params currencies.GetCurrency
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Currency, error) {
 		at := clock.Now()
 
-		qetQuery := tx.db.CustomCurrency.Query().
+		q := tx.db.CustomCurrency.Query().
 			Where(
 				customcurrency.Namespace(params.Namespace),
 				customcurrency.ID(params.ID),
@@ -352,7 +343,11 @@ func (a *adapter) GetCurrency(ctx context.Context, params currencies.GetCurrency
 				),
 			)
 
-		c, err := qetQuery.First(ctx)
+		if params.CostBasis {
+			q = WithCostBasis(q, at)
+		}
+
+		c, err := q.First(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
 				return currencies.Currency{}, models.NewGenericNotFoundError(
@@ -368,42 +363,42 @@ func (a *adapter) GetCurrency(ctx context.Context, params currencies.GetCurrency
 			return currencies.Currency{}, fmt.Errorf("failed to map currency from database: %w", err)
 		}
 
-		if params.CostBasis {
-			if c.DeletedAt != nil {
-				at = *c.DeletedAt
-			}
+		return curr, nil
+	})
+}
 
-			costBasisQuery := tx.db.CurrencyCostBasis.Query().
-				Where(
-					currencycostbasis.Namespace(params.Namespace),
-					currencycostbasis.CurrencyID(params.ID),
-					currencycostbasis.EffectiveFromLTE(at),
-					currencycostbasis.Or(
-						currencycostbasis.EffectiveToIsNil(),
-						currencycostbasis.EffectiveToGT(at),
+func WithCostBasis(q *entdb.CustomCurrencyQuery, at time.Time) *entdb.CustomCurrencyQuery {
+	return q.WithCostBasisHistory(func(query *entdb.CurrencyCostBasisQuery) {
+		query.Where(func(s *sql.Selector) {
+			ct := sql.Table(customcurrency.Table)
+
+			s.Join(ct).On(ct.C(customcurrency.FieldID), s.C(currencycostbasis.FieldCurrencyID))
+
+			s.Where(
+				sql.Or(
+					sql.And(
+						sql.NotNull(ct.C(customcurrency.FieldDeletedAt)),
+						sql.ColumnsEQ(s.C(currencycostbasis.FieldDeletedAt), ct.C(currencycostbasis.FieldDeletedAt)),
+						sql.ColumnsLTE(s.C(currencycostbasis.FieldEffectiveFrom), ct.C(customcurrency.FieldDeletedAt)),
+						sql.Or(
+							sql.IsNull(s.C(currencycostbasis.FieldEffectiveTo)),
+							sql.ColumnsGT(s.C(currencycostbasis.FieldEffectiveTo), ct.C(customcurrency.FieldDeletedAt)),
+						),
 					),
-				)
-
-			cbs, err := costBasisQuery.All(ctx)
-			if err != nil {
-				if entdb.IsNotFound(err) {
-					return currencies.Currency{}, models.NewGenericNotFoundError(
-						fmt.Errorf("currency with id %s not found", params.ID),
-					)
-				}
-
-				return currencies.Currency{}, fmt.Errorf("failed to get currency: %w", err)
-			}
-
-			curr.CostBasis = lo.ToPtr(
-				lo.Map[*entdb.CurrencyCostBasis, currencies.CostBasis](cbs,
-					func(item *entdb.CurrencyCostBasis, _ int) currencies.CostBasis {
-						return mapCostBasisFromDB(item)
-					},
+					sql.And(
+						sql.IsNull(ct.C(customcurrency.FieldDeletedAt)),
+						sql.Or(
+							sql.IsNull(s.C(currencycostbasis.FieldDeletedAt)),
+							sql.GT(s.C(currencycostbasis.FieldDeletedAt), at),
+						),
+						sql.LTE(s.C(currencycostbasis.FieldEffectiveFrom), at),
+						sql.Or(
+							sql.IsNull(s.C(currencycostbasis.FieldEffectiveTo)),
+							sql.GT(s.C(currencycostbasis.FieldEffectiveTo), at),
+						),
+					),
 				),
 			)
-		}
-
-		return curr, nil
+		})
 	})
 }
