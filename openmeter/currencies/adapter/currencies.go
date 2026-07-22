@@ -135,7 +135,7 @@ func FromDBCurrencyCostBasis(c *entdb.CurrencyCostBasis) currencies.CostBasis {
 
 func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[currencies.Currency], error) {
-		if params.CurrencyType != nil && *params.CurrencyType != currencies.CurrencyTypeCustom {
+		if params.CurrencyType != nil && *params.CurrencyType != currencyx.CurrencyTypeCustom {
 			return pagination.Result[currencies.Currency]{
 				Page:  params.Page,
 				Items: []currencies.Currency{},

@@ -38,17 +38,17 @@ func TestListCustomCurrenciesFiltersCurrencyType(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		currencyType  currencies.CurrencyType
+		currencyType  currencyx.CurrencyType
 		expectedCodes []currencyx.Code
 	}{
 		{
 			name:          "custom",
-			currencyType:  currencies.CurrencyTypeCustom,
+			currencyType:  currencyx.CurrencyTypeCustom,
 			expectedCodes: []currencyx.Code{created.Details().Code},
 		},
 		{
 			name:          "fiat",
-			currencyType:  currencies.CurrencyTypeFiat,
+			currencyType:  currencyx.CurrencyTypeFiat,
 			expectedCodes: nil,
 		},
 	}

@@ -11,6 +11,7 @@ import (
 
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -32,17 +33,17 @@ func TestListCurrenciesFilterByType(t *testing.T) {
 	testCases := []struct {
 		name         string
 		apiType      v3.BillingCurrencyType
-		currencyType currencies.CurrencyType
+		currencyType currencyx.CurrencyType
 	}{
 		{
 			name:         "custom",
 			apiType:      v3.BillingCurrencyTypeCustom,
-			currencyType: currencies.CurrencyTypeCustom,
+			currencyType: currencyx.CurrencyTypeCustom,
 		},
 		{
 			name:         "fiat",
 			apiType:      v3.BillingCurrencyTypeFiat,
-			currencyType: currencies.CurrencyTypeFiat,
+			currencyType: currencyx.CurrencyTypeFiat,
 		},
 	}
 

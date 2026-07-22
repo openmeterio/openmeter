@@ -195,13 +195,13 @@ func TestCurrenciesService(t *testing.T) {
 					// - a custom currency with an active USD cost basis
 					testCases := []struct {
 						name             string
-						currencyType     *currencies.CurrencyType
+						currencyType     *currencyx.CurrencyType
 						expectedTotal    int
 						expectFiatResult bool
 					}{
 						{
 							name:          "custom currencies",
-							currencyType:  lo.ToPtr(currencies.CurrencyTypeCustom),
+							currencyType:  lo.ToPtr(currencyx.CurrencyTypeCustom),
 							expectedTotal: 1,
 						},
 						{
@@ -454,7 +454,7 @@ func TestCurrenciesService(t *testing.T) {
 			result, err := env.Service.ListCurrencies(t.Context(), currencies.ListCurrenciesInput{
 				Page:         pagination.NewPage(1, 10),
 				Namespace:    deletedNamespace,
-				CurrencyType: lo.ToPtr(currencies.CurrencyTypeCustom),
+				CurrencyType: lo.ToPtr(currencyx.CurrencyTypeCustom),
 				Code: &filter.FilterString{
 					In: lo.ToPtr([]string{"CREDITS"}),
 				},
@@ -528,7 +528,7 @@ func TestCurrenciesService(t *testing.T) {
 				testCases := []struct {
 					name             string
 					filteringOptions currencies.FilteringOptions
-					currencyType     *currencies.CurrencyType
+					currencyType     *currencyx.CurrencyType
 					id               *filter.FilterString
 					code             *filter.FilterString
 					expectedCodes    []currencyx.Code
@@ -542,7 +542,7 @@ func TestCurrenciesService(t *testing.T) {
 					},
 					{
 						name:         "filter by custom currency type",
-						currencyType: lo.ToPtr(currencies.CurrencyTypeCustom),
+						currencyType: lo.ToPtr(currencyx.CurrencyTypeCustom),
 						code: &filter.FilterString{
 							In: lo.ToPtr([]string{"POINTS", "USD"}),
 						},
@@ -550,7 +550,7 @@ func TestCurrenciesService(t *testing.T) {
 					},
 					{
 						name:         "filter by fiat currency type",
-						currencyType: lo.ToPtr(currencies.CurrencyTypeFiat),
+						currencyType: lo.ToPtr(currencyx.CurrencyTypeFiat),
 						code: &filter.FilterString{
 							In: lo.ToPtr([]string{"POINTS", "USD"}),
 						},
@@ -571,7 +571,7 @@ func TestCurrenciesService(t *testing.T) {
 						filteringOptions: currencies.FilteringOptions{
 							Union: true,
 						},
-						currencyType: lo.ToPtr(currencies.CurrencyTypeCustom),
+						currencyType: lo.ToPtr(currencyx.CurrencyTypeCustom),
 						id: &filter.FilterString{
 							In: lo.ToPtr([]string{points.ID}),
 						},

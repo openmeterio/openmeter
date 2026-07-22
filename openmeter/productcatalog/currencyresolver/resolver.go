@@ -42,7 +42,7 @@ func (r *resolver) Resolve(ctx context.Context, namespace string, code currencyx
 			Build()
 	}
 
-	customType := currencies.CurrencyTypeCustom
+	customType := currencyx.CurrencyTypeCustom
 	result, err := r.service.ListCurrencies(ctx, currencies.ListCurrenciesInput{
 		Page:         pagination.NewPage(1, 2),
 		Namespace:    namespace,

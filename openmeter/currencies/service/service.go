@@ -41,8 +41,8 @@ func (s *service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[currencies.Currency], error) {
-		includeCustom := params.CurrencyType == nil || *params.CurrencyType == currencies.CurrencyTypeCustom
-		includeFiat := params.CurrencyType == nil || *params.CurrencyType == currencies.CurrencyTypeFiat
+		includeCustom := params.CurrencyType == nil || *params.CurrencyType == currencyx.CurrencyTypeCustom
+		includeFiat := params.CurrencyType == nil || *params.CurrencyType == currencyx.CurrencyTypeFiat
 
 		// Custom-only: delegate pagination entirely to the adapter (DB-level)
 		if includeCustom && !includeFiat {
