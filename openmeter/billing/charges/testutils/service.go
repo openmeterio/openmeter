@@ -209,6 +209,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		CustomerOverrideService: config.BillingService,
 		FeatureService:          config.FeatureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:              currencyService,
 		StreamingConnector:      config.StreamingConnector,
 	})
 	if err != nil {

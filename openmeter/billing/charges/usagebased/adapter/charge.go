@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -72,6 +74,10 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			return usagebased.ChargeBase{}, err
 		}
 
+		if err := tx.loadCostBasisEdge(ctx, dbUpdatedChargeBase); err != nil {
+			return usagebased.ChargeBase{}, err
+		}
+
 		if overrideLayer := charge.Intent.GetOverrideLayerMutableFields(); overrideLayer != nil {
 			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), overrideLayer)
 			if err != nil {
@@ -106,6 +112,10 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebase
 			SetSubscriptionItemID(newSubscriptionItemID).
 			Save(ctx)
 		if err != nil {
+			return usagebased.Charge{}, err
+		}
+
+		if err := tx.loadCostBasisEdge(ctx, updatedChargeBase); err != nil {
 			return usagebased.Charge{}, err
 		}
 
@@ -188,19 +198,98 @@ func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateCharges
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]usagebased.Charge, error) {
-		creates, err := slicesx.MapWithErr(in.Intents, func(intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
-			return tx.buildCreateUsageBasedCharge(ctx, in.Namespace, intent)
+		type preparedCreate struct {
+			costBasis *db.ChargeUsageBasedCostBasisCreate
+			charge    *db.ChargeUsageBasedCreate
+		}
+
+		preparedCreates := make([]preparedCreate, 0, len(in.Intents))
+		for _, intent := range in.Intents {
+			chargeCreate, err := tx.buildCreateUsageBasedCharge(ctx, in.Namespace, intent)
+			if err != nil {
+				return nil, err
+			}
+
+			var costBasisCreate *db.ChargeUsageBasedCostBasisCreate
+			baseIntent := intent.Intent.GetBaseIntent()
+			if baseIntent.CostBasis != nil {
+				costBasisCreate, err = costbasis.Create(tx.db.ChargeUsageBasedCostBasis.Create(), costbasis.CreateInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: in.Namespace,
+						ID:        ulid.Make().String(),
+					},
+					CurrencyID: baseIntent.Currency.ID,
+					Intent:     *baseIntent.CostBasis,
+					State:      intent.ResolvedCostBasis,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("building usage based cost basis: %w", err)
+				}
+			}
+
+			preparedCreates = append(preparedCreates, preparedCreate{
+				costBasis: costBasisCreate,
+				charge:    chargeCreate,
+			})
+		}
+
+		costBasisCreates := lo.Filter(preparedCreates, func(create preparedCreate, _ int) bool {
+			return create.costBasis != nil
+		})
+
+		var createdCostBases []*db.ChargeUsageBasedCostBasis
+		if len(costBasisCreates) > 0 {
+			var err error
+			createdCostBases, err = tx.db.ChargeUsageBasedCostBasis.CreateBulk(
+				lo.Map(costBasisCreates, func(create preparedCreate, _ int) *db.ChargeUsageBasedCostBasisCreate {
+					return create.costBasis
+				})...,
+			).Save(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("creating usage based cost bases: %w", err)
+			}
+
+			lo.ForEach(costBasisCreates, func(create preparedCreate, idx int) {
+				create.charge.SetCostBasisID(createdCostBases[idx].ID)
+			})
+		}
+
+		chargeCreates := lo.Map(preparedCreates, func(create preparedCreate, _ int) *db.ChargeUsageBasedCreate {
+			return create.charge
+		})
+		entities, err := tx.db.ChargeUsageBased.CreateBulk(chargeCreates...).Save(ctx)
+		if err != nil {
+			return nil, metaadapter.MapChargeConstraintError(err)
+		}
+
+		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
+			Namespace: in.Namespace,
+			Type:      meta.ChargeTypeUsageBased,
+			Charges: lo.Map(entities, func(entity *db.ChargeUsageBased, _ int) meta.IDWithUniqueReferenceID {
+				return meta.IDWithUniqueReferenceID{
+					ID:                entity.ID,
+					UniqueReferenceID: entity.UniqueReferenceID,
+				}
+			}),
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		entities, err := tx.db.ChargeUsageBased.CreateBulk(creates...).Save(ctx)
-		if err != nil {
-			return nil, metaadapter.MapChargeConstraintError(err)
-		}
+		costBasisByID := lo.SliceToMap(createdCostBases, func(entity *db.ChargeUsageBasedCostBasis) (string, *db.ChargeUsageBasedCostBasis) {
+			return entity.ID, entity
+		})
 
 		return lo.MapErr(entities, func(entity *db.ChargeUsageBased, idx int) (usagebased.Charge, error) {
+			if entity.CostBasisID != nil {
+				createdCostBasis, ok := costBasisByID[*entity.CostBasisID]
+				if !ok {
+					return usagebased.Charge{}, fmt.Errorf("created usage based cost basis %s not found", *entity.CostBasisID)
+				}
+
+				entity.Edges.CostBasis = createdCostBasis
+			}
+
 			return FromDBWithCurrency(entity, in.Intents[idx].Intent.GetBaseIntent().Currency, meta.ExpandNone)
 		})
 	})
@@ -217,7 +306,8 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			Where(dbchargeusagebased.Namespace(input.Namespace)).
 			Where(dbchargeusagebased.IDIn(input.IDs...)).
 			WithIntentOverride().
-			WithCustomCurrency()
+			WithCustomCurrency().
+			WithCostBasis()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query, input.Expands)
@@ -263,7 +353,8 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 			Where(dbchargeusagebased.Namespace(input.ChargeID.Namespace)).
 			Where(dbchargeusagebased.ID(input.ChargeID.ID)).
 			WithIntentOverride().
-			WithCustomCurrency()
+			WithCustomCurrency().
+			WithCostBasis()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query, input.Expands)

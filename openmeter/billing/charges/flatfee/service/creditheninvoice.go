@@ -391,12 +391,16 @@ func (s *CreditThenInvoiceStateMachine) UnsupportedShrinkOperation(_ context.Con
 	)
 }
 
-// ResolveDynamicCostBasis persists the dynamic cost basis effective at the
-// charge's service-period start. A persisted resolution is authoritative and
-// is returned unchanged on subsequent lifecycle attempts.
+// ResolveDynamicCostBasis idempotently persists the dynamic cost basis
+// effective at the charge's service-period start. Once resolved, the persisted
+// value is authoritative and must never be overwritten by lifecycle retries.
 func (s *CreditThenInvoiceStateMachine) ResolveDynamicCostBasis(ctx context.Context) error {
 	intent := s.Charge.Intent.GetCostBasisIntent()
-	if intent == nil || intent.Kind() != costbasis.ModeDynamic || s.Charge.State.ResolvedCostBasis != nil {
+	if intent == nil || intent.Kind() != costbasis.ModeDynamic {
+		return nil
+	}
+
+	if s.Charge.State.ResolvedCostBasis != nil {
 		return nil
 	}
 

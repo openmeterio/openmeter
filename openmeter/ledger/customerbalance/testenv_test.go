@@ -286,6 +286,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		CustomerOverrideService: billingService,
 		FeatureService:          featureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:              currencyService,
 		StreamingConnector:      streaming,
 	})
 	require.NoError(t, err)

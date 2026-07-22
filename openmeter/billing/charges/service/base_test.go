@@ -157,6 +157,7 @@ func (s *BaseSuite) SetupSuite() {
 		CustomerOverrideService: s.BillingService,
 		FeatureService:          s.FeatureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:              currencyService,
 		StreamingConnector:      s.MockStreamingConnector,
 	})
 	s.NoError(err)

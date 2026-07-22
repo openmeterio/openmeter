@@ -257,6 +257,7 @@ func NewChargesUsageBasedService(
 	billingService billing.Service,
 	featureService feature.FeatureConnector,
 	ratingService rating.Service,
+	currenciesService currencies.Service,
 	streamingConnector streaming.Connector,
 ) (usagebased.Service, error) {
 	usageBasedSvc, err := usagebasedservice.New(usagebasedservice.Config{
@@ -269,6 +270,7 @@ func NewChargesUsageBasedService(
 		CustomerOverrideService: billingService,
 		FeatureService:          featureService,
 		RatingService:           ratingService,
+		Currencies:              currenciesService,
 		StreamingConnector:      streamingConnector,
 	})
 	if err != nil {
@@ -505,6 +507,7 @@ func newChargesRegistry(
 		billingService,
 		featureService,
 		ratingService,
+		currenciesService,
 		streamingConnector,
 	)
 	if err != nil {
