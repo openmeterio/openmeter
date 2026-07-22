@@ -74,7 +74,6 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 				CustomerID: valid.CustomerID,
 				Currency:   currencyx.Code("CREDITS"),
 			},
-			wantErr: true,
 		},
 		{
 			name: "multiple feature filters",

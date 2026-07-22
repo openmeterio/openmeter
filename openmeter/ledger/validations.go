@@ -62,6 +62,10 @@ func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
 		})
 	}
 
+	if err := validateEntryAmountPrecision(entry); err != nil {
+		return err
+	}
+
 	if err := ValidateEntryIdentityKey(entry); err != nil {
 		return ErrEntryInvalid.WithAttrs(models.Attributes{
 			"reason": "invalid_identity_key",
@@ -70,6 +74,38 @@ func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
 	}
 
 	return nil
+}
+
+// validateEntryAmountPrecision keeps fiat postings at their declared minor-unit
+// precision. Custom precision is resolved before posting because a code alone
+// does not contain its custom currency definition.
+func validateEntryAmountPrecision(entry EntryInput) error {
+	currencyCode := entry.PostingAddress().Route().Route().Currency
+	if currencyCode.IsCustom() {
+		return nil
+	}
+
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyCode).
+		Build()
+	if err != nil {
+		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+			"currency": currencyCode,
+			"error":    err,
+		})
+	}
+
+	amount := entry.Amount()
+	if currency.IsRoundedToPrecision(amount) {
+		return nil
+	}
+
+	return ErrTransactionAmountInvalid.WithAttrs(models.Attributes{
+		"reason":         "amount_not_rounded_to_currency_precision",
+		"currency":       currency.Details().Code,
+		"amount":         amount.String(),
+		"rounded_amount": currency.RoundToPrecision(amount).String(),
+	})
 }
 
 func ValidateAddress(ctx context.Context, address PostingAddress) error {

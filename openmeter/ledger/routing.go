@@ -553,21 +553,9 @@ func ValidateCreditPriority(value int) error {
 
 // ValidateCurrency validates a currency value.
 func ValidateCurrency(value currencyx.Code) error {
-	code := value.String()
-	if code == "" ||
-		strings.TrimSpace(code) != code ||
-		len(code) < currencyx.CustomCurrencyCodeMinLength ||
-		len(code) > currencyx.CustomCurrencyCodeMaxLength ||
-		strings.Contains(code, "|") {
+	if err := value.Validate(); err != nil {
 		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
 			"currency": value,
-		})
-	}
-
-	if !value.IsFiat() {
-		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
-			"currency": value,
-			"reason":   "custom_currency_not_supported",
 		})
 	}
 

@@ -15,25 +15,56 @@ import (
 )
 
 func TestValidateTransactionInputCurrencyAccounting(t *testing.T) {
-	t.Run("preserves caller materialized precision", func(t *testing.T) {
-		amount := mustDecimal(t, "10.001")
-		address := mustPostingAddress(t, currencyx.Code("USD"))
-		txInput := &testutils.AnyTransactionInput{
-			BookedAtValue: time.Now(),
-			EntryInputsValues: []*testutils.AnyEntryInput{
-				{
-					Address:     address,
-					AmountValue: amount,
+	for _, testCase := range []struct {
+		name     string
+		currency currencyx.Code
+		amount   string
+		wantErr  bool
+	}{
+		{
+			name:     "accepts fiat precision",
+			currency: "USD",
+			amount:   "10.01",
+		},
+		{
+			name:     "rejects excess fiat precision",
+			currency: "USD",
+			amount:   "10.001",
+			wantErr:  true,
+		},
+		{
+			name:     "preserves caller materialized custom precision",
+			currency: "CREDITS",
+			amount:   "10.001",
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			amount := mustDecimal(t, testCase.amount)
+			address := mustPostingAddress(t, testCase.currency)
+			txInput := &testutils.AnyTransactionInput{
+				BookedAtValue: time.Now(),
+				EntryInputsValues: []*testutils.AnyEntryInput{
+					{
+						Address:     address,
+						AmountValue: amount,
+					},
+					{
+						Address:     address,
+						AmountValue: amount.Neg(),
+					},
 				},
-				{
-					Address:     address,
-					AmountValue: amount.Neg(),
-				},
-			},
-		}
+			}
 
-		require.NoError(t, ledger.ValidateTransactionInput(t.Context(), txInput))
-	})
+			err := ledger.ValidateTransactionInput(t.Context(), txInput)
+			if testCase.wantErr {
+				require.ErrorIs(t, err, ledger.ErrTransactionAmountInvalid)
+
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
 
 	t.Run("rejects a globally balanced transaction that is unbalanced by currency", func(t *testing.T) {
 		amount := mustDecimal(t, "25")

@@ -219,9 +219,8 @@ func TestValidateCurrency(t *testing.T) {
 			code: "USD",
 		},
 		{
-			name:    "custom currency",
-			code:    "CREDITS",
-			wantErr: true,
+			name: "custom currency",
+			code: "CREDITS",
 		},
 		{
 			name:    "invalid currency",
