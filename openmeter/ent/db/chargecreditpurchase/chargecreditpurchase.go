@@ -90,12 +90,16 @@ const (
 	FieldKey = "key"
 	// FieldVoidedAt holds the string denoting the voided_at field in the database.
 	FieldVoidedAt = "voided_at"
+	// FieldCostBasisID holds the string denoting the cost_basis_id field in the database.
+	FieldCostBasisID = "cost_basis_id"
 	// EdgeExternalPayment holds the string denoting the external_payment edge name in mutations.
 	EdgeExternalPayment = "external_payment"
 	// EdgeInvoicedPayment holds the string denoting the invoiced_payment edge name in mutations.
 	EdgeInvoicedPayment = "invoiced_payment"
 	// EdgeCreditGrant holds the string denoting the credit_grant edge name in mutations.
 	EdgeCreditGrant = "credit_grant"
+	// EdgeCostBasis holds the string denoting the cost_basis edge name in mutations.
+	EdgeCostBasis = "cost_basis"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
@@ -133,6 +137,13 @@ const (
 	CreditGrantInverseTable = "charge_credit_purchase_credit_grants"
 	// CreditGrantColumn is the table column denoting the credit_grant relation/edge.
 	CreditGrantColumn = "charge_id"
+	// CostBasisTable is the table that holds the cost_basis relation/edge.
+	CostBasisTable = "charge_credit_purchases"
+	// CostBasisInverseTable is the table name for the ChargeCreditPurchaseCostBasis entity.
+	// It exists in this package in order to avoid circular dependency with the "chargecreditpurchasecostbasis" package.
+	CostBasisInverseTable = "charge_credit_purchase_cost_bases"
+	// CostBasisColumn is the table column denoting the cost_basis relation/edge.
+	CostBasisColumn = "cost_basis_id"
 	// ChargeTable is the table that holds the charge relation/edge.
 	ChargeTable = "charges"
 	// ChargeInverseTable is the table name for the Charge entity.
@@ -222,6 +233,7 @@ var Columns = []string{
 	FieldStatusDetailed,
 	FieldKey,
 	FieldVoidedAt,
+	FieldCostBasisID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -472,6 +484,11 @@ func ByVoidedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVoidedAt, opts...).ToFunc()
 }
 
+// ByCostBasisID orders the results by the cost_basis_id field.
+func ByCostBasisID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostBasisID, opts...).ToFunc()
+}
+
 // ByExternalPaymentField orders the results by external_payment field.
 func ByExternalPaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -490,6 +507,13 @@ func ByInvoicedPaymentField(field string, opts ...sql.OrderTermOption) OrderOpti
 func ByCreditGrantField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newCreditGrantStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCostBasisField orders the results by cost_basis field.
+func ByCostBasisField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCostBasisStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -560,6 +584,13 @@ func newCreditGrantStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CreditGrantInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, CreditGrantTable, CreditGrantColumn),
+	)
+}
+func newCostBasisStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CostBasisInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, CostBasisTable, CostBasisColumn),
 	)
 }
 func newChargeStep() *sqlgraph.Step {

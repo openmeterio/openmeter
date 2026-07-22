@@ -2132,6 +2132,10 @@ func (n NoopCurrencyService) GetCostBasis(ctx context.Context, params currencies
 	return currencies.CostBasis{}, nil
 }
 
+func (n NoopCurrencyService) GetCostBasisAt(ctx context.Context, params currencies.GetCostBasisAtInput) (currencies.CostBasis, error) {
+	return currencies.CostBasis{}, nil
+}
+
 func (n NoopCurrencyService) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
 	return pagination.Result[currencies.CostBasis]{}, nil
 }

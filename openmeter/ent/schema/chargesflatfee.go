@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -89,6 +90,14 @@ func (ChargeFlatFee) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.String("cost_basis_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
+
 		field.Enum("status_detailed").
 			GoType(flatfee.Status("")),
 	}
@@ -101,6 +110,12 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 		edge.To("current_run", ChargeFlatFeeRun.Type).
 			Field("current_realization_run_id").
 			Unique(),
+		edge.To("cost_basis", ChargeFlatFeeCostBasis.Type).
+			Field("cost_basis_id").
+			StorageKey(edge.Symbol("charge_flat_fee_cost_basis_charge_fk")).
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("charge", Charge.Type).
 			Unique().
 			Immutable().
@@ -153,6 +168,26 @@ func (ChargeFlatFee) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tax_code_id").
 			StorageKey("chargeflatfees_tax_code_id"),
+	}
+}
+
+type ChargeFlatFeeCostBasis struct {
+	ent.Schema
+}
+
+func (ChargeFlatFeeCostBasis) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		ChargeCostBasisMixin{},
+	}
+}
+
+func (ChargeFlatFeeCostBasis) Edges() []ent.Edge {
+	return chargeCostBasisCurrencyEdges("charge_flat_fee_cost_basis")
+}
+
+func (ChargeFlatFeeCostBasis) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "charge_flat_fee_cost_bases"},
 	}
 }
 

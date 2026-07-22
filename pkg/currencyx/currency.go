@@ -194,7 +194,11 @@ func (f *FiatCurrency) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func newFiatCurrency(code string) (Currency, error) {
+func (f *FiatCurrency) GetFiatCode() FiatCode {
+	return FiatCode(f.def.ISOCode)
+}
+
+func NewFiatCurrency[T ~string](code T) (*FiatCurrency, error) {
 	if err := validateFiatCurrencyCode(Code(code)); err != nil {
 		return nil, err
 	}
@@ -362,7 +366,7 @@ func (b *CurrencyBuilder) WithThousandsSeparator(thousandsSeparator string) *Cur
 func (b *CurrencyBuilder) Build() (Currency, error) {
 	switch b.t {
 	case CurrencyTypeFiat:
-		return newFiatCurrency(b.d.Code.String())
+		return NewFiatCurrency(b.d.Code.String())
 	case CurrencyTypeCustom:
 		return newCustomCurrency(&currency.Def{
 			ISOCode:            currency.Code(b.d.Code.String()),

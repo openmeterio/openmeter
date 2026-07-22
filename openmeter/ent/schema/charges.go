@@ -10,9 +10,11 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
+	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -295,6 +297,136 @@ func (chargesMetaMixin) Annotations() []schema.Annotation {
 		entsql.Checks(map[string]string{
 			"currency_reference": `(currency IS NULL) <> (custom_currency_id IS NULL)`,
 			"currency_not_empty": `currency IS NULL OR currency <> ''`,
+		}),
+	}
+}
+
+type ChargeCostBasisMixin = entutils.RecursiveMixin[chargeCostBasisMixin]
+
+type chargeCostBasisMixin struct {
+	mixin.Schema
+}
+
+func (chargeCostBasisMixin) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (chargeCostBasisMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.Enum("mode").
+			GoType(costbasis.Mode("")).
+			Immutable(),
+		field.String("fiat_currency").
+			GoType(currencyx.FiatCode("")).
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "varchar(3)",
+			}),
+		field.String("currency_cost_basis_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("resolved_cost_basis_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("currency_id").
+			NotEmpty().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.Other("manual_rate", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+		field.Other("resolved_cost_basis", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+		field.Time("resolved_at").
+			Optional().
+			Nillable(),
+	}
+}
+
+func chargeCostBasisCurrencyEdges(symbolPrefix string) []ent.Edge {
+	return []ent.Edge{
+		edge.To("currency_cost_basis", CurrencyCostBasis.Type).
+			Field("currency_cost_basis_id").
+			Unique().
+			StorageKey(edge.Symbol(symbolPrefix + "_currency_cost_basis_fk")).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("resolved_currency_cost_basis", CurrencyCostBasis.Type).
+			Field("resolved_cost_basis_id").
+			Unique().
+			StorageKey(edge.Symbol(symbolPrefix + "_resolved_cost_basis_fk")).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("custom_currency", CustomCurrency.Type).
+			Field("currency_id").
+			Unique().
+			Required().
+			Immutable().
+			StorageKey(edge.Symbol(symbolPrefix + "_currency_fk")).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+	}
+}
+
+func (chargeCostBasisMixin) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("currency_cost_basis_id"),
+		index.Fields("resolved_cost_basis_id"),
+		index.Fields("currency_id"),
+	}
+}
+
+func (chargeCostBasisMixin) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"fiat_currency_not_empty":      `fiat_currency <> ''`,
+			"resolved_cost_basis_positive": `resolved_cost_basis IS NULL OR resolved_cost_basis > 0`,
+			"state": `
+				(
+					mode = 'dynamic'
+					AND currency_cost_basis_id IS NULL
+					AND manual_rate IS NULL
+					AND (
+						(resolved_cost_basis_id IS NULL AND resolved_cost_basis IS NULL AND resolved_at IS NULL)
+						OR (resolved_cost_basis_id IS NOT NULL AND resolved_cost_basis IS NOT NULL AND resolved_at IS NOT NULL)
+					)
+				)
+				OR (
+					mode = 'pinned'
+					AND currency_cost_basis_id IS NOT NULL
+					AND resolved_cost_basis_id IS NOT NULL
+					AND resolved_cost_basis_id = currency_cost_basis_id
+					AND manual_rate IS NULL
+					AND resolved_cost_basis IS NOT NULL
+					AND resolved_at IS NOT NULL
+				)
+				OR (
+					mode = 'manual'
+					AND currency_cost_basis_id IS NULL
+					AND resolved_cost_basis_id IS NULL
+					AND manual_rate > 0
+					AND resolved_cost_basis IS NOT NULL
+					AND resolved_at IS NOT NULL
+				)
+			`,
 		}),
 	}
 }

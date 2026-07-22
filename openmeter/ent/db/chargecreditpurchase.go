@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
@@ -106,6 +107,8 @@ type ChargeCreditPurchase struct {
 	Key *string `json:"key,omitempty"`
 	// VoidedAt holds the value of the "voided_at" field.
 	VoidedAt *time.Time `json:"voided_at,omitempty"`
+	// CostBasisID holds the value of the "cost_basis_id" field.
+	CostBasisID *string `json:"cost_basis_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeCreditPurchaseQuery when eager-loading is set.
 	Edges        ChargeCreditPurchaseEdges `json:"edges"`
@@ -120,6 +123,8 @@ type ChargeCreditPurchaseEdges struct {
 	InvoicedPayment *ChargeCreditPurchaseInvoicedPayment `json:"invoiced_payment,omitempty"`
 	// CreditGrant holds the value of the credit_grant edge.
 	CreditGrant *ChargeCreditPurchaseCreditGrant `json:"credit_grant,omitempty"`
+	// CostBasis holds the value of the cost_basis edge.
+	CostBasis *ChargeCreditPurchaseCostBasis `json:"cost_basis,omitempty"`
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
 	// Subscription holds the value of the subscription edge.
@@ -136,7 +141,7 @@ type ChargeCreditPurchaseEdges struct {
 	CustomCurrency *CustomCurrency `json:"custom_currency,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [10]bool
+	loadedTypes [11]bool
 }
 
 // ExternalPaymentOrErr returns the ExternalPayment value or an error if the edge
@@ -172,12 +177,23 @@ func (e ChargeCreditPurchaseEdges) CreditGrantOrErr() (*ChargeCreditPurchaseCred
 	return nil, &NotLoadedError{edge: "credit_grant"}
 }
 
+// CostBasisOrErr returns the CostBasis value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) CostBasisOrErr() (*ChargeCreditPurchaseCostBasis, error) {
+	if e.CostBasis != nil {
+		return e.CostBasis, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: chargecreditpurchasecostbasis.Label}
+	}
+	return nil, &NotLoadedError{edge: "cost_basis"}
+}
+
 // ChargeOrErr returns the Charge value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeCreditPurchaseEdges) ChargeOrErr() (*Charge, error) {
 	if e.Charge != nil {
 		return e.Charge, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
@@ -188,7 +204,7 @@ func (e ChargeCreditPurchaseEdges) ChargeOrErr() (*Charge, error) {
 func (e ChargeCreditPurchaseEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -199,7 +215,7 @@ func (e ChargeCreditPurchaseEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeCreditPurchaseEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -210,7 +226,7 @@ func (e ChargeCreditPurchaseEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase,
 func (e ChargeCreditPurchaseEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -221,7 +237,7 @@ func (e ChargeCreditPurchaseEdges) SubscriptionItemOrErr() (*SubscriptionItem, e
 func (e ChargeCreditPurchaseEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -232,7 +248,7 @@ func (e ChargeCreditPurchaseEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeCreditPurchaseEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -243,7 +259,7 @@ func (e ChargeCreditPurchaseEdges) TaxCodeOrErr() (*TaxCode, error) {
 func (e ChargeCreditPurchaseEdges) CustomCurrencyOrErr() (*CustomCurrency, error) {
 	if e.CustomCurrency != nil {
 		return e.CustomCurrency, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: customcurrency.Label}
 	}
 	return nil, &NotLoadedError{edge: "custom_currency"}
@@ -262,7 +278,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(pq.StringArray)
 		case chargecreditpurchase.FieldPriority:
 			values[i] = new(sql.NullInt64)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldFiatCurrencyCode, chargecreditpurchase.FieldCustomCurrencyID, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed, chargecreditpurchase.FieldKey:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldFiatCurrencyCode, chargecreditpurchase.FieldCustomCurrencyID, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed, chargecreditpurchase.FieldKey, chargecreditpurchase.FieldCostBasisID:
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldExpiresAt, chargecreditpurchase.FieldVoidedAt:
 			values[i] = new(sql.NullTime)
@@ -518,6 +534,13 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				_m.VoidedAt = new(time.Time)
 				*_m.VoidedAt = value.Time
 			}
+		case chargecreditpurchase.FieldCostBasisID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_basis_id", values[i])
+			} else if value.Valid {
+				_m.CostBasisID = new(string)
+				*_m.CostBasisID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -544,6 +567,11 @@ func (_m *ChargeCreditPurchase) QueryInvoicedPayment() *ChargeCreditPurchaseInvo
 // QueryCreditGrant queries the "credit_grant" edge of the ChargeCreditPurchase entity.
 func (_m *ChargeCreditPurchase) QueryCreditGrant() *ChargeCreditPurchaseCreditGrantQuery {
 	return NewChargeCreditPurchaseClient(_m.config).QueryCreditGrant(_m)
+}
+
+// QueryCostBasis queries the "cost_basis" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QueryCostBasis() *ChargeCreditPurchaseCostBasisQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QueryCostBasis(_m)
 }
 
 // QueryCharge queries the "charge" edge of the ChargeCreditPurchase entity.
@@ -737,6 +765,11 @@ func (_m *ChargeCreditPurchase) String() string {
 	if v := _m.VoidedAt; v != nil {
 		builder.WriteString("voided_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.CostBasisID; v != nil {
+		builder.WriteString("cost_basis_id=")
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

@@ -110,3 +110,27 @@ func validateCustomCurrencyCode(code Code) error {
 
 	return errors.Join(errs...)
 }
+
+var (
+	_ fmt.Stringer             = (*FiatCode)(nil)
+	_ models.Validator         = (*FiatCode)(nil)
+	_ models.Equaler[FiatCode] = (*FiatCode)(nil)
+)
+
+type FiatCode currency.Code
+
+func (c FiatCode) Validate() error {
+	return validateFiatCurrencyCode(Code(c))
+}
+
+func (c FiatCode) String() string {
+	return string(c)
+}
+
+func (c FiatCode) Equal(other FiatCode) bool {
+	return c == other
+}
+
+func (c FiatCode) AsFiatCurrency() (*FiatCurrency, error) {
+	return NewFiatCurrency(string(c))
+}

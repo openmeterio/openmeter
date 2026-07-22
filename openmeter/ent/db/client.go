@@ -43,10 +43,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
@@ -54,6 +56,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
@@ -163,6 +166,8 @@ type Client struct {
 	Charge *ChargeClient
 	// ChargeCreditPurchase is the client for interacting with the ChargeCreditPurchase builders.
 	ChargeCreditPurchase *ChargeCreditPurchaseClient
+	// ChargeCreditPurchaseCostBasis is the client for interacting with the ChargeCreditPurchaseCostBasis builders.
+	ChargeCreditPurchaseCostBasis *ChargeCreditPurchaseCostBasisClient
 	// ChargeCreditPurchaseCreditGrant is the client for interacting with the ChargeCreditPurchaseCreditGrant builders.
 	ChargeCreditPurchaseCreditGrant *ChargeCreditPurchaseCreditGrantClient
 	// ChargeCreditPurchaseExternalPayment is the client for interacting with the ChargeCreditPurchaseExternalPayment builders.
@@ -171,6 +176,8 @@ type Client struct {
 	ChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPaymentClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
+	// ChargeFlatFeeCostBasis is the client for interacting with the ChargeFlatFeeCostBasis builders.
+	ChargeFlatFeeCostBasis *ChargeFlatFeeCostBasisClient
 	// ChargeFlatFeeOverride is the client for interacting with the ChargeFlatFeeOverride builders.
 	ChargeFlatFeeOverride *ChargeFlatFeeOverrideClient
 	// ChargeFlatFeeRun is the client for interacting with the ChargeFlatFeeRun builders.
@@ -185,6 +192,8 @@ type Client struct {
 	ChargeFlatFeeRunPayment *ChargeFlatFeeRunPaymentClient
 	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
 	ChargeUsageBased *ChargeUsageBasedClient
+	// ChargeUsageBasedCostBasis is the client for interacting with the ChargeUsageBasedCostBasis builders.
+	ChargeUsageBasedCostBasis *ChargeUsageBasedCostBasisClient
 	// ChargeUsageBasedOverride is the client for interacting with the ChargeUsageBasedOverride builders.
 	ChargeUsageBasedOverride *ChargeUsageBasedOverrideClient
 	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
@@ -314,10 +323,12 @@ func (c *Client) init() {
 	c.BillingWorkflowConfig = NewBillingWorkflowConfigClient(c.config)
 	c.Charge = NewChargeClient(c.config)
 	c.ChargeCreditPurchase = NewChargeCreditPurchaseClient(c.config)
+	c.ChargeCreditPurchaseCostBasis = NewChargeCreditPurchaseCostBasisClient(c.config)
 	c.ChargeCreditPurchaseCreditGrant = NewChargeCreditPurchaseCreditGrantClient(c.config)
 	c.ChargeCreditPurchaseExternalPayment = NewChargeCreditPurchaseExternalPaymentClient(c.config)
 	c.ChargeCreditPurchaseInvoicedPayment = NewChargeCreditPurchaseInvoicedPaymentClient(c.config)
 	c.ChargeFlatFee = NewChargeFlatFeeClient(c.config)
+	c.ChargeFlatFeeCostBasis = NewChargeFlatFeeCostBasisClient(c.config)
 	c.ChargeFlatFeeOverride = NewChargeFlatFeeOverrideClient(c.config)
 	c.ChargeFlatFeeRun = NewChargeFlatFeeRunClient(c.config)
 	c.ChargeFlatFeeRunCreditAllocations = NewChargeFlatFeeRunCreditAllocationsClient(c.config)
@@ -325,6 +336,7 @@ func (c *Client) init() {
 	c.ChargeFlatFeeRunInvoicedUsage = NewChargeFlatFeeRunInvoicedUsageClient(c.config)
 	c.ChargeFlatFeeRunPayment = NewChargeFlatFeeRunPaymentClient(c.config)
 	c.ChargeUsageBased = NewChargeUsageBasedClient(c.config)
+	c.ChargeUsageBasedCostBasis = NewChargeUsageBasedCostBasisClient(c.config)
 	c.ChargeUsageBasedOverride = NewChargeUsageBasedOverrideClient(c.config)
 	c.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(c.config)
 	c.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(c.config)
@@ -490,10 +502,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingWorkflowConfig:                            NewBillingWorkflowConfigClient(cfg),
 		Charge:                                           NewChargeClient(cfg),
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
+		ChargeCreditPurchaseCostBasis:                    NewChargeCreditPurchaseCostBasisClient(cfg),
 		ChargeCreditPurchaseCreditGrant:                  NewChargeCreditPurchaseCreditGrantClient(cfg),
 		ChargeCreditPurchaseExternalPayment:              NewChargeCreditPurchaseExternalPaymentClient(cfg),
 		ChargeCreditPurchaseInvoicedPayment:              NewChargeCreditPurchaseInvoicedPaymentClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
+		ChargeFlatFeeCostBasis:                           NewChargeFlatFeeCostBasisClient(cfg),
 		ChargeFlatFeeOverride:                            NewChargeFlatFeeOverrideClient(cfg),
 		ChargeFlatFeeRun:                                 NewChargeFlatFeeRunClient(cfg),
 		ChargeFlatFeeRunCreditAllocations:                NewChargeFlatFeeRunCreditAllocationsClient(cfg),
@@ -501,6 +515,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChargeFlatFeeRunInvoicedUsage:                    NewChargeFlatFeeRunInvoicedUsageClient(cfg),
 		ChargeFlatFeeRunPayment:                          NewChargeFlatFeeRunPaymentClient(cfg),
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
+		ChargeUsageBasedCostBasis:                        NewChargeUsageBasedCostBasisClient(cfg),
 		ChargeUsageBasedOverride:                         NewChargeUsageBasedOverrideClient(cfg),
 		ChargeUsageBasedRunCreditAllocations:             NewChargeUsageBasedRunCreditAllocationsClient(cfg),
 		ChargeUsageBasedRunDetailedLine:                  NewChargeUsageBasedRunDetailedLineClient(cfg),
@@ -593,10 +608,12 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingWorkflowConfig:                            NewBillingWorkflowConfigClient(cfg),
 		Charge:                                           NewChargeClient(cfg),
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
+		ChargeCreditPurchaseCostBasis:                    NewChargeCreditPurchaseCostBasisClient(cfg),
 		ChargeCreditPurchaseCreditGrant:                  NewChargeCreditPurchaseCreditGrantClient(cfg),
 		ChargeCreditPurchaseExternalPayment:              NewChargeCreditPurchaseExternalPaymentClient(cfg),
 		ChargeCreditPurchaseInvoicedPayment:              NewChargeCreditPurchaseInvoicedPaymentClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
+		ChargeFlatFeeCostBasis:                           NewChargeFlatFeeCostBasisClient(cfg),
 		ChargeFlatFeeOverride:                            NewChargeFlatFeeOverrideClient(cfg),
 		ChargeFlatFeeRun:                                 NewChargeFlatFeeRunClient(cfg),
 		ChargeFlatFeeRunCreditAllocations:                NewChargeFlatFeeRunCreditAllocationsClient(cfg),
@@ -604,6 +621,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChargeFlatFeeRunInvoicedUsage:                    NewChargeFlatFeeRunInvoicedUsageClient(cfg),
 		ChargeFlatFeeRunPayment:                          NewChargeFlatFeeRunPaymentClient(cfg),
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
+		ChargeUsageBasedCostBasis:                        NewChargeUsageBasedCostBasisClient(cfg),
 		ChargeUsageBasedOverride:                         NewChargeUsageBasedOverrideClient(cfg),
 		ChargeUsageBasedRunCreditAllocations:             NewChargeUsageBasedRunCreditAllocationsClient(cfg),
 		ChargeUsageBasedRunDetailedLine:                  NewChargeUsageBasedRunDetailedLineClient(cfg),
@@ -689,21 +707,23 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
-		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCreditGrant,
-		c.ChargeCreditPurchaseExternalPayment, c.ChargeCreditPurchaseInvoicedPayment,
-		c.ChargeFlatFee, c.ChargeFlatFeeOverride, c.ChargeFlatFeeRun,
+		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCostBasis,
+		c.ChargeCreditPurchaseCreditGrant, c.ChargeCreditPurchaseExternalPayment,
+		c.ChargeCreditPurchaseInvoicedPayment, c.ChargeFlatFee,
+		c.ChargeFlatFeeCostBasis, c.ChargeFlatFeeOverride, c.ChargeFlatFeeRun,
 		c.ChargeFlatFeeRunCreditAllocations, c.ChargeFlatFeeRunDetailedLine,
 		c.ChargeFlatFeeRunInvoicedUsage, c.ChargeFlatFeeRunPayment, c.ChargeUsageBased,
-		c.ChargeUsageBasedOverride, c.ChargeUsageBasedRunCreditAllocations,
-		c.ChargeUsageBasedRunDetailedLine, c.ChargeUsageBasedRunInvoicedUsage,
-		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns,
-		c.CreditRealizationLineage, c.CreditRealizationLineageSegment,
-		c.CurrencyCostBasis, c.CustomCurrency, c.Customer, c.CustomerSubjects,
-		c.Entitlement, c.Feature, c.Grant, c.LLMCostPrice, c.LedgerAccount,
-		c.LedgerBreakageRecord, c.LedgerCreditVoidRecord, c.LedgerCustomerAccount,
-		c.LedgerEntry, c.LedgerSubAccount, c.LedgerSubAccountRoute,
-		c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
+		c.ChargeUsageBasedCostBasis, c.ChargeUsageBasedOverride,
+		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunDetailedLine,
+		c.ChargeUsageBasedRunInvoicedUsage, c.ChargeUsageBasedRunPayment,
+		c.ChargeUsageBasedRuns, c.CreditRealizationLineage,
+		c.CreditRealizationLineageSegment, c.CurrencyCostBasis, c.CustomCurrency,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.LLMCostPrice, c.LedgerAccount, c.LedgerBreakageRecord,
+		c.LedgerCreditVoidRecord, c.LedgerCustomerAccount, c.LedgerEntry,
+		c.LedgerSubAccount, c.LedgerSubAccountRoute, c.LedgerTransaction,
+		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule,
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
 		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
@@ -728,21 +748,23 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
-		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCreditGrant,
-		c.ChargeCreditPurchaseExternalPayment, c.ChargeCreditPurchaseInvoicedPayment,
-		c.ChargeFlatFee, c.ChargeFlatFeeOverride, c.ChargeFlatFeeRun,
+		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCostBasis,
+		c.ChargeCreditPurchaseCreditGrant, c.ChargeCreditPurchaseExternalPayment,
+		c.ChargeCreditPurchaseInvoicedPayment, c.ChargeFlatFee,
+		c.ChargeFlatFeeCostBasis, c.ChargeFlatFeeOverride, c.ChargeFlatFeeRun,
 		c.ChargeFlatFeeRunCreditAllocations, c.ChargeFlatFeeRunDetailedLine,
 		c.ChargeFlatFeeRunInvoicedUsage, c.ChargeFlatFeeRunPayment, c.ChargeUsageBased,
-		c.ChargeUsageBasedOverride, c.ChargeUsageBasedRunCreditAllocations,
-		c.ChargeUsageBasedRunDetailedLine, c.ChargeUsageBasedRunInvoicedUsage,
-		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns, c.ChargesSearchV1,
-		c.CreditRealizationLineage, c.CreditRealizationLineageSegment,
-		c.CurrencyCostBasis, c.CustomCurrency, c.Customer, c.CustomerSubjects,
-		c.Entitlement, c.Feature, c.Grant, c.LLMCostPrice, c.LedgerAccount,
-		c.LedgerBreakageRecord, c.LedgerCreditVoidRecord, c.LedgerCustomerAccount,
-		c.LedgerEntry, c.LedgerSubAccount, c.LedgerSubAccountRoute,
-		c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
+		c.ChargeUsageBasedCostBasis, c.ChargeUsageBasedOverride,
+		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunDetailedLine,
+		c.ChargeUsageBasedRunInvoicedUsage, c.ChargeUsageBasedRunPayment,
+		c.ChargeUsageBasedRuns, c.ChargesSearchV1, c.CreditRealizationLineage,
+		c.CreditRealizationLineageSegment, c.CurrencyCostBasis, c.CustomCurrency,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.LLMCostPrice, c.LedgerAccount, c.LedgerBreakageRecord,
+		c.LedgerCreditVoidRecord, c.LedgerCustomerAccount, c.LedgerEntry,
+		c.LedgerSubAccount, c.LedgerSubAccountRoute, c.LedgerTransaction,
+		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule,
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
 		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
 		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
@@ -811,6 +833,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Charge.mutate(ctx, m)
 	case *ChargeCreditPurchaseMutation:
 		return c.ChargeCreditPurchase.mutate(ctx, m)
+	case *ChargeCreditPurchaseCostBasisMutation:
+		return c.ChargeCreditPurchaseCostBasis.mutate(ctx, m)
 	case *ChargeCreditPurchaseCreditGrantMutation:
 		return c.ChargeCreditPurchaseCreditGrant.mutate(ctx, m)
 	case *ChargeCreditPurchaseExternalPaymentMutation:
@@ -819,6 +843,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeCreditPurchaseInvoicedPayment.mutate(ctx, m)
 	case *ChargeFlatFeeMutation:
 		return c.ChargeFlatFee.mutate(ctx, m)
+	case *ChargeFlatFeeCostBasisMutation:
+		return c.ChargeFlatFeeCostBasis.mutate(ctx, m)
 	case *ChargeFlatFeeOverrideMutation:
 		return c.ChargeFlatFeeOverride.mutate(ctx, m)
 	case *ChargeFlatFeeRunMutation:
@@ -833,6 +859,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeFlatFeeRunPayment.mutate(ctx, m)
 	case *ChargeUsageBasedMutation:
 		return c.ChargeUsageBased.mutate(ctx, m)
+	case *ChargeUsageBasedCostBasisMutation:
+		return c.ChargeUsageBasedCostBasis.mutate(ctx, m)
 	case *ChargeUsageBasedOverrideMutation:
 		return c.ChargeUsageBasedOverride.mutate(ctx, m)
 	case *ChargeUsageBasedRunCreditAllocationsMutation:
@@ -6177,6 +6205,22 @@ func (c *ChargeCreditPurchaseClient) QueryCreditGrant(_m *ChargeCreditPurchase) 
 	return query
 }
 
+// QueryCostBasis queries the cost_basis edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QueryCostBasis(_m *ChargeCreditPurchase) *ChargeCreditPurchaseCostBasisQuery {
+	query := (&ChargeCreditPurchaseCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(chargecreditpurchasecostbasis.Table, chargecreditpurchasecostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargecreditpurchase.CostBasisTable, chargecreditpurchase.CostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCharge queries the charge edge of a ChargeCreditPurchase.
 func (c *ChargeCreditPurchaseClient) QueryCharge(_m *ChargeCreditPurchase) *ChargeQuery {
 	query := (&ChargeClient{config: c.config}).Query()
@@ -6311,6 +6355,187 @@ func (c *ChargeCreditPurchaseClient) mutate(ctx context.Context, m *ChargeCredit
 		return (&ChargeCreditPurchaseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeCreditPurchase mutation op: %q", m.Op())
+	}
+}
+
+// ChargeCreditPurchaseCostBasisClient is a client for the ChargeCreditPurchaseCostBasis schema.
+type ChargeCreditPurchaseCostBasisClient struct {
+	config
+}
+
+// NewChargeCreditPurchaseCostBasisClient returns a client for the ChargeCreditPurchaseCostBasis from the given config.
+func NewChargeCreditPurchaseCostBasisClient(c config) *ChargeCreditPurchaseCostBasisClient {
+	return &ChargeCreditPurchaseCostBasisClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargecreditpurchasecostbasis.Hooks(f(g(h())))`.
+func (c *ChargeCreditPurchaseCostBasisClient) Use(hooks ...Hook) {
+	c.hooks.ChargeCreditPurchaseCostBasis = append(c.hooks.ChargeCreditPurchaseCostBasis, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargecreditpurchasecostbasis.Intercept(f(g(h())))`.
+func (c *ChargeCreditPurchaseCostBasisClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeCreditPurchaseCostBasis = append(c.inters.ChargeCreditPurchaseCostBasis, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeCreditPurchaseCostBasis entity.
+func (c *ChargeCreditPurchaseCostBasisClient) Create() *ChargeCreditPurchaseCostBasisCreate {
+	mutation := newChargeCreditPurchaseCostBasisMutation(c.config, OpCreate)
+	return &ChargeCreditPurchaseCostBasisCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeCreditPurchaseCostBasis entities.
+func (c *ChargeCreditPurchaseCostBasisClient) CreateBulk(builders ...*ChargeCreditPurchaseCostBasisCreate) *ChargeCreditPurchaseCostBasisCreateBulk {
+	return &ChargeCreditPurchaseCostBasisCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeCreditPurchaseCostBasisClient) MapCreateBulk(slice any, setFunc func(*ChargeCreditPurchaseCostBasisCreate, int)) *ChargeCreditPurchaseCostBasisCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeCreditPurchaseCostBasisCreateBulk{err: fmt.Errorf("calling to ChargeCreditPurchaseCostBasisClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeCreditPurchaseCostBasisCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeCreditPurchaseCostBasisCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeCreditPurchaseCostBasis.
+func (c *ChargeCreditPurchaseCostBasisClient) Update() *ChargeCreditPurchaseCostBasisUpdate {
+	mutation := newChargeCreditPurchaseCostBasisMutation(c.config, OpUpdate)
+	return &ChargeCreditPurchaseCostBasisUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeCreditPurchaseCostBasisClient) UpdateOne(_m *ChargeCreditPurchaseCostBasis) *ChargeCreditPurchaseCostBasisUpdateOne {
+	mutation := newChargeCreditPurchaseCostBasisMutation(c.config, OpUpdateOne, withChargeCreditPurchaseCostBasis(_m))
+	return &ChargeCreditPurchaseCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeCreditPurchaseCostBasisClient) UpdateOneID(id string) *ChargeCreditPurchaseCostBasisUpdateOne {
+	mutation := newChargeCreditPurchaseCostBasisMutation(c.config, OpUpdateOne, withChargeCreditPurchaseCostBasisID(id))
+	return &ChargeCreditPurchaseCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeCreditPurchaseCostBasis.
+func (c *ChargeCreditPurchaseCostBasisClient) Delete() *ChargeCreditPurchaseCostBasisDelete {
+	mutation := newChargeCreditPurchaseCostBasisMutation(c.config, OpDelete)
+	return &ChargeCreditPurchaseCostBasisDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeCreditPurchaseCostBasisClient) DeleteOne(_m *ChargeCreditPurchaseCostBasis) *ChargeCreditPurchaseCostBasisDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeCreditPurchaseCostBasisClient) DeleteOneID(id string) *ChargeCreditPurchaseCostBasisDeleteOne {
+	builder := c.Delete().Where(chargecreditpurchasecostbasis.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeCreditPurchaseCostBasisDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeCreditPurchaseCostBasis.
+func (c *ChargeCreditPurchaseCostBasisClient) Query() *ChargeCreditPurchaseCostBasisQuery {
+	return &ChargeCreditPurchaseCostBasisQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeCreditPurchaseCostBasis},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeCreditPurchaseCostBasis entity by its id.
+func (c *ChargeCreditPurchaseCostBasisClient) Get(ctx context.Context, id string) (*ChargeCreditPurchaseCostBasis, error) {
+	return c.Query().Where(chargecreditpurchasecostbasis.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeCreditPurchaseCostBasisClient) GetX(ctx context.Context, id string) *ChargeCreditPurchaseCostBasis {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCurrencyCostBasis queries the currency_cost_basis edge of a ChargeCreditPurchaseCostBasis.
+func (c *ChargeCreditPurchaseCostBasisClient) QueryCurrencyCostBasis(_m *ChargeCreditPurchaseCostBasis) *CurrencyCostBasisQuery {
+	query := (&CurrencyCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchasecostbasis.Table, chargecreditpurchasecostbasis.FieldID, id),
+			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargecreditpurchasecostbasis.CurrencyCostBasisTable, chargecreditpurchasecostbasis.CurrencyCostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryResolvedCurrencyCostBasis queries the resolved_currency_cost_basis edge of a ChargeCreditPurchaseCostBasis.
+func (c *ChargeCreditPurchaseCostBasisClient) QueryResolvedCurrencyCostBasis(_m *ChargeCreditPurchaseCostBasis) *CurrencyCostBasisQuery {
+	query := (&CurrencyCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchasecostbasis.Table, chargecreditpurchasecostbasis.FieldID, id),
+			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargecreditpurchasecostbasis.ResolvedCurrencyCostBasisTable, chargecreditpurchasecostbasis.ResolvedCurrencyCostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency queries the custom_currency edge of a ChargeCreditPurchaseCostBasis.
+func (c *ChargeCreditPurchaseCostBasisClient) QueryCustomCurrency(_m *ChargeCreditPurchaseCostBasis) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchasecostbasis.Table, chargecreditpurchasecostbasis.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargecreditpurchasecostbasis.CustomCurrencyTable, chargecreditpurchasecostbasis.CustomCurrencyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeCreditPurchaseCostBasisClient) Hooks() []Hook {
+	return c.hooks.ChargeCreditPurchaseCostBasis
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeCreditPurchaseCostBasisClient) Interceptors() []Interceptor {
+	return c.inters.ChargeCreditPurchaseCostBasis
+}
+
+func (c *ChargeCreditPurchaseCostBasisClient) mutate(ctx context.Context, m *ChargeCreditPurchaseCostBasisMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeCreditPurchaseCostBasisCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeCreditPurchaseCostBasisUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeCreditPurchaseCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeCreditPurchaseCostBasisDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeCreditPurchaseCostBasis mutation op: %q", m.Op())
 	}
 }
 
@@ -6917,6 +7142,22 @@ func (c *ChargeFlatFeeClient) QueryCurrentRun(_m *ChargeFlatFee) *ChargeFlatFeeR
 	return query
 }
 
+// QueryCostBasis queries the cost_basis edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QueryCostBasis(_m *ChargeFlatFee) *ChargeFlatFeeCostBasisQuery {
+	query := (&ChargeFlatFeeCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(chargeflatfeecostbasis.Table, chargeflatfeecostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfee.CostBasisTable, chargeflatfee.CostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCharge queries the charge edge of a ChargeFlatFee.
 func (c *ChargeFlatFeeClient) QueryCharge(_m *ChargeFlatFee) *ChargeQuery {
 	query := (&ChargeClient{config: c.config}).Query()
@@ -7083,6 +7324,187 @@ func (c *ChargeFlatFeeClient) mutate(ctx context.Context, m *ChargeFlatFeeMutati
 		return (&ChargeFlatFeeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeFlatFee mutation op: %q", m.Op())
+	}
+}
+
+// ChargeFlatFeeCostBasisClient is a client for the ChargeFlatFeeCostBasis schema.
+type ChargeFlatFeeCostBasisClient struct {
+	config
+}
+
+// NewChargeFlatFeeCostBasisClient returns a client for the ChargeFlatFeeCostBasis from the given config.
+func NewChargeFlatFeeCostBasisClient(c config) *ChargeFlatFeeCostBasisClient {
+	return &ChargeFlatFeeCostBasisClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeflatfeecostbasis.Hooks(f(g(h())))`.
+func (c *ChargeFlatFeeCostBasisClient) Use(hooks ...Hook) {
+	c.hooks.ChargeFlatFeeCostBasis = append(c.hooks.ChargeFlatFeeCostBasis, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeflatfeecostbasis.Intercept(f(g(h())))`.
+func (c *ChargeFlatFeeCostBasisClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeFlatFeeCostBasis = append(c.inters.ChargeFlatFeeCostBasis, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeFlatFeeCostBasis entity.
+func (c *ChargeFlatFeeCostBasisClient) Create() *ChargeFlatFeeCostBasisCreate {
+	mutation := newChargeFlatFeeCostBasisMutation(c.config, OpCreate)
+	return &ChargeFlatFeeCostBasisCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeFlatFeeCostBasis entities.
+func (c *ChargeFlatFeeCostBasisClient) CreateBulk(builders ...*ChargeFlatFeeCostBasisCreate) *ChargeFlatFeeCostBasisCreateBulk {
+	return &ChargeFlatFeeCostBasisCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeFlatFeeCostBasisClient) MapCreateBulk(slice any, setFunc func(*ChargeFlatFeeCostBasisCreate, int)) *ChargeFlatFeeCostBasisCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeFlatFeeCostBasisCreateBulk{err: fmt.Errorf("calling to ChargeFlatFeeCostBasisClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeFlatFeeCostBasisCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeFlatFeeCostBasisCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeFlatFeeCostBasis.
+func (c *ChargeFlatFeeCostBasisClient) Update() *ChargeFlatFeeCostBasisUpdate {
+	mutation := newChargeFlatFeeCostBasisMutation(c.config, OpUpdate)
+	return &ChargeFlatFeeCostBasisUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeFlatFeeCostBasisClient) UpdateOne(_m *ChargeFlatFeeCostBasis) *ChargeFlatFeeCostBasisUpdateOne {
+	mutation := newChargeFlatFeeCostBasisMutation(c.config, OpUpdateOne, withChargeFlatFeeCostBasis(_m))
+	return &ChargeFlatFeeCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeFlatFeeCostBasisClient) UpdateOneID(id string) *ChargeFlatFeeCostBasisUpdateOne {
+	mutation := newChargeFlatFeeCostBasisMutation(c.config, OpUpdateOne, withChargeFlatFeeCostBasisID(id))
+	return &ChargeFlatFeeCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeFlatFeeCostBasis.
+func (c *ChargeFlatFeeCostBasisClient) Delete() *ChargeFlatFeeCostBasisDelete {
+	mutation := newChargeFlatFeeCostBasisMutation(c.config, OpDelete)
+	return &ChargeFlatFeeCostBasisDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeFlatFeeCostBasisClient) DeleteOne(_m *ChargeFlatFeeCostBasis) *ChargeFlatFeeCostBasisDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeFlatFeeCostBasisClient) DeleteOneID(id string) *ChargeFlatFeeCostBasisDeleteOne {
+	builder := c.Delete().Where(chargeflatfeecostbasis.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeFlatFeeCostBasisDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeFlatFeeCostBasis.
+func (c *ChargeFlatFeeCostBasisClient) Query() *ChargeFlatFeeCostBasisQuery {
+	return &ChargeFlatFeeCostBasisQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeFlatFeeCostBasis},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeFlatFeeCostBasis entity by its id.
+func (c *ChargeFlatFeeCostBasisClient) Get(ctx context.Context, id string) (*ChargeFlatFeeCostBasis, error) {
+	return c.Query().Where(chargeflatfeecostbasis.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeFlatFeeCostBasisClient) GetX(ctx context.Context, id string) *ChargeFlatFeeCostBasis {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCurrencyCostBasis queries the currency_cost_basis edge of a ChargeFlatFeeCostBasis.
+func (c *ChargeFlatFeeCostBasisClient) QueryCurrencyCostBasis(_m *ChargeFlatFeeCostBasis) *CurrencyCostBasisQuery {
+	query := (&CurrencyCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeecostbasis.Table, chargeflatfeecostbasis.FieldID, id),
+			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfeecostbasis.CurrencyCostBasisTable, chargeflatfeecostbasis.CurrencyCostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryResolvedCurrencyCostBasis queries the resolved_currency_cost_basis edge of a ChargeFlatFeeCostBasis.
+func (c *ChargeFlatFeeCostBasisClient) QueryResolvedCurrencyCostBasis(_m *ChargeFlatFeeCostBasis) *CurrencyCostBasisQuery {
+	query := (&CurrencyCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeecostbasis.Table, chargeflatfeecostbasis.FieldID, id),
+			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfeecostbasis.ResolvedCurrencyCostBasisTable, chargeflatfeecostbasis.ResolvedCurrencyCostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency queries the custom_currency edge of a ChargeFlatFeeCostBasis.
+func (c *ChargeFlatFeeCostBasisClient) QueryCustomCurrency(_m *ChargeFlatFeeCostBasis) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeecostbasis.Table, chargeflatfeecostbasis.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfeecostbasis.CustomCurrencyTable, chargeflatfeecostbasis.CustomCurrencyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeFlatFeeCostBasisClient) Hooks() []Hook {
+	return c.hooks.ChargeFlatFeeCostBasis
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeFlatFeeCostBasisClient) Interceptors() []Interceptor {
+	return c.inters.ChargeFlatFeeCostBasis
+}
+
+func (c *ChargeFlatFeeCostBasisClient) mutate(ctx context.Context, m *ChargeFlatFeeCostBasisMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeFlatFeeCostBasisCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeFlatFeeCostBasisUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeFlatFeeCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeFlatFeeCostBasisDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeFlatFeeCostBasis mutation op: %q", m.Op())
 	}
 }
 
@@ -8312,6 +8734,22 @@ func (c *ChargeUsageBasedClient) QueryCurrentRun(_m *ChargeUsageBased) *ChargeUs
 	return query
 }
 
+// QueryCostBasis queries the cost_basis edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryCostBasis(_m *ChargeUsageBased) *ChargeUsageBasedCostBasisQuery {
+	query := (&ChargeUsageBasedCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(chargeusagebasedcostbasis.Table, chargeusagebasedcostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebased.CostBasisTable, chargeusagebased.CostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCharge queries the charge edge of a ChargeUsageBased.
 func (c *ChargeUsageBasedClient) QueryCharge(_m *ChargeUsageBased) *ChargeQuery {
 	query := (&ChargeClient{config: c.config}).Query()
@@ -8478,6 +8916,187 @@ func (c *ChargeUsageBasedClient) mutate(ctx context.Context, m *ChargeUsageBased
 		return (&ChargeUsageBasedDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeUsageBased mutation op: %q", m.Op())
+	}
+}
+
+// ChargeUsageBasedCostBasisClient is a client for the ChargeUsageBasedCostBasis schema.
+type ChargeUsageBasedCostBasisClient struct {
+	config
+}
+
+// NewChargeUsageBasedCostBasisClient returns a client for the ChargeUsageBasedCostBasis from the given config.
+func NewChargeUsageBasedCostBasisClient(c config) *ChargeUsageBasedCostBasisClient {
+	return &ChargeUsageBasedCostBasisClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeusagebasedcostbasis.Hooks(f(g(h())))`.
+func (c *ChargeUsageBasedCostBasisClient) Use(hooks ...Hook) {
+	c.hooks.ChargeUsageBasedCostBasis = append(c.hooks.ChargeUsageBasedCostBasis, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeusagebasedcostbasis.Intercept(f(g(h())))`.
+func (c *ChargeUsageBasedCostBasisClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeUsageBasedCostBasis = append(c.inters.ChargeUsageBasedCostBasis, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeUsageBasedCostBasis entity.
+func (c *ChargeUsageBasedCostBasisClient) Create() *ChargeUsageBasedCostBasisCreate {
+	mutation := newChargeUsageBasedCostBasisMutation(c.config, OpCreate)
+	return &ChargeUsageBasedCostBasisCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeUsageBasedCostBasis entities.
+func (c *ChargeUsageBasedCostBasisClient) CreateBulk(builders ...*ChargeUsageBasedCostBasisCreate) *ChargeUsageBasedCostBasisCreateBulk {
+	return &ChargeUsageBasedCostBasisCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeUsageBasedCostBasisClient) MapCreateBulk(slice any, setFunc func(*ChargeUsageBasedCostBasisCreate, int)) *ChargeUsageBasedCostBasisCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeUsageBasedCostBasisCreateBulk{err: fmt.Errorf("calling to ChargeUsageBasedCostBasisClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeUsageBasedCostBasisCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeUsageBasedCostBasisCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeUsageBasedCostBasis.
+func (c *ChargeUsageBasedCostBasisClient) Update() *ChargeUsageBasedCostBasisUpdate {
+	mutation := newChargeUsageBasedCostBasisMutation(c.config, OpUpdate)
+	return &ChargeUsageBasedCostBasisUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeUsageBasedCostBasisClient) UpdateOne(_m *ChargeUsageBasedCostBasis) *ChargeUsageBasedCostBasisUpdateOne {
+	mutation := newChargeUsageBasedCostBasisMutation(c.config, OpUpdateOne, withChargeUsageBasedCostBasis(_m))
+	return &ChargeUsageBasedCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeUsageBasedCostBasisClient) UpdateOneID(id string) *ChargeUsageBasedCostBasisUpdateOne {
+	mutation := newChargeUsageBasedCostBasisMutation(c.config, OpUpdateOne, withChargeUsageBasedCostBasisID(id))
+	return &ChargeUsageBasedCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeUsageBasedCostBasis.
+func (c *ChargeUsageBasedCostBasisClient) Delete() *ChargeUsageBasedCostBasisDelete {
+	mutation := newChargeUsageBasedCostBasisMutation(c.config, OpDelete)
+	return &ChargeUsageBasedCostBasisDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeUsageBasedCostBasisClient) DeleteOne(_m *ChargeUsageBasedCostBasis) *ChargeUsageBasedCostBasisDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeUsageBasedCostBasisClient) DeleteOneID(id string) *ChargeUsageBasedCostBasisDeleteOne {
+	builder := c.Delete().Where(chargeusagebasedcostbasis.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeUsageBasedCostBasisDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeUsageBasedCostBasis.
+func (c *ChargeUsageBasedCostBasisClient) Query() *ChargeUsageBasedCostBasisQuery {
+	return &ChargeUsageBasedCostBasisQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeUsageBasedCostBasis},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeUsageBasedCostBasis entity by its id.
+func (c *ChargeUsageBasedCostBasisClient) Get(ctx context.Context, id string) (*ChargeUsageBasedCostBasis, error) {
+	return c.Query().Where(chargeusagebasedcostbasis.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeUsageBasedCostBasisClient) GetX(ctx context.Context, id string) *ChargeUsageBasedCostBasis {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCurrencyCostBasis queries the currency_cost_basis edge of a ChargeUsageBasedCostBasis.
+func (c *ChargeUsageBasedCostBasisClient) QueryCurrencyCostBasis(_m *ChargeUsageBasedCostBasis) *CurrencyCostBasisQuery {
+	query := (&CurrencyCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedcostbasis.Table, chargeusagebasedcostbasis.FieldID, id),
+			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebasedcostbasis.CurrencyCostBasisTable, chargeusagebasedcostbasis.CurrencyCostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryResolvedCurrencyCostBasis queries the resolved_currency_cost_basis edge of a ChargeUsageBasedCostBasis.
+func (c *ChargeUsageBasedCostBasisClient) QueryResolvedCurrencyCostBasis(_m *ChargeUsageBasedCostBasis) *CurrencyCostBasisQuery {
+	query := (&CurrencyCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedcostbasis.Table, chargeusagebasedcostbasis.FieldID, id),
+			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebasedcostbasis.ResolvedCurrencyCostBasisTable, chargeusagebasedcostbasis.ResolvedCurrencyCostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency queries the custom_currency edge of a ChargeUsageBasedCostBasis.
+func (c *ChargeUsageBasedCostBasisClient) QueryCustomCurrency(_m *ChargeUsageBasedCostBasis) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedcostbasis.Table, chargeusagebasedcostbasis.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebasedcostbasis.CustomCurrencyTable, chargeusagebasedcostbasis.CustomCurrencyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeUsageBasedCostBasisClient) Hooks() []Hook {
+	return c.hooks.ChargeUsageBasedCostBasis
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeUsageBasedCostBasisClient) Interceptors() []Interceptor {
+	return c.inters.ChargeUsageBasedCostBasis
+}
+
+func (c *ChargeUsageBasedCostBasisClient) mutate(ctx context.Context, m *ChargeUsageBasedCostBasisMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeUsageBasedCostBasisCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeUsageBasedCostBasisUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeUsageBasedCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeUsageBasedCostBasisDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeUsageBasedCostBasis mutation op: %q", m.Op())
 	}
 }
 
@@ -16775,11 +17394,12 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCreditGrant,
-		ChargeCreditPurchaseExternalPayment, ChargeCreditPurchaseInvoicedPayment,
-		ChargeFlatFee, ChargeFlatFeeOverride, ChargeFlatFeeRun,
-		ChargeFlatFeeRunCreditAllocations, ChargeFlatFeeRunDetailedLine,
-		ChargeFlatFeeRunInvoicedUsage, ChargeFlatFeeRunPayment, ChargeUsageBased,
+		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCostBasis,
+		ChargeCreditPurchaseCreditGrant, ChargeCreditPurchaseExternalPayment,
+		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee, ChargeFlatFeeCostBasis,
+		ChargeFlatFeeOverride, ChargeFlatFeeRun, ChargeFlatFeeRunCreditAllocations,
+		ChargeFlatFeeRunDetailedLine, ChargeFlatFeeRunInvoicedUsage,
+		ChargeFlatFeeRunPayment, ChargeUsageBased, ChargeUsageBasedCostBasis,
 		ChargeUsageBasedOverride, ChargeUsageBasedRunCreditAllocations,
 		ChargeUsageBasedRunDetailedLine, ChargeUsageBasedRunInvoicedUsage,
 		ChargeUsageBasedRunPayment, ChargeUsageBasedRuns, CreditRealizationLineage,
@@ -16803,11 +17423,12 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCreditGrant,
-		ChargeCreditPurchaseExternalPayment, ChargeCreditPurchaseInvoicedPayment,
-		ChargeFlatFee, ChargeFlatFeeOverride, ChargeFlatFeeRun,
-		ChargeFlatFeeRunCreditAllocations, ChargeFlatFeeRunDetailedLine,
-		ChargeFlatFeeRunInvoicedUsage, ChargeFlatFeeRunPayment, ChargeUsageBased,
+		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCostBasis,
+		ChargeCreditPurchaseCreditGrant, ChargeCreditPurchaseExternalPayment,
+		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee, ChargeFlatFeeCostBasis,
+		ChargeFlatFeeOverride, ChargeFlatFeeRun, ChargeFlatFeeRunCreditAllocations,
+		ChargeFlatFeeRunDetailedLine, ChargeFlatFeeRunInvoicedUsage,
+		ChargeFlatFeeRunPayment, ChargeUsageBased, ChargeUsageBasedCostBasis,
 		ChargeUsageBasedOverride, ChargeUsageBasedRunCreditAllocations,
 		ChargeUsageBasedRunDetailedLine, ChargeUsageBasedRunInvoicedUsage,
 		ChargeUsageBasedRunPayment, ChargeUsageBasedRuns, ChargesSearchV1,

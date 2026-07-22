@@ -212,6 +212,7 @@ func NewChargesFlatFeeService(
 	metaAdapter meta.Adapter,
 	locker *lockr.Locker,
 	ratingService rating.Service,
+	currenciesService currencies.Service,
 ) (flatfee.Service, error) {
 	flatFeeSvc, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:       flatFeeAdapter,
@@ -220,6 +221,7 @@ func NewChargesFlatFeeService(
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
 		RatingService: ratingService,
+		Currencies:    currenciesService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges flat fee service: %w", err)
@@ -414,6 +416,7 @@ func newChargesRegistry(
 	breakageService ledgerbreakage.Service,
 	taxCodeService taxcode.Service,
 	currencyResolver currencies.CurrencyResolver,
+	currenciesService currencies.Service,
 	fsNamespaceLockdown []string,
 	creditsConfig config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
@@ -473,7 +476,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, ratingService)
+	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, ratingService, currenciesService)
 	if err != nil {
 		return nil, err
 	}

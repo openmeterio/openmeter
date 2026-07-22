@@ -85,6 +85,14 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 	s.MetaAdapter = metaAdapter
 
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+	currencyService, err := currencyservice.New(currencyAdapter)
+	s.NoError(err)
+	s.CurrencyService = currencyService
+
 	locker, err := lockr.NewLocker(&lockr.LockerConfig{
 		Logger: slog.Default(),
 	})
@@ -117,6 +125,7 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
 		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:    currencyService,
 	})
 	s.NoError(err)
 
@@ -196,13 +205,6 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
-	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{
-		Client: s.DBClient,
-	})
-	s.NoError(err)
-	currencyService, err := currencyservice.New(currencyAdapter)
-	s.NoError(err)
-	s.CurrencyService = currencyService
 	currencyResolver, err := currencyresolver.New(currencyService)
 	s.NoError(err)
 

@@ -93,6 +93,14 @@ func (ChargeUsageBased) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.String("cost_basis_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
+
 		field.Enum("status_detailed").
 			GoType(usagebased.Status("")),
 	}
@@ -107,6 +115,12 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 		edge.To("current_run", ChargeUsageBasedRuns.Type).
 			Field("current_realization_run_id").
 			Unique(),
+		edge.To("cost_basis", ChargeUsageBasedCostBasis.Type).
+			Field("cost_basis_id").
+			StorageKey(edge.Symbol("charge_usage_based_cost_basis_charge_fk")).
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("charge", Charge.Type).
 			Unique().
 			Immutable().
@@ -166,6 +180,26 @@ func (ChargeUsageBased) Indexes() []ent.Index {
 func (ChargeUsageBased) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "charge_usage_based"},
+	}
+}
+
+type ChargeUsageBasedCostBasis struct {
+	ent.Schema
+}
+
+func (ChargeUsageBasedCostBasis) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		ChargeCostBasisMixin{},
+	}
+}
+
+func (ChargeUsageBasedCostBasis) Edges() []ent.Edge {
+	return chargeCostBasisCurrencyEdges("charge_usage_based_cost_basis")
+}
+
+func (ChargeUsageBasedCostBasis) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "charge_usage_based_cost_bases"},
 	}
 }
 

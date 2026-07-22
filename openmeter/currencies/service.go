@@ -29,6 +29,7 @@ type CurrencyService interface {
 type CostBasisService interface {
 	CreateCostBasis(ctx context.Context, params CreateCostBasisInput) (CostBasis, error)
 	GetCostBasis(ctx context.Context, params GetCostBasisInput) (CostBasis, error)
+	GetCostBasisAt(ctx context.Context, params GetCostBasisAtInput) (CostBasis, error)
 	ListCostBases(ctx context.Context, params ListCostBasesInput) (pagination.Result[CostBasis], error)
 }
 
@@ -235,6 +236,39 @@ func (i GetCurrencyInput) Validate() error {
 
 	if i.ID == "" {
 		errs = append(errs, errors.New("id is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+var _ models.Validator = (*GetCostBasisAtInput)(nil)
+
+type GetCostBasisAtInput struct {
+	Namespace  string         `json:"namespace"`
+	CurrencyID string         `json:"currency_id"`
+	FiatCode   currencyx.Code `json:"fiat_code"`
+	At         time.Time      `json:"at"`
+}
+
+func (i GetCostBasisAtInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CurrencyID == "" {
+		errs = append(errs, errors.New("currency_id is required"))
+	}
+
+	if err := i.FiatCode.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("fiat_code: %w", err))
+	} else if !i.FiatCode.IsFiat() {
+		errs = append(errs, fmt.Errorf("fiat_code %q must be fiat", i.FiatCode))
+	}
+
+	if i.At.IsZero() {
+		errs = append(errs, errors.New("at is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

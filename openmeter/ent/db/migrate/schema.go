@@ -1796,6 +1796,7 @@ var (
 		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.initial_credit_grant", "active.payment.pending", "active.payment.authorized", "active.payment.paid_and_authorized", "active.payment.settled", "final", "deleted"}},
 		{Name: "key", Type: field.TypeString, Nullable: true},
 		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
+		{Name: "cost_basis_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1810,38 +1811,44 @@ var (
 		PrimaryKey: []*schema.Column{ChargeCreditPurchasesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "charge_credit_purchases_custom_currencies_charges_credit_purchase",
+				Symbol:     "charge_credit_purchase_cost_basis_charge_fk",
 				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[30]},
+				RefColumns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "charge_credit_purchases_custom_currencies_charges_credit_purchase",
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[31]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_credit_purchases_customers_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[31]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[32]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscriptions_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[32]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[33]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_items_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[33]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[34]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_phases_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[34]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[35]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_tax_codes_charge_credit_purchases",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[35]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[36]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1850,7 +1857,7 @@ var (
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[31], ChargeCreditPurchasesColumns[8]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[32], ChargeCreditPurchasesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1883,15 +1890,84 @@ var (
 			{
 				Name:    "chargecreditpurchases_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[35]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[36]},
 			},
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[31], ChargeCreditPurchasesColumns[28]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[32], ChargeCreditPurchasesColumns[28]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "key IS NOT NULL AND deleted_at IS NULL",
 				},
+			},
+		},
+	}
+	// ChargeCreditPurchaseCostBasesColumns holds the columns for the "charge_credit_purchase_cost_bases" table.
+	ChargeCreditPurchaseCostBasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "mode", Type: field.TypeEnum, Enums: []string{"dynamic", "pinned", "manual"}},
+		{Name: "fiat_currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "manual_rate", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "resolved_cost_basis", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "resolved_at", Type: field.TypeTime, Nullable: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "currency_cost_basis_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "resolved_cost_basis_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "currency_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeCreditPurchaseCostBasesTable holds the schema information for the "charge_credit_purchase_cost_bases" table.
+	ChargeCreditPurchaseCostBasesTable = &schema.Table{
+		Name:       "charge_credit_purchase_cost_bases",
+		Columns:    ChargeCreditPurchaseCostBasesColumns,
+		PrimaryKey: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_credit_purchase_cost_basis_currency_cost_basis_fk",
+				Columns:    []*schema.Column{ChargeCreditPurchaseCostBasesColumns[10]},
+				RefColumns: []*schema.Column{CurrencyCostBasesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "charge_credit_purchase_cost_basis_resolved_cost_basis_fk",
+				Columns:    []*schema.Column{ChargeCreditPurchaseCostBasesColumns[11]},
+				RefColumns: []*schema.Column{CurrencyCostBasesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "charge_credit_purchase_cost_basis_currency_fk",
+				Columns:    []*schema.Column{ChargeCreditPurchaseCostBasesColumns[12]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargecreditpurchasecostbasis_currency_cost_basis_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[10]},
+			},
+			{
+				Name:    "chargecreditpurchasecostbasis_resolved_cost_basis_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[11]},
+			},
+			{
+				Name:    "chargecreditpurchasecostbasis_currency_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[12]},
+			},
+			{
+				Name:    "chargecreditpurchasecostbasis_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[6]},
+			},
+			{
+				Name:    "chargecreditpurchasecostbasis_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[0]},
 			},
 		},
 	}
@@ -2092,6 +2168,7 @@ var (
 		{Name: "amount_after_proration", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.realization.started", "active.realization.waiting_for_collection", "active.realization.processing", "active.realization.issuing", "active.realization.completed", "active.awaiting_payment_settlement", "final", "deleted"}},
 		{Name: "current_realization_run_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "cost_basis_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2113,44 +2190,50 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "charge_flat_fees_custom_currencies_charges_flat_fee",
+				Symbol:     "charge_flat_fee_cost_basis_charge_fk",
 				Columns:    []*schema.Column{ChargeFlatFeesColumns[32]},
+				RefColumns: []*schema.Column{ChargeFlatFeeCostBasesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "charge_flat_fees_custom_currencies_charges_flat_fee",
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[33]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_flat_fees_customers_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[33]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[34]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_flat_fees_features_flat_fee_charges",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[34]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[35]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscriptions_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[35]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[36]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_items_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[36]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[37]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_phases_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[37]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[38]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_tax_codes_charge_flat_fees",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[38]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[39]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2159,7 +2242,7 @@ var (
 			{
 				Name:    "chargeflatfee_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[33], ChargeFlatFeesColumns[8]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[34], ChargeFlatFeesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2192,7 +2275,76 @@ var (
 			{
 				Name:    "chargeflatfees_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[38]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[39]},
+			},
+		},
+	}
+	// ChargeFlatFeeCostBasesColumns holds the columns for the "charge_flat_fee_cost_bases" table.
+	ChargeFlatFeeCostBasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "mode", Type: field.TypeEnum, Enums: []string{"dynamic", "pinned", "manual"}},
+		{Name: "fiat_currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "manual_rate", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "resolved_cost_basis", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "resolved_at", Type: field.TypeTime, Nullable: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "currency_cost_basis_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "resolved_cost_basis_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "currency_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeFlatFeeCostBasesTable holds the schema information for the "charge_flat_fee_cost_bases" table.
+	ChargeFlatFeeCostBasesTable = &schema.Table{
+		Name:       "charge_flat_fee_cost_bases",
+		Columns:    ChargeFlatFeeCostBasesColumns,
+		PrimaryKey: []*schema.Column{ChargeFlatFeeCostBasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_flat_fee_cost_basis_currency_cost_basis_fk",
+				Columns:    []*schema.Column{ChargeFlatFeeCostBasesColumns[10]},
+				RefColumns: []*schema.Column{CurrencyCostBasesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "charge_flat_fee_cost_basis_resolved_cost_basis_fk",
+				Columns:    []*schema.Column{ChargeFlatFeeCostBasesColumns[11]},
+				RefColumns: []*schema.Column{CurrencyCostBasesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "charge_flat_fee_cost_basis_currency_fk",
+				Columns:    []*schema.Column{ChargeFlatFeeCostBasesColumns[12]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeflatfeecostbasis_currency_cost_basis_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeeCostBasesColumns[10]},
+			},
+			{
+				Name:    "chargeflatfeecostbasis_resolved_cost_basis_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeeCostBasesColumns[11]},
+			},
+			{
+				Name:    "chargeflatfeecostbasis_currency_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeeCostBasesColumns[12]},
+			},
+			{
+				Name:    "chargeflatfeecostbasis_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeeCostBasesColumns[6]},
+			},
+			{
+				Name:    "chargeflatfeecostbasis_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeFlatFeeCostBasesColumns[0]},
 			},
 		},
 	}
@@ -2642,6 +2794,7 @@ var (
 		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.realization.started", "active.realization.waiting_for_collection", "active.realization.processing", "active.realization.issuing", "active.realization.completed", "active.awaiting_payment_settlement", "final", "deleted"}},
 		{Name: "current_realization_run_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "cost_basis_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2663,44 +2816,50 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "charge_usage_based_custom_currencies_charges_usage_based",
+				Symbol:     "charge_usage_based_cost_basis_charge_fk",
 				Columns:    []*schema.Column{ChargeUsageBasedColumns[31]},
+				RefColumns: []*schema.Column{ChargeUsageBasedCostBasesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "charge_usage_based_custom_currencies_charges_usage_based",
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[32]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_usage_based_customers_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[32]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[33]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_features_usage_based_charges",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[33]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[34]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_subscriptions_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[34]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[35]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_items_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[35]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[36]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_phases_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[36]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[37]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_tax_codes_charge_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[37]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[38]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2709,7 +2868,7 @@ var (
 			{
 				Name:    "chargeusagebased_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[32], ChargeUsageBasedColumns[8]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[33], ChargeUsageBasedColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2742,7 +2901,76 @@ var (
 			{
 				Name:    "chargeusagebased_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[37]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[38]},
+			},
+		},
+	}
+	// ChargeUsageBasedCostBasesColumns holds the columns for the "charge_usage_based_cost_bases" table.
+	ChargeUsageBasedCostBasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "mode", Type: field.TypeEnum, Enums: []string{"dynamic", "pinned", "manual"}},
+		{Name: "fiat_currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "manual_rate", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "resolved_cost_basis", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "resolved_at", Type: field.TypeTime, Nullable: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "currency_cost_basis_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "resolved_cost_basis_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "currency_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedCostBasesTable holds the schema information for the "charge_usage_based_cost_bases" table.
+	ChargeUsageBasedCostBasesTable = &schema.Table{
+		Name:       "charge_usage_based_cost_bases",
+		Columns:    ChargeUsageBasedCostBasesColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedCostBasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_usage_based_cost_basis_currency_cost_basis_fk",
+				Columns:    []*schema.Column{ChargeUsageBasedCostBasesColumns[10]},
+				RefColumns: []*schema.Column{CurrencyCostBasesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "charge_usage_based_cost_basis_resolved_cost_basis_fk",
+				Columns:    []*schema.Column{ChargeUsageBasedCostBasesColumns[11]},
+				RefColumns: []*schema.Column{CurrencyCostBasesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "charge_usage_based_cost_basis_currency_fk",
+				Columns:    []*schema.Column{ChargeUsageBasedCostBasesColumns[12]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedcostbasis_currency_cost_basis_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedCostBasesColumns[10]},
+			},
+			{
+				Name:    "chargeusagebasedcostbasis_resolved_cost_basis_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedCostBasesColumns[11]},
+			},
+			{
+				Name:    "chargeusagebasedcostbasis_currency_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedCostBasesColumns[12]},
+			},
+			{
+				Name:    "chargeusagebasedcostbasis_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedCostBasesColumns[6]},
+			},
+			{
+				Name:    "chargeusagebasedcostbasis_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedCostBasesColumns[0]},
 			},
 		},
 	}
@@ -5626,10 +5854,12 @@ var (
 		BillingWorkflowConfigsTable,
 		ChargesTable,
 		ChargeCreditPurchasesTable,
+		ChargeCreditPurchaseCostBasesTable,
 		ChargeCreditPurchaseCreditGrantsTable,
 		ChargeCreditPurchaseExternalPaymentsTable,
 		ChargeCreditPurchaseInvoicedPaymentsTable,
 		ChargeFlatFeesTable,
+		ChargeFlatFeeCostBasesTable,
 		ChargeFlatFeeOverridesTable,
 		ChargeFlatFeeRunsTable,
 		ChargeFlatFeeRunCreditAllocationsTable,
@@ -5637,6 +5867,7 @@ var (
 		ChargeFlatFeeRunInvoicedUsagesTable,
 		ChargeFlatFeeRunPaymentsTable,
 		ChargeUsageBasedTable,
+		ChargeUsageBasedCostBasesTable,
 		ChargeUsageBasedOverridesTable,
 		ChargeUsageBasedRunCreditAllocationsTable,
 		ChargeUsageBasedRunDetailedLineTable,
@@ -5751,33 +5982,57 @@ func init() {
 	ChargesTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargesTable.ForeignKeys[2].RefTable = ChargeUsageBasedTable
-	ChargeCreditPurchasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
-	ChargeCreditPurchasesTable.ForeignKeys[1].RefTable = CustomersTable
-	ChargeCreditPurchasesTable.ForeignKeys[2].RefTable = SubscriptionsTable
-	ChargeCreditPurchasesTable.ForeignKeys[3].RefTable = SubscriptionItemsTable
-	ChargeCreditPurchasesTable.ForeignKeys[4].RefTable = SubscriptionPhasesTable
-	ChargeCreditPurchasesTable.ForeignKeys[5].RefTable = TaxCodesTable
+	ChargeCreditPurchasesTable.ForeignKeys[0].RefTable = ChargeCreditPurchaseCostBasesTable
+	ChargeCreditPurchasesTable.ForeignKeys[1].RefTable = CustomCurrenciesTable
+	ChargeCreditPurchasesTable.ForeignKeys[2].RefTable = CustomersTable
+	ChargeCreditPurchasesTable.ForeignKeys[3].RefTable = SubscriptionsTable
+	ChargeCreditPurchasesTable.ForeignKeys[4].RefTable = SubscriptionItemsTable
+	ChargeCreditPurchasesTable.ForeignKeys[5].RefTable = SubscriptionPhasesTable
+	ChargeCreditPurchasesTable.ForeignKeys[6].RefTable = TaxCodesTable
 	ChargeCreditPurchasesTable.Annotation = &entsql.Annotation{}
 	ChargeCreditPurchasesTable.Annotation.Checks = map[string]string{
 		"currency_not_empty": "currency IS NULL OR currency <> ''",
 		"currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
+	}
+	ChargeCreditPurchaseCostBasesTable.ForeignKeys[0].RefTable = CurrencyCostBasesTable
+	ChargeCreditPurchaseCostBasesTable.ForeignKeys[1].RefTable = CurrencyCostBasesTable
+	ChargeCreditPurchaseCostBasesTable.ForeignKeys[2].RefTable = CustomCurrenciesTable
+	ChargeCreditPurchaseCostBasesTable.Annotation = &entsql.Annotation{
+		Table: "charge_credit_purchase_cost_bases",
+	}
+	ChargeCreditPurchaseCostBasesTable.Annotation.Checks = map[string]string{
+		"fiat_currency_not_empty":      "fiat_currency <> ''",
+		"resolved_cost_basis_positive": "resolved_cost_basis IS NULL OR resolved_cost_basis > 0",
+		"state":                        "\n\t\t\t\t(\n\t\t\t\t\tmode = 'dynamic'\n\t\t\t\t\tAND currency_cost_basis_id IS NULL\n\t\t\t\t\tAND manual_rate IS NULL\n\t\t\t\t\tAND (\n\t\t\t\t\t\t(resolved_cost_basis_id IS NULL AND resolved_cost_basis IS NULL AND resolved_at IS NULL)\n\t\t\t\t\t\tOR (resolved_cost_basis_id IS NOT NULL AND resolved_cost_basis IS NOT NULL AND resolved_at IS NOT NULL)\n\t\t\t\t\t)\n\t\t\t\t)\n\t\t\t\tOR (\n\t\t\t\t\tmode = 'pinned'\n\t\t\t\t\tAND currency_cost_basis_id IS NOT NULL\n\t\t\t\t\tAND resolved_cost_basis_id IS NOT NULL\n\t\t\t\t\tAND resolved_cost_basis_id = currency_cost_basis_id\n\t\t\t\t\tAND manual_rate IS NULL\n\t\t\t\t\tAND resolved_cost_basis IS NOT NULL\n\t\t\t\t\tAND resolved_at IS NOT NULL\n\t\t\t\t)\n\t\t\t\tOR (\n\t\t\t\t\tmode = 'manual'\n\t\t\t\t\tAND currency_cost_basis_id IS NULL\n\t\t\t\t\tAND resolved_cost_basis_id IS NULL\n\t\t\t\t\tAND manual_rate > 0\n\t\t\t\t\tAND resolved_cost_basis IS NOT NULL\n\t\t\t\t\tAND resolved_at IS NOT NULL\n\t\t\t\t)\n\t\t\t",
 	}
 	ChargeCreditPurchaseCreditGrantsTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargeCreditPurchaseExternalPaymentsTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargeCreditPurchaseInvoicedPaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeCreditPurchaseInvoicedPaymentsTable.ForeignKeys[1].RefTable = ChargeCreditPurchasesTable
 	ChargeFlatFeesTable.ForeignKeys[0].RefTable = ChargeFlatFeeRunsTable
-	ChargeFlatFeesTable.ForeignKeys[1].RefTable = CustomCurrenciesTable
-	ChargeFlatFeesTable.ForeignKeys[2].RefTable = CustomersTable
-	ChargeFlatFeesTable.ForeignKeys[3].RefTable = FeaturesTable
-	ChargeFlatFeesTable.ForeignKeys[4].RefTable = SubscriptionsTable
-	ChargeFlatFeesTable.ForeignKeys[5].RefTable = SubscriptionItemsTable
-	ChargeFlatFeesTable.ForeignKeys[6].RefTable = SubscriptionPhasesTable
-	ChargeFlatFeesTable.ForeignKeys[7].RefTable = TaxCodesTable
+	ChargeFlatFeesTable.ForeignKeys[1].RefTable = ChargeFlatFeeCostBasesTable
+	ChargeFlatFeesTable.ForeignKeys[2].RefTable = CustomCurrenciesTable
+	ChargeFlatFeesTable.ForeignKeys[3].RefTable = CustomersTable
+	ChargeFlatFeesTable.ForeignKeys[4].RefTable = FeaturesTable
+	ChargeFlatFeesTable.ForeignKeys[5].RefTable = SubscriptionsTable
+	ChargeFlatFeesTable.ForeignKeys[6].RefTable = SubscriptionItemsTable
+	ChargeFlatFeesTable.ForeignKeys[7].RefTable = SubscriptionPhasesTable
+	ChargeFlatFeesTable.ForeignKeys[8].RefTable = TaxCodesTable
 	ChargeFlatFeesTable.Annotation = &entsql.Annotation{}
 	ChargeFlatFeesTable.Annotation.Checks = map[string]string{
 		"currency_not_empty": "currency IS NULL OR currency <> ''",
 		"currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
+	}
+	ChargeFlatFeeCostBasesTable.ForeignKeys[0].RefTable = CurrencyCostBasesTable
+	ChargeFlatFeeCostBasesTable.ForeignKeys[1].RefTable = CurrencyCostBasesTable
+	ChargeFlatFeeCostBasesTable.ForeignKeys[2].RefTable = CustomCurrenciesTable
+	ChargeFlatFeeCostBasesTable.Annotation = &entsql.Annotation{
+		Table: "charge_flat_fee_cost_bases",
+	}
+	ChargeFlatFeeCostBasesTable.Annotation.Checks = map[string]string{
+		"fiat_currency_not_empty":      "fiat_currency <> ''",
+		"resolved_cost_basis_positive": "resolved_cost_basis IS NULL OR resolved_cost_basis > 0",
+		"state":                        "\n\t\t\t\t(\n\t\t\t\t\tmode = 'dynamic'\n\t\t\t\t\tAND currency_cost_basis_id IS NULL\n\t\t\t\t\tAND manual_rate IS NULL\n\t\t\t\t\tAND (\n\t\t\t\t\t\t(resolved_cost_basis_id IS NULL AND resolved_cost_basis IS NULL AND resolved_at IS NULL)\n\t\t\t\t\t\tOR (resolved_cost_basis_id IS NOT NULL AND resolved_cost_basis IS NOT NULL AND resolved_at IS NOT NULL)\n\t\t\t\t\t)\n\t\t\t\t)\n\t\t\t\tOR (\n\t\t\t\t\tmode = 'pinned'\n\t\t\t\t\tAND currency_cost_basis_id IS NOT NULL\n\t\t\t\t\tAND resolved_cost_basis_id IS NOT NULL\n\t\t\t\t\tAND resolved_cost_basis_id = currency_cost_basis_id\n\t\t\t\t\tAND manual_rate IS NULL\n\t\t\t\t\tAND resolved_cost_basis IS NOT NULL\n\t\t\t\t\tAND resolved_at IS NOT NULL\n\t\t\t\t)\n\t\t\t\tOR (\n\t\t\t\t\tmode = 'manual'\n\t\t\t\t\tAND currency_cost_basis_id IS NULL\n\t\t\t\t\tAND resolved_cost_basis_id IS NULL\n\t\t\t\t\tAND manual_rate > 0\n\t\t\t\t\tAND resolved_cost_basis IS NOT NULL\n\t\t\t\t\tAND resolved_at IS NOT NULL\n\t\t\t\t)\n\t\t\t",
 	}
 	ChargeFlatFeeOverridesTable.ForeignKeys[0].RefTable = ChargeFlatFeesTable
 	ChargeFlatFeeOverridesTable.ForeignKeys[1].RefTable = TaxCodesTable
@@ -5796,19 +6051,31 @@ func init() {
 	ChargeFlatFeeRunPaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeFlatFeeRunPaymentsTable.ForeignKeys[1].RefTable = ChargeFlatFeeRunsTable
 	ChargeUsageBasedTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
-	ChargeUsageBasedTable.ForeignKeys[1].RefTable = CustomCurrenciesTable
-	ChargeUsageBasedTable.ForeignKeys[2].RefTable = CustomersTable
-	ChargeUsageBasedTable.ForeignKeys[3].RefTable = FeaturesTable
-	ChargeUsageBasedTable.ForeignKeys[4].RefTable = SubscriptionsTable
-	ChargeUsageBasedTable.ForeignKeys[5].RefTable = SubscriptionItemsTable
-	ChargeUsageBasedTable.ForeignKeys[6].RefTable = SubscriptionPhasesTable
-	ChargeUsageBasedTable.ForeignKeys[7].RefTable = TaxCodesTable
+	ChargeUsageBasedTable.ForeignKeys[1].RefTable = ChargeUsageBasedCostBasesTable
+	ChargeUsageBasedTable.ForeignKeys[2].RefTable = CustomCurrenciesTable
+	ChargeUsageBasedTable.ForeignKeys[3].RefTable = CustomersTable
+	ChargeUsageBasedTable.ForeignKeys[4].RefTable = FeaturesTable
+	ChargeUsageBasedTable.ForeignKeys[5].RefTable = SubscriptionsTable
+	ChargeUsageBasedTable.ForeignKeys[6].RefTable = SubscriptionItemsTable
+	ChargeUsageBasedTable.ForeignKeys[7].RefTable = SubscriptionPhasesTable
+	ChargeUsageBasedTable.ForeignKeys[8].RefTable = TaxCodesTable
 	ChargeUsageBasedTable.Annotation = &entsql.Annotation{
 		Table: "charge_usage_based",
 	}
 	ChargeUsageBasedTable.Annotation.Checks = map[string]string{
 		"currency_not_empty": "currency IS NULL OR currency <> ''",
 		"currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
+	}
+	ChargeUsageBasedCostBasesTable.ForeignKeys[0].RefTable = CurrencyCostBasesTable
+	ChargeUsageBasedCostBasesTable.ForeignKeys[1].RefTable = CurrencyCostBasesTable
+	ChargeUsageBasedCostBasesTable.ForeignKeys[2].RefTable = CustomCurrenciesTable
+	ChargeUsageBasedCostBasesTable.Annotation = &entsql.Annotation{
+		Table: "charge_usage_based_cost_bases",
+	}
+	ChargeUsageBasedCostBasesTable.Annotation.Checks = map[string]string{
+		"fiat_currency_not_empty":      "fiat_currency <> ''",
+		"resolved_cost_basis_positive": "resolved_cost_basis IS NULL OR resolved_cost_basis > 0",
+		"state":                        "\n\t\t\t\t(\n\t\t\t\t\tmode = 'dynamic'\n\t\t\t\t\tAND currency_cost_basis_id IS NULL\n\t\t\t\t\tAND manual_rate IS NULL\n\t\t\t\t\tAND (\n\t\t\t\t\t\t(resolved_cost_basis_id IS NULL AND resolved_cost_basis IS NULL AND resolved_at IS NULL)\n\t\t\t\t\t\tOR (resolved_cost_basis_id IS NOT NULL AND resolved_cost_basis IS NOT NULL AND resolved_at IS NOT NULL)\n\t\t\t\t\t)\n\t\t\t\t)\n\t\t\t\tOR (\n\t\t\t\t\tmode = 'pinned'\n\t\t\t\t\tAND currency_cost_basis_id IS NOT NULL\n\t\t\t\t\tAND resolved_cost_basis_id IS NOT NULL\n\t\t\t\t\tAND resolved_cost_basis_id = currency_cost_basis_id\n\t\t\t\t\tAND manual_rate IS NULL\n\t\t\t\t\tAND resolved_cost_basis IS NOT NULL\n\t\t\t\t\tAND resolved_at IS NOT NULL\n\t\t\t\t)\n\t\t\t\tOR (\n\t\t\t\t\tmode = 'manual'\n\t\t\t\t\tAND currency_cost_basis_id IS NULL\n\t\t\t\t\tAND resolved_cost_basis_id IS NULL\n\t\t\t\t\tAND manual_rate > 0\n\t\t\t\t\tAND resolved_cost_basis IS NOT NULL\n\t\t\t\t\tAND resolved_at IS NOT NULL\n\t\t\t\t)\n\t\t\t",
 	}
 	ChargeUsageBasedOverridesTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
 	ChargeUsageBasedOverridesTable.ForeignKeys[1].RefTable = TaxCodesTable

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -12,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeeoverride "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
@@ -86,6 +88,10 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 			return flatfee.ChargeBase{}, err
 		}
 
+		if err := tx.loadCostBasisEdge(ctx, dbUpdatedChargeBase); err != nil {
+			return flatfee.ChargeBase{}, err
+		}
+
 		if overrideLayer := charge.Intent.GetOverrideLayerMutableFields(); overrideLayer != nil {
 			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), overrideLayer, intent.Currency)
 			if err != nil {
@@ -132,6 +138,9 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.C
 		}
 
 		updatedChargeBase.Edges.IntentOverride = override
+		if err := tx.loadCostBasisEdge(ctx, updatedChargeBase); err != nil {
+			return flatfee.Charge{}, err
+		}
 		mappedChargeBase, err := fromDBBaseWithCurrency(updatedChargeBase, charge.Intent.GetBaseIntent().Currency)
 		if err != nil {
 			return flatfee.Charge{}, err
@@ -208,19 +217,69 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]flatfee.Charge, error) {
-		creates, err := slicesx.MapWithErr(in.Intents, func(intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {
-			return tx.buildCreateFlatFeeCharge(in.Namespace, intent)
-		})
-		if err != nil {
-			return nil, err
+		type preparedCreate struct {
+			costBasis *db.ChargeFlatFeeCostBasisCreate
+			charge    *db.ChargeFlatFeeCreate
 		}
 
-		entities, err := tx.db.ChargeFlatFee.CreateBulk(creates...).Save(ctx)
+		preparedCreates := make([]preparedCreate, 0, len(in.Intents))
+		for _, intent := range in.Intents {
+			chargeCreate, err := tx.buildCreateFlatFeeCharge(in.Namespace, intent)
+			if err != nil {
+				return nil, err
+			}
+
+			var costBasisCreate *db.ChargeFlatFeeCostBasisCreate
+			if intent.Intent.CostBasis != nil {
+				costBasisCreate, err = costbasis.Create(tx.db.ChargeFlatFeeCostBasis.Create(), costbasis.CreateInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: in.Namespace,
+						ID:        ulid.Make().String(),
+					},
+					CurrencyID: intent.Intent.Currency.ID,
+					Intent:     *intent.Intent.CostBasis,
+					State:      intent.ResolvedCostBasis,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("building flat fee cost basis: %w", err)
+				}
+			}
+
+			preparedCreates = append(preparedCreates, preparedCreate{
+				costBasis: costBasisCreate,
+				charge:    chargeCreate,
+			})
+		}
+
+		costBasisCreates := lo.Filter(preparedCreates, func(create preparedCreate, _ int) bool {
+			return create.costBasis != nil
+		})
+
+		var createdCostBases []*db.ChargeFlatFeeCostBasis
+		if len(costBasisCreates) > 0 {
+			var err error
+			createdCostBases, err = tx.db.ChargeFlatFeeCostBasis.CreateBulk(
+				lo.Map(costBasisCreates, func(create preparedCreate, _ int) *db.ChargeFlatFeeCostBasisCreate {
+					return create.costBasis
+				})...,
+			).Save(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("creating flat fee cost bases: %w", err)
+			}
+
+			lo.ForEach(costBasisCreates, func(create preparedCreate, idx int) {
+				create.charge.SetCostBasisID(createdCostBases[idx].ID)
+			})
+		}
+
+		chargeCreates := lo.Map(preparedCreates, func(create preparedCreate, _ int) *db.ChargeFlatFeeCreate {
+			return create.charge
+		})
+		entities, err := tx.db.ChargeFlatFee.CreateBulk(chargeCreates...).Save(ctx)
 		if err != nil {
 			return nil, metaadapter.MapChargeConstraintError(err)
 		}
 
-		// Let's reserve the charge IDs
 		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
 			Namespace: in.Namespace,
 			Type:      meta.ChargeTypeFlatFee,
@@ -235,7 +294,20 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 			return nil, err
 		}
 
+		costBasisByID := lo.SliceToMap(createdCostBases, func(entity *db.ChargeFlatFeeCostBasis) (string, *db.ChargeFlatFeeCostBasis) {
+			return entity.ID, entity
+		})
+
 		return lo.MapErr(entities, func(entity *db.ChargeFlatFee, idx int) (flatfee.Charge, error) {
+			if entity.CostBasisID != nil {
+				createdCostBasis, ok := costBasisByID[*entity.CostBasisID]
+				if !ok {
+					return flatfee.Charge{}, fmt.Errorf("created flat fee cost basis %s not found", *entity.CostBasisID)
+				}
+
+				entity.Edges.CostBasis = createdCostBasis
+			}
+
 			return FromDBWithCurrency(entity, in.Intents[idx].Intent.Currency, meta.ExpandNone)
 		})
 	})
@@ -251,7 +323,8 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 			Where(dbchargeflatfee.Namespace(input.Namespace)).
 			Where(dbchargeflatfee.IDIn(input.IDs...)).
 			WithIntentOverride().
-			WithCustomCurrency()
+			WithCustomCurrency().
+			WithCostBasis()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query)
@@ -294,7 +367,8 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 			Where(dbchargeflatfee.Namespace(input.ChargeID.Namespace)).
 			Where(dbchargeflatfee.ID(input.ChargeID.ID)).
 			WithIntentOverride().
-			WithCustomCurrency()
+			WithCustomCurrency().
+			WithCostBasis()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query)
