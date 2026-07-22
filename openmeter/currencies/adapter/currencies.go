@@ -168,6 +168,21 @@ func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.Li
 			q = filter.ApplyToQuery(q, params.Code, customcurrency.FieldCode)
 		}
 
+		now := time.Now()
+
+		if params.CurrencyExpandOptions.CostBasis {
+			q = q.WithCostBasisHistory(func(cbq *entdb.CurrencyCostBasisQuery) {
+				cbq.Where(
+					currencycostbasis.Namespace(params.Namespace),
+					currencycostbasis.EffectiveFromLTE(now),
+					currencycostbasis.Or(
+						currencycostbasis.EffectiveToIsNil(),
+						currencycostbasis.EffectiveToGT(now),
+					),
+				)
+			})
+		}
+
 		order := entutils.GetOrdering(sortx.OrderDefault)
 		if !params.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(params.Order)

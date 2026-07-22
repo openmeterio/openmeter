@@ -190,6 +190,72 @@ func TestCurrenciesService(t *testing.T) {
 					})
 				})
 
+				t.Run("ListWithCostBasis", func(t *testing.T) {
+					// given:
+					// - a custom currency with an active USD cost basis
+					testCases := []struct {
+						name             string
+						currencyType     *currencies.CurrencyType
+						expectedTotal    int
+						expectFiatResult bool
+					}{
+						{
+							name:          "custom currencies",
+							currencyType:  lo.ToPtr(currencies.CurrencyTypeCustom),
+							expectedTotal: 1,
+						},
+						{
+							name:             "custom and fiat currencies",
+							expectedTotal:    2,
+							expectFiatResult: true,
+						},
+					}
+
+					for _, testCase := range testCases {
+						t.Run(testCase.name, func(t *testing.T) {
+							// when:
+							// - currencies are listed with cost-basis data expanded
+							result, err := env.Service.ListCurrencies(t.Context(), currencies.ListCurrenciesInput{
+								Page:         pagination.NewPage(1, 10),
+								Namespace:    namespace,
+								CurrencyType: testCase.currencyType,
+								Code: &filter.FilterString{
+									In: lo.ToPtr([]string{"TOKENS", "USD"}),
+								},
+								CurrencyExpandOptions: currencies.CurrencyExpandOptions{
+									CostBasis: true,
+								},
+							})
+
+							// then:
+							// - custom currencies include active cost-basis data while fiat currencies do not
+							require.NoError(t, err)
+							require.Equal(t, testCase.expectedTotal, result.TotalCount)
+							require.Len(t, result.Items, testCase.expectedTotal)
+
+							customCurrencies := lo.Filter(result.Items, func(item currencies.Currency, _ int) bool {
+								return item.Type() == currencyx.CurrencyTypeCustom
+							})
+							require.Len(t, customCurrencies, 1)
+							assert.Equal(t, createdCurrency.ID, customCurrencies[0].ID)
+							require.NotNil(t, customCurrencies[0].CostBasis)
+							require.Len(t, *customCurrencies[0].CostBasis, 1)
+							assert.Equal(t, usd.ID, (*customCurrencies[0].CostBasis)[0].ID)
+
+							fiatCurrencies := lo.Filter(result.Items, func(item currencies.Currency, _ int) bool {
+								return item.Type() == currencyx.CurrencyTypeFiat
+							})
+							if testCase.expectFiatResult {
+								require.Len(t, fiatCurrencies, 1)
+								assert.Equal(t, currencyx.Code("USD"), fiatCurrencies[0].Details().Code)
+								assert.Nil(t, fiatCurrencies[0].CostBasis)
+							} else {
+								assert.Empty(t, fiatCurrencies)
+							}
+						})
+					}
+				})
+
 				t.Run("Multiple", func(t *testing.T) {
 					// given:
 					// - a custom currency with an active USD cost basis

@@ -118,6 +118,9 @@ func (r *resolver) BatchResolveCurrencies(ctx context.Context, namespace string,
 			FilteringOptions: currencies.FilteringOptions{
 				Union: true,
 			},
+			CurrencyExpandOptions: currencies.CurrencyExpandOptions{
+				CostBasis: true,
+			},
 			Namespace: namespace,
 			ID:        idFilter,
 			Code:      codeFilter,

@@ -61,6 +61,7 @@ type FilteringOptions struct {
 type ListCurrenciesInput struct {
 	pagination.Page
 	FilteringOptions
+	CurrencyExpandOptions
 
 	Namespace string `json:"namespace"`
 
