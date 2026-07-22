@@ -476,3 +476,175 @@ type InstallAppStripeWithAPIKey struct {
 	// API key for the app.
 	APIKey string `json:"api_key"`
 }
+
+// AppExternalInvoicing update request.
+type UpdateAppExternalInvoicingRequest struct {
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string            `json:"description,omitempty"`
+	Labels      *map[string]string `json:"labels,omitempty"`
+	// The app type.
+	Type AppType `json:"type"`
+	// Enable draft synchronization hook.
+	//
+	// When enabled, invoices will pause at the draft state and wait for the
+	// integration to call the draft synchronized endpoint before progressing to the
+	// issuing state. This allows the external system to validate and prepare the
+	// invoice data.
+	//
+	// When disabled, invoices automatically progress through the draft state based on
+	// the configured workflow timing.
+	EnableDraftSyncHook bool `json:"enable_draft_sync_hook"`
+	// Enable issuing synchronization hook.
+	//
+	// When enabled, invoices will pause at the issuing state and wait for the
+	// integration to call the issuing synchronized endpoint before progressing to the
+	// issued state. This ensures the external invoicing system has successfully
+	// created and finalized the invoice before it is marked as issued.
+	//
+	// When disabled, invoices automatically progress through the issuing state and are
+	// immediately marked as issued.
+	EnableIssuingSyncHook bool `json:"enable_issuing_sync_hook"`
+}
+
+// Request to update an installed app.
+//
+// UpdateAppRequest is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the UpdateAppRequestFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type UpdateAppRequest struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *UpdateAppRequest) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u UpdateAppRequest) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u UpdateAppRequest) AsUpdateAppStripeRequest() (*UpdateAppStripeRequest, error) {
+	if u.Type != "stripe" {
+		return nil, fmt.Errorf("UpdateAppRequest: expected type %q, got %q", "stripe", u.Type)
+	}
+	var value UpdateAppStripeRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func UpdateAppRequestFromUpdateAppStripeRequest(value UpdateAppStripeRequest) (UpdateAppRequest, error) {
+	value.Type = "stripe"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return UpdateAppRequest{}, err
+	}
+	var result UpdateAppRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return UpdateAppRequest{}, err
+	}
+	return result, nil
+}
+
+func (u UpdateAppRequest) AsUpdateAppSandboxRequest() (*UpdateAppSandboxRequest, error) {
+	if u.Type != "sandbox" {
+		return nil, fmt.Errorf("UpdateAppRequest: expected type %q, got %q", "sandbox", u.Type)
+	}
+	var value UpdateAppSandboxRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func UpdateAppRequestFromUpdateAppSandboxRequest(value UpdateAppSandboxRequest) (UpdateAppRequest, error) {
+	value.Type = "sandbox"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return UpdateAppRequest{}, err
+	}
+	var result UpdateAppRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return UpdateAppRequest{}, err
+	}
+	return result, nil
+}
+
+func (u UpdateAppRequest) AsUpdateAppExternalInvoicingRequest() (*UpdateAppExternalInvoicingRequest, error) {
+	if u.Type != "external_invoicing" {
+		return nil, fmt.Errorf("UpdateAppRequest: expected type %q, got %q", "external_invoicing", u.Type)
+	}
+	var value UpdateAppExternalInvoicingRequest
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func UpdateAppRequestFromUpdateAppExternalInvoicingRequest(value UpdateAppExternalInvoicingRequest) (UpdateAppRequest, error) {
+	value.Type = "external_invoicing"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return UpdateAppRequest{}, err
+	}
+	var result UpdateAppRequest
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return UpdateAppRequest{}, err
+	}
+	return result, nil
+}
+
+// AppSandbox update request.
+type UpdateAppSandboxRequest struct {
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string            `json:"description,omitempty"`
+	Labels      *map[string]string `json:"labels,omitempty"`
+	// The app type.
+	Type AppType `json:"type"`
+}
+
+// AppStripe update request.
+type UpdateAppStripeRequest struct {
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string            `json:"description,omitempty"`
+	Labels      *map[string]string `json:"labels,omitempty"`
+	// The app type.
+	Type AppType `json:"type"`
+	// The Stripe secret API key used to authenticate API requests.
+	SecretAPIKey *string `json:"secret_api_key,omitempty"`
+}

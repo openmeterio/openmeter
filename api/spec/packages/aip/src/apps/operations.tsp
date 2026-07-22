@@ -56,6 +56,20 @@ interface AppsOperations {
     | Shared.DeleteResponse
     | Common.NotFound
     | Common.ErrorResponses;
+
+  /**
+   * Update an installed app.
+   */
+  @put
+  @operationId("update-app")
+  @summary("Update app")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  update(@path appId: Shared.ULID, @body body: UpdateAppRequest):
+    | Shared.UpdateResponse<App>
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
 
 interface AppCatalogOperations {

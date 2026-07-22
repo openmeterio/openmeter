@@ -112,6 +112,29 @@ func (s *AppsService) Uninstall(ctx context.Context, appID string) error {
 	return err
 }
 
+// Update an installed app.
+func (s *AppsService) Update(ctx context.Context, appID string, request UpdateAppRequest) (*App, error) {
+	if appID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "appID", ErrEmptyID)
+	}
+
+	path := "/openmeter/apps/{appId}"
+
+	path = replacePathParam(path, "appId", appID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPut, path, nil, request, "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out App
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // List available apps.
 func (s *AppsService) ListCatalog(ctx context.Context, params AppCatalogItemListParams) (*AppCatalogItemPagePaginatedResponse, error) {
 	path := "/openmeter/app-catalog"

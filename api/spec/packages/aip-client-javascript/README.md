@@ -423,6 +423,7 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.apps.list`           | `GET /openmeter/apps`                  | List installed apps.             |
 | `client.internal.apps.get`            | `GET /openmeter/apps/{appId}`          | Get an installed app.            |
 | `client.internal.apps.uninstall`      | `DELETE /openmeter/apps/{appId}`       | Uninstall an app by ID.          |
+| `client.internal.apps.update`         | `PUT /openmeter/apps/{appId}`          | Update an installed app.         |
 | `client.internal.apps.listCatalog`    | `GET /openmeter/app-catalog`           | List available apps.             |
 | `client.internal.apps.getCatalogItem` | `GET /openmeter/app-catalog/{appType}` | Get an app catalog item by type. |
 | `client.internal.apps.install`        | `POST /openmeter/app-catalog/install`  | Install an app from the catalog. |

@@ -14,6 +14,7 @@ type Handler interface {
 	ListApps() ListAppsHandler
 	GetApp() GetAppHandler
 	UninstallApp() UninstallAppHandler
+	UpdateApp() UpdateAppHandler
 
 	CatalogHandler
 }
