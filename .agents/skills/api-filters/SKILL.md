@@ -309,6 +309,131 @@ Multiple range operators on the same field (e.g. `gte`+`lte`) are packed into `A
 
 The Kong AIP spec allows `?filter[tags][eq][any]=urgent` and `[all]` quantifiers on **list-typed** fields. **The current OpenMeter implementation does NOT support quantifiers.** If a request comes in for a list field, raise this with the user before attempting to add it — this is a parser-level extension, not a per-endpoint change.
 
+### Status / enum filters with extended sub-statuses
+
+When a domain type uses _extended_ status values in the database (e.g. `draft.created`,
+`draft.waiting_auto_approval`) but the API exposes only _short_ values (`draft`), use
+`filters.FromAPIStatusFilter[T]` instead of the generic `FromAPIFilterString` /
+`FromAPIFilterStringExact` converters.
+
+**`FromAPIStatusFilter[T]` constraints:** `T` must be `~string + comparable` and implement
+`Values() []T` and `Validate() error`.
+
+**Return value:** `([]T, error)` — a validated slice, **not** a `*filter.*` predicate.
+The converter rejects `neq` (enum membership cannot be inverted cleanly with prefix search).
+
+**Pattern in the handler:**
+
+```go
+statuses, err := filters.FromAPIStatusFilter[billing.InvoiceShortStatus](ctx, params.Filter.Status)
+if err != nil {
+    return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+        {Field: "filter[status]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+    })
+}
+req.Statuses = lo.Map(statuses, func(s billing.InvoiceShortStatus, _ int) string { return string(s) })
+```
+
+Pass `req.Statuses []string` to the adapter's existing prefix-match logic (`LIKE 'draft%'`) rather
+than using `filter.ApplyToQuery` — exact equality (`status = 'draft'`) would match nothing because
+the DB stores extended values.
+
+**Short status type pattern:** when the existing domain status type validates only extended values
+(e.g. `StandardInvoiceStatus.Validate()` only accepts `draft.created`), add a parallel short-status
+type whose `Values()` derives from the extended set via `ShortStatus()`:
+
+```go
+type InvoiceShortStatus string
+
+func (s InvoiceShortStatus) Values() []InvoiceShortStatus {
+    return lo.Uniq(lo.Map(validStatuses, func(st StandardInvoiceStatus, _ int) InvoiceShortStatus {
+        return InvoiceShortStatus(st.ShortStatus())
+    }))
+}
+
+func (s InvoiceShortStatus) Validate() error {
+    if !lo.Contains(s.Values(), s) {
+        return fmt.Errorf("invalid invoice status: %s", s)
+    }
+    return nil
+}
+```Expand commentComment on lines R345 to R360Resolved
+
+This keeps the valid-values list authoritative from the extended type and satisfies the
+`FromAPIStatusFilter[T]` constraint without duplicating the enum.
+
+Reference: `openmeter/billing/stdinvoice.go` (`InvoiceShortStatus`) + `api/v3/filters/convert.go`
+(`FromAPIStatusFilter`).
+
+### v1 API boundary: before/after time pairs to `*filter.FilterTime`
+
+When a v1 handler exposes separate `*time.Time` `_after` / `_before` query parameters and the
+service input has been migrated to `*filter.FilterTime`, use `filter.NewFilterTime` from
+`pkg/filter/filter.go` — do **not** inline the `And` node construction or write a local helper:
+
+```go
+req.IssuedAt    = filter.NewFilterTime(input.IssuedAfter, input.IssuedBefore)
+req.PeriodStart = filter.NewFilterTime(input.PeriodStartAfter, input.PeriodStartBefore)
+req.CreatedAt   = filter.NewFilterTime(input.CreatedAfter, input.CreatedBefore)
+```
+
+`filter.NewFilterTime(after, before *time.Time)` returns nil when both inputs are nil, a single
+`Gte`/`Lte` node for one-sided bounds, and an `And:[{Gte:after},{Lte:before}]` node for two-sided
+bounds. It is not needed in v3 handlers, where `FromAPIFilterDateTime` already builds `And` chains
+from the deepObject syntax.
+
+Reference: `pkg/filter/filter.go` (`NewFilterTime`).
+
+### Sort field mapping on list endpoints
+
+Sort field validation and mapping belongs in `convert.go` alongside domain↔API type converters,
+not in `list.go`. Name the function `FromAPI<Resource>SortField` and use
+`apierrors.NewUnsupportedSortFieldError` to produce the 400:
+
+```go
+// convert.go
+// FromAPIInvoiceSortField is responsible for mapping the API sort field to the internal representation.
+// If that is not possible returns with apierrors.NewUnsupportedSortFieldError(...)
+func FromAPIInvoiceSortField(ctx context.Context, field string) (api.InvoiceOrderBy, error) {
+    switch field {
+    case "issued_at":
+        return api.InvoiceOrderByIssuedAt, nil
+    case "created_at":
+        return api.InvoiceOrderByCreatedAt, nil
+    case "service_period_start":
+        return api.InvoiceOrderByPeriodStart, nil
+    default:
+        return "", apierrors.NewUnsupportedSortFieldError(ctx, field, "issued_at", "created_at", "service_period_start")
+    }
+}
+```
+
+In the handler decoder, call it directly — no `validSortField` bool helper:
+
+```go
+// list.go
+if params.Sort != nil {
+    sort, err := request.ParseSortBy(*params.Sort)
+    if err != nil {
+        return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+            {Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+        })
+    }
+    req.OrderBy, err = FromAPIInvoiceSortField(ctx, sort.Field)
+    if err != nil {
+        return req, err
+    }
+    req.Order = sort.Order.ToSortxOrder()
+}
+```
+
+`apierrors.NewUnsupportedSortFieldError(ctx, field, supported...)` constructs a 400 with
+`Field: "sort"` and a human-readable reason listing the supported field names — no manual
+error wrapping in the handler.
+
+Reference: `api/v3/handlers/billinginvoices/convert.go` (`FromAPIInvoiceSortField`) +
+`api/v3/apierrors/errors_ctors.go` (`NewUnsupportedSortFieldError`).
+
 ### Things the parser intentionally does NOT support
 
 - AIP-160 expression syntax (free-form `name = "x" AND age > 5`)
@@ -338,7 +463,7 @@ Representative error messages from `Parse`:
 
 - `api/v3/filters/filter.go` — API-layer filter structs (no methods; plain data shapes)
 - `api/v3/filters/parse.go` — `Parse` entry point, operator constants, per-type parsers, security caps (lines 16–19)
-- `api/v3/filters/convert.go` — `FromAPIFilter*` helpers (String, ULID, Label, Labels, StringExact, Numeric, DateTime, Boolean)
+- `api/v3/filters/convert.go` — `FromAPIFilter*` helpers (String, ULID, Label, Labels, StringExact, Numeric, DateTime, Boolean, `FromAPIStatusFilter[T]`)
 - `api/v3/filters/parse_test.go`, `api/v3/filters/convert_test.go` — canonical examples of supported syntax
 - `pkg/filter/filter.go` — `Filter` interface, predicate types, `Validate`, `Select`, `ApplyToQuery` (line 743)
 - `api/v3/handlers/customers/list.go` — reference handler using `FromAPIFilterString`
@@ -353,4 +478,5 @@ Representative error messages from `Parse`:
 - Every API filter field **must** appear on the generated `params.Filter` struct (from TypeSpec) for handlers to see it. Run `make gen-api` after editing TypeSpec.
 - Validation belongs on the `pkg/filter.*` predicate (called from the service input's `Validate()`), not on the API-layer types.
 - Do not invent new operators or quantifiers without first updating `api/v3/filters/parse.go`, `pkg/filter.FilterX.Validate`, and the matching `FromAPIFilter*` — the parser is the contract.
+- `FromAPIStatusFilter[T]` returns `([]T, error)`, not a `*filter.*` predicate — it is for validated enum filters, not `ApplyToQuery` pipelines. Use it when the DB stores extended sub-statuses but the API accepts short keys.
 - When in doubt about an operator's behavior, read `parse_test.go` and `convert_test.go` — they are the executable spec.
