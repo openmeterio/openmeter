@@ -202,7 +202,7 @@ func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespac
 		},
 
 		Number:   lo.ToPtr("TEST-INV-1"),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{
 			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 				Namespace: namespace,

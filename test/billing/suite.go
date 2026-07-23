@@ -466,7 +466,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: in.Customer.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(
 					billing.NewFlatFeeLineInput{
@@ -476,7 +476,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 						ManagedBy:     billing.ManuallyManagedLine,
 						Name:          "Test item1",
 						PerUnitAmount: alpacadecimal.NewFromFloat(100),
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						Metadata: map[string]string{
 							"key": "value",
 						},
@@ -491,7 +491,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 						ManagedBy:     billing.ManuallyManagedLine,
 						Name:          "Test item2",
 						PerUnitAmount: alpacadecimal.NewFromFloat(200),
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						Metadata: map[string]string{
 							"key": "value",
 						},

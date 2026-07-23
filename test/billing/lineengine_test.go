@@ -242,7 +242,7 @@ func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForAp
 			Namespace: customerEntity.Namespace,
 			ID:        customerEntity.ID,
 		},
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []ombilling.GatheringLine{{
 			GatheringLineBase: ombilling.GatheringLineBase{
 				ManagedResource: models.ManagedResource{
@@ -397,7 +397,7 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 			Namespace: customerEntity.Namespace,
 			ID:        customerEntity.ID,
 		},
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []ombilling.GatheringLine{{
 			GatheringLineBase: ombilling.GatheringLineBase{
 				ManagedResource: models.ManagedResource{

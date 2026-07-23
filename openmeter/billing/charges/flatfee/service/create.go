@@ -195,6 +195,11 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		managedBy = billing.ManuallyManagedLine
 	}
 
+	invoiceCurrency, err := flatFee.GetInvoiceCurrency()
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("getting invoice currency: %w", err)
+	}
+
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -217,7 +222,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 			),
 			FeatureKey: lo.FromPtr(lineIntent.FeatureKey),
 
-			Currency:      lineIntent.Currency.GetCode(),
+			Currency:      invoiceCurrency,
 			ServicePeriod: lineIntent.ServicePeriod,
 			InvoiceAt:     lineIntent.InvoiceAt,
 

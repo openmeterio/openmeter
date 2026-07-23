@@ -118,6 +118,11 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		unitConfig = lo.ToPtr(intent.UnitConfig.Clone())
 	}
 
+	invoiceCurrency, err := charge.GetInvoiceCurrency()
+	if err != nil {
+		return usagebased.ChargeWithGatheringLine{}, fmt.Errorf("getting invoice currency: %w", err)
+	}
+
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -134,7 +139,7 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 			FeatureKey: intent.FeatureKey,
 			UnitConfig: unitConfig,
 
-			Currency:      intent.Currency.GetCode(),
+			Currency:      invoiceCurrency,
 			ServicePeriod: servicePeriod,
 			InvoiceAt:     invoiceAt,
 

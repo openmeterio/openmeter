@@ -320,7 +320,7 @@ func (u *updater) provisionUpcomingLines(ctx context.Context, customerID custome
 		return nil
 	}
 
-	linesByCurrency := lo.GroupBy(lines, func(l billing.GatheringLine) currencyx.Code {
+	linesByCurrency := lo.GroupBy(lines, func(l billing.GatheringLine) currencyx.FiatCode {
 		return l.Currency
 	})
 

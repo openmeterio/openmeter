@@ -826,7 +826,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		s.Require().Len(lines, 1)
 
 		line := lines[0]
-		s.Equal(USD, line.Currency)
+		s.Equal(currencyx.FiatCode(USD), line.Currency)
 		s.Equal(timeutil.ClosedPeriod{
 			From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
 			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),

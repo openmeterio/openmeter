@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -82,6 +83,25 @@ func (c ChargeBase) GetCustomerID() customer.CustomerID {
 
 func (c ChargeBase) GetCurrency() currencies.Currency {
 	return c.Intent.GetCurrency()
+}
+
+func (c ChargeBase) GetInvoiceCurrency() (currencyx.FiatCode, error) {
+	currency := c.GetCurrency()
+	if currency.IsFiat() {
+		return currencyx.FiatCode(currency.GetCode()), nil
+	}
+
+	costBasisIntent := c.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		return "", errors.New("cost basis intent is required for a custom-currency invoice")
+	}
+
+	fiatCurrency, err := costBasisIntent.GetFiatCurrency()
+	if err != nil {
+		return "", fmt.Errorf("getting cost basis fiat currency: %w", err)
+	}
+
+	return fiatCurrency.GetFiatCode(), nil
 }
 
 // GetIntentDeletedAt returns the effective intent deletion timestamp.

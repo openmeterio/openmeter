@@ -114,7 +114,7 @@ func validStandardLineForValidation() StandardLine {
 			},
 			ManagedBy: SystemManagedLine,
 			InvoiceID: "inv_123",
-			Currency:  currencyx.Code("USD"),
+			Currency:  currencyx.FiatCode("USD"),
 			Period: timeutil.ClosedPeriod{
 				From: start,
 				To:   start.Add(time.Hour),

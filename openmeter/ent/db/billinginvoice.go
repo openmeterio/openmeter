@@ -119,7 +119,7 @@ type BillingInvoice struct {
 	// DeletionSource holds the value of the "deletion_source" field.
 	DeletionSource *billing.ChangeSource `json:"deletion_source,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	Currency currencyx.FiatCode `json:"currency,omitempty"`
 	// DueAt holds the value of the "due_at" field.
 	DueAt *time.Time `json:"due_at,omitempty"`
 	// Status holds the value of the "status" field.
@@ -648,7 +648,7 @@ func (_m *BillingInvoice) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.Currency = currencyx.FiatCode(value.String)
 			}
 		case billinginvoice.FieldDueAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

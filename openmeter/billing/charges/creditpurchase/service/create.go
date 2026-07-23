@@ -95,9 +95,8 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 
 	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
 	totalCost := intent.CreditAmount.Mul(invoiceSettlement.CostBasis)
-	calc, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(invoiceSettlement.Currency).
-		Build()
+	invoiceCurrency := currencyx.FiatCode(invoiceSettlement.Currency)
+	calc, err := invoiceCurrency.AsFiatCurrency()
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("creating currency calculator: %w", err)
 	}
@@ -134,7 +133,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 					},
 				),
 			),
-			Currency:      invoiceSettlement.Currency,
+			Currency:      invoiceCurrency,
 			ServicePeriod: intent.ServicePeriod,
 			InvoiceAt:     intent.CalculateEffectiveAt(),
 			TaxConfig:     lo.ToPtr(intent.TaxConfig.ToTaxConfig()),

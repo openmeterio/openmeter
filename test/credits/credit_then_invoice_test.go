@@ -5314,7 +5314,7 @@ func (s *CreditThenInvoiceTestSuite) mustGatheringLinesForCharge(namespace, cust
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(s.T().Context(), billing.ListGatheringInvoicesInput{
 		Namespaces:     []string{namespace},
 		Customers:      []string{customerID},
-		Currencies:     []currencyx.Code{USD},
+		Currencies:     []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		IncludeDeleted: includeDeletedLines,
 		Expand:         expand,
 	})

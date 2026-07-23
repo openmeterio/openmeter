@@ -91,7 +91,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
-				Currency: currencyx.Code(currency.USD),
+				Currency: currencyx.FiatCode(currency.USD),
 				Lines: []billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{
@@ -105,7 +105,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 
 							ManagedBy: billing.ManuallyManagedLine,
 
-							Currency: currencyx.Code(currency.USD),
+							Currency: currencyx.FiatCode(currency.USD),
 							RateCardDiscounts: billing.Discounts{
 								Percentage: &billing.PercentageDiscount{
 									PercentageDiscount: productcatalog.PercentageDiscount{
@@ -221,7 +221,7 @@ func (s *DiscountsTestSuite) TestFlatPriceUsageDiscountIsNotPersisted() {
 	// - the pending line is created
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -344,7 +344,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -358,7 +358,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 
 						ManagedBy: billing.ManuallyManagedLine,
 
-						Currency: currencyx.Code(currency.USD),
+						Currency: currencyx.FiatCode(currency.USD),
 						RateCardDiscounts: billing.Discounts{
 							Usage: &billing.UsageDiscount{
 								UsageDiscount: productcatalog.UsageDiscount{

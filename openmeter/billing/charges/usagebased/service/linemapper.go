@@ -35,9 +35,7 @@ func intentFromManualCreatedLine(
 		return usagebased.Intent{}, fmt.Errorf("line id is required")
 	}
 
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(line.GetCurrency()).
-		Build()
+	currency, err := line.GetCurrency().AsFiatCurrency()
 	if err != nil {
 		return usagebased.Intent{}, fmt.Errorf("resolving fiat currency %q: %w", line.GetCurrency(), err)
 	}
@@ -133,9 +131,7 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 		stdLine.UsageBased = &billing.UsageBasedLine{}
 	}
 
-	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(stdLine.Currency).
-		Build()
+	cur, err := stdLine.Currency.AsFiatCurrency()
 	if err != nil {
 		return fmt.Errorf("creating currency calculator: %w", err)
 	}

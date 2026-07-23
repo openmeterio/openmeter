@@ -117,7 +117,7 @@ func newBookPaymentAuthorizedInput(t testing.TB) BookInvoicedPaymentAuthorizedIn
 					Name:            "line-1",
 				},
 				ManagedBy: billing.SystemManagedLine,
-				Currency:  currencyx.Code("USD"),
+				Currency:  currencyx.FiatCode("USD"),
 				InvoiceID: "invoice-1",
 				InvoiceAt: now,
 				Period: timeutil.ClosedPeriod{

@@ -78,10 +78,11 @@ func intentFromManualCreatedLine(
 		return flatfee.Intent{}, fmt.Errorf("line id is required")
 	}
 
-	currency, err := currencies.NewFiatCurrency(line.GetCurrency())
+	fiatCurrency, err := line.GetCurrency().AsFiatCurrency()
 	if err != nil {
 		return flatfee.Intent{}, fmt.Errorf("resolving fiat currency %q: %w", line.GetCurrency(), err)
 	}
+	currency := currencies.Currency{Currency: fiatCurrency}
 
 	if chargeID := line.GetChargeID(); chargeID != nil && *chargeID != "" {
 		return flatfee.Intent{}, fmt.Errorf("line[%s]: charge id must be empty for manual create", line.GetID())

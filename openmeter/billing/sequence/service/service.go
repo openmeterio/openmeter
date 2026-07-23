@@ -68,7 +68,7 @@ func New(config Config) (*Service, error) {
 
 type sequenceInput struct {
 	CustomerPrefix     string
-	Currency           currencyx.Code
+	Currency           currencyx.FiatCode
 	NextSequenceNumber string
 }
 

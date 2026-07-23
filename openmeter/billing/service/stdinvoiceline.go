@@ -173,7 +173,7 @@ type upsertGatheringInvoiceForCurrencyResponse struct {
 	IsInvoiceNew bool
 }
 
-func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.Code, customerProfile billing.CustomerOverrideWithDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
+func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.FiatCode, customerProfile billing.CustomerOverrideWithDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
 	// We would want to stage a pending invoice Line
 	pendingInvoiceList, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Page: pagination.Page{
@@ -182,7 +182,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		},
 		Customers:      []string{customerProfile.Customer.ID},
 		Namespaces:     []string{customerProfile.Customer.Namespace},
-		Currencies:     []currencyx.Code{currency},
+		Currencies:     []currencyx.FiatCode{currency},
 		OrderBy:        api.InvoiceOrderByCreatedAt,
 		Order:          sortx.OrderAsc,
 		IncludeDeleted: true,

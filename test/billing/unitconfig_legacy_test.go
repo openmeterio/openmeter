@@ -67,7 +67,7 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{

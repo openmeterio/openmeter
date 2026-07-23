@@ -305,7 +305,7 @@ func (s *StripeInvoiceTestSuite) expectStripeInvoiceCreate(appID app.AppID, cust
 			InvoiceID:           invoiceID,
 			AutomaticTaxEnabled: true,
 			CollectionMethod:    billing.CollectionMethodChargeAutomatically,
-			Currency:            currencyx.Code("USD"),
+			Currency:            currencyx.FiatCode("USD"),
 			StripeCustomerID:    stripeCustomerID,
 		}).
 		Once().

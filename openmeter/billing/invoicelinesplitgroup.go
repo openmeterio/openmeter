@@ -59,7 +59,7 @@ type SplitLineGroupCreate struct {
 	Price             *productcatalog.Price  `json:"price"`
 	FeatureKey        *string                `json:"featureKey,omitempty"`
 	Subscription      *SubscriptionReference `json:"subscription,omitempty"`
-	Currency          currencyx.Code         `json:"currency"`
+	Currency          currencyx.FiatCode     `json:"currency"`
 	UniqueReferenceID *string                `json:"childUniqueReferenceId,omitempty"`
 }
 
@@ -127,7 +127,7 @@ type SplitLineGroup struct {
 	Price             *productcatalog.Price  `json:"price"`
 	FeatureKey        *string                `json:"featureKey,omitempty"`
 	Subscription      *SubscriptionReference `json:"subscription,omitempty"`
-	Currency          currencyx.Code         `json:"currency"`
+	Currency          currencyx.FiatCode     `json:"currency"`
 	UniqueReferenceID *string                `json:"childUniqueReferenceId,omitempty"`
 }
 

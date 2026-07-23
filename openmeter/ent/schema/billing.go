@@ -290,7 +290,7 @@ type InvoiceLineBaseMixin struct {
 func (InvoiceLineBaseMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("currency").
-			GoType(currencyx.Code("")).
+			GoType(currencyx.FiatCode("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
@@ -326,7 +326,7 @@ func (StandardInvoiceLineIntentMixin) Annotations() []schema.Annotation {
 func (StandardInvoiceLineIntentMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("currency").
-			GoType(currencyx.Code("")).
+			GoType(currencyx.FiatCode("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
@@ -810,7 +810,7 @@ func (BillingInvoiceSplitLineGroup) Mixin() []ent.Mixin {
 func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("currency").
-			GoType(currencyx.Code("")).
+			GoType(currencyx.FiatCode("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
@@ -1244,7 +1244,7 @@ func (BillingInvoice) Fields() []ent.Field {
 			Nillable(),
 
 		field.String("currency").
-			GoType(currencyx.Code("")).
+			GoType(currencyx.FiatCode("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{

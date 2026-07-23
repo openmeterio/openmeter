@@ -46,7 +46,7 @@ type BillingGatheringInvoiceLine struct {
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	Currency currencyx.FiatCode `json:"currency,omitempty"`
 	// ServicePeriodStart holds the value of the "service_period_start" field.
 	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
 	// ServicePeriodEnd holds the value of the "service_period_end" field.
@@ -291,7 +291,7 @@ func (_m *BillingGatheringInvoiceLine) assignValues(columns []string, values []a
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.Currency = currencyx.FiatCode(value.String)
 			}
 		case billinggatheringinvoiceline.FieldServicePeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {

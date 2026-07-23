@@ -30,7 +30,7 @@ type GatheringInvoiceBase struct {
 
 	Number        string                `json:"number"`
 	CustomerID    string                `json:"customerID"`
-	Currency      currencyx.Code        `json:"currency"`
+	Currency      currencyx.FiatCode    `json:"currency"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
 	NextCollectionAt *time.Time `json:"nextCollectionAt,omitempty"`
@@ -414,7 +414,7 @@ type GatheringLineBase struct {
 	Engine      LineEngineType       `json:"engine,omitempty"`
 	InvoiceID   string               `json:"invoiceID"`
 
-	Currency      currencyx.Code        `json:"currency"`
+	Currency      currencyx.FiatCode    `json:"currency"`
 	ServicePeriod timeutil.ClosedPeriod `json:"period"`
 	InvoiceAt     time.Time             `json:"invoiceAt"`
 	Price         productcatalog.Price  `json:"price"`
@@ -453,7 +453,7 @@ func (i GatheringLineBase) GetTaxConfig() *TaxConfig {
 	return FromProductCatalog(i.TaxConfig)
 }
 
-func (i GatheringLineBase) GetCurrency() currencyx.Code {
+func (i GatheringLineBase) GetCurrency() currencyx.FiatCode {
 	return i.Currency
 }
 
@@ -883,7 +883,7 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 
 type CreatePendingInvoiceLinesInput struct {
 	Customer customer.CustomerID `json:"customer"`
-	Currency currencyx.Code      `json:"currency"`
+	Currency currencyx.FiatCode  `json:"currency"`
 
 	Lines []GatheringLine `json:"lines"`
 }
@@ -928,7 +928,7 @@ type CreatePendingInvoiceLinesResult struct {
 type CreateGatheringInvoiceAdapterInput struct {
 	Namespace string
 	Number    string
-	Currency  currencyx.Code
+	Currency  currencyx.FiatCode
 	Metadata  map[string]string
 
 	Description      *string
@@ -976,7 +976,7 @@ type ListGatheringInvoicesInput struct {
 	ExcludedNamespaces []string
 	IDs                []string
 	Customers          []string
-	Currencies         []currencyx.Code
+	Currencies         []currencyx.FiatCode
 	OrderBy            api.InvoiceOrderBy
 	Order              sortx.Order
 	IncludeDeleted     bool
@@ -1094,5 +1094,5 @@ func (i UpdateGatheringInvoiceInput) Validate() error {
 type PrepareBillableLinesInput = InvoicePendingLinesInput
 
 type PrepareBillableLinesResult struct {
-	LinesByCurrency map[currencyx.Code]GatheringLines
+	LinesByCurrency map[currencyx.FiatCode]GatheringLines
 }

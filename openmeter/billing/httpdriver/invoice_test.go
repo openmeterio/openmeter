@@ -218,7 +218,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 	// Let's provision a gathering invoice with a single flat fee line
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(
 				billing.NewFlatFeeLineInput{

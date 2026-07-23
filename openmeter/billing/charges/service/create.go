@@ -394,7 +394,7 @@ type currencyAndCustomerID struct {
 }
 
 type currencyCodeAndCustomerID struct {
-	currency   currencyx.Code
+	currency   currencyx.FiatCode
 	customerID customer.CustomerID
 }
 

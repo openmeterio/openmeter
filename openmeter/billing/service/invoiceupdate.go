@@ -746,7 +746,7 @@ func (s *Service) taxCodeIDWithBackfill(ctx context.Context, namespace string, t
 
 type preallocatedCreatedStandardLinesInput struct {
 	Invoice      billing.InvoiceID
-	Currency     currencyx.Code
+	Currency     currencyx.FiatCode
 	SchemaLevel  int
 	CreatedLines []billing.GenericInvoiceLine
 }

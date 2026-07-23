@@ -79,7 +79,7 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 					Namespace: ns,
 					ID:        params.CustomerID,
 				},
-				Currency: currencyx.Code(req.Currency),
+				Currency: currencyx.FiatCode(req.Currency),
 				Lines:    lineEntities,
 			}, nil
 		},
@@ -259,7 +259,7 @@ func mapTaxConfigToAPI(to *productcatalog.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(productcataloghttp.FromTaxConfig(*to))
 }
 
-func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.Code, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (*[]api.InvoiceDetailedLine, error) {
+func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (*[]api.InvoiceDetailedLine, error) {
 	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (api.InvoiceDetailedLine, error) {
 		return mapDetailedLineToAPI(line, currency, invoiceAt, taxConfig)
 	})
@@ -270,7 +270,7 @@ func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.Code,
 	return lo.ToPtr(mappedLines), nil
 }
 
-func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.Code, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (api.InvoiceDetailedLine, error) {
+func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (api.InvoiceDetailedLine, error) {
 	amountDiscountsAPI, err := mapInvoiceLineAmountDiscountsToAPI(line.AmountDiscounts)
 	if err != nil {
 		return api.InvoiceDetailedLine{}, fmt.Errorf("failed to map amount discounts: %w", err)

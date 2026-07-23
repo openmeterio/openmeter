@@ -310,7 +310,7 @@ func (e *BillingGatheringInvoiceLine) GetDescription() *string {
 	return e.Description
 }
 
-func (e *BillingGatheringInvoiceLine) GetCurrency() currencyx.Code {
+func (e *BillingGatheringInvoiceLine) GetCurrency() currencyx.FiatCode {
 	return e.Currency
 }
 
@@ -546,7 +546,7 @@ func (e *BillingInvoiceLine) GetDescription() *string {
 	return e.Description
 }
 
-func (e *BillingInvoiceLine) GetCurrency() currencyx.Code {
+func (e *BillingInvoiceLine) GetCurrency() currencyx.FiatCode {
 	return e.Currency
 }
 

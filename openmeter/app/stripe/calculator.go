@@ -12,10 +12,8 @@ import (
 )
 
 // NewStripeCalculator creates a new StripeCalculator.
-func NewStripeCalculator(currencyCode currencyx.Code) (StripeCalculator, error) {
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(currencyCode).
-		Build()
+func NewStripeCalculator(currencyCode currencyx.FiatCode) (StripeCalculator, error) {
+	currency, err := currencyCode.AsFiatCurrency()
 	if err != nil {
 		return StripeCalculator{}, fmt.Errorf("failed to get stripe calculator: %w", err)
 	}
