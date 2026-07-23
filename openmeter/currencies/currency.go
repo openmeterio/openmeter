@@ -11,6 +11,45 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type CurrencyReference struct {
+	Code             currencyx.Code `json:"code"`
+	CustomCurrencyID *string        `json:"custom_currency_id,omitempty"`
+
+	resolved *Currency
+}
+
+func (r CurrencyReference) IsResolved() bool {
+	return r.resolved != nil
+}
+
+func (r CurrencyReference) Resolved() (*Currency, bool) {
+	return r.resolved, r.resolved != nil
+}
+
+func (r CurrencyReference) String() string {
+	if r.CustomCurrencyID != nil {
+		return fmt.Sprintf("%s [type=custom id=%s]", r.Code, *r.CustomCurrencyID)
+	}
+
+	return fmt.Sprintf("%s [type=fiat]", r.Code)
+}
+
+func (r CurrencyReference) Validate() error {
+	var errs []error
+
+	if err := r.Code.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if r.Code.Type() == currencyx.CurrencyTypeCustom {
+		if r.CustomCurrencyID == nil {
+			errs = append(errs, errors.New("custom currency id is required"))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type Currency struct {
 	models.ManagedModel
 	models.NamespacedID
