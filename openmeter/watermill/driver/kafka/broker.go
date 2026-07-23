@@ -80,14 +80,14 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 		loggerFunc: logger.Debug,
 	}
 
-	if o.KafkaConfig.SecurityProtocol == "SASL_SSL" {
+	// Both SASL_SSL and SASL_PLAINTEXT authenticate via SASL. They differ only in
+	// whether the connection is wrapped in TLS: SASL_SSL uses TLS, SASL_PLAINTEXT
+	// sends the SASL exchange (including credentials) over an unencrypted socket.
+	// PLAINTEXT and SSL (no SASL) are left untouched and need no SASL/credentials setup.
+	switch o.KafkaConfig.SecurityProtocol {
+	case "SASL_SSL", "SASL_PLAINTEXT":
 		config.Net.SASL.Enable = true
 		config.Net.SASL.Handshake = true
-
-		config.Net.TLS.Enable = true
-		// Sarama has issues with min version TLS 1.3, so let's use the defaults for now
-		// remote error: tls: protocol version not supported
-		config.Net.TLS.Config = &tls.Config{} // nosemgrep
 
 		config.Net.SASL.User = o.KafkaConfig.SaslUsername
 		config.Net.SASL.Password = o.KafkaConfig.SaslPassword
@@ -96,15 +96,22 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 
 		switch o.KafkaConfig.SaslMechanisms {
 		case sarama.SASLTypeSCRAMSHA256:
-			config.Net.SASL.Mechanism = sarama.SASLMechanism(o.KafkaConfig.SaslMechanisms)
 			config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
 				return &XDGSCRAMClient{HashGeneratorFcn: SHA256}
 			}
 		case sarama.SASLTypeSCRAMSHA512:
-			config.Net.SASL.Mechanism = sarama.SASLMechanism(o.KafkaConfig.SaslMechanisms)
 			config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
 				return &XDGSCRAMClient{HashGeneratorFcn: SHA512}
 			}
+		}
+
+		// Only SASL_SSL wraps the SASL exchange in TLS. SASL_PLAINTEXT authenticates
+		// over an unencrypted socket, so we must NOT enable TLS for it.
+		if o.KafkaConfig.SecurityProtocol == "SASL_SSL" {
+			config.Net.TLS.Enable = true
+			// Sarama has issues with min version TLS 1.3, so let's use the defaults for now
+			// remote error: tls: protocol version not supported
+			config.Net.TLS.Config = &tls.Config{} // nosemgrep
 		}
 	}
 
