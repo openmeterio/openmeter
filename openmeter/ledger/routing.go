@@ -113,27 +113,37 @@ type SubAccountRoute struct {
 	route Route
 }
 
+type SubAccountRouteData struct {
+	ID         string
+	RoutingKey RoutingKey
+	Route      Route
+}
+
 // NewSubAccountRouteFromData hydrates a sub-account route from persisted data.
 // Does not enforce Route & RoutingKey equality due to possible version mismatch.
 // Sets route.Version from the stored routing key so the round-trip is transparent.
-func NewSubAccountRouteFromData(id string, key RoutingKey, route Route) (SubAccountRoute, error) {
-	if id == "" {
+func NewSubAccountRouteFromData(data SubAccountRouteData) (SubAccountRoute, error) {
+	if data.ID == "" {
 		return SubAccountRoute{}, errors.New("route id is required")
 	}
-	if err := route.Validate(); err != nil {
+	if err := data.Route.Validate(); err != nil {
 		return SubAccountRoute{}, fmt.Errorf("route: %w", err)
 	}
 
-	normalizedRoute, err := route.Normalize()
+	normalizedRoute, err := data.Route.Normalize()
 	if err != nil {
 		return SubAccountRoute{}, fmt.Errorf("normalize route: %w", err)
 	}
 
-	normalizedRoute.Version = key.Version()
+	if data.RoutingKey.Version() == RoutingKeyVersionV3 && normalizedRoute.ExchangeSourceCurrency == nil {
+		return SubAccountRoute{}, errors.New("routing key version v3 requires exchange source currency")
+	}
+
+	normalizedRoute.Version = data.RoutingKey.Version()
 
 	return SubAccountRoute{
-		id:    id,
-		key:   key,
+		id:    data.ID,
+		key:   data.RoutingKey,
 		route: normalizedRoute,
 	}, nil
 }

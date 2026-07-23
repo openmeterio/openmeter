@@ -146,6 +146,69 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	})
 }
 
+func TestRepo_GetBalanceBuckets_HydratesExchangeSourceCurrency(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	// given:
+	// - an ACME FBO balance whose V3 route is qualified by USD
+	// when:
+	// - balance buckets hydrate the posting address from SQL
+	// then:
+	// - the route retains USD and can be reused by ledger collection
+	ctx := t.Context()
+	namespace := testNamespace()
+	costBasis := mustDecimal(t, "0.25")
+	sourceCurrency := currencyx.Code("USD")
+	customCurrency := currencyx.Code("ACME")
+	fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
+		Currency:               customCurrency,
+		ExchangeSourceCurrency: &sourceCurrency,
+		CostBasis:              &costBasis,
+		CreditPriority:         lo.ToPtr(1),
+	})
+	counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeBrokerage, ledger.Route{
+		Currency:               customCurrency,
+		ExchangeSourceCurrency: &sourceCurrency,
+		CostBasis:              &costBasis,
+	})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(100), nil, nil),
+		provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-100), nil, nil),
+	}))
+	require.NoError(t, err)
+
+	accountID := fbo.AccountID
+	buckets, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			AccountID: &accountID,
+			Route: ledger.RouteFilter{
+				Currency:               customCurrency,
+				ExchangeSourceCurrency: mo.Some(&sourceCurrency),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, buckets, 1)
+
+	route := buckets[0].Address.Route().Route()
+	require.Equal(t, customCurrency, route.Currency)
+	require.Equal(t, &sourceCurrency, route.ExchangeSourceCurrency)
+	require.NotNil(t, route.CostBasis)
+	require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
+}
+
 func provenanceEntryInput(t *testing.T, sub *ledgeraccount.SubAccountData, amount alpacadecimal.Decimal, sourceChargeID, spendChargeID *string) *transactionstestutils.AnyEntryInput {
 	t.Helper()
 

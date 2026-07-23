@@ -167,7 +167,10 @@ type TransactionGroupInput interface {
 	Namespace() string
 	Transactions() []TransactionInput
 	Annotations() models.Annotations
+	IdempotencyKey() *string
 }
+
+const TransactionGroupIdempotencyKeyMaxLength = 256
 
 // TransactionGroup represents a group of transactions written to the ledger at the same time
 type TransactionGroup interface {

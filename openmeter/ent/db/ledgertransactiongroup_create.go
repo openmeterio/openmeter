@@ -80,6 +80,34 @@ func (_c *LedgerTransactionGroupCreate) SetNillableDeletedAt(v *time.Time) *Ledg
 	return _c
 }
 
+// SetIdempotencyKey sets the "idempotency_key" field.
+func (_c *LedgerTransactionGroupCreate) SetIdempotencyKey(v string) *LedgerTransactionGroupCreate {
+	_c.mutation.SetIdempotencyKey(v)
+	return _c
+}
+
+// SetNillableIdempotencyKey sets the "idempotency_key" field if the given value is not nil.
+func (_c *LedgerTransactionGroupCreate) SetNillableIdempotencyKey(v *string) *LedgerTransactionGroupCreate {
+	if v != nil {
+		_c.SetIdempotencyKey(*v)
+	}
+	return _c
+}
+
+// SetInputFingerprint sets the "input_fingerprint" field.
+func (_c *LedgerTransactionGroupCreate) SetInputFingerprint(v string) *LedgerTransactionGroupCreate {
+	_c.mutation.SetInputFingerprint(v)
+	return _c
+}
+
+// SetNillableInputFingerprint sets the "input_fingerprint" field if the given value is not nil.
+func (_c *LedgerTransactionGroupCreate) SetNillableInputFingerprint(v *string) *LedgerTransactionGroupCreate {
+	if v != nil {
+		_c.SetInputFingerprint(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *LedgerTransactionGroupCreate) SetID(v string) *LedgerTransactionGroupCreate {
 	_c.mutation.SetID(v)
@@ -204,6 +232,16 @@ func (_c *LedgerTransactionGroupCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "LedgerTransactionGroup.updated_at"`)}
 	}
+	if v, ok := _c.mutation.IdempotencyKey(); ok {
+		if err := ledgertransactiongroup.IdempotencyKeyValidator(v); err != nil {
+			return &ValidationError{Name: "idempotency_key", err: fmt.Errorf(`db: validator failed for field "LedgerTransactionGroup.idempotency_key": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.InputFingerprint(); ok {
+		if err := ledgertransactiongroup.InputFingerprintValidator(v); err != nil {
+			return &ValidationError{Name: "input_fingerprint", err: fmt.Errorf(`db: validator failed for field "LedgerTransactionGroup.input_fingerprint": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -259,6 +297,14 @@ func (_c *LedgerTransactionGroupCreate) createSpec() (*LedgerTransactionGroup, *
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(ledgertransactiongroup.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.IdempotencyKey(); ok {
+		_spec.SetField(ledgertransactiongroup.FieldIdempotencyKey, field.TypeString, value)
+		_node.IdempotencyKey = &value
+	}
+	if value, ok := _c.mutation.InputFingerprint(); ok {
+		_spec.SetField(ledgertransactiongroup.FieldInputFingerprint, field.TypeString, value)
+		_node.InputFingerprint = &value
 	}
 	if nodes := _c.mutation.TransactionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -430,6 +476,12 @@ func (u *LedgerTransactionGroupUpsertOne) UpdateNewValues() *LedgerTransactionGr
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(ledgertransactiongroup.FieldCreatedAt)
+		}
+		if _, exists := u.create.mutation.IdempotencyKey(); exists {
+			s.SetIgnore(ledgertransactiongroup.FieldIdempotencyKey)
+		}
+		if _, exists := u.create.mutation.InputFingerprint(); exists {
+			s.SetIgnore(ledgertransactiongroup.FieldInputFingerprint)
 		}
 	}))
 	return u
@@ -706,6 +758,12 @@ func (u *LedgerTransactionGroupUpsertBulk) UpdateNewValues() *LedgerTransactionG
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(ledgertransactiongroup.FieldCreatedAt)
+			}
+			if _, exists := b.mutation.IdempotencyKey(); exists {
+				s.SetIgnore(ledgertransactiongroup.FieldIdempotencyKey)
+			}
+			if _, exists := b.mutation.InputFingerprint(); exists {
+				s.SetIgnore(ledgertransactiongroup.FieldInputFingerprint)
 			}
 		}
 	}))

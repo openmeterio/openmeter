@@ -120,6 +120,11 @@ Uses [ent](https://entgo.io) for schema definition and [Atlas](https://atlasgo.i
    - Also updates `tools/migrate/migrations/atlas.sum`
 4. Versioned migrations run automatically on startup when `postgres.autoMigrate` is set to `migration`; runtime Ent migration is not supported
 
+Keep all schema changes in a pull request in one migration pair. If a follow-up
+schema change is discovered before merge, fold it into that pull request's
+existing migration and regenerate `atlas.sum` instead of adding another
+migration.
+
 **Ent view caveat:** in this repo's current Ent/Atlas setup, schemas declared with `ent.View` can generate query code under `openmeter/ent/db/`, but they do not appear in `openmeter/ent/db/migrate/schema.go` or the generated `migrate.Tables` list. If `atlas migrate --env local diff ...` reports no changes for a new view, verify whether the view exists in generated migration metadata before debugging Atlas; view DDL may need an explicit SQL migration until generator support is added.
 
 **Atlas config:** `atlas.hcl` — schema source is `ent://openmeter/ent/schema`, migrations dir is `file://tools/migrate/migrations`.

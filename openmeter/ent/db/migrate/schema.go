@@ -4592,6 +4592,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "idempotency_key", Type: field.TypeString, Nullable: true, Size: 256},
+		{Name: "input_fingerprint", Type: field.TypeString, Nullable: true, Size: 67},
 	}
 	// LedgerTransactionGroupsTable holds the schema information for the "ledger_transaction_groups" table.
 	LedgerTransactionGroupsTable = &schema.Table{
@@ -4623,6 +4625,14 @@ var (
 				Name:    "ledgertransactiongroup_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{LedgerTransactionGroupsColumns[1], LedgerTransactionGroupsColumns[0]},
+			},
+			{
+				Name:    "ledger_tx_groups_namespace_idempotency_key",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerTransactionGroupsColumns[1], LedgerTransactionGroupsColumns[6]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "idempotency_key IS NOT NULL",
+				},
 			},
 		},
 	}
@@ -6127,6 +6137,10 @@ func init() {
 	LedgerSubAccountsTable.ForeignKeys[1].RefTable = LedgerSubAccountRoutesTable
 	LedgerSubAccountRoutesTable.ForeignKeys[0].RefTable = LedgerAccountsTable
 	LedgerTransactionsTable.ForeignKeys[0].RefTable = LedgerTransactionGroupsTable
+	LedgerTransactionGroupsTable.Annotation = &entsql.Annotation{}
+	LedgerTransactionGroupsTable.Annotation.Checks = map[string]string{
+		"ledger_tx_group_idempotency_pair": "(idempotency_key IS NULL) = (input_fingerprint IS NULL)",
+	}
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	OrganizationDefaultTaxCodesTable.ForeignKeys[0].RefTable = TaxCodesTable
 	OrganizationDefaultTaxCodesTable.ForeignKeys[1].RefTable = TaxCodesTable

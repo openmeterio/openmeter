@@ -85,6 +85,16 @@ func DeletedAt(v time.Time) predicate.LedgerTransactionGroup {
 	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// IdempotencyKey applies equality check predicate on the "idempotency_key" field. It's identical to IdempotencyKeyEQ.
+func IdempotencyKey(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldIdempotencyKey, v))
+}
+
+// InputFingerprint applies equality check predicate on the "input_fingerprint" field. It's identical to InputFingerprintEQ.
+func InputFingerprint(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldInputFingerprint, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.LedgerTransactionGroup {
 	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldNamespace, v))
@@ -288,6 +298,156 @@ func DeletedAtIsNil() predicate.LedgerTransactionGroup {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.LedgerTransactionGroup {
 	return predicate.LedgerTransactionGroup(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// IdempotencyKeyEQ applies the EQ predicate on the "idempotency_key" field.
+func IdempotencyKeyEQ(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyNEQ applies the NEQ predicate on the "idempotency_key" field.
+func IdempotencyKeyNEQ(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldNEQ(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyIn applies the In predicate on the "idempotency_key" field.
+func IdempotencyKeyIn(vs ...string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldIn(FieldIdempotencyKey, vs...))
+}
+
+// IdempotencyKeyNotIn applies the NotIn predicate on the "idempotency_key" field.
+func IdempotencyKeyNotIn(vs ...string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldNotIn(FieldIdempotencyKey, vs...))
+}
+
+// IdempotencyKeyGT applies the GT predicate on the "idempotency_key" field.
+func IdempotencyKeyGT(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldGT(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyGTE applies the GTE predicate on the "idempotency_key" field.
+func IdempotencyKeyGTE(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldGTE(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyLT applies the LT predicate on the "idempotency_key" field.
+func IdempotencyKeyLT(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldLT(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyLTE applies the LTE predicate on the "idempotency_key" field.
+func IdempotencyKeyLTE(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldLTE(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyContains applies the Contains predicate on the "idempotency_key" field.
+func IdempotencyKeyContains(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldContains(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyHasPrefix applies the HasPrefix predicate on the "idempotency_key" field.
+func IdempotencyKeyHasPrefix(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldHasPrefix(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyHasSuffix applies the HasSuffix predicate on the "idempotency_key" field.
+func IdempotencyKeyHasSuffix(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldHasSuffix(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyIsNil applies the IsNil predicate on the "idempotency_key" field.
+func IdempotencyKeyIsNil() predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldIsNull(FieldIdempotencyKey))
+}
+
+// IdempotencyKeyNotNil applies the NotNil predicate on the "idempotency_key" field.
+func IdempotencyKeyNotNil() predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldNotNull(FieldIdempotencyKey))
+}
+
+// IdempotencyKeyEqualFold applies the EqualFold predicate on the "idempotency_key" field.
+func IdempotencyKeyEqualFold(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldEqualFold(FieldIdempotencyKey, v))
+}
+
+// IdempotencyKeyContainsFold applies the ContainsFold predicate on the "idempotency_key" field.
+func IdempotencyKeyContainsFold(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldContainsFold(FieldIdempotencyKey, v))
+}
+
+// InputFingerprintEQ applies the EQ predicate on the "input_fingerprint" field.
+func InputFingerprintEQ(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldInputFingerprint, v))
+}
+
+// InputFingerprintNEQ applies the NEQ predicate on the "input_fingerprint" field.
+func InputFingerprintNEQ(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldNEQ(FieldInputFingerprint, v))
+}
+
+// InputFingerprintIn applies the In predicate on the "input_fingerprint" field.
+func InputFingerprintIn(vs ...string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldIn(FieldInputFingerprint, vs...))
+}
+
+// InputFingerprintNotIn applies the NotIn predicate on the "input_fingerprint" field.
+func InputFingerprintNotIn(vs ...string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldNotIn(FieldInputFingerprint, vs...))
+}
+
+// InputFingerprintGT applies the GT predicate on the "input_fingerprint" field.
+func InputFingerprintGT(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldGT(FieldInputFingerprint, v))
+}
+
+// InputFingerprintGTE applies the GTE predicate on the "input_fingerprint" field.
+func InputFingerprintGTE(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldGTE(FieldInputFingerprint, v))
+}
+
+// InputFingerprintLT applies the LT predicate on the "input_fingerprint" field.
+func InputFingerprintLT(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldLT(FieldInputFingerprint, v))
+}
+
+// InputFingerprintLTE applies the LTE predicate on the "input_fingerprint" field.
+func InputFingerprintLTE(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldLTE(FieldInputFingerprint, v))
+}
+
+// InputFingerprintContains applies the Contains predicate on the "input_fingerprint" field.
+func InputFingerprintContains(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldContains(FieldInputFingerprint, v))
+}
+
+// InputFingerprintHasPrefix applies the HasPrefix predicate on the "input_fingerprint" field.
+func InputFingerprintHasPrefix(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldHasPrefix(FieldInputFingerprint, v))
+}
+
+// InputFingerprintHasSuffix applies the HasSuffix predicate on the "input_fingerprint" field.
+func InputFingerprintHasSuffix(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldHasSuffix(FieldInputFingerprint, v))
+}
+
+// InputFingerprintIsNil applies the IsNil predicate on the "input_fingerprint" field.
+func InputFingerprintIsNil() predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldIsNull(FieldInputFingerprint))
+}
+
+// InputFingerprintNotNil applies the NotNil predicate on the "input_fingerprint" field.
+func InputFingerprintNotNil() predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldNotNull(FieldInputFingerprint))
+}
+
+// InputFingerprintEqualFold applies the EqualFold predicate on the "input_fingerprint" field.
+func InputFingerprintEqualFold(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldEqualFold(FieldInputFingerprint, v))
+}
+
+// InputFingerprintContainsFold applies the ContainsFold predicate on the "input_fingerprint" field.
+func InputFingerprintContainsFold(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldContainsFold(FieldInputFingerprint, v))
 }
 
 // HasTransactions applies the HasEdge predicate on the "transactions" edge.

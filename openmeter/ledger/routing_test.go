@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -53,6 +54,26 @@ func TestBuildRoutingKeyEmptyExchangeSourceCurrency(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, RoutingKeyVersionV1, key.Version())
 	require.NotContains(t, key.Value(), "exchange_source_currency:")
+}
+
+func TestNewSubAccountRouteFromDataRejectsV3WithoutExchangeSourceCurrency(t *testing.T) {
+	key, err := NewRoutingKey(RoutingKeyVersionV3, "currency:ACME|exchange_source_currency:null")
+	require.NoError(t, err)
+
+	_, err = NewSubAccountRouteFromData(SubAccountRouteData{
+		ID:         "route-id",
+		RoutingKey: key,
+		Route: Route{
+			Currency: currencyx.Code("ACME"),
+		},
+	})
+	require.ErrorContains(t, err, "routing key version v3 requires exchange source currency")
+
+	compatibleKey, err := BuildRoutingKey(Route{
+		Currency: currencyx.Code("ACME"),
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV1, compatibleKey.Version())
 }
 
 func TestRouteValidateExchangeSourceCurrency(t *testing.T) {
@@ -220,11 +241,36 @@ func TestValidateCurrency(t *testing.T) {
 		},
 		{
 			name: "custom currency",
-			code: "CREDITS",
+			code: "ACME",
 		},
 		{
-			name:    "invalid currency",
-			code:    "INVALID|CURRENCY",
+			name:    "empty",
+			code:    "",
+			wantErr: true,
+		},
+		{
+			name:    "unknown three character fiat",
+			code:    "ZZZ",
+			wantErr: true,
+		},
+		{
+			name:    "leading space",
+			code:    " ACME",
+			wantErr: true,
+		},
+		{
+			name:    "trailing space",
+			code:    "ACME ",
+			wantErr: true,
+		},
+		{
+			name:    "route delimiter",
+			code:    "AC|ME",
+			wantErr: true,
+		},
+		{
+			name:    "over maximum length",
+			code:    currencyx.Code(strings.Repeat("A", currencyx.CustomCurrencyCodeMaxLength+1)),
 			wantErr: true,
 		},
 	}

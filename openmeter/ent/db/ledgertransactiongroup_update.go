@@ -242,6 +242,12 @@ func (_u *LedgerTransactionGroupUpdate) sqlSave(ctx context.Context) (_node int,
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgertransactiongroup.FieldDeletedAt, field.TypeTime)
 	}
+	if _u.mutation.IdempotencyKeyCleared() {
+		_spec.ClearField(ledgertransactiongroup.FieldIdempotencyKey, field.TypeString)
+	}
+	if _u.mutation.InputFingerprintCleared() {
+		_spec.ClearField(ledgertransactiongroup.FieldInputFingerprint, field.TypeString)
+	}
 	if _u.mutation.TransactionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -637,6 +643,12 @@ func (_u *LedgerTransactionGroupUpdateOne) sqlSave(ctx context.Context) (_node *
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgertransactiongroup.FieldDeletedAt, field.TypeTime)
+	}
+	if _u.mutation.IdempotencyKeyCleared() {
+		_spec.ClearField(ledgertransactiongroup.FieldIdempotencyKey, field.TypeString)
+	}
+	if _u.mutation.InputFingerprintCleared() {
+		_spec.ClearField(ledgertransactiongroup.FieldInputFingerprint, field.TypeString)
 	}
 	if _u.mutation.TransactionsCleared() {
 		edge := &sqlgraph.EdgeSpec{

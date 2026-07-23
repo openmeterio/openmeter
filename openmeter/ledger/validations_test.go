@@ -90,6 +90,7 @@ func TestValidateTransactionInputCurrencyAccounting(t *testing.T) {
 
 func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 	costBasis := alpacadecimal.NewFromFloat(0.7)
+	exchangeSourceCurrency := currencyx.Code("USD")
 	taxCode := "vat"
 	taxBehavior := ledger.TaxBehaviorInclusive
 	creditPriority := 1
@@ -104,6 +105,18 @@ func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 			name: "currency route filter is supported",
 			route: ledger.RouteFilter{
 				Currency: currencyx.Code("USD"),
+			},
+		},
+		{
+			name: "exchange source route filter is supported",
+			route: ledger.RouteFilter{
+				ExchangeSourceCurrency: mo.Some(&exchangeSourceCurrency),
+			},
+		},
+		{
+			name: "source-less route filter is supported",
+			route: ledger.RouteFilter{
+				ExchangeSourceCurrency: mo.Some[*currencyx.Code](nil),
 			},
 		},
 		{

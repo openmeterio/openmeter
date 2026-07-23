@@ -458,7 +458,11 @@ func mustImpactTestEntry(t *testing.T, accountType ledger.AccountType, route led
 	routingKey, err := ledger.BuildRoutingKey(normalizedRoute)
 	require.NoError(t, err)
 
-	subAccountRoute, err := ledger.NewSubAccountRouteFromData("route-id", routingKey, normalizedRoute)
+	subAccountRoute, err := ledger.NewSubAccountRouteFromData(ledger.SubAccountRouteData{
+		ID:         "route-id",
+		RoutingKey: routingKey,
+		Route:      normalizedRoute,
+	})
 	require.NoError(t, err)
 
 	entryAmount := alpacadecimal.NewFromInt(1)

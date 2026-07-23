@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -253,7 +254,12 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 		require.Len(t, filtered.Items, 3)
 		for _, transaction := range filtered.Items {
 			for _, entry := range transaction.Entries() {
-				require.Equal(t, customCurrency, entry.PostingAddress().Route().Route().Currency)
+				route := entry.PostingAddress().Route().Route()
+				require.Equal(t, customCurrency, route.Currency)
+				require.NotNil(t, route.ExchangeSourceCurrency)
+				require.Equal(t, currencyx.Code("USD"), *route.ExchangeSourceCurrency)
+				require.NotNil(t, route.CostBasis)
+				require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
 			}
 		}
 	})
@@ -280,6 +286,122 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 		require.Equal(t, float64(-100), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
 		require.Equal(t, float64(25), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, currencyx.Code("USD"), nil, &costBasis)).InexactFloat64())
 		require.Equal(t, float64(-25), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.WashAccount, currencyx.Code("USD"), nil, &costBasis)).InexactFloat64())
+	})
+
+	t.Run("exact replay does not double the funding lifecycle", func(t *testing.T) {
+		// given:
+		// - one keyed USD to ACME funding and partial-spend group
+		// when:
+		// - the complete five-transaction group is replayed
+		// then:
+		// - every fiat/custom balance and persisted row count remains unchanged
+		env := newTransactionsTestEnv(t)
+		costBasis := alpacadecimal.NewFromFloat(0.25)
+		inputs := fundingLifecycleInputs(t, env, costBasis, alpacadecimal.NewFromInt(40))
+		group := WithIdempotencyKey(
+			"funding:usd-acme",
+			GroupInputs(env.Namespace, nil, inputs...),
+		)
+
+		first, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), group)
+		require.NoError(t, err)
+		countsAfterFirstCommit := queryLedgerRowCounts(t, env)
+
+		second, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), group)
+		require.NoError(t, err)
+
+		require.Equal(t, first.ID(), second.ID())
+		require.Equal(t, countsAfterFirstCommit, queryLedgerRowCounts(t, env))
+		require.Equal(t, 1, countsAfterFirstCommit.Groups)
+		require.Equal(t, len(inputs), countsAfterFirstCommit.Transactions)
+		require.Equal(t, float64(60), env.SumBalance(t, customerFBOSubAccount(t, env, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
+		require.Equal(t, float64(40), env.SumBalance(t, customerAccruedSubAccount(t, env, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
+		require.Equal(t, float64(-100), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
+		require.Equal(t, float64(25), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, currencyx.Code("USD"), nil, &costBasis)).InexactFloat64())
+	})
+
+	t.Run("source fiat remains a durable custom route dimension", func(t *testing.T) {
+		// given:
+		// - equal ACME lots funded independently from USD and EUR
+		// when:
+		// - both brokerage exchanges are committed and queried after hydration
+		// then:
+		// - the source-qualified balances and histories never merge
+		env := newTransactionsTestEnv(t)
+		costBasis := alpacadecimal.NewFromFloat(0.25)
+		customCurrency := currencyx.Code("ACME")
+		usd := currencyx.Code("USD")
+		eur := currencyx.Code("EUR")
+		inputs := env.resolve(
+			t,
+			IssueCustomerReceivableTemplate{
+				At:                     env.Now(),
+				Amount:                 alpacadecimal.NewFromInt(100),
+				Currency:               customCurrency,
+				ExchangeSourceCurrency: &usd,
+				CostBasis:              &costBasis,
+			},
+			ConvertCurrencyTemplate{
+				At:             env.Now(),
+				SourceAmount:   alpacadecimal.NewFromInt(25),
+				TargetAmount:   alpacadecimal.NewFromInt(100),
+				CostBasis:      costBasis,
+				SourceCurrency: usd,
+				TargetCurrency: customCurrency,
+			},
+			IssueCustomerReceivableTemplate{
+				At:                     env.Now(),
+				Amount:                 alpacadecimal.NewFromInt(100),
+				Currency:               customCurrency,
+				ExchangeSourceCurrency: &eur,
+				CostBasis:              &costBasis,
+			},
+			ConvertCurrencyTemplate{
+				At:             env.Now(),
+				SourceAmount:   alpacadecimal.NewFromInt(25),
+				TargetAmount:   alpacadecimal.NewFromInt(100),
+				CostBasis:      costBasis,
+				SourceCurrency: eur,
+				TargetCurrency: customCurrency,
+			},
+		)
+
+		_, err := env.Deps.HistoricalLedger.CommitGroup(
+			t.Context(),
+			WithIdempotencyKey(
+				"funding:two-sources",
+				GroupInputs(env.Namespace, nil, inputs...),
+			),
+		)
+		require.NoError(t, err)
+
+		usdFBO := customerFBOSubAccount(t, env, customCurrency, &usd, &costBasis)
+		eurFBO := customerFBOSubAccount(t, env, customCurrency, &eur, &costBasis)
+		require.NotEqual(t, usdFBO.Address().SubAccountID(), eurFBO.Address().SubAccountID())
+		require.Equal(t, float64(100), env.SumBalance(t, usdFBO).InexactFloat64())
+		require.Equal(t, float64(100), env.SumBalance(t, eurFBO).InexactFloat64())
+
+		for _, source := range []currencyx.Code{usd, eur} {
+			source := source
+			filtered, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+				Namespace: env.Namespace,
+				Limit:     10,
+				Currency:  &customCurrency,
+				Route: ledger.RouteFilter{
+					ExchangeSourceCurrency: mo.Some(&source),
+				},
+			})
+			require.NoError(t, err)
+			require.Len(t, filtered.Items, 2)
+			for _, transaction := range filtered.Items {
+				for _, entry := range transaction.Entries() {
+					route := entry.PostingAddress().Route().Route()
+					require.Equal(t, customCurrency, route.Currency)
+					require.NotNil(t, route.ExchangeSourceCurrency)
+					require.Equal(t, source, *route.ExchangeSourceCurrency)
+				}
+			}
+		}
 	})
 }
 
