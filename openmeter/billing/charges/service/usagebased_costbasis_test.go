@@ -37,42 +37,11 @@ func (s *UsageBasedCostBasisCreateSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 }
 
-func (s *UsageBasedCostBasisCreateSuite) TearDownTest() {
-	s.setUsageBasedCustomCurrencyEnabled(false)
-	s.BaseSuite.TearDownTest()
-}
-
-func (s *UsageBasedCostBasisCreateSuite) TestCustomCurrencyCreditOnlyIsDisabledByDefault() {
-	// given:
-	// - a valid custom-currency credit-only usage-based charge
-	// - the test-only custom-currency switch left at its default value
-	// when:
-	// - the charge is created
-	// then:
-	// - creation is rejected before the charge is persisted
-	ctx := s.T().Context()
-	namespace := s.GetUniqueNamespace("usage-based-cost-basis-disabled")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
-	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-disabled")
-	currency := s.createTestCustomCurrency(ctx, namespace)
-	featureMeters := s.createFeatureMeters(ctx, namespace, "disabled-feature")
-
-	_, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
-		Namespace: namespace,
-		Intents: []usagebased.Intent{
-			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "disabled", "disabled-feature", productcatalog.CreditOnlySettlementMode, nil),
-		},
-		FeatureMeters: featureMeters,
-	})
-	s.Require().ErrorIs(err, meta.ErrCustomCurrencyNotSupported)
-	s.Require().Equal(0, s.countCostBases(namespace))
-}
-
 func (s *UsageBasedCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCostBasesInInputOrder() {
 	// given:
 	// - manual, pinned, and dynamic cost-basis intents in one custom-currency batch
 	// when:
-	// - custom-currency creation is enabled, the charges are created, and each is reloaded through the charge service
+	// - the charges are created and each is reloaded through the charge service
 	// then:
 	// - each charge references its own persisted cost basis and its intent and resolved state survive the normal read path
 	ctx := s.T().Context()
@@ -106,7 +75,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynami
 		FiatCurrency: fiatCurrency,
 	})
 
-	s.setUsageBasedCustomCurrencyEnabled(true)
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
 		Intents: []usagebased.Intent{
@@ -191,7 +159,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetryS
 	dynamicIntent := costbasis.NewIntent(costbasis.DynamicIntent{
 		FiatCurrency: s.newFiatCurrency("USD"),
 	})
-	s.setUsageBasedCustomCurrencyEnabled(true)
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
 		Intents: []usagebased.Intent{
@@ -277,7 +244,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeB
 	dynamicIntent := costbasis.NewIntent(costbasis.DynamicIntent{
 		FiatCurrency: s.newFiatCurrency("USD"),
 	})
-	s.setUsageBasedCustomCurrencyEnabled(true)
 	clock.FreezeTime(activationAt)
 	defer clock.UnFreeze()
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
@@ -353,7 +319,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAnd
 		{name: "fiat currency", costBasisID: eurCostBasis.ID, errorText: "currency cost basis fiat currency mismatch"},
 	}
 
-	s.setUsageBasedCustomCurrencyEnabled(true)
 	for _, test := range tests {
 		s.Run(test.name, func() {
 			// given:
@@ -398,7 +363,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeC
 		Rate:         alpacadecimal.NewFromInt(2),
 	})
 
-	s.setUsageBasedCustomCurrencyEnabled(true)
 	_, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
 		Intents: []usagebased.Intent{
@@ -418,8 +382,6 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeR
 	customer := s.CreateTestCustomer(namespace, "usage-based-without-cost-basis")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	featureMeters := s.createFeatureMeters(ctx, namespace, "credit-only-feature")
-	s.setUsageBasedCustomCurrencyEnabled(true)
-
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
 		Intents: []usagebased.Intent{

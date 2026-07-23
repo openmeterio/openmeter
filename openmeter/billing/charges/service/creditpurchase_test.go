@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -49,24 +48,6 @@ func (s *CreditPurchaseTestSuite) SetupSuite() {
 
 func (s *CreditPurchaseTestSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
-}
-
-func (s *CreditPurchaseTestSuite) getCustomCurrenciesEnabledCreditPurchaseService(lineageService lineage.Service) creditpurchase.Service {
-	s.T().Helper()
-
-	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
-		Adapter:     s.CreditPurchaseAdapter,
-		Handler:     s.CreditPurchaseTestHandler,
-		Lineage:     lineageService,
-		MetaAdapter: s.MetaAdapter,
-	})
-	s.Require().NoError(err)
-
-	customCurrencyEnabler, ok := creditPurchaseService.(customCurrencyEnabler)
-	s.Require().True(ok)
-	s.Require().NoError(customCurrencyEnabler.SetEnableCustomCurrency(s.T(), true))
-
-	return creditPurchaseService
 }
 
 func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
@@ -197,16 +178,9 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchaseWithCustomCurrenc
 			MetaAdapter: s.MetaAdapter,
 		})
 		s.Require().NoError(err)
-		_, err = creditPurchaseService.Create(ctx, creditpurchase.CreateInput{
-			Namespace: ns,
-			Intent:    creditPurchaseIntent,
-		})
-		s.Require().ErrorIs(err, meta.ErrCustomCurrencyNotSupported)
-
-		customCurrencyCreditPurchaseService := s.getCustomCurrenciesEnabledCreditPurchaseService(lineageMock)
 
 		originalCreditPurchaseService := s.Charges.creditPurchaseService
-		s.Charges.creditPurchaseService = customCurrencyCreditPurchaseService
+		s.Charges.creditPurchaseService = creditPurchaseService
 		defer func() {
 			s.Charges.creditPurchaseService = originalCreditPurchaseService
 		}()
@@ -292,30 +266,14 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() 
 	})
 	s.Require().NoError(err)
 
-	s.Run("disabled by default", func() {
+	s.Run("create", func() {
 		// given:
-		// - a custom-currency invoice credit purchase and the default service configuration
-		// when:
-		// - the credit-purchase service creates the charge
-		// then:
-		// - the service preserves the production unsupported boundary
-		_, err := creditPurchaseService.Create(ctx, creditpurchase.CreateInput{
-			Namespace: ns,
-			Intent:    intent,
-		})
-		s.ErrorIs(err, meta.ErrCustomCurrencyNotSupported)
-	})
-
-	s.Run("enabled for tests", func() {
-		// given:
-		// - the test-only custom-currency gate is enabled
+		// - a custom-currency invoice credit purchase
 		// when:
 		// - the invoice credit purchase is created
 		// then:
 		// - the charge keeps the purchased currency while the gathering line uses fiat settlement
-		customCurrencyCreditPurchaseService := s.getCustomCurrenciesEnabledCreditPurchaseService(s.LineageService)
-
-		created, err := customCurrencyCreditPurchaseService.Create(ctx, creditpurchase.CreateInput{
+		created, err := creditPurchaseService.Create(ctx, creditpurchase.CreateInput{
 			Namespace: ns,
 			Intent:    intent,
 		})
@@ -334,7 +292,7 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() 
 		s.Require().NoError(err)
 		s.Equal(float64(50.06), flatPrice.Amount.InexactFloat64())
 
-		persisted, err := customCurrencyCreditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
+		persisted, err := creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
 			Namespace: ns,
 			IDs:       []string{created.Charge.ID},
 		})

@@ -70,9 +70,6 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 		FiatCurrency: fiatCurrency,
 	})
 
-	s.setUsageBasedCustomCurrencyEnabled(true)
-	defer s.setUsageBasedCustomCurrencyEnabled(false)
-
 	var charge usagebased.Charge
 
 	s.Run("create custom currency credit then invoice charge", func() {
@@ -446,8 +443,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 			lateUsageAt := usageAt.Add(12 * time.Hour)
 			lateUsageStoredAt := realizationVariant.invoiceAt.Add(-time.Second)
 
-			s.setUsageBasedCustomCurrencyEnabled(true)
-			defer s.setUsageBasedCustomCurrencyEnabled(false)
 			clock.FreezeTime(createAt)
 
 			var (

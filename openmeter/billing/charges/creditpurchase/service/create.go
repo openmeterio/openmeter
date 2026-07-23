@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,10 +19,6 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) {
-		if input.Intent.Currency.IsCustom() && !s.enableCustomCurrency.Load() {
-			return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("custom currency %s is not supported for credit purchases: %w", input.Intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
-		}
-
 		input.Intent = input.Intent.Normalized()
 
 		// Let's create the credit purchase charge

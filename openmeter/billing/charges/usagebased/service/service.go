@@ -2,8 +2,6 @@ package service
 
 import (
 	"errors"
-	"sync/atomic"
-	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
@@ -142,22 +140,11 @@ type service struct {
 	rater usagebasedrating.Service
 	runs  *usagebasedrun.Service
 
-	enableCustomCurrency atomic.Bool
-	costbasisResolver    costbasis.Resolver
+	costbasisResolver costbasis.Resolver
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
 	return &LineEngine{
 		service: s,
 	}
-}
-
-func (s *service) SetEnableCustomCurrency(t *testing.T, enabled bool) error {
-	if t == nil {
-		return errors.New("testing is nil")
-	}
-
-	t.Helper()
-	s.enableCustomCurrency.Store(enabled)
-	return nil
 }

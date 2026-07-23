@@ -3,8 +3,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	"sync/atomic"
-	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
@@ -65,20 +63,9 @@ func New(config Config) (creditpurchase.Service, error) {
 }
 
 type service struct {
-	adapter              creditpurchase.Adapter
-	metaAdapter          meta.Adapter
-	handler              creditpurchase.Handler
-	lineage              lineage.Service
-	realizations         *creditpurchaserealizations.Service
-	enableCustomCurrency atomic.Bool
-}
-
-func (s *service) SetEnableCustomCurrency(t *testing.T, enabled bool) error {
-	if t == nil {
-		return errors.New("testing is nil")
-	}
-
-	t.Helper()
-	s.enableCustomCurrency.Store(enabled)
-	return nil
+	adapter      creditpurchase.Adapter
+	metaAdapter  meta.Adapter
+	handler      creditpurchase.Handler
+	lineage      lineage.Service
+	realizations *creditpurchaserealizations.Service
 }

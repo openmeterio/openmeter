@@ -103,7 +103,6 @@ type service struct {
 	locker               *lockr.Locker
 	realizations         *flatfeerealizations.Service
 	creditNotesSupported atomic.Bool
-	enableCustomCurrency atomic.Bool
 	costbasisResolver    costbasis.Resolver
 }
 
@@ -123,15 +122,5 @@ func (s *service) SetCreditNotesSupportedByLineUpdater(t *testing.T, supported b
 
 	t.Helper()
 	s.creditNotesSupported.Store(supported)
-	return nil
-}
-
-func (s *service) SetEnableCustomCurrency(t *testing.T, enabled bool) error {
-	if t == nil {
-		return errors.New("testing is nil")
-	}
-
-	t.Helper()
-	s.enableCustomCurrency.Store(enabled)
 	return nil
 }
