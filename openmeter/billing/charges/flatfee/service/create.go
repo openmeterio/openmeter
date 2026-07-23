@@ -10,7 +10,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -27,13 +29,30 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]flatfee.ChargeWithGatheringLine, error) {
+		now := clock.Now().UTC()
 		// Let's create all the flat fee charges in bulk
 		intentsWithStatus, err := slicesx.MapWithErr(input.Intents, func(intent flatfee.Intent) (flatfee.IntentWithInitialStatus, error) {
-			if intent.Currency.IsCustom() && intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+			if intent.Currency.IsCustom() &&
+				intent.SettlementMode == productcatalog.CreditThenInvoiceSettlementMode &&
+				!s.enableCustomCurrency.Load() {
 				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("creating flat fee charge with custom currency %q: %w", intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
 			}
 
 			chargeIntent := intent.Normalized()
+
+			var resolvedCostBasis *costbasis.State
+			if chargeIntent.CostBasis != nil {
+				var err error
+
+				resolvedCostBasis, err = s.costbasisResolver.ResolveInitialState(ctx, costbasis.ResolveInitialStateInput{
+					CurrencyID: chargeIntent.Currency.NamespacedID,
+					Intent:     *chargeIntent.CostBasis,
+					ResolvedAt: now,
+				})
+				if err != nil {
+					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolving cost basis: %w", err)
+				}
+			}
 
 			amountAfterProration, err := chargeIntent.CalculateAmountAfterProration()
 			if err != nil {
@@ -56,6 +75,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				InitialAdvanceAfter:       lo.ToPtr(meta.NormalizeTimestamp(chargeIntent.InvoiceAt)),
 				AmountAfterProration:      amountAfterProration,
 				NoFiatTransactionRequired: chargeIntent.SettlementMode == productcatalog.CreditOnlySettlementMode || amountAfterProration.IsZero(),
+				ResolvedCostBasis:         resolvedCostBasis,
 			}, nil
 		})
 		if err != nil {

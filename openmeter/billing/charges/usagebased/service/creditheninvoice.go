@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
@@ -98,6 +99,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
 		OnActive(
 			statelessx.AllOf(
+				s.ResolveDynamicCostBasis,
 				s.SyncFeatureIDFromFeatureMeter,
 				s.AdvanceAfterServicePeriodTo,
 			),
@@ -486,6 +488,54 @@ func (s *CreditThenInvoiceStateMachine) UnsupportedShrinkToRealizedPeriodOperati
 	return models.NewGenericPreConditionFailedError(
 		fmt.Errorf("cannot shrink usage-based charge to realized period in status %s; retry after billing advances", s.Charge.Status),
 	)
+}
+
+// ResolveDynamicCostBasis idempotently persists the dynamic cost basis
+// effective at the charge's service-period start. Once resolved, the persisted
+// value is authoritative and must never be overwritten by lifecycle retries.
+func (s *CreditThenInvoiceStateMachine) ResolveDynamicCostBasis(ctx context.Context) error {
+	intent := s.Charge.Intent.GetCostBasisIntent()
+	if intent == nil || intent.Kind() != costbasis.ModeDynamic {
+		return nil
+	}
+
+	if s.Charge.State.ResolvedCostBasis != nil {
+		return nil
+	}
+
+	if s.Charge.State.CostBasisID == nil {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("dynamic cost basis reference is missing for usage based charge %s", s.Charge.ID),
+		)
+	}
+
+	resolvedState, err := s.CostBasisResolver.ResolveDynamicState(ctx, costbasis.ResolveDynamicStateInput{
+		CurrencyID:        s.Charge.Intent.GetCurrency().NamespacedID,
+		Intent:            *intent,
+		ServicePeriodFrom: s.Charge.Intent.GetEffectiveServicePeriod().From,
+	})
+	if err != nil {
+		return fmt.Errorf("resolve dynamic cost basis for usage based charge %s: %w", s.Charge.ID, err)
+	}
+
+	persisted, err := s.Adapter.SetResolvedCostBasis(ctx, costbasis.SetResolvedCostBasisInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: s.Charge.Namespace,
+			ID:        *s.Charge.State.CostBasisID,
+		},
+		State: resolvedState,
+	})
+	if err != nil {
+		return fmt.Errorf("persist dynamic cost basis for usage based charge %s: %w", s.Charge.ID, err)
+	}
+
+	if persisted.State == nil {
+		return fmt.Errorf("persisted dynamic cost basis is unresolved for usage based charge %s", s.Charge.ID)
+	}
+
+	s.Charge.State.ResolvedCostBasis = persisted.State
+
+	return nil
 }
 
 func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {

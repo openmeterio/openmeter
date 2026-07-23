@@ -34,6 +34,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			CustomerOverride:   input.CustomerOverride,
 			FeatureMeter:       featureMeter,
 			CurrencyCalculator: charge.Intent.GetCurrency(),
+			CostBasisResolver:  s.costbasisResolver,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
@@ -230,6 +231,7 @@ func (s *service) getStateMachineConfigForCharge(ctx context.Context, charge usa
 		CustomerOverride:   customerOverride,
 		FeatureMeter:       featureMeter,
 		CurrencyCalculator: currency,
+		CostBasisResolver:  s.costbasisResolver,
 	}, nil
 }
 

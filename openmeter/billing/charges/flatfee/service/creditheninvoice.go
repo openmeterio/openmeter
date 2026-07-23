@@ -13,6 +13,7 @@ import (
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -99,7 +100,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
-		OnActive(s.AdvanceAfterServicePeriodTo)
+		OnActive(statelessx.AllOf(
+			s.ResolveDynamicCostBasis,
+			s.AdvanceAfterServicePeriodTo,
+		))
 
 	s.Configure(flatfee.StatusActiveRealizationStarted).
 		Permit(meta.TriggerNext, flatfee.StatusActiveRealizationWaitingForCollection).
@@ -385,6 +389,54 @@ func (s *CreditThenInvoiceStateMachine) UnsupportedShrinkOperation(_ context.Con
 	return models.NewGenericPreConditionFailedError(
 		fmt.Errorf("cannot shrink flat-fee charge in status %s; retry after billing advances", s.Charge.Status),
 	)
+}
+
+// ResolveDynamicCostBasis idempotently persists the dynamic cost basis
+// effective at the charge's service-period start. Once resolved, the persisted
+// value is authoritative and must never be overwritten by lifecycle retries.
+func (s *CreditThenInvoiceStateMachine) ResolveDynamicCostBasis(ctx context.Context) error {
+	intent := s.Charge.Intent.GetCostBasisIntent()
+	if intent == nil || intent.Kind() != costbasis.ModeDynamic {
+		return nil
+	}
+
+	if s.Charge.State.ResolvedCostBasis != nil {
+		return nil
+	}
+
+	if s.Charge.State.CostBasisID == nil {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("dynamic cost basis reference is missing for flat-fee charge %s", s.Charge.ID),
+		)
+	}
+
+	resolvedState, err := s.Service.costbasisResolver.ResolveDynamicState(ctx, costbasis.ResolveDynamicStateInput{
+		CurrencyID:        s.Charge.Intent.GetCurrency().NamespacedID,
+		Intent:            *intent,
+		ServicePeriodFrom: s.Charge.Intent.GetEffectiveServicePeriod().From,
+	})
+	if err != nil {
+		return fmt.Errorf("resolve dynamic cost basis for flat-fee charge %s: %w", s.Charge.ID, err)
+	}
+
+	persisted, err := s.Adapter.SetResolvedCostBasis(ctx, costbasis.SetResolvedCostBasisInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: s.Charge.Namespace,
+			ID:        *s.Charge.State.CostBasisID,
+		},
+		State: resolvedState,
+	})
+	if err != nil {
+		return fmt.Errorf("persist dynamic cost basis for flat-fee charge %s: %w", s.Charge.ID, err)
+	}
+
+	if persisted.State == nil {
+		return fmt.Errorf("persisted dynamic cost basis is unresolved for flat-fee charge %s", s.Charge.ID)
+	}
+
+	s.Charge.State.ResolvedCostBasis = persisted.State
+
+	return nil
 }
 
 // StartRealization creates the current run. The line engine maps the run back

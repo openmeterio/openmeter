@@ -29,6 +29,8 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -239,6 +241,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{
+		Client: base.DB,
+	})
+	require.NoError(t, err)
+
+	currencyService, err := currencyservice.New(currencyAdapter)
+	require.NoError(t, err)
+
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter: flatFeeAdapter,
 		Handler: ledgerchargeadapter.NewFlatFeeHandler(
@@ -254,6 +264,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
 		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:    currencyService,
 	})
 	require.NoError(t, err)
 
@@ -275,6 +286,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		CustomerOverrideService: billingService,
 		FeatureService:          featureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:              currencyService,
 		StreamingConnector:      streaming,
 	})
 	require.NoError(t, err)

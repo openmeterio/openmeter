@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
@@ -37,6 +38,7 @@ type ChargeCreditPurchaseQuery struct {
 	withExternalPayment   *ChargeCreditPurchaseExternalPaymentQuery
 	withInvoicedPayment   *ChargeCreditPurchaseInvoicedPaymentQuery
 	withCreditGrant       *ChargeCreditPurchaseCreditGrantQuery
+	withCostBasis         *ChargeCreditPurchaseCostBasisQuery
 	withCharge            *ChargeQuery
 	withSubscription      *SubscriptionQuery
 	withSubscriptionPhase *SubscriptionPhaseQuery
@@ -140,6 +142,28 @@ func (_q *ChargeCreditPurchaseQuery) QueryCreditGrant() *ChargeCreditPurchaseCre
 			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, selector),
 			sqlgraph.To(chargecreditpurchasecreditgrant.Table, chargecreditpurchasecreditgrant.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.CreditGrantTable, chargecreditpurchase.CreditGrantColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCostBasis chains the current query on the "cost_basis" edge.
+func (_q *ChargeCreditPurchaseQuery) QueryCostBasis() *ChargeCreditPurchaseCostBasisQuery {
+	query := (&ChargeCreditPurchaseCostBasisClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, selector),
+			sqlgraph.To(chargecreditpurchasecostbasis.Table, chargecreditpurchasecostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargecreditpurchase.CostBasisTable, chargecreditpurchase.CostBasisColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -496,6 +520,7 @@ func (_q *ChargeCreditPurchaseQuery) Clone() *ChargeCreditPurchaseQuery {
 		withExternalPayment:   _q.withExternalPayment.Clone(),
 		withInvoicedPayment:   _q.withInvoicedPayment.Clone(),
 		withCreditGrant:       _q.withCreditGrant.Clone(),
+		withCostBasis:         _q.withCostBasis.Clone(),
 		withCharge:            _q.withCharge.Clone(),
 		withSubscription:      _q.withSubscription.Clone(),
 		withSubscriptionPhase: _q.withSubscriptionPhase.Clone(),
@@ -539,6 +564,17 @@ func (_q *ChargeCreditPurchaseQuery) WithCreditGrant(opts ...func(*ChargeCreditP
 		opt(query)
 	}
 	_q.withCreditGrant = query
+	return _q
+}
+
+// WithCostBasis tells the query-builder to eager-load the nodes that are connected to
+// the "cost_basis" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeCreditPurchaseQuery) WithCostBasis(opts ...func(*ChargeCreditPurchaseCostBasisQuery)) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseCostBasisClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCostBasis = query
 	return _q
 }
 
@@ -697,10 +733,11 @@ func (_q *ChargeCreditPurchaseQuery) sqlAll(ctx context.Context, hooks ...queryH
 	var (
 		nodes       = []*ChargeCreditPurchase{}
 		_spec       = _q.querySpec()
-		loadedTypes = [10]bool{
+		loadedTypes = [11]bool{
 			_q.withExternalPayment != nil,
 			_q.withInvoicedPayment != nil,
 			_q.withCreditGrant != nil,
+			_q.withCostBasis != nil,
 			_q.withCharge != nil,
 			_q.withSubscription != nil,
 			_q.withSubscriptionPhase != nil,
@@ -746,6 +783,12 @@ func (_q *ChargeCreditPurchaseQuery) sqlAll(ctx context.Context, hooks ...queryH
 	if query := _q.withCreditGrant; query != nil {
 		if err := _q.loadCreditGrant(ctx, query, nodes, nil,
 			func(n *ChargeCreditPurchase, e *ChargeCreditPurchaseCreditGrant) { n.Edges.CreditGrant = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCostBasis; query != nil {
+		if err := _q.loadCostBasis(ctx, query, nodes, nil,
+			func(n *ChargeCreditPurchase, e *ChargeCreditPurchaseCostBasis) { n.Edges.CostBasis = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -872,6 +915,38 @@ func (_q *ChargeCreditPurchaseQuery) loadCreditGrant(ctx context.Context, query 
 			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeCreditPurchaseQuery) loadCostBasis(ctx context.Context, query *ChargeCreditPurchaseCostBasisQuery, nodes []*ChargeCreditPurchase, init func(*ChargeCreditPurchase), assign func(*ChargeCreditPurchase, *ChargeCreditPurchaseCostBasis)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeCreditPurchase)
+	for i := range nodes {
+		if nodes[i].CostBasisID == nil {
+			continue
+		}
+		fk := *nodes[i].CostBasisID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(chargecreditpurchasecostbasis.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "cost_basis_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
@@ -1119,6 +1194,9 @@ func (_q *ChargeCreditPurchaseQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != chargecreditpurchase.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withCostBasis != nil {
+			_spec.Node.AddColumnOnce(chargecreditpurchase.FieldCostBasisID)
 		}
 		if _q.withSubscription != nil {
 			_spec.Node.AddColumnOnce(chargecreditpurchase.FieldSubscriptionID)

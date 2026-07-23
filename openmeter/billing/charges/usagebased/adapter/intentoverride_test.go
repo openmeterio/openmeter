@@ -419,16 +419,6 @@ func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) us
 	})
 	s.Require().NoError(err)
 	s.Require().Len(createdCharges, 1)
-	s.Require().NoError(s.meta.RegisterCharges(s.T().Context(), chargesmeta.RegisterChargesInput{
-		Namespace: namespace,
-		Type:      chargesmeta.ChargeTypeUsageBased,
-		Charges: []chargesmeta.IDWithUniqueReferenceID{
-			{
-				ID:                createdCharges[0].ID,
-				UniqueReferenceID: createdCharges[0].Intent.GetUniqueReferenceID(),
-			},
-		},
-	}))
 	s.Nil(createdCharges[0].Intent.GetOverrideLayerMutableFields())
 
 	return createdCharges[0]

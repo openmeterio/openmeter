@@ -11,7 +11,9 @@ import (
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -22,6 +24,7 @@ type Config struct {
 	MetaAdapter   meta.Adapter
 	Locker        *lockr.Locker
 	RatingService rating.Service
+	Currencies    currencies.Service
 }
 
 func (c Config) Validate() error {
@@ -51,6 +54,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("rating service cannot be null"))
 	}
 
+	if c.Currencies == nil {
+		errs = append(errs, errors.New("currencies service cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -69,12 +76,20 @@ func New(config Config) (flatfee.Service, error) {
 		return nil, err
 	}
 
+	costbasisResolver, err := costbasis.NewResolver(costbasis.ResolverConfig{
+		Currencies: config.Currencies,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	svc := &service{
-		adapter:      config.Adapter,
-		handler:      config.Handler,
-		metaAdapter:  config.MetaAdapter,
-		locker:       config.Locker,
-		realizations: realizations,
+		adapter:           config.Adapter,
+		handler:           config.Handler,
+		metaAdapter:       config.MetaAdapter,
+		locker:            config.Locker,
+		realizations:      realizations,
+		costbasisResolver: costbasisResolver,
 	}
 	svc.creditNotesSupported.Store(charges.CreditNotesSupportedByLineUpdater)
 
@@ -88,6 +103,8 @@ type service struct {
 	locker               *lockr.Locker
 	realizations         *flatfeerealizations.Service
 	creditNotesSupported atomic.Bool
+	enableCustomCurrency atomic.Bool
+	costbasisResolver    costbasis.Resolver
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
@@ -106,5 +123,15 @@ func (s *service) SetCreditNotesSupportedByLineUpdater(t *testing.T, supported b
 
 	t.Helper()
 	s.creditNotesSupported.Store(supported)
+	return nil
+}
+
+func (s *service) SetEnableCustomCurrency(t *testing.T, enabled bool) error {
+	if t == nil {
+		return errors.New("testing is nil")
+	}
+
+	t.Helper()
+	s.enableCustomCurrency.Store(enabled)
 	return nil
 }

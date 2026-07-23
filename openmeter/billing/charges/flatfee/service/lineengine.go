@@ -539,6 +539,9 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, invoice billi
 		return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
 	}
 
+	// TODO: reject cost-basis-backed charges in manual line attachment. This
+	// path bypasses StatusActive, which owns cost-basis resolution, so accepting
+	// it would create an invoice-backed charge without the required resolved value.
 	if err := stateMachine.FireAndActivate(ctx, meta.TriggerAttachInvoiceLine, billing.StandardLineWithInvoiceHeader{
 		Line:    &standardLine,
 		Invoice: standardInvoice,

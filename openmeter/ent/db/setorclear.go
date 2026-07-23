@@ -2553,6 +2553,76 @@ func (u *ChargeCreditPurchaseUpdateOne) SetOrClearVoidedAt(value *time.Time) *Ch
 	return u.SetVoidedAt(*value)
 }
 
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearCurrencyCostBasisID(value *string) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearCurrencyCostBasisID(value *string) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearResolvedCostBasisID(value *string) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearResolvedCostBasisID(value *string) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearResolvedAt(value *time.Time) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearResolvedAt(value *time.Time) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *ChargeCreditPurchaseCreditGrantUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCreditGrantUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -2873,6 +2943,76 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearCurrentRealizationRunID(value *string
 		return u.ClearCurrentRealizationRunID()
 	}
 	return u.SetCurrentRealizationRunID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearCurrencyCostBasisID(value *string) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearCurrencyCostBasisID(value *string) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearResolvedCostBasisID(value *string) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearResolvedCostBasisID(value *string) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearResolvedAt(value *time.Time) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearResolvedAt(value *time.Time) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
 }
 
 func (u *ChargeFlatFeeOverrideUpdate) SetOrClearDescription(value *string) *ChargeFlatFeeOverrideUpdate {
@@ -3447,6 +3587,76 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearCurrentRealizationRunID(value *str
 		return u.ClearCurrentRealizationRunID()
 	}
 	return u.SetCurrentRealizationRunID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearCurrencyCostBasisID(value *string) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearCurrencyCostBasisID(value *string) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearResolvedCostBasisID(value *string) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearResolvedCostBasisID(value *string) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearResolvedAt(value *time.Time) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearResolvedAt(value *time.Time) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
 }
 
 func (u *ChargeUsageBasedOverrideUpdate) SetOrClearDescription(value *string) *ChargeUsageBasedOverrideUpdate {

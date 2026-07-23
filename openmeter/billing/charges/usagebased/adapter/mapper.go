@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -41,6 +42,11 @@ func FromDBWithCurrency(entity *entdb.ChargeUsageBased, currency currencies.Curr
 }
 
 func fromDBWithMeta(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge, expands meta.Expands) (usagebased.Charge, error) {
+	base, err := fromDBBase(entity, chargeMeta)
+	if err != nil {
+		return usagebased.Charge{}, fmt.Errorf("mapping usage based charge base [id=%s]: %w", entity.ID, err)
+	}
+
 	var realizations usagebased.RealizationRuns
 	if expands.Has(meta.ExpandRealizations) {
 		var err error
@@ -51,7 +57,7 @@ func fromDBWithMeta(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge, expa
 	}
 
 	return usagebased.Charge{
-		ChargeBase:   fromDBBase(entity, chargeMeta),
+		ChargeBase:   base,
 		Realizations: realizations,
 	}, nil
 }
@@ -62,13 +68,38 @@ func fromDBBaseWithCurrency(entity *entdb.ChargeUsageBased, currency currencies.
 		return usagebased.ChargeBase{}, fmt.Errorf("mapping charge meta: %w", err)
 	}
 
-	return fromDBBase(entity, chargeMeta), nil
+	return fromDBBase(entity, chargeMeta)
 }
 
-func fromDBBase(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge) usagebased.ChargeBase {
+func fromDBBase(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge) (usagebased.ChargeBase, error) {
+	var costBasisIntent *costbasis.Intent
+	var resolvedCostBasis *costbasis.State
+	var costBasisID *string
+	if entity.CostBasisID != nil {
+		if entity.Edges.CostBasis == nil {
+			return usagebased.ChargeBase{}, fmt.Errorf("cost basis not loaded for usage based charge [id=%s,cost_basis_id=%s]", entity.ID, *entity.CostBasisID)
+		}
+
+		if entity.Edges.CostBasis.ID != *entity.CostBasisID {
+			return usagebased.ChargeBase{}, fmt.Errorf("cost basis ID mismatch for usage based charge [id=%s,cost_basis_id=%s,edge_id=%s]", entity.ID, *entity.CostBasisID, entity.Edges.CostBasis.ID)
+		}
+
+		mappedCostBasis, err := costbasis.Get(entity.Edges.CostBasis)
+		if err != nil {
+			return usagebased.ChargeBase{}, fmt.Errorf("mapping cost basis: %w", err)
+		}
+
+		costBasisID = lo.ToPtr(*entity.CostBasisID)
+		costBasisIntent = &mappedCostBasis.Intent
+		resolvedCostBasis = mappedCostBasis.State
+	} else if entity.Edges.CostBasis != nil {
+		return usagebased.ChargeBase{}, fmt.Errorf("cost basis edge loaded without a reference for usage based charge [id=%s,edge_id=%s]", entity.ID, entity.Edges.CostBasis.ID)
+	}
+
 	intent := usagebased.Intent{
 		Intent:     chargeMeta.Intent,
 		FeatureKey: entity.FeatureKey,
+		CostBasis:  costBasisIntent,
 		IntentMutableFields: usagebased.IntentMutableFields{
 			IntentMutableFields: chargeMeta.IntentMutableFields,
 			InvoiceAt:           entity.InvoiceAt.UTC(),
@@ -89,8 +120,10 @@ func fromDBBase(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge) usagebas
 			AdvanceAfter:            entity.AdvanceAfter,
 			FeatureID:               entity.FeatureID,
 			RatingEngine:            entity.RatingEngine,
+			CostBasisID:             costBasisID,
+			ResolvedCostBasis:       resolvedCostBasis,
 		},
-	}
+	}, nil
 }
 
 func fromDBRuns(entity *entdb.ChargeUsageBased) (usagebased.RealizationRuns, error) {

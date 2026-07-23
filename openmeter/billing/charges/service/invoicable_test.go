@@ -3008,6 +3008,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 			MetaAdapter:   s.MetaAdapter,
 			Locker:        s.Locker,
 			RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+			Currencies:    s.CurrencyService,
 		})
 		s.Require().NoError(err)
 		originalFlatFeeService := s.Charges.flatFeeService
@@ -3165,6 +3166,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyWithCustomCurrency(
 			CustomerOverrideService: s.BillingService,
 			FeatureService:          s.FeatureService,
 			RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+			Currencies:              s.CurrencyService,
 			StreamingConnector:      s.MockStreamingConnector,
 		})
 		s.Require().NoError(err)

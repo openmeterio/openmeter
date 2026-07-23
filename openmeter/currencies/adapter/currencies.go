@@ -80,7 +80,7 @@ func FromDBCustomCurrency(c *entdb.CustomCurrency) (currencies.Currency, error) 
 
 	for _, cb := range c.Edges.CostBasisHistory {
 		if cb != nil {
-			costBasisList = append(costBasisList, mapCostBasisFromDB(cb))
+			costBasisList = append(costBasisList, FromDBCurrencyCostBasis(cb))
 		}
 	}
 
@@ -105,7 +105,7 @@ func FromDBCustomCurrency(c *entdb.CustomCurrency) (currencies.Currency, error) 
 	}, nil
 }
 
-func mapCostBasisFromDB(c *entdb.CurrencyCostBasis) currencies.CostBasis {
+func FromDBCurrencyCostBasis(c *entdb.CurrencyCostBasis) currencies.CostBasis {
 	var effectiveTo *time.Time
 
 	if c.EffectiveTo != nil {
@@ -267,7 +267,7 @@ func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateC
 			return currencies.CostBasis{}, fmt.Errorf("failed to create cost basis: %w", err)
 		}
 
-		return mapCostBasisFromDB(costBasis), nil
+		return FromDBCurrencyCostBasis(costBasis), nil
 	})
 }
 
@@ -292,7 +292,7 @@ func (a *adapter) GetCostBasis(ctx context.Context, params currencies.GetCostBas
 			return currencies.CostBasis{}, fmt.Errorf("failed to get cost basis: %w", err)
 		}
 
-		result := mapCostBasisFromDB(costBasis)
+		result := FromDBCurrencyCostBasis(costBasis)
 
 		if params.CustomCurrency {
 			customCurrency, err := FromDBCustomCurrency(costBasis.Edges.Currency)
@@ -325,7 +325,7 @@ func (a *adapter) ListCostBases(ctx context.Context, params currencies.ListCostB
 			return pagination.Result[currencies.CostBasis]{}, fmt.Errorf("failed to list cost bases: %w", err)
 		}
 
-		return pagination.MapResult(paged, mapCostBasisFromDB), nil
+		return pagination.MapResult(paged, FromDBCurrencyCostBasis), nil
 	})
 }
 
@@ -400,5 +400,37 @@ func WithCostBasis(q *entdb.CustomCurrencyQuery, at time.Time) *entdb.CustomCurr
 				),
 			)
 		})
+	})
+}
+
+func (a *adapter) GetCostBasisAt(ctx context.Context, params currencies.GetCostBasisAtInput) (currencies.CostBasis, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.CostBasis, error) {
+		costBasis, err := tx.db.CurrencyCostBasis.Query().
+			Where(
+				currencycostbasis.Namespace(params.Namespace),
+				currencycostbasis.CurrencyID(params.CurrencyID),
+				currencycostbasis.FiatCode(params.FiatCode),
+				currencycostbasis.EffectiveFromLTE(params.At),
+				currencycostbasis.Or(
+					currencycostbasis.EffectiveToIsNil(),
+					currencycostbasis.EffectiveToGT(params.At),
+				),
+				currencycostbasis.DeletedAtIsNil(),
+			).
+			Order(currencycostbasis.ByEffectiveFrom(sql.OrderDesc())).
+			First(ctx)
+		if entdb.IsNotFound(err) {
+			return currencies.CostBasis{}, models.NewGenericNotFoundError(fmt.Errorf(
+				"cost basis not found [currency.id=%s fiat=%s at=%s]",
+				params.CurrencyID,
+				params.FiatCode,
+				params.At.UTC().Format(time.RFC3339),
+			))
+		}
+		if err != nil {
+			return currencies.CostBasis{}, fmt.Errorf("querying cost basis: %w", err)
+		}
+
+		return FromDBCurrencyCostBasis(costBasis), nil
 	})
 }

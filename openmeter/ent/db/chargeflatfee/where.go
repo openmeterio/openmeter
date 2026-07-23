@@ -218,6 +218,11 @@ func CurrentRealizationRunID(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCurrentRealizationRunID, v))
 }
 
+// CostBasisID applies equality check predicate on the "cost_basis_id" field. It's identical to CostBasisIDEQ.
+func CostBasisID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCostBasisID, v))
+}
+
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
 func CustomerIDEQ(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCustomerID, v))
@@ -2111,6 +2116,81 @@ func CurrentRealizationRunIDContainsFold(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldCurrentRealizationRunID, v))
 }
 
+// CostBasisIDEQ applies the EQ predicate on the "cost_basis_id" field.
+func CostBasisIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCostBasisID, v))
+}
+
+// CostBasisIDNEQ applies the NEQ predicate on the "cost_basis_id" field.
+func CostBasisIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldCostBasisID, v))
+}
+
+// CostBasisIDIn applies the In predicate on the "cost_basis_id" field.
+func CostBasisIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldCostBasisID, vs...))
+}
+
+// CostBasisIDNotIn applies the NotIn predicate on the "cost_basis_id" field.
+func CostBasisIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldCostBasisID, vs...))
+}
+
+// CostBasisIDGT applies the GT predicate on the "cost_basis_id" field.
+func CostBasisIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldCostBasisID, v))
+}
+
+// CostBasisIDGTE applies the GTE predicate on the "cost_basis_id" field.
+func CostBasisIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldCostBasisID, v))
+}
+
+// CostBasisIDLT applies the LT predicate on the "cost_basis_id" field.
+func CostBasisIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldCostBasisID, v))
+}
+
+// CostBasisIDLTE applies the LTE predicate on the "cost_basis_id" field.
+func CostBasisIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldCostBasisID, v))
+}
+
+// CostBasisIDContains applies the Contains predicate on the "cost_basis_id" field.
+func CostBasisIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldCostBasisID, v))
+}
+
+// CostBasisIDHasPrefix applies the HasPrefix predicate on the "cost_basis_id" field.
+func CostBasisIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldCostBasisID, v))
+}
+
+// CostBasisIDHasSuffix applies the HasSuffix predicate on the "cost_basis_id" field.
+func CostBasisIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldCostBasisID, v))
+}
+
+// CostBasisIDIsNil applies the IsNil predicate on the "cost_basis_id" field.
+func CostBasisIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldCostBasisID))
+}
+
+// CostBasisIDNotNil applies the NotNil predicate on the "cost_basis_id" field.
+func CostBasisIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldCostBasisID))
+}
+
+// CostBasisIDEqualFold applies the EqualFold predicate on the "cost_basis_id" field.
+func CostBasisIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldCostBasisID, v))
+}
+
+// CostBasisIDContainsFold applies the ContainsFold predicate on the "cost_basis_id" field.
+func CostBasisIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldCostBasisID, v))
+}
+
 // StatusDetailedEQ applies the EQ predicate on the "status_detailed" field.
 func StatusDetailedEQ(v flatfee.Status) predicate.ChargeFlatFee {
 	vc := v
@@ -2179,6 +2259,29 @@ func HasCurrentRun() predicate.ChargeFlatFee {
 func HasCurrentRunWith(preds ...predicate.ChargeFlatFeeRun) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
 		step := newCurrentRunStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCostBasis applies the HasEdge predicate on the "cost_basis" edge.
+func HasCostBasis() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, CostBasisTable, CostBasisColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCostBasisWith applies the HasEdge predicate on the "cost_basis" edge with a given conditions (other predicates).
+func HasCostBasisWith(preds ...predicate.ChargeFlatFeeCostBasis) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := newCostBasisStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

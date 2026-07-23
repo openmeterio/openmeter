@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
@@ -38,6 +39,7 @@ type ChargeUsageBasedQuery struct {
 	withRuns              *ChargeUsageBasedRunsQuery
 	withDetailedLines     *ChargeUsageBasedRunDetailedLineQuery
 	withCurrentRun        *ChargeUsageBasedRunsQuery
+	withCostBasis         *ChargeUsageBasedCostBasisQuery
 	withCharge            *ChargeQuery
 	withIntentOverride    *ChargeUsageBasedOverrideQuery
 	withSubscription      *SubscriptionQuery
@@ -143,6 +145,28 @@ func (_q *ChargeUsageBasedQuery) QueryCurrentRun() *ChargeUsageBasedRunsQuery {
 			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebased.CurrentRunTable, chargeusagebased.CurrentRunColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCostBasis chains the current query on the "cost_basis" edge.
+func (_q *ChargeUsageBasedQuery) QueryCostBasis() *ChargeUsageBasedCostBasisQuery {
+	query := (&ChargeUsageBasedCostBasisClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
+			sqlgraph.To(chargeusagebasedcostbasis.Table, chargeusagebasedcostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebased.CostBasisTable, chargeusagebased.CostBasisColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -543,6 +567,7 @@ func (_q *ChargeUsageBasedQuery) Clone() *ChargeUsageBasedQuery {
 		withRuns:              _q.withRuns.Clone(),
 		withDetailedLines:     _q.withDetailedLines.Clone(),
 		withCurrentRun:        _q.withCurrentRun.Clone(),
+		withCostBasis:         _q.withCostBasis.Clone(),
 		withCharge:            _q.withCharge.Clone(),
 		withIntentOverride:    _q.withIntentOverride.Clone(),
 		withSubscription:      _q.withSubscription.Clone(),
@@ -588,6 +613,17 @@ func (_q *ChargeUsageBasedQuery) WithCurrentRun(opts ...func(*ChargeUsageBasedRu
 		opt(query)
 	}
 	_q.withCurrentRun = query
+	return _q
+}
+
+// WithCostBasis tells the query-builder to eager-load the nodes that are connected to
+// the "cost_basis" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedQuery) WithCostBasis(opts ...func(*ChargeUsageBasedCostBasisQuery)) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedCostBasisClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCostBasis = query
 	return _q
 }
 
@@ -768,10 +804,11 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*ChargeUsageBased{}
 		_spec       = _q.querySpec()
-		loadedTypes = [12]bool{
+		loadedTypes = [13]bool{
 			_q.withRuns != nil,
 			_q.withDetailedLines != nil,
 			_q.withCurrentRun != nil,
+			_q.withCostBasis != nil,
 			_q.withCharge != nil,
 			_q.withIntentOverride != nil,
 			_q.withSubscription != nil,
@@ -823,6 +860,12 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := _q.withCurrentRun; query != nil {
 		if err := _q.loadCurrentRun(ctx, query, nodes, nil,
 			func(n *ChargeUsageBased, e *ChargeUsageBasedRuns) { n.Edges.CurrentRun = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCostBasis; query != nil {
+		if err := _q.loadCostBasis(ctx, query, nodes, nil,
+			func(n *ChargeUsageBased, e *ChargeUsageBasedCostBasis) { n.Edges.CostBasis = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -968,6 +1011,38 @@ func (_q *ChargeUsageBasedQuery) loadCurrentRun(ctx context.Context, query *Char
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "current_realization_run_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedQuery) loadCostBasis(ctx context.Context, query *ChargeUsageBasedCostBasisQuery, nodes []*ChargeUsageBased, init func(*ChargeUsageBased), assign func(*ChargeUsageBased, *ChargeUsageBasedCostBasis)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBased)
+	for i := range nodes {
+		if nodes[i].CostBasisID == nil {
+			continue
+		}
+		fk := *nodes[i].CostBasisID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(chargeusagebasedcostbasis.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "cost_basis_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -1278,6 +1353,9 @@ func (_q *ChargeUsageBasedQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withCurrentRun != nil {
 			_spec.Node.AddColumnOnce(chargeusagebased.FieldCurrentRealizationRunID)
+		}
+		if _q.withCostBasis != nil {
+			_spec.Node.AddColumnOnce(chargeusagebased.FieldCostBasisID)
 		}
 		if _q.withSubscription != nil {
 			_spec.Node.AddColumnOnce(chargeusagebased.FieldSubscriptionID)

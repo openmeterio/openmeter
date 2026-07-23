@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -44,8 +45,13 @@ func FromDBWithCurrency(entity *entdb.ChargeFlatFee, currency currencies.Currenc
 }
 
 func fromDBWithMeta(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge, expands meta.Expands) (flatfee.Charge, error) {
+	base, err := fromDBBase(entity, mappedMeta)
+	if err != nil {
+		return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge base [id=%s]: %w", entity.ID, err)
+	}
+
 	charge := flatfee.Charge{
-		ChargeBase: fromDBBase(entity, mappedMeta),
+		ChargeBase: base,
 	}
 
 	if expands.Has(meta.ExpandRealizations) {
@@ -154,13 +160,37 @@ func fromDBBaseWithCurrency(entity *entdb.ChargeFlatFee, currency currencies.Cur
 		return flatfee.ChargeBase{}, fmt.Errorf("mapping charge meta: %w", err)
 	}
 
-	return fromDBBase(entity, mappedMeta), nil
+	return fromDBBase(entity, mappedMeta)
 }
 
-func fromDBBase(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge) flatfee.ChargeBase {
+func fromDBBase(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge) (flatfee.ChargeBase, error) {
 	var percentageDiscounts *billing.PercentageDiscount
 	if entity.Discounts != nil {
 		percentageDiscounts = entity.Discounts.Percentage
+	}
+
+	var costBasisIntent *costbasis.Intent
+	var resolvedCostBasis *costbasis.State
+	var costBasisID *string
+	if entity.CostBasisID != nil {
+		if entity.Edges.CostBasis == nil {
+			return flatfee.ChargeBase{}, fmt.Errorf("cost basis not loaded for flat fee charge [id=%s,cost_basis_id=%s]", entity.ID, *entity.CostBasisID)
+		}
+
+		if entity.Edges.CostBasis.ID != *entity.CostBasisID {
+			return flatfee.ChargeBase{}, fmt.Errorf("cost basis ID mismatch for flat fee charge [id=%s,cost_basis_id=%s,edge_id=%s]", entity.ID, *entity.CostBasisID, entity.Edges.CostBasis.ID)
+		}
+
+		mappedCostBasis, err := costbasis.Get(entity.Edges.CostBasis)
+		if err != nil {
+			return flatfee.ChargeBase{}, fmt.Errorf("mapping cost basis: %w", err)
+		}
+
+		costBasisID = lo.ToPtr(*entity.CostBasisID)
+		costBasisIntent = &mappedCostBasis.Intent
+		resolvedCostBasis = mappedCostBasis.State
+	} else if entity.Edges.CostBasis != nil {
+		return flatfee.ChargeBase{}, fmt.Errorf("cost basis edge loaded without a reference for flat fee charge [id=%s,edge_id=%s]", entity.ID, entity.Edges.CostBasis.ID)
 	}
 
 	return flatfee.ChargeBase{
@@ -170,11 +200,14 @@ func fromDBBase(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge) flatfee.Cha
 			AdvanceAfter:         mappedMeta.AdvanceAfter,
 			FeatureID:            entity.FeatureID,
 			AmountAfterProration: entity.AmountAfterProration,
+			CostBasisID:          costBasisID,
+			ResolvedCostBasis:    resolvedCostBasis,
 		},
 		Intent: flatfee.NewOverridableIntent(flatfee.Intent{
 			Intent:         mappedMeta.Intent,
 			SettlementMode: entity.SettlementMode,
 			FeatureKey:     entity.FeatureKey,
+			CostBasis:      costBasisIntent,
 			IntentMutableFields: flatfee.IntentMutableFields{
 				IntentMutableFields:   mappedMeta.IntentMutableFields,
 				InvoiceAt:             entity.InvoiceAt.UTC(),
@@ -185,7 +218,7 @@ func fromDBBase(entity *entdb.ChargeFlatFee, mappedMeta meta.Charge) flatfee.Cha
 				AmountBeforeProration: entity.AmountBeforeProration,
 			},
 		}, fromDBOverride(entity.Edges.IntentOverride)),
-	}
+	}, nil
 }
 
 // fromDBProRatingConfig converts a DB ProRatingModeAdapterEnum to a ProRatingConfig.

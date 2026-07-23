@@ -94,12 +94,16 @@ const (
 	FieldAmountAfterProration = "amount_after_proration"
 	// FieldCurrentRealizationRunID holds the string denoting the current_realization_run_id field in the database.
 	FieldCurrentRealizationRunID = "current_realization_run_id"
+	// FieldCostBasisID holds the string denoting the cost_basis_id field in the database.
+	FieldCostBasisID = "cost_basis_id"
 	// FieldStatusDetailed holds the string denoting the status_detailed field in the database.
 	FieldStatusDetailed = "status_detailed"
 	// EdgeRuns holds the string denoting the runs edge name in mutations.
 	EdgeRuns = "runs"
 	// EdgeCurrentRun holds the string denoting the current_run edge name in mutations.
 	EdgeCurrentRun = "current_run"
+	// EdgeCostBasis holds the string denoting the cost_basis edge name in mutations.
+	EdgeCostBasis = "cost_basis"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeIntentOverride holds the string denoting the intent_override edge name in mutations.
@@ -134,6 +138,13 @@ const (
 	CurrentRunInverseTable = "charge_flat_fee_runs"
 	// CurrentRunColumn is the table column denoting the current_run relation/edge.
 	CurrentRunColumn = "current_realization_run_id"
+	// CostBasisTable is the table that holds the cost_basis relation/edge.
+	CostBasisTable = "charge_flat_fees"
+	// CostBasisInverseTable is the table name for the ChargeFlatFeeCostBasis entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeecostbasis" package.
+	CostBasisInverseTable = "charge_flat_fee_cost_bases"
+	// CostBasisColumn is the table column denoting the cost_basis relation/edge.
+	CostBasisColumn = "cost_basis_id"
 	// ChargeTable is the table that holds the charge relation/edge.
 	ChargeTable = "charges"
 	// ChargeInverseTable is the table name for the Charge entity.
@@ -239,6 +250,7 @@ var Columns = []string{
 	FieldAmountBeforeProration,
 	FieldAmountAfterProration,
 	FieldCurrentRealizationRunID,
+	FieldCostBasisID,
 	FieldStatusDetailed,
 }
 
@@ -524,6 +536,11 @@ func ByCurrentRealizationRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrentRealizationRunID, opts...).ToFunc()
 }
 
+// ByCostBasisID orders the results by the cost_basis_id field.
+func ByCostBasisID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostBasisID, opts...).ToFunc()
+}
+
 // ByStatusDetailed orders the results by the status_detailed field.
 func ByStatusDetailed(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatusDetailed, opts...).ToFunc()
@@ -547,6 +564,13 @@ func ByRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 func ByCurrentRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newCurrentRunStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCostBasisField orders the results by cost_basis field.
+func ByCostBasisField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCostBasisStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -624,6 +648,13 @@ func newCurrentRunStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CurrentRunInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, false, CurrentRunTable, CurrentRunColumn),
+	)
+}
+func newCostBasisStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CostBasisInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, CostBasisTable, CostBasisColumn),
 	)
 }
 func newChargeStep() *sqlgraph.Step {

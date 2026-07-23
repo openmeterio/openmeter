@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
@@ -387,6 +388,20 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableVoidedAt(v *time.Time) *ChargeC
 	return _c
 }
 
+// SetCostBasisID sets the "cost_basis_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetCostBasisID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetCostBasisID(v)
+	return _c
+}
+
+// SetNillableCostBasisID sets the "cost_basis_id" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableCostBasisID(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetCostBasisID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeCreditPurchaseCreate) SetID(v string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetID(v)
@@ -456,6 +471,11 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableCreditGrantID(id *string) *Char
 // SetCreditGrant sets the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity.
 func (_c *ChargeCreditPurchaseCreate) SetCreditGrant(v *ChargeCreditPurchaseCreditGrant) *ChargeCreditPurchaseCreate {
 	return _c.SetCreditGrantID(v.ID)
+}
+
+// SetCostBasis sets the "cost_basis" edge to the ChargeCreditPurchaseCostBasis entity.
+func (_c *ChargeCreditPurchaseCreate) SetCostBasis(v *ChargeCreditPurchaseCostBasis) *ChargeCreditPurchaseCreate {
+	return _c.SetCostBasisID(v.ID)
 }
 
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
@@ -870,6 +890,23 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CostBasisIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargecreditpurchase.CostBasisTable,
+			Columns: []string{chargecreditpurchase.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CostBasisID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
@@ -1376,6 +1413,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.Key(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldKey)
+		}
+		if _, exists := u.create.mutation.CostBasisID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldCostBasisID)
 		}
 	}))
 	return u
@@ -1956,6 +1996,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.Key(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldKey)
+			}
+			if _, exists := b.mutation.CostBasisID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldCostBasisID)
 			}
 		}
 	}))

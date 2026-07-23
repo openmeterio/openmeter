@@ -201,6 +201,11 @@ func CurrentRealizationRunID(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldCurrentRealizationRunID, v))
 }
 
+// CostBasisID applies equality check predicate on the "cost_basis_id" field. It's identical to CostBasisIDEQ.
+func CostBasisID(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldCostBasisID, v))
+}
+
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
 func CustomerIDEQ(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldCustomerID, v))
@@ -1920,6 +1925,81 @@ func CurrentRealizationRunIDContainsFold(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldCurrentRealizationRunID, v))
 }
 
+// CostBasisIDEQ applies the EQ predicate on the "cost_basis_id" field.
+func CostBasisIDEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldCostBasisID, v))
+}
+
+// CostBasisIDNEQ applies the NEQ predicate on the "cost_basis_id" field.
+func CostBasisIDNEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldCostBasisID, v))
+}
+
+// CostBasisIDIn applies the In predicate on the "cost_basis_id" field.
+func CostBasisIDIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldCostBasisID, vs...))
+}
+
+// CostBasisIDNotIn applies the NotIn predicate on the "cost_basis_id" field.
+func CostBasisIDNotIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldCostBasisID, vs...))
+}
+
+// CostBasisIDGT applies the GT predicate on the "cost_basis_id" field.
+func CostBasisIDGT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldCostBasisID, v))
+}
+
+// CostBasisIDGTE applies the GTE predicate on the "cost_basis_id" field.
+func CostBasisIDGTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldCostBasisID, v))
+}
+
+// CostBasisIDLT applies the LT predicate on the "cost_basis_id" field.
+func CostBasisIDLT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldCostBasisID, v))
+}
+
+// CostBasisIDLTE applies the LTE predicate on the "cost_basis_id" field.
+func CostBasisIDLTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldCostBasisID, v))
+}
+
+// CostBasisIDContains applies the Contains predicate on the "cost_basis_id" field.
+func CostBasisIDContains(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContains(FieldCostBasisID, v))
+}
+
+// CostBasisIDHasPrefix applies the HasPrefix predicate on the "cost_basis_id" field.
+func CostBasisIDHasPrefix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasPrefix(FieldCostBasisID, v))
+}
+
+// CostBasisIDHasSuffix applies the HasSuffix predicate on the "cost_basis_id" field.
+func CostBasisIDHasSuffix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasSuffix(FieldCostBasisID, v))
+}
+
+// CostBasisIDIsNil applies the IsNil predicate on the "cost_basis_id" field.
+func CostBasisIDIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldCostBasisID))
+}
+
+// CostBasisIDNotNil applies the NotNil predicate on the "cost_basis_id" field.
+func CostBasisIDNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldCostBasisID))
+}
+
+// CostBasisIDEqualFold applies the EqualFold predicate on the "cost_basis_id" field.
+func CostBasisIDEqualFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEqualFold(FieldCostBasisID, v))
+}
+
+// CostBasisIDContainsFold applies the ContainsFold predicate on the "cost_basis_id" field.
+func CostBasisIDContainsFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldCostBasisID, v))
+}
+
 // StatusDetailedEQ applies the EQ predicate on the "status_detailed" field.
 func StatusDetailedEQ(v usagebased.Status) predicate.ChargeUsageBased {
 	vc := v
@@ -2011,6 +2091,29 @@ func HasCurrentRun() predicate.ChargeUsageBased {
 func HasCurrentRunWith(preds ...predicate.ChargeUsageBasedRuns) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(func(s *sql.Selector) {
 		step := newCurrentRunStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCostBasis applies the HasEdge predicate on the "cost_basis" edge.
+func HasCostBasis() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, CostBasisTable, CostBasisColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCostBasisWith applies the HasEdge predicate on the "cost_basis" edge with a given conditions (other predicates).
+func HasCostBasisWith(preds ...predicate.ChargeUsageBasedCostBasis) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := newCostBasisStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

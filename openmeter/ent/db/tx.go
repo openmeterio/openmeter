@@ -70,6 +70,8 @@ type Tx struct {
 	Charge *ChargeClient
 	// ChargeCreditPurchase is the client for interacting with the ChargeCreditPurchase builders.
 	ChargeCreditPurchase *ChargeCreditPurchaseClient
+	// ChargeCreditPurchaseCostBasis is the client for interacting with the ChargeCreditPurchaseCostBasis builders.
+	ChargeCreditPurchaseCostBasis *ChargeCreditPurchaseCostBasisClient
 	// ChargeCreditPurchaseCreditGrant is the client for interacting with the ChargeCreditPurchaseCreditGrant builders.
 	ChargeCreditPurchaseCreditGrant *ChargeCreditPurchaseCreditGrantClient
 	// ChargeCreditPurchaseExternalPayment is the client for interacting with the ChargeCreditPurchaseExternalPayment builders.
@@ -78,6 +80,8 @@ type Tx struct {
 	ChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPaymentClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
+	// ChargeFlatFeeCostBasis is the client for interacting with the ChargeFlatFeeCostBasis builders.
+	ChargeFlatFeeCostBasis *ChargeFlatFeeCostBasisClient
 	// ChargeFlatFeeOverride is the client for interacting with the ChargeFlatFeeOverride builders.
 	ChargeFlatFeeOverride *ChargeFlatFeeOverrideClient
 	// ChargeFlatFeeRun is the client for interacting with the ChargeFlatFeeRun builders.
@@ -92,6 +96,8 @@ type Tx struct {
 	ChargeFlatFeeRunPayment *ChargeFlatFeeRunPaymentClient
 	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
 	ChargeUsageBased *ChargeUsageBasedClient
+	// ChargeUsageBasedCostBasis is the client for interacting with the ChargeUsageBasedCostBasis builders.
+	ChargeUsageBasedCostBasis *ChargeUsageBasedCostBasisClient
 	// ChargeUsageBasedOverride is the client for interacting with the ChargeUsageBasedOverride builders.
 	ChargeUsageBasedOverride *ChargeUsageBasedOverrideClient
 	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
@@ -341,10 +347,12 @@ func (tx *Tx) init() {
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
 	tx.Charge = NewChargeClient(tx.config)
 	tx.ChargeCreditPurchase = NewChargeCreditPurchaseClient(tx.config)
+	tx.ChargeCreditPurchaseCostBasis = NewChargeCreditPurchaseCostBasisClient(tx.config)
 	tx.ChargeCreditPurchaseCreditGrant = NewChargeCreditPurchaseCreditGrantClient(tx.config)
 	tx.ChargeCreditPurchaseExternalPayment = NewChargeCreditPurchaseExternalPaymentClient(tx.config)
 	tx.ChargeCreditPurchaseInvoicedPayment = NewChargeCreditPurchaseInvoicedPaymentClient(tx.config)
 	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
+	tx.ChargeFlatFeeCostBasis = NewChargeFlatFeeCostBasisClient(tx.config)
 	tx.ChargeFlatFeeOverride = NewChargeFlatFeeOverrideClient(tx.config)
 	tx.ChargeFlatFeeRun = NewChargeFlatFeeRunClient(tx.config)
 	tx.ChargeFlatFeeRunCreditAllocations = NewChargeFlatFeeRunCreditAllocationsClient(tx.config)
@@ -352,6 +360,7 @@ func (tx *Tx) init() {
 	tx.ChargeFlatFeeRunInvoicedUsage = NewChargeFlatFeeRunInvoicedUsageClient(tx.config)
 	tx.ChargeFlatFeeRunPayment = NewChargeFlatFeeRunPaymentClient(tx.config)
 	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
+	tx.ChargeUsageBasedCostBasis = NewChargeUsageBasedCostBasisClient(tx.config)
 	tx.ChargeUsageBasedOverride = NewChargeUsageBasedOverrideClient(tx.config)
 	tx.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(tx.config)
 	tx.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(tx.config)

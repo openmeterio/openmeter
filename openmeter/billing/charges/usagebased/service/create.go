@@ -9,8 +9,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -27,12 +29,29 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
+		now := clock.Now().UTC()
 		createIntents, err := slicesx.MapWithErr(input.Intents, func(intent usagebased.Intent) (usagebased.CreateIntent, error) {
-			if intent.Currency.IsCustom() && intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+			if intent.Currency.IsCustom() &&
+				intent.SettlementMode == productcatalog.CreditThenInvoiceSettlementMode &&
+				!s.enableCustomCurrency.Load() {
 				return usagebased.CreateIntent{}, fmt.Errorf("creating usage based charge with custom currency %q: %w", intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
 			}
 
 			chargeIntent := intent.Normalized()
+
+			var resolvedCostBasis *costbasis.State
+			if chargeIntent.CostBasis != nil {
+				var err error
+
+				resolvedCostBasis, err = s.costbasisResolver.ResolveInitialState(ctx, costbasis.ResolveInitialStateInput{
+					CurrencyID: chargeIntent.Currency.NamespacedID,
+					Intent:     *chargeIntent.CostBasis,
+					ResolvedAt: now,
+				})
+				if err != nil {
+					return usagebased.CreateIntent{}, fmt.Errorf("resolving cost basis: %w", err)
+				}
+			}
 
 			featureMeter, err := input.FeatureMeters.Get(chargeIntent.FeatureKey, false)
 			if err != nil {
@@ -40,10 +59,11 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			}
 
 			return usagebased.CreateIntent{
-				Intent:       chargeIntent.AsOverridableIntent(),
-				Annotations:  chargeIntent.Annotations,
-				FeatureID:    featureMeter.Feature.ID,
-				RatingEngine: s.rater.GetPreferredRatingEngineFor(chargeIntent),
+				Intent:            chargeIntent.AsOverridableIntent(),
+				Annotations:       chargeIntent.Annotations,
+				FeatureID:         featureMeter.Feature.ID,
+				RatingEngine:      s.rater.GetPreferredRatingEngineFor(chargeIntent),
+				ResolvedCostBasis: resolvedCostBasis,
 			}, nil
 		})
 		if err != nil {
@@ -54,20 +74,6 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 		charges, err := s.adapter.CreateCharges(ctx, usagebased.CreateChargesInput{
 			Namespace: input.Namespace,
 			Intents:   createIntents,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		err = s.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
-			Namespace: input.Namespace,
-			Type:      meta.ChargeTypeUsageBased,
-			Charges: lo.Map(charges, func(charge usagebased.Charge, idx int) meta.IDWithUniqueReferenceID {
-				return meta.IDWithUniqueReferenceID{
-					ID:                charge.ID,
-					UniqueReferenceID: charge.Intent.GetUniqueReferenceID(),
-				}
-			}),
 		})
 		if err != nil {
 			return nil, err

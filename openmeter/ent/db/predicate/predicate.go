@@ -200,6 +200,9 @@ func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPu
 	}
 }
 
+// ChargeCreditPurchaseCostBasis is the predicate function for chargecreditpurchasecostbasis builders.
+type ChargeCreditPurchaseCostBasis func(*sql.Selector)
+
 // ChargeCreditPurchaseCreditGrant is the predicate function for chargecreditpurchasecreditgrant builders.
 type ChargeCreditPurchaseCreditGrant func(*sql.Selector)
 
@@ -222,6 +225,9 @@ func ChargeFlatFeeOrErr(p ChargeFlatFee, err error) ChargeFlatFee {
 		p(s)
 	}
 }
+
+// ChargeFlatFeeCostBasis is the predicate function for chargeflatfeecostbasis builders.
+type ChargeFlatFeeCostBasis func(*sql.Selector)
 
 // ChargeFlatFeeOverride is the predicate function for chargeflatfeeoverride builders.
 type ChargeFlatFeeOverride func(*sql.Selector)
@@ -265,6 +271,9 @@ func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
 		p(s)
 	}
 }
+
+// ChargeUsageBasedCostBasis is the predicate function for chargeusagebasedcostbasis builders.
+type ChargeUsageBasedCostBasis func(*sql.Selector)
 
 // ChargeUsageBasedOverride is the predicate function for chargeusagebasedoverride builders.
 type ChargeUsageBasedOverride func(*sql.Selector)

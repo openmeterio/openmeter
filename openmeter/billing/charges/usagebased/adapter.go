@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -16,8 +17,13 @@ type Adapter interface {
 	RealizationRunInvoiceUsageAdapter
 	RealizationRunPaymentAdapter
 	ChargeAdapter
+	ChargeCostBasisAdapter
 
 	entutils.TxCreator
+}
+
+type ChargeCostBasisAdapter interface {
+	SetResolvedCostBasis(ctx context.Context, input costbasis.SetResolvedCostBasisInput) (costbasis.CostBasis, error)
 }
 
 type ChargeAdapter interface {

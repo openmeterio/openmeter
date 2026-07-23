@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
@@ -33,6 +34,7 @@ type stateMachine struct {
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
 	CurrencyCalculator currencyx.Currency
+	CostBasisResolver  costbasis.Resolver
 }
 
 type StateMachine = chargestatemachine.StateMachine[usagebased.Charge]
@@ -46,6 +48,7 @@ type StateMachineConfig struct {
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
 	CurrencyCalculator currencyx.Currency
+	CostBasisResolver  costbasis.Resolver
 }
 
 func (c StateMachineConfig) Validate() error {
@@ -89,6 +92,10 @@ func (c StateMachineConfig) Validate() error {
 		}
 	}
 
+	if c.CostBasisResolver == nil {
+		errs = append(errs, errors.New("cost basis resolver is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -105,6 +112,7 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 		CustomerOverride:   config.CustomerOverride,
 		FeatureMeter:       config.FeatureMeter,
 		CurrencyCalculator: config.CurrencyCalculator,
+		CostBasisResolver:  config.CostBasisResolver,
 	}
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{

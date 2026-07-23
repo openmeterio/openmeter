@@ -73,6 +73,9 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge usagebased.Ch
 		}
 
 		dbCharge.Edges.IntentOverride = dbIntentOverride
+		if err := tx.loadCostBasisEdge(ctx, dbCharge); err != nil {
+			return usagebased.ChargeBase{}, err
+		}
 
 		return fromDBBaseWithCurrency(dbCharge, charge.Intent.GetBaseIntent().Currency)
 	})

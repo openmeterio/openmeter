@@ -2,15 +2,19 @@ package service
 
 import (
 	"errors"
+	"sync/atomic"
+	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -26,6 +30,7 @@ type Config struct {
 	CustomerOverrideService billing.CustomerOverrideService
 	FeatureService          feature.FeatureConnector
 	RatingService           rating.Service
+	Currencies              currencies.Service
 
 	StreamingConnector streaming.Connector
 }
@@ -69,6 +74,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("rating service cannot be null"))
 	}
 
+	if c.Currencies == nil {
+		errs = append(errs, errors.New("currencies service cannot be null"))
+	}
+
 	if c.StreamingConnector == nil {
 		errs = append(errs, errors.New("streaming connector cannot be null"))
 	}
@@ -100,6 +109,13 @@ func New(config Config) (usagebased.Service, error) {
 		return nil, err
 	}
 
+	costbasisResolver, err := costbasis.NewResolver(costbasis.ResolverConfig{
+		Currencies: config.Currencies,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &service{
 		adapter:                 config.Adapter,
 		locker:                  config.Locker,
@@ -110,6 +126,7 @@ func New(config Config) (usagebased.Service, error) {
 		ratingService:           config.RatingService,
 		rater:                   rater,
 		runs:                    runs,
+		costbasisResolver:       costbasisResolver,
 	}, nil
 }
 
@@ -124,10 +141,23 @@ type service struct {
 
 	rater usagebasedrating.Service
 	runs  *usagebasedrun.Service
+
+	enableCustomCurrency atomic.Bool
+	costbasisResolver    costbasis.Resolver
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
 	return &LineEngine{
 		service: s,
 	}
+}
+
+func (s *service) SetEnableCustomCurrency(t *testing.T, enabled bool) error {
+	if t == nil {
+		return errors.New("testing is nil")
+	}
+
+	t.Helper()
+	s.enableCustomCurrency.Store(enabled)
+	return nil
 }

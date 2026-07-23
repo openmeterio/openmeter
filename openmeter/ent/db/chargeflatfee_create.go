@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
@@ -390,6 +391,20 @@ func (_c *ChargeFlatFeeCreate) SetNillableCurrentRealizationRunID(v *string) *Ch
 	return _c
 }
 
+// SetCostBasisID sets the "cost_basis_id" field.
+func (_c *ChargeFlatFeeCreate) SetCostBasisID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetCostBasisID(v)
+	return _c
+}
+
+// SetNillableCostBasisID sets the "cost_basis_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableCostBasisID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetCostBasisID(*v)
+	}
+	return _c
+}
+
 // SetStatusDetailed sets the "status_detailed" field.
 func (_c *ChargeFlatFeeCreate) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeCreate {
 	_c.mutation.SetStatusDetailed(v)
@@ -442,6 +457,11 @@ func (_c *ChargeFlatFeeCreate) SetNillableCurrentRunID(id *string) *ChargeFlatFe
 // SetCurrentRun sets the "current_run" edge to the ChargeFlatFeeRun entity.
 func (_c *ChargeFlatFeeCreate) SetCurrentRun(v *ChargeFlatFeeRun) *ChargeFlatFeeCreate {
 	return _c.SetCurrentRunID(v.ID)
+}
+
+// SetCostBasis sets the "cost_basis" edge to the ChargeFlatFeeCostBasis entity.
+func (_c *ChargeFlatFeeCreate) SetCostBasis(v *ChargeFlatFeeCostBasis) *ChargeFlatFeeCreate {
+	return _c.SetCostBasisID(v.ID)
 }
 
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
@@ -901,6 +921,23 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.CurrentRealizationRunID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CostBasisIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfee.CostBasisTable,
+			Columns: []string{chargeflatfee.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CostBasisID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
@@ -1521,6 +1558,9 @@ func (u *ChargeFlatFeeUpsertOne) UpdateNewValues() *ChargeFlatFeeUpsertOne {
 		}
 		if _, exists := u.create.mutation.FeatureKey(); exists {
 			s.SetIgnore(chargeflatfee.FieldFeatureKey)
+		}
+		if _, exists := u.create.mutation.CostBasisID(); exists {
+			s.SetIgnore(chargeflatfee.FieldCostBasisID)
 		}
 	}))
 	return u
@@ -2197,6 +2237,9 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateNewValues() *ChargeFlatFeeUpsertBulk {
 			}
 			if _, exists := b.mutation.FeatureKey(); exists {
 				s.SetIgnore(chargeflatfee.FieldFeatureKey)
+			}
+			if _, exists := b.mutation.CostBasisID(); exists {
+				s.SetIgnore(chargeflatfee.FieldCostBasisID)
 			}
 		}
 	}))
