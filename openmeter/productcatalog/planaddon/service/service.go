@@ -18,7 +18,7 @@ type Config struct {
 	Logger    *slog.Logger
 	Publisher eventbus.Publisher
 
-	CurrencyResolver productcatalog.CurrencyResolver
+	CostBasisChecker productcatalog.CostBasisChecker
 }
 
 func New(config Config) (planaddon.Service, error) {
@@ -34,8 +34,8 @@ func New(config Config) (planaddon.Service, error) {
 		return nil, errors.New("add-on service is required")
 	}
 
-	if config.CurrencyResolver == nil {
-		return nil, errors.New("currency resolver is required")
+	if config.CostBasisChecker == nil {
+		return nil, errors.New("cost basis checker is required")
 	}
 
 	if config.Logger == nil {
@@ -53,7 +53,7 @@ func New(config Config) (planaddon.Service, error) {
 		logger:    config.Logger,
 		publisher: config.Publisher,
 
-		currencyResolver: config.CurrencyResolver,
+		costBasisChecker: config.CostBasisChecker,
 	}, nil
 }
 
@@ -66,5 +66,5 @@ type service struct {
 	logger    *slog.Logger
 	publisher eventbus.Publisher
 
-	currencyResolver productcatalog.CurrencyResolver
+	costBasisChecker productcatalog.CostBasisChecker
 }

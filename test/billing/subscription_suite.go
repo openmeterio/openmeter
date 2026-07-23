@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	credithook "github.com/openmeterio/openmeter/openmeter/credit/hook"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currenciescurrencyresolver "github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -28,7 +29,7 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
+	productcatalogcurrencyresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -138,12 +139,16 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	currencyService, err := currencyservice.New(currencyAdapter)
 	require.NoError(t, err)
 
-	currencyResolver, err := currencyresolver.New(currencyService)
+	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
+	require.NoError(t, err)
+
+	costBasisChecker, err := productcatalogcurrencyresolver.NewCostBasisChecker(currencyService)
 	require.NoError(t, err)
 
 	planService, err := planservice.New(planservice.Config{
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		CostBasisChecker: costBasisChecker,
 		Adapter:          planAdapter,
 		TaxCode:          taxCodeService,
 		Logger:           slog.Default(),
@@ -195,6 +200,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
@@ -210,7 +216,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Logger:           slog.Default(),
 		Plan:             planService,
 		Addon:            addonService,
-		CurrencyResolver: currencyResolver,
+		CostBasisChecker: costBasisChecker,
 		Publisher:        publisher,
 	})
 	require.NoError(t, err)

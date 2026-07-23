@@ -186,12 +186,8 @@ func (i CreateAddonInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
-func (i *CreateAddonInput) ResolveCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver) error {
-	return productcatalog.ResolveAddonCurrencies(ctx, i.Namespace, resolver, &i.Addon)
-}
-
-func (i CreateAddonInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver) error {
-	return validateCurrencies(ctx, i.Namespace, i.Addon, resolver, i.IgnoreNonCriticalIssues)
+func (i CreateAddonInput) ValidateCurrencies(ctx context.Context, checker productcatalog.CostBasisChecker) error {
+	return validateCurrencies(ctx, i.Namespace, i.Addon, checker, i.IgnoreNonCriticalIssues)
 }
 
 var (
@@ -367,28 +363,18 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 	return a
 }
 
-func (i *UpdateAddonInput) ResolveCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver, a productcatalog.Addon) error {
-	if i.RateCards != nil {
-		if err := preserveAddonRateCardCurrencyIdentities(a.RateCards, *i.RateCards); err != nil {
-			return err
-		}
-	}
-
-	a = i.applyTo(a)
-
-	if err := productcatalog.ResolveAddonCurrencies(ctx, i.Namespace, resolver, &a); err != nil {
-		return err
-	}
-
-	if i.RateCards != nil {
-		*i.RateCards = a.RateCards
-	}
-
-	return nil
+func (i UpdateAddonInput) ValidateCurrencies(ctx context.Context, checker productcatalog.CostBasisChecker, a productcatalog.Addon) error {
+	return validateCurrencies(ctx, i.Namespace, i.applyTo(a), checker, i.IgnoreNonCriticalIssues)
 }
 
-func (i UpdateAddonInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver, a productcatalog.Addon) error {
-	return validateCurrencies(ctx, i.Namespace, i.applyTo(a), resolver, i.IgnoreNonCriticalIssues)
+// PreserveRateCardCurrencyIdentities retains managed custom-currency IDs for
+// unchanged rate cards before code-only update input is resolved.
+func (i *UpdateAddonInput) PreserveRateCardCurrencyIdentities(a productcatalog.Addon) error {
+	if i.RateCards == nil {
+		return nil
+	}
+
+	return preserveAddonRateCardCurrencyIdentities(a.RateCards, *i.RateCards)
 }
 
 // preserveAddonRateCardCurrencyIdentities repairs code-only update input before
@@ -428,10 +414,10 @@ func preserveAddonRateCardCurrencyIdentities(persisted, updated productcatalog.R
 	return nil
 }
 
-func validateCurrencies(ctx context.Context, namespace string, a productcatalog.Addon, resolver productcatalog.CurrencyResolver, ignoreNonCriticalIssues bool) error {
+func validateCurrencies(ctx context.Context, namespace string, a productcatalog.Addon, checker productcatalog.CostBasisChecker, ignoreNonCriticalIssues bool) error {
 	err := a.ValidateWith(
 		productcatalog.ValidateAddonRateCardCurrencies(),
-		productcatalog.ValidateAddonWithCurrencies(ctx, namespace, resolver),
+		productcatalog.ValidateAddonWithCurrencies(ctx, namespace, checker),
 	)
 	issues, conversionErr := models.AsValidationIssues(err)
 	if conversionErr != nil {

@@ -17,14 +17,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
-	currencyresolver2 "github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
+	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/llmcost/sync"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -302,6 +301,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	costBasisChecker, err := common.NewProductCatalogCostBasisChecker(currenciesService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	taxcodeRepository, err := common.NewTaxCodeAdapter(logger, client)
 	if err != nil {
 		cleanup7()
@@ -324,7 +334,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	planService, err := common.NewPlanService(logger, client, featureResolver, currencyResolver, taxcodeService, eventbusPublisher)
+	planService, err := common.NewPlanService(logger, client, featureResolver, currencyResolver, costBasisChecker, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -335,7 +345,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	addonService, err := common.NewAddonService(logger, client, featureResolver, currencyResolver, taxcodeService, eventbusPublisher)
+	addonService, err := common.NewAddonService(logger, client, featureResolver, currencyResolver, costBasisChecker, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -346,7 +356,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	planaddonService, err := common.NewPlanAddonService(logger, client, planService, addonService, currencyResolver, eventbusPublisher)
+	planaddonService, err := common.NewPlanAddonService(logger, client, planService, addonService, costBasisChecker, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -371,17 +381,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
 	creditsConfiguration := conf.Credits
-	currenciesCurrencyResolver, err := currencyresolver2.New(currenciesService)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	repo := common.NewLedgerHistoricalRepo(client)
 	accountRepo := common.NewLedgerAccountRepo(client)
 	accountService := common.NewLedgerAccountService(creditsConfiguration, accountRepo, locker)
@@ -408,7 +407,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	gate := featuregate.NewNoop()
 	featureGateConfiguration := conf.FeatureGate
 	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
-	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, currenciesCurrencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
+	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup7()
 		cleanup6()

@@ -23,6 +23,7 @@ import (
 	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currenciescurrencyresolver "github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -34,7 +35,7 @@ import (
 	meterservice "github.com/openmeterio/openmeter/openmeter/meter/service"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
+	productcatalogcurrencyresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	planpkg "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -291,15 +292,21 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create currency service: %w", err)
 	}
 
-	currencyResolver, err := currencyresolver.New(currencyService)
+	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create currency resolver: %w", err)
+	}
+
+	costBasisChecker, err := productcatalogcurrencyresolver.NewCostBasisChecker(currencyService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cost basis checker: %w", err)
 	}
 
 	planService, err := planservice.New(planservice.Config{
 		Adapter:          planAdapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 		Logger:           logger.WithGroup("plan"),
 		Publisher:        publisher,
@@ -365,6 +372,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
@@ -380,7 +388,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Logger:           logger,
 		Plan:             planService,
 		Addon:            addonService,
-		CurrencyResolver: currencyResolver,
+		CostBasisChecker: costBasisChecker,
 		Publisher:        publisher,
 	})
 	require.NoError(t, err)

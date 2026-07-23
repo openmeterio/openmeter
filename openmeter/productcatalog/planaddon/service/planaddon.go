@@ -147,7 +147,7 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 
 		if err = pa.ValidateWith(
 			productcatalog.ValidatePlanAddonRateCardCurrencies(),
-			productcatalog.ValidatePlanAddonWithCurrencies(ctx, params.Namespace, s.currencyResolver),
+			productcatalog.ValidatePlanAddonWithCurrencies(ctx, params.Namespace, s.costBasisChecker),
 		); err != nil {
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("invalid plan add-on assignment currencies [namespace=%s plan.id=%s addon.id=%s]: %w",
@@ -409,7 +409,7 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 		}
 
 		if err = pa.ValidateWith(
-			productcatalog.ValidatePlanAddonWithCurrencies(ctx, params.Namespace, s.currencyResolver),
+			productcatalog.ValidatePlanAddonWithCurrencies(ctx, params.Namespace, s.costBasisChecker),
 		); err != nil {
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("invalid plan add-on assignment currencies [namespace=%s plan.id=%s addon.id=%s]: %w",

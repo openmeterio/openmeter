@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -139,21 +140,32 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 							params.Key, params.Phases[idx].Key, err))
 				}
 
+				if err = currencyresolver.ResolveCurrenciesForRateCards(ctx, s.currencyResolver, params.Namespace, &params.Phases[idx].RateCards); err != nil {
+					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
+						fmt.Errorf("failed to resolve currencies for ratecards in plan phase [plan.key=%s plan.phase.key=%s]: %w",
+							params.Key, params.Phases[idx].Key, err))
+				}
+
 				if err = s.resolveTaxCodes(ctx, params.Namespace, &params.Phases[idx].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
 			}
 		}
 
-		if err := params.ResolveCurrencies(ctx, s.currencyResolver); err != nil {
-			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		resolvedCurrency, err := currencyresolver.ResolveCurrency(ctx, s.currencyResolver, params.Namespace, params.Currency)
+		if err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				err,
+			))
 		}
+		params.Currency = resolvedCurrency
 
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid resolved Plan: %w", err)
 		}
 
-		if err := params.ValidateCurrencies(ctx, s.currencyResolver); err != nil {
+		if err := params.ValidateCurrencies(ctx, s.costBasisChecker); err != nil {
 			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
 
@@ -319,6 +331,10 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		// therefore the EffectivePeriod attribute must be zeroed before updating the Plan.
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
+		if err = params.PreserveRateCardCurrencyIdentities(pp); err != nil {
+			return nil, fmt.Errorf("failed to preserve plan ratecard currency identities: %w", err)
+		}
+
 		if params.Phases != nil && len(*params.Phases) > 0 {
 			for idx := range *params.Phases {
 				phaseFieldSelector := models.NewFieldSelectorGroup(
@@ -334,14 +350,16 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 							params.ID, (*params.Phases)[idx].Key, err))
 				}
 
+				if err := currencyresolver.ResolveCurrenciesForRateCards(ctx, s.currencyResolver, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
+					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
+						fmt.Errorf("failed to resolve currencies for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
+							params.ID, (*params.Phases)[idx].Key, err))
+				}
+
 				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
 			}
-		}
-
-		if err = params.ResolveCurrencies(ctx, s.currencyResolver, pp); err != nil {
-			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
 
 		// Validate the full candidate only after all authoring currencies have
@@ -350,7 +368,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			return nil, fmt.Errorf("invalid Plan update: %w", err)
 		}
 
-		if err = params.ValidateCurrencies(ctx, s.currencyResolver, pp); err != nil {
+		if err = params.ValidateCurrencies(ctx, s.costBasisChecker, pp); err != nil {
 			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
 
@@ -456,7 +474,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			)
 		}
 
-		if err = pp.ValidateWith(productcatalog.ValidatePlanWithCurrencies(ctx, p.Namespace, s.currencyResolver)); err != nil {
+		if err = pp.ValidateWith(productcatalog.ValidatePlanWithCurrencies(ctx, p.Namespace, s.costBasisChecker)); err != nil {
 			errs = append(errs, fmt.Errorf("invalid plan currencies [id=%s key=%s version=%d]: %w",
 				p.ID, p.Key, p.Version, err),
 			)

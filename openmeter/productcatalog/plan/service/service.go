@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -17,7 +18,8 @@ type Config struct {
 	Publisher eventbus.Publisher
 
 	FeatureResolver  productcatalog.FeatureResolver
-	CurrencyResolver productcatalog.CurrencyResolver
+	CurrencyResolver currencies.CurrencyResolver
+	CostBasisChecker productcatalog.CostBasisChecker
 }
 
 func New(config Config) (plan.Service, error) {
@@ -31,6 +33,10 @@ func New(config Config) (plan.Service, error) {
 
 	if config.CurrencyResolver == nil {
 		return nil, errors.New("currency resolver is required")
+	}
+
+	if config.CostBasisChecker == nil {
+		return nil, errors.New("cost basis checker is required")
 	}
 
 	if config.Logger == nil {
@@ -53,6 +59,7 @@ func New(config Config) (plan.Service, error) {
 
 		featureResolver:  config.FeatureResolver,
 		currencyResolver: config.CurrencyResolver,
+		costBasisChecker: config.CostBasisChecker,
 	}, nil
 }
 
@@ -65,5 +72,6 @@ type service struct {
 	publisher eventbus.Publisher
 
 	featureResolver  productcatalog.FeatureResolver
-	currencyResolver productcatalog.CurrencyResolver
+	currencyResolver currencies.CurrencyResolver
+	costBasisChecker productcatalog.CostBasisChecker
 }

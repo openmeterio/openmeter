@@ -2,7 +2,6 @@ package service_test
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
@@ -1161,7 +1161,7 @@ func TestListPlansFilters(t *testing.T) {
 	}
 }
 
-func TestUpdatePlanInputResolveCurrenciesPreservesManagedRateCardIdentity(t *testing.T) {
+func TestUpdatePlanRateCardCurrencyResolutionPreservesManagedIdentity(t *testing.T) {
 	// given:
 	// - a persisted rate card linked to an older managed CREDITS resource
 	// - code-only update data where one rate card keeps its phase/key/code and
@@ -1208,7 +1208,7 @@ func TestUpdatePlanInputResolveCurrenciesPreservesManagedRateCardIdentity(t *tes
 			RateCards: productcatalog.RateCards{newRateCard("shared", currencyx.Code("CREDITS"))},
 		},
 	}
-	resolver := &currencyResolverStub{resolved: map[currencyx.Code]currencyx.CurrencyIdentity{
+	resolver := &pctestutils.CurrencyResolverStub{Resolved: map[currencyx.Code]currencyx.CurrencyIdentity{
 		"USD":     currencyx.Code("USD"),
 		"CREDITS": newCredits,
 		"POINTS":  points,
@@ -1218,8 +1218,12 @@ func TestUpdatePlanInputResolveCurrenciesPreservesManagedRateCardIdentity(t *tes
 		Phases:       &updatedPhases,
 	}
 
-	err := input.ResolveCurrencies(t.Context(), resolver, persisted)
+	err := input.PreserveRateCardCurrencyIdentities(persisted)
 	require.NoError(t, err)
+	for idx := range updatedPhases {
+		err = currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver, namespace, &updatedPhases[idx].RateCards)
+		require.NoError(t, err)
+	}
 
 	preserved, ok := updatedPhases[0].RateCards[0].AsMeta().Currency.(currencyx.ManagedCurrency)
 	require.True(t, ok)
@@ -1318,21 +1322,4 @@ func TestUpdatePlanInputRejectsPersistedUnrepresentableRateCardFields(t *testing
 			require.ErrorIs(t, err, tt.expected)
 		})
 	}
-}
-
-type currencyResolverStub struct {
-	resolved map[currencyx.Code]currencyx.CurrencyIdentity
-}
-
-func (r *currencyResolverStub) Resolve(_ context.Context, _ string, code currencyx.Code) (currencyx.CurrencyIdentity, error) {
-	identity, ok := r.resolved[code]
-	if !ok {
-		return nil, fmt.Errorf("unexpected currency resolution: %s", code)
-	}
-
-	return identity, nil
-}
-
-func (r *currencyResolverStub) HasCostBasis(_ context.Context, _ string, _ currencyx.ManagedCurrency, _ currencyx.CurrencyIdentity) (bool, error) {
-	return true, nil
 }

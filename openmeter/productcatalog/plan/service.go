@@ -189,12 +189,8 @@ func (i CreatePlanInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
-func (i *CreatePlanInput) ResolveCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver) error {
-	return productcatalog.ResolvePlanCurrencies(ctx, i.Namespace, resolver, &i.Plan)
-}
-
-func (i CreatePlanInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver) error {
-	return validateCurrencies(ctx, i.Namespace, i.Plan, resolver, i.IgnoreNonCriticalIssues)
+func (i CreatePlanInput) ValidateCurrencies(ctx context.Context, checker productcatalog.CostBasisChecker) error {
+	return validateCurrencies(ctx, i.Namespace, i.Plan, checker, i.IgnoreNonCriticalIssues)
 }
 
 var (
@@ -406,28 +402,18 @@ func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 	return p
 }
 
-func (i *UpdatePlanInput) ResolveCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver, p productcatalog.Plan) error {
-	if i.Phases != nil {
-		if err := preservePlanRateCardCurrencyIdentities(p.Phases, *i.Phases); err != nil {
-			return err
-		}
-	}
-
-	p = i.applyTo(p)
-
-	if err := productcatalog.ResolvePlanCurrencies(ctx, i.Namespace, resolver, &p); err != nil {
-		return err
-	}
-
-	if i.Phases != nil {
-		*i.Phases = p.Phases
-	}
-
-	return nil
+func (i UpdatePlanInput) ValidateCurrencies(ctx context.Context, checker productcatalog.CostBasisChecker, p productcatalog.Plan) error {
+	return validateCurrencies(ctx, i.Namespace, i.applyTo(p), checker, i.IgnoreNonCriticalIssues)
 }
 
-func (i UpdatePlanInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver, p productcatalog.Plan) error {
-	return validateCurrencies(ctx, i.Namespace, i.applyTo(p), resolver, i.IgnoreNonCriticalIssues)
+// PreserveRateCardCurrencyIdentities retains managed custom-currency IDs for
+// unchanged rate cards before code-only update input is resolved.
+func (i *UpdatePlanInput) PreserveRateCardCurrencyIdentities(p productcatalog.Plan) error {
+	if i.Phases == nil {
+		return nil
+	}
+
+	return preservePlanRateCardCurrencyIdentities(p.Phases, *i.Phases)
 }
 
 // preservePlanRateCardCurrencyIdentities repairs code-only update input before
@@ -479,8 +465,8 @@ func preservePlanRateCardCurrencyIdentities(persisted, updated []productcatalog.
 	return nil
 }
 
-func validateCurrencies(ctx context.Context, namespace string, p productcatalog.Plan, resolver productcatalog.CurrencyResolver, ignoreNonCriticalIssues bool) error {
-	err := productcatalog.ValidatePlanWithCurrencies(ctx, namespace, resolver)(p)
+func validateCurrencies(ctx context.Context, namespace string, p productcatalog.Plan, checker productcatalog.CostBasisChecker, ignoreNonCriticalIssues bool) error {
+	err := productcatalog.ValidatePlanWithCurrencies(ctx, namespace, checker)(p)
 	issues, conversionErr := models.AsValidationIssues(err)
 	if conversionErr != nil {
 		return err

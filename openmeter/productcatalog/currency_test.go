@@ -2,13 +2,13 @@ package productcatalog
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -89,26 +89,18 @@ func TestValidatePlanWithCurrencies(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		resolver *testCurrencyResolver
+		checker  *testCostBasisChecker
 		expected error
 	}{
 		{
 			name: "matching cost basis",
-			resolver: &testCurrencyResolver{
-				currencies: map[currencyx.Code]currencyx.CurrencyIdentity{custom: customCurrency},
-				costBases:  map[string]bool{"currency-id|USD": true},
+			checker: &testCostBasisChecker{
+				costBases: map[string]bool{"currency-id|USD": true},
 			},
 		},
 		{
-			name:     "unknown custom currency",
-			resolver: &testCurrencyResolver{},
-			expected: ErrCurrencyNotFound,
-		},
-		{
-			name: "missing cost basis",
-			resolver: &testCurrencyResolver{
-				currencies: map[currencyx.Code]currencyx.CurrencyIdentity{custom: customCurrency},
-			},
+			name:     "missing cost basis",
+			checker:  &testCostBasisChecker{},
 			expected: ErrCurrencyCostBasisNotFound,
 		},
 	}
@@ -126,12 +118,12 @@ func TestValidatePlanWithCurrencies(t *testing.T) {
 				Phases: []Phase{{
 					PhaseMeta: PhaseMeta{Key: "default"},
 					RateCards: RateCards{&FlatFeeRateCard{
-						RateCardMeta: RateCardMeta{Key: "base", Currency: custom},
+						RateCardMeta: RateCardMeta{Key: "base", Currency: customCurrency},
 					}},
 				}},
 			}
 
-			err := ValidatePlanWithCurrencies(t.Context(), "namespace", tt.resolver)(plan)
+			err := ValidatePlanWithCurrencies(t.Context(), "namespace", tt.checker)(plan)
 			if tt.expected == nil {
 				require.NoError(t, err)
 				return
@@ -172,12 +164,12 @@ func TestCostBasisValidationCachesByManagedCurrencyIdentity(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		validate func(*testCurrencyResolver) error
+		validate func(*testCostBasisChecker) error
 	}{
 		{
 			name: "plan",
-			validate: func(resolver *testCurrencyResolver) error {
-				return ValidatePlanWithCurrencies(t.Context(), "namespace", resolver)(Plan{
+			validate: func(checker *testCostBasisChecker) error {
+				return ValidatePlanWithCurrencies(t.Context(), "namespace", checker)(Plan{
 					PlanMeta: PlanMeta{Currency: currencyx.Code(currency.USD)},
 					Phases: []Phase{{
 						PhaseMeta: PhaseMeta{Key: "default"},
@@ -188,8 +180,8 @@ func TestCostBasisValidationCachesByManagedCurrencyIdentity(t *testing.T) {
 		},
 		{
 			name: "addon",
-			validate: func(resolver *testCurrencyResolver) error {
-				return ValidateAddonWithCurrencies(t.Context(), "namespace", resolver)(Addon{
+			validate: func(checker *testCostBasisChecker) error {
+				return ValidateAddonWithCurrencies(t.Context(), "namespace", checker)(Addon{
 					AddonMeta: AddonMeta{Currency: currencyx.Code(currency.USD)},
 					RateCards: rateCards,
 				})
@@ -197,8 +189,8 @@ func TestCostBasisValidationCachesByManagedCurrencyIdentity(t *testing.T) {
 		},
 		{
 			name: "plan addon assignment",
-			validate: func(resolver *testCurrencyResolver) error {
-				return ValidatePlanAddonWithCurrencies(t.Context(), "namespace", resolver)(PlanAddon{
+			validate: func(checker *testCostBasisChecker) error {
+				return ValidatePlanAddonWithCurrencies(t.Context(), "namespace", checker)(PlanAddon{
 					Plan: Plan{PlanMeta: PlanMeta{Currency: currencyx.Code(currency.USD)}},
 					Addon: Addon{
 						AddonMeta: AddonMeta{Currency: currencyx.Code(currency.USD)},
@@ -211,13 +203,13 @@ func TestCostBasisValidationCachesByManagedCurrencyIdentity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resolver := &testCurrencyResolver{
+			checker := &testCostBasisChecker{
 				costBases: map[string]bool{"old-credits-id|USD": true},
 			}
 
-			err := tt.validate(resolver)
+			err := tt.validate(checker)
 			require.ErrorIs(t, err, ErrCurrencyCostBasisNotFound)
-			require.ElementsMatch(t, []string{"old-credits-id|USD", "new-credits-id|USD"}, resolver.costBasisCalls)
+			require.ElementsMatch(t, []string{"old-credits-id|USD", "new-credits-id|USD"}, checker.costBasisCalls)
 		})
 	}
 }
@@ -242,30 +234,31 @@ func TestRateCardCurrencyRequiresPrice(t *testing.T) {
 	})
 }
 
-type testCurrencyResolver struct {
-	currencies     map[currencyx.Code]currencyx.CurrencyIdentity
+type testCostBasisChecker struct {
 	costBases      map[string]bool
 	costBasisCalls []string
 }
 
-func (r *testCurrencyResolver) Resolve(_ context.Context, _ string, code currencyx.Code) (currencyx.CurrencyIdentity, error) {
-	if code.IsFiat() {
-		return code, nil
-	}
-
-	resolved, ok := r.currencies[code]
-	if !ok {
-		return nil, models.NewGenericNotFoundError(fmt.Errorf("currency %q", code))
-	}
-
-	return resolved, nil
-}
-
-func (r *testCurrencyResolver) HasCostBasis(_ context.Context, _ string, customCurrency currencyx.ManagedCurrency, fiatCurrency currencyx.CurrencyIdentity) (bool, error) {
-	key := customCurrency.GetID() + "|" + fiatCurrency.GetCode().String()
+func (r *testCostBasisChecker) HasCostBasis(_ context.Context, _, customCurrencyID string, fiatCurrencyCode currencyx.Code) (bool, error) {
+	key := customCurrencyID + "|" + fiatCurrencyCode.String()
 	r.costBasisCalls = append(r.costBasisCalls, key)
 
 	return r.costBases[key], nil
 }
 
-var _ CurrencyResolver = (*testCurrencyResolver)(nil)
+var _ CostBasisChecker = (*testCostBasisChecker)(nil)
+
+func mustManagedCustomCurrency(t *testing.T, id string, code currencyx.Code) currencies.Currency {
+	t.Helper()
+
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(code).
+		WithName(code.String()).
+		Build()
+	require.NoError(t, err)
+
+	return currencies.Currency{
+		NamespacedID: models.NamespacedID{ID: id},
+		Currency:     currency,
+	}
+}

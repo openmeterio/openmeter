@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -611,7 +612,7 @@ func TestAddonService_List(t *testing.T) {
 	}
 }
 
-func TestUpdateAddonInputResolveCurrenciesPreservesManagedRateCardIdentity(t *testing.T) {
+func TestUpdateAddonRateCardCurrencyResolutionPreservesManagedIdentity(t *testing.T) {
 	// given:
 	// - a persisted add-on rate card linked to an older managed CREDITS resource
 	// - code-only update data that keeps one key/code and changes another key's code
@@ -648,7 +649,7 @@ func TestUpdateAddonInputResolveCurrenciesPreservesManagedRateCardIdentity(t *te
 		newRateCard("unchanged", currencyx.Code("CREDITS")),
 		newRateCard("changed", currencyx.Code("POINTS")),
 	}
-	resolver := &currencyResolverStub{resolved: map[currencyx.Code]currencyx.CurrencyIdentity{
+	resolver := &pctestutils.CurrencyResolverStub{Resolved: map[currencyx.Code]currencyx.CurrencyIdentity{
 		"USD":     currencyx.Code("USD"),
 		"CREDITS": newCredits,
 		"POINTS":  points,
@@ -658,7 +659,9 @@ func TestUpdateAddonInputResolveCurrenciesPreservesManagedRateCardIdentity(t *te
 		RateCards:    &updatedRateCards,
 	}
 
-	err := input.ResolveCurrencies(t.Context(), resolver, persisted)
+	err := input.PreserveRateCardCurrencyIdentities(persisted)
+	require.NoError(t, err)
+	err = currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver, namespace, &updatedRateCards)
 	require.NoError(t, err)
 
 	preserved, ok := updatedRateCards[0].AsMeta().Currency.(currencyx.ManagedCurrency)
@@ -668,21 +671,4 @@ func TestUpdateAddonInputResolveCurrenciesPreservesManagedRateCardIdentity(t *te
 	resolvedPoints, ok := updatedRateCards[1].AsMeta().Currency.(currencyx.ManagedCurrency)
 	require.True(t, ok)
 	require.Equal(t, points.ID, resolvedPoints.GetID())
-}
-
-type currencyResolverStub struct {
-	resolved map[currencyx.Code]currencyx.CurrencyIdentity
-}
-
-func (r *currencyResolverStub) Resolve(_ context.Context, _ string, code currencyx.Code) (currencyx.CurrencyIdentity, error) {
-	identity, ok := r.resolved[code]
-	if !ok {
-		return nil, fmt.Errorf("unexpected currency resolution: %s", code)
-	}
-
-	return identity, nil
-}
-
-func (r *currencyResolverStub) HasCostBasis(_ context.Context, _ string, _ currencyx.ManagedCurrency, _ currencyx.CurrencyIdentity) (bool, error) {
-	return true, nil
 }

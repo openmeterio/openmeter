@@ -232,18 +232,15 @@ func ValidatePlanRateCardCurrencies() models.ValidatorFunc[Plan] {
 // custom rate card currencies under a fiat plan have a configured cost-basis
 // pair. It intentionally checks pair availability, not a time-specific rate;
 // charges select the effective rate at their full service period start.
-func ValidatePlanWithCurrencies(ctx context.Context, namespace string, resolver CurrencyResolver) models.ValidatorFunc[Plan] {
+func ValidatePlanWithCurrencies(ctx context.Context, namespace string, checker CostBasisChecker) models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
-		if resolver == nil {
-			return errors.New("currency resolver is required")
+		if err := validateCostBasisChecker(checker); err != nil {
+			return err
 		}
 
 		var errs []error
 
-		planCurrency, err := existingOrResolveCurrency(
-			ctx,
-			namespace,
-			resolver,
+		planCurrency, err := validateResolvedCurrency(
 			p.Currency,
 			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
 		)
@@ -269,7 +266,7 @@ func ValidatePlanWithCurrencies(ctx context.Context, namespace string, resolver 
 					models.NewFieldSelector("currency"),
 				)
 
-				resolvedOverride, err := existingOrResolveCurrency(ctx, namespace, resolver, override, fieldSelector)
+				resolvedOverride, err := validateResolvedCurrency(override, fieldSelector)
 				if err != nil {
 					errs = append(errs, err)
 					continue
@@ -291,7 +288,7 @@ func ValidatePlanWithCurrencies(ctx context.Context, namespace string, resolver 
 				}
 				hasCostBasis, ok := costBasisAvailable[pairKey]
 				if !ok {
-					hasCostBasis, err = resolver.HasCostBasis(ctx, namespace, managedCustomCurrency, planCurrency)
+					hasCostBasis, err = checker.HasCostBasis(ctx, namespace, managedCustomCurrency.GetID(), planCurrency.GetCode())
 					if err != nil {
 						return fmt.Errorf("checking cost basis for currency %q: %w", overrideCode, err)
 					}

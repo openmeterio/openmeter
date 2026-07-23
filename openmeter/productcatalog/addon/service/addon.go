@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -172,20 +173,29 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 				return nil, fmt.Errorf("failed to resolve features for ratecards in add-on [addon.key=%s]: %w", params.Key, err)
 			}
 
+			if err = currencyresolver.ResolveCurrenciesForRateCards(ctx, s.currencyResolver, params.Namespace, &params.RateCards); err != nil {
+				return nil, fmt.Errorf("failed to resolve currencies for ratecards in add-on [addon.key=%s]: %w", params.Key, err)
+			}
+
 			if err = s.resolveTaxCodes(ctx, params.Namespace, &params.RateCards); err != nil {
 				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
 			}
 		}
 
-		if err := params.ResolveCurrencies(ctx, s.currencyResolver); err != nil {
-			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
+		resolvedCurrency, err := currencyresolver.ResolveCurrency(ctx, s.currencyResolver, params.Namespace, params.Currency)
+		if err != nil {
+			return nil, fmt.Errorf("invalid add-on currencies: %w", models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				err,
+			))
 		}
+		params.Currency = resolvedCurrency
 
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid resolved add-on: %w", err)
 		}
 
-		if err := params.ValidateCurrencies(ctx, s.currencyResolver); err != nil {
+		if err := params.ValidateCurrencies(ctx, s.costBasisChecker); err != nil {
 			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
 		}
 
@@ -358,18 +368,22 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			return nil, err
 		}
 
+		if err = params.PreserveRateCardCurrencyIdentities(add.AsProductCatalogAddon()); err != nil {
+			return nil, fmt.Errorf("failed to preserve add-on ratecard currency identities: %w", err)
+		}
+
 		if params.RateCards != nil && len(*params.RateCards) > 0 {
 			if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, params.RateCards); err != nil {
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
 			}
 
+			if err := currencyresolver.ResolveCurrenciesForRateCards(ctx, s.currencyResolver, params.Namespace, params.RateCards); err != nil {
+				return nil, fmt.Errorf("failed to resolve currencies for ratecards in add-on: %w", err)
+			}
+
 			if err := s.resolveTaxCodes(ctx, params.Namespace, params.RateCards); err != nil {
 				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
 			}
-		}
-
-		if err = params.ResolveCurrencies(ctx, s.currencyResolver, add.AsProductCatalogAddon()); err != nil {
-			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
 		}
 
 		// Validate the full candidate only after all authoring currencies have
@@ -378,7 +392,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			return nil, fmt.Errorf("invalid add-on update: %w", err)
 		}
 
-		if err = params.ValidateCurrencies(ctx, s.currencyResolver, add.AsProductCatalogAddon()); err != nil {
+		if err = params.ValidateCurrencies(ctx, s.costBasisChecker, add.AsProductCatalogAddon()); err != nil {
 			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
 		}
 
@@ -456,7 +470,7 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			)
 		}
 
-		if err = pa.ValidateWith(productcatalog.ValidateAddonWithCurrencies(ctx, params.Namespace, s.currencyResolver)); err != nil {
+		if err = pa.ValidateWith(productcatalog.ValidateAddonWithCurrencies(ctx, params.Namespace, s.costBasisChecker)); err != nil {
 			errs = append(errs, fmt.Errorf("invalid add-on currencies [id=%s key=%s version=%d]: %w",
 				add.ID, add.Key, add.Version, err),
 			)

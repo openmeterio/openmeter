@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currenciescurrencyresolver "github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerservicehooks "github.com/openmeterio/openmeter/openmeter/customer/service/hooks"
@@ -19,7 +20,7 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
+	productcatalogcurrencyresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
@@ -197,12 +198,16 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	currencyService, err := currencyservice.New(currencyAdapter)
 	require.NoError(t, err)
 
-	currencyResolver, err := currencyresolver.New(currencyService)
+	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
+	require.NoError(t, err)
+
+	costBasisChecker, err := productcatalogcurrencyresolver.NewCostBasisChecker(currencyService)
 	require.NoError(t, err)
 
 	planService, err := planservice.New(planservice.Config{
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		CostBasisChecker: costBasisChecker,
 		Logger:           logger,
 		Adapter:          planRepo,
 		Publisher:        publisher,
@@ -243,6 +248,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
@@ -258,7 +264,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Logger:           logger,
 		Plan:             planService,
 		Addon:            addonService,
-		CurrencyResolver: currencyResolver,
+		CostBasisChecker: costBasisChecker,
 		Publisher:        publisher,
 	})
 	require.NoError(t, err)

@@ -222,16 +222,13 @@ func ValidatePlanPhaseAndAddonRateCardCurrencies(planCurrency currencyx.Currency
 // ValidatePlanAddonWithCurrencies validates the managed currencies introduced
 // by an add-on against the plan's invoice fiat. Structural compatibility is
 // handled by PlanAddon.Validate.
-func ValidatePlanAddonWithCurrencies(ctx context.Context, namespace string, resolver CurrencyResolver) models.ValidatorFunc[PlanAddon] {
+func ValidatePlanAddonWithCurrencies(ctx context.Context, namespace string, checker CostBasisChecker) models.ValidatorFunc[PlanAddon] {
 	return func(pa PlanAddon) error {
-		if resolver == nil {
-			return errors.New("currency resolver is required")
+		if err := validateCostBasisChecker(checker); err != nil {
+			return err
 		}
 
-		planCurrency, err := existingOrResolveCurrency(
-			ctx,
-			namespace,
-			resolver,
+		planCurrency, err := validateResolvedCurrency(
 			pa.Plan.Currency,
 			models.NewFieldSelectorGroup(
 				models.NewFieldSelector("plan"),
@@ -259,7 +256,7 @@ func ValidatePlanAddonWithCurrencies(ctx context.Context, namespace string, reso
 				models.NewFieldSelector("currency"),
 			)
 
-			resolvedCurrency, err := existingOrResolveCurrency(ctx, namespace, resolver, identity, fieldSelector)
+			resolvedCurrency, err := validateResolvedCurrency(identity, fieldSelector)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -281,7 +278,7 @@ func ValidatePlanAddonWithCurrencies(ctx context.Context, namespace string, reso
 			}
 			hasCostBasis, ok := costBasisAvailable[pairKey]
 			if !ok {
-				hasCostBasis, err = resolver.HasCostBasis(ctx, namespace, managedCustomCurrency, planCurrency)
+				hasCostBasis, err = checker.HasCostBasis(ctx, namespace, managedCustomCurrency.GetID(), planCurrency.GetCode())
 				if err != nil {
 					return fmt.Errorf("checking cost basis for currency %q: %w", code, err)
 				}

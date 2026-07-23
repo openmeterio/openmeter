@@ -324,18 +324,15 @@ func ValidateAddonRateCardCurrencies() models.ValidatorFunc[Addon] {
 // ensures custom rate card currencies under a fiat add-on have a configured
 // cost-basis pair. Plan-specific compatibility is validated when the add-on is
 // assigned to a plan.
-func ValidateAddonWithCurrencies(ctx context.Context, namespace string, resolver CurrencyResolver) models.ValidatorFunc[Addon] {
+func ValidateAddonWithCurrencies(ctx context.Context, namespace string, checker CostBasisChecker) models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
-		if resolver == nil {
-			return errors.New("currency resolver is required")
+		if err := validateCostBasisChecker(checker); err != nil {
+			return err
 		}
 
 		var errs []error
 
-		addonCurrency, err := existingOrResolveCurrency(
-			ctx,
-			namespace,
-			resolver,
+		addonCurrency, err := validateResolvedCurrency(
 			a.Currency,
 			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
 		)
@@ -358,7 +355,7 @@ func ValidateAddonWithCurrencies(ctx context.Context, namespace string, resolver
 				models.NewFieldSelector("currency"),
 			)
 
-			resolvedOverride, err := existingOrResolveCurrency(ctx, namespace, resolver, override, fieldSelector)
+			resolvedOverride, err := validateResolvedCurrency(override, fieldSelector)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -380,7 +377,7 @@ func ValidateAddonWithCurrencies(ctx context.Context, namespace string, resolver
 			}
 			hasCostBasis, ok := costBasisAvailable[pairKey]
 			if !ok {
-				hasCostBasis, err = resolver.HasCostBasis(ctx, namespace, managedCustomCurrency, addonCurrency)
+				hasCostBasis, err = checker.HasCostBasis(ctx, namespace, managedCustomCurrency.GetID(), addonCurrency.GetCode())
 				if err != nil {
 					return fmt.Errorf("checking cost basis for currency %q: %w", overrideCode, err)
 				}
