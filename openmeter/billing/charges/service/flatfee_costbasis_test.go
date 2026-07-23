@@ -43,29 +43,24 @@ func (s *FlatFeeCostBasisCreateSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
 }
 
-func (s *FlatFeeCostBasisCreateSuite) TestCustomCurrencyCreditThenInvoiceIsDisabledByDefault() {
+func (s *FlatFeeCostBasisCreateSuite) TestCustomCurrencyCreditOnlyIsDisabledByDefault() {
 	// given:
-	// - a valid manual cost-basis intent for a custom-currency flat fee
+	// - a valid custom-currency credit-only flat fee
 	// - the test-only custom-currency switch left at its default value
 	// when:
 	// - the charge is created
 	// then:
-	// - creation is rejected before any charge cost basis is persisted
+	// - creation is rejected before the charge is persisted
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("flat-fee-cost-basis-disabled")
 	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	customer := s.CreateTestCustomer(namespace, "flat-fee-cost-basis-disabled")
 	currency := s.createTestCustomCurrency(ctx, namespace)
-	fiatCurrency := s.newFiatCurrency("USD")
-	intent := costbasis.NewIntent(costbasis.ManualIntent{
-		FiatCurrency: fiatCurrency,
-		Rate:         alpacadecimal.NewFromInt(2),
-	})
 
 	_, err := s.Charges.flatFeeService.Create(ctx, flatfee.CreateInput{
 		Namespace: namespace,
 		Intents: []flatfee.Intent{
-			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "disabled", productcatalog.CreditThenInvoiceSettlementMode, &intent),
+			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "disabled", productcatalog.CreditOnlySettlementMode, nil),
 		},
 		FeatureMeters: feature.FeatureMeterCollection{},
 	})
@@ -463,6 +458,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeRefe
 	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	customer := s.CreateTestCustomer(namespace, "flat-fee-without-cost-basis")
 	currency := s.createTestCustomCurrency(ctx, namespace)
+	s.setCustomCurrencyEnabled(true)
 
 	created, err := s.Charges.flatFeeService.Create(ctx, flatfee.CreateInput{
 		Namespace: namespace,

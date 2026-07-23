@@ -421,7 +421,7 @@ func toSettlement(input creditgrant.CreateInput) creditpurchase.Settlement {
 	case creditgrant.FundingMethodInvoice:
 		settlement := creditpurchase.InvoiceSettlement{
 			GenericSettlement: creditpurchase.GenericSettlement{
-				Currency:  input.Purchase.Currency,
+				Currency:  currencyx.FiatCode(input.Purchase.Currency),
 				CostBasis: lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1)),
 			},
 		}
@@ -435,7 +435,7 @@ func toSettlement(input creditgrant.CreateInput) creditpurchase.Settlement {
 
 		settlement := creditpurchase.ExternalSettlement{
 			GenericSettlement: creditpurchase.GenericSettlement{
-				Currency:  input.Purchase.Currency,
+				Currency:  currencyx.FiatCode(input.Purchase.Currency),
 				CostBasis: lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1)),
 			},
 			InitialStatus: initialStatus,

@@ -1993,7 +1993,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 					},
 					Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  USD,
+							Currency:  currencyx.FiatCode(USD),
 							CostBasis: creditCostBasis,
 						},
 						InitialStatus: creditpurchase.SettledInitialPaymentSettlementStatus,

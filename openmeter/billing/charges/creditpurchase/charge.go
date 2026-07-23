@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -225,12 +226,12 @@ func (i Intent) Validate() error {
 	switch i.Settlement.Type() {
 	case SettlementTypeInvoice:
 		settlement, err := i.Settlement.AsInvoiceSettlement()
-		if err == nil && settlement.Currency != i.Currency.GetCode() {
+		if err == nil && !i.Currency.IsCustom() && currencyx.Code(settlement.Currency) != i.Currency.GetCode() {
 			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency.GetCode()))
 		}
 	case SettlementTypeExternal:
 		settlement, err := i.Settlement.AsExternalSettlement()
-		if err == nil && settlement.Currency != i.Currency.GetCode() {
+		if err == nil && !i.Currency.IsCustom() && currencyx.Code(settlement.Currency) != i.Currency.GetCode() {
 			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency.GetCode()))
 		}
 	}

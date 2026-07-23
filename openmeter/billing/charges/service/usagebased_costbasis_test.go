@@ -42,29 +42,25 @@ func (s *UsageBasedCostBasisCreateSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
 }
 
-func (s *UsageBasedCostBasisCreateSuite) TestCustomCurrencyCreditThenInvoiceIsDisabledByDefault() {
+func (s *UsageBasedCostBasisCreateSuite) TestCustomCurrencyCreditOnlyIsDisabledByDefault() {
 	// given:
-	// - a valid manual cost-basis intent for a custom-currency usage-based charge
+	// - a valid custom-currency credit-only usage-based charge
 	// - the test-only custom-currency switch left at its default value
 	// when:
 	// - the charge is created
 	// then:
-	// - creation is rejected before any charge cost basis is persisted
+	// - creation is rejected before the charge is persisted
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("usage-based-cost-basis-disabled")
 	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	customer := s.CreateTestCustomer(namespace, "usage-based-cost-basis-disabled")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	featureMeters := s.createFeatureMeters(ctx, namespace, "disabled-feature")
-	intent := costbasis.NewIntent(costbasis.ManualIntent{
-		FiatCurrency: s.newFiatCurrency("USD"),
-		Rate:         alpacadecimal.NewFromInt(2),
-	})
 
 	_, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,
 		Intents: []usagebased.Intent{
-			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "disabled", "disabled-feature", productcatalog.CreditThenInvoiceSettlementMode, &intent),
+			s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "disabled", "disabled-feature", productcatalog.CreditOnlySettlementMode, nil),
 		},
 		FeatureMeters: featureMeters,
 	})
@@ -422,6 +418,7 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeR
 	customer := s.CreateTestCustomer(namespace, "usage-based-without-cost-basis")
 	currency := s.createTestCustomCurrency(ctx, namespace)
 	featureMeters := s.createFeatureMeters(ctx, namespace, "credit-only-feature")
+	s.setCustomCurrencyEnabled(true)
 
 	created, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
 		Namespace: namespace,

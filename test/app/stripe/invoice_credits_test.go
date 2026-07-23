@@ -124,7 +124,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 					servicePeriod: timeutil.ClosedPeriod{From: setupAt, To: setupAt},
 					settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  currencyx.Code("USD"),
+							Currency:  currencyx.FiatCode("USD"),
 							CostBasis: costBasis,
 						},
 						InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,

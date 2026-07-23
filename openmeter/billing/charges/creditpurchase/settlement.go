@@ -36,7 +36,7 @@ func (s SettlementType) Values() []string {
 }
 
 type GenericSettlement struct {
-	Currency  currencyx.Code        `json:"currency"`
+	Currency  currencyx.FiatCode    `json:"currency"`
 	CostBasis alpacadecimal.Decimal `json:"costBasis"`
 }
 

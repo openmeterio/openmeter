@@ -623,7 +623,7 @@ func newExternalStateMachineTestChargeWithInput(t *testing.T, input externalStat
 			FeatureFilters: input.featureFilters,
 			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.Code("USD"),
+					Currency:  currencyx.FiatCode("USD"),
 					CostBasis: input.costBasis,
 				},
 				InitialStatus: input.initialStatus,

@@ -2025,7 +2025,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 		},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 			GenericSettlement: creditpurchase.GenericSettlement{
-				Currency:  USD,
+				Currency:  currencyx.FiatCode(USD),
 				CostBasis: alpacadecimal.NewFromFloat(0.5),
 			},
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -2225,7 +2225,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  USD,
+						Currency:  currencyx.FiatCode(USD),
 						CostBasis: costBasis,
 					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -2401,7 +2401,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 			},
 			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -3177,7 +3177,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 			},
 			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -3426,7 +3426,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 			},
 			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: externalCostBasis,
 				},
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -3665,7 +3665,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  USD,
+						Currency:  currencyx.FiatCode(USD),
 						CostBasis: purchaseCostBasis,
 					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -3846,7 +3846,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  USD,
+						Currency:  currencyx.FiatCode(USD),
 						CostBasis: purchaseCostBasis,
 					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,

@@ -585,7 +585,7 @@ func (e *testEnv) createPendingInvoiceCreditGrant(t *testing.T, amount alpacadec
 
 	return e.createCreditPurchase(t, amount, currency, nil, creditpurchase.FeatureFilters(features), creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 		GenericSettlement: creditpurchase.GenericSettlement{
-			Currency:  currency,
+			Currency:  currencyx.FiatCode(currency),
 			CostBasis: alpacadecimal.NewFromFloat(1),
 		},
 	}))
