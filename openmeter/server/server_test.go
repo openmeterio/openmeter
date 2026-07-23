@@ -1869,12 +1869,12 @@ func (n NoopBillingService) OnUnsupportedCreditNote(ctx context.Context, input b
 	return nil
 }
 
-func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
-	return []billing.LineOrHierarchy{}, nil
+func (n NoopBillingService) GetStandardLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) (billing.StandardLines, error) {
+	return billing.StandardLines{}, nil
 }
 
-func (n NoopBillingService) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.StandardLine, error) {
-	return &billing.StandardLine{}, nil
+func (n NoopBillingService) GetGatheringLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) (billing.GatheringLines, error) {
+	return billing.GatheringLines{}, nil
 }
 
 // InvoiceSplitLineGroupService methods
@@ -1884,6 +1884,10 @@ func (n NoopBillingService) DeleteSplitLineGroup(ctx context.Context, input bill
 
 func (n NoopBillingService) UpdateSplitLineGroup(ctx context.Context, input billing.UpdateSplitLineGroupInput) (billing.SplitLineGroup, error) {
 	return billing.SplitLineGroup{}, nil
+}
+
+func (n NoopBillingService) GetSplitLineGroupsForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error) {
+	return []billing.SplitLineHierarchy{}, nil
 }
 
 func (n NoopBillingService) GetSplitLineGroup(ctx context.Context, input billing.GetSplitLineGroupInput) (billing.SplitLineHierarchy, error) {

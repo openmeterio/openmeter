@@ -21,8 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-var _ billing.InvoiceLineService = (*Service)(nil)
-
 // TODO[later]: Move this to gatheringinvoice.go
 func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	for i := range input.Lines {
@@ -262,14 +260,14 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 	}, nil
 }
 
-func (s *Service) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
+func (s *Service) GetStandardLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) (billing.StandardLines, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]billing.LineOrHierarchy, error) {
-		return s.adapter.GetLinesForSubscription(ctx, input)
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.StandardLines, error) {
+		return s.adapter.GetStandardLinesForSubscription(ctx, input)
 	})
 }

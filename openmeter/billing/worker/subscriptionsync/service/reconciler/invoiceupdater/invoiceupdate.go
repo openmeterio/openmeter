@@ -2,6 +2,7 @@ package invoiceupdater
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -9,6 +10,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -18,16 +21,59 @@ import (
 
 const subscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 
-type Updater struct {
-	billingService billing.Service
-	logger         *slog.Logger
+// TODO: Move invoiceupdater into billing/lineengine: invoice patches are only used by the legacy
+// invoicing backend, which is why this package declares the snapshotter dependency directly.
+type QuantitySnapshotter interface {
+	SnapshotLineQuantity(ctx context.Context, input billinglineengine.SnapshotLineQuantityInput) (*billing.StandardLine, error)
 }
 
-func New(billingService billing.Service, logger *slog.Logger) *Updater {
-	return &Updater{
-		billingService: billingService,
-		logger:         logger,
+type Config struct {
+	BillingService        billing.Service
+	SplitLineGroupService splitlinegroup.Service
+	QuantitySnapshotter   QuantitySnapshotter
+	Logger                *slog.Logger
+}
+
+func (c Config) Validate() error {
+	var errs []error
+
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
 	}
+
+	if c.SplitLineGroupService == nil {
+		errs = append(errs, errors.New("split line group service is required"))
+	}
+
+	if c.QuantitySnapshotter == nil {
+		errs = append(errs, errors.New("quantity snapshotter is required"))
+	}
+
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type Updater struct {
+	billingService        billing.Service
+	quantitySnapshotter   QuantitySnapshotter
+	splitLineGroupService splitlinegroup.Service
+	logger                *slog.Logger
+}
+
+func New(config Config) (*Updater, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &Updater{
+		billingService:        config.BillingService,
+		quantitySnapshotter:   config.QuantitySnapshotter,
+		splitLineGroupService: config.SplitLineGroupService,
+		logger:                config.Logger,
+	}, nil
 }
 
 func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []Patch) error {
@@ -214,7 +260,7 @@ type invoicePatches struct {
 
 type splitLineGroupPatches struct {
 	deleted []models.NamespacedID
-	updated []billing.SplitLineGroupUpdate
+	updated []splitlinegroup.SplitLineGroupUpdate
 }
 
 func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
@@ -319,16 +365,6 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 				if line == nil {
 					return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetStandardLine.ID)
 				}
-
-				updatedQtyLine, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
-					Invoice: invoice,
-					Line:    &targetStandardLine,
-				})
-				if err != nil {
-					return fmt.Errorf("recalculating line[%s]: %w", targetStandardLine.ID, err)
-				}
-
-				targetStandardLine = *updatedQtyLine
 
 				if ok := invoice.Lines.ReplaceByID(targetStandardLine.ID, &targetStandardLine); !ok {
 					return fmt.Errorf("line[%s/%s] not found in the invoice, cannot update", targetStandardLine.ID, lo.FromPtrOr(targetStandardLine.ChildUniqueReferenceID, "nil"))
@@ -465,7 +501,7 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 				return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", targetState.GetID(), err)
 			}
 
-			targetStateWithUpdatedQty, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
+			targetStateWithUpdatedQty, err := u.quantitySnapshotter.SnapshotLineQuantity(ctx, billinglineengine.SnapshotLineQuantityInput{
 				Invoice: &invoice,
 				Line:    &targetStandardLine,
 			})
@@ -543,13 +579,13 @@ func (u *Updater) upsertSplitLineGroups(ctx context.Context, customerID customer
 	}
 
 	for _, groupID := range changes.deleted {
-		if err := u.billingService.DeleteSplitLineGroup(ctx, groupID); err != nil {
+		if err := u.splitLineGroupService.DeleteSplitLineGroup(ctx, groupID); err != nil {
 			return fmt.Errorf("deleting split line group: %w", err)
 		}
 	}
 
 	for _, group := range changes.updated {
-		if _, err := u.billingService.UpdateSplitLineGroup(ctx, group); err != nil {
+		if _, err := u.splitLineGroupService.UpdateSplitLineGroup(ctx, group); err != nil {
 			return fmt.Errorf("upserting split line group: %w", err)
 		}
 	}

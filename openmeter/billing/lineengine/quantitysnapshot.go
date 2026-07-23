@@ -1,4 +1,4 @@
-package billingservice
+package lineengine
 
 import (
 	"context"
@@ -15,48 +15,111 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
-func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.StandardLine, error) {
+type SnapshotLineQuantityInput struct {
+	Invoice *billing.StandardInvoice
+	Line    *billing.StandardLine
+}
+
+func (i SnapshotLineQuantityInput) Validate() error {
+	var errs []error
+	if i.Invoice == nil {
+		errs = append(errs, errors.New("invoice is required"))
+	}
+
+	if i.Line == nil {
+		errs = append(errs, errors.New("line is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+// SnapshotLineQuantity snapshots the quantity of a standard line, this is an external API for invoice updater as needed.
+// This is only needed for the invoiceupdater to try to minimize unnecessary immutable invoice updates, but generally should be an internal affair
+// of the lineengine itself.
+func (e *Engine) SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*billing.StandardLine, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	featureMeters, err := s.resolveFeatureMeters(ctx, input.Invoice.Namespace, billing.StandardLines{input.Line})
+	linesWithHierarchy, err := e.ResolveSplitLineGroupHeaders(ctx, input.Invoice.Namespace, billing.StandardLines{input.Line})
+	if err != nil {
+		return nil, fmt.Errorf("resolving split line group headers: %w", err)
+	}
+
+	featureMeters, err := e.resolveFeatureMeters(ctx, input.Invoice.Namespace, linesWithHierarchy)
 	if err != nil {
 		return nil, fmt.Errorf("line[%s]: %w", input.Line.ID, err)
 	}
 
-	err = s.snapshotLineQuantity(ctx, input.Invoice.Customer, input.Line, featureMeters)
+	if len(linesWithHierarchy) != 1 {
+		return nil, fmt.Errorf("expected 1 line with hierarchy, got %d [line_id: %s]", len(linesWithHierarchy), input.Line.ID)
+	}
+
+	err = e.snapshotLineQuantity(ctx, input.Invoice.Customer, linesWithHierarchy[0], featureMeters)
 	if err != nil {
 		return nil, err
 	}
 
-	return input.Line, nil
+	return linesWithHierarchy[0].StandardLine, nil
 }
 
-func (s *Service) SnapshotLineQuantities(ctx context.Context, invoice billing.StandardInvoice, lines billing.StandardLines) error {
-	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, lines)
+func (e *Engine) SnapshotLineQuantities(ctx context.Context, invoice billing.StandardInvoice, lines StandardLinesWithSplitLineHierarchy) error {
+	featureMeters, err := e.resolveFeatureMeters(ctx, invoice.Namespace, lines)
 	if err != nil {
 		return fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, lines, featureMeters); err != nil {
+	if err := e.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, lines, featureMeters); err != nil {
 		return fmt.Errorf("snapshotting lines: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Service) snapshotMeteredLineQuantity(ctx context.Context, line *billing.StandardLine, customer billing.InvoiceCustomer, featureMeters feature.FeatureMeters) error {
+func (e *Engine) resolveFeatureMeters(ctx context.Context, namespace string, lines StandardLinesWithSplitLineHierarchy) (feature.FeatureMeters, error) {
+	keys, err := lines.GetReferencedFeatureKeys()
+	if err != nil {
+		return nil, fmt.Errorf("getting referenced feature keys: %w", err)
+	}
+
+	featureMeters, err := e.featureService.ResolveFeatureMeters(ctx, namespace, lo.Map(keys, func(key string, _ int) ref.IDOrKey {
+		return ref.IDOrKey{Key: key}
+	})...)
+	if err != nil {
+		return nil, fmt.Errorf("resolving feature meters: %w", err)
+	}
+
+	return featureMetersErrorWrapper{featureMeters}, nil
+}
+
+// featureMetersErrorWrapper returns ErrSnapshotInvalidDatabaseState when a feature meter is unavailable during snapshotting.
+type featureMetersErrorWrapper struct {
+	feature.FeatureMeters
+}
+
+func (w featureMetersErrorWrapper) Get(featureKey string, requireMeter bool) (feature.FeatureMeter, error) {
+	featureMeter, err := w.FeatureMeters.Get(featureKey, requireMeter)
+	if err != nil {
+		return feature.FeatureMeter{}, &billing.ErrSnapshotInvalidDatabaseState{
+			Err: err,
+		}
+	}
+
+	return featureMeter, nil
+}
+
+func (e *Engine) snapshotMeteredLineQuantity(ctx context.Context, line StandardLineWithSplitLineHierarchy, customer billing.InvoiceCustomer, featureMeters feature.FeatureMeters) error {
 	featureMeter, err := featureMeters.Get(line.UsageBased.FeatureKey, true)
 	if err != nil {
 		return err
 	}
 
-	usage, err := s.getFeatureUsage(ctx,
+	usage, err := e.getFeatureUsage(ctx,
 		getFeatureUsageInput{
 			Line:     line,
 			Feature:  featureMeter.Feature,
@@ -76,7 +139,7 @@ func (s *Service) snapshotMeteredLineQuantity(ctx context.Context, line *billing
 	return nil
 }
 
-func (s *Service) snapshotFlatPriceLineQuantity(_ context.Context, line *billing.StandardLine) error {
+func (e *Engine) snapshotFlatPriceLineQuantity(_ context.Context, line StandardLineWithSplitLineHierarchy) error {
 	line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
 	line.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
 	line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
@@ -84,16 +147,16 @@ func (s *Service) snapshotFlatPriceLineQuantity(_ context.Context, line *billing
 	return nil
 }
 
-func (s *Service) snapshotLineQuantity(ctx context.Context, customer billing.InvoiceCustomer, line *billing.StandardLine, featureMeters feature.FeatureMeters) error {
+func (e *Engine) snapshotLineQuantity(ctx context.Context, customer billing.InvoiceCustomer, line StandardLineWithSplitLineHierarchy, featureMeters feature.FeatureMeters) error {
 	if !line.DependsOnMeteredQuantity() {
-		return s.snapshotFlatPriceLineQuantity(ctx, line)
+		return e.snapshotFlatPriceLineQuantity(ctx, line)
 	}
 
-	return s.snapshotMeteredLineQuantity(ctx, line, customer, featureMeters)
+	return e.snapshotMeteredLineQuantity(ctx, line, customer, featureMeters)
 }
 
-func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer billing.InvoiceCustomer, lines billing.StandardLines, featureMeters feature.FeatureMeters) error {
-	workerCount := s.maxParallelQuantitySnapshots
+func (e *Engine) snapshotLineQuantitiesInParallel(ctx context.Context, customer billing.InvoiceCustomer, lines StandardLinesWithSplitLineHierarchy, featureMeters feature.FeatureMeters) error {
+	workerCount := e.maxParallelQuantitySnapshots
 	if workerCount <= 0 {
 		workerCount = 1
 	}
@@ -128,7 +191,7 @@ func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer
 				}
 			}()
 
-			err = s.snapshotLineQuantity(ctx, customer, line, featureMeters)
+			err = e.snapshotLineQuantity(ctx, customer, line, featureMeters)
 		})
 	}
 
@@ -148,14 +211,14 @@ func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer
 }
 
 type getFeatureUsageInput struct {
-	Line     *billing.StandardLine
+	Line     StandardLineWithSplitLineHierarchy
 	Meter    meter.Meter
 	Feature  feature.Feature
 	Customer billing.InvoiceCustomer
 }
 
 func (i getFeatureUsageInput) Validate() error {
-	if i.Line == nil {
+	if i.Line.StandardLine == nil {
 		return fmt.Errorf("line is required")
 	}
 
@@ -170,10 +233,11 @@ func (i getFeatureUsageInput) Validate() error {
 
 	// TODO[OM-160]: We need to have this check to make sure that usage discounts are properly accounted for
 	// but we seem to have a bug in syncing progressively billed lines, so let's address this as a separate pr.
+	// TODO[BeforeMerge]: Make sure we have a test for this.
 
-	// if i.Line.SplitLineGroupID != nil && i.Line.SplitLineHierarchy == nil {
-	// 	return fmt.Errorf("split line group id is set but split line hierarchy is not expanded")
-	// }
+	if i.Line.SplitLineGroupID != nil && i.Line.SplitLineHierarchy == nil {
+		return fmt.Errorf("split line group id is set but split line hierarchy is not expanded")
+	}
 
 	if err := i.Customer.Validate(); err != nil {
 		return fmt.Errorf("customer: %w", err)
@@ -189,7 +253,7 @@ type featureUsageResponse struct {
 	PreLinePeriodQty alpacadecimal.Decimal
 }
 
-func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) (*featureUsageResponse, error) {
+func (e *Engine) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) (*featureUsageResponse, error) {
 	// Validation
 	if err := in.Validate(); err != nil {
 		return nil, err
@@ -206,7 +270,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 
 	// If we are the first line in the split, we don't need to calculate the pre period
 	if lineHierarchy == nil || lineHierarchy.Group.ServicePeriod.From.Equal(in.Line.Period.From) {
-		meterValues, err := s.streamingConnector.QueryMeter(
+		meterValues, err := e.streamingConnector.QueryMeter(
 			ctx,
 			in.Line.Namespace,
 			in.Meter,
@@ -226,7 +290,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 	preLineQuery.From = &lineHierarchy.Group.ServicePeriod.From
 	preLineQuery.To = &in.Line.Period.From
 
-	preLineResult, err := s.streamingConnector.QueryMeter(
+	preLineResult, err := e.streamingConnector.QueryMeter(
 		ctx,
 		in.Line.Namespace,
 		in.Meter,
@@ -243,7 +307,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 	upToLineEnd.From = &lineHierarchy.Group.ServicePeriod.From
 	upToLineEnd.To = &in.Line.Period.To
 
-	upToLineEndResult, err := s.streamingConnector.QueryMeter(
+	upToLineEndResult, err := e.streamingConnector.QueryMeter(
 		ctx,
 		in.Line.Namespace,
 		in.Meter,

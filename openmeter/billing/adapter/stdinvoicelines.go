@@ -21,7 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelinediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
@@ -776,18 +775,21 @@ func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLine
 	return lines, nil
 }
 
-func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
+func (a *adapter) GetStandardLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) (billing.StandardLines, error) {
 	if err := in.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]billing.LineOrHierarchy, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.StandardLines, error) {
 		query := tx.db.BillingInvoiceLine.Query().
 			Where(billinginvoiceline.Namespace(in.Namespace)).
 			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
-			Where(billinginvoiceline.ParentLineIDIsNil()). // This one is required so that we are not fetching split line's children directly, the mapper will handle that
+			Where(billinginvoiceline.ParentLineIDIsNil()). // Split-line children are loaded through their hierarchy instead of as independent subscription items.
+			Where(billinginvoiceline.HasBillingInvoiceWith(
+				billinginvoice.StatusNEQ(billing.StandardInvoiceStatusGathering),
+			)).
 			Where(
 				billinginvoiceline.Or(
 					billinginvoiceline.DeletedAtIsNil(),
@@ -831,118 +833,11 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			return nil, fmt.Errorf("getting schema level per invoice: %w", err)
 		}
 
-		// map standard lines
-		dbStandardLines := lo.Filter(dbLines, func(line *db.BillingInvoiceLine, _ int) bool {
-			return line.Edges.BillingInvoice.Status != billing.StandardInvoiceStatusGathering
-		})
-
-		standardLines, err := tx.mapStandardInvoiceLinesFromDB(invoiceSchemaLevelByID, dbStandardLines)
+		standardLines, err := tx.mapStandardInvoiceLinesFromDB(invoiceSchemaLevelByID, dbLines)
 		if err != nil {
 			return nil, fmt.Errorf("mapping standard lines: %w", err)
 		}
 
-		// map gathering lines
-		dbGatheringLines := lo.Filter(dbLines, func(line *db.BillingInvoiceLine, _ int) bool {
-			return line.Edges.BillingInvoice.Status == billing.StandardInvoiceStatusGathering
-		})
-
-		dbGatheringLinesByInvoiceID := lo.GroupBy(dbGatheringLines, func(line *db.BillingInvoiceLine) string {
-			return line.Edges.BillingInvoice.ID
-		})
-
-		gatheringLines := make([]billing.GatheringLine, 0, len(dbGatheringLines))
-		for invoiceID, dbGatheringLinesForInvoice := range dbGatheringLinesByInvoiceID {
-			schemaLevel, found := invoiceSchemaLevelByID[invoiceID]
-			if !found {
-				return nil, fmt.Errorf("schema level not found for invoice [id=%s]", invoiceID)
-			}
-
-			mappedLines, err := tx.mapGatheringInvoiceLinesFromDB(schemaLevel, dbGatheringLinesForInvoice)
-			if err != nil {
-				return nil, fmt.Errorf("mapping gathering lines: %w", err)
-			}
-
-			gatheringLines = append(gatheringLines, mappedLines...)
-		}
-
-		dbGroups, err := tx.db.BillingInvoiceSplitLineGroup.Query().
-			Where(billinginvoicesplitlinegroup.Namespace(in.Namespace)).
-			Where(billinginvoicesplitlinegroup.SubscriptionID(in.SubscriptionID)).
-			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-				tx.expandLineItems(q)
-				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
-				})
-			}).
-			Where(billinginvoicesplitlinegroup.DeletedAtIsNil()).
-			All(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("fetching split line groups: %w", err)
-		}
-
-		groups, err := slicesx.MapWithErr(dbGroups, func(dbGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineHierarchy, error) {
-			group, err := tx.mapSplitLineGroupFromDB(dbGroup)
-			if err != nil {
-				return billing.SplitLineHierarchy{}, err
-			}
-
-			lines, err := tx.mapSplitLineHierarchyLinesFromDB(ctx, dbGroup.Edges.BillingInvoiceLines)
-			if err != nil {
-				return billing.SplitLineHierarchy{}, err
-			}
-
-			return billing.SplitLineHierarchy{
-				Group: group,
-				Lines: lines,
-			}, nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("mapping groups: %w", err)
-		}
-
-		// Sanity check: let's make sure that there are no items with overlapping childUniqueReferenceID
-		groupUniqueReferenceIDs := lo.Map(
-			lo.Filter(
-				groups,
-				func(group billing.SplitLineHierarchy, _ int) bool {
-					return group.Group.UniqueReferenceID != nil
-				},
-			),
-			func(group billing.SplitLineHierarchy, _ int) string {
-				return lo.FromPtr(group.Group.UniqueReferenceID)
-			},
-		)
-
-		lineChildUniqueReferenceIDs := lo.Union(
-			lo.FilterMap(standardLines, func(line *billing.StandardLine, _ int) (string, bool) {
-				return lo.FromPtr(line.ChildUniqueReferenceID), line.ChildUniqueReferenceID != nil
-			}),
-			lo.FilterMap(gatheringLines, func(line billing.GatheringLine, _ int) (string, bool) {
-				return lo.FromPtr(line.ChildUniqueReferenceID), line.ChildUniqueReferenceID != nil
-			}),
-		)
-
-		overlappingChildUniqueReferenceIDs := lo.Intersect(groupUniqueReferenceIDs, lineChildUniqueReferenceIDs)
-
-		if len(overlappingChildUniqueReferenceIDs) > 0 {
-			return nil, fmt.Errorf("overlapping childUniqueReferenceID: %v", overlappingChildUniqueReferenceIDs)
-		}
-
-		// Let's map to the union type
-		out := make([]billing.LineOrHierarchy, 0, len(groups)+len(standardLines)+len(gatheringLines))
-
-		out = append(out, lo.Map(groups, func(h billing.SplitLineHierarchy, _ int) billing.LineOrHierarchy {
-			return billing.NewLineOrHierarchy(&h)
-		})...)
-
-		out = append(out, lo.Map(standardLines, func(line *billing.StandardLine, _ int) billing.LineOrHierarchy {
-			return billing.NewLineOrHierarchy(line)
-		})...)
-
-		out = append(out, lo.Map(gatheringLines, func(line billing.GatheringLine, _ int) billing.LineOrHierarchy {
-			return billing.NewLineOrHierarchy(line)
-		})...)
-
-		return out, nil
+		return standardLines, nil
 	})
 }

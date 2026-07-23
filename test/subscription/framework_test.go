@@ -16,6 +16,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
 	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
@@ -112,20 +113,29 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	})
 	require.NoError(t, err)
 
-	billingService, err := billingservice.New(billingservice.Config{
-		Adapter:                      billingAdapter,
-		SequenceService:              billingSequenceService,
-		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-		CustomerService:              deps.CustomerService,
-		AppService:                   appService,
-		Logger:                       slog.Default(),
+	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
+	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
+		SplitLineGroupAdapter:        billingAdapter,
+		RatingService:                billingRatingService,
 		FeatureService:               deps.FeatureConnector,
-		MeterService:                 deps.MeterService,
 		StreamingConnector:           deps.MockStreamingConnector,
-		Publisher:                    publisher,
-		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
-		TaxCodeService:               taxCodeService,
+	})
+	require.NoError(t, err)
+
+	billingService, err := billingservice.New(billingservice.Config{
+		Adapter:                 billingAdapter,
+		SequenceService:         billingSequenceService,
+		RatingService:           billingRatingService,
+		LegacyBillingLineEngine: legacyBillingLineEngine,
+		CustomerService:         deps.CustomerService,
+		AppService:              appService,
+		Logger:                  slog.Default(),
+		FeatureService:          deps.FeatureConnector,
+		MeterService:            deps.MeterService,
+		Publisher:               publisher,
+		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
+		TaxCodeService:          taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -140,6 +150,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	subscriptionSyncService, err := subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		BillingService:          billingService,
+		LegacyBillingLineEngine: legacyBillingLineEngine,
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,

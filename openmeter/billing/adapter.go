@@ -13,7 +13,6 @@ type Adapter interface {
 	ProfileAdapter
 	CustomerOverrideAdapter
 	InvoiceLineAdapter
-	InvoiceSplitLineGroupAdapter
 	InvoiceAdapter
 	GatheringInvoiceAdapter
 	StandardInvoiceAdapter
@@ -59,7 +58,6 @@ type CustomerSynchronizationAdapter interface {
 type InvoiceLineAdapter interface {
 	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*StandardLine, error)
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*StandardLine, error)
-	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 }
 
 type InvoiceAdapter interface {
@@ -74,6 +72,7 @@ type InvoiceAdapter interface {
 }
 
 type StandardInvoiceAdapter interface {
+	GetStandardLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (StandardLines, error)
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceAdapterInput) (StandardInvoice, error)
 	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]StandardInvoice, error)
@@ -81,6 +80,7 @@ type StandardInvoiceAdapter interface {
 }
 
 type GatheringInvoiceAdapter interface {
+	GetGatheringLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (GatheringLines, error)
 	CreateGatheringInvoice(ctx context.Context, input CreateGatheringInvoiceAdapterInput) (GatheringInvoice, error)
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceAdapterInput) error
 	DeleteGatheringInvoice(ctx context.Context, input DeleteGatheringInvoiceAdapterInput) error
@@ -88,14 +88,6 @@ type GatheringInvoiceAdapter interface {
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 
 	HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID InvoiceID, lineIDs []string) error
-}
-
-type InvoiceSplitLineGroupAdapter interface {
-	CreateSplitLineGroup(ctx context.Context, input CreateSplitLineGroupAdapterInput) (SplitLineGroup, error)
-	UpdateSplitLineGroup(ctx context.Context, input UpdateSplitLineGroupInput) (SplitLineGroup, error)
-	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
-	GetSplitLineGroup(ctx context.Context, input GetSplitLineGroupInput) (SplitLineHierarchy, error)
-	GetSplitLineGroupHeaders(ctx context.Context, input GetSplitLineGroupHeadersInput) (SplitLineGroupHeaders, error)
 }
 
 type InvoiceAppAdapter interface {

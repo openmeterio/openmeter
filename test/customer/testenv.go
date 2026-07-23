@@ -18,6 +18,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
 	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
@@ -424,20 +425,31 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create billing sequence service: %w", err)
 	}
 
-	billingService, err := billingservice.New(billingservice.Config{
-		Adapter:                      billingAdapter,
-		SequenceService:              billingSequenceService,
-		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-		CustomerService:              customerService,
-		AppService:                   appService,
-		Logger:                       logger.WithGroup("billing"),
+	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
+	legacyBillingLineEngine, err := billinglineengine.New(billinglineengine.Config{
+		SplitLineGroupAdapter:        billingAdapter,
+		RatingService:                billingRatingService,
 		FeatureService:               entitlementRegistry.Feature,
-		MeterService:                 meterService,
 		StreamingConnector:           streamingConnector,
-		Publisher:                    publisher,
-		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
-		TaxCodeService:               taxCodeService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create invoice line engine: %w", err)
+	}
+
+	billingService, err := billingservice.New(billingservice.Config{
+		Adapter:                 billingAdapter,
+		SequenceService:         billingSequenceService,
+		RatingService:           billingRatingService,
+		LegacyBillingLineEngine: legacyBillingLineEngine,
+		CustomerService:         customerService,
+		AppService:              appService,
+		Logger:                  logger.WithGroup("billing"),
+		FeatureService:          entitlementRegistry.Feature,
+		MeterService:            meterService,
+		Publisher:               publisher,
+		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
+		TaxCodeService:          taxCodeService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create billing service: %w", err)

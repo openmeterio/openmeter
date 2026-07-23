@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	chargesworkeradvance "github.com/openmeterio/openmeter/openmeter/billing/charges/worker/advance"
+	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingsequence "github.com/openmeterio/openmeter/openmeter/billing/sequence"
@@ -49,9 +50,10 @@ import (
 // BillingRegistry bundles the billing and charges services. External callers that need
 // billing or charges should depend on BillingRegistry rather than individual services.
 type BillingRegistry struct {
-	Billing  billing.Service
-	Sequence billingsequence.Service
-	Charges  *ChargesRegistry
+	Billing                 billing.Service
+	LegacyBillingLineEngine *billinglineengine.Engine
+	Sequence                billingsequence.Service
+	Charges                 *ChargesRegistry
 }
 
 func (r BillingRegistry) ChargesServiceOrNil() charges.Service {
@@ -110,6 +112,22 @@ func NewBillingSequenceService(
 	})
 }
 
+func NewLegacyBillingLineEngine(
+	billingAdapter billing.Adapter,
+	billingRatingService rating.Service,
+	featureConnector feature.FeatureConnector,
+	streamingConnector streaming.Connector,
+	billingConfig config.BillingConfiguration,
+) (*billinglineengine.Engine, error) {
+	return billinglineengine.New(billinglineengine.Config{
+		SplitLineGroupAdapter:        billingAdapter,
+		RatingService:                billingRatingService,
+		FeatureService:               featureConnector,
+		StreamingConnector:           streamingConnector,
+		MaxParallelQuantitySnapshots: billingConfig.MaxParallelQuantitySnapshots,
+	})
+}
+
 // newBillingService creates the billing service and registers validators/hooks.
 // Downstream consumers should use BillingRegistry.
 func newBillingService(
@@ -117,11 +135,11 @@ func newBillingService(
 	appService app.Service,
 	billingAdapter billing.Adapter,
 	billingRatingService rating.Service,
+	legacyBillingLineEngine *billinglineengine.Engine,
 	sequenceService billingsequence.Service,
 	customerService customer.Service,
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
-	streamingConnector streaming.Connector,
 	eventPublisher eventbus.Publisher,
 	billingConfig config.BillingConfiguration,
 	subscriptionServices SubscriptionServiceWithWorkflow,
@@ -131,20 +149,19 @@ func newBillingService(
 	taxCodeService taxcode.Service,
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
-		Adapter:                      billingAdapter,
-		SequenceService:              sequenceService,
-		RatingService:                billingRatingService,
-		AppService:                   appService,
-		CustomerService:              customerService,
-		TaxCodeService:               taxCodeService,
-		FeatureService:               featureConnector,
-		Logger:                       logger,
-		MeterService:                 meterService,
-		StreamingConnector:           streamingConnector,
-		Publisher:                    eventPublisher,
-		AdvancementStrategy:          billingConfig.AdvancementStrategy,
-		FSNamespaceLockdown:          fsConfig.NamespaceLockdown,
-		MaxParallelQuantitySnapshots: billingConfig.MaxParallelQuantitySnapshots,
+		Adapter:                 billingAdapter,
+		SequenceService:         sequenceService,
+		RatingService:           billingRatingService,
+		LegacyBillingLineEngine: legacyBillingLineEngine,
+		AppService:              appService,
+		CustomerService:         customerService,
+		TaxCodeService:          taxCodeService,
+		FeatureService:          featureConnector,
+		Logger:                  logger,
+		MeterService:            meterService,
+		Publisher:               eventPublisher,
+		AdvancementStrategy:     billingConfig.AdvancementStrategy,
+		FSNamespaceLockdown:     fsConfig.NamespaceLockdown,
 	})
 	if err != nil {
 		return nil, err
@@ -186,16 +203,27 @@ func NewBillingRegistry(
 		return BillingRegistry{}, err
 	}
 
+	legacyBillingLineEngine, err := NewLegacyBillingLineEngine(
+		billingAdapter,
+		billingRatingService,
+		featureConnector,
+		streamingConnector,
+		billingConfig,
+	)
+	if err != nil {
+		return BillingRegistry{}, err
+	}
+
 	billingService, err := newBillingService(
 		logger,
 		appService,
 		billingAdapter,
 		billingRatingService,
+		legacyBillingLineEngine,
 		sequenceService,
 		customerService,
 		featureConnector,
 		meterService,
-		streamingConnector,
 		eventPublisher,
 		billingConfig,
 		subscriptionServices,
@@ -236,9 +264,10 @@ func NewBillingRegistry(
 	}
 
 	billingRegistry := BillingRegistry{
-		Billing:  billingService,
-		Sequence: sequenceService,
-		Charges:  chargesRegistry,
+		Billing:                 billingService,
+		LegacyBillingLineEngine: legacyBillingLineEngine,
+		Sequence:                sequenceService,
+		Charges:                 chargesRegistry,
 	}
 
 	// Hook registration
@@ -333,6 +362,7 @@ func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices Subscri
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		SubscriptionService:     subsServices.Service,
 		BillingService:          billingRegistry.Billing,
+		LegacyBillingLineEngine: billingRegistry.LegacyBillingLineEngine,
 		ChargesService:          billingRegistry.ChargesServiceOrNil(),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		FeatureFlags: subscriptionsyncservice.FeatureFlags{

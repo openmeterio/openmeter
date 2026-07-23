@@ -203,10 +203,6 @@ func (i StandardLineBase) GetName() string {
 	return i.Name
 }
 
-func (i StandardLineBase) IsProgressivelyBilled() bool {
-	return i.SplitLineGroupID != nil
-}
-
 type SubscriptionReference struct {
 	SubscriptionID string                `json:"subscriptionID"`
 	PhaseID        string                `json:"phaseID"`
@@ -319,8 +315,7 @@ type StandardLine struct {
 
 	UsageBased *UsageBasedLine `json:"usageBased,omitempty"`
 
-	DetailedLines      DetailedLines       `json:"detailedLines,omitempty"`
-	SplitLineHierarchy *SplitLineHierarchy `json:"progressiveLineHierarchy,omitempty"`
+	DetailedLines DetailedLines `json:"detailedLines,omitempty"`
 
 	Discounts StandardLineDiscounts `json:"discounts,omitempty"`
 
@@ -419,41 +414,8 @@ func (i StandardLine) GetMeteredPreLinePeriodQuantity() (*alpacadecimal.Decimal,
 	return i.UsageBased.MeteredPreLinePeriodQuantity, nil
 }
 
-func (i StandardLine) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
-	if i.SplitLineGroupID == nil {
-		return timeutil.ClosedPeriod{
-			From: i.Period.From,
-			To:   i.Period.To,
-		}, nil
-	}
-
-	if i.SplitLineHierarchy == nil {
-		return timeutil.ClosedPeriod{}, errors.New("split line hierarchy is required")
-	}
-
-	return i.SplitLineHierarchy.Group.ServicePeriod, nil
-}
-
-func (i StandardLine) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
-	if i.SplitLineGroupID == nil {
-		return alpacadecimal.Zero, nil
-	}
-
-	if i.SplitLineHierarchy == nil {
-		return alpacadecimal.Zero, fmt.Errorf("line[%s] does not have a progressive line hierarchy, but is a progressive billed line", i.ID)
-	}
-
-	return i.SplitLineHierarchy.SumNetAmount(SumNetAmountInput{
-		PeriodEndLTE: i.Period.From,
-	})
-}
-
 func (i StandardLine) GetStandardLineDiscounts() StandardLineDiscounts {
 	return i.Discounts
-}
-
-func (i *StandardLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
-	i.SplitLineHierarchy = hierarchy
 }
 
 // ToGatheringLineBase converts the standard line to a gathering line base.
@@ -518,7 +480,6 @@ func (i StandardLine) CloneWithoutDependencies(edits ...StandardLineEditFunction
 	clone.DeletedAt = nil
 
 	clone.ParentLineID = nil
-	clone.SplitLineHierarchy = nil
 	clone.SplitLineGroupID = nil
 
 	if clone.UsageBased != nil {
@@ -536,11 +497,6 @@ func (i StandardLine) CloneWithoutDependencies(edits ...StandardLineEditFunction
 
 func (i StandardLine) WithoutDBState() *StandardLine {
 	i.DBState = nil
-	return &i
-}
-
-func (i StandardLine) WithoutSplitLineHierarchy() *StandardLine {
-	i.SplitLineHierarchy = nil
 	return &i
 }
 
@@ -655,15 +611,6 @@ func (i StandardLine) clone(opts cloneOptions) (*StandardLine, error) {
 
 	if !opts.skipDiscounts {
 		res.Discounts = i.Discounts.Clone()
-	}
-
-	if i.SplitLineHierarchy != nil {
-		cloned, err := i.SplitLineHierarchy.Clone()
-		if err != nil {
-			return nil, fmt.Errorf("cloning split line hierarchy: %w", err)
-		}
-
-		res.SplitLineHierarchy = lo.ToPtr(cloned)
 	}
 
 	return res, nil
@@ -833,6 +780,29 @@ func (i *StandardLine) SortDetailedLines() {
 
 		return strings.Compare(lineA.ID, lineB.ID) < 0
 	})
+}
+
+type StandardLineWithInvoiceHeader struct {
+	Line    *StandardLine
+	Invoice StandardInvoice
+}
+
+func (l StandardLineWithInvoiceHeader) Validate() error {
+	if l.Line == nil {
+		return fmt.Errorf("line is required")
+	}
+
+	if err := l.Line.Validate(); err != nil {
+		return fmt.Errorf("line: %w", err)
+	}
+
+	// This transport only carries the parent invoice entity as a header object,
+	// so we validate invoice identity here instead of requiring a fully fetched invoice aggregate.
+	if l.Invoice.ID == "" {
+		return fmt.Errorf("invoice id is required")
+	}
+
+	return nil
 }
 
 // helper functions for generating new lines
@@ -1182,20 +1152,3 @@ type GetInvoiceLineInput = LineID
 type GetInvoiceLineOwnershipAdapterInput = LineID
 
 type DeleteInvoiceLineInput = LineID
-
-type SnapshotLineQuantityInput struct {
-	Invoice *StandardInvoice
-	Line    *StandardLine
-}
-
-func (i SnapshotLineQuantityInput) Validate() error {
-	if i.Invoice == nil {
-		return errors.New("invoice is required")
-	}
-
-	if i.Line == nil {
-		return errors.New("line is required")
-	}
-
-	return nil
-}

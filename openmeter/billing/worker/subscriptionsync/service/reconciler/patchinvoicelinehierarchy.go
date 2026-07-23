@@ -38,10 +38,13 @@ func (c *lineHierarchyPatchCollection) AddDelete(uniqueID string, existing persi
 	if err != nil {
 		return err
 	}
-	patches := make([]invoiceupdater.Patch, 0, 1+len(group.Lines))
 
-	for _, line := range group.Lines {
-		if line.Line.GetAnnotations().GetBool(billing.AnnotationSubscriptionSyncIgnore) {
+	lines := group.Lines()
+
+	patches := make([]invoiceupdater.Patch, 0, 1+len(lines))
+
+	for _, line := range lines {
+		if line.GetAnnotations().GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 			return nil
 		}
 	}
@@ -50,12 +53,12 @@ func (c *lineHierarchyPatchCollection) AddDelete(uniqueID string, existing persi
 		patches = append(patches, invoiceupdater.NewDeleteSplitLineGroupPatch(group.Group.NamespacedID))
 	}
 
-	for _, line := range group.Lines {
-		if line.Line.GetDeletedAt() != nil {
+	for _, line := range lines {
+		if line.GetDeletedAt() != nil {
 			continue
 		}
 
-		patches = append(patches, invoiceupdater.NewDeleteLinePatch(line.Line.GetLineID(), line.Invoice.GetID()))
+		patches = append(patches, invoiceupdater.NewDeleteLinePatch(line.GetID(), line.GetInvoiceID().ID))
 	}
 
 	if len(patches) == 0 {
@@ -70,6 +73,7 @@ func (c *lineHierarchyPatchCollection) AddShrink(uniqueID string, existing persi
 	if err != nil {
 		return err
 	}
+
 	expectedLine, err := target.GetExpectedLineOrErr()
 	if err != nil {
 		return err
@@ -83,9 +87,11 @@ func (c *lineHierarchyPatchCollection) AddShrink(uniqueID string, existing persi
 		return fmt.Errorf("shrink patch requires target end before existing hierarchy end: existing=%s..%s target=%s..%s", existingHierarchy.Group.ServicePeriod.From, existingHierarchy.Group.ServicePeriod.To, expectedLine.ServicePeriod.From, expectedLine.ServicePeriod.To)
 	}
 
-	patches := make([]invoiceupdater.Patch, 0, len(existingHierarchy.Lines)+1)
+	lines := existingHierarchy.Lines()
 
-	for _, child := range existingHierarchy.Lines {
+	patches := make([]invoiceupdater.Patch, 0, len(lines)+1)
+
+	for _, child := range lines {
 		if child.Line.GetServicePeriod().To.Before(expectedLine.ServicePeriod.To) {
 			continue
 		}

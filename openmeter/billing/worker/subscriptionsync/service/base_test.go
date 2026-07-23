@@ -70,6 +70,7 @@ func (s *SuiteBase) SetupSuite() {
 
 	service, err := New(Config{
 		BillingService:          s.BillingService,
+		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: adapter,
@@ -93,6 +94,7 @@ func (s *SuiteBase) setupChargesService(config chargestestutils.Config) {
 
 	service, err := New(Config{
 		BillingService:          s.BillingService,
+		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
 		ChargesService:          s.Charges,
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),

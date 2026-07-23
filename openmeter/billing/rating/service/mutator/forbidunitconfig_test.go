@@ -17,10 +17,12 @@ func TestForbidUnitConfigMutator(t *testing.T) {
 
 	newInput := func(unitConfig *productcatalog.UnitConfig) rate.PricerCalculateInput {
 		return rate.PricerCalculateInput{
-			StandardLineAccessor: unitConfigTestLine{
-				StandardLine: &billing.StandardLine{},
-				price:        unitPrice,
-				unitConfig:   unitConfig,
+			ProgressiveBilledLineAccessor: unitConfigTestLine{
+				StandardLineWithSplitLineHierarchy: billing.StandardLineWithSplitLineHierarchy{
+					StandardLine: &billing.StandardLine{},
+				},
+				price:      unitPrice,
+				unitConfig: unitConfig,
 			},
 			Usage: &rating.Usage{
 				Quantity:              alpacadecimal.NewFromFloat(1400),
