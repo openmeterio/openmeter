@@ -500,90 +500,50 @@ func (a *adapter) GetCustomer(ctx context.Context, input customer.GetCustomerInp
 	})
 }
 
-// GetCustomerByUsageAttribution gets a customer by usage attribution
-func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input customer.GetCustomerByUsageAttributionInput) (*customer.Customer, error) {
-	if err := input.Validate(); err != nil {
-		return nil, models.NewGenericValidationError(
-			fmt.Errorf("error getting customer by usage attribution: %w", err),
-		)
-	}
-
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (*customer.Customer, error) {
-		now := clock.Now().UTC()
-
-		query := repo.db.Customer.Query().
-			Where(
-				customerdb.Namespace(input.Namespace),
-				customerdb.DeletedAtIsNil(),
-				customerMatchesUsageAttributionKey(input.Namespace, input.Key, now),
-			)
-		query = WithSubjects(query, now)
-		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
-			query = WithActiveSubscriptions(query, now)
-		}
-
-		customerEntity, err := query.First(ctx)
-		if err != nil {
-			if entdb.IsNotFound(err) {
-				return nil, models.NewGenericNotFoundError(
-					fmt.Errorf("customer with subject key %s not found in %s namespace", input.Key, input.Namespace),
-				)
-			}
-
-			return nil, fmt.Errorf("failed to fetch customer: %w", err)
-		}
-
-		if customerEntity == nil {
-			return nil, fmt.Errorf("invalid query result: nil customer received")
-		}
-
-		return CustomerFromDBEntity(*customerEntity, input.Expands)
-	})
-}
-
-// customerMatchesUsageAttributionKey resolves a customer key before a subject
-// key while keeping both lookup branches independently indexable. The returned
-// candidate is applied to the outer customer query as:
+// customersMatchUsageAttributionKeys resolves customers whose own key OR one of their subject keys
+// is in the given key set, via two independently-indexable UNION ALL branches. It returns the full
+// candidate set rather than one winner per key: a key that matches both a customer's own key and a
+// different customer's subject key legitimately resolves to two distinct customers here, so the
+// caller applies key-over-subject precedence per input key (see
+// customer/service.resolveCustomersByKeyWithPrecedence). Both the single-key and bulk usage-attribution lookups
+// use this one predicate. The generated SQL shape mirrors:
 //
 //	WHERE customers.id IN (
-//	    SELECT matches.id
-//	    FROM (
-//	        SELECT c.id, 0 AS lookup_priority
-//	        FROM customers AS c
-//	        WHERE c.namespace = $1
-//	          AND c.key = $2
-//	          AND c.deleted_at IS NULL
+//	    SELECT c.id FROM customers AS c
+//	    WHERE c.namespace = $1
+//	      AND c.key IN (...)
+//	      AND (c.deleted_at IS NULL OR c.deleted_at > $2)
 //
-//	        UNION ALL
+//	    UNION ALL
 //
-//	        SELECT c.id, 1 AS lookup_priority
-//	        FROM customer_subjects AS cs
-//	        JOIN customers AS c ON c.id = cs.customer_id
-//	        WHERE cs.namespace = $1
-//	          AND cs.subject_key = $2
-//	          AND (cs.deleted_at IS NULL OR cs.deleted_at > $3)
-//	          AND c.namespace = $1
-//	          AND c.deleted_at IS NULL
-//	    ) AS matches
-//	    ORDER BY matches.lookup_priority
-//	    LIMIT 1
+//	    SELECT c.id
+//	    FROM customer_subjects AS cs
+//	    JOIN customers AS c ON c.id = cs.customer_id
+//	    WHERE cs.namespace = $1
+//	      AND cs.subject_key IN (...)
+//	      AND (cs.deleted_at IS NULL OR cs.deleted_at > $2)
+//	      AND c.namespace = $1
+//	      AND (c.deleted_at IS NULL OR c.deleted_at > $2)
 //	)
-func customerMatchesUsageAttributionKey(namespace, key string, at time.Time) predicate.Customer {
+func customersMatchUsageAttributionKeys(namespace string, keys []string, at time.Time) predicate.Customer {
 	return func(s *sql.Selector) {
+		keyValues := lo.ToAnySlice(keys)
+
 		keyCustomerTable := sql.Table(customerdb.Table).As("customer_by_key")
 		customerKeyMatch := sql.Select(keyCustomerTable.C(customerdb.FieldID)).
-			AppendSelectExprAs(sql.Expr("0"), "lookup_priority").
 			From(keyCustomerTable).
 			Where(sql.And(
 				sql.EQ(keyCustomerTable.C(customerdb.FieldNamespace), namespace),
-				sql.EQ(keyCustomerTable.C(customerdb.FieldKey), key),
-				sql.IsNull(keyCustomerTable.C(customerdb.FieldDeletedAt)),
+				sql.In(keyCustomerTable.C(customerdb.FieldKey), keyValues...),
+				sql.Or(
+					sql.IsNull(keyCustomerTable.C(customerdb.FieldDeletedAt)),
+					sql.GT(keyCustomerTable.C(customerdb.FieldDeletedAt), at),
+				),
 			))
 
 		customerSubjectsTable := sql.Table(customersubjectsdb.Table).As("customer_subjects")
 		subjectCustomerTable := sql.Table(customerdb.Table).As("customer_by_subject")
 		subjectKeyMatch := sql.Select(subjectCustomerTable.C(customerdb.FieldID)).
-			AppendSelectExprAs(sql.Expr("1"), "lookup_priority").
 			From(customerSubjectsTable).
 			Join(subjectCustomerTable).
 			On(
@@ -592,58 +552,44 @@ func customerMatchesUsageAttributionKey(namespace, key string, at time.Time) pre
 			).
 			Where(sql.And(
 				sql.EQ(customerSubjectsTable.C(customersubjectsdb.FieldNamespace), namespace),
-				sql.EQ(customerSubjectsTable.C(customersubjectsdb.FieldSubjectKey), key),
+				sql.In(customerSubjectsTable.C(customersubjectsdb.FieldSubjectKey), keyValues...),
 				sql.Or(
 					sql.IsNull(customerSubjectsTable.C(customersubjectsdb.FieldDeletedAt)),
 					sql.GT(customerSubjectsTable.C(customersubjectsdb.FieldDeletedAt), at),
 				),
 				sql.EQ(subjectCustomerTable.C(customerdb.FieldNamespace), namespace),
-				sql.IsNull(subjectCustomerTable.C(customerdb.FieldDeletedAt)),
+				sql.Or(
+					sql.IsNull(subjectCustomerTable.C(customerdb.FieldDeletedAt)),
+					sql.GT(subjectCustomerTable.C(customerdb.FieldDeletedAt), at),
+				),
 			))
 
-		candidates := customerKeyMatch.
-			UnionAll(subjectKeyMatch).
-			As("usage_attribution_matches")
-		preferredCustomerID := sql.Select(candidates.C(customerdb.FieldID)).
-			From(candidates).
-			OrderBy(candidates.C("lookup_priority")).
-			Limit(1)
+		candidates := customerKeyMatch.UnionAll(subjectKeyMatch)
 
-		s.Where(sql.In(s.C(customerdb.FieldID), preferredCustomerID))
+		s.Where(sql.In(s.C(customerdb.FieldID), candidates))
 	}
 }
 
-// GetCustomersByUsageAttribution resolves multiple customers by usage attribution keys in a single query.
-// A key matches a customer either by the customer's own key or by one of its subject keys, mirroring
-// the single-key GetCustomerByUsageAttribution. Keys that match no customer are simply absent from the
-// result; the caller derives which keys were not found.
+// GetCustomersByUsageAttribution resolves customers by usage attribution keys in a single query.
+// A key matches a customer either by the customer's own key or by one of its subject keys. It is the
+// sole usage-attribution lookup for both the bulk and single-key service paths; keys that match no
+// customer are simply absent from the result, and the caller derives which keys were not found.
 func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) ([]customer.Customer, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) ([]customer.Customer, error) {
 		now := clock.Now().UTC()
 
-		// TODO: consider adding a CreatedAtLTE(now) guard to the customer/subject query,
-		//       to defend against the edge case of having customers/subjects becoming active in the future
+		// Deliberately no CreatedAtLTE(now) guard here or in WithSubjects below: this keeps the
+		// candidate predicate and the eager-loaded subject list in agreement. created_at is
+		// server-assigned and immutable (see ResourceMixin/CustomerSubjects schema), so a
+		// future-created subject can't occur in production — guarding only one of the two paths
+		// would instead cause a real, batch-composition-dependent resolution bug for a case that
+		// can't happen.
 		query := repo.db.Customer.Query().
-			Where(customerdb.Namespace(input.Namespace)).
 			Where(
-				customerdb.Or(
-					// We lookup customers by subject key in the subjects table
-					customerdb.HasSubjectsWith(
-						customersubjectsdb.SubjectKeyIn(input.Keys...),
-						customersubjectsdb.CreatedAtLTE(now),
-						customersubjectsdb.Or(
-							customersubjectsdb.DeletedAtIsNil(),
-							customersubjectsdb.DeletedAtGT(now),
-						),
-					),
-					// Or else we lookup customers by key in the customers table
-					customerdb.KeyIn(input.Keys...),
-				),
-			).
-			Where(customerdb.DeletedAtIsNil())
+				customerdb.Namespace(input.Namespace),
+				customersMatchUsageAttributionKeys(input.Namespace, input.Keys, now),
+			)
 
-		// TODO: consider adding a CreatedAtLTE(now) guard to the WithSubjects query,
-		//       to defend against the edge case of having customers/subjects becoming active in the future
 		query = WithSubjects(query, now)
 
 		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {

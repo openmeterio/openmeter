@@ -20,7 +20,6 @@ type CustomerAdapter interface {
 	CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error)
 	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
-	GetCustomerByUsageAttribution(ctx context.Context, input GetCustomerByUsageAttributionInput) (*Customer, error)
 	GetCustomersByUsageAttribution(ctx context.Context, input GetCustomersByUsageAttributionInput) ([]Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
 }

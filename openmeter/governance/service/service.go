@@ -287,7 +287,10 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 			attribute.Int("requested", len(input.CustomerKeys)),
 		)
 
-		customers, err := s.customerService.GetCustomersByUsageAttribution(ctx, customer.GetCustomersByUsageAttributionInput{
+		// GetCustomersByUsageAttribution already resolves each key to its customer with
+		// key-over-subject precedence applied, so there is no local mapping/collision handling
+		// left to do here.
+		keyToCustomer, err := s.customerService.GetCustomersByUsageAttribution(ctx, customer.GetCustomersByUsageAttributionInput{
 			Namespace: input.Namespace,
 			Keys:      input.CustomerKeys,
 		})
@@ -295,37 +298,14 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 			return resolveCustomersResult{}, fmt.Errorf("failed to resolve customer keys: %w", err)
 		}
 
-		// Map each lookup key to the customer it resolved to. A key matches a customer either by
-		// the customer's own key or by one of its subject keys. First match wins on the rare
-		// collision, mirroring the single-key First() lookup.
-		keyToCustomer := make(map[string]*customer.Customer, len(customers))
-
-		for i := range customers {
-			cus := &customers[i]
-
-			if cus.Key != nil {
-				if _, ok := keyToCustomer[*cus.Key]; !ok {
-					keyToCustomer[*cus.Key] = cus
-				}
-			}
-
-			if cus.UsageAttribution != nil {
-				for _, sk := range cus.UsageAttribution.SubjectKeys {
-					if _, ok := keyToCustomer[sk]; !ok {
-						keyToCustomer[sk] = cus
-					}
-				}
-			}
-		}
-
 		customerMap := make(map[string]*resolvedCustomer)
 		var queryErrors []governance.QueryError
 
 		// Iterate the input keys in order so matched keys and not-found errors keep input ordering.
 		for _, key := range input.CustomerKeys {
-			cus, ok := keyToCustomer[key]
+			cus := keyToCustomer[key]
 
-			if !ok {
+			if cus == nil {
 				queryErrors = append(queryErrors, governance.QueryError{
 					CustomerKey: key,
 					Code:        governance.QueryErrorCustomerNotFound,
