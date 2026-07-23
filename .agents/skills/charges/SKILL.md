@@ -642,6 +642,7 @@ Use these conventions for lifecycle tests:
 - for credit-only charges (usage-based or flat fee), handler callbacks must not return credit allocations above the requested amount; exact allocation paths must return allocations that sum to the requested amount
 - for flat fee credit-only tests, use `mustAdvanceFlatFeeCharges(...)` helper — it filters the advance result to flat fee charges only
 - for credit-purchase state-machine unit tests, use testify `mock.Mock` with `On(...).Run(...).Return(...).Once()` for expected handler callbacks so missing or unexpected calls fail; in service-suite tests, leave callbacks unset when validating that a flow fails before callbacks, because the shared `CreditPurchaseTestHandler` already errors if an unset callback is invoked
+- keep custom-currency support disabled on default charge service instances so tests continue covering the production unsupported boundary; when a test needs it enabled, use a semantic suite helper that constructs and enables the service instead of repeating `SetEnableCustomCurrency` interface assertions at call sites
 - when testing timestamp truncation, use sub-second fixtures and assert the persisted charge/run fields are second-aligned after create/advance
 - `time.Time` fields on domain models are value typed; use `s.False(ts.IsZero())` instead of `s.NotNil(ts)` when asserting they are populated
 - cover the temporary shrink/extend remap path as well; it synthesizes new intents and must normalize the replacement period ends before re-create
@@ -716,6 +717,8 @@ Credit purchase handler interface (`creditpurchase.Handler`):
 When changing credit purchase charges:
 
 - `creditpurchase.ChargeBase` stores base-row data: `ManagedResource`, `Intent`, `Status` (own `creditpurchase.Status` type); `State` exists but is an empty struct
+- `creditpurchase.Intent.Currency` is the currency being purchased. For external and invoice settlements, `GenericSettlement.Currency` is the fiat settlement currency (`currencyx.FiatCode`), so it intentionally differs from the intent currency when purchasing a custom currency.
+- Custom-currency gathering lines must use the settlement fiat currency and convert the purchased credit amount using the settlement cost basis. Keep the purchased amount and currency visible in the line description so downstream billing retains both sides of the purchase.
 - `creditpurchase.Charge` embeds `ChargeBase` + `Realizations` — all lifecycle outcomes live in `Realizations`, not `State`
 - `creditpurchase.Realizations` holds `CreditGrantRealization`, `ExternalPaymentSettlement`, and `InvoiceSettlement` (all loaded from edge tables)
 - `CreditGrantRealization` is stored in its own `charge_credit_purchase_credit_grants` table, not on the base row

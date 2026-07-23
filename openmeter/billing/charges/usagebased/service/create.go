@@ -31,9 +31,7 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
 		now := clock.Now().UTC()
 		createIntents, err := slicesx.MapWithErr(input.Intents, func(intent usagebased.Intent) (usagebased.CreateIntent, error) {
-			if intent.Currency.IsCustom() &&
-				intent.SettlementMode == productcatalog.CreditThenInvoiceSettlementMode &&
-				!s.enableCustomCurrency.Load() {
+			if intent.Currency.IsCustom() && !s.enableCustomCurrency.Load() {
 				return usagebased.CreateIntent{}, fmt.Errorf("creating usage based charge with custom currency %q: %w", intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
 			}
 

@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -21,7 +20,7 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) {
-		if input.Intent.Currency.IsCustom() && input.Intent.Settlement.Type() != creditpurchase.SettlementTypePromotional {
+		if input.Intent.Currency.IsCustom() && !s.enableCustomCurrency.Load() {
 			return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("custom currency %s is not supported for credit purchases: %w", input.Intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
 		}
 
@@ -95,7 +94,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 
 	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
 	totalCost := intent.CreditAmount.Mul(invoiceSettlement.CostBasis)
-	invoiceCurrency := currencyx.FiatCode(invoiceSettlement.Currency)
+	invoiceCurrency := invoiceSettlement.Currency
 	calc, err := invoiceCurrency.AsFiatCurrency()
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("creating currency calculator: %w", err)
@@ -119,7 +118,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   charge.Namespace,
-				Name:        intent.Name,
+				Name:        fmt.Sprintf("%s (%s %s credits)", intent.Name, intent.CreditAmount, intent.Currency.GetCode()),
 				Description: intent.Description,
 			}),
 			Metadata:    intent.Metadata.Clone(),

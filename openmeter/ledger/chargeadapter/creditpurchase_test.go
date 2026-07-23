@@ -615,7 +615,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 					Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
 						InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
 						GenericSettlement: chargecreditpurchase.GenericSettlement{
-							Currency:  currencyx.Code("USD"),
+							Currency:  currencyx.FiatCode("USD"),
 							CostBasis: costBasis,
 						},
 					}),

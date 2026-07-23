@@ -396,7 +396,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 					CreditAmount: alpacadecimal.NewFromFloat(100),
 					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  USD,
+							Currency:  currencyx.FiatCode(USD),
 							CostBasis: alpacadecimal.NewFromFloat(0.5),
 						},
 					}),
@@ -515,7 +515,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 					CreditAmount: alpacadecimal.NewFromFloat(100),
 					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  USD,
+							Currency:  currencyx.FiatCode(USD),
 							CostBasis: alpacadecimal.NewFromFloat(0.5),
 						},
 					}),

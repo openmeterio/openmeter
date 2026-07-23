@@ -3011,6 +3011,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 			Currencies:    s.CurrencyService,
 		})
 		s.Require().NoError(err)
+		customCurrencyEnabler, ok := customCurrencyFlatFeeService.(customCurrencyEnabler)
+		s.Require().True(ok)
+		s.Require().NoError(customCurrencyEnabler.SetEnableCustomCurrency(s.T(), true))
+
 		originalFlatFeeService := s.Charges.flatFeeService
 		s.Charges.flatFeeService = customCurrencyFlatFeeService
 		defer func() {
@@ -3170,6 +3174,10 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyWithCustomCurrency(
 			StreamingConnector:      s.MockStreamingConnector,
 		})
 		s.Require().NoError(err)
+		customCurrencyEnabler, ok := customCurrencyUsageBasedService.(customCurrencyEnabler)
+		s.Require().True(ok)
+		s.Require().NoError(customCurrencyEnabler.SetEnableCustomCurrency(s.T(), true))
+
 		originalUsageBasedService := s.Charges.usageBasedService
 		s.Charges.usageBasedService = customCurrencyUsageBasedService
 		defer func() {

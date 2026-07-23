@@ -819,7 +819,7 @@ func TestIsPendingCreditGrantAt(t *testing.T) {
 						CreditAmount: alpacadecimal.NewFromInt(10),
 						Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 							GenericSettlement: creditpurchase.GenericSettlement{
-								Currency:  currency,
+								Currency:  currencyx.FiatCode(currency),
 								CostBasis: alpacadecimal.NewFromInt(1),
 							},
 						}),
