@@ -80,6 +80,20 @@ func (_c *LedgerTransactionGroupCreate) SetNillableDeletedAt(v *time.Time) *Ledg
 	return _c
 }
 
+// SetIdempotencyScope sets the "idempotency_scope" field.
+func (_c *LedgerTransactionGroupCreate) SetIdempotencyScope(v string) *LedgerTransactionGroupCreate {
+	_c.mutation.SetIdempotencyScope(v)
+	return _c
+}
+
+// SetNillableIdempotencyScope sets the "idempotency_scope" field if the given value is not nil.
+func (_c *LedgerTransactionGroupCreate) SetNillableIdempotencyScope(v *string) *LedgerTransactionGroupCreate {
+	if v != nil {
+		_c.SetIdempotencyScope(*v)
+	}
+	return _c
+}
+
 // SetIdempotencyKey sets the "idempotency_key" field.
 func (_c *LedgerTransactionGroupCreate) SetIdempotencyKey(v string) *LedgerTransactionGroupCreate {
 	_c.mutation.SetIdempotencyKey(v)
@@ -298,6 +312,10 @@ func (_c *LedgerTransactionGroupCreate) createSpec() (*LedgerTransactionGroup, *
 		_spec.SetField(ledgertransactiongroup.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := _c.mutation.IdempotencyScope(); ok {
+		_spec.SetField(ledgertransactiongroup.FieldIdempotencyScope, field.TypeString, value)
+		_node.IdempotencyScope = &value
+	}
 	if value, ok := _c.mutation.IdempotencyKey(); ok {
 		_spec.SetField(ledgertransactiongroup.FieldIdempotencyKey, field.TypeString, value)
 		_node.IdempotencyKey = &value
@@ -476,6 +494,9 @@ func (u *LedgerTransactionGroupUpsertOne) UpdateNewValues() *LedgerTransactionGr
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(ledgertransactiongroup.FieldCreatedAt)
+		}
+		if _, exists := u.create.mutation.IdempotencyScope(); exists {
+			s.SetIgnore(ledgertransactiongroup.FieldIdempotencyScope)
 		}
 		if _, exists := u.create.mutation.IdempotencyKey(); exists {
 			s.SetIgnore(ledgertransactiongroup.FieldIdempotencyKey)
@@ -758,6 +779,9 @@ func (u *LedgerTransactionGroupUpsertBulk) UpdateNewValues() *LedgerTransactionG
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(ledgertransactiongroup.FieldCreatedAt)
+			}
+			if _, exists := b.mutation.IdempotencyScope(); exists {
+				s.SetIgnore(ledgertransactiongroup.FieldIdempotencyScope)
 			}
 			if _, exists := b.mutation.IdempotencyKey(); exists {
 				s.SetIgnore(ledgertransactiongroup.FieldIdempotencyKey)

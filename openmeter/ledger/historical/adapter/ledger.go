@@ -182,11 +182,23 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 	})
 }
 
+// transactionGroupIdempotencyScope length-frames the namespace so distinct namespace/key pairs cannot share a uniqueness value.
+func transactionGroupIdempotencyScope(namespace, key string) string {
+	return fmt.Sprintf("%d:%s%s", len(namespace), namespace, key)
+}
+
 func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledgerhistorical.CreateTransactionGroupInput) (ledgerhistorical.TransactionGroupData, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (ledgerhistorical.TransactionGroupData, error) {
+		var idempotencyScope *string
+		if transactionGroup.IdempotencyKey != nil {
+			scope := transactionGroupIdempotencyScope(transactionGroup.Namespace, *transactionGroup.IdempotencyKey)
+			idempotencyScope = &scope
+		}
+
 		entity, err := tx.db.LedgerTransactionGroup.Create().
 			SetNamespace(transactionGroup.Namespace).
 			SetAnnotations(transactionGroup.Annotations).
+			SetNillableIdempotencyScope(idempotencyScope).
 			SetNillableIdempotencyKey(transactionGroup.IdempotencyKey).
 			SetNillableInputFingerprint(transactionGroup.InputFingerprint).
 			Save(ctx)
@@ -220,6 +232,7 @@ func (r *repo) GetTransactionGroup(ctx context.Context, id models.NamespacedID) 
 func (r *repo) GetTransactionGroupByIdempotencyKey(ctx context.Context, namespace string, key string) (*ledgerhistorical.TransactionGroup, error) {
 	group, err := r.getTransactionGroup(
 		ctx,
+		ledgertransactiongroupdb.IdempotencyScope(transactionGroupIdempotencyScope(namespace, key)),
 		ledgertransactiongroupdb.Namespace(namespace),
 		ledgertransactiongroupdb.IdempotencyKey(key),
 	)

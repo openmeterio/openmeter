@@ -85,6 +85,11 @@ func DeletedAt(v time.Time) predicate.LedgerTransactionGroup {
 	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// IdempotencyScope applies equality check predicate on the "idempotency_scope" field. It's identical to IdempotencyScopeEQ.
+func IdempotencyScope(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldIdempotencyScope, v))
+}
+
 // IdempotencyKey applies equality check predicate on the "idempotency_key" field. It's identical to IdempotencyKeyEQ.
 func IdempotencyKey(v string) predicate.LedgerTransactionGroup {
 	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldIdempotencyKey, v))
@@ -298,6 +303,81 @@ func DeletedAtIsNil() predicate.LedgerTransactionGroup {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.LedgerTransactionGroup {
 	return predicate.LedgerTransactionGroup(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// IdempotencyScopeEQ applies the EQ predicate on the "idempotency_scope" field.
+func IdempotencyScopeEQ(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldEQ(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeNEQ applies the NEQ predicate on the "idempotency_scope" field.
+func IdempotencyScopeNEQ(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldNEQ(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeIn applies the In predicate on the "idempotency_scope" field.
+func IdempotencyScopeIn(vs ...string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldIn(FieldIdempotencyScope, vs...))
+}
+
+// IdempotencyScopeNotIn applies the NotIn predicate on the "idempotency_scope" field.
+func IdempotencyScopeNotIn(vs ...string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldNotIn(FieldIdempotencyScope, vs...))
+}
+
+// IdempotencyScopeGT applies the GT predicate on the "idempotency_scope" field.
+func IdempotencyScopeGT(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldGT(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeGTE applies the GTE predicate on the "idempotency_scope" field.
+func IdempotencyScopeGTE(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldGTE(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeLT applies the LT predicate on the "idempotency_scope" field.
+func IdempotencyScopeLT(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldLT(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeLTE applies the LTE predicate on the "idempotency_scope" field.
+func IdempotencyScopeLTE(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldLTE(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeContains applies the Contains predicate on the "idempotency_scope" field.
+func IdempotencyScopeContains(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldContains(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeHasPrefix applies the HasPrefix predicate on the "idempotency_scope" field.
+func IdempotencyScopeHasPrefix(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldHasPrefix(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeHasSuffix applies the HasSuffix predicate on the "idempotency_scope" field.
+func IdempotencyScopeHasSuffix(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldHasSuffix(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeIsNil applies the IsNil predicate on the "idempotency_scope" field.
+func IdempotencyScopeIsNil() predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldIsNull(FieldIdempotencyScope))
+}
+
+// IdempotencyScopeNotNil applies the NotNil predicate on the "idempotency_scope" field.
+func IdempotencyScopeNotNil() predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldNotNull(FieldIdempotencyScope))
+}
+
+// IdempotencyScopeEqualFold applies the EqualFold predicate on the "idempotency_scope" field.
+func IdempotencyScopeEqualFold(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldEqualFold(FieldIdempotencyScope, v))
+}
+
+// IdempotencyScopeContainsFold applies the ContainsFold predicate on the "idempotency_scope" field.
+func IdempotencyScopeContainsFold(v string) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(sql.FieldContainsFold(FieldIdempotencyScope, v))
 }
 
 // IdempotencyKeyEQ applies the EQ predicate on the "idempotency_key" field.

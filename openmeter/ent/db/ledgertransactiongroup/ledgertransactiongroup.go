@@ -24,6 +24,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldIdempotencyScope holds the string denoting the idempotency_scope field in the database.
+	FieldIdempotencyScope = "idempotency_scope"
 	// FieldIdempotencyKey holds the string denoting the idempotency_key field in the database.
 	FieldIdempotencyKey = "idempotency_key"
 	// FieldInputFingerprint holds the string denoting the input_fingerprint field in the database.
@@ -67,6 +69,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldIdempotencyScope,
 	FieldIdempotencyKey,
 	FieldInputFingerprint,
 }
@@ -124,6 +127,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByIdempotencyScope orders the results by the idempotency_scope field.
+func ByIdempotencyScope(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIdempotencyScope, opts...).ToFunc()
 }
 
 // ByIdempotencyKey orders the results by the idempotency_key field.

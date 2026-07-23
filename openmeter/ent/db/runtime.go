@@ -2473,11 +2473,11 @@ func init() {
 	// ledgertransactiongroup.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	ledgertransactiongroup.UpdateDefaultUpdatedAt = ledgertransactiongroupDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// ledgertransactiongroupDescIdempotencyKey is the schema descriptor for idempotency_key field.
-	ledgertransactiongroupDescIdempotencyKey := ledgertransactiongroupFields[0].Descriptor()
+	ledgertransactiongroupDescIdempotencyKey := ledgertransactiongroupFields[1].Descriptor()
 	// ledgertransactiongroup.IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
 	ledgertransactiongroup.IdempotencyKeyValidator = ledgertransactiongroupDescIdempotencyKey.Validators[0].(func(string) error)
 	// ledgertransactiongroupDescInputFingerprint is the schema descriptor for input_fingerprint field.
-	ledgertransactiongroupDescInputFingerprint := ledgertransactiongroupFields[1].Descriptor()
+	ledgertransactiongroupDescInputFingerprint := ledgertransactiongroupFields[2].Descriptor()
 	// ledgertransactiongroup.InputFingerprintValidator is a validator for the "input_fingerprint" field. It is called by the builders before save.
 	ledgertransactiongroup.InputFingerprintValidator = ledgertransactiongroupDescInputFingerprint.Validators[0].(func(string) error)
 	// ledgertransactiongroupDescID is the schema descriptor for id field.
