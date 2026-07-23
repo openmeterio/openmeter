@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -14,11 +15,13 @@ import (
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestIntentValidateCostBasis(t *testing.T) {
-	customCurrency := newCustomCurrency(t)
+	ns := ulid.Make().String()
+	customCurrency := newCustomCurrency(t, ns)
 	fiatCurrency := currenciestestutils.NewFiatCurrency(t, "USD")
 	validCostBasis := newManualCostBasisIntent(t)
 	invalidCostBasis := costbasis.Intent{}
@@ -103,7 +106,8 @@ func TestIntentValidateCostBasis(t *testing.T) {
 }
 
 func TestOverridableIntentPreservesCostBasis(t *testing.T) {
-	intent := newValidIntent(t, newCustomCurrency(t), productcatalog.CreditThenInvoiceSettlementMode)
+	ns := ulid.Make().String()
+	intent := newValidIntent(t, newCustomCurrency(t, ns), productcatalog.CreditThenInvoiceSettlementMode)
 	costBasis := newManualCostBasisIntent(t)
 	intent.CostBasis = &costBasis
 
@@ -131,7 +135,7 @@ func TestOverridableIntentPreservesCostBasis(t *testing.T) {
 	requireManualCostBasisIntent(t, overridable.GetCostBasisIntent())
 }
 
-func newCustomCurrency(t testing.TB) currencies.Currency {
+func newCustomCurrency(t testing.TB, namespace string) currencies.Currency {
 	t.Helper()
 
 	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
@@ -140,7 +144,15 @@ func newCustomCurrency(t testing.TB) currencies.Currency {
 		Build()
 	require.NoError(t, err)
 
-	return currencies.Currency{Currency: currency}
+	return currencies.Currency{
+		ManagedModel: models.ManagedModel{},
+		NamespacedID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        ulid.Make().String(),
+		},
+		Currency:  currency,
+		CostBasis: nil,
+	}
 }
 
 func newValidIntent(t testing.TB, currency currencies.Currency, settlementMode productcatalog.SettlementMode) Intent {
