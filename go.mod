@@ -23,7 +23,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.15.0
 	github.com/forscht/namegen v1.0.1
-	github.com/getkin/kin-openapi v0.140.0
+	github.com/getkin/kin-openapi v0.142.0
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-chi/cors v1.2.2
 	github.com/go-chi/render v1.0.3
@@ -106,8 +106,8 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/oapi-codegen/oapi-codegen/v2 v2.6.1-0.20260403235458-a76544bd16ff // indirect
-	github.com/oasdiff/yaml v0.1.0 // indirect
-	github.com/oasdiff/yaml3 v0.0.13 // indirect
+	github.com/oasdiff/yaml v0.1.1 // indirect
+	github.com/oasdiff/yaml3 v0.0.14 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
