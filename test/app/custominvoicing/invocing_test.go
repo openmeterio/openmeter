@@ -133,7 +133,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
-				Currency: currencyx.Code(currency.HUF),
+				Currency: currencyx.FiatCode(currency.HUF),
 				Lines: []billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
@@ -298,7 +298,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
-				Currency: currencyx.Code(currency.HUF),
+				Currency: currencyx.FiatCode(currency.HUF),
 				Lines: []billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},

@@ -167,7 +167,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				}
 			}
 
-			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.GatheringInvoice) (currencyx.Code, gatheringInvoiceWithFeatureMeters) {
+			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.GatheringInvoice) (currencyx.FiatCode, gatheringInvoiceWithFeatureMeters) {
 				return i.Currency, gatheringInvoiceWithFeatureMeters{
 					Invoice: i,
 				}
@@ -199,7 +199,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				return nil, err
 			}
 
-			linesToBeBilledByCurrency := make(map[currencyx.Code]billing.GatheringLines)
+			linesToBeBilledByCurrency := make(map[currencyx.FiatCode]billing.GatheringLines)
 
 			for currency, inScopeLines := range inScopeLinesByCurrency {
 				// Let's first make sure we have properly split the progressively billed
@@ -311,7 +311,7 @@ type gatheringInvoiceWithFeatureMeters struct {
 }
 
 type gatherInScopeLineInput struct {
-	GatheringInvoicesByCurrency map[currencyx.Code]gatheringInvoiceWithFeatureMeters
+	GatheringInvoicesByCurrency map[currencyx.FiatCode]gatheringInvoiceWithFeatureMeters
 	// If set restricts the lines to be included to these IDs, otherwise the AsOf is used
 	// to determine the lines to be included.
 	LinesToInclude     mo.Option[[]string]
@@ -319,7 +319,7 @@ type gatherInScopeLineInput struct {
 	ProgressiveBilling bool
 }
 
-type gatherInScopeLinesResult map[currencyx.Code][]gatheringLineWithBillablePeriod
+type gatherInScopeLinesResult map[currencyx.FiatCode][]gatheringLineWithBillablePeriod
 
 func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineInput) (gatherInScopeLinesResult, error) {
 	res := make(gatherInScopeLinesResult)
@@ -496,7 +496,7 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 	}
 
 	inScopeLines, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
-		GatheringInvoicesByCurrency: map[currencyx.Code]gatheringInvoiceWithFeatureMeters{
+		GatheringInvoicesByCurrency: map[currencyx.FiatCode]gatheringInvoiceWithFeatureMeters{
 			in.Invoice.Currency: {
 				Invoice:       in.Invoice,
 				FeatureMeters: in.FeatureMeters,

@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -50,6 +51,10 @@ func (r StateItem) GetServicePeriod() timeutil.ClosedPeriod {
 }
 
 func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
+	if !r.Currency.IsFiat() {
+		return nil, fmt.Errorf("billing line currency must be fiat: %s", r.Currency.GetCode())
+	}
+
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -58,7 +63,7 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 				Description: r.Spec.RateCard.AsMeta().Description,
 			}),
 			ManagedBy:              billing.SubscriptionManagedLine,
-			Currency:               r.Currency.GetCode(),
+			Currency:               currencyx.FiatCode(r.Currency.GetCode()),
 			ChildUniqueReferenceID: &r.UniqueID,
 			TaxConfig:              r.Spec.RateCard.AsMeta().TaxConfig,
 			ServicePeriod:          r.GetServicePeriod(),

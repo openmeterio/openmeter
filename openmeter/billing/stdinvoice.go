@@ -248,7 +248,7 @@ type StandardInvoiceBase struct {
 
 	Metadata map[string]string `json:"metadata"`
 
-	Currency      currencyx.Code               `json:"currency,omitempty"`
+	Currency      currencyx.FiatCode           `json:"currency,omitempty"`
 	Status        StandardInvoiceStatus        `json:"status"`
 	StatusDetails StandardInvoiceStatusDetails `json:"statusDetail,omitempty"`
 
@@ -743,7 +743,7 @@ type CreateInvoiceAdapterInput struct {
 	Customer  customer.Customer
 	Profile   Profile
 	Number    string
-	Currency  currencyx.Code
+	Currency  currencyx.FiatCode
 	Status    StandardInvoiceStatus
 	Metadata  map[string]string
 	IssuedAt  time.Time
@@ -927,7 +927,7 @@ type SimulateInvoiceInput struct {
 	Customer   *customer.Customer
 
 	Number   *string
-	Currency currencyx.Code
+	Currency currencyx.FiatCode
 	Lines    StandardInvoiceLines
 }
 
@@ -1208,7 +1208,7 @@ type ListStandardInvoicesResponse = pagination.Result[StandardInvoice]
 
 type CreateStandardInvoiceFromGatheringLinesInput struct {
 	Customer    customer.CustomerID
-	Currency    currencyx.Code
+	Currency    currencyx.FiatCode
 	Description *string
 
 	Lines                       GatheringLines

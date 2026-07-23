@@ -282,7 +282,7 @@ func QuantitySnapshotedAt(v time.Time) predicate.BillingInvoice {
 }
 
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v currencyx.Code) predicate.BillingInvoice {
+func Currency(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldEQ(FieldCurrency, vc))
 }
@@ -3056,19 +3056,19 @@ func DeletionSourceNotNil() predicate.BillingInvoice {
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyEQ(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldEQ(FieldCurrency, vc))
 }
 
 // CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyNEQ(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldNEQ(FieldCurrency, vc))
 }
 
 // CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...currencyx.Code) predicate.BillingInvoice {
+func CurrencyIn(vs ...currencyx.FiatCode) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -3077,7 +3077,7 @@ func CurrencyIn(vs ...currencyx.Code) predicate.BillingInvoice {
 }
 
 // CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...currencyx.Code) predicate.BillingInvoice {
+func CurrencyNotIn(vs ...currencyx.FiatCode) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -3086,55 +3086,55 @@ func CurrencyNotIn(vs ...currencyx.Code) predicate.BillingInvoice {
 }
 
 // CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyGT(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldGT(FieldCurrency, vc))
 }
 
 // CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyGTE(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldGTE(FieldCurrency, vc))
 }
 
 // CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyLT(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldLT(FieldCurrency, vc))
 }
 
 // CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyLTE(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldLTE(FieldCurrency, vc))
 }
 
 // CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyContains(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldContains(FieldCurrency, vc))
 }
 
 // CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyHasPrefix(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldHasPrefix(FieldCurrency, vc))
 }
 
 // CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyHasSuffix(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldHasSuffix(FieldCurrency, vc))
 }
 
 // CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyEqualFold(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldEqualFold(FieldCurrency, vc))
 }
 
 // CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v currencyx.Code) predicate.BillingInvoice {
+func CurrencyContainsFold(v currencyx.FiatCode) predicate.BillingInvoice {
 	vc := string(v)
 	return predicate.BillingInvoice(sql.FieldContainsFold(FieldCurrency, vc))
 }

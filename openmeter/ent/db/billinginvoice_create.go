@@ -546,7 +546,7 @@ func (_c *BillingInvoiceCreate) SetNillableDeletionSource(v *billing.ChangeSourc
 }
 
 // SetCurrency sets the "currency" field.
-func (_c *BillingInvoiceCreate) SetCurrency(v currencyx.Code) *BillingInvoiceCreate {
+func (_c *BillingInvoiceCreate) SetCurrency(v currencyx.FiatCode) *BillingInvoiceCreate {
 	_c.mutation.SetCurrency(v)
 	return _c
 }

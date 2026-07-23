@@ -234,7 +234,7 @@ func newUsageBasedStandardLineForTest(period timeutil.ClosedPeriod) *billing.Sta
 			ManagedBy: billing.SystemManagedLine,
 			Engine:    billing.LineEngineTypeChargeUsageBased,
 			InvoiceID: "invoice-id",
-			Currency:  currencyx.Code("USD"),
+			Currency:  currencyx.FiatCode("USD"),
 			Period:    period,
 			InvoiceAt: period.To,
 			ChargeID:  lo.ToPtr("charge-id"),

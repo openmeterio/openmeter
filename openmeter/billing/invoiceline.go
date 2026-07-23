@@ -103,7 +103,7 @@ type GenericInvoiceLineReader interface {
 	GetInvoiceID() string
 	GetEngine() LineEngineType
 	GetLineEngineType() LineEngineType
-	GetCurrency() currencyx.Code
+	GetCurrency() currencyx.FiatCode
 	GetPrice() *productcatalog.Price
 	GetUnitConfig() *productcatalog.UnitConfig
 	GetTaxConfig() *TaxConfig

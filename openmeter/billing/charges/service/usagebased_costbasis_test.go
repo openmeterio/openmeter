@@ -140,6 +140,8 @@ func (s *UsageBasedCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynami
 
 	seenCostBasisIDs := map[string]struct{}{}
 	for idx, result := range created {
+		s.Require().NotNil(result.GatheringLineToCreate, "charge index %d", idx)
+		s.Require().Equal(currencyx.FiatCode("USD"), result.GatheringLineToCreate.Currency, "charge index %d", idx)
 		s.Require().NotNil(result.Charge.State.CostBasisID, "charge index %d", idx)
 
 		reloaded, err := s.mustGetChargeByID(result.Charge.GetChargeID()).AsUsageBasedCharge()

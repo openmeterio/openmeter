@@ -8,13 +8,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, run flatfee.RealizationRun) error {
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(stdLine.Currency).
-		Build()
+	currency, err := stdLine.Currency.AsFiatCurrency()
 	if err != nil {
 		return fmt.Errorf("creating currency calculator: %w", err)
 	}

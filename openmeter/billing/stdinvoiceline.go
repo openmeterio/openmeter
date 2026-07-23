@@ -30,8 +30,8 @@ type StandardLineBase struct {
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
 	Engine      LineEngineType       `json:"engine,omitempty"`
 
-	InvoiceID string         `json:"invoiceID,omitempty"`
-	Currency  currencyx.Code `json:"currency"`
+	InvoiceID string             `json:"invoiceID,omitempty"`
+	Currency  currencyx.FiatCode `json:"currency"`
 
 	// Lifecycle
 	Period timeutil.ClosedPeriod `json:"period"`
@@ -184,16 +184,14 @@ func (i StandardLineBase) GetCreditsApplied() CreditsApplied {
 	return i.CreditsApplied
 }
 
-func (i StandardLineBase) GetCurrency() currencyx.Code {
+func (i StandardLineBase) GetCurrency() currencyx.FiatCode {
 	return i.Currency
 }
 
 func (i StandardLineBase) GetCurrencyCalculator() (currencyx.Currency, error) {
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(i.Currency).
-		Build()
+	currency, err := i.Currency.AsFiatCurrency()
 	if err != nil {
-		return nil, fmt.Errorf("building fiat currency calculator: %w", err)
+		return nil, fmt.Errorf("resolving fiat currency calculator: %w", err)
 	}
 
 	return currency, nil
@@ -852,7 +850,7 @@ type NewFlatFeeLineInput struct {
 	Annotations models.Annotations
 	Description *string
 
-	Currency currencyx.Code
+	Currency currencyx.FiatCode
 
 	ManagedBy InvoiceLineManagedBy
 

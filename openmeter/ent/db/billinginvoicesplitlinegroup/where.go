@@ -97,7 +97,7 @@ func Description(v string) predicate.BillingInvoiceSplitLineGroup {
 }
 
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func Currency(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldCurrency, vc))
 }
@@ -498,19 +498,19 @@ func DescriptionContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyEQ(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldCurrency, vc))
 }
 
 // CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyNEQ(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldCurrency, vc))
 }
 
 // CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyIn(vs ...currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -519,7 +519,7 @@ func CurrencyIn(vs ...currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
 }
 
 // CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyNotIn(vs ...currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
@@ -528,55 +528,55 @@ func CurrencyNotIn(vs ...currencyx.Code) predicate.BillingInvoiceSplitLineGroup 
 }
 
 // CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyGT(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldCurrency, vc))
 }
 
 // CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyGTE(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldCurrency, vc))
 }
 
 // CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyLT(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldCurrency, vc))
 }
 
 // CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyLTE(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldCurrency, vc))
 }
 
 // CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyContains(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContains(FieldCurrency, vc))
 }
 
 // CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyHasPrefix(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasPrefix(FieldCurrency, vc))
 }
 
 // CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyHasSuffix(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasSuffix(FieldCurrency, vc))
 }
 
 // CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyEqualFold(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEqualFold(FieldCurrency, vc))
 }
 
 // CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
+func CurrencyContainsFold(v currencyx.FiatCode) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldCurrency, vc))
 }

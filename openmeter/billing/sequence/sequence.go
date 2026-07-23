@@ -98,7 +98,7 @@ var (
 type GenerationInput struct {
 	Namespace    string
 	CustomerName string
-	Currency     currencyx.Code
+	Currency     currencyx.FiatCode
 }
 
 func (i GenerationInput) Validate() error {

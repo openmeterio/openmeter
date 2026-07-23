@@ -130,6 +130,36 @@ func (i Intent) AsDynamic() (DynamicIntent, error) {
 	return *i.dynamic, nil
 }
 
+// GetFiatCurrency returns the fiat currency in which the custom-currency cost
+// basis is expressed, regardless of the selected resolution mode.
+func (i Intent) GetFiatCurrency() (*currencyx.FiatCurrency, error) {
+	switch i.kind {
+	case ModeDynamic:
+		intent, err := i.AsDynamic()
+		if err != nil {
+			return nil, err
+		}
+
+		return intent.FiatCurrency, nil
+	case ModePinned:
+		intent, err := i.AsPinned()
+		if err != nil {
+			return nil, err
+		}
+
+		return intent.FiatCurrency, nil
+	case ModeManual:
+		intent, err := i.AsManual()
+		if err != nil {
+			return nil, err
+		}
+
+		return intent.FiatCurrency, nil
+	default:
+		return nil, models.NewGenericValidationError(fmt.Errorf("invalid intent kind: %s", i.kind))
+	}
+}
+
 type DynamicIntent struct {
 	FiatCurrency *currencyx.FiatCurrency
 }

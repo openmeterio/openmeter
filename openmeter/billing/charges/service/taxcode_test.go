@@ -410,7 +410,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -529,7 +529,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -980,7 +980,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1040,7 +1040,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGe
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1111,7 +1111,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1295,7 +1295,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1371,7 +1371,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)

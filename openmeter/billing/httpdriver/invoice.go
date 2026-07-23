@@ -463,7 +463,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				CustomerID: &params.CustomerID,
 
 				Number:   body.Number,
-				Currency: currencyx.Code(body.Currency),
+				Currency: currencyx.FiatCode(body.Currency),
 				Lines:    billing.NewStandardInvoiceLines(lines),
 			}, nil
 		},

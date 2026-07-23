@@ -115,7 +115,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -126,7 +126,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 						InvoiceAt:     periodEnd,
 						ManagedBy:     billing.ManuallyManagedLine,
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						RateCardDiscounts: billing.Discounts{
 							Percentage: &billing.PercentageDiscount{
 								PercentageDiscount: productcatalog.PercentageDiscount{
@@ -149,7 +149,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 						InvoiceAt:     periodEnd,
 						ManagedBy:     billing.ManuallyManagedLine,
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						RateCardDiscounts: billing.Discounts{
 							Percentage: &billing.PercentageDiscount{
 								PercentageDiscount: productcatalog.PercentageDiscount{
@@ -217,7 +217,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 
 		result, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -228,7 +228,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 						InvoiceAt:     periodEnd,
 						ManagedBy:     billing.ManuallyManagedLine,
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						FeatureKey:    featureFlatPerUnit.Key,
 						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 							Amount: alpacadecimal.NewFromFloat(100),

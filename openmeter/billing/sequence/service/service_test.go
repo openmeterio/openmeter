@@ -222,7 +222,7 @@ func (s *SequenceServiceSuite) generateInvoiceNumber(ctx context.Context, namesp
 	return s.service.GenerateInvoiceSequenceNumber(ctx, sequence.GenerationInput{
 		Namespace:    namespace,
 		CustomerName: "Acme Inc",
-		Currency:     currencyx.Code("USD"),
+		Currency:     currencyx.FiatCode("USD"),
 	}, sequence.Definition{
 		Prefix:         "INV",
 		SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",

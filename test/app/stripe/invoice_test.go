@@ -393,7 +393,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
-				Currency: currencyx.Code(currency.USD),
+				Currency: currencyx.FiatCode(currency.USD),
 				Lines: []billing.GatheringLine{
 					{
 						// Covered case: Discount caused by maximum amount
@@ -1241,7 +1241,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -1424,7 +1424,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},

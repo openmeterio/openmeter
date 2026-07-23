@@ -524,7 +524,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotTaxCodeIntoLinesOnAdvance() {
 
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Namespace:     ns,
@@ -570,7 +570,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -628,7 +628,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 	// Create a pending line with the TaxCodeID already stamped (as subscription sync would do).
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -696,7 +696,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSimulateInvoiceReadOnly() {
 	result, err := s.BillingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
 		Namespace:  ns,
 		CustomerID: &cust.ID,
-		Currency:   currencyx.Code(currency.USD),
+		Currency:   currencyx.FiatCode(currency.USD),
 		Lines:      billing.NewStandardInvoiceLines([]*billing.StandardLine{line}),
 	})
 	s.NoError(err)

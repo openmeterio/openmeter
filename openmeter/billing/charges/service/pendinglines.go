@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -112,9 +111,7 @@ func validateChargePendingInvoiceLinesInput(input charges.CreatePendingInvoiceLi
 }
 
 func mapPendingInvoiceLinesToChargeIntents(input charges.CreatePendingInvoiceLinesInput) (charges.ChargeIntents, error) {
-	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(input.Currency).
-		Build()
+	currency, err := input.Currency.AsFiatCurrency()
 	if err != nil {
 		return nil, fmt.Errorf("resolving fiat currency %q: %w", input.Currency, err)
 	}

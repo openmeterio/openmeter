@@ -498,7 +498,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{ns},
 			Customers:  []string{cust.ID},
-			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			Currencies: []currencyx.FiatCode{currencyx.FiatCode(currency.USD)},
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 		})
 		s.NoError(err)
@@ -1363,7 +1363,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{ns},
 			Customers:  []string{cust.ID},
-			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			Currencies: []currencyx.FiatCode{currencyx.FiatCode(currency.USD)},
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 		})
 		s.NoError(err)
@@ -2759,7 +2759,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{ns},
 			Customers:  []string{cust.ID},
-			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			Currencies: []currencyx.FiatCode{currencyx.FiatCode(currency.USD)},
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 		})
 		s.NoError(err)
