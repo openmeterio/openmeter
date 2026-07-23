@@ -6,6 +6,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -77,7 +78,7 @@ func AsCreateAddonRequest(a api.AddonCreate, namespace string) (CreateAddonReque
 		},
 	}
 
-	req.Currency = currencyx.Code(a.Currency)
+	req.Currency = currencies.NewCurrencyReference(currencyx.Code(a.Currency))
 	if err = req.Currency.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}

@@ -136,18 +136,20 @@ func (r *resolver) BatchResolveCurrencies(ctx context.Context, namespace string,
 	for idx := range items {
 		currency := &items[idx]
 
+		if currency.DeletedAt != nil {
+			continue
+		}
+
 		if currency.ID != "" {
 			byID[currency.ID] = currency
 		}
 
-		if currency.DeletedAt == nil {
-			code := currency.Details().Code.String()
-			if _, ok := byCode[code]; ok {
-				return nil, fmt.Errorf("multiple active currencies found for code %q", code)
-			}
-
-			byCode[code] = currency
+		code := currency.Details().Code.String()
+		if _, ok := byCode[code]; ok {
+			return nil, fmt.Errorf("multiple active currencies found for code %q", code)
 		}
+
+		byCode[code] = currency
 	}
 
 	result := make(map[currencies.CurrencyRef]*currencies.Currency, len(refs))

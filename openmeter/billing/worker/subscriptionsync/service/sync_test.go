@@ -15,6 +15,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -61,7 +62,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -406,7 +407,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProratingGathering() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -724,7 +725,7 @@ func (s *SubscriptionHandlerTestSuite) testInAdvanceFlatFeeCancelAtFirstBillingB
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -875,7 +876,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
@@ -1009,7 +1010,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
@@ -1615,7 +1616,7 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -1688,7 +1689,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P4W"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
@@ -1965,7 +1966,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -2132,7 +2133,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -2355,7 +2356,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -4338,7 +4339,7 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -4792,7 +4793,7 @@ func (s *SubscriptionHandlerTestSuite) TestFirstDayOfMonthBillingForSubPeriodLen
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
@@ -4906,7 +4907,7 @@ func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateNoBillables() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,
@@ -5000,7 +5001,7 @@ func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateWithFreePhaseActiveInT
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: false,

@@ -41,7 +41,7 @@ func FromAddonRow(a entdb.Addon) (*addon.Addon, error) {
 			Metadata:     a.Metadata,
 			Annotations:  a.Annotations,
 			Version:      a.Version,
-			Currency:     addonCurrency,
+			Currency:     *addonCurrency,
 			InstanceType: a.InstanceType,
 			EffectivePeriod: productcatalog.EffectivePeriod{
 				EffectiveFrom: a.EffectiveFrom,
@@ -254,7 +254,7 @@ func FromPlanRow(p entdb.Plan) (*productcatalog.Plan, error) {
 			Description: p.Description,
 			Metadata:    p.Metadata,
 			Version:     p.Version,
-			Currency:    planCurrency,
+			Currency:    *planCurrency,
 			EffectivePeriod: productcatalog.EffectivePeriod{
 				EffectiveFrom: p.EffectiveFrom,
 				EffectiveTo:   p.EffectiveTo,

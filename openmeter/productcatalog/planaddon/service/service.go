@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
@@ -17,8 +16,6 @@ type Config struct {
 	Addon     addon.Service
 	Logger    *slog.Logger
 	Publisher eventbus.Publisher
-
-	CostBasisChecker productcatalog.CostBasisChecker
 }
 
 func New(config Config) (planaddon.Service, error) {
@@ -32,10 +29,6 @@ func New(config Config) (planaddon.Service, error) {
 
 	if config.Addon == nil {
 		return nil, errors.New("add-on service is required")
-	}
-
-	if config.CostBasisChecker == nil {
-		return nil, errors.New("cost basis checker is required")
 	}
 
 	if config.Logger == nil {
@@ -52,8 +45,6 @@ func New(config Config) (planaddon.Service, error) {
 		addon:     config.Addon,
 		logger:    config.Logger,
 		publisher: config.Publisher,
-
-		costBasisChecker: config.CostBasisChecker,
 	}, nil
 }
 
@@ -65,6 +56,4 @@ type service struct {
 	addon     addon.Service
 	logger    *slog.Logger
 	publisher eventbus.Publisher
-
-	costBasisChecker productcatalog.CostBasisChecker
 }

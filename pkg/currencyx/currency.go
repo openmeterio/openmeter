@@ -46,31 +46,12 @@ type CurrencyCalculator interface {
 	Unit() alpacadecimal.Decimal
 }
 
-// CurrencyIdentity is the currency surface needed by domains that care about
-// identity and compatibility but do not calculate or format amounts.
-type CurrencyIdentity interface {
-	models.Validator
-	fmt.Stringer
-
-	Type() CurrencyType
-	GetCode() Code
-	IsFiat() bool
-	IsCustom() bool
-	Equal(CurrencyIdentity) bool
-}
-
-// ManagedCurrency is a currency backed by a lifecycle-managed resource.
-// Fiat currencies are value identities and therefore do not require an ID.
-type ManagedCurrency interface {
-	CurrencyIdentity
-	GetID() string
-}
-
 type Currency interface {
-	CurrencyIdentity
+	models.Validator
 	CurrencyCalculator
 	CurrencyFormatter
 
+	Type() CurrencyType
 	Details() CurrencyDetails
 
 	AsFiat() (*FiatCurrency, error)
@@ -162,32 +143,8 @@ func (f *FiatCurrency) RoundToPrecision(amount alpacadecimal.Decimal) alpacadeci
 	return amount.Round(int32(f.def.Subunits))
 }
 
-func (f *FiatCurrency) String() string {
-	return f.GetCode().String()
-}
-
-func (f *FiatCurrency) GetCode() Code {
-	if f == nil || f.def == nil {
-		return ""
-	}
-
-	return Code(f.def.ISOCode)
-}
-
 func (f *FiatCurrency) Type() CurrencyType {
 	return CurrencyTypeFiat
-}
-
-func (f *FiatCurrency) IsFiat() bool {
-	return true
-}
-
-func (f *FiatCurrency) IsCustom() bool {
-	return false
-}
-
-func (f *FiatCurrency) Equal(other CurrencyIdentity) bool {
-	return other != nil && other.IsFiat() && f.GetCode() == other.GetCode()
 }
 
 func (f *FiatCurrency) Details() CurrencyDetails {
@@ -295,40 +252,8 @@ func (c *CustomCurrency) RoundToPrecision(amount alpacadecimal.Decimal) alpacade
 	return amount.Round(int32(c.def.Subunits))
 }
 
-func (c *CustomCurrency) String() string {
-	return c.GetCode().String()
-}
-
-func (c *CustomCurrency) GetCode() Code {
-	if c == nil || c.def == nil {
-		return ""
-	}
-
-	return Code(c.def.ISOCode)
-}
-
 func (c *CustomCurrency) Type() CurrencyType {
 	return CurrencyTypeCustom
-}
-
-func (c *CustomCurrency) IsFiat() bool {
-	return false
-}
-
-func (c *CustomCurrency) IsCustom() bool {
-	return true
-}
-
-func (c *CustomCurrency) Equal(other CurrencyIdentity) bool {
-	if other == nil || !other.IsCustom() {
-		return false
-	}
-
-	if _, managed := other.(ManagedCurrency); managed {
-		return false
-	}
-
-	return c.GetCode() == other.GetCode()
 }
 
 func (c *CustomCurrency) Details() CurrencyDetails {

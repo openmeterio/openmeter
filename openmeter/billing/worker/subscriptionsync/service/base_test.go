@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -1211,7 +1212,7 @@ func (s *SuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog.Pha
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

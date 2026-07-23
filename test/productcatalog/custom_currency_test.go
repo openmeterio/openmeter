@@ -14,12 +14,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type testEnv struct {
@@ -35,14 +33,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	return env
 }
 
-func TestCustomCurrencyProductCatalogLifecycle(t *testing.T) {
+func TestArchivedCustomCurrencyCannotRetargetProductCatalogResources(t *testing.T) {
 	// given:
-	// - a managed custom currency with a USD cost basis
-	// - a USD plan and add-on whose matching rate cards are priced in that currency
+	// - a plan and add-on whose rate cards reference a managed custom currency
+	// - that currency is archived and its code is reused by another valid currency
 	// when:
-	// - both resources are created, updated from code-only inputs, assigned, published, fetched, and listed
+	// - the existing resources are updated from code-only inputs
 	// then:
-	// - every service and persistence boundary retains the original managed currency identity
+	// - validation rejects the archived currency and the stored references retain their original identity
 	now := time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
@@ -88,95 +86,49 @@ func TestCustomCurrencyProductCatalogLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, originalCurrency.ID, replacementCurrency.ID)
 
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: replacementCurrency.ID,
+		FiatCode:   currencyx.Code(currency.USD),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
 	updatedPlanPhases := []productcatalog.Phase{newCustomCurrencyPlanPhase(t, customCode, "Updated plan rate card")}
-	updatedPlan, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+	_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
 		NamespacedID: createdPlan.NamespacedID,
 		Name:         lo.ToPtr("Updated custom currency plan"),
 		Phases:       &updatedPlanPhases,
 	})
-	require.NoError(t, err)
-	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, *updatedPlan)
+	require.ErrorContains(t, err, productcatalog.ErrCurrencyNotFound.Error())
 
 	updatedAddonRateCards := productcatalog.RateCards{newCustomCurrencyRateCard(t, customCode, "Updated add-on rate card")}
-	updatedAddon, err := env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
+	_, err = env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
 		NamespacedID: createdAddon.NamespacedID,
 		Name:         lo.ToPtr("Updated custom currency add-on"),
 		RateCards:    &updatedAddonRateCards,
 	})
-	require.NoError(t, err)
-	env.requireAddonRateCardCurrencyID(t, originalCurrency.ID, *updatedAddon)
+	require.ErrorContains(t, err, productcatalog.ErrCurrencyNotFound.Error())
 
-	publishedAddon, err := env.Addon.PublishAddon(t.Context(), addon.PublishAddonInput{
-		NamespacedID: updatedAddon.NamespacedID,
-		EffectivePeriod: productcatalog.EffectivePeriod{
-			EffectiveFrom: lo.ToPtr(now.Add(-time.Second)),
-		},
-	})
+	storedPlan, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{NamespacedID: createdPlan.NamespacedID})
 	require.NoError(t, err)
-	require.Equal(t, productcatalog.AddonStatusActive, publishedAddon.Status())
-
-	assignment, err := env.PlanAddon.CreatePlanAddon(t.Context(), planaddon.CreatePlanAddonInput{
-		NamespacedModel: models.NamespacedModel{Namespace: namespace},
-		PlanID:          updatedPlan.ID,
-		AddonID:         publishedAddon.ID,
-		FromPlanPhase:   "default",
-	})
-	require.NoError(t, err)
-	env.requirePlanAddonCurrencyIDs(t, originalCurrency.ID, *assignment)
-
-	publishedPlan, err := env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
-		NamespacedID: updatedPlan.NamespacedID,
-		EffectivePeriod: productcatalog.EffectivePeriod{
-			EffectiveFrom: lo.ToPtr(now.Add(time.Minute)),
-		},
-	})
-	require.NoError(t, err)
-	require.Equal(t, productcatalog.PlanStatusScheduled, publishedPlan.Status())
-
-	storedPlan, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{NamespacedID: publishedPlan.NamespacedID})
-	require.NoError(t, err)
-	require.Equal(t, "Updated custom currency plan", storedPlan.Name)
+	require.Equal(t, planInput.Name, storedPlan.Name)
 	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, *storedPlan)
 
-	storedAddon, err := env.Addon.GetAddon(t.Context(), addon.GetAddonInput{NamespacedID: publishedAddon.NamespacedID})
+	storedAddon, err := env.Addon.GetAddon(t.Context(), addon.GetAddonInput{NamespacedID: createdAddon.NamespacedID})
 	require.NoError(t, err)
-	require.Equal(t, "Updated custom currency add-on", storedAddon.Name)
+	require.Equal(t, addonInput.Name, storedAddon.Name)
 	env.requireAddonRateCardCurrencyID(t, originalCurrency.ID, *storedAddon)
-
-	storedAssignment, err := env.PlanAddon.GetPlanAddon(t.Context(), planaddon.GetPlanAddonInput{
-		NamespacedModel: models.NamespacedModel{Namespace: namespace},
-		ID:              assignment.ID,
-	})
-	require.NoError(t, err)
-	env.requirePlanAddonCurrencyIDs(t, originalCurrency.ID, *storedAssignment)
-
-	plans, err := env.Plan.ListPlans(t.Context(), plan.ListPlansInput{Namespaces: []string{namespace}})
-	require.NoError(t, err)
-	require.Len(t, plans.Items, 1)
-	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, plans.Items[0])
-
-	addons, err := env.Addon.ListAddons(t.Context(), addon.ListAddonsInput{Namespaces: []string{namespace}})
-	require.NoError(t, err)
-	require.Len(t, addons.Items, 1)
-	env.requireAddonRateCardCurrencyID(t, originalCurrency.ID, addons.Items[0])
-
-	assignments, err := env.PlanAddon.ListPlanAddons(t.Context(), planaddon.ListPlanAddonsInput{
-		Namespaces: []string{namespace},
-		IDs:        []string{assignment.ID},
-	})
-	require.NoError(t, err)
-	require.Len(t, assignments.Items, 1)
-	env.requirePlanAddonCurrencyIDs(t, originalCurrency.ID, assignments.Items[0])
 }
 
-func TestCustomCurrencyPlanVersionLifecycle(t *testing.T) {
+func TestArchivedCustomCurrencyPreventsPlanVersionPublication(t *testing.T) {
 	// given:
 	// - an active plan version priced in a managed custom currency
 	// - the currency is archived and its code is reused by a different managed resource
 	// when:
-	// - the plan is cloned into a new version and the new version is published
+	// - the plan is cloned into a new version and publication is attempted
 	// then:
-	// - both versions retain the original currency identity across the automatic version cutover
+	// - publication is rejected and both versions retain the original currency identity
 	now := time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
@@ -224,6 +176,14 @@ func TestCustomCurrencyPlanVersionLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, originalCurrency.ID, replacementCurrency.ID)
 
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: replacementCurrency.ID,
+		FiatCode:   currencyx.Code(currency.USD),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
 	versionTwoDraft, err := env.Plan.NextPlan(t.Context(), plan.NextPlanInput{
 		NamespacedID: versionOne.NamespacedID,
 	})
@@ -233,37 +193,23 @@ func TestCustomCurrencyPlanVersionLifecycle(t *testing.T) {
 	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, *versionTwoDraft)
 
 	cutover := now.Add(time.Hour)
-	versionTwo, err := env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+	_, err = env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
 		NamespacedID: versionTwoDraft.NamespacedID,
 		EffectivePeriod: productcatalog.EffectivePeriod{
 			EffectiveFrom: lo.ToPtr(cutover),
 		},
 	})
-	require.NoError(t, err)
-	require.Equal(t, productcatalog.PlanStatusScheduled, versionTwo.Status())
-	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, *versionTwo)
+	require.ErrorIs(t, err, productcatalog.ErrCurrencyNotFound)
 
 	versionOne, err = env.Plan.GetPlan(t.Context(), plan.GetPlanInput{NamespacedID: versionOne.NamespacedID})
 	require.NoError(t, err)
-	require.NotNil(t, versionOne.EffectiveTo)
-	require.WithinDuration(t, cutover, *versionOne.EffectiveTo, 0)
 	require.Equal(t, productcatalog.PlanStatusActive, versionOne.Status())
 	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, *versionOne)
 
-	clock.FreezeTime(cutover.Add(time.Second))
-
-	versions, err := env.Plan.ListPlans(t.Context(), plan.ListPlansInput{
-		Namespaces: []string{namespace},
-		Keys:       []string{versionOne.Key},
-		OrderBy:    plan.OrderByVersion,
-		Order:      plan.OrderAsc,
-	})
+	versionTwoDraft, err = env.Plan.GetPlan(t.Context(), plan.GetPlanInput{NamespacedID: versionTwoDraft.NamespacedID})
 	require.NoError(t, err)
-	require.Len(t, versions.Items, 2)
-	require.Equal(t, productcatalog.PlanStatusArchived, versions.Items[0].Status())
-	require.Equal(t, productcatalog.PlanStatusActive, versions.Items[1].Status())
-	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, versions.Items[0])
-	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, versions.Items[1])
+	require.Equal(t, productcatalog.PlanStatusDraft, versionTwoDraft.Status())
+	env.requirePlanRateCardCurrencyID(t, originalCurrency.ID, *versionTwoDraft)
 }
 
 func newCustomCurrencyPlanPhase(t *testing.T, code currencyx.Code, description string) productcatalog.Phase {
@@ -285,7 +231,7 @@ func newCustomCurrencyRateCard(t *testing.T, code currencyx.Code, description st
 			Key:         "credits",
 			Name:        "Credits",
 			Description: lo.ToPtr(description),
-			Currency:    code,
+			Currency:    lo.ToPtr(currencies.NewCurrencyReference(code)),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      decimal.NewFromInt(25),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -310,18 +256,13 @@ func (e *testEnv) requireAddonRateCardCurrencyID(t *testing.T, expectedID string
 	e.requireManagedCurrencyID(t, expectedID, value.RateCards[0].AsMeta().Currency)
 }
 
-func (e *testEnv) requirePlanAddonCurrencyIDs(t *testing.T, expectedID string, value planaddon.PlanAddon) {
+func (e *testEnv) requireManagedCurrencyID(t *testing.T, expectedID string, reference *currencies.CurrencyReference) {
 	t.Helper()
 
-	e.requirePlanRateCardCurrencyID(t, expectedID, value.Plan)
-	e.requireAddonRateCardCurrencyID(t, expectedID, value.Addon)
-}
-
-func (e *testEnv) requireManagedCurrencyID(t *testing.T, expectedID string, identity currencyx.CurrencyIdentity) {
-	t.Helper()
-
-	require.NotNil(t, identity)
-	managed, ok := identity.(currencyx.ManagedCurrency)
-	require.True(t, ok, "custom currency must retain its managed resource identity")
-	require.Equal(t, expectedID, managed.GetID())
+	require.NotNil(t, reference)
+	require.NotNil(t, reference.CustomCurrencyID)
+	require.Equal(t, expectedID, *reference.CustomCurrencyID)
+	resolved, ok := reference.CustomCurrency()
+	require.True(t, ok, "custom currency reference must retain its resolved resource")
+	require.Equal(t, expectedID, resolved.ID)
 }

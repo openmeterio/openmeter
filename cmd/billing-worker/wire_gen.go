@@ -292,17 +292,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	costBasisChecker, err := common.NewProductCatalogCostBasisChecker(currenciesService)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	taxcodeRepository, err := common.NewTaxCodeAdapter(logger, client)
 	if err != nil {
 		cleanup7()
@@ -325,7 +314,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	planService, err := common.NewPlanService(logger, client, featureResolver, currencyResolver, costBasisChecker, taxcodeService, eventbusPublisher)
+	planService, err := common.NewPlanService(logger, client, featureResolver, currencyResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -336,7 +325,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	addonService, err := common.NewAddonService(logger, client, featureResolver, currencyResolver, costBasisChecker, taxcodeService, eventbusPublisher)
+	addonService, err := common.NewAddonService(logger, client, featureResolver, currencyResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -347,7 +336,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	planaddonService, err := common.NewPlanAddonService(logger, client, planService, addonService, costBasisChecker, eventbusPublisher)
+	planaddonService, err := common.NewPlanAddonService(logger, client, planService, addonService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()

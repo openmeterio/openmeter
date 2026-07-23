@@ -1,171 +1,562 @@
 package currencyresolver_test
 
 import (
-	"context"
-	"fmt"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
+	productcatalogtestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestResolveCurrency(t *testing.T) {
-	// given:
-	// - a code-only authoring currency
-	// when:
-	// - the currency is resolved before persistence
-	// then:
-	// - the managed identity returned by the shared resolver is used
-	customCode := currencyx.Code("CREDITS")
-	customID := "01J00000000000000000000000"
-	resolver := &recordingCurrencyResolver{currencies: map[currencies.CurrencyRef]*currencies.Currency{
-		{Code: customCode}: mustCurrency(t, customID, customCode),
-	}}
+func TestResolver(t *testing.T) {
+	fixture := newResolverFixture(t)
 
-	resolved, err := currencyresolver.ResolveCurrency(t.Context(), resolver, "namespace", customCode)
-	require.NoError(t, err)
-	managed, ok := resolved.(currencyx.ManagedCurrency)
-	require.True(t, ok)
-	require.Equal(t, customID, managed.GetID())
-	require.Equal(t, 1, resolver.resolveCalls)
-	require.Zero(t, resolver.batchCalls)
+	t.Run("CurrencyReference", func(t *testing.T) {
+		testResolveCurrency(t, fixture)
+	})
+
+	t.Run("Plan", func(t *testing.T) {
+		testResolveCurrenciesForPlan(t, fixture)
+	})
+
+	t.Run("Addon", func(t *testing.T) {
+		testResolveCurrenciesForAddon(t, fixture)
+	})
 }
 
-func TestResolveCurrencyRetainsManagedIdentity(t *testing.T) {
-	customCode := currencyx.Code("CREDITS")
-	oldID := "01J00000000000000000000000"
-	newID := "01J00000000000000000000001"
-	existing := mustCurrency(t, oldID, customCode)
-	resolver := &recordingCurrencyResolver{currencies: map[currencies.CurrencyRef]*currencies.Currency{
-		{Code: customCode}: mustCurrency(t, newID, customCode),
-	}}
+func testResolveCurrency(t *testing.T, fixture resolverFixture) {
+	t.Run("fiat currency", func(t *testing.T) {
+		// given:
+		// - a fiat currency reference
+		reference := currencies.NewCurrencyReference("USD")
 
-	resolved, err := currencyresolver.ResolveCurrency(t.Context(), resolver, "namespace", existing)
-	require.NoError(t, err)
-	managed, ok := resolved.(currencyx.ManagedCurrency)
-	require.True(t, ok)
-	require.Equal(t, oldID, managed.GetID())
-	require.Zero(t, resolver.resolveCalls)
-	require.Zero(t, resolver.batchCalls)
+		// when:
+		// - the reference is resolved
+		err := currencyresolver.ResolveCurrency(t.Context(), fixture.resolver, &reference)
+
+		// then:
+		// - the fiat code is sufficient to consider the reference resolved
+		require.NoError(t, err)
+		assertResolvedFiatReference(t, reference, "USD")
+	})
+
+	t.Run("custom currency without id", func(t *testing.T) {
+		// given:
+		// - a code-only custom currency reference
+		reference := currencies.NewCurrencyReference(fixture.credits.GetCode())
+
+		// when:
+		// - the reference is resolved from the database
+		err := currencyresolver.ResolveCurrency(t.Context(), fixture.resolver, &reference)
+
+		// then:
+		// - the managed identity and expanded cost basis are populated
+		require.NoError(t, err)
+		assertResolvedCustomReference(t, reference, fixture.credits)
+	})
+
+	t.Run("custom currency with id", func(t *testing.T) {
+		// given:
+		// - a custom currency reference carrying its stable managed identity
+		reference := currencies.NewCurrencyReference(fixture.credits.GetCode())
+		reference.CustomCurrencyID = &fixture.credits.ID
+
+		// when:
+		// - the reference is resolved by identity from the database
+		err := currencyresolver.ResolveCurrency(t.Context(), fixture.resolver, &reference)
+
+		// then:
+		// - the same managed currency and its cost basis are populated
+		require.NoError(t, err)
+		assertResolvedCustomReference(t, reference, fixture.credits)
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		testCases := []struct {
+			name          string
+			reference     currencies.CurrencyReference
+			expectedError error
+			errorContains string
+		}{
+			{
+				name:          "empty reference",
+				reference:     currencies.CurrencyReference{},
+				errorContains: "invalid currency reference",
+			},
+			{
+				name:          "unknown custom code",
+				reference:     currencies.NewCurrencyReference("UNKNOWN"),
+				expectedError: productcatalog.ErrCurrencyNotFound,
+			},
+			{
+				name:          "unknown custom id",
+				reference:     *currencyReferencePointer(fixture.credits.GetCode(), "01J00000000000000000000000"),
+				expectedError: productcatalog.ErrCurrencyNotFound,
+			},
+			{
+				name:          "deleted custom currency by code",
+				reference:     currencies.NewCurrencyReference(fixture.archived.GetCode()),
+				expectedError: productcatalog.ErrCurrencyNotFound,
+			},
+			{
+				name:          "deleted custom currency by id",
+				reference:     *currencyReferencePointer(fixture.archived.GetCode(), fixture.archived.ID),
+				expectedError: productcatalog.ErrCurrencyNotFound,
+			},
+			{
+				name: "custom code and id identify different currencies",
+				reference: currencies.CurrencyReference{
+					Code:             fixture.credits.GetCode(),
+					CustomCurrencyID: &fixture.tokens.ID,
+				},
+				errorContains: "code mismatch between reference and currency",
+			},
+			{
+				name: "fiat currency with custom id",
+				reference: currencies.CurrencyReference{
+					Code:             "USD",
+					CustomCurrencyID: &fixture.credits.ID,
+				},
+				errorContains: "fiat currency cannot have a custom currency id",
+			},
+		}
+
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				// when:
+				// - an invalid or missing reference is resolved
+				err := currencyresolver.ResolveCurrency(t.Context(), fixture.resolver, &testCase.reference)
+
+				// then:
+				// - resolution reports the invalid reference
+				require.Error(t, err)
+				if testCase.expectedError != nil {
+					assert.ErrorIs(t, err, testCase.expectedError)
+				}
+				if testCase.errorContains != "" {
+					assert.ErrorContains(t, err, testCase.errorContains)
+				}
+			})
+		}
+	})
 }
 
-func TestResolveCurrenciesForRateCardsRetainsManagedIdentityAndBatchesAuthoringCodes(t *testing.T) {
-	customCode := currencyx.Code("CREDITS")
-	oldID := "01J00000000000000000000000"
-	newID := "01J00000000000000000000001"
-	oldIdentity := mustCurrency(t, oldID, customCode)
-	resolver := &recordingCurrencyResolver{currencies: map[currencies.CurrencyRef]*currencies.Currency{
-		{Code: customCode}: mustCurrency(t, newID, customCode),
-	}}
-	rateCards := productcatalog.RateCards{
-		newRateCard("persisted", oldIdentity),
-		newRateCard("new", customCode),
-	}
+func testResolveCurrenciesForPlan(t *testing.T, fixture resolverFixture) {
+	t.Run("fiat currency without rate card override", func(t *testing.T) {
+		// given:
+		// - a USD plan whose rate card inherits the plan currency
+		plan := &productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Currency: currencies.NewCurrencyReference("USD"),
+			},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+				RateCards: productcatalog.RateCards{
+					newRateCard("base", nil),
+				},
+			}},
+		}
 
-	err := currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver, "namespace", &rateCards)
-	require.NoError(t, err)
-	persisted := rateCards[0].AsMeta().Currency.(currencyx.ManagedCurrency)
-	newCurrency := rateCards[1].AsMeta().Currency.(currencyx.ManagedCurrency)
-	require.Equal(t, oldID, persisted.GetID())
-	require.Equal(t, newID, newCurrency.GetID())
-	require.Equal(t, 1, resolver.batchCalls)
-	require.Equal(t, []currencies.CurrencyRef{{Code: customCode}}, resolver.lastBatch)
+		// when:
+		// - all plan currencies are resolved
+		err := currencyresolver.ResolveCurrenciesForPlan(t.Context(), fixture.resolver, plan)
+
+		// then:
+		// - the plan retains its resolved fiat default and no override is introduced
+		require.NoError(t, err)
+		assertResolvedFiatReference(t, plan.Currency, "USD")
+		assert.Nil(t, plan.Phases[0].RateCards[0].AsMeta().Currency)
+	})
+
+	t.Run("fiat currency with custom rate card override", func(t *testing.T) {
+		// given:
+		// - a USD plan with a code-only custom currency override
+		override := currencies.NewCurrencyReference(fixture.credits.GetCode())
+		plan := &productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Currency: currencies.NewCurrencyReference("USD"),
+			},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+				RateCards: productcatalog.RateCards{
+					newRateCard("base", &override),
+				},
+			}},
+		}
+
+		// when:
+		// - all plan currencies are resolved
+		err := currencyresolver.ResolveCurrenciesForPlan(t.Context(), fixture.resolver, plan)
+
+		// then:
+		// - the custom override contains its database identity and USD cost basis
+		require.NoError(t, err)
+		assertResolvedFiatReference(t, plan.Currency, "USD")
+		resolvedOverride := requireRateCardCurrency(t, plan.Phases[0].RateCards[0])
+		assertResolvedCustomReference(t, resolvedOverride, fixture.credits)
+	})
+
+	t.Run("custom currency without rate card override", func(t *testing.T) {
+		// given:
+		// - a code-only custom-currency plan whose rate card inherits that currency
+		plan := &productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Currency: currencies.NewCurrencyReference(fixture.credits.GetCode()),
+			},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+				RateCards: productcatalog.RateCards{
+					newRateCard("base", nil),
+				},
+			}},
+		}
+
+		// when:
+		// - all plan currencies are resolved
+		err := currencyresolver.ResolveCurrenciesForPlan(t.Context(), fixture.resolver, plan)
+
+		// then:
+		// - the plan default contains the managed custom currency
+		require.NoError(t, err)
+		assertResolvedCustomReference(t, plan.Currency, fixture.credits)
+		assert.Nil(t, plan.Phases[0].RateCards[0].AsMeta().Currency)
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		testCases := []struct {
+			name          string
+			plan          *productcatalog.Plan
+			expectedError error
+			errorContains string
+		}{
+			{
+				name:          "nil plan",
+				errorContains: "plan is required",
+			},
+			{
+				name: "unknown plan currency",
+				plan: &productcatalog.Plan{
+					PlanMeta: productcatalog.PlanMeta{
+						Currency: currencies.NewCurrencyReference("UNKNOWN"),
+					},
+				},
+				expectedError: productcatalog.ErrCurrencyNotFound,
+			},
+			{
+				name: "unknown rate card override",
+				plan: &productcatalog.Plan{
+					PlanMeta: productcatalog.PlanMeta{
+						Currency: currencies.NewCurrencyReference("USD"),
+					},
+					Phases: []productcatalog.Phase{{
+						PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+						RateCards: productcatalog.RateCards{
+							newRateCard("base", currencyReferencePointer("UNKNOWN", "")),
+						},
+					}},
+				},
+				expectedError: productcatalog.ErrCurrencyNotFound,
+			},
+			{
+				name: "rate card override code and id identify different currencies",
+				plan: &productcatalog.Plan{
+					PlanMeta: productcatalog.PlanMeta{
+						Currency: currencies.NewCurrencyReference("USD"),
+					},
+					Phases: []productcatalog.Phase{{
+						PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+						RateCards: productcatalog.RateCards{
+							newRateCard("base", currencyReferencePointer(fixture.credits.GetCode(), fixture.tokens.ID)),
+						},
+					}},
+				},
+				errorContains: "code mismatch between reference and currency",
+			},
+		}
+
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				// when:
+				// - a plan with an invalid or missing currency is resolved
+				err := currencyresolver.ResolveCurrenciesForPlan(t.Context(), fixture.resolver, testCase.plan)
+
+				// then:
+				// - aggregate resolution reports the invalid catalog field
+				require.Error(t, err)
+				if testCase.expectedError != nil {
+					assert.ErrorIs(t, err, testCase.expectedError)
+				}
+				if testCase.errorContains != "" {
+					assert.ErrorContains(t, err, testCase.errorContains)
+				}
+			})
+		}
+	})
 }
 
-func TestResolveCurrenciesForRateCardsReportsMissingCurrency(t *testing.T) {
-	rateCards := productcatalog.RateCards{newRateCard("missing", currencyx.Code("CREDITS"))}
-	resolver := &recordingCurrencyResolver{}
+func testResolveCurrenciesForAddon(t *testing.T, fixture resolverFixture) {
+	t.Run("fiat currency without rate card override", func(t *testing.T) {
+		// given:
+		// - a USD add-on whose rate card inherits the add-on currency
+		addon := &productcatalog.Addon{
+			AddonMeta: productcatalog.AddonMeta{
+				Currency: currencies.NewCurrencyReference("USD"),
+			},
+			RateCards: productcatalog.RateCards{
+				newRateCard("base", nil),
+			},
+		}
 
-	err := currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver, "namespace", &rateCards)
-	require.ErrorIs(t, err, productcatalog.ErrCurrencyNotFound)
+		// when:
+		// - all add-on currencies are resolved
+		err := currencyresolver.ResolveCurrenciesForAddon(t.Context(), fixture.resolver, addon)
+
+		// then:
+		// - the add-on retains its resolved fiat default and no override is introduced
+		require.NoError(t, err)
+		assertResolvedFiatReference(t, addon.Currency, "USD")
+		assert.Nil(t, addon.RateCards[0].AsMeta().Currency)
+	})
+
+	t.Run("fiat currency with custom rate card override", func(t *testing.T) {
+		// given:
+		// - a USD add-on with a code-only custom currency override
+		override := currencies.NewCurrencyReference(fixture.credits.GetCode())
+		addon := &productcatalog.Addon{
+			AddonMeta: productcatalog.AddonMeta{
+				Currency: currencies.NewCurrencyReference("USD"),
+			},
+			RateCards: productcatalog.RateCards{
+				newRateCard("base", &override),
+			},
+		}
+
+		// when:
+		// - all add-on currencies are resolved
+		err := currencyresolver.ResolveCurrenciesForAddon(t.Context(), fixture.resolver, addon)
+
+		// then:
+		// - the custom override contains its database identity and USD cost basis
+		require.NoError(t, err)
+		assertResolvedFiatReference(t, addon.Currency, "USD")
+		resolvedOverride := requireRateCardCurrency(t, addon.RateCards[0])
+		assertResolvedCustomReference(t, resolvedOverride, fixture.credits)
+	})
+
+	t.Run("custom currency without rate card override", func(t *testing.T) {
+		// given:
+		// - a code-only custom-currency add-on whose rate card inherits that currency
+		addon := &productcatalog.Addon{
+			AddonMeta: productcatalog.AddonMeta{
+				Currency: currencies.NewCurrencyReference(fixture.credits.GetCode()),
+			},
+			RateCards: productcatalog.RateCards{
+				newRateCard("base", nil),
+			},
+		}
+
+		// when:
+		// - all add-on currencies are resolved
+		err := currencyresolver.ResolveCurrenciesForAddon(t.Context(), fixture.resolver, addon)
+
+		// then:
+		// - the add-on default contains the managed custom currency
+		require.NoError(t, err)
+		assertResolvedCustomReference(t, addon.Currency, fixture.credits)
+		assert.Nil(t, addon.RateCards[0].AsMeta().Currency)
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		testCases := []struct {
+			name          string
+			addon         *productcatalog.Addon
+			expectedError error
+			errorContains string
+		}{
+			{
+				name:          "nil add-on",
+				errorContains: "add-on is required",
+			},
+			{
+				name: "unknown add-on currency",
+				addon: &productcatalog.Addon{
+					AddonMeta: productcatalog.AddonMeta{
+						Currency: currencies.NewCurrencyReference("UNKNOWN"),
+					},
+				},
+				expectedError: productcatalog.ErrCurrencyNotFound,
+			},
+			{
+				name: "unknown rate card override",
+				addon: &productcatalog.Addon{
+					AddonMeta: productcatalog.AddonMeta{
+						Currency: currencies.NewCurrencyReference("USD"),
+					},
+					RateCards: productcatalog.RateCards{
+						newRateCard("base", currencyReferencePointer("UNKNOWN", "")),
+					},
+				},
+				expectedError: productcatalog.ErrCurrencyNotFound,
+			},
+			{
+				name: "rate card override code and id identify different currencies",
+				addon: &productcatalog.Addon{
+					AddonMeta: productcatalog.AddonMeta{
+						Currency: currencies.NewCurrencyReference("USD"),
+					},
+					RateCards: productcatalog.RateCards{
+						newRateCard("base", currencyReferencePointer(fixture.credits.GetCode(), fixture.tokens.ID)),
+					},
+				},
+				errorContains: "code mismatch between reference and currency",
+			},
+		}
+
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				// when:
+				// - an add-on with an invalid or missing currency is resolved
+				err := currencyresolver.ResolveCurrenciesForAddon(t.Context(), fixture.resolver, testCase.addon)
+
+				// then:
+				// - aggregate resolution reports the invalid catalog field
+				require.Error(t, err)
+				if testCase.expectedError != nil {
+					assert.ErrorIs(t, err, testCase.expectedError)
+				}
+				if testCase.errorContains != "" {
+					assert.ErrorContains(t, err, testCase.errorContains)
+				}
+			})
+		}
+	})
 }
 
-func newRateCard(key string, identity currencyx.CurrencyIdentity) productcatalog.RateCard {
-	return &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
-		Key:      key,
-		Name:     key,
-		Currency: identity,
-		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-			Amount: alpacadecimal.NewFromInt(1),
-		}),
-	}}
+type resolverFixture struct {
+	resolver currencies.NamespacedCurrencyResolver
+	credits  currencies.Currency
+	tokens   currencies.Currency
+	archived currencies.Currency
 }
 
-func mustCurrency(t *testing.T, id string, code currencyx.Code) *currencies.Currency {
+func newResolverFixture(t *testing.T) resolverFixture {
 	t.Helper()
 
-	currencyType := currencyx.CurrencyTypeCustom
-	if code.IsFiat() {
-		currencyType = currencyx.CurrencyTypeFiat
-	}
+	env := productcatalogtestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
 
-	resolved, err := currencyx.NewCurrencyBuilder(currencyType).
-		WithCode(code).
-		WithName(code.String()).
-		Build()
+	namespace := currenciestestutils.NewTestNamespace(t)
+
+	credits, err := env.Currency.CreateCurrency(t.Context(), currenciestestutils.NewCreateCurrencyInput(
+		namespace,
+		"CREDITS",
+		"Credits",
+		"CR",
+	))
 	require.NoError(t, err)
 
-	return &currencies.Currency{
-		NamespacedID: models.NamespacedID{ID: id},
-		Currency:     resolved,
+	tokens, err := env.Currency.CreateCurrency(t.Context(), currenciestestutils.NewCreateCurrencyInput(
+		namespace,
+		"TOKENS",
+		"Tokens",
+		"T",
+	))
+	require.NoError(t, err)
+
+	archived, err := env.Currency.CreateCurrency(t.Context(), currenciestestutils.NewCreateCurrencyInput(
+		namespace,
+		"ARCHIVED",
+		"Archived",
+		"A",
+	))
+	require.NoError(t, err)
+
+	_, err = env.Client.CustomCurrency.UpdateOneID(archived.ID).
+		SetDeletedAt(clock.Now()).
+		Save(t.Context())
+	require.NoError(t, err)
+
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: credits.ID,
+		FiatCode:   "USD",
+		Rate:       alpacadecimal.RequireFromString("0.01"),
+	})
+	require.NoError(t, err)
+
+	return resolverFixture{
+		resolver: env.CurrencyResolver.WithNamespace(namespace),
+		credits:  credits,
+		tokens:   tokens,
+		archived: archived,
 	}
 }
 
-type recordingCurrencyResolver struct {
-	currencies   map[currencies.CurrencyRef]*currencies.Currency
-	resolveCalls int
-	batchCalls   int
-	lastBatch    []currencies.CurrencyRef
+func newRateCard(key string, reference *currencies.CurrencyReference) productcatalog.RateCard {
+	return &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:      key,
+			Name:     key,
+			Currency: reference,
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount: alpacadecimal.NewFromInt(1),
+			}),
+		},
+	}
 }
 
-func (r *recordingCurrencyResolver) ResolveCurrency(_ context.Context, _ string, ref currencies.CurrencyRef) (*currencies.Currency, error) {
-	r.resolveCalls++
+func assertResolvedFiatReference(t *testing.T, reference currencies.CurrencyReference, expectedCode currencyx.Code) {
+	t.Helper()
 
-	resolved := r.currencies[ref]
-	if resolved == nil {
-		return nil, models.NewGenericNotFoundError(fmt.Errorf("currency %v", ref))
+	require.Truef(t, reference.IsResolved(), "it should be resolved")
+	assert.Equalf(t, expectedCode, reference.Code, "code must match")
+	assert.Nil(t, reference.CustomCurrencyID, "custom currency id should not be nil")
+}
+
+func assertResolvedCustomReference(t *testing.T, reference currencies.CurrencyReference, expected currencies.Currency) {
+	t.Helper()
+
+	require.True(t, reference.IsResolved())
+	require.NotNil(t, reference.CustomCurrencyID)
+	assert.Equal(t, expected.ID, *reference.CustomCurrencyID)
+	assert.Equal(t, expected.GetCode(), reference.Code)
+
+	resolved, ok := reference.CustomCurrency()
+	require.True(t, ok)
+	require.NotNil(t, resolved)
+	assert.Equal(t, expected.ID, resolved.ID)
+	assert.Equal(t, expected.Namespace, resolved.Namespace)
+	assert.Equal(t, expected.GetCode(), resolved.GetCode())
+	require.NotNil(t, resolved.CostBasis)
+	require.Len(t, *resolved.CostBasis, 1)
+	assert.Equal(t, currencyx.Code("USD"), (*resolved.CostBasis)[0].FiatCode)
+	assert.Equal(t, float64(0.01), (*resolved.CostBasis)[0].Rate.InexactFloat64())
+}
+
+func requireRateCardCurrency(t *testing.T, rateCard productcatalog.RateCard) currencies.CurrencyReference {
+	t.Helper()
+
+	reference := rateCard.AsMeta().Currency
+	require.NotNil(t, reference)
+
+	return *reference
+}
+
+func currencyReferencePointer(code currencyx.Code, id string) *currencies.CurrencyReference {
+	reference := currencies.NewCurrencyReference(code)
+	if id != "" {
+		reference.CustomCurrencyID = &id
 	}
 
-	return resolved, nil
+	return &reference
 }
-
-func (r *recordingCurrencyResolver) BatchResolveCurrencies(_ context.Context, _ string, refs ...currencies.CurrencyRef) (map[currencies.CurrencyRef]*currencies.Currency, error) {
-	r.batchCalls++
-	r.lastBatch = append([]currencies.CurrencyRef(nil), refs...)
-
-	resolved := make(map[currencies.CurrencyRef]*currencies.Currency, len(refs))
-	for _, ref := range refs {
-		resolved[ref] = r.currencies[ref]
-	}
-
-	return resolved, nil
-}
-
-func (r *recordingCurrencyResolver) WithNamespace(namespace string) currencies.NamespacedCurrencyResolver {
-	return &recordingNamespacedCurrencyResolver{resolver: r, namespace: namespace}
-}
-
-type recordingNamespacedCurrencyResolver struct {
-	resolver  *recordingCurrencyResolver
-	namespace string
-}
-
-func (r *recordingNamespacedCurrencyResolver) ResolveCurrency(ctx context.Context, ref currencies.CurrencyRef) (*currencies.Currency, error) {
-	return r.resolver.ResolveCurrency(ctx, r.namespace, ref)
-}
-
-func (r *recordingNamespacedCurrencyResolver) BatchResolveCurrencies(ctx context.Context, refs ...currencies.CurrencyRef) (map[currencies.CurrencyRef]*currencies.Currency, error) {
-	return r.resolver.BatchResolveCurrencies(ctx, r.namespace, refs...)
-}
-
-func (r *recordingNamespacedCurrencyResolver) Namespace() string {
-	return r.namespace
-}
-
-var _ currencies.CurrencyResolver = (*recordingCurrencyResolver)(nil)

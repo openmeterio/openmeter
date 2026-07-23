@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	addonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -50,7 +49,6 @@ var Cost = wire.NewSet(
 )
 
 var Plan = wire.NewSet(
-	NewProductCatalogCostBasisChecker,
 	NewPlanService,
 )
 
@@ -74,10 +72,6 @@ func NewFeatureConnector(
 
 var NewFeatureResolver = featureresolver.New
 
-func NewProductCatalogCostBasisChecker(service currencies.Service) (productcatalog.CostBasisChecker, error) {
-	return currencyresolver.NewCostBasisChecker(service)
-}
-
 func NewCostService(
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
@@ -96,7 +90,6 @@ func NewPlanService(
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
 	currencyResolver currencies.CurrencyResolver,
-	costBasisChecker productcatalog.CostBasisChecker,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (plan.Service, error) {
@@ -112,7 +105,6 @@ func NewPlanService(
 		Adapter:          adapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 		Logger:           logger.With("subsystem", "productcatalog.plan"),
 		Publisher:        publisher,
@@ -124,7 +116,6 @@ func NewAddonService(
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
 	currencyResolver currencies.CurrencyResolver,
-	costBasisChecker productcatalog.CostBasisChecker,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (addon.Service, error) {
@@ -140,7 +131,6 @@ func NewAddonService(
 		Adapter:          adapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 		Logger:           logger.With("subsystem", "productcatalog.addon"),
 		Publisher:        publisher,
@@ -152,7 +142,6 @@ func NewPlanAddonService(
 	db *entdb.Client,
 	planService plan.Service,
 	addonService addon.Service,
-	costBasisChecker productcatalog.CostBasisChecker,
 	publisher eventbus.Publisher,
 ) (planaddon.Service, error) {
 	adapter, err := planaddonadapter.New(planaddonadapter.Config{
@@ -164,11 +153,10 @@ func NewPlanAddonService(
 	}
 
 	return planaddonservice.New(planaddonservice.Config{
-		Adapter:          adapter,
-		Plan:             planService,
-		Addon:            addonService,
-		CostBasisChecker: costBasisChecker,
-		Logger:           logger.With("subsystem", "productcatalog.addon"),
-		Publisher:        publisher,
+		Adapter:   adapter,
+		Plan:      planService,
+		Addon:     addonService,
+		Logger:    logger.With("subsystem", "productcatalog.addon"),
+		Publisher: publisher,
 	})
 }

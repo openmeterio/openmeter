@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -474,9 +475,9 @@ func TestAddonService_List(t *testing.T) {
 		addonInput.Key = fmt.Sprintf("addon-%d", i)
 		addonInput.Name = fmt.Sprintf("Addon %d", i)
 		if i%2 == 0 {
-			addonInput.Currency = currencyx.Code("USD")
+			addonInput.Currency = currencies.NewCurrencyReference(currencyx.Code("USD"))
 		} else {
-			addonInput.Currency = currencyx.Code("EUR")
+			addonInput.Currency = currencies.NewCurrencyReference(currencyx.Code("EUR"))
 		}
 
 		a, err := env.Addon.CreateAddon(ctx, addonInput)
@@ -626,11 +627,11 @@ func TestUpdateAddonRateCardCurrencyResolutionPreservesManagedIdentity(t *testin
 	newCredits := currencytestutils.NewManagedCurrency(t, namespace, "new-credits-id", "CREDITS")
 	points := currencytestutils.NewManagedCurrency(t, namespace, "points-id", "POINTS")
 
-	newRateCard := func(key string, identity currencyx.CurrencyIdentity) productcatalog.RateCard {
+	newRateCard := func(key string, reference currencies.CurrencyReference) productcatalog.RateCard {
 		return &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
 			Key:      key,
 			Name:     key,
-			Currency: identity,
+			Currency: lo.ToPtr(reference),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      decimal.NewFromInt(1),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -639,20 +640,19 @@ func TestUpdateAddonRateCardCurrencyResolutionPreservesManagedIdentity(t *testin
 	}
 
 	persisted := productcatalog.Addon{
-		AddonMeta: productcatalog.AddonMeta{Currency: currencyx.Code("USD")},
+		AddonMeta: productcatalog.AddonMeta{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		RateCards: productcatalog.RateCards{
-			newRateCard("unchanged", oldCredits),
-			newRateCard("changed", oldCredits),
+			newRateCard("unchanged", oldCredits.Reference()),
+			newRateCard("changed", oldCredits.Reference()),
 		},
 	}
 	updatedRateCards := productcatalog.RateCards{
-		newRateCard("unchanged", currencyx.Code("CREDITS")),
-		newRateCard("changed", currencyx.Code("POINTS")),
+		newRateCard("unchanged", currencies.NewCurrencyReference("CREDITS")),
+		newRateCard("changed", currencies.NewCurrencyReference("POINTS")),
 	}
-	resolver := &pctestutils.CurrencyResolverStub{Resolved: map[currencyx.Code]currencyx.CurrencyIdentity{
-		"USD":     currencyx.Code("USD"),
-		"CREDITS": newCredits,
-		"POINTS":  points,
+	resolver := &pctestutils.CurrencyResolverStub{Resolved: map[currencyx.Code]*currencies.Currency{
+		"CREDITS": &newCredits,
+		"POINTS":  &points,
 	}}
 	input := addon.UpdateAddonInput{
 		NamespacedID: models.NamespacedID{Namespace: namespace, ID: "addon-id"},
@@ -661,14 +661,14 @@ func TestUpdateAddonRateCardCurrencyResolutionPreservesManagedIdentity(t *testin
 
 	err := input.PreserveRateCardCurrencyIdentities(persisted)
 	require.NoError(t, err)
-	err = currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver, namespace, &updatedRateCards)
+	err = currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver.WithNamespace(namespace), &updatedRateCards)
 	require.NoError(t, err)
 
-	preserved, ok := updatedRateCards[0].AsMeta().Currency.(currencyx.ManagedCurrency)
+	preserved, ok := updatedRateCards[0].AsMeta().Currency.CustomCurrency()
 	require.True(t, ok)
-	require.Equal(t, oldCredits.ID, preserved.GetID())
+	require.Equal(t, oldCredits.ID, preserved.ID)
 
-	resolvedPoints, ok := updatedRateCards[1].AsMeta().Currency.(currencyx.ManagedCurrency)
+	resolvedPoints, ok := updatedRateCards[1].AsMeta().Currency.CustomCurrency()
 	require.True(t, ok)
-	require.Equal(t, points.ID, resolvedPoints.GetID())
+	require.Equal(t, points.ID, resolvedPoints.ID)
 }

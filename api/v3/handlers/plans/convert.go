@@ -11,6 +11,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -608,7 +609,7 @@ func FromAPICreatePlanRequest(ns string, body api.CreatePlanRequest) (plan.Creat
 		},
 	}
 
-	req.Currency = currencyx.Code(body.Currency)
+	req.Currency = currencies.NewCurrencyReference(currencyx.Code(body.Currency))
 
 	billingCadence, err := datetime.ISODurationString(body.BillingCadence).Parse()
 	if err != nil {
@@ -704,7 +705,8 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 	}
 
 	if rc.Currency != nil {
-		meta.Currency = currencyx.Code(*rc.Currency)
+		reference := currencies.NewCurrencyReference(currencyx.Code(*rc.Currency))
+		meta.Currency = &reference
 	}
 
 	if rc.Feature != nil {

@@ -8,11 +8,237 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestValidatePlanWithCurrencies(t *testing.T) {
+	custom := currencyx.Code("CREDITS")
+	usd := currencyx.Code(currency.USD)
+	now := time.Date(2026, time.July, 27, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	tests := []struct {
+		name      string
+		costBasis []currencies.CostBasis
+		expected  error
+	}{
+		{
+			name: "matching cost basis",
+			costBasis: []currencies.CostBasis{{
+				CostBasis: currencyx.CostBasis{FiatCode: usd},
+			}},
+		},
+		{
+			name:      "missing cost basis",
+			costBasis: []currencies.CostBasis{},
+			expected:  productcatalog.ErrCurrencyCostBasisNotFound,
+		},
+		{
+			name: "scheduled cost basis",
+			costBasis: []currencies.CostBasis{{
+				CostBasis: currencyx.CostBasis{
+					FiatCode:      usd,
+					EffectiveFrom: now.Add(time.Hour),
+				},
+			}},
+			expected: productcatalog.ErrCurrencyCostBasisNotFound,
+		},
+		{
+			name: "active and scheduled cost basis",
+			costBasis: []currencies.CostBasis{
+				{
+					CostBasis: currencyx.CostBasis{
+						FiatCode:      usd,
+						EffectiveFrom: now.Add(-time.Hour),
+						EffectiveTo:   lo.ToPtr(now.Add(time.Hour)),
+					},
+				},
+				{
+					CostBasis: currencyx.CostBasis{
+						FiatCode:      usd,
+						EffectiveFrom: now.Add(time.Hour),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - a fiat plan with one custom-currency rate card
+			customCurrency := mustManagedPlanCustomCurrency(t, "currency-id", custom)
+			customCurrency.CostBasis = &tt.costBasis
+			plan := productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{Currency: mustPlanFiatCurrencyReference(t, usd)},
+				Phases: []productcatalog.Phase{{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+					RateCards: productcatalog.RateCards{
+						newPlanCurrencyTestRateCard("base", customCurrency.Reference()),
+					},
+				}},
+			}
+
+			// when:
+			// - resolved currency references are validated
+			err := productcatalog.ValidatePlanWithCurrencies()(plan)
+
+			// then:
+			// - the loaded custom currency must have a USD cost-basis pair
+			if tt.expected == nil {
+				require.NoError(t, err)
+				return
+			}
+
+			require.ErrorIs(t, err, tt.expected)
+		})
+	}
+}
+
+func TestValidatePlanWithCurrenciesRequiresResolvedReferences(t *testing.T) {
+	usd := currencyx.Code(currency.USD)
+	custom := currencyx.Code("CREDITS")
+
+	tests := []struct {
+		name string
+		plan productcatalog.Plan
+	}{
+		{
+			name: "plan currency",
+			plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{Currency: currencies.NewCurrencyReference(custom)},
+			},
+		},
+		{
+			name: "rate card currency",
+			plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{Currency: mustPlanFiatCurrencyReference(t, usd)},
+				Phases: []productcatalog.Phase{{
+					RateCards: productcatalog.RateCards{
+						newPlanCurrencyTestRateCard("ratecard", currencies.NewCurrencyReference(custom)),
+					},
+				}},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := productcatalog.ValidatePlanWithCurrencies()(tt.plan)
+			require.ErrorContains(t, err, "is not resolved")
+			require.False(t, models.IsGenericValidationError(err))
+		})
+	}
+}
+
+func TestValidatePlanWithCurrenciesUsesResolvedCurrencyReference(t *testing.T) {
+	// given:
+	// - two managed custom currency resources reuse the same code
+	// - only the older resource has a cost-basis pair with USD
+	usd := currencyx.Code(currency.USD)
+	oldCredits := mustManagedPlanCustomCurrency(t, "old-credits-id", "CREDITS")
+	oldCredits.CostBasis = &[]currencies.CostBasis{{
+		CostBasis: currencyx.CostBasis{FiatCode: usd},
+	}}
+	newCredits := mustManagedPlanCustomCurrency(t, "new-credits-id", "CREDITS")
+	newCredits.CostBasis = &[]currencies.CostBasis{}
+
+	plan := productcatalog.Plan{
+		PlanMeta: productcatalog.PlanMeta{Currency: mustPlanFiatCurrencyReference(t, usd)},
+		Phases: []productcatalog.Phase{{
+			PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+			RateCards: productcatalog.RateCards{
+				newPlanCurrencyTestRateCard("old", oldCredits.Reference()),
+				newPlanCurrencyTestRateCard("new", newCredits.Reference()),
+			},
+		}},
+	}
+
+	// when:
+	// - plan cost-basis validation checks both priced rate cards
+	err := productcatalog.ValidatePlanWithCurrencies()(plan)
+
+	// then:
+	// - each managed identity is checked independently despite the shared code
+	require.ErrorIs(t, err, productcatalog.ErrCurrencyCostBasisNotFound)
+}
+
+func TestValidatePlanCurrencyCodes(t *testing.T) {
+	custom := currencyx.Code("CREDITS")
+
+	tests := []struct {
+		name         string
+		planCurrency currencies.CurrencyReference
+		override     *currencies.CurrencyReference
+		expected     error
+	}{
+		{
+			name:     "missing plan currency",
+			expected: productcatalog.ErrCurrencyInvalid,
+		},
+		{
+			name:         "fiat plan with inherited currency",
+			planCurrency: currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+		},
+		{
+			name:         "fiat plan with custom override",
+			planCurrency: currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+			override:     lo.ToPtr(currencies.NewCurrencyReference(custom)),
+		},
+		{
+			name:         "fiat plan with redundant override",
+			planCurrency: currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+			override:     lo.ToPtr(currencies.NewCurrencyReference(currencyx.Code(currency.USD))),
+			expected:     productcatalog.ErrRateCardCurrencyOverrideRedundant,
+		},
+		{
+			name:         "fiat plan with second fiat",
+			planCurrency: currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+			override:     lo.ToPtr(currencies.NewCurrencyReference(currencyx.Code(currency.EUR))),
+			expected:     productcatalog.ErrPlanMultipleFiatCurrencies,
+		},
+		{
+			name:         "custom plan with inherited currency",
+			planCurrency: currencies.NewCurrencyReference(custom),
+		},
+		{
+			name:         "custom plan with override",
+			planCurrency: currencies.NewCurrencyReference(custom),
+			override:     lo.ToPtr(currencies.NewCurrencyReference("TOKENS")),
+			expected:     productcatalog.ErrRateCardCurrencyOverrideNotAllowed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			plan := productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{Currency: tt.planCurrency},
+				Phases: []productcatalog.Phase{{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+					RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{Key: "base", Currency: tt.override},
+					}},
+				}},
+			}
+
+			err := productcatalog.ValidatePlanCurrencyCodes()(plan)
+			if tt.expected == nil {
+				require.NoError(t, err)
+				return
+			}
+
+			require.ErrorIs(t, err, tt.expected)
+		})
+	}
+}
 
 func TestPlanStatus(t *testing.T) {
 	now := time.Now()
@@ -193,7 +419,7 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Key:             "plan-1",
 				EffectivePeriod: productcatalog.EffectivePeriod{},
 				Version:         1,
-				Currency:        currencyx.Code(currency.USD),
+				Currency:        currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence:  datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -245,7 +471,7 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Key:             "plan-1",
 				EffectivePeriod: productcatalog.EffectivePeriod{},
 				Version:         1,
-				Currency:        currencyx.Code(currency.USD),
+				Currency:        currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence:  datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -298,7 +524,7 @@ func TestAlignmentEnforcement(t *testing.T) {
 				Key:             "plan-1",
 				EffectivePeriod: productcatalog.EffectivePeriod{},
 				Version:         1,
-				Currency:        currencyx.Code(currency.USD),
+				Currency:        currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence:  datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -378,7 +604,7 @@ func TestPlanHasUnitConfig(t *testing.T) {
 }
 
 func TestPlanHasCurrencyOverrides(t *testing.T) {
-	card := func(currencyOverride currencyx.CurrencyIdentity) productcatalog.RateCard {
+	card := func(currencyOverride *currencies.CurrencyReference) productcatalog.RateCard {
 		return &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
 				Key:      "flat-fee",
@@ -402,7 +628,43 @@ func TestPlanHasCurrencyOverrides(t *testing.T) {
 	})
 
 	t.Run("override in any later phase is detected", func(t *testing.T) {
-		p := productcatalog.Plan{Phases: []productcatalog.Phase{phase(card(nil)), phase(card(nil), card(customCurrency))}}
+		p := productcatalog.Plan{Phases: []productcatalog.Phase{phase(card(nil)), phase(card(nil), card(lo.ToPtr(currencies.NewCurrencyReference(customCurrency))))}}
 		assert.True(t, p.HasCurrencyOverrides())
 	})
+}
+
+func newPlanCurrencyTestRateCard(key string, reference currencies.CurrencyReference) productcatalog.RateCard {
+	return &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
+		Key:      key,
+		Name:     key,
+		Currency: lo.ToPtr(reference),
+		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.NewFromInt(1),
+			PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		}),
+	}}
+}
+
+func mustManagedPlanCustomCurrency(t *testing.T, id string, code currencyx.Code) currencies.Currency {
+	t.Helper()
+
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(code).
+		WithName(code.String()).
+		Build()
+	require.NoError(t, err)
+
+	return currencies.Currency{
+		NamespacedID: models.NamespacedID{ID: id},
+		Currency:     currency,
+	}
+}
+
+func mustPlanFiatCurrencyReference(t *testing.T, code currencyx.Code) currencies.CurrencyReference {
+	t.Helper()
+
+	currency, err := currencies.NewFiatCurrency(code)
+	require.NoError(t, err)
+
+	return currency.Reference()
 }

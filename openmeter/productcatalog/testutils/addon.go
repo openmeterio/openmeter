@@ -6,6 +6,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -26,7 +27,7 @@ func NewTestAddon(t *testing.T, namespace string, rateCards ...productcatalog.Ra
 				Description:  lo.ToPtr("Test Addon"),
 				Metadata:     models.Metadata{"name": "test-addon"},
 				Annotations:  models.Annotations{"name": "test-addon"},
-				Currency:     currencyx.Code(currency.USD),
+				Currency:     currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				InstanceType: productcatalog.AddonInstanceTypeSingle,
 			},
 			RateCards: rateCards,

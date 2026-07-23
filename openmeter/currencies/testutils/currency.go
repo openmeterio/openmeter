@@ -24,7 +24,8 @@ func NewManagedCurrency(t *testing.T, namespace, id string, code currencyx.Code)
 			Namespace: namespace,
 			ID:        id,
 		},
-		Currency: currency,
+		Currency:  currency,
+		CostBasis: &[]currencies.CostBasis{},
 	}
 }
 

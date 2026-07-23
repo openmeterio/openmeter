@@ -18,6 +18,7 @@ import (
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -151,7 +152,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 				Name:           "Credits Only Flat Fee",
 				Key:            "credits-only-flat-fee",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -271,7 +272,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 				Name:           "Credits Only Flat Fee",
 				Key:            "credits-only-flat-fee",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -408,7 +409,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 				Name:           "Credits Only Flat Fee Mid Period Cancellation",
 				Key:            "credits-only-flat-fee-mid-period-cancellation",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -568,7 +569,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 				Name:           "Credits Only Usage Based",
 				Key:            "credits-only-usage-based",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -682,7 +683,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 				Name:           "Credits Only Usage Based Created-State Cancellation",
 				Key:            "credits-only-usage-based-created-state-cancellation",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -814,7 +815,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 				Name:           "Credits Only Usage Based Mid Period Cancellation",
 				Key:            "credits-only-usage-based-mid-period-cancellation",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -1017,7 +1018,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 				Name:           "Credits Only Mixed",
 				Key:            "credits-only-mixed",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -1319,7 +1320,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodeP
 				Name:           "Credits Only Flat Fee Tax Code",
 				Key:            "credits-only-flat-fee-tax-code",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
@@ -1403,7 +1404,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 				Name:           "Credits Only Usage Based Tax Code",
 				Key:            "credits-only-usage-based-tax-code",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{

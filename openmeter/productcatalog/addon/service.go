@@ -11,7 +11,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -184,10 +183,6 @@ func (i CreateAddonInput) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(issues.AsError())
-}
-
-func (i CreateAddonInput) ValidateCurrencies(ctx context.Context, checker productcatalog.CostBasisChecker) error {
-	return validateCurrencies(ctx, i.Namespace, i.Addon, checker, i.IgnoreNonCriticalIssues)
 }
 
 var (
@@ -363,10 +358,6 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 	return a
 }
 
-func (i UpdateAddonInput) ValidateCurrencies(ctx context.Context, checker productcatalog.CostBasisChecker, a productcatalog.Addon) error {
-	return validateCurrencies(ctx, i.Namespace, i.applyTo(a), checker, i.IgnoreNonCriticalIssues)
-}
-
 // PreserveRateCardCurrencyIdentities retains managed custom-currency IDs for
 // unchanged rate cards before code-only update input is resolved.
 func (i *UpdateAddonInput) PreserveRateCardCurrencyIdentities(a productcatalog.Addon) error {
@@ -395,11 +386,10 @@ func preserveAddonRateCardCurrencyIdentities(persisted, updated productcatalog.R
 
 		persistedCurrency := persistedRateCard.AsMeta().Currency
 		updatedCurrency := rateCard.AsMeta().Currency
-		managedCurrency, ok := persistedCurrency.(currencyx.ManagedCurrency)
-		if !ok || !managedCurrency.IsCustom() || managedCurrency.GetID() == "" {
+		if persistedCurrency == nil || !persistedCurrency.IsCustom() || persistedCurrency.CustomCurrencyID == nil {
 			continue
 		}
-		if updatedCurrency == nil || managedCurrency.GetCode() != updatedCurrency.GetCode() {
+		if updatedCurrency == nil || persistedCurrency.Code != updatedCurrency.Code {
 			continue
 		}
 
@@ -412,23 +402,6 @@ func preserveAddonRateCardCurrencyIdentities(persisted, updated productcatalog.R
 	}
 
 	return nil
-}
-
-func validateCurrencies(ctx context.Context, namespace string, a productcatalog.Addon, checker productcatalog.CostBasisChecker, ignoreNonCriticalIssues bool) error {
-	err := a.ValidateWith(
-		productcatalog.ValidateAddonRateCardCurrencies(),
-		productcatalog.ValidateAddonWithCurrencies(ctx, namespace, checker),
-	)
-	issues, conversionErr := models.AsValidationIssues(err)
-	if conversionErr != nil {
-		return err
-	}
-
-	if ignoreNonCriticalIssues {
-		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
-	}
-
-	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
 type ExpandFields struct {

@@ -448,7 +448,7 @@ func TestV3PlanUnknownCustomCurrency(t *testing.T) {
 	c := newV3Client(t)
 
 	body := validPlanRequest("invalid_currency")
-	body.Currency = "ZZZ"
+	body.Currency = "ZZZZ"
 
 	_, err := c.Plans.Create(t.Context(), body)
 	problem := requireProblem(t, err, http.StatusBadRequest)

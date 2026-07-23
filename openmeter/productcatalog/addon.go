@@ -10,8 +10,8 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -60,7 +60,7 @@ type AddonMeta struct {
 	Description *string `json:"description,omitempty"`
 
 	// Currency
-	Currency currencyx.CurrencyIdentity `json:"currency"`
+	Currency currencies.CurrencyReference `json:"currency"`
 
 	// InstanceType
 	InstanceType AddonInstanceType `json:"instanceType"`
@@ -87,9 +87,7 @@ func (m AddonMeta) Validate() error {
 		errs = append(errs, ErrAddonNameEmpty)
 	}
 
-	if m.Currency == nil {
-		errs = append(errs, ErrCurrencyInvalid)
-	} else if err := m.Currency.Validate(); err != nil {
+	if err := m.Currency.Validate(); err != nil {
 		errs = append(errs, models.ErrorWithFieldPrefix(
 			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
 			ErrCurrencyInvalid,
@@ -120,11 +118,7 @@ func (m AddonMeta) Equal(v AddonMeta) bool {
 		return false
 	}
 
-	if (m.Currency == nil) != (v.Currency == nil) {
-		return false
-	}
-
-	if m.Currency != nil && !m.Currency.Equal(v.Currency) {
+	if !m.Currency.Equal(v.Currency) {
 		return false
 	}
 
@@ -288,7 +282,7 @@ func ValidateAddonRateCards() models.ValidatorFunc[Addon] {
 // add-on service.
 func ValidateAddonRateCardCurrencies() models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
-		if a.Currency == nil {
+		if a.Currency.Code == "" {
 			return ErrCurrencyInvalid
 		}
 
@@ -324,69 +318,26 @@ func ValidateAddonRateCardCurrencies() models.ValidatorFunc[Addon] {
 // ensures custom rate card currencies under a fiat add-on have a configured
 // cost-basis pair. Plan-specific compatibility is validated when the add-on is
 // assigned to a plan.
-func ValidateAddonWithCurrencies(ctx context.Context, namespace string, checker CostBasisChecker) models.ValidatorFunc[Addon] {
+func ValidateAddonWithCurrencies() models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
-		if err := validateCostBasisChecker(checker); err != nil {
-			return err
-		}
-
 		var errs []error
 
-		addonCurrency, err := validateResolvedCurrency(
-			a.Currency,
-			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
-		)
-		if err != nil {
-			return err
+		if err := ValidateCurrency()(a.Currency); err != nil {
+			return models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				err,
+			)
 		}
 
-		costBasisAvailable := map[costBasisPairKey]bool{}
-
+		validateCurrencyOverride := ValidateCurrencyWithOverride(a.Currency)
 		for _, rateCard := range a.RateCards {
-			meta := rateCard.AsMeta()
-			override := meta.Currency
-			if override == nil {
-				continue
-			}
-
-			fieldSelector := models.NewFieldSelectorGroup(
-				models.NewFieldSelector("rateCards").
-					WithExpression(models.NewFieldAttrValue("key", rateCard.Key())),
-				models.NewFieldSelector("currency"),
-			)
-
-			resolvedOverride, err := validateResolvedCurrency(override, fieldSelector)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-
-			if addonCurrency.Type() != currencyx.CurrencyTypeFiat || resolvedOverride.Type() != currencyx.CurrencyTypeCustom {
-				continue
-			}
-
-			overrideCode := resolvedOverride.GetCode()
-			managedCustomCurrency, ok := resolvedOverride.(currencyx.ManagedCurrency)
-			if !ok {
-				return fmt.Errorf("resolved custom currency %q has no managed resource identity", overrideCode)
-			}
-
-			pairKey := costBasisPairKey{
-				customCurrencyID: managedCustomCurrency.GetID(),
-				fiatCurrencyCode: addonCurrency.GetCode(),
-			}
-			hasCostBasis, ok := costBasisAvailable[pairKey]
-			if !ok {
-				hasCostBasis, err = checker.HasCostBasis(ctx, namespace, managedCustomCurrency.GetID(), addonCurrency.GetCode())
-				if err != nil {
-					return fmt.Errorf("checking cost basis for currency %q: %w", overrideCode, err)
-				}
-
-				costBasisAvailable[pairKey] = hasCostBasis
-			}
-
-			if !hasCostBasis {
-				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrCurrencyCostBasisNotFound))
+			if err := validateCurrencyOverride(rateCard.AsMeta().Currency); err != nil {
+				fieldSelector := models.NewFieldSelectorGroup(
+					models.NewFieldSelector("rateCards").
+						WithExpression(models.NewFieldAttrValue("key", rateCard.Key())),
+					models.NewFieldSelector("currency"),
+				)
+				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, err))
 			}
 		}
 

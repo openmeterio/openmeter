@@ -3,17 +3,14 @@ package addon
 import (
 	"encoding/json"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 type addonAlias Addon
 
-func currencyCodeForJSON(currency currencyx.CurrencyIdentity) currencyx.Code {
-	if currency == nil {
-		return ""
-	}
-
-	return currency.GetCode()
+func currencyCodeForJSON(currency currencies.CurrencyReference) currencyx.Code {
+	return currency.Code
 }
 
 func (a Addon) MarshalJSON() ([]byte, error) {
@@ -37,7 +34,7 @@ func (a *Addon) UnmarshalJSON(data []byte) error {
 	}
 
 	*a = Addon(serialized.addonAlias)
-	a.Currency = serialized.Currency
+	a.Currency = currencies.NewCurrencyReference(serialized.Currency)
 
 	return nil
 }

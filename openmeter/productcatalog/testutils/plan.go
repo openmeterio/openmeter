@@ -7,6 +7,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -47,7 +48,7 @@ func NewTestPlan(t *testing.T, namespace string, transformers ...TransformerFunc
 				Name:           "Test",
 				Description:    lo.ToPtr("Test plan"),
 				Metadata:       models.Metadata{"name": "test"},
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: MonthPeriod,
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

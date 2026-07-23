@@ -29,7 +29,6 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
-	productcatalogcurrencyresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -142,13 +141,9 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
 	require.NoError(t, err)
 
-	costBasisChecker, err := productcatalogcurrencyresolver.NewCostBasisChecker(currencyService)
-	require.NoError(t, err)
-
 	planService, err := planservice.New(planservice.Config{
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		CostBasisChecker: costBasisChecker,
 		Adapter:          planAdapter,
 		TaxCode:          taxCodeService,
 		Logger:           slog.Default(),
@@ -200,7 +195,6 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
@@ -212,12 +206,11 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	require.NoError(t, err)
 
 	planAddonService, err := planaddonservice.New(planaddonservice.Config{
-		Adapter:          planAddonRepo,
-		Logger:           slog.Default(),
-		Plan:             planService,
-		Addon:            addonService,
-		CostBasisChecker: costBasisChecker,
-		Publisher:        publisher,
+		Adapter:   planAddonRepo,
+		Logger:    slog.Default(),
+		Plan:      planService,
+		Addon:     addonService,
+		Publisher: publisher,
 	})
 	require.NoError(t, err)
 

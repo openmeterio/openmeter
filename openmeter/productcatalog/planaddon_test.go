@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -46,7 +47,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:            "pro",
 						Version:        1,
 						Name:           "Pro",
-						Currency:       currencyx.Code(currency.USD),
+						Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
@@ -158,7 +159,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:          "storage",
 						Version:      1,
 						Name:         "Storage",
-						Currency:     currencyx.Code(currency.USD),
+						Currency:     currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 						InstanceType: AddonInstanceTypeMultiple,
 					},
 					RateCards: RateCards{
@@ -211,7 +212,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:            "pro",
 						Version:        2,
 						Name:           "Pro",
-						Currency:       currencyx.Code(currency.USD),
+						Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
@@ -323,7 +324,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:          "storage",
 						Version:      1,
 						Name:         "Storage",
-						Currency:     currencyx.Code(currency.AUD),
+						Currency:     currencies.NewCurrencyReference(currencyx.Code(currency.AUD)),
 						InstanceType: AddonInstanceTypeSingle,
 					},
 					RateCards: RateCards{
@@ -397,7 +398,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:            "pro",
 						Version:        2,
 						Name:           "Pro",
-						Currency:       currencyx.Code(currency.USD),
+						Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 						ProRatingConfig: ProRatingConfig{
 							Enabled: true,
@@ -508,7 +509,7 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 						Key:          "storage",
 						Version:      1,
 						Name:         "Storage",
-						Currency:     currencyx.Code(currency.USD),
+						Currency:     currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 						InstanceType: AddonInstanceTypeSingle,
 					},
 					RateCards: RateCards{
@@ -636,7 +637,7 @@ func TestPlanAddonValidateRateCardCurrencies(t *testing.T) {
 	activeFrom := clock.Now().Add(-time.Hour)
 	month := datetime.MustParseDuration(t, "P1M")
 
-	newRateCard := func(key string, price bool, override currencyx.CurrencyIdentity) RateCard {
+	newRateCard := func(key string, price bool, override *currencies.CurrencyReference) RateCard {
 		meta := RateCardMeta{
 			Key:      key,
 			Name:     key,
@@ -651,43 +652,42 @@ func TestPlanAddonValidateRateCardCurrencies(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		planCurrency  currencyx.CurrencyIdentity
+		planCurrency  currencies.CurrencyReference
 		planRateCards RateCards
 		addon         Addon
 		expectedError error
 	}{
 		{
-			name:         "missing plan currency is rejected",
-			planCurrency: nil,
+			name: "missing plan currency is rejected",
 			addon: Addon{
-				AddonMeta: AddonMeta{Currency: currencyx.Code(currency.USD)},
+				AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(currencyx.Code(currency.USD))},
 			},
 			expectedError: ErrCurrencyInvalid,
 		},
 		{
 			name:          "missing add-on currency is rejected",
-			planCurrency:  currencyx.Code(currency.USD),
+			planCurrency:  currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 			addon:         Addon{},
 			expectedError: ErrCurrencyInvalid,
 		},
 		{
 			name:          "matching effective custom currency",
-			planCurrency:  currencyx.Code(currency.USD),
-			planRateCards: RateCards{newRateCard("fee", true, customCurrency)},
+			planCurrency:  currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+			planRateCards: RateCards{newRateCard("fee", true, currencyReferencePointer(customCurrency))},
 			addon: Addon{
-				AddonMeta: AddonMeta{Currency: customCurrency},
+				AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(customCurrency)},
 				RateCards: RateCards{newRateCard("fee", true, nil)},
 			},
 		},
 		{
 			name:         "matches overlapping rate cards by key",
-			planCurrency: currencyx.Code(currency.USD),
+			planCurrency: currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 			planRateCards: RateCards{
 				newRateCard("fiat-first", true, nil),
-				newRateCard("custom-target", true, customCurrency),
+				newRateCard("custom-target", true, currencyReferencePointer(customCurrency)),
 			},
 			addon: Addon{
-				AddonMeta: AddonMeta{Currency: customCurrency},
+				AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(customCurrency)},
 				RateCards: RateCards{
 					newRateCard("custom-target", true, nil),
 					newRateCard("custom-new", true, nil),
@@ -696,55 +696,55 @@ func TestPlanAddonValidateRateCardCurrencies(t *testing.T) {
 		},
 		{
 			name:          "cannot change existing rate card currency",
-			planCurrency:  currencyx.Code(currency.USD),
+			planCurrency:  currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 			planRateCards: RateCards{newRateCard("fee", true, nil)},
 			addon: Addon{
-				AddonMeta: AddonMeta{Currency: customCurrency},
+				AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(customCurrency)},
 				RateCards: RateCards{newRateCard("fee", true, nil)},
 			},
 			expectedError: ErrPlanAddonCurrencyMismatch,
 		},
 		{
 			name:         "new custom priced rate card under fiat plan",
-			planCurrency: currencyx.Code(currency.USD),
+			planCurrency: currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 			addon: Addon{
-				AddonMeta: AddonMeta{Currency: customCurrency},
+				AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(customCurrency)},
 				RateCards: RateCards{newRateCard("fee", true, nil)},
 			},
 		},
 		{
 			name:         "new second fiat is rejected",
-			planCurrency: currencyx.Code(currency.USD),
+			planCurrency: currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 			addon: Addon{
-				AddonMeta: AddonMeta{Currency: currencyx.Code(currency.EUR)},
+				AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(currencyx.Code(currency.EUR))},
 				RateCards: RateCards{newRateCard("fee", true, nil)},
 			},
 			expectedError: ErrPlanMultipleFiatCurrencies,
 		},
 		{
 			name:          "different fiat defaults are rejected without priced rate cards",
-			planCurrency:  currencyx.Code(currency.USD),
+			planCurrency:  currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 			planRateCards: nil,
 			addon: Addon{
-				AddonMeta: AddonMeta{Currency: currencyx.Code(currency.EUR)},
+				AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(currencyx.Code(currency.EUR))},
 			},
 			expectedError: ErrPlanMultipleFiatCurrencies,
 		},
 		{
 			name:         "custom plan rejects another custom currency",
-			planCurrency: customCurrency,
+			planCurrency: currencies.NewCurrencyReference(customCurrency),
 			addon: Addon{
-				AddonMeta: AddonMeta{Currency: otherCustomCurrency},
+				AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(otherCustomCurrency)},
 				RateCards: RateCards{newRateCard("fee", true, nil)},
 			},
 			expectedError: ErrRateCardCurrencyOverrideNotAllowed,
 		},
 		{
 			name:          "unpriced add-on rate card has no effective currency",
-			planCurrency:  currencyx.Code(currency.USD),
+			planCurrency:  currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 			planRateCards: RateCards{newRateCard("fee", true, nil)},
 			addon: Addon{
-				AddonMeta: AddonMeta{Currency: customCurrency},
+				AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(customCurrency)},
 				RateCards: RateCards{newRateCard("fee", false, nil)},
 			},
 		},
@@ -797,11 +797,45 @@ func TestPlanAddonValidateRateCardCurrencies(t *testing.T) {
 func TestValidatePlanPhaseAndAddonRateCardCurrenciesRequiresDefaults(t *testing.T) {
 	phase := Phase{}
 
-	err := ValidatePlanPhaseAndAddonRateCardCurrencies(nil, Addon{
-		AddonMeta: AddonMeta{Currency: currencyx.Code(currency.USD)},
+	err := ValidatePlanPhaseAndAddonRateCardCurrencies(currencies.CurrencyReference{}, Addon{
+		AddonMeta: AddonMeta{Currency: currencies.NewCurrencyReference(currencyx.Code(currency.USD))},
 	})(phase)
 	assert.ErrorIs(t, err, ErrCurrencyInvalid)
 
-	err = ValidatePlanPhaseAndAddonRateCardCurrencies(currencyx.Code(currency.USD), Addon{})(phase)
+	err = ValidatePlanPhaseAndAddonRateCardCurrencies(currencies.NewCurrencyReference(currencyx.Code(currency.USD)), Addon{})(phase)
 	assert.ErrorIs(t, err, ErrCurrencyInvalid)
+}
+
+func TestValidatePlanAddonWithCurrenciesUsesResolvedCurrencyReference(t *testing.T) {
+	// given:
+	// - two managed custom currency resources reuse the same code
+	// - only the older resource has a cost-basis pair with USD
+	usd := currencyx.Code(currency.USD)
+	oldCredits := mustManagedCustomCurrency(t, "old-credits-id", "CREDITS")
+	oldCredits.CostBasis = &[]currencies.CostBasis{{
+		CostBasis: currencyx.CostBasis{FiatCode: usd},
+	}}
+	newCredits := mustManagedCustomCurrency(t, "new-credits-id", "CREDITS")
+	newCredits.CostBasis = &[]currencies.CostBasis{}
+
+	planAddon := PlanAddon{
+		Plan: Plan{
+			PlanMeta: PlanMeta{Currency: mustFiatCurrencyReference(t, usd)},
+		},
+		Addon: Addon{
+			AddonMeta: AddonMeta{Currency: mustFiatCurrencyReference(t, usd)},
+			RateCards: RateCards{
+				newCurrencyTestRateCard("old", oldCredits.Reference()),
+				newCurrencyTestRateCard("new", newCredits.Reference()),
+			},
+		},
+	}
+
+	// when:
+	// - assignment cost-basis validation checks both priced add-on rate cards
+	err := ValidatePlanAddonWithCurrencies()(planAddon)
+
+	// then:
+	// - each managed identity is checked independently despite the shared code
+	assert.ErrorIs(t, err, ErrCurrencyCostBasisNotFound)
 }

@@ -9,16 +9,16 @@ import (
 )
 
 type CurrencyResolverStub struct {
-	Resolved map[currencyx.Code]currencyx.CurrencyIdentity
+	Resolved map[currencyx.Code]*currencies.Currency
 }
 
 func (r *CurrencyResolverStub) ResolveCurrency(_ context.Context, _ string, ref currencies.CurrencyRef) (*currencies.Currency, error) {
-	identity, ok := r.Resolved[ref.Code]
+	currency, ok := r.Resolved[ref.Code]
 	if !ok {
 		return nil, fmt.Errorf("unexpected currency resolution: %s", ref.Code)
 	}
 
-	return currencyFromIdentity(identity)
+	return currency, nil
 }
 
 func (r *CurrencyResolverStub) BatchResolveCurrencies(ctx context.Context, namespace string, refs ...currencies.CurrencyRef) (map[currencies.CurrencyRef]*currencies.Currency, error) {
@@ -54,32 +54,6 @@ func (r *namespacedCurrencyResolverStub) BatchResolveCurrencies(ctx context.Cont
 
 func (r *namespacedCurrencyResolverStub) Namespace() string {
 	return r.namespace
-}
-
-func currencyFromIdentity(identity currencyx.CurrencyIdentity) (*currencies.Currency, error) {
-	switch value := identity.(type) {
-	case currencies.Currency:
-		return &value, nil
-	case *currencies.Currency:
-		return value, nil
-	case currencyx.Currency:
-		return &currencies.Currency{Currency: value}, nil
-	default:
-		currencyType := currencyx.CurrencyTypeCustom
-		if identity.IsFiat() {
-			currencyType = currencyx.CurrencyTypeFiat
-		}
-
-		currency, err := currencyx.NewCurrencyBuilder(currencyType).
-			WithCode(identity.GetCode()).
-			WithName(identity.GetCode().String()).
-			Build()
-		if err != nil {
-			return nil, err
-		}
-
-		return &currencies.Currency{Currency: currency}, nil
-	}
 }
 
 var _ currencies.CurrencyResolver = (*CurrencyResolverStub)(nil)

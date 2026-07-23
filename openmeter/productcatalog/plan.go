@@ -9,8 +9,8 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -187,12 +187,12 @@ func ValidatePlanHasAlignedBillingCadences() models.ValidatorFunc[Plan] {
 	}
 }
 
-// ValidatePlanRateCardCurrencies enforces the allowed relationship between the
+// ValidatePlanCurrencyCodes enforces the allowed relationship between the
 // plan's default currency and rate card overrides. Managed-resource existence
 // and cost-basis availability are validated separately by the plan service.
-func ValidatePlanRateCardCurrencies() models.ValidatorFunc[Plan] {
+func ValidatePlanCurrencyCodes() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
-		if p.Currency == nil {
+		if p.Currency.Code == "" {
 			return ErrCurrencyInvalid
 		}
 
@@ -229,75 +229,31 @@ func ValidatePlanRateCardCurrencies() models.ValidatorFunc[Plan] {
 }
 
 // ValidatePlanWithCurrencies validates managed currency references and ensures
-// custom rate card currencies under a fiat plan have a configured cost-basis
-// pair. It intentionally checks pair availability, not a time-specific rate;
-// charges select the effective rate at their full service period start.
-func ValidatePlanWithCurrencies(ctx context.Context, namespace string, checker CostBasisChecker) models.ValidatorFunc[Plan] {
+// custom rate card currencies under a fiat plan have a matching cost basis
+// effective at validation time.
+func ValidatePlanWithCurrencies() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
-		if err := validateCostBasisChecker(checker); err != nil {
-			return err
-		}
-
 		var errs []error
 
-		planCurrency, err := validateResolvedCurrency(
-			p.Currency,
-			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
-		)
-		if err != nil {
-			return err
+		if err := ValidateCurrency()(p.Currency); err != nil {
+			return models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				err,
+			)
 		}
 
-		costBasisAvailable := map[costBasisPairKey]bool{}
-
+		validateCurrencyOverride := ValidateCurrencyWithOverride(p.Currency)
 		for _, phase := range p.Phases {
 			for _, rateCard := range phase.RateCards {
-				meta := rateCard.AsMeta()
-				override := meta.Currency
-				if override == nil {
-					continue
-				}
-
-				fieldSelector := models.NewFieldSelectorGroup(
-					models.NewFieldSelector("phases").
-						WithExpression(models.NewFieldAttrValue("key", phase.Key)),
-					models.NewFieldSelector("rateCards").
-						WithExpression(models.NewFieldAttrValue("key", rateCard.Key())),
-					models.NewFieldSelector("currency"),
-				)
-
-				resolvedOverride, err := validateResolvedCurrency(override, fieldSelector)
-				if err != nil {
-					errs = append(errs, err)
-					continue
-				}
-
-				if planCurrency.Type() != currencyx.CurrencyTypeFiat || resolvedOverride.Type() != currencyx.CurrencyTypeCustom {
-					continue
-				}
-
-				overrideCode := resolvedOverride.GetCode()
-				managedCustomCurrency, ok := resolvedOverride.(currencyx.ManagedCurrency)
-				if !ok {
-					return fmt.Errorf("resolved custom currency %q has no managed resource identity", overrideCode)
-				}
-
-				pairKey := costBasisPairKey{
-					customCurrencyID: managedCustomCurrency.GetID(),
-					fiatCurrencyCode: planCurrency.GetCode(),
-				}
-				hasCostBasis, ok := costBasisAvailable[pairKey]
-				if !ok {
-					hasCostBasis, err = checker.HasCostBasis(ctx, namespace, managedCustomCurrency.GetID(), planCurrency.GetCode())
-					if err != nil {
-						return fmt.Errorf("checking cost basis for currency %q: %w", overrideCode, err)
-					}
-
-					costBasisAvailable[pairKey] = hasCostBasis
-				}
-
-				if !hasCostBasis {
-					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrCurrencyCostBasisNotFound))
+				if err := validateCurrencyOverride(rateCard.AsMeta().Currency); err != nil {
+					fieldSelector := models.NewFieldSelectorGroup(
+						models.NewFieldSelector("phases").
+							WithExpression(models.NewFieldAttrValue("key", phase.Key)),
+						models.NewFieldSelector("rateCards").
+							WithExpression(models.NewFieldAttrValue("key", rateCard.Key())),
+						models.NewFieldSelector("currency"),
+					)
+					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, err))
 				}
 			}
 		}
@@ -310,7 +266,7 @@ func (p Plan) Validate() error {
 	return p.ValidateWith(
 		ValidatePlanMeta(),
 		ValidatePlanPhases(),
-		ValidatePlanRateCardCurrencies(),
+		ValidatePlanCurrencyCodes(),
 		ValidatePlanBillingCadenceLiteral(),
 		ValidatePlanHasAlignedBillingCadences(),
 	)
@@ -357,7 +313,7 @@ type PlanMeta struct {
 	Description *string `json:"description,omitempty"`
 
 	// Currency
-	Currency currencyx.CurrencyIdentity `json:"currency"`
+	Currency currencies.CurrencyReference `json:"currency"`
 
 	// BillingCadence is the default billing cadence for subscriptions using this plan.
 	BillingCadence datetime.ISODuration `json:"billing_cadence"`
@@ -376,9 +332,7 @@ type PlanMeta struct {
 func (p PlanMeta) Validate() error {
 	var errs []error
 
-	if p.Currency == nil {
-		errs = append(errs, ErrCurrencyInvalid)
-	} else if err := p.Currency.Validate(); err != nil {
+	if err := p.Currency.Validate(); err != nil {
 		errs = append(errs, models.ErrorWithFieldPrefix(
 			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
 			ErrCurrencyInvalid,
@@ -426,11 +380,7 @@ func (p PlanMeta) Equal(o PlanMeta) bool {
 		return false
 	}
 
-	if (p.Currency == nil) != (o.Currency == nil) {
-		return false
-	}
-
-	if p.Currency != nil && !p.Currency.Equal(o.Currency) {
+	if !p.Currency.Equal(o.Currency) {
 		return false
 	}
 

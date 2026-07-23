@@ -35,7 +35,6 @@ import (
 	meterservice "github.com/openmeterio/openmeter/openmeter/meter/service"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
-	productcatalogcurrencyresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	planpkg "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -297,16 +296,10 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create currency resolver: %w", err)
 	}
 
-	costBasisChecker, err := productcatalogcurrencyresolver.NewCostBasisChecker(currencyService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cost basis checker: %w", err)
-	}
-
 	planService, err := planservice.New(planservice.Config{
 		Adapter:          planAdapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 		Logger:           logger.WithGroup("plan"),
 		Publisher:        publisher,
@@ -372,7 +365,6 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
@@ -384,12 +376,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	require.NoError(t, err)
 
 	planAddonService, err := planaddonservice.New(planaddonservice.Config{
-		Adapter:          planAddonRepo,
-		Logger:           logger,
-		Plan:             planService,
-		Addon:            addonService,
-		CostBasisChecker: costBasisChecker,
-		Publisher:        publisher,
+		Adapter:   planAddonRepo,
+		Logger:    logger,
+		Plan:      planService,
+		Addon:     addonService,
+		Publisher: publisher,
 	})
 	require.NoError(t, err)
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbDeps.DBClient)

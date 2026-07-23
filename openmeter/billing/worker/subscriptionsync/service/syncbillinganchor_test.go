@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -65,7 +66,7 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -241,7 +242,7 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 				Name:           "Test Plan",
 				Key:            "test-plan",
 				Version:        1,
-				Currency:       currencyx.Code(currency.USD),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

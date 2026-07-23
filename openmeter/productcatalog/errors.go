@@ -296,7 +296,7 @@ const ErrCodePlanMultipleFiatCurrencies models.ErrorCode = "plan_multiple_fiat_c
 
 var ErrPlanMultipleFiatCurrencies = models.NewValidationIssue(
 	ErrCodePlanMultipleFiatCurrencies,
-	"a catalog resource cannot contain more than one fiat currency",
+	"plan cannot contain more than one fiat currency",
 	models.WithFieldString("currency"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),

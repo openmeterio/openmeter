@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -49,7 +50,7 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 			PlanMeta: productcatalog.PlanMeta{
 				Name:           "Test Plan",
 				Key:            "test_plan",
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				BillingCadence: datetime.MustParseDuration(t, "P1M"), // Let's do monthly billing
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,

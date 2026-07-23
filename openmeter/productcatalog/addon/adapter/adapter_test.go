@@ -21,7 +21,6 @@ import (
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -549,7 +548,7 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 		},
 	})
 	customDefaultInput.Key = "custom-addon-currency"
-	customDefaultInput.Currency = custom
+	customDefaultInput.Currency = custom.Reference()
 
 	customDefault, err := env.AddonRepository.CreateAddon(t.Context(), customDefaultInput)
 	require.NoError(t, err)
@@ -558,9 +557,11 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 		NamespacedID: models.NamespacedID{Namespace: namespace, ID: customDefault.ID},
 	})
 	require.NoError(t, err)
-	managedDefault, ok := fetchedDefault.Currency.(currencyx.ManagedCurrency)
+	require.True(t, fetchedDefault.Currency.IsResolved())
+	managedDefault, ok := fetchedDefault.Currency.CustomCurrency()
 	require.True(t, ok)
-	require.Equal(t, custom.ID, managedDefault.GetID())
+	require.Equal(t, custom.ID, managedDefault.ID)
+	require.NotNil(t, managedDefault.CostBasis)
 
 	addonRow, err := env.Client.Addon.Get(t.Context(), customDefault.ID)
 	require.NoError(t, err)
@@ -581,7 +582,7 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:      "custom-override",
 			Name:     "Custom override",
-			Currency: custom,
+			Currency: lo.ToPtr(custom.Reference()),
 			Price:    price,
 		},
 	})
@@ -596,9 +597,11 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, fetchedOverride.RateCards, 1)
 	rateCardCurrency := fetchedOverride.RateCards[0].AsMeta().Currency
-	managedOverride, ok := rateCardCurrency.(currencyx.ManagedCurrency)
+	require.True(t, rateCardCurrency.IsResolved())
+	managedOverride, ok := rateCardCurrency.CustomCurrency()
 	require.True(t, ok)
-	require.Equal(t, custom.ID, managedOverride.GetID())
+	require.Equal(t, custom.ID, managedOverride.ID)
+	require.NotNil(t, managedOverride.CostBasis)
 
 	rateCardRow, err := env.Client.AddonRateCard.Query().
 		Where(addonratecarddb.Namespace(namespace), addonratecarddb.Key("custom-override")).

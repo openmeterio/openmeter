@@ -8,6 +8,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -28,7 +29,7 @@ func BuildAddonForTesting(t *testing.T, period productcatalog.EffectivePeriod, t
 				EffectivePeriod: period,
 				Key:             "test-addon",
 				Version:         1,
-				Currency:        currencyx.Code(currency.USD),
+				Currency:        currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 				InstanceType:    typ,
 				Metadata: models.NewMetadata(map[string]string{
 					"test": "test",

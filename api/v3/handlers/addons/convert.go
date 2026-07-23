@@ -11,6 +11,7 @@ import (
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -188,7 +189,7 @@ func FromAPICreateAddonRequest(namespace string, body apiv3.CreateAddonRequest) 
 				Key:          body.Key,
 				Name:         body.Name,
 				Description:  body.Description,
-				Currency:     currencyx.Code(body.Currency),
+				Currency:     currencies.NewCurrencyReference(currencyx.Code(body.Currency)),
 				InstanceType: instanceType,
 				Metadata:     metadata,
 			},
@@ -812,7 +813,8 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 		Description: rc.Description,
 	}
 	if rc.Currency != nil {
-		meta.Currency = currencyx.Code(*rc.Currency)
+		reference := currencies.NewCurrencyReference(currencyx.Code(*rc.Currency))
+		meta.Currency = &reference
 	}
 
 	if rc.Labels != nil {

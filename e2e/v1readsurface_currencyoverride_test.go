@@ -22,9 +22,12 @@ func TestV1ProductCatalogListsExcludeCurrencyOverrides(t *testing.T) {
 
 	customCurrencyCode := uniqueKey("cc")
 	customCurrency, err := v3.Currencies.CreateCustomCurrency(t.Context(), v3sdk.CreateCurrencyCustomRequest{
-		Code:   customCurrencyCode,
-		Name:   "E2E custom currency",
-		Symbol: lo.ToPtr("CC"),
+		Code:              customCurrencyCode,
+		Name:              "E2E custom currency",
+		Symbol:            lo.ToPtr("CC"),
+		Precision:         2,
+		DecimalMark:       ".",
+		ThousandSeparator: ",",
 	})
 	v3.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, customCurrency)

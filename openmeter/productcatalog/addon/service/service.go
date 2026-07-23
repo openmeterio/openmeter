@@ -19,7 +19,6 @@ type Config struct {
 
 	FeatureResolver  productcatalog.FeatureResolver
 	CurrencyResolver currencies.CurrencyResolver
-	CostBasisChecker productcatalog.CostBasisChecker
 }
 
 func New(config Config) (addon.Service, error) {
@@ -33,10 +32,6 @@ func New(config Config) (addon.Service, error) {
 
 	if config.CurrencyResolver == nil {
 		return nil, errors.New("currency resolver is required")
-	}
-
-	if config.CostBasisChecker == nil {
-		return nil, errors.New("cost basis checker is required")
 	}
 
 	if config.TaxCode == nil {
@@ -59,7 +54,6 @@ func New(config Config) (addon.Service, error) {
 
 		featureResolver:  config.FeatureResolver,
 		currencyResolver: config.CurrencyResolver,
-		costBasisChecker: config.CostBasisChecker,
 	}, nil
 }
 
@@ -73,5 +67,4 @@ type service struct {
 
 	featureResolver  productcatalog.FeatureResolver
 	currencyResolver currencies.CurrencyResolver
-	costBasisChecker productcatalog.CostBasisChecker
 }

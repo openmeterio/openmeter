@@ -140,32 +140,21 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 							params.Key, params.Phases[idx].Key, err))
 				}
 
-				if err = currencyresolver.ResolveCurrenciesForRateCards(ctx, s.currencyResolver, params.Namespace, &params.Phases[idx].RateCards); err != nil {
-					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
-						fmt.Errorf("failed to resolve currencies for ratecards in plan phase [plan.key=%s plan.phase.key=%s]: %w",
-							params.Key, params.Phases[idx].Key, err))
-				}
-
 				if err = s.resolveTaxCodes(ctx, params.Namespace, &params.Phases[idx].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
 			}
 		}
 
-		resolvedCurrency, err := currencyresolver.ResolveCurrency(ctx, s.currencyResolver, params.Namespace, params.Currency)
-		if err != nil {
-			return nil, fmt.Errorf("invalid plan currencies: %w", models.ErrorWithFieldPrefix(
-				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
-				err,
-			))
+		if err = currencyresolver.ResolveCurrenciesForPlan(ctx, s.currencyResolver.WithNamespace(params.Namespace), &params.Plan); err != nil {
+			return nil, fmt.Errorf("failed to resolve currencies in plan [plan.key=%s]: %w", params.Key, err)
 		}
-		params.Currency = resolvedCurrency
 
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid resolved Plan: %w", err)
 		}
 
-		if err := params.ValidateCurrencies(ctx, s.costBasisChecker); err != nil {
+		if err := validatePlanCurrencies(params.Plan, params.IgnoreNonCriticalIssues); err != nil {
 			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
 
@@ -350,16 +339,17 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 							params.ID, (*params.Phases)[idx].Key, err))
 				}
 
-				if err := currencyresolver.ResolveCurrenciesForRateCards(ctx, s.currencyResolver, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
-					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
-						fmt.Errorf("failed to resolve currencies for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
-							params.ID, (*params.Phases)[idx].Key, err))
-				}
-
 				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
 			}
+
+			candidate := pp
+			candidate.Phases = *params.Phases
+			if err = currencyresolver.ResolveCurrenciesForPlan(ctx, s.currencyResolver.WithNamespace(params.Namespace), &candidate); err != nil {
+				return nil, fmt.Errorf("failed to resolve currencies in plan [plan.id=%s]: %w", params.ID, err)
+			}
+			*params.Phases = candidate.Phases
 		}
 
 		// Validate the full candidate only after all authoring currencies have
@@ -368,7 +358,11 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			return nil, fmt.Errorf("invalid Plan update: %w", err)
 		}
 
-		if err = params.ValidateCurrencies(ctx, s.costBasisChecker, pp); err != nil {
+		currencyCandidate := pp
+		if params.Phases != nil {
+			currencyCandidate.Phases = *params.Phases
+		}
+		if err = validatePlanCurrencies(currencyCandidate, params.IgnoreNonCriticalIssues); err != nil {
 			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
 
@@ -389,6 +383,20 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
+}
+
+func validatePlanCurrencies(plan productcatalog.Plan, ignoreNonCriticalIssues bool) error {
+	err := plan.ValidateWith(productcatalog.ValidatePlanWithCurrencies())
+	issues, conversionErr := models.AsValidationIssues(err)
+	if conversionErr != nil {
+		return err
+	}
+
+	if ignoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
 // PublishPlan
@@ -474,7 +482,7 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			)
 		}
 
-		if err = pp.ValidateWith(productcatalog.ValidatePlanWithCurrencies(ctx, p.Namespace, s.costBasisChecker)); err != nil {
+		if err = pp.ValidateWith(productcatalog.ValidatePlanWithCurrencies()); err != nil {
 			errs = append(errs, fmt.Errorf("invalid plan currencies [id=%s key=%s version=%d]: %w",
 				p.ID, p.Key, p.Version, err),
 			)

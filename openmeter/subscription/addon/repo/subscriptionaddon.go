@@ -7,10 +7,12 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbsubscriptionaddon "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	dbsubscriptionaddonquantity "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -154,11 +156,11 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 func querySubscriptionAddon(query *db.SubscriptionAddonQuery) *db.SubscriptionAddonQuery {
 	return query.
 		WithAddon(func(aq *db.AddonQuery) {
-			aq.WithCustomCurrency()
+			aq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 			aq.WithRatecards(func(arq *db.AddonRateCardQuery) {
 				arq.WithFeatures()
 				arq.WithTaxCode()
-				arq.WithCustomCurrency()
+				arq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 			})
 		}).
 		WithQuantities(func(saqq *db.SubscriptionAddonQuantityQuery) {
@@ -167,4 +169,8 @@ func querySubscriptionAddon(query *db.SubscriptionAddonQuery) *db.SubscriptionAd
 				db.Asc(dbsubscriptionaddonquantity.FieldCreatedAt),
 			)
 		})
+}
+
+var eagerLoadCustomCurrencyWithCostBasis = func(q *db.CustomCurrencyQuery) {
+	currencyadapter.WithActiveAndScheduledCostBasis(q, clock.Now())
 }

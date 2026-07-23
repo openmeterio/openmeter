@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	addondb "github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	customcurrencydb "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
@@ -226,21 +227,25 @@ func (a *adapter) CreatePlanAddon(ctx context.Context, params planaddon.CreatePl
 }
 
 var PlanEagerLoadPhasesWithRateCardsWithFeaturesFn = func(pq *entdb.PlanQuery) {
-	pq.WithCustomCurrency()
+	pq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 	pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) {
 		ppq.WithRatecards(func(prq *entdb.PlanRateCardQuery) {
 			prq.WithFeatures()
-			prq.WithCustomCurrency()
+			prq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 		})
 	})
 }
 
 var AddonEagerLoadRateCardsWithFeaturesFn = func(aq *entdb.AddonQuery) {
-	aq.WithCustomCurrency()
+	aq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 	aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
 		arq.WithFeatures()
-		arq.WithCustomCurrency()
+		arq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 	})
+}
+
+var eagerLoadCustomCurrencyWithCostBasis = func(q *entdb.CustomCurrencyQuery) {
+	currencyadapter.WithActiveAndScheduledCostBasis(q, clock.Now())
 }
 
 func (a *adapter) DeletePlanAddon(ctx context.Context, params planaddon.DeletePlanAddonInput) error {

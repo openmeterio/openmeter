@@ -6,6 +6,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -20,7 +21,11 @@ func TestCurrencyReferenceMapping(t *testing.T) {
 		// - it is mapped to and from the shared DB reference
 		// then:
 		// - only the fiat code is persisted
-		ref, err := currencyadapter.ToDBCurrencyReference(currencyx.Code(currency.USD), false)
+		fiat, err := currencies.NewFiatCurrency(currencyx.Code(currency.USD))
+		require.NoError(t, err)
+		reference := fiat.Reference()
+
+		ref, err := currencyadapter.ToDBCurrencyReference(&reference, false)
 		require.NoError(t, err)
 		require.NotNil(t, ref.FiatCurrencyCode)
 		require.Equal(t, currency.USD.String(), *ref.FiatCurrencyCode)
@@ -28,8 +33,26 @@ func TestCurrencyReferenceMapping(t *testing.T) {
 
 		identity, err := currencyadapter.FromDBCurrencyReference(ref, false)
 		require.NoError(t, err)
-		require.Equal(t, currencyx.Code(currency.USD), identity.GetCode())
+		require.Equal(t, currencyx.Code(currency.USD), identity.Code)
 		require.True(t, identity.IsFiat())
+		require.True(t, identity.IsResolved())
+	})
+
+	t.Run("code-only fiat reference can be persisted", func(t *testing.T) {
+		reference := currencies.NewCurrencyReference(currencyx.Code(currency.EUR))
+
+		ref, err := currencyadapter.ToDBCurrencyReference(&reference, false)
+		require.NoError(t, err)
+		require.NotNil(t, ref.FiatCurrencyCode)
+		require.Equal(t, currency.EUR.String(), *ref.FiatCurrencyCode)
+		require.Nil(t, ref.CustomCurrencyID)
+	})
+
+	t.Run("code-only custom reference cannot be persisted", func(t *testing.T) {
+		reference := currencies.NewCurrencyReference("CREDITS")
+
+		_, err := currencyadapter.ToDBCurrencyReference(&reference, false)
+		require.ErrorContains(t, err, "has no managed resource identity")
 	})
 
 	t.Run("managed custom identity round trip", func(t *testing.T) {
@@ -41,7 +64,8 @@ func TestCurrencyReferenceMapping(t *testing.T) {
 		// - the managed resource ID, not only the reusable code, is retained
 		custom := currencytestutils.NewManagedCurrency(t, "ns", "01J00000000000000000000000", "CREDITS")
 
-		ref, err := currencyadapter.ToDBCurrencyReference(custom, false)
+		reference := custom.Reference()
+		ref, err := currencyadapter.ToDBCurrencyReference(&reference, false)
 		require.NoError(t, err)
 		require.Nil(t, ref.FiatCurrencyCode)
 		require.NotNil(t, ref.CustomCurrencyID)
@@ -56,9 +80,12 @@ func TestCurrencyReferenceMapping(t *testing.T) {
 		}
 		identity, err := currencyadapter.FromDBCurrencyReference(ref, false)
 		require.NoError(t, err)
-		managed, ok := identity.(currencyx.ManagedCurrency)
+		require.NotNil(t, identity.CustomCurrencyID)
+		require.Equal(t, custom.ID, *identity.CustomCurrencyID)
+		require.False(t, identity.IsResolved(), "cost-basis edge was not loaded")
+		resolved, ok := identity.CustomCurrency()
 		require.True(t, ok)
-		require.Equal(t, custom.ID, managed.GetID())
+		require.Equal(t, custom.ID, resolved.ID)
 	})
 
 	t.Run("empty reference", func(t *testing.T) {

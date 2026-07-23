@@ -474,7 +474,7 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 				RateCardMeta: productcatalog.RateCardMeta{
 					Key:      "credits",
 					Name:     "Credits",
-					Currency: customCurrency,
+					Currency: lo.ToPtr(currencies.NewCurrencyReference(customCurrency)),
 					Price:    price(),
 				},
 				BillingCadence: &month,
@@ -488,7 +488,7 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:      "credits",
 			Name:     "Credits",
-			Currency: customCurrency,
+			Currency: lo.ToPtr(currencies.NewCurrencyReference(customCurrency)),
 			Price:    price(),
 		},
 		BillingCadence: &month,
@@ -537,7 +537,7 @@ func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
 			BillingCadence: &month,
 		})
 		input.Key = "missing-cost-basis-addon"
-		input.Currency = points
+		input.Currency = currencies.NewCurrencyReference(points)
 
 		created, err := env.Addon.CreateAddon(t.Context(), input)
 		require.NoError(t, err)

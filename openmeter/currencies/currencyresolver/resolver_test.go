@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -64,6 +65,24 @@ func TestCurrencyResolver(t *testing.T) {
 			ThousandsSeparator: ",",
 		},
 	})
+	require.NoError(t, err)
+
+	archived, err := env.Service.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+		Namespace: namespace,
+		CurrencyDetails: currencyx.CurrencyDetails{
+			Code:               "ARCHIVED",
+			Name:               "Archived",
+			Symbol:             "A",
+			Precision:          2,
+			DecimalMark:        ".",
+			ThousandsSeparator: ",",
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = env.Client.CustomCurrency.UpdateOneID(archived.ID).
+		SetDeletedAt(clock.Now()).
+		Save(t.Context())
 	require.NoError(t, err)
 
 	resolver, err := currencyresolver.New(env.Service)
@@ -135,6 +154,20 @@ func TestCurrencyResolver(t *testing.T) {
 				},
 				notFound: true,
 			},
+			{
+				name: "deleted custom currency by id",
+				ref: currencies.CurrencyRef{
+					ID: archived.ID,
+				},
+				notFound: true,
+			},
+			{
+				name: "deleted custom currency by code",
+				ref: currencies.CurrencyRef{
+					Code: archived.GetCode(),
+				},
+				notFound: true,
+			},
 		}
 
 		for _, test := range tests {
@@ -177,6 +210,8 @@ func TestCurrencyResolver(t *testing.T) {
 		}
 		usdByCode := currencies.CurrencyRef{Code: "USD"}
 		missingByCode := currencies.CurrencyRef{Code: "UNKNOWN"}
+		archivedByID := currencies.CurrencyRef{ID: archived.ID}
+		archivedByCode := currencies.CurrencyRef{Code: archived.GetCode()}
 
 		result, err := namespacedResolver.BatchResolveCurrencies(
 			t.Context(),
@@ -185,9 +220,11 @@ func TestCurrencyResolver(t *testing.T) {
 			pointsByIDWithDifferentCode,
 			usdByCode,
 			missingByCode,
+			archivedByID,
+			archivedByCode,
 		)
 		require.NoError(t, err)
-		require.Len(t, result, 5)
+		require.Len(t, result, 7)
 
 		require.NotNil(t, result[creditsByID])
 		assert.Equal(t, credits.ID, result[creditsByID].ID)
@@ -203,6 +240,8 @@ func TestCurrencyResolver(t *testing.T) {
 		assert.Equal(t, currencyx.Code("USD"), result[usdByCode].Details().Code)
 
 		assert.Nil(t, result[missingByCode])
+		assert.Nil(t, result[archivedByID])
+		assert.Nil(t, result[archivedByCode])
 	})
 
 	t.Run("BatchResolveCurrenciesEmpty", func(t *testing.T) {

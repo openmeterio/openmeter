@@ -881,7 +881,7 @@ func TestPlanCustomCurrencyIntegration(t *testing.T) {
 					RateCardMeta: productcatalog.RateCardMeta{
 						Key:      "credits",
 						Name:     "Credits",
-						Currency: customCurrency,
+						Currency: lo.ToPtr(currencies.NewCurrencyReference(customCurrency)),
 						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 							Amount:      decimal.NewFromInt(25),
 							PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -967,7 +967,7 @@ func TestListPlansFilters(t *testing.T) {
 				t.Helper()
 
 				p.Name = name
-				p.Currency = currencyx.Code(cur)
+				p.Currency = currencies.NewCurrencyReference(currencyx.Code(cur))
 			},
 		)
 
@@ -1176,11 +1176,11 @@ func TestUpdatePlanRateCardCurrencyResolutionPreservesManagedIdentity(t *testing
 	newCredits := currencytestutils.NewManagedCurrency(t, namespace, "new-credits-id", "CREDITS")
 	points := currencytestutils.NewManagedCurrency(t, namespace, "points-id", "POINTS")
 
-	newRateCard := func(key string, identity currencyx.CurrencyIdentity) productcatalog.RateCard {
+	newRateCard := func(key string, reference currencies.CurrencyReference) productcatalog.RateCard {
 		return &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
 			Key:      key,
 			Name:     key,
-			Currency: identity,
+			Currency: lo.ToPtr(reference),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      decimal.NewFromInt(1),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -1189,29 +1189,28 @@ func TestUpdatePlanRateCardCurrencyResolutionPreservesManagedIdentity(t *testing
 	}
 
 	persisted := productcatalog.Plan{
-		PlanMeta: productcatalog.PlanMeta{Currency: currencyx.Code("USD")},
+		PlanMeta: productcatalog.PlanMeta{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		Phases: []productcatalog.Phase{{
 			PhaseMeta: productcatalog.PhaseMeta{Key: "existing"},
-			RateCards: productcatalog.RateCards{newRateCard("shared", oldCredits)},
+			RateCards: productcatalog.RateCards{newRateCard("shared", oldCredits.Reference())},
 		}},
 	}
 	updatedPhases := []productcatalog.Phase{
 		{
 			PhaseMeta: productcatalog.PhaseMeta{Key: "existing"},
 			RateCards: productcatalog.RateCards{
-				newRateCard("shared", currencyx.Code("CREDITS")),
-				newRateCard("new", currencyx.Code("POINTS")),
+				newRateCard("shared", currencies.NewCurrencyReference("CREDITS")),
+				newRateCard("new", currencies.NewCurrencyReference("POINTS")),
 			},
 		},
 		{
 			PhaseMeta: productcatalog.PhaseMeta{Key: "different"},
-			RateCards: productcatalog.RateCards{newRateCard("shared", currencyx.Code("CREDITS"))},
+			RateCards: productcatalog.RateCards{newRateCard("shared", currencies.NewCurrencyReference("CREDITS"))},
 		},
 	}
-	resolver := &pctestutils.CurrencyResolverStub{Resolved: map[currencyx.Code]currencyx.CurrencyIdentity{
-		"USD":     currencyx.Code("USD"),
-		"CREDITS": newCredits,
-		"POINTS":  points,
+	resolver := &pctestutils.CurrencyResolverStub{Resolved: map[currencyx.Code]*currencies.Currency{
+		"CREDITS": &newCredits,
+		"POINTS":  &points,
 	}}
 	input := plan.UpdatePlanInput{
 		NamespacedID: models.NamespacedID{Namespace: namespace, ID: "plan-id"},
@@ -1221,21 +1220,21 @@ func TestUpdatePlanRateCardCurrencyResolutionPreservesManagedIdentity(t *testing
 	err := input.PreserveRateCardCurrencyIdentities(persisted)
 	require.NoError(t, err)
 	for idx := range updatedPhases {
-		err = currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver, namespace, &updatedPhases[idx].RateCards)
+		err = currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver.WithNamespace(namespace), &updatedPhases[idx].RateCards)
 		require.NoError(t, err)
 	}
 
-	preserved, ok := updatedPhases[0].RateCards[0].AsMeta().Currency.(currencyx.ManagedCurrency)
+	preserved, ok := updatedPhases[0].RateCards[0].AsMeta().Currency.CustomCurrency()
 	require.True(t, ok)
-	require.Equal(t, oldCredits.ID, preserved.GetID())
+	require.Equal(t, oldCredits.ID, preserved.ID)
 
-	resolvedPoints, ok := updatedPhases[0].RateCards[1].AsMeta().Currency.(currencyx.ManagedCurrency)
+	resolvedPoints, ok := updatedPhases[0].RateCards[1].AsMeta().Currency.CustomCurrency()
 	require.True(t, ok)
-	require.Equal(t, points.ID, resolvedPoints.GetID())
+	require.Equal(t, points.ID, resolvedPoints.ID)
 
-	resolvedCredits, ok := updatedPhases[1].RateCards[0].AsMeta().Currency.(currencyx.ManagedCurrency)
+	resolvedCredits, ok := updatedPhases[1].RateCards[0].AsMeta().Currency.CustomCurrency()
 	require.True(t, ok)
-	require.Equal(t, newCredits.ID, resolvedCredits.GetID())
+	require.Equal(t, newCredits.ID, resolvedCredits.ID)
 }
 
 func TestUpdatePlanInputRejectsPersistedUnrepresentableRateCardFields(t *testing.T) {
@@ -1278,7 +1277,7 @@ func TestUpdatePlanInputRejectsPersistedUnrepresentableRateCardFields(t *testing
 		{
 			name: "currency override",
 			configurePersisted: func(meta *productcatalog.RateCardMeta) {
-				meta.Currency = currencyx.Code("CREDITS")
+				meta.Currency = lo.ToPtr(currencies.NewCurrencyReference(currencyx.Code("CREDITS")))
 			},
 			rejectCurrencyOverrides: true,
 			expected:                productcatalog.ErrRateCardCurrencyNotRepresentable,
@@ -1300,7 +1299,7 @@ func TestUpdatePlanInputRejectsPersistedUnrepresentableRateCardFields(t *testing
 				PlanMeta: productcatalog.PlanMeta{
 					Key:            "plan",
 					Name:           "Plan",
-					Currency:       currencyx.Code(currency.USD),
+					Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 					BillingCadence: month,
 				},
 				Phases: []productcatalog.Phase{{

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -157,7 +158,8 @@ func (r *RateCard) UnmarshalJSON(b []byte) error {
 	}
 
 	if currencyData.Currency != nil {
-		if err = setRateCardCurrencyIdentity(rateCard, *currencyData.Currency); err != nil {
+		reference := currencies.NewCurrencyReference(*currencyData.Currency)
+		if err = setRateCardCurrencyReference(rateCard, &reference); err != nil {
 			return fmt.Errorf("failed to set RateCard currency: %w", err)
 		}
 	}
@@ -171,7 +173,7 @@ func (r *RateCard) UnmarshalJSON(b []byte) error {
 func marshalRateCardForJSON(rateCard productcatalog.RateCard) (json.RawMessage, error) {
 	currency := rateCard.AsMeta().Currency
 	rateCardWithoutCurrency := rateCard.Clone()
-	if err := setRateCardCurrencyIdentity(rateCardWithoutCurrency, nil); err != nil {
+	if err := setRateCardCurrencyReference(rateCardWithoutCurrency, nil); err != nil {
 		return nil, fmt.Errorf("failed to prepare RateCard for JSON serialization: %w", err)
 	}
 
@@ -213,12 +215,12 @@ func rateCardJSONWithoutCurrency(data json.RawMessage) (json.RawMessage, error) 
 	return json.Marshal(fields)
 }
 
-func setRateCardCurrencyIdentity(rateCard productcatalog.RateCard, currency currencyx.CurrencyIdentity) error {
+func setRateCardCurrencyReference(rateCard productcatalog.RateCard, reference *currencies.CurrencyReference) error {
 	switch rateCard := rateCard.(type) {
 	case *productcatalog.FlatFeeRateCard:
-		rateCard.Currency = currency
+		rateCard.Currency = reference
 	case *productcatalog.UsageBasedRateCard:
-		rateCard.Currency = currency
+		rateCard.Currency = reference
 	default:
 		return fmt.Errorf("unsupported RateCard type: %T", rateCard)
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -28,20 +29,16 @@ type rateCardAlias struct {
 	EntitlementTemplate json.RawMessage             `json:"entitlementTemplate,omitempty"`
 }
 
-func currencyCodeForJSON(currency currencyx.CurrencyIdentity) currencyx.Code {
-	if currency == nil {
-		return ""
-	}
-
-	return currency.GetCode()
+func currencyCodeForJSON(currency currencies.CurrencyReference) currencyx.Code {
+	return currency.Code
 }
 
-func currencyCodePointerForJSON(currency currencyx.CurrencyIdentity) *currencyx.Code {
+func currencyCodePointerForJSON(currency *currencies.CurrencyReference) *currencyx.Code {
 	if currency == nil {
 		return nil
 	}
 
-	code := currency.GetCode()
+	code := currency.Code
 	return &code
 }
 
@@ -146,7 +143,7 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 
 	// Copy the base plan data
 	*p = Plan(planData.planAlias)
-	p.Currency = planData.Currency
+	p.Currency = currencies.NewCurrencyReference(planData.Currency)
 
 	// Unmarshal phases
 	p.Phases = make([]Phase, len(planData.Phases))
@@ -195,7 +192,8 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 				EntitlementTemplate: entitlementTemplate,
 			}
 			if rcData.Currency != nil {
-				meta.Currency = *rcData.Currency
+				reference := currencies.NewCurrencyReference(*rcData.Currency)
+				meta.Currency = &reference
 			}
 
 			var rc productcatalog.RateCard

@@ -173,29 +173,20 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 				return nil, fmt.Errorf("failed to resolve features for ratecards in add-on [addon.key=%s]: %w", params.Key, err)
 			}
 
-			if err = currencyresolver.ResolveCurrenciesForRateCards(ctx, s.currencyResolver, params.Namespace, &params.RateCards); err != nil {
-				return nil, fmt.Errorf("failed to resolve currencies for ratecards in add-on [addon.key=%s]: %w", params.Key, err)
-			}
-
 			if err = s.resolveTaxCodes(ctx, params.Namespace, &params.RateCards); err != nil {
 				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
 			}
 		}
 
-		resolvedCurrency, err := currencyresolver.ResolveCurrency(ctx, s.currencyResolver, params.Namespace, params.Currency)
-		if err != nil {
-			return nil, fmt.Errorf("invalid add-on currencies: %w", models.ErrorWithFieldPrefix(
-				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
-				err,
-			))
+		if err = currencyresolver.ResolveCurrenciesForAddon(ctx, s.currencyResolver.WithNamespace(params.Namespace), &params.Addon); err != nil {
+			return nil, fmt.Errorf("failed to resolve currencies in add-on [addon.key=%s]: %w", params.Key, err)
 		}
-		params.Currency = resolvedCurrency
 
 		if err := params.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid resolved add-on: %w", err)
 		}
 
-		if err := params.ValidateCurrencies(ctx, s.costBasisChecker); err != nil {
+		if err := validateAddonCurrencies(params.Addon, params.IgnoreNonCriticalIssues); err != nil {
 			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
 		}
 
@@ -377,13 +368,16 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
 			}
 
-			if err := currencyresolver.ResolveCurrenciesForRateCards(ctx, s.currencyResolver, params.Namespace, params.RateCards); err != nil {
-				return nil, fmt.Errorf("failed to resolve currencies for ratecards in add-on: %w", err)
-			}
-
 			if err := s.resolveTaxCodes(ctx, params.Namespace, params.RateCards); err != nil {
 				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
 			}
+
+			candidate := add.AsProductCatalogAddon()
+			candidate.RateCards = *params.RateCards
+			if err := currencyresolver.ResolveCurrenciesForAddon(ctx, s.currencyResolver.WithNamespace(params.Namespace), &candidate); err != nil {
+				return nil, fmt.Errorf("failed to resolve currencies in add-on [addon.id=%s]: %w", params.ID, err)
+			}
+			*params.RateCards = candidate.RateCards
 		}
 
 		// Validate the full candidate only after all authoring currencies have
@@ -392,7 +386,11 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			return nil, fmt.Errorf("invalid add-on update: %w", err)
 		}
 
-		if err = params.ValidateCurrencies(ctx, s.costBasisChecker, add.AsProductCatalogAddon()); err != nil {
+		currencyCandidate := add.AsProductCatalogAddon()
+		if params.RateCards != nil {
+			currencyCandidate.RateCards = *params.RateCards
+		}
+		if err = validateAddonCurrencies(currencyCandidate, params.IgnoreNonCriticalIssues); err != nil {
 			return nil, fmt.Errorf("invalid add-on currencies: %w", err)
 		}
 
@@ -419,6 +417,23 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
+}
+
+func validateAddonCurrencies(addon productcatalog.Addon, ignoreNonCriticalIssues bool) error {
+	err := addon.ValidateWith(
+		productcatalog.ValidateAddonRateCardCurrencies(),
+		productcatalog.ValidateAddonWithCurrencies(),
+	)
+	issues, conversionErr := models.AsValidationIssues(err)
+	if conversionErr != nil {
+		return err
+	}
+
+	if ignoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
 func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInput) (*addon.Addon, error) {
@@ -470,7 +485,7 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			)
 		}
 
-		if err = pa.ValidateWith(productcatalog.ValidateAddonWithCurrencies(ctx, params.Namespace, s.costBasisChecker)); err != nil {
+		if err = pa.ValidateWith(productcatalog.ValidateAddonWithCurrencies()); err != nil {
 			errs = append(errs, fmt.Errorf("invalid add-on currencies [id=%s key=%s version=%d]: %w",
 				add.ID, add.Key, add.Version, err),
 			)

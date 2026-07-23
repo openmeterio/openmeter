@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -13,8 +14,9 @@ import (
 
 func TestValidateSubscriptionUsesFiatOnly(t *testing.T) {
 	customCurrency := currencyx.Code("CREDITS")
+	customCurrencyReference := currencies.NewCurrencyReference(customCurrency)
 
-	newSpec := func(subscriptionCurrency currencyx.Code, rateCardCurrency currencyx.CurrencyIdentity) subscription.SubscriptionSpec {
+	newSpec := func(subscriptionCurrency currencyx.Code, rateCardCurrency *currencies.CurrencyReference) subscription.SubscriptionSpec {
 		rateCard := &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
 				Key:      "fee",
@@ -65,7 +67,7 @@ func TestValidateSubscriptionUsesFiatOnly(t *testing.T) {
 		},
 		{
 			name:     "fiat subscription with custom item currency",
-			spec:     newSpec(currencyx.Code("USD"), customCurrency),
+			spec:     newSpec(currencyx.Code("USD"), &customCurrencyReference),
 			expected: errCustomCurrencySubscriptionsNotSupported,
 		},
 	}

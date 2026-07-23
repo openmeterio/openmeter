@@ -76,12 +76,17 @@ func FromDBCustomCurrency(c *entdb.CustomCurrency) (currencies.Currency, error) 
 		return currencies.Currency{}, fmt.Errorf("failed to map currency from database: %w", err)
 	}
 
-	var costBasisList []currencies.CostBasis
+	var costBasisList *[]currencies.CostBasis
 
-	for _, cb := range c.Edges.CostBasisHistory {
-		if cb != nil {
-			costBasisList = append(costBasisList, FromDBCurrencyCostBasis(cb))
+	if costBasisHistory, err := c.Edges.CostBasisHistoryOrErr(); err == nil {
+		items := make([]currencies.CostBasis, 0, len(costBasisHistory))
+		for _, cb := range costBasisHistory {
+			if cb != nil {
+				items = append(items, FromDBCurrencyCostBasis(cb))
+			}
 		}
+
+		costBasisList = &items
 	}
 
 	return currencies.Currency{
@@ -94,14 +99,8 @@ func FromDBCustomCurrency(c *entdb.CustomCurrency) (currencies.Currency, error) 
 			ID:        c.ID,
 			Namespace: c.Namespace,
 		},
-		Currency: curr,
-		CostBasis: func() *[]currencies.CostBasis {
-			if len(costBasisList) > 0 {
-				return &costBasisList
-			}
-
-			return nil
-		}(),
+		Currency:  curr,
+		CostBasis: costBasisList,
 	}, nil
 }
 
@@ -171,7 +170,7 @@ func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.Li
 		now := clock.Now()
 
 		if params.CurrencyExpandOptions.CostBasis {
-			q = WithCostBasis(q, now)
+			q = WithActiveAndScheduledCostBasis(q, now)
 		}
 
 		order := entutils.GetOrdering(sortx.OrderDefault)
@@ -344,7 +343,7 @@ func (a *adapter) GetCurrency(ctx context.Context, params currencies.GetCurrency
 			)
 
 		if params.CostBasis {
-			q = WithCostBasis(q, at)
+			q = WithCostBasis(q)
 		}
 
 		c, err := q.First(ctx)
@@ -367,7 +366,17 @@ func (a *adapter) GetCurrency(ctx context.Context, params currencies.GetCurrency
 	})
 }
 
-func WithCostBasis(q *entdb.CustomCurrencyQuery, at time.Time) *entdb.CustomCurrencyQuery {
+// WithCostBasis eagerly loads every non-deleted cost basis for a currency.
+func WithCostBasis(q *entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery {
+	return q.WithCostBasisHistory(func(query *entdb.CurrencyCostBasisQuery) {
+		query.Where(currencycostbasis.DeletedAtIsNil())
+	})
+}
+
+// WithActiveCostBasis eagerly loads the cost basis effective at the provided
+// time. Deleted currencies retain the cost basis that was effective when the
+// currency was deleted.
+func WithActiveCostBasis(q *entdb.CustomCurrencyQuery, at time.Time) *entdb.CustomCurrencyQuery {
 	return q.WithCostBasisHistory(func(query *entdb.CurrencyCostBasisQuery) {
 		query.Where(func(s *sql.Selector) {
 			ct := sql.Table(customcurrency.Table)
@@ -392,6 +401,44 @@ func WithCostBasis(q *entdb.CustomCurrencyQuery, at time.Time) *entdb.CustomCurr
 							sql.GT(s.C(currencycostbasis.FieldDeletedAt), at),
 						),
 						sql.LTE(s.C(currencycostbasis.FieldEffectiveFrom), at),
+						sql.Or(
+							sql.IsNull(s.C(currencycostbasis.FieldEffectiveTo)),
+							sql.GT(s.C(currencycostbasis.FieldEffectiveTo), at),
+						),
+					),
+				),
+			)
+		})
+	})
+}
+
+// WithActiveAndScheduledCostBasis eagerly loads cost bases that are active or
+// scheduled at the provided time. Deleted currencies retain only the cost basis
+// that was effective when the currency was deleted.
+func WithActiveAndScheduledCostBasis(q *entdb.CustomCurrencyQuery, at time.Time) *entdb.CustomCurrencyQuery {
+	return q.WithCostBasisHistory(func(query *entdb.CurrencyCostBasisQuery) {
+		query.Where(func(s *sql.Selector) {
+			ct := sql.Table(customcurrency.Table)
+
+			s.Join(ct).On(ct.C(customcurrency.FieldID), s.C(currencycostbasis.FieldCurrencyID))
+
+			s.Where(
+				sql.Or(
+					sql.And(
+						sql.NotNull(ct.C(customcurrency.FieldDeletedAt)),
+						sql.ColumnsEQ(s.C(currencycostbasis.FieldDeletedAt), ct.C(customcurrency.FieldDeletedAt)),
+						sql.ColumnsLTE(s.C(currencycostbasis.FieldEffectiveFrom), ct.C(customcurrency.FieldDeletedAt)),
+						sql.Or(
+							sql.IsNull(s.C(currencycostbasis.FieldEffectiveTo)),
+							sql.ColumnsGT(s.C(currencycostbasis.FieldEffectiveTo), ct.C(customcurrency.FieldDeletedAt)),
+						),
+					),
+					sql.And(
+						sql.IsNull(ct.C(customcurrency.FieldDeletedAt)),
+						sql.Or(
+							sql.IsNull(s.C(currencycostbasis.FieldDeletedAt)),
+							sql.GT(s.C(currencycostbasis.FieldDeletedAt), at),
+						),
 						sql.Or(
 							sql.IsNull(s.C(currencycostbasis.FieldEffectiveTo)),
 							sql.GT(s.C(currencycostbasis.FieldEffectiveTo), at),

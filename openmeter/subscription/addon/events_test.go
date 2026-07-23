@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -45,7 +46,7 @@ func TestEvents(t *testing.T) {
 		Version:      1,
 		Name:         "Test Addon",
 		Description:  lo.ToPtr("Test Description"),
-		Currency:     currencyx.Code("USD"),
+		Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 		InstanceType: productcatalog.AddonInstanceTypeSingle,
 	}
 

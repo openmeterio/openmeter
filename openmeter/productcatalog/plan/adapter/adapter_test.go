@@ -21,7 +21,6 @@ import (
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -227,7 +226,7 @@ func TestPostgresAdapter(t *testing.T) {
 						RateCardMeta: productcatalog.RateCardMeta{
 							Key:      "credits",
 							Name:     "Credits",
-							Currency: custom,
+							Currency: lo.ToPtr(custom.Reference()),
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      decimal.NewFromInt(25),
 								PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -251,9 +250,11 @@ func TestPostgresAdapter(t *testing.T) {
 
 			fetchedCurrency := fetched.Phases[0].RateCards[0].AsMeta().Currency
 			require.Equal(t, custom.GetCode(), fetchedCurrency.GetCode())
-			managedCurrency, ok := fetchedCurrency.(currencyx.ManagedCurrency)
+			require.True(t, fetchedCurrency.IsResolved())
+			managedCurrency, ok := fetchedCurrency.CustomCurrency()
 			require.True(t, ok)
-			require.Equal(t, custom.ID, managedCurrency.GetID())
+			require.Equal(t, custom.ID, managedCurrency.ID)
+			require.NotNil(t, managedCurrency.CostBasis)
 
 			rateCardRow, err := env.Client.PlanRateCard.Query().
 				Where(planratecarddb.Namespace(namespace), planratecarddb.Key("credits")).
@@ -280,7 +281,7 @@ func TestPostgresAdapter(t *testing.T) {
 				pctestutils.WithPlanKey("custom-plan-currency"),
 				func(t *testing.T, p *productcatalog.Plan) {
 					t.Helper()
-					p.Currency = custom
+					p.Currency = custom.Reference()
 				},
 			)
 
@@ -291,9 +292,11 @@ func TestPostgresAdapter(t *testing.T) {
 				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
 			})
 			require.NoError(t, err)
-			managedCurrency, ok := fetched.Currency.(currencyx.ManagedCurrency)
+			require.True(t, fetched.Currency.IsResolved())
+			managedCurrency, ok := fetched.Currency.CustomCurrency()
 			require.True(t, ok)
-			require.Equal(t, custom.ID, managedCurrency.GetID())
+			require.Equal(t, custom.ID, managedCurrency.ID)
+			require.NotNil(t, managedCurrency.CostBasis)
 
 			planRow, err := env.Client.Plan.Get(t.Context(), created.ID)
 			require.NoError(t, err)
@@ -321,9 +324,9 @@ func TestPostgresAdapter(t *testing.T) {
 				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
 			})
 			require.NoError(t, err)
-			managedCurrency, ok = fetched.Currency.(currencyx.ManagedCurrency)
+			managedCurrency, ok = fetched.Currency.CustomCurrency()
 			require.True(t, ok)
-			require.Equal(t, custom.ID, managedCurrency.GetID(), "code reuse must not relink existing plans")
+			require.Equal(t, custom.ID, managedCurrency.ID, "code reuse must not relink existing plans")
 
 			err = env.Client.CustomCurrency.DeleteOneID(custom.ID).Exec(t.Context())
 			require.Error(t, err, "referenced custom currencies must not be hard-deleted")
@@ -631,7 +634,7 @@ func TestListPlansExcludeCurrencyOverrides(t *testing.T) {
 	require.True(t, ok, "default test plan rate card must be flat fee")
 	custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "TOKEN", "Tokens", "tok"))
 	require.NoError(t, err, "creating managed custom currency must not fail")
-	overriddenRateCard.Currency = custom
+	overriddenRateCard.Currency = lo.ToPtr(custom.Reference())
 	_, err = env.PlanRepository.CreatePlan(t.Context(), withOverride)
 	require.NoError(t, err, "creating plan with rate-card currency override must not fail")
 

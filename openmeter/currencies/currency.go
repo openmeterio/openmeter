@@ -15,39 +15,129 @@ type CurrencyReference struct {
 	Code             currencyx.Code `json:"code"`
 	CustomCurrencyID *string        `json:"custom_currency_id,omitempty"`
 
+	// resolved contains the Currency representation of the Code.
 	resolved *Currency
 }
 
-func (r CurrencyReference) IsResolved() bool {
-	return r.resolved != nil
+func NewCurrencyReference(code currencyx.Code) CurrencyReference {
+	return CurrencyReference{Code: code}
 }
 
-func (r CurrencyReference) Resolved() (*Currency, bool) {
+// IsResolved reports whether the reference contains the runtime state required
+// by currency-aware validation. Custom currencies require the cost-basis edge
+// to be loaded; a non-nil empty slice means it was loaded but has no entries.
+func (r CurrencyReference) IsResolved() bool {
+	if r.IsFiat() {
+		return true
+	}
+
+	return r.CustomCurrencyID != nil &&
+		r.resolved != nil &&
+		r.resolved.CostBasis != nil
+}
+
+func (r CurrencyReference) CustomCurrency() (*Currency, bool) {
 	return r.resolved, r.resolved != nil
+}
+
+func (r CurrencyReference) GetCode() currencyx.Code {
+	return r.Code
+}
+
+func (r CurrencyReference) IsFiat() bool {
+	return r.Code.IsFiat()
+}
+
+func (r CurrencyReference) IsCustom() bool {
+	return r.Code.IsCustom()
+}
+
+// Equal compares persisted reference identity and deliberately ignores the
+// runtime-only resolved currency.
+func (r CurrencyReference) Equal(other CurrencyReference) bool {
+	return r.Code == other.Code && lo.FromPtr(r.CustomCurrencyID) == lo.FromPtr(other.CustomCurrencyID)
+}
+
+func (r CurrencyReference) Clone() CurrencyReference {
+	if r.CustomCurrencyID != nil {
+		r.CustomCurrencyID = lo.ToPtr(*r.CustomCurrencyID)
+	}
+
+	if r.resolved != nil {
+		resolved := r.resolved.Clone()
+		r.resolved = &resolved
+	}
+
+	return r
 }
 
 func (r CurrencyReference) String() string {
 	if r.CustomCurrencyID != nil {
-		return fmt.Sprintf("%s [type=custom id=%s]", r.Code, *r.CustomCurrencyID)
+		return fmt.Sprintf("%s [type=%s id=%s]", r.Code, r.Code.Type(), *r.CustomCurrencyID)
 	}
 
-	return fmt.Sprintf("%s [type=fiat]", r.Code)
+	return fmt.Sprintf("%s [type=%s]", r.Code, r.Code.Type())
 }
 
 func (r CurrencyReference) Validate() error {
 	var errs []error
 
 	if err := r.Code.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("code: %w", err))
 	}
 
-	if r.Code.Type() == currencyx.CurrencyTypeCustom {
-		if r.CustomCurrencyID == nil {
-			errs = append(errs, errors.New("custom currency id is required"))
+	if r.IsFiat() && r.CustomCurrencyID != nil {
+		errs = append(errs, errors.New("fiat currency cannot have a custom currency id"))
+	}
+
+	if r.resolved != nil {
+		if err := r.resolved.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resolved currency: %w", err))
+		} else {
+			if r.Code != r.resolved.GetCode() {
+				errs = append(errs, fmt.Errorf("code mismatch between reference and resolved [reference.code=%s resolved.code=%s]", r.Code, r.resolved.GetCode()))
+			}
+
+			if r.IsCustom() {
+				switch {
+				case r.CustomCurrencyID == nil:
+					errs = append(errs, errors.New("resolved custom currency id is required"))
+				case *r.CustomCurrencyID != r.resolved.ID:
+					errs = append(errs, fmt.Errorf("id mismatch between reference and resolved [reference.id=%s resolved.id=%s]", *r.CustomCurrencyID, r.resolved.ID))
+				}
+			}
 		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (r CurrencyReference) WithCurrency(currency *Currency) (CurrencyReference, error) {
+	if currency == nil {
+		return CurrencyReference{}, errors.New("currency is required")
+	}
+
+	if r.Code != currency.GetCode() {
+		return CurrencyReference{}, fmt.Errorf("code mismatch between reference and currency [reference.code=%s resolved.code=%s]", r.Code, currency.GetCode())
+	}
+
+	if r.CustomCurrencyID != nil && currency.ID != *r.CustomCurrencyID {
+		return CurrencyReference{}, fmt.Errorf("id mismatch between reference and currency [reference.id=%s resolved.id=%s]", *r.CustomCurrencyID, currency.ID)
+	}
+
+	if err := currency.Validate(); err != nil {
+		return CurrencyReference{}, fmt.Errorf("invalid resolved currency: %w", err)
+	}
+
+	r.CustomCurrencyID = lo.ToPtr(currency.ID)
+
+	r.resolved = currency
+
+	if err := r.Validate(); err != nil {
+		return CurrencyReference{}, err
+	}
+
+	return r, nil
 }
 
 type Currency struct {
@@ -57,6 +147,18 @@ type Currency struct {
 
 	// CostBasis is included only if the Currency is expanded.
 	CostBasis *[]CostBasis `json:"-"`
+}
+
+func (c Currency) Reference() CurrencyReference {
+	ref := CurrencyReference{
+		Code:     c.GetCode(),
+		resolved: &c,
+	}
+	if c.IsCustom() {
+		ref.CustomCurrencyID = lo.ToPtr(c.ID)
+	}
+
+	return ref
 }
 
 func NewFiatCurrency(code currencyx.Code) (Currency, error) {
@@ -80,7 +182,7 @@ func (c Currency) Validate() error {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
 
-		if c.Currency.IsCustom() && c.ID == "" {
+		if c.Currency.Type() == currencyx.CurrencyTypeCustom && c.ID == "" {
 			errs = append(errs, errors.New("managed custom currency ID is required"))
 		}
 	}
@@ -105,29 +207,6 @@ func (c Currency) IsCustom() bool {
 	return c.Currency != nil && c.Currency.Type() == currencyx.CurrencyTypeCustom
 }
 
-func (c Currency) GetID() string {
-	return c.ID
-}
-
-// Equal compares fiat currencies by code and managed custom currencies by resource ID.
-// Custom codes can be reused after archival, so their codes do not establish identity.
-func (c Currency) Equal(other currencyx.CurrencyIdentity) bool {
-	if c.Currency == nil || other == nil {
-		return false
-	}
-
-	if c.Currency.IsFiat() {
-		return c.Currency.Equal(other)
-	}
-
-	if !other.IsCustom() {
-		return false
-	}
-
-	managed, ok := other.(currencyx.ManagedCurrency)
-	return ok && c.ID != "" && c.ID == managed.GetID()
-}
-
 func (c Currency) Clone() Currency {
 	if c.CostBasis != nil {
 		c.CostBasis = lo.ToPtr(slices.Clone(*c.CostBasis))
@@ -150,7 +229,6 @@ func (c Currency) Identity() (string, error) {
 }
 
 var (
-	_ models.Validator          = Currency{}
-	_ currencyx.Currency        = (*Currency)(nil)
-	_ currencyx.ManagedCurrency = (*Currency)(nil)
+	_ models.Validator   = Currency{}
+	_ currencyx.Currency = (*Currency)(nil)
 )

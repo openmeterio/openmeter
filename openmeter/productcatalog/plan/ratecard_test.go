@@ -157,7 +157,7 @@ func TestRateCardJSONUsesCurrencyCode(t *testing.T) {
 	rateCard := &RateCard{
 		RateCard: &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
-				Currency: managedCurrency,
+				Currency: lo.ToPtr(managedCurrency.Reference()),
 				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount: decimal.NewFromInt(1),
 				}),
@@ -183,8 +183,9 @@ func TestRateCardJSONUsesCurrencyCode(t *testing.T) {
 
 	var decoded RateCard
 	require.NoError(t, json.Unmarshal(data, &decoded))
-	assert.IsType(t, currencyx.Code(""), decoded.AsMeta().Currency)
-	assert.Equal(t, currencyx.Code("CREDITS"), decoded.AsMeta().Currency.GetCode())
+	require.NotNil(t, decoded.AsMeta().Currency)
+	assert.Equal(t, currencyx.Code("CREDITS"), decoded.AsMeta().Currency.Code)
+	assert.False(t, decoded.AsMeta().Currency.IsResolved())
 }
 
 func TestFlatFeeRateCard(t *testing.T) {

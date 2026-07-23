@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	decimal "github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -20,13 +21,13 @@ func TestAddonSerializationUsesCurrencyCodes(t *testing.T) {
 	managedCurrency := &managedCurrencyValue
 	addon := Addon{
 		AddonMeta: productcatalog.AddonMeta{
-			Currency: managedCurrency,
+			Currency: managedCurrency.Reference(),
 		},
 		RateCards: RateCards{
 			{
 				RateCard: &productcatalog.FlatFeeRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
-						Currency: managedCurrency,
+						Currency: lo.ToPtr(managedCurrency.Reference()),
 						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 							Amount: decimal.NewFromInt(1),
 						}),
@@ -42,7 +43,7 @@ func TestAddonSerializationUsesCurrencyCodes(t *testing.T) {
 	require.NoError(t, err)
 
 	// then:
-	// - only stable currency codes are serialized, and decoding restores code identities
+	// - only stable currency codes are serialized, and decoding restores code-only references
 	var serialized struct {
 		Currency  currencyx.Code `json:"currency"`
 		RateCards []struct {
@@ -59,9 +60,11 @@ func TestAddonSerializationUsesCurrencyCodes(t *testing.T) {
 
 	var decoded Addon
 	require.NoError(t, json.Unmarshal(data, &decoded))
-	assert.IsType(t, currencyx.Code(""), decoded.Currency)
-	assert.Equal(t, currencyx.Code("CREDITS"), decoded.Currency.GetCode())
+	assert.Equal(t, currencyx.Code("CREDITS"), decoded.Currency.Code)
+	assert.False(t, decoded.Currency.IsResolved())
 	require.Len(t, decoded.RateCards, 1)
-	assert.IsType(t, currencyx.Code(""), decoded.RateCards[0].AsMeta().Currency)
-	assert.Equal(t, currencyx.Code("CREDITS"), decoded.RateCards[0].AsMeta().Currency.GetCode())
+	decodedRateCardCurrency := decoded.RateCards[0].AsMeta().Currency
+	require.NotNil(t, decodedRateCardCurrency)
+	assert.Equal(t, currencyx.Code("CREDITS"), decodedRateCardCurrency.Code)
+	assert.False(t, decodedRateCardCurrency.IsResolved())
 }

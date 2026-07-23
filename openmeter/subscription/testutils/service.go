@@ -20,7 +20,6 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
-	productcatalogcurrencyresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
@@ -201,13 +200,9 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
 	require.NoError(t, err)
 
-	costBasisChecker, err := productcatalogcurrencyresolver.NewCostBasisChecker(currencyService)
-	require.NoError(t, err)
-
 	planService, err := planservice.New(planservice.Config{
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		CostBasisChecker: costBasisChecker,
 		Logger:           logger,
 		Adapter:          planRepo,
 		Publisher:        publisher,
@@ -248,7 +243,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Publisher:        publisher,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
-		CostBasisChecker: costBasisChecker,
 		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
@@ -260,12 +254,11 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 
 	planAddonService, err := planaddonservice.New(planaddonservice.Config{
-		Adapter:          planAddonRepo,
-		Logger:           logger,
-		Plan:             planService,
-		Addon:            addonService,
-		CostBasisChecker: costBasisChecker,
-		Publisher:        publisher,
+		Adapter:   planAddonRepo,
+		Logger:    logger,
+		Plan:      planService,
+		Addon:     addonService,
+		Publisher: publisher,
 	})
 	require.NoError(t, err)
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(dbDeps.DBClient)

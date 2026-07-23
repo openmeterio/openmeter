@@ -6,6 +6,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -107,7 +108,7 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		},
 	}
 
-	req.Currency = currencyx.Code(a.Currency)
+	req.Currency = currencies.NewCurrencyReference(currencyx.Code(a.Currency))
 	if err = req.Currency.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
