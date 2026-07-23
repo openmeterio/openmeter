@@ -3002,18 +3002,16 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 			Once()
 
 		customCurrencyFlatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-			Adapter:       s.FlatFeeAdapter,
-			Handler:       s.FlatFeeTestHandler,
-			Lineage:       lineageMock,
-			MetaAdapter:   s.MetaAdapter,
-			Locker:        s.Locker,
-			RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-			Currencies:    s.CurrencyService,
+			Adapter:                 s.FlatFeeAdapter,
+			Handler:                 s.FlatFeeTestHandler,
+			Lineage:                 lineageMock,
+			MetaAdapter:             s.MetaAdapter,
+			Locker:                  s.Locker,
+			RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+			Currencies:              s.CurrencyService,
+			CustomCurrenciesEnabled: true,
 		})
 		s.Require().NoError(err)
-		customCurrencyEnabler, ok := customCurrencyFlatFeeService.(customCurrencyEnabler)
-		s.Require().True(ok)
-		s.Require().NoError(customCurrencyEnabler.SetEnableCustomCurrency(s.T(), true))
 
 		originalFlatFeeService := s.Charges.flatFeeService
 		s.Charges.flatFeeService = customCurrencyFlatFeeService
@@ -3172,11 +3170,9 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyWithCustomCurrency(
 			RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 			Currencies:              s.CurrencyService,
 			StreamingConnector:      s.MockStreamingConnector,
+			CustomCurrenciesEnabled: true,
 		})
 		s.Require().NoError(err)
-		customCurrencyEnabler, ok := customCurrencyUsageBasedService.(customCurrencyEnabler)
-		s.Require().True(ok)
-		s.Require().NoError(customCurrencyEnabler.SetEnableCustomCurrency(s.T(), true))
 
 		originalUsageBasedService := s.Charges.usageBasedService
 		s.Charges.usageBasedService = customCurrencyUsageBasedService

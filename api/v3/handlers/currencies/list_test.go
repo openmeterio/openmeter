@@ -53,7 +53,7 @@ func TestListCurrenciesFilterByType(t *testing.T) {
 			service := &listCurrenciesService{}
 			handler := New(func(context.Context) (string, error) {
 				return "test", nil
-			}, service)
+			}, service, true)
 
 			request := httptest.NewRequest(http.MethodGet, "/api/v3/currencies", nil)
 			response := httptest.NewRecorder()

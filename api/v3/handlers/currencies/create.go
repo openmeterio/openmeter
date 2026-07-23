@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -24,6 +25,10 @@ type (
 func (h *handler) CreateCurrency() CreateCurrencyHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateCurrencyRequest, error) {
+			if !h.customCurrenciesEnabled {
+				return CreateCurrencyRequest{}, models.NewGenericValidationError(errCustomCurrenciesDisabled)
+			}
+
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return CreateCurrencyRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)

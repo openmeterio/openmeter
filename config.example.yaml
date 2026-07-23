@@ -105,6 +105,10 @@ billing:
 credits:
   enabled: true
   enableCreditThenInvoice: false
+  # WARNING: EXPERIMENTAL. Enabling custom currencies before the full
+  # implementation is in place can cause database inconsistencies.
+  # DO NOT enable this in a production environment.
+  customCurrenciesEnabled: false
 
 # unitConfig gates the UnitConfig feature on rate cards (conversion + rounding
 # of metered quantities before rating). Off by default: unit_config is rejected

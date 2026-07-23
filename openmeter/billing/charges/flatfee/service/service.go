@@ -25,6 +25,8 @@ type Config struct {
 	Locker        *lockr.Locker
 	RatingService rating.Service
 	Currencies    currencies.Service
+
+	CustomCurrenciesEnabled bool
 }
 
 func (c Config) Validate() error {
@@ -92,6 +94,7 @@ func New(config Config) (flatfee.Service, error) {
 		costbasisResolver: costbasisResolver,
 	}
 	svc.creditNotesSupported.Store(charges.CreditNotesSupportedByLineUpdater)
+	svc.enableCustomCurrency.Store(config.CustomCurrenciesEnabled)
 
 	return svc, nil
 }

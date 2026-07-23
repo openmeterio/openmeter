@@ -33,6 +33,7 @@ postgres:
 credits:
   enabled: true
   enableCreditThenInvoice: true
+  customCurrenciesEnabled: true
 
 meters:
   # Sample meter to count API requests

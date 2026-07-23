@@ -31,8 +31,9 @@ type Config struct {
 	FeatureService          feature.FeatureConnector
 	RatingService           rating.Service
 	Currencies              currencies.Service
+	StreamingConnector      streaming.Connector
 
-	StreamingConnector streaming.Connector
+	CustomCurrenciesEnabled bool
 }
 
 func (c Config) Validate() error {
@@ -116,7 +117,7 @@ func New(config Config) (usagebased.Service, error) {
 		return nil, err
 	}
 
-	return &service{
+	svc := &service{
 		adapter:                 config.Adapter,
 		locker:                  config.Locker,
 		metaAdapter:             config.MetaAdapter,
@@ -127,7 +128,10 @@ func New(config Config) (usagebased.Service, error) {
 		rater:                   rater,
 		runs:                    runs,
 		costbasisResolver:       costbasisResolver,
-	}, nil
+	}
+	svc.enableCustomCurrency.Store(config.CustomCurrenciesEnabled)
+
+	return svc, nil
 }
 
 type service struct {

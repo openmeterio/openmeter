@@ -195,6 +195,7 @@ func TestComplete(t *testing.T) {
 		Credits: CreditsConfiguration{
 			Enabled:                 false,
 			EnableCreditThenInvoice: false,
+			CustomCurrenciesEnabled: false,
 		},
 		UnitConfig: UnitConfigConfiguration{
 			Enabled: false,
