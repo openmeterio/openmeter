@@ -1492,7 +1492,8 @@ paths:
           description: |-
             Return the credit balance as of this timestamp.
 
-            Defaults to the current time.
+            Defaults to the current time. Historical responses return `live` as zero because
+            live charge impacts are only available for current balances.
           schema:
             $ref: '#/components/schemas/DateTime'
           explode: false
@@ -10024,7 +10025,11 @@ components:
         live:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: Credits available after applying currently live charge impacts.
+          description: |-
+            Credits available after applying currently live charge impacts.
+
+            Always zero for historical balance queries using the `timestamp` parameter
+            because live charge impacts cannot be reconstructed historically.
           example: '200.00'
           readOnly: true
         settled:

@@ -1156,6 +1156,9 @@ func (value CreditAvailabilityPolicy) Valid() bool {
 type CreditBalance struct {
 	Currency BillingCurrencyCode `json:"currency"`
 	// Credits available after applying currently live charge impacts.
+	//
+	// Always zero for historical balance queries using the `timestamp` parameter
+	// because live charge impacts cannot be reconstructed historically.
 	Live Numeric `json:"live"`
 	// Credits that have been booked on the ledger as of the balance timestamp.
 	Settled Numeric `json:"settled"`

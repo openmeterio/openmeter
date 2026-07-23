@@ -728,7 +728,7 @@ func TestGetBalancePendingGrants(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, float64(10), balance.Settled().InexactFloat64())
-	require.Equal(t, float64(10), balance.Live().InexactFloat64())
+	require.Equal(t, float64(0), balance.Live().InexactFloat64())
 	require.Equal(t, float64(50), balance.Pending().InexactFloat64())
 
 	afterFutureEffectiveAt := futureEffectiveAt.Add(time.Second)
@@ -743,7 +743,7 @@ func TestGetBalancePendingGrants(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, float64(30), balance.Settled().InexactFloat64())
-	require.Equal(t, float64(30), balance.Live().InexactFloat64())
+	require.Equal(t, float64(0), balance.Live().InexactFloat64())
 	require.Equal(t, float64(30), balance.Pending().InexactFloat64())
 }
 
