@@ -145,11 +145,12 @@ func mutateBaseIntentPeriodForOverriddenCharge(charge *flatfee.Charge, patch per
 
 func (s *service) getStateMachineConfigForCharge(charge flatfee.Charge) StateMachineConfig {
 	return StateMachineConfig{
-		Charge:               charge,
-		Adapter:              s.adapter,
-		Realizations:         s.realizations,
-		Service:              s,
-		CreditNotesSupported: s.creditNotesSupported.Load(),
+		Charge:                        charge,
+		Adapter:                       s.adapter,
+		Realizations:                  s.realizations,
+		Service:                       s,
+		CreditNotesSupported:          s.creditNotesSupported.Load(),
+		InvoiceLineCorrectionsEnabled: s.invoiceLineCorrectionsEnabled.Load(),
 	}
 }
 

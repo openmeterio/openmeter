@@ -22,7 +22,8 @@ type stateMachine struct {
 	Realizations *flatfeerealizations.Service
 	Service      *service
 
-	CreditNotesSupported bool
+	CreditNotesSupported          bool
+	InvoiceLineCorrectionsEnabled bool
 }
 
 type StateMachine = chargestatemachine.StateMachine[flatfee.Charge]
@@ -34,7 +35,8 @@ type StateMachineConfig struct {
 	Realizations *flatfeerealizations.Service
 	Service      *service
 
-	CreditNotesSupported bool
+	CreditNotesSupported          bool
+	InvoiceLineCorrectionsEnabled bool
 }
 
 func (c StateMachineConfig) Validate() error {
@@ -65,10 +67,11 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	}
 
 	out := &stateMachine{
-		Adapter:              config.Adapter,
-		Realizations:         config.Realizations,
-		Service:              config.Service,
-		CreditNotesSupported: config.CreditNotesSupported,
+		Adapter:                       config.Adapter,
+		Realizations:                  config.Realizations,
+		Service:                       config.Service,
+		CreditNotesSupported:          config.CreditNotesSupported,
+		InvoiceLineCorrectionsEnabled: config.InvoiceLineCorrectionsEnabled,
 	}
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[flatfee.Charge, flatfee.ChargeBase, flatfee.Status]{

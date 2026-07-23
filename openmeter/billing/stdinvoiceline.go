@@ -125,6 +125,10 @@ func (i StandardLineBase) Validate() error {
 		}
 	}
 
+	if err := validateInvoiceLineCorrectionAnnotations(i.Annotations); err != nil {
+		errs = append(errs, fmt.Errorf("annotations: %w", err))
+	}
+
 	if i.RateCardDiscounts.Percentage != nil {
 		if err := i.RateCardDiscounts.Percentage.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("percentage discounts: %w", err))
@@ -701,7 +705,15 @@ func (i StandardLine) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if err := i.Totals.ValidateTotalNonNegative(); err != nil {
+	if IsInvoiceLineCorrection(i.Annotations) {
+		if i.Totals.Total.IsPositive() {
+			errs = append(errs, errors.New("correction line total must be zero or negative"))
+		}
+
+		if i.UsageBased.Price.Type() != productcatalog.FlatPriceType {
+			errs = append(errs, errors.New("correction lines require a flat price"))
+		}
+	} else if err := i.Totals.ValidateTotalNonNegative(); err != nil {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
 

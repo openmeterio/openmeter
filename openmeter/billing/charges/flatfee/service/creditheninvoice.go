@@ -514,8 +514,99 @@ type reconcileInvoicingStateInput struct {
 	NewAmountAfterProration alpacadecimal.Decimal
 }
 
+type buildFlatFeeCorrectionGatheringLineInput struct {
+	Charge                 flatfee.Charge
+	Run                    flatfee.RealizationRun
+	RetainedServicePeriod  timeutil.ClosedPeriod
+	RetainedProratedAmount alpacadecimal.Decimal
+}
+
+// buildFlatFeeCorrectionGatheringLine creates the customer-facing reversal for the
+// unserved tail of an immutable flat-fee run. The price remains positive; the billing-owned
+// line engine applies the correction sign after rating.
+func buildFlatFeeCorrectionGatheringLine(input buildFlatFeeCorrectionGatheringLineInput) (billing.GatheringLine, error) {
+	if !input.Run.Immutable {
+		return billing.GatheringLine{}, fmt.Errorf("source realization run[%s] must be immutable", input.Run.ID.ID)
+	}
+
+	if input.Run.LineID == nil || *input.Run.LineID == "" {
+		return billing.GatheringLine{}, fmt.Errorf("source realization run[%s] line id is required", input.Run.ID.ID)
+	}
+
+	if input.Run.InvoiceID == nil || *input.Run.InvoiceID == "" {
+		return billing.GatheringLine{}, fmt.Errorf("source realization run[%s] invoice id is required", input.Run.ID.ID)
+	}
+
+	if !input.RetainedServicePeriod.From.Equal(input.Run.ServicePeriod.From) || !input.RetainedServicePeriod.To.Before(input.Run.ServicePeriod.To) {
+		return billing.GatheringLine{}, fmt.Errorf("retained service period must remove a tail from source realization run[%s]", input.Run.ID.ID)
+	}
+
+	currencyCalculator, err := input.Charge.Intent.GetCurrency().Calculator()
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("getting currency calculator: %w", err)
+	}
+
+	correctionAmount := currencyCalculator.RoundToPrecision(input.Run.AmountAfterProration.Sub(input.RetainedProratedAmount))
+	if !correctionAmount.IsPositive() {
+		return billing.GatheringLine{}, fmt.Errorf("correction amount must be positive")
+	}
+
+	lineIntent := input.Charge.Intent.GetEffectiveIntent()
+	correctionPeriod := timeutil.ClosedPeriod{
+		From: input.RetainedServicePeriod.To,
+		To:   input.Run.ServicePeriod.To,
+	}
+
+	return billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   input.Charge.Namespace,
+				Name:        fmt.Sprintf("%s correction", lineIntent.Name),
+				Description: lineIntent.Description,
+			}),
+			Annotations: models.Annotations{
+				billing.AnnotationInvoiceLineCorrection:            true,
+				billing.AnnotationInvoiceLineCorrectionOfInvoiceID: *input.Run.InvoiceID,
+				billing.AnnotationInvoiceLineCorrectionOfLineID:    *input.Run.LineID,
+				billing.AnnotationSubscriptionSyncIgnore:           true,
+			},
+			ManagedBy:     billing.SystemManagedLine,
+			Engine:        billing.LineEngineTypeInvoice,
+			Currency:      lineIntent.Currency,
+			ServicePeriod: correctionPeriod,
+			InvoiceAt:     lineIntent.InvoiceAt,
+			Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      correctionAmount,
+				PaymentTerm: lineIntent.PaymentTerm,
+			})),
+		},
+	}, nil
+}
+
 func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Context, input reconcileInvoicingStateInput) error {
 	currentRun := s.Charge.Realizations.CurrentRun
+
+	if s.InvoiceLineCorrectionsEnabled &&
+		currentRun != nil &&
+		currentRun.Immutable &&
+		input.Op == meta.PatchTypeShrink &&
+		input.NewAmountAfterProration.LessThan(input.OldAmountAfterProration) {
+		s.Charge.Intent = input.Intent
+		s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
+
+		correctionLine, err := buildFlatFeeCorrectionGatheringLine(buildFlatFeeCorrectionGatheringLineInput{
+			Charge:                 s.Charge,
+			Run:                    *currentRun,
+			RetainedServicePeriod:  input.Period,
+			RetainedProratedAmount: input.NewAmountAfterProration,
+		})
+		if err != nil {
+			return fmt.Errorf("creating flat-fee correction line: %w", err)
+		}
+
+		s.AddInvoicePatch(invoiceupdater.NewCreateLinePatch(correctionLine))
+		return nil
+	}
 
 	// TODO(credit-note support): this branch is a temporary fallback for
 	// immutable invoice lines until the line updater can correct them with
