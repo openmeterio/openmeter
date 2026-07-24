@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -49,12 +50,29 @@ func New(
 	subjectService subject.Service,
 	entitlementConnector entitlement.Service,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+	if subjectService == nil {
+		errs = append(errs, errors.New("subject service is required"))
+	}
+	if entitlementConnector == nil {
+		errs = append(errs, errors.New("entitlement connector is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid subject handler config: %w", err)
+	}
+
 	return &handler{
 		namespaceDecoder:     namespaceDecoder,
 		options:              options,
 		logger:               logger,
 		subjectService:       subjectService,
 		entitlementConnector: entitlementConnector,
-	}
+	}, nil
 }

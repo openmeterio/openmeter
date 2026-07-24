@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -55,12 +56,29 @@ func New(
 	billingService billing.Service,
 	customerService customer.Service,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if service == nil {
+		errs = append(errs, errors.New("app stripe service is required"))
+	}
+	if billingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
+	}
+	if customerService == nil {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid app stripe handler config: %w", err)
+	}
+
 	return &handler{
 		service:          service,
 		billingService:   billingService,
 		customerService:  customerService,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
-	}
+	}, nil
 }

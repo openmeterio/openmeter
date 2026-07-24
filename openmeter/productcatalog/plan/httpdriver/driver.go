@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -47,10 +48,21 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service plan.Service,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if service == nil {
+		errs = append(errs, errors.New("plan service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid plan handler config: %w", err)
+	}
+
 	return &handler{
 		service:          service,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
-	}
+	}, nil
 }

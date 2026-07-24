@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -38,10 +39,21 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	service ingest.Service,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if service == nil {
+		errs = append(errs, errors.New("ingest service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid ingest handler config: %w", err)
+	}
+
 	return &handler{
 		namespaceDecoder: namespaceDecoder,
 		service:          service,
 		options:          options,
-	}
+	}, nil
 }

@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
@@ -43,10 +44,21 @@ func New(
 	service appcustominvoicing.SyncService,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if service == nil {
+		errs = append(errs, errors.New("app custom invoicing service is required"))
+	}
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid app custom invoicing handler config: %w", err)
+	}
+
 	return &handler{
 		service:          service,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
-	}
+	}, nil
 }

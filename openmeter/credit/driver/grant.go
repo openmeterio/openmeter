@@ -3,6 +3,7 @@ package creditdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"time"
@@ -45,14 +46,31 @@ func NewGrantHandler(
 	grantRepo grant.Repo,
 	customerService customer.Service,
 	options ...httptransport.HandlerOption,
-) GrantHandler {
+) (GrantHandler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if grantConnector == nil {
+		errs = append(errs, errors.New("grant connector is required"))
+	}
+	if grantRepo == nil {
+		errs = append(errs, errors.New("grant repo is required"))
+	}
+	if customerService == nil {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid grant handler config: %w", err)
+	}
+
 	return &grantHandler{
 		namespaceDecoder: namespaceDecoder,
 		grantConnector:   grantConnector,
 		grantRepo:        grantRepo,
 		customerService:  customerService,
 		options:          options,
-	}
+	}, nil
 }
 
 type (

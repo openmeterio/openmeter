@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -65,11 +66,25 @@ func New(
 	service notification.Service,
 	billingService billing.Service,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if service == nil {
+		errs = append(errs, errors.New("notification service is required"))
+	}
+	if billingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid notification handler config: %w", err)
+	}
+
 	return &handler{
 		service:            service,
 		testEventGenerator: internal.NewTestEventGenerator(billingService),
 		namespaceDecoder:   namespaceDecoder,
 		options:            options,
-	}
+	}, nil
 }

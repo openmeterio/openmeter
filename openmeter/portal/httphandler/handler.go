@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -45,11 +46,25 @@ func New(
 	portalService portal.Service,
 	meterService meter.Service,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if portalService == nil {
+		errs = append(errs, errors.New("portal service is required"))
+	}
+	if meterService == nil {
+		errs = append(errs, errors.New("meter service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid portal handler config: %w", err)
+	}
+
 	return &handler{
 		namespaceDecoder: namespaceDecoder,
 		portalService:    portalService,
 		meterService:     meterService,
 		options:          options,
-	}
+	}, nil
 }

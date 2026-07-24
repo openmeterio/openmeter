@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -54,12 +55,29 @@ func New(
 	subscriptionService subscription.Service,
 	entitlementService entitlement.Service,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if service == nil {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+	if subscriptionService == nil {
+		errs = append(errs, errors.New("subscription service is required"))
+	}
+	if entitlementService == nil {
+		errs = append(errs, errors.New("entitlement service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid customer handler config: %w", err)
+	}
+
 	return &handler{
 		service:             service,
 		subscriptionService: subscriptionService,
 		namespaceDecoder:    namespaceDecoder,
 		entitlementService:  entitlementService,
 		options:             options,
-	}
+	}, nil
 }

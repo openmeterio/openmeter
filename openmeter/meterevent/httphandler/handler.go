@@ -3,6 +3,7 @@ package httphandler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
@@ -41,10 +42,21 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	metereventService meterevent.Service,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if metereventService == nil {
+		errs = append(errs, errors.New("meter event service is required"))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid meter event handler config: %w", err)
+	}
+
 	return &handler{
 		namespaceDecoder:  namespaceDecoder,
 		metereventService: metereventService,
 		options:           options,
-	}
+	}, nil
 }

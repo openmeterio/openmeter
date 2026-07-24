@@ -3,8 +3,10 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"reflect"
 
 	appconfig "github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -39,6 +41,36 @@ type HandlerConfig struct {
 	Credits                     appconfig.CreditsConfiguration
 }
 
+func (c HandlerConfig) Validate() error {
+	var errs []error
+
+	if isNil(c.SubscriptionWorkflowService) {
+		errs = append(errs, errors.New("subscription workflow service is required"))
+	}
+
+	if isNil(c.SubscriptionService) {
+		errs = append(errs, errors.New("subscription service is required"))
+	}
+
+	if isNil(c.CustomerService) {
+		errs = append(errs, errors.New("customer service is required"))
+	}
+
+	if isNil(c.PlanSubscriptionService) {
+		errs = append(errs, errors.New("plan subscription service is required"))
+	}
+
+	if isNil(c.NamespaceDecoder) {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+
+	if isNil(c.Logger) {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
 type handler struct {
 	HandlerConfig
 	Options []httptransport.HandlerOption
@@ -53,9 +85,27 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 	return ns, nil
 }
 
-func NewHandler(config HandlerConfig, options ...httptransport.HandlerOption) Handler {
+func NewHandler(config HandlerConfig, options ...httptransport.HandlerOption) (Handler, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid subscription handler config: %w", err)
+	}
+
 	return &handler{
 		HandlerConfig: config,
 		Options:       options,
+	}, nil
+}
+
+func isNil(value any) bool {
+	if value == nil {
+		return true
+	}
+
+	v := reflect.ValueOf(value)
+	switch v.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return v.IsNil()
+	default:
+		return false
 	}
 }

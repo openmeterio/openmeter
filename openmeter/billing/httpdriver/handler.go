@@ -3,12 +3,12 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
@@ -80,12 +80,36 @@ func New(
 	featureSwitches config.BillingFeatureSwitchesConfiguration,
 	service billing.Service,
 	appService app.Service,
-	stripeAppService appstripe.Service,
 	chargeService billingcharges.ChargeService,
 	credits config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
 	options ...httptransport.HandlerOption,
-) Handler {
+) (Handler, error) {
+	var errs []error
+	if logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+	if namespaceDecoder == nil {
+		errs = append(errs, errors.New("namespace decoder is required"))
+	}
+	if service == nil {
+		errs = append(errs, errors.New("billing service is required"))
+	}
+	if appService == nil {
+		errs = append(errs, errors.New("app service is required"))
+	}
+	if chargeService == nil {
+		errs = append(errs, errors.New("charge service is required"))
+	}
+	if featureGate == nil {
+		errs = append(errs, errors.New("feature gate is required"))
+	} else if err := featureGate.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("feature gate: %w", err))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, fmt.Errorf("invalid billing handler config: %w", err)
+	}
+
 	return &handler{
 		service:          service,
 		chargeService:    chargeService,
@@ -96,5 +120,5 @@ func New(
 		featureSwitches:  featureSwitches,
 		credits:          credits,
 		featureGate:      featureGate,
-	}
+	}, nil
 }
