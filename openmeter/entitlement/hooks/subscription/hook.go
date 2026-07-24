@@ -46,6 +46,12 @@ func (h *hook) PreUpdate(ctx context.Context, ent *entitlement.Entitlement) erro
 		return nil
 	}
 
+	// Grants are ad-hoc credit top-ups and do not alter the entitlement structure,
+	// so they are permitted even when the entitlement is subscription-managed.
+	if subscription.IsGrantOperation(ctx) {
+		return nil
+	}
+
 	if subscription.AnnotationParser.HasSubscription(ent.Annotations) {
 		return models.NewGenericForbiddenError(fmt.Errorf("entitlement is managed by subscription"))
 	}
