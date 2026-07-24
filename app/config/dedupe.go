@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/openmeter/dedupe"
@@ -178,11 +179,9 @@ func (c DedupeDriverRedisConfiguration) NewDeduplicator() (dedupe.Deduplicator, 
 	}
 
 	// TODO: register health check for redis
-	return redisdedupe.Deduplicator{
-		Redis:      redisClient,
-		Expiration: c.Expiration,
-		Mode:       c.Mode,
-	}, nil
+	return redisdedupe.NewDeduplicator(redisClient, c.Expiration, c.Mode, func() (*goredis.Client, error) {
+		return c.NewClient()
+	}), nil
 }
 
 func (c DedupeDriverRedisConfiguration) Validate() error {
