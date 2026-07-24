@@ -5,16 +5,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func intentFromManualCreatedLine(
@@ -122,8 +125,46 @@ func intentFromManualCreatedLine(
 }
 
 type populateStandardLineFromRunInput struct {
-	Run  usagebased.RealizationRun
-	Runs usagebased.RealizationRuns
+	Charge usagebased.Charge
+	Run    usagebased.RealizationRun
+}
+
+// collectionDeadlineForRun returns the explicit billing collection deadline a
+// usage-based realization run needs on its standard line (if it's not the billing
+// default).
+//
+// Partial runs are invoiced before the charge's final service-period boundary,
+// so the customer's normal collection interval would delay them unnecessarily.
+// Their StoredAtLT is the partial usage cutoff; the internal collection period
+// gives events before that cutoff time to become queryable before collection.
+func collectionDeadlineForRun(charge usagebased.Charge, run usagebased.RealizationRun) (*time.Time, error) {
+	if run.Type == usagebased.RealizationRunTypePartialInvoice {
+		// Partial runs are invoiced before the charge's final service-period boundary,
+		// so the customer's normal collection interval would delay them unnecessarily.
+		// Their StoredAtLT is the partial usage cutoff; the internal collection period
+		// gives events ingested before that cutoff time to become queryable before collection.
+		return lo.ToPtr(run.StoredAtLT.Add(usagebased.InternalCollectionPeriod)), nil
+	}
+
+	if run.Type == usagebased.RealizationRunTypeFinalRealization {
+		// Final metered lines need no override because billing derives their collection
+		// deadline from the customer's billing profile.
+		if charge.Intent.GetCurrency().IsCustom() {
+			// Custom-currency overage is represented as a flat fiat line, so billing assumes 0
+			// collection time.
+			//
+			// The final-run's StoredAtLT time already includes the customer's collection
+			// interval, so by overriding the flat fee's collection deadline, we ensure that the
+			// overage is collected in the same interval as usage based line would have been collected.
+			return lo.ToPtr(run.StoredAtLT), nil
+		}
+
+		return nil, nil
+	}
+
+	// Let's make sure we are updating this function for new run types as needed, to prevent random
+	// bugs appearing due to defaulting to legacy billing collection deadlines.
+	return nil, fmt.Errorf("unknown run type: %s", run.Type)
 }
 
 func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateStandardLineFromRunInput) error {
@@ -136,12 +177,22 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 		return fmt.Errorf("creating currency calculator: %w", err)
 	}
 
-	billingMeteredQuantity, err := input.Runs.MapToBillingMeteredQuantity(input.Run)
+	collectionPeriodEnd, err := collectionDeadlineForRun(input.Charge, input.Run)
+	if err != nil {
+		return fmt.Errorf("getting collection deadline for run: %w", err)
+	}
+
+	stdLine.OverrideCollectionPeriodEnd = collectionPeriodEnd
+
+	if input.Charge.Intent.GetCurrency().IsCustom() {
+		return populateCustomCurrencyOverageFromRun(stdLine, input, cur)
+	}
+
+	billingMeteredQuantity, err := input.Charge.Realizations.MapToBillingMeteredQuantity(input.Run)
 	if err != nil {
 		return fmt.Errorf("mapping run metered quantity to billing: %w", err)
 	}
 
-	stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(input.Run.StoredAtLT.Add(usagebased.InternalCollectionPeriod))
 	stdLine.UsageBased.MeteredQuantity = lo.ToPtr(billingMeteredQuantity.LinePeriod)
 	stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(billingMeteredQuantity.PreLinePeriod)
 
@@ -189,6 +240,86 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 	if !stdLine.Totals.Equal(expectedTotals) {
 		return fmt.Errorf("mapped line totals do not match run totals [line_id=%s run_id=%s line_total=%s run_total=%s]",
 			stdLine.ID, input.Run.ID.ID, stdLine.Totals.Total.String(), expectedTotals.Total.String())
+	}
+
+	return nil
+}
+
+func populateCustomCurrencyOverageFromRun(
+	stdLine *billing.StandardLine,
+	input populateStandardLineFromRunInput,
+	invoiceCurrency currencyx.Currency,
+) error {
+	charge := input.Charge
+	run := input.Run
+
+	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(run.Totals)
+	if err != nil {
+		return fmt.Errorf("custom currency charge[%s] converting overage to fiat: %w", charge.ID, err)
+	}
+
+	if stdLine.Currency != fiatOverage.Currency.GetFiatCode() {
+		return fmt.Errorf(
+			"custom currency charge[%s] invoice currency mismatch: %s != %s",
+			charge.ID,
+			stdLine.Currency,
+			fiatOverage.Currency.Details().Code,
+		)
+	}
+
+	if stdLine.Annotations == nil {
+		stdLine.Annotations = models.Annotations{}
+	}
+	stdLine.Annotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonOverage)
+
+	stdLine.RateCardDiscounts = billing.Discounts{}
+	stdLine.Discounts = billing.StandardLineDiscounts{}
+	stdLine.CreditsApplied = nil
+
+	stdLine.UsageBased = &billing.UsageBasedLine{
+		ConfigID: stdLine.UsageBased.ConfigID,
+		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      fiatOverage.Amount,
+			PaymentTerm: productcatalog.InArrearsPaymentTerm,
+		}),
+		MeteredQuantity:              lo.ToPtr(alpacadecimal.NewFromInt(1)),
+		Quantity:                     lo.ToPtr(alpacadecimal.NewFromInt(1)),
+		MeteredPreLinePeriodQuantity: lo.ToPtr(alpacadecimal.Zero),
+		PreLinePeriodQuantity:        lo.ToPtr(alpacadecimal.Zero),
+	}
+
+	name := "overage"
+	if stdLine.Name != "" {
+		name = fmt.Sprintf("%s (overage)", stdLine.Name)
+	}
+
+	detailedLine, err := creditpurchase.NewDetailedLine(creditpurchase.NewDetailedLineInput{
+		Namespace:            stdLine.Namespace,
+		InvoiceID:            stdLine.InvoiceID,
+		Name:                 name,
+		ServicePeriod:        stdLine.Period,
+		CustomCurrency:       charge.Intent.GetCurrency(),
+		CustomCurrencyAmount: run.Totals.Total,
+		ResolvedCostBasis:    charge.State.ResolvedCostBasis,
+		FiatCurrency:         fiatOverage.Currency,
+		FiatAmount:           fiatOverage.Amount,
+	})
+	if err != nil {
+		return fmt.Errorf("creating custom currency overage detail: %w", err)
+	}
+
+	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(billing.DetailedLines{detailedLine})
+	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(invoiceCurrency)
+
+	if !stdLine.Totals.Total.Equal(fiatOverage.Amount) {
+		return fmt.Errorf(
+			"custom currency charge[%s] mapped overage total mismatch [line_id=%s run_id=%s line_total=%s overage_total=%s]",
+			charge.ID,
+			stdLine.ID,
+			run.ID.ID,
+			stdLine.Totals.Total.String(),
+			fiatOverage.Amount.String(),
+		)
 	}
 
 	return nil

@@ -51,9 +51,9 @@ func ConvertCustomCurrencyOverageToFiat(input ConvertCustomCurrencyOverageToFiat
 		return FiatOverage{}, fmt.Errorf("cost basis intent: %w", err)
 	}
 
-	fiatCurrency := input.CostBasisIntent.GetFiatCurrency()
-	if fiatCurrency == nil {
-		return FiatOverage{}, fmt.Errorf("cost basis fiat currency is required")
+	fiatCurrency, err := input.CostBasisIntent.GetFiatCurrency()
+	if err != nil {
+		return FiatOverage{}, fmt.Errorf("get cost basis fiat currency: %w", err)
 	}
 
 	if input.ResolvedCostBasis == nil {

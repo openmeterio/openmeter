@@ -111,6 +111,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 	intent := input.Charge.Intent
 
 	if intent.GetCurrency().IsCustom() {
+		// TODO[implement]: FiatAmount contains the amount paid in the fiat currency.
 		return ledgertransaction.GroupReference{}, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
@@ -175,6 +176,14 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 	}, nil
 }
 
+func (h *usageBasedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error) {
+	if err := input.Validate(); err != nil {
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, err
+	}
+
+	return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
+}
+
 func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
 	if err := input.Validate(); err != nil {
 		return ledgertransaction.GroupReference{}, err
@@ -183,6 +192,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 	intent := input.Charge.Intent
 
 	if input.Charge.Intent.GetCurrency().IsCustom() {
+		// TODO[implement]: FiatAmount contains the amount paid in the fiat currency.
 		return ledgertransaction.GroupReference{}, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 

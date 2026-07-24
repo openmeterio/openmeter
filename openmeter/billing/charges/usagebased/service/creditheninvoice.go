@@ -875,12 +875,22 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	}
 	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
 
+	noFiatTransactionRequired := currentTotals.Total.IsZero()
+	if s.Charge.Intent.GetCurrency().IsCustom() {
+		fiatOverage, err := s.Charge.ConvertCustomCurrencyOverageToFiat(currentTotals)
+		if err != nil {
+			return fmt.Errorf("convert custom currency overage to fiat: %w", err)
+		}
+
+		noFiatTransactionRequired = fiatOverage.Amount.IsZero()
+	}
+
 	currentRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 		ID:                        currentRun.ID,
 		StoredAtLT:                mo.Some(storedAtLT),
 		MeteredQuantity:           mo.Some(ratingResult.Quantity),
 		Totals:                    mo.Some(currentTotals),
-		NoFiatTransactionRequired: mo.Some(currentTotals.Total.IsZero()),
+		NoFiatTransactionRequired: mo.Some(noFiatTransactionRequired),
 	})
 	if err != nil {
 		return fmt.Errorf("update realization run: %w", err)

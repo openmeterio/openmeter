@@ -60,25 +60,6 @@ func (i Intent) Kind() Mode {
 	return i.kind
 }
 
-func (i Intent) GetFiatCurrency() *currencyx.FiatCurrency {
-	switch i.kind {
-	case ModeDynamic:
-		if i.dynamic != nil {
-			return i.dynamic.FiatCurrency
-		}
-	case ModePinned:
-		if i.pinned != nil {
-			return i.pinned.FiatCurrency
-		}
-	case ModeManual:
-		if i.manual != nil {
-			return i.manual.FiatCurrency
-		}
-	}
-
-	return nil
-}
-
 func (i Intent) Clone() Intent {
 	out := i
 

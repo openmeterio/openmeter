@@ -66,8 +66,6 @@ func New(config Config) (*Service, error) {
 type CreditAllocationMode string
 
 const (
-	// CreditAllocationNone means no credits are allocated to the run.
-	CreditAllocationNone CreditAllocationMode = "none"
 	// CreditAllocationExact means the total's exact amount of credits is allocated to the run.
 	CreditAllocationExact CreditAllocationMode = "exact"
 	// CreditAllocationAvailable means credits should be allocated up to the total's amount of credits, but it's not an
@@ -77,7 +75,7 @@ const (
 
 func (m CreditAllocationMode) Validate() error {
 	switch m {
-	case CreditAllocationNone, CreditAllocationExact, CreditAllocationAvailable:
+	case CreditAllocationExact, CreditAllocationAvailable:
 		return nil
 	default:
 		return models.NewGenericValidationError(fmt.Errorf("invalid credit allocation mode: %s", m))

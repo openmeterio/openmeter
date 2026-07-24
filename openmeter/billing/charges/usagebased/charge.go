@@ -169,6 +169,15 @@ func (c Charge) GetCurrentRealizationRun() (RealizationRun, error) {
 	return c.Realizations.GetByID(*c.State.CurrentRealizationRunID)
 }
 
+func (c Charge) ConvertCustomCurrencyOverageToFiat(creditCurrencyTotals totals.Totals) (meta.FiatOverage, error) {
+	return meta.ConvertCustomCurrencyOverageToFiat(meta.ConvertCustomCurrencyOverageToFiatInput{
+		Currency:          c.Intent.GetCurrency(),
+		CostBasisIntent:   c.Intent.GetCostBasisIntent(),
+		ResolvedCostBasis: c.State.ResolvedCostBasis,
+		Totals:            creditCurrencyTotals,
+	})
+}
+
 func (c Charge) GetCustomerID() customer.CustomerID {
 	return customer.CustomerID{
 		Namespace: c.Namespace,

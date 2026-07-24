@@ -136,7 +136,7 @@ func (i OnCustomCurrencyOverageAccruedInput) CustomCurrency() currencies.Currenc
 	return i.Charge.Intent.GetEffectiveIntent().Currency
 }
 
-func (i OnCustomCurrencyOverageAccruedInput) GetFiatCurrency() *currencyx.FiatCurrency {
+func (i OnCustomCurrencyOverageAccruedInput) GetFiatCurrency() (*currencyx.FiatCurrency, error) {
 	return i.Charge.Intent.GetEffectiveIntent().CostBasis.GetFiatCurrency()
 }
 
@@ -203,32 +203,14 @@ func (r OnCustomCurrencyOverageAccruedResult) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type OverageAccruedEventInput struct {
-	RunEventInput
+type PaymentEventInput struct {
+	Charge     Charge                `json:"charge"`
+	Run        RealizationRun        `json:"run"`
+	EventAt    time.Time             `json:"eventAt"`
 	FiatAmount alpacadecimal.Decimal `json:"fiatAmount"`
 }
 
-func (i OverageAccruedEventInput) Validate() error {
-	var errs []error
-
-	if err := i.RunEventInput.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("run event input: %w", err))
-	}
-
-	if !i.FiatAmount.IsPositive() {
-		errs = append(errs, fmt.Errorf("fiat amount must be positive"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-type RunEventInput struct {
-	Charge  Charge         `json:"charge"`
-	Run     RealizationRun `json:"run"`
-	EventAt time.Time      `json:"eventAt"`
-}
-
-func (i RunEventInput) Validate() error {
+func (i PaymentEventInput) Validate() error {
 	var errs []error
 
 	if err := i.Charge.Validate(); err != nil {
@@ -243,14 +225,16 @@ func (i RunEventInput) Validate() error {
 		errs = append(errs, fmt.Errorf("event at is required"))
 	}
 
+	if !i.FiatAmount.IsPositive() {
+		errs = append(errs, fmt.Errorf("fiat amount must be positive"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type (
-	OnPaymentAuthorizedInput                      = RunEventInput
-	OnPaymentSettledInput                         = RunEventInput
-	OnCustomCurrencyOveragePaymentAuthorizedInput = OverageAccruedEventInput
-	OnCustomCurrencyOveragePaymentSettledInput    = OverageAccruedEventInput
+	OnPaymentAuthorizedInput = PaymentEventInput
+	OnPaymentSettledInput    = PaymentEventInput
 )
 
 type Handler interface {
@@ -266,12 +250,6 @@ type Handler interface {
 	// OnCustomCurrencyOverageAccrued is called when uncovered custom-currency usage is accrued in fiat.
 	// This must be modeled as a credit purchase flow from the ledger point of view.
 	OnCustomCurrencyOverageAccrued(ctx context.Context, input OnCustomCurrencyOverageAccruedInput) (OnCustomCurrencyOverageAccruedResult, error)
-
-	// OnCustomCurrencyOveragePaymentAuthorized is called when a custom-currency overage payment is authorized.
-	OnCustomCurrencyOveragePaymentAuthorized(ctx context.Context, input OnCustomCurrencyOveragePaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
-
-	// OnCustomCurrencyOveragePaymentSettled is called when a custom-currency overage payment is settled.
-	OnCustomCurrencyOveragePaymentSettled(ctx context.Context, input OnCustomCurrencyOveragePaymentSettledInput) (ledgertransaction.GroupReference, error)
 
 	// OnCreditsOnlyUsageAccrued is called when a credit-only usage-based charge needs to be allocated as credits fully.
 	OnCreditsOnlyUsageAccrued(ctx context.Context, input CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
@@ -290,14 +268,6 @@ func (h UnimplementedHandler) OnInvoiceUsageAccrued(ctx context.Context, input O
 
 func (h UnimplementedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input OnCustomCurrencyOverageAccruedInput) (OnCustomCurrencyOverageAccruedResult, error) {
 	return OnCustomCurrencyOverageAccruedResult{}, errors.New("not implemented")
-}
-
-func (h UnimplementedHandler) OnCustomCurrencyOveragePaymentAuthorized(ctx context.Context, input OnCustomCurrencyOveragePaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
-	return ledgertransaction.GroupReference{}, errors.New("not implemented")
-}
-
-func (h UnimplementedHandler) OnCustomCurrencyOveragePaymentSettled(ctx context.Context, input OnCustomCurrencyOveragePaymentSettledInput) (ledgertransaction.GroupReference, error) {
-	return ledgertransaction.GroupReference{}, errors.New("not implemented")
 }
 
 func (h UnimplementedHandler) OnPaymentAuthorized(ctx context.Context, input OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {

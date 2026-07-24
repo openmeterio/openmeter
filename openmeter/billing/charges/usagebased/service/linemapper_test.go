@@ -10,16 +10,116 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestCollectionDeadlineForRun(t *testing.T) {
+	storedAtLT := time.Date(2026, 2, 1, 1, 0, 0, 0, time.UTC)
+
+	fiatCurrency, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	customCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode("TOKENS").
+		WithName("Tokens").
+		WithPrecision(4).
+		Build()
+	require.NoError(t, err)
+
+	chargeWithCurrency := func(currency currencyx.Currency) usagebased.Charge {
+		return usagebased.Charge{
+			ChargeBase: usagebased.ChargeBase{
+				Intent: usagebased.Intent{
+					Intent: meta.Intent{
+						Currency: currencies.Currency{
+							Currency: currency,
+						},
+					},
+				}.AsOverridableIntent(),
+			},
+		}
+	}
+
+	tests := []struct {
+		name     string
+		charge   usagebased.Charge
+		runType  usagebased.RealizationRunType
+		expected *time.Time
+		wantErr  string
+	}{
+		{
+			name:     "partial metered line uses internal collection deadline",
+			charge:   chargeWithCurrency(fiatCurrency),
+			runType:  usagebased.RealizationRunTypePartialInvoice,
+			expected: lo.ToPtr(storedAtLT.Add(usagebased.InternalCollectionPeriod)),
+		},
+		{
+			name:     "partial custom currency overage uses internal collection deadline",
+			charge:   chargeWithCurrency(customCurrency),
+			runType:  usagebased.RealizationRunTypePartialInvoice,
+			expected: lo.ToPtr(storedAtLT.Add(usagebased.InternalCollectionPeriod)),
+		},
+		{
+			name:    "final metered line uses billing profile deadline",
+			charge:  chargeWithCurrency(fiatCurrency),
+			runType: usagebased.RealizationRunTypeFinalRealization,
+		},
+		{
+			name:     "final custom currency overage retains profile derived deadline",
+			charge:   chargeWithCurrency(customCurrency),
+			runType:  usagebased.RealizationRunTypeFinalRealization,
+			expected: lo.ToPtr(storedAtLT),
+		},
+		{
+			name:    "unknown run type is rejected",
+			charge:  chargeWithCurrency(fiatCurrency),
+			runType: usagebased.RealizationRunType("unknown"),
+			wantErr: "unknown run type: unknown",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - a usage-based run whose StoredAtLT reflects its run-specific collection policy
+			// when:
+			// - the standard-line collection deadline is resolved
+			// then:
+			// - only deadlines billing cannot derive itself are made explicit
+			run := usagebased.RealizationRun{
+				RealizationRunBase: usagebased.RealizationRunBase{
+					Type:       tt.runType,
+					StoredAtLT: storedAtLT,
+				},
+			}
+
+			actual, err := collectionDeadlineForRun(tt.charge, run)
+
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				require.Nil(t, actual)
+				require.Equal(t, storedAtLT, run.StoredAtLT)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, actual)
+			require.Equal(t, storedAtLT, run.StoredAtLT)
+		})
+	}
+}
 
 func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testing.T) {
 	period := timeutil.ClosedPeriod{
@@ -49,6 +149,7 @@ func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testi
 				Namespace: line.Namespace,
 				ID:        "run-id",
 			},
+			Type:            usagebased.RealizationRunTypeFinalRealization,
 			StoredAtLT:      period.To,
 			ServicePeriodTo: period.To,
 			MeteredQuantity: alpacadecimal.NewFromInt(20),
@@ -98,8 +199,10 @@ func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testi
 	}
 
 	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
-		Run:  run,
-		Runs: usagebased.RealizationRuns{priorRun, run},
+		Charge: usagebased.Charge{
+			Realizations: usagebased.RealizationRuns{priorRun, run},
+		},
+		Run: run,
 	})
 	require.NoError(t, err)
 
@@ -140,6 +243,7 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 				Namespace: line.Namespace,
 				ID:        "run-id",
 			},
+			Type:            usagebased.RealizationRunTypeFinalRealization,
 			StoredAtLT:      period.To,
 			ServicePeriodTo: period.To,
 			MeteredQuantity: alpacadecimal.NewFromInt(20),
@@ -167,8 +271,10 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 	}
 
 	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
-		Run:  run,
-		Runs: usagebased.RealizationRuns{priorRun, run},
+		Charge: usagebased.Charge{
+			Realizations: usagebased.RealizationRuns{priorRun, run},
+		},
+		Run: run,
 	})
 	require.NoError(t, err)
 
@@ -202,6 +308,7 @@ func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing
 				Namespace: line.Namespace,
 				ID:        "run-id",
 			},
+			Type:            usagebased.RealizationRunTypeFinalRealization,
 			StoredAtLT:      period.To,
 			ServicePeriodTo: period.To,
 			MeteredQuantity: alpacadecimal.NewFromInt(20),
@@ -213,10 +320,141 @@ func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing
 	}
 
 	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
-		Run:  run,
-		Runs: usagebased.RealizationRuns{run},
+		Charge: usagebased.Charge{
+			Realizations: usagebased.RealizationRuns{run},
+		},
+		Run: run,
 	})
 	require.ErrorContains(t, err, "detailed lines must be expanded")
+}
+
+func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t *testing.T) {
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	customCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode("TOKENS").
+		WithName("Tokens").
+		WithPrecision(4).
+		Build()
+	require.NoError(t, err)
+
+	fiatCurrency, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+		FiatCurrency: fiatCurrency,
+		Rate:         alpacadecimal.NewFromInt(2),
+	})
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: meta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: "namespace",
+				},
+				ID: "charge-id",
+			},
+			Intent: usagebased.Intent{
+				Intent: meta.Intent{
+					Currency: currencies.Currency{
+						Currency: customCurrency,
+					},
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				CostBasis:      &costBasisIntent,
+			}.AsOverridableIntent(),
+			State: usagebased.State{
+				ResolvedCostBasis: &costbasis.State{
+					CostBasis:  alpacadecimal.NewFromInt(2),
+					ResolvedAt: period.From,
+				},
+			},
+		},
+	}
+
+	line := newUsageBasedStandardLineForTest(period)
+	line.Annotations = models.Annotations{
+		billing.AnnotationKeyReason: lo.ToPtr(billing.AnnotationValueReasonOveragePlaceholder),
+	}
+	line.UsageBased.UnitConfig = &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(100),
+	}
+	line.RateCardDiscounts = billing.Discounts{
+		Usage: &billing.UsageDiscount{},
+	}
+	line.DetailedLines = billing.DetailedLines{
+		{
+			DetailedLineBase: billing.DetailedLineBase{
+				Base: stddetailedline.Base{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						ID:        "existing-overage-id",
+						Namespace: line.Namespace,
+						Name:      "existing overage",
+					}),
+					ChildUniqueReferenceID: creditpurchase.CreditPurchaseChildUniqueReferenceID,
+				},
+			},
+		},
+	}
+
+	run := usagebased.RealizationRun{
+		RealizationRunBase: usagebased.RealizationRunBase{
+			ID: usagebased.RealizationRunID{
+				Namespace: line.Namespace,
+				ID:        "run-id",
+			},
+			Type:       usagebased.RealizationRunTypeFinalRealization,
+			StoredAtLT: period.To,
+			Totals: totals.Totals{
+				Total: alpacadecimal.NewFromInt(3),
+			},
+		},
+	}
+	charge.Realizations = usagebased.RealizationRuns{run}
+
+	err = populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Charge: charge,
+		Run:    run,
+	})
+	require.NoError(t, err)
+
+	flatPrice, err := line.UsageBased.Price.AsFlat()
+	require.NoError(t, err)
+	require.Equal(t, float64(6), flatPrice.Amount.InexactFloat64())
+	require.Equal(t, productcatalog.InArrearsPaymentTerm, flatPrice.PaymentTerm)
+	require.Nil(t, line.UsageBased.UnitConfig)
+	require.Equal(t, float64(1), lo.FromPtr(line.UsageBased.MeteredQuantity).InexactFloat64())
+	require.Equal(t, float64(1), lo.FromPtr(line.UsageBased.Quantity).InexactFloat64())
+	require.Equal(t, float64(0), lo.FromPtr(line.UsageBased.MeteredPreLinePeriodQuantity).InexactFloat64())
+	require.Equal(t, float64(0), lo.FromPtr(line.UsageBased.PreLinePeriodQuantity).InexactFloat64())
+	require.True(t, line.RateCardDiscounts.IsEmpty())
+	require.Empty(t, line.Discounts.Usage)
+	require.Empty(t, line.CreditsApplied)
+	require.Equal(t, period.To, *line.OverrideCollectionPeriodEnd)
+
+	reason, ok := line.Annotations[billing.AnnotationKeyReason].(*string)
+	require.True(t, ok)
+	require.Equal(t, billing.AnnotationValueReasonOverage, *reason)
+
+	require.Len(t, line.DetailedLines, 1)
+	require.Equal(t, "existing-overage-id", line.DetailedLines[0].ID)
+	require.Equal(t, "line (overage)", line.DetailedLines[0].Name)
+	require.Equal(t, float64(3), line.DetailedLines[0].Quantity.InexactFloat64())
+	require.Equal(t, float64(2), line.DetailedLines[0].PerUnitAmount.InexactFloat64())
+	require.Equal(t, float64(6), line.DetailedLines[0].Totals.Total.InexactFloat64())
+	require.Equal(t, float64(6), line.Totals.Total.InexactFloat64())
+	require.NoError(t, line.Validate())
+
+	err = populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Charge: charge,
+		Run:    run,
+	})
+	require.NoError(t, err)
+	require.Len(t, line.DetailedLines, 1)
+	require.Equal(t, "existing-overage-id", line.DetailedLines[0].ID)
 }
 
 func newUsageBasedStandardLineForTest(period timeutil.ClosedPeriod) *billing.StandardLine {
