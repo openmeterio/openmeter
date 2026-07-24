@@ -14,13 +14,14 @@ const (
 	AnnotationSubscriptionItemID  = "ledger.subscription.item.id"
 	AnnotationFeatureID           = "ledger.feature.id"
 
-	AnnotationTransactionTemplateCode = "ledger.transaction.template_code"
-	AnnotationTransactionDirection    = "ledger.transaction.direction"
-	AnnotationCollectionType          = "ledger.collection.type"
-	AnnotationCollectionSourceOrder   = "ledger.collection.source_order"
-	AnnotationBreakageKind            = "ledger.breakage.kind"
-	AnnotationBreakageRecordID        = "ledger.breakage.record_id"
-	AnnotationBreakagePlanID          = "ledger.breakage.plan_id"
+	AnnotationTransactionTemplateCode   = "ledger.transaction.template_code"
+	AnnotationTransactionDirection      = "ledger.transaction.direction"
+	AnnotationCollectionType            = "ledger.collection.type"
+	AnnotationCollectionSourceOrder     = "ledger.collection.source_order"
+	AnnotationCollectionPriorityVersion = "ledger.collection.priority_version"
+	AnnotationBreakageKind              = "ledger.breakage.kind"
+	AnnotationBreakageRecordID          = "ledger.breakage.record_id"
+	AnnotationBreakagePlanID            = "ledger.breakage.plan_id"
 )
 
 type ChargeTransactionAnnotationsInput struct {
