@@ -330,6 +330,7 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	require.NoError(t, err)
 
 	require.Equal(t, productcatalog.FlatPriceType, line.UsageBased.Price.Type())
+	require.Equal(t, "feature", line.UsageBased.FeatureKey)
 	require.Nil(t, line.UsageBased.UnitConfig)
 	require.Equal(t, float64(1), lo.FromPtr(line.UsageBased.MeteredQuantity).InexactFloat64())
 	require.Equal(t, float64(1), lo.FromPtr(line.UsageBased.Quantity).InexactFloat64())

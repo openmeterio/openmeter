@@ -236,7 +236,8 @@ func populateCustomCurrencyOverageFromRun(
 	stdLine.CreditsApplied = nil
 
 	stdLine.UsageBased = &billing.UsageBasedLine{
-		ConfigID: stdLine.UsageBased.ConfigID,
+		ConfigID:   stdLine.UsageBased.ConfigID,
+		FeatureKey: stdLine.UsageBased.FeatureKey,
 		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount:      fiatOverage.Amount,
 			PaymentTerm: productcatalog.InArrearsPaymentTerm,

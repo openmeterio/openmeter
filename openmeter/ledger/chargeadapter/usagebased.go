@@ -181,6 +181,7 @@ func (h *usageBasedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, 
 		return usagebased.OnCustomCurrencyOverageAccruedResult{}, err
 	}
 
+	// TODO[implement]: Book the fiat overage in the customer's outstanding account.
 	return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
 }
 
