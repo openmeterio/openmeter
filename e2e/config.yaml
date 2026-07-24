@@ -47,6 +47,7 @@ postgres:
 credits:
   enabled: true
   enableCreditThenInvoice: true
+  customCurrenciesEnabled: true
 
 unitConfig:
   enabled: true

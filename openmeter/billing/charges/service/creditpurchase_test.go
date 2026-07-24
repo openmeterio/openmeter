@@ -55,16 +55,13 @@ func (s *CreditPurchaseTestSuite) getCustomCurrenciesEnabledCreditPurchaseServic
 	s.T().Helper()
 
 	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
-		Adapter:     s.CreditPurchaseAdapter,
-		Handler:     s.CreditPurchaseTestHandler,
-		Lineage:     lineageService,
-		MetaAdapter: s.MetaAdapter,
+		Adapter:                 s.CreditPurchaseAdapter,
+		Handler:                 s.CreditPurchaseTestHandler,
+		Lineage:                 lineageService,
+		MetaAdapter:             s.MetaAdapter,
+		CustomCurrenciesEnabled: true,
 	})
 	s.Require().NoError(err)
-
-	customCurrencyEnabler, ok := creditPurchaseService.(customCurrencyEnabler)
-	s.Require().True(ok)
-	s.Require().NoError(customCurrencyEnabler.SetEnableCustomCurrency(s.T(), true))
 
 	return creditPurchaseService
 }

@@ -526,6 +526,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.currencyHandler = currencyhandler.New(
 		resolveNamespace,
 		config.CurrencyService,
+		config.Credits.CustomCurrenciesEnabled,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

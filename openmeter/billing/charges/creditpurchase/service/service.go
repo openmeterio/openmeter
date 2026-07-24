@@ -17,6 +17,8 @@ type Config struct {
 	Handler     creditpurchase.Handler
 	Lineage     lineage.Service
 	MetaAdapter meta.Adapter
+
+	CustomCurrenciesEnabled bool
 }
 
 func (c Config) Validate() error {
@@ -55,13 +57,16 @@ func New(config Config) (creditpurchase.Service, error) {
 		return nil, fmt.Errorf("realizations: %w", err)
 	}
 
-	return &service{
+	svc := &service{
 		adapter:      config.Adapter,
 		handler:      config.Handler,
 		lineage:      config.Lineage,
 		metaAdapter:  config.MetaAdapter,
 		realizations: realizations,
-	}, nil
+	}
+	svc.enableCustomCurrency.Store(config.CustomCurrenciesEnabled)
+
+	return svc, nil
 }
 
 type service struct {

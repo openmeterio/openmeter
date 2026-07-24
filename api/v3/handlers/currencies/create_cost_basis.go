@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -24,6 +25,10 @@ type (
 func (h *handler) CreateCostBasis() CreateCostBasisHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, currencyID string) (CreateCostBasisRequest, error) {
+			if !h.customCurrenciesEnabled {
+				return CreateCostBasisRequest{}, models.NewGenericValidationError(errCustomCurrenciesDisabled)
+			}
+
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return CreateCostBasisRequest{}, err

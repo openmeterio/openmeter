@@ -213,15 +213,17 @@ func NewChargesFlatFeeService(
 	locker *lockr.Locker,
 	ratingService rating.Service,
 	currenciesService currencies.Service,
+	creditsConfig config.CreditsConfiguration,
 ) (flatfee.Service, error) {
 	flatFeeSvc, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:       flatFeeAdapter,
-		Handler:       flatFeeHandler,
-		Lineage:       lineageService,
-		MetaAdapter:   metaAdapter,
-		Locker:        locker,
-		RatingService: ratingService,
-		Currencies:    currenciesService,
+		Adapter:                 flatFeeAdapter,
+		Handler:                 flatFeeHandler,
+		Lineage:                 lineageService,
+		MetaAdapter:             metaAdapter,
+		Locker:                  locker,
+		RatingService:           ratingService,
+		Currencies:              currenciesService,
+		CustomCurrenciesEnabled: creditsConfig.CustomCurrenciesEnabled,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges flat fee service: %w", err)
@@ -259,6 +261,7 @@ func NewChargesUsageBasedService(
 	ratingService rating.Service,
 	currenciesService currencies.Service,
 	streamingConnector streaming.Connector,
+	creditsConfig config.CreditsConfiguration,
 ) (usagebased.Service, error) {
 	usageBasedSvc, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
@@ -272,6 +275,7 @@ func NewChargesUsageBasedService(
 		RatingService:           ratingService,
 		Currencies:              currenciesService,
 		StreamingConnector:      streamingConnector,
+		CustomCurrenciesEnabled: creditsConfig.CustomCurrenciesEnabled,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges usage based service: %w", err)
@@ -317,12 +321,14 @@ func NewChargesCreditPurchaseService(
 	creditPurchaseHandler creditpurchase.Handler,
 	lineageService lineage.Service,
 	metaAdapter meta.Adapter,
+	creditsConfig config.CreditsConfiguration,
 ) (creditpurchase.Service, error) {
 	creditPurchaseSvc, err := creditpurchaseservice.New(creditpurchaseservice.Config{
-		Adapter:     creditPurchaseAdapter,
-		Handler:     creditPurchaseHandler,
-		Lineage:     lineageService,
-		MetaAdapter: metaAdapter,
+		Adapter:                 creditPurchaseAdapter,
+		Handler:                 creditPurchaseHandler,
+		Lineage:                 lineageService,
+		MetaAdapter:             metaAdapter,
+		CustomCurrenciesEnabled: creditsConfig.CustomCurrenciesEnabled,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges credit purchase service: %w", err)
@@ -478,7 +484,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, ratingService, currenciesService)
+	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, ratingService, currenciesService, creditsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -509,6 +515,7 @@ func newChargesRegistry(
 		ratingService,
 		currenciesService,
 		streamingConnector,
+		creditsConfig,
 	)
 	if err != nil {
 		return nil, err
@@ -523,7 +530,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	creditPurchaseSvc, err := NewChargesCreditPurchaseService(creditPurchaseAdapter, creditPurchaseHandler, lineageService, metaAdapter)
+	creditPurchaseSvc, err := NewChargesCreditPurchaseService(creditPurchaseAdapter, creditPurchaseHandler, lineageService, metaAdapter, creditsConfig)
 	if err != nil {
 		return nil, err
 	}
