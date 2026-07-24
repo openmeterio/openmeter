@@ -248,3 +248,127 @@ func TestEmptyIDGuard(t *testing.T) {
 		})
 	}
 }
+
+func TestAPIErrorInvalidParameters(t *testing.T) {
+	t.Parallel()
+
+	getAPIError := func(t *testing.T, body string) *openmeter.APIError {
+		t.Helper()
+
+		om := newTestClient(t, (&requestRecorder{}).handler(http.StatusBadRequest, body))
+		_, err := om.Meters.Get(t.Context(), "m-1")
+
+		apiErr, ok := openmeter.AsAPIError(err)
+		if !ok {
+			t.Fatalf("error %v is not an *APIError", err)
+		}
+		return apiErr
+	}
+
+	t.Run("standard rule", func(t *testing.T) {
+		t.Parallel()
+
+		apiErr := getAPIError(t, `{"status":400,"title":"Bad Request","invalid_parameters":[{"field":"name","rule":"required","reason":"is required","source":"body"}]}`)
+
+		if len(apiErr.InvalidParameters) != 1 {
+			t.Fatalf("InvalidParameters = %v, want one entry", apiErr.InvalidParameters)
+		}
+		p := apiErr.InvalidParameters[0]
+		if p.Field != "name" || p.Rule != openmeter.InvalidRuleRequired || p.Reason != "is required" || p.Source != openmeter.InvalidParameterSourceBody {
+			t.Errorf("unexpected parameter: %+v", p)
+		}
+		if !p.Rule.Valid() {
+			t.Error("Rule.Valid() = false for a known rule")
+		}
+		if !p.Source.Valid() {
+			t.Error("Source.Valid() = false for a known source")
+		}
+	})
+
+	t.Run("minimum and maximum rules", func(t *testing.T) {
+		t.Parallel()
+
+		apiErr := getAPIError(t, `{"status":400,"title":"Bad Request","invalid_parameters":[{"field":"key","rule":"min_length","reason":"too short","minimum":5},{"field":"key","rule":"max_length","reason":"too long","maximum":100}]}`)
+
+		if len(apiErr.InvalidParameters) != 2 {
+			t.Fatalf("InvalidParameters = %v, want two entries", apiErr.InvalidParameters)
+		}
+		if p := apiErr.InvalidParameters[0]; p.Minimum == nil || *p.Minimum != 5 {
+			t.Errorf("Minimum = %v, want 5", p.Minimum)
+		}
+		if p := apiErr.InvalidParameters[1]; p.Maximum == nil || *p.Maximum != 100 {
+			t.Errorf("Maximum = %v, want 100", p.Maximum)
+		}
+	})
+
+	t.Run("choice rule with mixed value types", func(t *testing.T) {
+		t.Parallel()
+
+		apiErr := getAPIError(t, `{"status":400,"title":"Bad Request","invalid_parameters":[{"field":"kind","rule":"enum","reason":"not a choice","choices":["a","b",3]}]}`)
+
+		if len(apiErr.InvalidParameters) != 1 {
+			t.Fatalf("InvalidParameters = %v, want one entry", apiErr.InvalidParameters)
+		}
+		choices := apiErr.InvalidParameters[0].Choices
+		if len(choices) != 3 {
+			t.Fatalf("Choices = %v, want three values", choices)
+		}
+		if choices[0] != "a" || choices[1] != "b" {
+			t.Errorf("Choices = %v, want string values decoded verbatim", choices)
+		}
+		if n, ok := choices[2].(float64); !ok || n != 3 {
+			t.Errorf("Choices[2] = %v, want the numeric choice to decode", choices[2])
+		}
+	})
+
+	t.Run("dependent rule", func(t *testing.T) {
+		t.Parallel()
+
+		apiErr := getAPIError(t, `{"status":400,"title":"Bad Request","invalid_parameters":[{"field":"start","rule":"dependent_fields","reason":"requires end","dependents":["end"]}]}`)
+
+		if len(apiErr.InvalidParameters) != 1 {
+			t.Fatalf("InvalidParameters = %v, want one entry", apiErr.InvalidParameters)
+		}
+		p := apiErr.InvalidParameters[0]
+		if p.Rule != openmeter.InvalidRuleDependentFields || len(p.Dependents) != 1 || p.Dependents[0] != "end" {
+			t.Errorf("unexpected parameter: %+v", p)
+		}
+	})
+
+	t.Run("unknown rule round-trips", func(t *testing.T) {
+		t.Parallel()
+
+		apiErr := getAPIError(t, `{"status":400,"title":"Bad Request","invalid_parameters":[{"field":"x","rule":"some_future_rule","reason":"new server"}]}`)
+
+		p := apiErr.InvalidParameters[0]
+		if p.Rule != openmeter.InvalidRule("some_future_rule") {
+			t.Errorf("Rule = %q, want the unknown value preserved verbatim", p.Rule)
+		}
+		if p.Rule.Valid() {
+			t.Error("Rule.Valid() = true for an unknown rule")
+		}
+	})
+
+	t.Run("malformed invalid_parameters keeps sibling fields", func(t *testing.T) {
+		t.Parallel()
+
+		apiErr := getAPIError(t, `{"status":400,"title":"Bad Request","detail":"still here","invalid_parameters":{"not":"an array"}}`)
+
+		if apiErr.Status != 400 || apiErr.Title != "Bad Request" || apiErr.Detail != "still here" {
+			t.Errorf("sibling fields did not survive a malformed invalid_parameters: %+v", apiErr)
+		}
+		if apiErr.InvalidParameters != nil {
+			t.Errorf("InvalidParameters = %v, want nil for a malformed field", apiErr.InvalidParameters)
+		}
+	})
+
+	t.Run("absent invalid_parameters stays nil", func(t *testing.T) {
+		t.Parallel()
+
+		apiErr := getAPIError(t, `{"status":400,"title":"Bad Request"}`)
+
+		if apiErr.InvalidParameters != nil {
+			t.Errorf("InvalidParameters = %v, want nil when absent", apiErr.InvalidParameters)
+		}
+	})
+}

@@ -62,3 +62,15 @@ func WithUserAgent(ua string) Option {
 		}
 	}
 }
+
+// WithRequestEditor appends a RequestEditorFn that runs on every outgoing
+// request, after the client's own default headers. Passing WithRequestEditor
+// more than once composes editors — they run in the order supplied to New —
+// rather than replacing earlier ones. A nil fn is ignored.
+func WithRequestEditor(fn RequestEditorFn) Option {
+	return func(c *Client) {
+		if fn != nil {
+			c.requestEditors = append(c.requestEditors, fn)
+		}
+	}
+}
