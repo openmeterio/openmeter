@@ -39,11 +39,15 @@ curl -X POST http://localhost:48888/api/v1/events \
   "data": {
     "method": "GET",
     "route": "/hello",
-    "duration_ms": 10
+    "duration_ms": "10"
   }
 }
 '
 ```
+
+Note that numeric values where precision matters are sent as JSON strings
+(`"duration_ms": "10"`) so they are parsed without floating-point precision
+loss.
 
 Note how ID is different:
 
@@ -61,7 +65,7 @@ curl -X POST http://localhost:48888/api/v1/events \
   "data": {
     "method": "GET",
     "route": "/hello",
-    "duration_ms": 20
+    "duration_ms": "20"
   }
 }
 '
@@ -83,7 +87,7 @@ curl -X POST http://localhost:48888/api/v1/events \
   "data": {
     "method": "GET",
     "route": "/hello",
-    "duration_ms": 30
+    "duration_ms": "30"
   }
 }
 '
