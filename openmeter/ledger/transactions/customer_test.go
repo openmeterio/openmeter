@@ -4,10 +4,30 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestIssueCustomerReceivableTemplateValidate(t *testing.T) {
+	err := (IssueCustomerReceivableTemplate{
+		Amount:                 alpacadecimal.NewFromInt(-1),
+		Currency:               currencyx.Code("AC|ME"),
+		ExchangeSourceCurrency: lo.ToPtr(currencyx.Code("POINTS")),
+		CostBasis:              lo.ToPtr(alpacadecimal.NewFromInt(-1)),
+		CreditPriority:         lo.ToPtr(-1),
+	}).Validate()
+	require.True(t, models.IsGenericValidationError(err))
+	require.ErrorContains(t, err, "amount must be positive")
+	require.ErrorContains(t, err, "at is required")
+	require.ErrorContains(t, err, "currency:")
+	require.ErrorContains(t, err, "exchange source currency:")
+	require.ErrorContains(t, err, "cost basis:")
+	require.ErrorContains(t, err, "credit priority:")
+}
 
 func TestIssueCustomerReceivableTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)
@@ -43,6 +63,31 @@ func TestIssueCustomerReceivableTemplate_DefaultPriority(t *testing.T) {
 
 	require.True(t, env.SumBalance(t, env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)).Equal(alpacadecimal.NewFromInt(15)))
 	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-15)))
+}
+
+func TestIssueCustomerReceivableTemplate_CustomPrecisionCommit(t *testing.T) {
+	// given:
+	// - a custom-currency amount already materialized to the registry precision
+	// when:
+	// - the issuance passes through the real historical ledger
+	// then:
+	// - the ledger preserves the amount instead of applying fiat precision
+	env := newTransactionsTestEnv(t)
+	env.Currency = currencyx.Code("ACME")
+	amount, err := alpacadecimal.NewFromString("10.001")
+	require.NoError(t, err)
+
+	env.resolveAndCommit(
+		t,
+		IssueCustomerReceivableTemplate{
+			At:       env.Now(),
+			Amount:   amount,
+			Currency: env.Currency,
+		},
+	)
+
+	require.Equal(t, float64(10.001), env.SumBalance(t, env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)).InexactFloat64())
+	require.Equal(t, float64(-10.001), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
 }
 
 func TestAuthorizeCustomerReceivablePaymentTemplate(t *testing.T) {

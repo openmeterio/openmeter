@@ -1,4 +1,4 @@
-h1:H3bk/UtzIVOtrA6G0DoHGgYbhQrfDdLaXCVk6JDd+Tw=
+h1:c73xswTH1cgZDRWnzRa1we6uEf7eyeQscgkieWi/Fbc=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -243,3 +243,4 @@ h1:H3bk/UtzIVOtrA6G0DoHGgYbhQrfDdLaXCVk6JDd+Tw=
 20260721140844_deprecate_detailed_line_currency.up.sql h1:wG5tChhpzGEfeXdAVvpYmLzxKnmqPcACAYvcSdH9sJ0=
 20260722145858_add_charge_cost_basis.up.sql h1:fkgfCOoDlg9XsWATSRmBXUywHwTiUfq9FAmRQ0mNGHw=
 20260724082957_backfill_credit_purchase_invoice_fiat_amount.up.sql h1:LtvTl3P0Hco9fZgYS29v8Gk4lGSZJ2k+/6Z14qLN+QM=
+20260724112327_add_ledger_custom_currency_support.up.sql h1:Oebqhz9rIS0KM82acFL+x42S+wRGCRufZsxXW8YM+OI=

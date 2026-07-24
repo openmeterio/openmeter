@@ -4482,6 +4482,7 @@ var (
 		{Name: "routing_key_version", Type: field.TypeString},
 		{Name: "routing_key", Type: field.TypeString},
 		{Name: "currency", Type: field.TypeString},
+		{Name: "exchange_source_currency", Type: field.TypeString, Nullable: true},
 		{Name: "tax_code", Type: field.TypeString, Nullable: true},
 		{Name: "tax_behavior", Type: field.TypeString, Nullable: true},
 		{Name: "features", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
@@ -4498,7 +4499,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ledger_sub_account_routes_ledger_accounts_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[14]},
+				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[15]},
 				RefColumns: []*schema.Column{LedgerAccountsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -4517,7 +4518,7 @@ var (
 			{
 				Name:    "ledgersubaccountroute_namespace_account_id_routing_key_version_routing_key",
 				Unique:  true,
-				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[14], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
+				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[15], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
 			},
 		},
 	}
@@ -4591,6 +4592,9 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "idempotency_scope", Type: field.TypeString, Nullable: true},
+		{Name: "idempotency_key", Type: field.TypeString, Nullable: true, Size: 256},
+		{Name: "input_fingerprint", Type: field.TypeString, Nullable: true, Size: 67},
 	}
 	// LedgerTransactionGroupsTable holds the schema information for the "ledger_transaction_groups" table.
 	LedgerTransactionGroupsTable = &schema.Table{
@@ -4622,6 +4626,14 @@ var (
 				Name:    "ledgertransactiongroup_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{LedgerTransactionGroupsColumns[1], LedgerTransactionGroupsColumns[0]},
+			},
+			{
+				Name:    "ledger_tx_groups_idempotency_scope",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerTransactionGroupsColumns[6]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "idempotency_scope IS NOT NULL",
+				},
 			},
 		},
 	}
@@ -6126,6 +6138,11 @@ func init() {
 	LedgerSubAccountsTable.ForeignKeys[1].RefTable = LedgerSubAccountRoutesTable
 	LedgerSubAccountRoutesTable.ForeignKeys[0].RefTable = LedgerAccountsTable
 	LedgerTransactionsTable.ForeignKeys[0].RefTable = LedgerTransactionGroupsTable
+	LedgerTransactionGroupsTable.Annotation = &entsql.Annotation{}
+	LedgerTransactionGroupsTable.Annotation.Checks = map[string]string{
+		"ledger_tx_group_idempotency_fields": "(idempotency_key IS NULL) = (input_fingerprint IS NULL) AND (idempotency_key IS NULL) = (idempotency_scope IS NULL)",
+		"ledger_tx_group_idempotency_scope":  "idempotency_scope IS NULL OR idempotency_scope = (octet_length(namespace)::text || ':' || namespace || idempotency_key)",
+	}
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	OrganizationDefaultTaxCodesTable.ForeignKeys[0].RefTable = TaxCodesTable
 	OrganizationDefaultTaxCodesTable.ForeignKeys[1].RefTable = TaxCodesTable

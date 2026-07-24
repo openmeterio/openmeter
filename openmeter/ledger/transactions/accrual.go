@@ -110,8 +110,9 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 	route := address.Route().Route()
 
 	return routePairingKey{
-		currency:  route.Currency,
-		costBasis: costBasisKey(route.CostBasis),
+		currency:               route.Currency,
+		exchangeSourceCurrency: string(lo.FromPtrOr(route.ExchangeSourceCurrency, currencyx.Code(""))),
+		costBasis:              costBasisKey(route.CostBasis),
 	}
 }
 
@@ -196,10 +197,11 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 		current := accruedSubAccByKey[key]
 		if current.Address == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-				Currency:    t.Currency,
-				TaxCode:     t.TaxCode,
-				TaxBehavior: t.TaxBehavior,
-				CostBasis:   source.Address.Route().Route().CostBasis,
+				Currency:               t.Currency,
+				ExchangeSourceCurrency: source.Address.Route().Route().ExchangeSourceCurrency,
+				TaxCode:                t.TaxCode,
+				TaxBehavior:            t.TaxBehavior,
+				CostBasis:              source.Address.Route().Route().CostBasis,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)

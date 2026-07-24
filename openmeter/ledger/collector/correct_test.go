@@ -6,12 +6,15 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -352,6 +355,378 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	requireAccruedBalanceBuckets(t, env, map[string]float64{
 		sourceSpendChargeKey(nil, &chargeID): float64(remainingAdvance), // accrued keeps the uncorrected 20 under spend provenance with no source.
 	})
+}
+
+func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-custom-promotion")
+	env.Currency = currencyx.Code("ACME")
+	collector := newTestAccrualCollector(env)
+	corrector := newTestAccrualCorrector(env, nil)
+
+	// given:
+	// - 100 promotional ACME credits with no fiat exchange source
+	// when:
+	// - a credit-only charge consumes 40 ACME and is corrected down by 10 ACME
+	// then:
+	// - 70 ACME remains available and 30 ACME remains accrued
+	// - every posting remains in source-less ACME routes
+	sourceCharge := testChargeID(1)
+	spendCharge := testChargeID(2)
+	fundSourceCharge(t, env, sourceCharge, 1, 100)
+
+	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+		env,
+		spendCharge,
+		alpacadecimal.NewFromInt(40),
+		productcatalog.CreditOnlySettlementMode,
+	))
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+
+	require.Equal(t, float64(60), env.SumBalance(t, env.FBOSubAccount(t, 1)).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
+	require.Equal(t, float64(40), env.SumBalance(t, env.AccruedSubAccount(t)).InexactFloat64())
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, &spendCharge): 40,
+	})
+	requireReceivableBalanceBuckets(t, env, map[string]float64{})
+
+	realizations := realizationsFromAllocations(env, allocations)
+	customCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(env.Currency).
+		WithName("ACME Credits").
+		WithPrecision(3).
+		Build()
+	require.NoError(t, err)
+
+	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-10), customCurrency)
+	require.NoError(t, err)
+	require.Len(t, corrections, 1)
+
+	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+		Namespace:   env.Namespace,
+		ChargeID:    spendCharge,
+		CustomerID:  env.CustomerID.ID,
+		AllocateAt:  env.Now(),
+		Corrections: corrections,
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(70), env.SumBalance(t, env.FBOSubAccount(t, 1)).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
+	require.Equal(t, float64(30), env.SumBalance(t, env.AccruedSubAccount(t)).InexactFloat64())
+	requireFBOBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, nil): 70,
+	})
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, &spendCharge): 30,
+	})
+	requireReceivableBalanceBuckets(t, env, map[string]float64{})
+
+	customTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+		Namespace: env.Namespace,
+		Limit:     100,
+		Currency:  &env.Currency,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, customTransactions.Items)
+	for _, transaction := range customTransactions.Items {
+		for _, entry := range transaction.Entries() {
+			route := entry.PostingAddress().Route().Route()
+			require.Equal(t, env.Currency, route.Currency)
+			require.Nil(t, route.ExchangeSourceCurrency)
+		}
+	}
+
+	usd := currencyx.Code("USD")
+	usdTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+		Namespace: env.Namespace,
+		Limit:     100,
+		Currency:  &usd,
+	})
+	require.NoError(t, err)
+	require.Empty(t, usdTransactions.Items)
+}
+
+func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-funded-custom-shortfall")
+	env.Currency = currencyx.Code("ACME")
+	collector := newTestAccrualCollector(env)
+	corrector := newTestAccrualCorrector(env, nil)
+
+	// given:
+	// - 100 ACME credits funded from 25 USD at a copied 0.25 cost basis
+	// - the funding source and spend carry independent charge provenance
+	// when:
+	// - a credit-only charge consumes 120 ACME and is corrected down to 80 ACME
+	// then:
+	// - the source-less 20 ACME exposure is reversed first
+	// - the remaining correction restores 20 ACME to the USD-funded route
+	// - no USD transaction is created for the uncovered credit-only slice
+	customCurrency := env.Currency
+	fiatCurrency := currencyx.Code("USD")
+	costBasis := alpacadecimal.NewFromFloat(0.25)
+	priority := 1
+	sourceCharge := testChargeID(1)
+	spendCharge := testChargeID(2)
+	servicePeriod := testServicePeriod(env)
+	taxCode := "standard"
+	taxBehavior := ledger.TaxBehaviorExclusive
+
+	fundingInputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		transactions.IssueCustomerReceivableTemplate{
+			At:                     env.Now(),
+			Amount:                 alpacadecimal.NewFromInt(100),
+			Currency:               customCurrency,
+			ExchangeSourceCurrency: &fiatCurrency,
+			CostBasis:              &costBasis,
+			CreditPriority:         &priority,
+			SourceChargeID:         &sourceCharge,
+		},
+		transactions.ConvertCurrencyTemplate{
+			At:             env.Now(),
+			SourceAmount:   alpacadecimal.NewFromInt(25),
+			TargetAmount:   alpacadecimal.NewFromInt(100),
+			CostBasis:      costBasis,
+			SourceCurrency: fiatCurrency,
+			TargetCurrency: customCurrency,
+		},
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(25),
+			Currency:       fiatCurrency,
+			CostBasis:      &costBasis,
+			SourceChargeID: &sourceCharge,
+		},
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(25),
+			Currency:       fiatCurrency,
+			CostBasis:      &costBasis,
+			SourceChargeID: &sourceCharge,
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(
+		env.Namespace,
+		nil,
+		fundingInputs...,
+	))
+	require.NoError(t, err)
+
+	fundedFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:               customCurrency,
+		ExchangeSourceCurrency: &fiatCurrency,
+		CreditPriority:         priority,
+		CostBasis:              &costBasis,
+	})
+	require.NoError(t, err)
+	fundedAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:               customCurrency,
+		ExchangeSourceCurrency: &fiatCurrency,
+		TaxCode:                &taxCode,
+		TaxBehavior:            &taxBehavior,
+		CostBasis:              &costBasis,
+	})
+	require.NoError(t, err)
+	sourceLessAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:    customCurrency,
+		TaxCode:     &taxCode,
+		TaxBehavior: &taxBehavior,
+	})
+	require.NoError(t, err)
+
+	usdBeforeCollection, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+		Namespace: env.Namespace,
+		Limit:     100,
+		Currency:  &fiatCurrency,
+	})
+	require.NoError(t, err)
+
+	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
+		Namespace:         env.Namespace,
+		ChargeID:          spendCharge,
+		CustomerID:        env.CustomerID.ID,
+		BookedAt:          env.Now(),
+		SourceBalanceAsOf: env.Now(),
+		Currency:          customCurrency,
+		SettlementMode:    productcatalog.CreditOnlySettlementMode,
+		ServicePeriod:     servicePeriod,
+		Amount:            alpacadecimal.NewFromInt(120),
+		TaxCode:           &taxCode,
+		TaxBehavior:       &taxBehavior,
+	})
+	require.NoError(t, err)
+	require.Len(t, allocations, 2)
+	for _, allocation := range allocations {
+		require.Equal(t, servicePeriod, allocation.ServicePeriod)
+	}
+
+	require.Equal(t, float64(0), env.SumBalance(t, fundedFBO).InexactFloat64())
+	require.Equal(t, float64(-20), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
+	require.Equal(t, float64(100), env.SumBalance(t, fundedAccrued).InexactFloat64())
+	require.Equal(t, float64(20), env.SumBalance(t, sourceLessAccrued).InexactFloat64())
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, &spendCharge): 100,
+		sourceSpendChargeKey(nil, &spendCharge):           20,
+	})
+	requireReceivableBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, nil): -100,
+		sourceSpendChargeKey(nil, nil):           100,
+		sourceSpendChargeKey(nil, &spendCharge):  -20,
+	})
+
+	resolvedCustomCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(customCurrency).
+		WithName("ACME Credits").
+		WithPrecision(3).
+		Build()
+	require.NoError(t, err)
+	corrections, err := realizationsFromAllocations(env, allocations).
+		CreateCorrectionRequest(alpacadecimal.NewFromInt(-40), resolvedCustomCurrency)
+	require.NoError(t, err)
+	require.Len(t, corrections, 2)
+
+	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+		Namespace:   env.Namespace,
+		ChargeID:    spendCharge,
+		CustomerID:  env.CustomerID.ID,
+		AllocateAt:  env.Now(),
+		Corrections: corrections,
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(20), env.SumBalance(t, fundedFBO).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, env.ReceivableSubAccount(t)).InexactFloat64())
+	require.Equal(t, float64(80), env.SumBalance(t, fundedAccrued).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, sourceLessAccrued).InexactFloat64())
+	requireFBOBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, nil): 20,
+	})
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, &spendCharge): 80,
+	})
+	requireReceivableBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, nil): -100,
+		sourceSpendChargeKey(nil, nil):           100,
+	})
+
+	sourceQualifiedTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+		Namespace: env.Namespace,
+		Limit:     100,
+		Currency:  &customCurrency,
+		Route: ledger.RouteFilter{
+			ExchangeSourceCurrency: mo.Some(&fiatCurrency),
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, sourceQualifiedTransactions.Items)
+	for _, transaction := range sourceQualifiedTransactions.Items {
+		for _, entry := range transaction.Entries() {
+			route := entry.PostingAddress().Route().Route()
+			require.Equal(t, customCurrency, route.Currency)
+			require.Equal(t, &fiatCurrency, route.ExchangeSourceCurrency)
+			require.NotNil(t, route.CostBasis)
+			require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
+		}
+	}
+
+	sourceLessTransactions, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+		Namespace: env.Namespace,
+		Limit:     100,
+		Currency:  &customCurrency,
+		Route: ledger.RouteFilter{
+			ExchangeSourceCurrency: mo.Some[*currencyx.Code](nil),
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, sourceLessTransactions.Items)
+	for _, transaction := range sourceLessTransactions.Items {
+		for _, entry := range transaction.Entries() {
+			require.Nil(t, entry.PostingAddress().Route().Route().ExchangeSourceCurrency)
+		}
+	}
+
+	usdAfterCorrection, err := env.Deps.HistoricalLedger.ListTransactions(t.Context(), ledger.ListTransactionsInput{
+		Namespace: env.Namespace,
+		Limit:     100,
+		Currency:  &fiatCurrency,
+	})
+	require.NoError(t, err)
+	require.Len(t, usdAfterCorrection.Items, len(usdBeforeCollection.Items))
+	for idx := range usdBeforeCollection.Items {
+		require.Equal(t, usdBeforeCollection.Items[idx].ID(), usdAfterCorrection.Items[idx].ID())
+	}
+}
+
+func TestBackfilledCreditReissueRoutePreservesExchangeSourceCurrency(t *testing.T) {
+	// given:
+	// - a custom-currency FBO route funded through a USD exchange
+	// when:
+	// - a correction resolves the route for reissuing backfilled credit
+	// then:
+	// - the reissued route keeps the original fiat source
+	now := time.Now().UTC()
+	costBasis := alpacadecimal.NewFromFloat(0.25)
+	priority := 1
+	exchangeSourceCurrency := lo.ToPtr(currencyx.Code("USD"))
+	route := ledger.Route{
+		Currency:               currencyx.Code("ACME"),
+		ExchangeSourceCurrency: exchangeSourceCurrency,
+		CostBasis:              &costBasis,
+		CreditPriority:         &priority,
+	}
+	key, err := ledger.BuildRoutingKey(route)
+	require.NoError(t, err)
+
+	transaction, err := ledgerhistorical.NewTransactionFromData(
+		ledgerhistorical.TransactionData{
+			ID:        "tx-1",
+			Namespace: "ns",
+			CreatedAt: now,
+			BookedAt:  now,
+		},
+		[]ledgerhistorical.EntryData{
+			{
+				ID:            "entry-1",
+				Namespace:     "ns",
+				CreatedAt:     now,
+				SubAccountID:  "subaccount-1",
+				AccountType:   ledger.AccountTypeCustomerFBO,
+				Route:         route,
+				RouteID:       "route-1",
+				RouteKey:      key.Value(),
+				RouteKeyVer:   key.Version(),
+				Amount:        alpacadecimal.NewFromInt(10),
+				TransactionID: "tx-1",
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	group := ledgerhistorical.NewTransactionGroupFromData(
+		ledgerhistorical.TransactionGroupData{
+			ID:        "group-1",
+			Namespace: "ns",
+			CreatedAt: now,
+		},
+		[]*ledgerhistorical.Transaction{transaction},
+	)
+
+	resolved, err := (&accrualCorrector{}).backfilledCreditReissueRoute(group)
+	require.NoError(t, err)
+	require.Equal(t, exchangeSourceCurrency, resolved.exchangeSourceCurrency)
 }
 
 func newTestAccrualCorrector(

@@ -13,18 +13,20 @@ import (
 // routePairingKey pairs source and counterpart sub-accounts during accrual and
 // earnings correction.
 type routePairingKey struct {
-	currency       currencyx.Code
-	taxCode        string
-	taxBehavior    string
-	costBasis      string
-	sourceChargeID string
-	spendChargeID  string
+	currency               currencyx.Code
+	exchangeSourceCurrency string
+	taxCode                string
+	taxBehavior            string
+	costBasis              string
+	sourceChargeID         string
+	spendChargeID          string
 }
 
 func (k routePairingKey) String() string {
 	return fmt.Sprintf(
-		"currency=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
+		"currency=%s,exchange_source_currency=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
 		k.currency,
+		k.exchangeSourceCurrency,
 		k.taxCode,
 		k.taxBehavior,
 		k.costBasis,

@@ -11,6 +11,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // ID filters vertices based on their ID field.
@@ -107,6 +108,12 @@ func RoutingKey(v string) predicate.LedgerSubAccountRoute {
 // Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
 func Currency(v string) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCurrency, v))
+}
+
+// ExchangeSourceCurrency applies equality check predicate on the "exchange_source_currency" field. It's identical to ExchangeSourceCurrencyEQ.
+func ExchangeSourceCurrency(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldExchangeSourceCurrency, vc))
 }
 
 // TaxCode applies equality check predicate on the "tax_code" field. It's identical to TaxCodeEQ.
@@ -613,6 +620,100 @@ func CurrencyEqualFold(v string) predicate.LedgerSubAccountRoute {
 // CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
 func CurrencyContainsFold(v string) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldCurrency, v))
+}
+
+// ExchangeSourceCurrencyEQ applies the EQ predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyEQ(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyNEQ applies the NEQ predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyNEQ(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyIn applies the In predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyIn(vs ...currencyx.Code) predicate.LedgerSubAccountRoute {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldExchangeSourceCurrency, v...))
+}
+
+// ExchangeSourceCurrencyNotIn applies the NotIn predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyNotIn(vs ...currencyx.Code) predicate.LedgerSubAccountRoute {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldExchangeSourceCurrency, v...))
+}
+
+// ExchangeSourceCurrencyGT applies the GT predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyGT(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyGTE applies the GTE predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyGTE(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyLT applies the LT predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyLT(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyLTE applies the LTE predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyLTE(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyContains applies the Contains predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyContains(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldContains(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyHasPrefix applies the HasPrefix predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyHasPrefix(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldHasPrefix(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyHasSuffix applies the HasSuffix predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyHasSuffix(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldHasSuffix(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyIsNil applies the IsNil predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyIsNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldExchangeSourceCurrency))
+}
+
+// ExchangeSourceCurrencyNotNil applies the NotNil predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyNotNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldExchangeSourceCurrency))
+}
+
+// ExchangeSourceCurrencyEqualFold applies the EqualFold predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyEqualFold(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldEqualFold(FieldExchangeSourceCurrency, vc))
+}
+
+// ExchangeSourceCurrencyContainsFold applies the ContainsFold predicate on the "exchange_source_currency" field.
+func ExchangeSourceCurrencyContainsFold(v currencyx.Code) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldExchangeSourceCurrency, vc))
 }
 
 // TaxCodeEQ applies the EQ predicate on the "tax_code" field.

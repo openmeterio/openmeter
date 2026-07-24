@@ -2,55 +2,84 @@ package transactions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	goblcurrency "github.com/invopop/gobl/currency"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ConvertCurrencyTemplate struct {
 	At           time.Time
+	SourceAmount alpacadecimal.Decimal
 	TargetAmount alpacadecimal.Decimal
 	CostBasis    alpacadecimal.Decimal
 
 	SourceCurrency currencyx.Code
 	TargetCurrency currencyx.Code
-	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
-	CreditPriority *int
 }
 
 func (t ConvertCurrencyTemplate) Validate() error {
+	var errs []error
+
 	if t.At.IsZero() {
-		return fmt.Errorf("at is required")
+		errs = append(errs, errors.New("at is required"))
 	}
 
+	sourceAmountValid := true
+	if err := ledger.ValidateTransactionAmount(t.SourceAmount); err != nil {
+		errs = append(errs, fmt.Errorf("source amount: %w", err))
+		sourceAmountValid = false
+	}
+
+	targetAmountValid := true
 	if err := ledger.ValidateTransactionAmount(t.TargetAmount); err != nil {
-		return fmt.Errorf("target amount: %w", err)
+		errs = append(errs, fmt.Errorf("target amount: %w", err))
+		targetAmountValid = false
 	}
 
-	if err := ledger.ValidateTransactionAmount(t.CostBasis); err != nil {
-		return fmt.Errorf("cost basis: %w", err)
+	costBasisValid := true
+	if err := ledger.ValidateCostBasis(t.CostBasis); err != nil {
+		errs = append(errs, fmt.Errorf("cost basis: %w", err))
+		costBasisValid = false
+	} else if t.CostBasis.IsZero() {
+		errs = append(errs, errors.New("cost basis must be positive"))
+		costBasisValid = false
 	}
 
+	sourceCurrencyDefinition := goblcurrency.Get(goblcurrency.Code(t.SourceCurrency))
 	if err := ledger.ValidateCurrency(t.SourceCurrency); err != nil {
-		return fmt.Errorf("source currency: %w", err)
+		errs = append(errs, fmt.Errorf("source currency: %w", err))
+		sourceCurrencyDefinition = nil
+	} else if sourceCurrencyDefinition == nil {
+		errs = append(errs, errors.New("source currency must be a known fiat currency"))
 	}
 
 	if err := ledger.ValidateCurrency(t.TargetCurrency); err != nil {
-		return fmt.Errorf("target currency: %w", err)
+		errs = append(errs, fmt.Errorf("target currency: %w", err))
+	} else if goblcurrency.Get(goblcurrency.Code(t.TargetCurrency)) != nil {
+		errs = append(errs, errors.New("target currency must be custom"))
 	}
 
-	if t.CreditPriority != nil {
-		if err := ledger.ValidateCreditPriority(*t.CreditPriority); err != nil {
-			return fmt.Errorf("credit priority: %w", err)
+	if sourceAmountValid && targetAmountValid && costBasisValid && sourceCurrencyDefinition != nil {
+		expectedSourceAmount := t.TargetAmount.Mul(t.CostBasis).Round(int32(sourceCurrencyDefinition.Subunits))
+		if !t.SourceAmount.Equal(expectedSourceAmount) {
+			errs = append(errs, fmt.Errorf(
+				"source amount: expected %s from target amount multiplied by cost basis, got %s",
+				expectedSourceAmount.String(),
+				t.SourceAmount.String(),
+			))
 		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ CustomerTransactionTemplate = (ConvertCurrencyTemplate{})
@@ -68,30 +97,26 @@ func (t ConvertCurrencyTemplate) code() TransactionTemplateCode {
 }
 
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	priority := resolveCustomerFBOCreditPriority(t.CreditPriority)
-	if t.CostBasis.IsNegative() {
-		return nil, fmt.Errorf("failed to normalize cost basis: cost basis must be non-negative")
-	}
 	costBasis := t.CostBasis
-
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
 	}
 
-	sourceAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       t.SourceCurrency,
-		CostBasis:      &costBasis,
-		CreditPriority: priority,
+	sourceAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
+		Currency:                       t.SourceCurrency,
+		CostBasis:                      &costBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get source sub-account: %w", err)
 	}
 
-	targetAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       t.TargetCurrency,
-		CostBasis:      &costBasis,
-		CreditPriority: priority,
+	targetAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
+		Currency:                       t.TargetCurrency,
+		ExchangeSourceCurrency:         lo.ToPtr(t.SourceCurrency),
+		CostBasis:                      &costBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get target sub-account: %w", err)
@@ -111,14 +136,13 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	}
 
 	brokerageTarget, err := businessAccounts.BrokerageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency:  t.TargetCurrency,
-		CostBasis: &costBasis,
+		Currency:               t.TargetCurrency,
+		ExchangeSourceCurrency: lo.ToPtr(t.SourceCurrency),
+		CostBasis:              &costBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get brokerage target sub-account: %w", err)
 	}
-
-	sourceAmount := t.TargetAmount.Mul(t.CostBasis)
 
 	return &TransactionInput{
 		bookedAt: t.At,
@@ -126,11 +150,11 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 			// Source currency
 			{
 				address: sourceAccount.Address(),
-				amount:  sourceAmount.Neg(),
+				amount:  t.SourceAmount.Neg(),
 			},
 			{
 				address: brokerageSource.Address(),
-				amount:  sourceAmount,
+				amount:  t.SourceAmount,
 			},
 			// Target currency
 			{

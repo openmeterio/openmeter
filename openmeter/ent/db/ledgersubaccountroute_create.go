@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // LedgerSubAccountRouteCreate is the builder for creating a LedgerSubAccountRoute entity.
@@ -97,6 +98,20 @@ func (_c *LedgerSubAccountRouteCreate) SetRoutingKey(v string) *LedgerSubAccount
 // SetCurrency sets the "currency" field.
 func (_c *LedgerSubAccountRouteCreate) SetCurrency(v string) *LedgerSubAccountRouteCreate {
 	_c.mutation.SetCurrency(v)
+	return _c
+}
+
+// SetExchangeSourceCurrency sets the "exchange_source_currency" field.
+func (_c *LedgerSubAccountRouteCreate) SetExchangeSourceCurrency(v currencyx.Code) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetExchangeSourceCurrency(v)
+	return _c
+}
+
+// SetNillableExchangeSourceCurrency sets the "exchange_source_currency" field if the given value is not nil.
+func (_c *LedgerSubAccountRouteCreate) SetNillableExchangeSourceCurrency(v *currencyx.Code) *LedgerSubAccountRouteCreate {
+	if v != nil {
+		_c.SetExchangeSourceCurrency(*v)
+	}
 	return _c
 }
 
@@ -292,6 +307,11 @@ func (_c *LedgerSubAccountRouteCreate) check() error {
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "LedgerSubAccountRoute.currency"`)}
 	}
+	if v, ok := _c.mutation.ExchangeSourceCurrency(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "exchange_source_currency", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.exchange_source_currency": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.tax_behavior": %w`, err)}
@@ -368,6 +388,10 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := _c.mutation.ExchangeSourceCurrency(); ok {
+		_spec.SetField(ledgersubaccountroute.FieldExchangeSourceCurrency, field.TypeString, value)
+		_node.ExchangeSourceCurrency = &value
 	}
 	if value, ok := _c.mutation.TaxCode(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldTaxCode, field.TypeString, value)
@@ -542,6 +566,9 @@ func (u *LedgerSubAccountRouteUpsertOne) UpdateNewValues() *LedgerSubAccountRout
 		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.ExchangeSourceCurrency(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldExchangeSourceCurrency)
 		}
 		if _, exists := u.create.mutation.TaxCode(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldTaxCode)
@@ -827,6 +854,9 @@ func (u *LedgerSubAccountRouteUpsertBulk) UpdateNewValues() *LedgerSubAccountRou
 			}
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldCurrency)
+			}
+			if _, exists := b.mutation.ExchangeSourceCurrency(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldExchangeSourceCurrency)
 			}
 			if _, exists := b.mutation.TaxCode(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldTaxCode)

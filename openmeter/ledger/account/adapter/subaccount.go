@@ -85,6 +85,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetRoutingKeyVersion(routeKey.Version()).
 		SetRoutingKey(routeKey.Value()).
 		SetCurrency(string(normalizedRoute.Currency)).
+		SetNillableExchangeSourceCurrency(normalizedRoute.ExchangeSourceCurrency).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
 		SetFeatures(pq.StringArray(normalizedRoute.Features)).
@@ -155,9 +156,17 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			return nil, fmt.Errorf("failed to normalize route filter: %w", err)
 		}
 
-		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 7)
+		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 8)
 		if normalizedRoute.Currency != "" {
 			routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(normalizedRoute.Currency)))
+		}
+		if normalizedRoute.ExchangeSourceCurrency.IsPresent() {
+			exchangeSourceCurrency, _ := normalizedRoute.ExchangeSourceCurrency.Get()
+			if exchangeSourceCurrency != nil {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.ExchangeSourceCurrency(*exchangeSourceCurrency))
+			} else {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.ExchangeSourceCurrencyIsNil())
+			}
 		}
 		if normalizedRoute.CreditPriority != nil {
 			routePredicates = append(routePredicates,
@@ -258,6 +267,7 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 		AccountType: entity.Edges.Account.AccountType,
 		Route: ledger.Route{
 			Currency:                       currencyx.Code(dbRoute.Currency),
+			ExchangeSourceCurrency:         dbRoute.ExchangeSourceCurrency,
 			TaxCode:                        dbRoute.TaxCode,
 			TaxBehavior:                    dbRoute.TaxBehavior,
 			Features:                       []string(dbRoute.Features),

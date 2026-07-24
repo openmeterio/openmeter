@@ -92,12 +92,13 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 	route := address.Route().Route()
 
 	return routePairingKey{
-		currency:       route.Currency,
-		taxCode:        lo.FromPtrOr(route.TaxCode, "null"),
-		taxBehavior:    string(lo.FromPtrOr(route.TaxBehavior, "null")),
-		costBasis:      costBasisKey(route.CostBasis),
-		sourceChargeID: lo.FromPtrOr(identity.SourceChargeID, "null"),
-		spendChargeID:  lo.FromPtrOr(identity.SpendChargeID, "null"),
+		currency:               route.Currency,
+		exchangeSourceCurrency: string(lo.FromPtrOr(route.ExchangeSourceCurrency, currencyx.Code(""))),
+		taxCode:                lo.FromPtrOr(route.TaxCode, "null"),
+		taxBehavior:            string(lo.FromPtrOr(route.TaxBehavior, "null")),
+		costBasis:              costBasisKey(route.CostBasis),
+		sourceChargeID:         lo.FromPtrOr(identity.SourceChargeID, "null"),
+		spendChargeID:          lo.FromPtrOr(identity.SpendChargeID, "null"),
 	}
 }
 
@@ -149,10 +150,11 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolveEarningsSubAccB
 			// destination address per route, but entries must stay split by provenance.
 			route := collection.address.Route().Route()
 			earnings, err := earningsAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-				Currency:    t.Currency,
-				TaxCode:     route.TaxCode,
-				TaxBehavior: route.TaxBehavior,
-				CostBasis:   route.CostBasis,
+				Currency:               t.Currency,
+				ExchangeSourceCurrency: route.ExchangeSourceCurrency,
+				TaxCode:                route.TaxCode,
+				TaxBehavior:            route.TaxBehavior,
+				CostBasis:              route.CostBasis,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get earnings sub-account: %w", err)

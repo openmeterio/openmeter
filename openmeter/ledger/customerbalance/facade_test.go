@@ -137,21 +137,24 @@ func TestFacadeGetBalancesDiscoversPendingGrantCurrencies(t *testing.T) {
 	require.True(t, balances[0].Balance.Pending().Equal(alpacadecimal.NewFromInt(40)))
 }
 
-func TestFacadeGetBalancesWithUnsupportedExplicitCurrency(t *testing.T) {
+func TestFacadeGetBalancesWithExplicitCustomCurrency(t *testing.T) {
 	env := newTestEnv(t)
 
 	facade, err := NewFacade(env.Service)
 	require.NoError(t, err)
 
-	_, err = facade.GetBalances(t.Context(), GetBalancesInput{
+	balances, err := facade.GetBalances(t.Context(), GetBalancesInput{
 		CustomerID: env.CustomerID,
 		Currencies: CurrencyFilter{
 			Codes: []currencyx.Code{"CUSTOM"},
 		},
 	})
-	require.Error(t, err)
-	require.ErrorContains(t, err, "CUSTOM")
-	require.ErrorContains(t, err, "not supported by ledger")
+	require.NoError(t, err)
+	require.Len(t, balances, 1)
+	require.Equal(t, currencyx.Code("CUSTOM"), balances[0].Currency)
+	require.True(t, balances[0].Balance.Settled().IsZero())
+	require.True(t, balances[0].Balance.Live().IsZero())
+	require.True(t, balances[0].Balance.Pending().IsZero())
 }
 
 func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {

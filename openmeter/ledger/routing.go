@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
+	goblcurrency "github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -24,6 +25,8 @@ const (
 	// Use V2 when a route has a non-nil TaxBehavior; otherwise use V1 for
 	// backward compatibility with sub-accounts created before tax_behavior existed.
 	RoutingKeyVersionV2 RoutingKeyVersion = "v2"
+	// RoutingKeyVersionV3 extends V2 by adding the exchange_source_currency segment.
+	RoutingKeyVersionV3 RoutingKeyVersion = "v3"
 )
 
 type TransactionAuthorizationStatus string
@@ -55,7 +58,7 @@ func (s TransactionAuthorizationStatus) Validate() error {
 
 func (v RoutingKeyVersion) Validate() error {
 	switch v {
-	case RoutingKeyVersionV1, RoutingKeyVersionV2:
+	case RoutingKeyVersionV1, RoutingKeyVersionV2, RoutingKeyVersionV3:
 		return nil
 	default:
 		return ErrRoutingKeyVersionInvalid.WithAttrs(models.Attributes{
@@ -110,27 +113,37 @@ type SubAccountRoute struct {
 	route Route
 }
 
+type SubAccountRouteData struct {
+	ID         string
+	RoutingKey RoutingKey
+	Route      Route
+}
+
 // NewSubAccountRouteFromData hydrates a sub-account route from persisted data.
 // Does not enforce Route & RoutingKey equality due to possible version mismatch.
 // Sets route.Version from the stored routing key so the round-trip is transparent.
-func NewSubAccountRouteFromData(id string, key RoutingKey, route Route) (SubAccountRoute, error) {
-	if id == "" {
+func NewSubAccountRouteFromData(data SubAccountRouteData) (SubAccountRoute, error) {
+	if data.ID == "" {
 		return SubAccountRoute{}, errors.New("route id is required")
 	}
-	if err := route.Validate(); err != nil {
+	if err := data.Route.Validate(); err != nil {
 		return SubAccountRoute{}, fmt.Errorf("route: %w", err)
 	}
 
-	normalizedRoute, err := route.Normalize()
+	normalizedRoute, err := data.Route.Normalize()
 	if err != nil {
 		return SubAccountRoute{}, fmt.Errorf("normalize route: %w", err)
 	}
 
-	normalizedRoute.Version = key.Version()
+	if data.RoutingKey.Version() == RoutingKeyVersionV3 && normalizedRoute.ExchangeSourceCurrency == nil {
+		return SubAccountRoute{}, errors.New("routing key version v3 requires exchange source currency")
+	}
+
+	normalizedRoute.Version = data.RoutingKey.Version()
 
 	return SubAccountRoute{
-		id:    id,
-		key:   key,
+		id:    data.ID,
+		key:   data.RoutingKey,
 		route: normalizedRoute,
 	}, nil
 }
@@ -159,7 +172,10 @@ type Route struct {
 	// manually except for testing edge cases.
 	Version  RoutingKeyVersion
 	Currency currencyx.Code
-	TaxCode  *string
+	// ExchangeSourceCurrency identifies the fiat currency exchanged into a custom currency.
+	// Fiat and non-exchange routes keep ExchangeSourceCurrency nil.
+	ExchangeSourceCurrency *currencyx.Code
+	TaxCode                *string
 	// TaxBehavior distinguishes taxable accrued and earnings buckets.
 	// Customer FBO routes do not carry tax dimensions; credit sources are
 	// attributed to charge tax configuration when they accrue.
@@ -172,6 +188,9 @@ type Route struct {
 
 func (r Route) Validate() error {
 	if err := ValidateCurrency(r.Currency); err != nil {
+		return err
+	}
+	if err := ValidateExchangeSourceCurrency(r.Currency, r.ExchangeSourceCurrency); err != nil {
 		return err
 	}
 
@@ -211,6 +230,7 @@ func (r Route) Validate() error {
 func (r Route) Filter() RouteFilter {
 	return RouteFilter{
 		Currency:                       r.Currency,
+		ExchangeSourceCurrency:         mo.Some(r.ExchangeSourceCurrency),
 		TaxCode:                        mo.Some(r.TaxCode),
 		TaxBehavior:                    mo.Some(r.TaxBehavior),
 		Features:                       mo.Some(r.Features),
@@ -223,6 +243,17 @@ func (r Route) Filter() RouteFilter {
 func (r Route) Matches(filter RouteFilter) bool {
 	if filter.Currency != "" && r.Currency != filter.Currency {
 		return false
+	}
+	if filter.ExchangeSourceCurrency.IsPresent() {
+		exchangeSourceCurrency, _ := filter.ExchangeSourceCurrency.Get()
+		switch {
+		case exchangeSourceCurrency == nil && r.ExchangeSourceCurrency != nil:
+			return false
+		case exchangeSourceCurrency != nil && r.ExchangeSourceCurrency == nil:
+			return false
+		case exchangeSourceCurrency != nil && r.ExchangeSourceCurrency != nil && *exchangeSourceCurrency != *r.ExchangeSourceCurrency:
+			return false
+		}
 	}
 	if filter.TaxCode.IsPresent() {
 		taxCode, _ := filter.TaxCode.Get()
@@ -287,15 +318,18 @@ func (r Route) Normalize() (Route, error) {
 	}
 
 	normalized := r
+	if normalized.ExchangeSourceCurrency != nil && *normalized.ExchangeSourceCurrency == "" {
+		normalized.ExchangeSourceCurrency = nil
+	}
 	normalized.Features = SortedFeatures(r.Features)
-	normalized.Version = selectRoutingKeyVersion(r)
+	normalized.Version = selectRoutingKeyVersion(normalized)
 
 	return normalized, nil
 }
 
 // Normalize canonicalizes route filter values before querying.
 func (f RouteFilter) Normalize() (RouteFilter, error) {
-	if f.Currency == "" && f.TaxCode.IsAbsent() && f.Features.IsAbsent() && f.MatchFeature == "" && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
+	if f.Currency == "" && f.ExchangeSourceCurrency.IsAbsent() && f.TaxCode.IsAbsent() && f.Features.IsAbsent() && f.MatchFeature == "" && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
 		return f, nil
 	}
 	if f.Features.IsPresent() && f.MatchFeature != "" {
@@ -307,12 +341,14 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		}
 	}
 
+	exchangeSourceCurrency, _ := f.ExchangeSourceCurrency.Get()
 	taxCode, _ := f.TaxCode.Get()
 	taxBehavior, _ := f.TaxBehavior.Get()
 	features, _ := f.Features.Get()
 	costBasis, _ := f.CostBasis.Get()
 	normalized, err := Route{
 		Currency:                       f.Currency,
+		ExchangeSourceCurrency:         exchangeSourceCurrency,
 		TaxCode:                        taxCode,
 		TaxBehavior:                    taxBehavior,
 		Features:                       features,
@@ -327,6 +363,11 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 	normalizedCostBasis := mo.None[*alpacadecimal.Decimal]()
 	if f.CostBasis.IsPresent() {
 		normalizedCostBasis = mo.Some(normalized.CostBasis)
+	}
+
+	normalizedExchangeSourceCurrency := mo.None[*currencyx.Code]()
+	if f.ExchangeSourceCurrency.IsPresent() {
+		normalizedExchangeSourceCurrency = mo.Some(normalized.ExchangeSourceCurrency)
 	}
 
 	normalizedTaxCode := mo.None[*string]()
@@ -346,6 +387,7 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 
 	return RouteFilter{
 		Currency:                       normalized.Currency,
+		ExchangeSourceCurrency:         normalizedExchangeSourceCurrency,
 		TaxCode:                        normalizedTaxCode,
 		TaxBehavior:                    normalizedTaxBehavior,
 		Features:                       normalizedFeatures,
@@ -369,6 +411,7 @@ type routingVersionRequirement struct {
 // routingVersionRequirements lists versions above V1 with the conditions that trigger them.
 // Ordered highest to lowest; selectRoutingKeyVersion returns the first match, V1 otherwise.
 var routingVersionRequirements = []routingVersionRequirement{
+	{version: RoutingKeyVersionV3, requires: func(r Route) bool { return r.ExchangeSourceCurrency != nil }},
 	{version: RoutingKeyVersionV2, requires: func(r Route) bool { return r.TaxBehavior != nil }},
 }
 
@@ -397,6 +440,8 @@ func BuildRoutingKey(route Route) (RoutingKey, error) {
 		return buildRoutingKeyV1Normalized(normalizedRoute)
 	case RoutingKeyVersionV2:
 		return buildRoutingKeyV2Normalized(normalizedRoute)
+	case RoutingKeyVersionV3:
+		return buildRoutingKeyV3Normalized(normalizedRoute)
 	default:
 		return RoutingKey{}, ErrRoutingKeyVersionUnsupported.WithAttrs(models.Attributes{
 			"routing_key_version": normalizedRoute.Version,
@@ -415,6 +460,9 @@ func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
 	if err != nil {
 		return RoutingKey{}, err
 	}
+	if normalizedRoute.ExchangeSourceCurrency != nil {
+		return RoutingKey{}, fmt.Errorf("ExchangeSourceCurrency requires a V3 routing key; use BuildRoutingKey to select the version automatically")
+	}
 	return buildRoutingKeyV1Normalized(normalizedRoute)
 }
 
@@ -424,7 +472,19 @@ func BuildRoutingKeyV2(route Route) (RoutingKey, error) {
 	if err != nil {
 		return RoutingKey{}, err
 	}
+	if normalizedRoute.ExchangeSourceCurrency != nil {
+		return RoutingKey{}, fmt.Errorf("ExchangeSourceCurrency requires a V3 routing key; use BuildRoutingKey to select the version automatically")
+	}
 	return buildRoutingKeyV2Normalized(normalizedRoute)
+}
+
+// BuildRoutingKeyV3 encodes route as a V3 routing key.
+func BuildRoutingKeyV3(route Route) (RoutingKey, error) {
+	normalizedRoute, err := route.Normalize()
+	if err != nil {
+		return RoutingKey{}, err
+	}
+	return buildRoutingKeyV3Normalized(normalizedRoute)
 }
 
 // buildRoutingKeyV1Normalized encodes an already-normalized route as a V1 key.
@@ -454,6 +514,21 @@ func buildRoutingKeyV2Normalized(route Route) (RoutingKey, error) {
 	}, "|")
 
 	return NewRoutingKey(RoutingKeyVersionV2, value)
+}
+
+func buildRoutingKeyV3Normalized(route Route) (RoutingKey, error) {
+	value := strings.Join([]string{
+		"currency:" + string(route.Currency),
+		"exchange_source_currency:" + string(lo.FromPtrOr(route.ExchangeSourceCurrency, currencyx.Code("null"))),
+		"tax_code:" + optionalStringValue(route.TaxCode),
+		"tax_behavior:" + string(lo.FromPtrOr(route.TaxBehavior, "null")),
+		"features:" + canonicalFeatures(route.Features),
+		"cost_basis:" + optionalDecimalValue(route.CostBasis),
+		"credit_priority:" + optionalIntValue(route.CreditPriority),
+		"transaction_authorization_status:" + string(lo.FromPtrOr(route.TransactionAuthorizationStatus, "null")),
+	}, "|")
+
+	return NewRoutingKey(RoutingKeyVersionV3, value)
 }
 
 // ----------------------------------------------------------------------------
@@ -494,10 +569,26 @@ func ValidateCurrency(value currencyx.Code) error {
 		})
 	}
 
-	if !value.IsFiat() {
+	return nil
+}
+
+func ValidateExchangeSourceCurrency(currency currencyx.Code, exchangeSourceCurrency *currencyx.Code) error {
+	if exchangeSourceCurrency == nil || *exchangeSourceCurrency == "" {
+		return nil
+	}
+
+	if err := ValidateCurrency(*exchangeSourceCurrency); err != nil || goblcurrency.Get(goblcurrency.Code(*exchangeSourceCurrency)) == nil {
 		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
-			"currency": value,
-			"reason":   "custom_currency_not_supported",
+			"exchange_source_currency": *exchangeSourceCurrency,
+			"reason":                   "exchange_source_currency_must_be_fiat",
+		})
+	}
+
+	if goblcurrency.Get(goblcurrency.Code(currency)) != nil {
+		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+			"currency":                 currency,
+			"exchange_source_currency": *exchangeSourceCurrency,
+			"reason":                   "fiat_exchange_source_currency_must_be_null",
 		})
 	}
 

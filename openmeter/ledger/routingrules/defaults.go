@@ -18,6 +18,7 @@ var DefaultValidator = Validator{
 				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeWash},
 				{ledger.AccountTypeCustomerAccrued, ledger.AccountTypeEarnings},
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeBrokerage},
+				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeBrokerage},
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeBreakage},
 			},
 		},

@@ -29,6 +29,12 @@ type LedgerTransactionGroup struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// IdempotencyScope holds the value of the "idempotency_scope" field.
+	IdempotencyScope *string `json:"idempotency_scope,omitempty"`
+	// IdempotencyKey holds the value of the "idempotency_key" field.
+	IdempotencyKey *string `json:"idempotency_key,omitempty"`
+	// InputFingerprint holds the value of the "input_fingerprint" field.
+	InputFingerprint *string `json:"input_fingerprint,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LedgerTransactionGroupQuery when eager-loading is set.
 	Edges        LedgerTransactionGroupEdges `json:"edges"`
@@ -82,7 +88,7 @@ func (*LedgerTransactionGroup) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case ledgertransactiongroup.FieldAnnotations:
 			values[i] = new([]byte)
-		case ledgertransactiongroup.FieldID, ledgertransactiongroup.FieldNamespace:
+		case ledgertransactiongroup.FieldID, ledgertransactiongroup.FieldNamespace, ledgertransactiongroup.FieldIdempotencyScope, ledgertransactiongroup.FieldIdempotencyKey, ledgertransactiongroup.FieldInputFingerprint:
 			values[i] = new(sql.NullString)
 		case ledgertransactiongroup.FieldCreatedAt, ledgertransactiongroup.FieldUpdatedAt, ledgertransactiongroup.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -139,6 +145,27 @@ func (_m *LedgerTransactionGroup) assignValues(columns []string, values []any) e
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
+			}
+		case ledgertransactiongroup.FieldIdempotencyScope:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field idempotency_scope", values[i])
+			} else if value.Valid {
+				_m.IdempotencyScope = new(string)
+				*_m.IdempotencyScope = value.String
+			}
+		case ledgertransactiongroup.FieldIdempotencyKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field idempotency_key", values[i])
+			} else if value.Valid {
+				_m.IdempotencyKey = new(string)
+				*_m.IdempotencyKey = value.String
+			}
+		case ledgertransactiongroup.FieldInputFingerprint:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field input_fingerprint", values[i])
+			} else if value.Valid {
+				_m.InputFingerprint = new(string)
+				*_m.InputFingerprint = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -206,6 +233,21 @@ func (_m *LedgerTransactionGroup) String() string {
 	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.IdempotencyScope; v != nil {
+		builder.WriteString("idempotency_scope=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.IdempotencyKey; v != nil {
+		builder.WriteString("idempotency_key=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.InputFingerprint; v != nil {
+		builder.WriteString("input_fingerprint=")
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()
