@@ -129,44 +129,6 @@ type populateStandardLineFromRunInput struct {
 	Run    usagebased.RealizationRun
 }
 
-// collectionDeadlineForRun returns the explicit billing collection deadline a
-// usage-based realization run needs on its standard line (if it's not the billing
-// default).
-//
-// Partial runs are invoiced before the charge's final service-period boundary,
-// so the customer's normal collection interval would delay them unnecessarily.
-// Their StoredAtLT is the partial usage cutoff; the internal collection period
-// gives events before that cutoff time to become queryable before collection.
-func collectionDeadlineForRun(charge usagebased.Charge, run usagebased.RealizationRun) (*time.Time, error) {
-	if run.Type == usagebased.RealizationRunTypePartialInvoice {
-		// Partial runs are invoiced before the charge's final service-period boundary,
-		// so the customer's normal collection interval would delay them unnecessarily.
-		// Their StoredAtLT is the partial usage cutoff; the internal collection period
-		// gives events ingested before that cutoff time to become queryable before collection.
-		return lo.ToPtr(run.StoredAtLT.Add(usagebased.InternalCollectionPeriod)), nil
-	}
-
-	if run.Type == usagebased.RealizationRunTypeFinalRealization {
-		// Final metered lines need no override because billing derives their collection
-		// deadline from the customer's billing profile.
-		if charge.Intent.GetCurrency().IsCustom() {
-			// Custom-currency overage is represented as a flat fiat line, so billing assumes 0
-			// collection time.
-			//
-			// The final-run's StoredAtLT time already includes the customer's collection
-			// interval, so by overriding the flat fee's collection deadline, we ensure that the
-			// overage is collected in the same interval as usage based line would have been collected.
-			return lo.ToPtr(run.StoredAtLT), nil
-		}
-
-		return nil, nil
-	}
-
-	// Let's make sure we are updating this function for new run types as needed, to prevent random
-	// bugs appearing due to defaulting to legacy billing collection deadlines.
-	return nil, fmt.Errorf("unknown run type: %s", run.Type)
-}
-
 func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateStandardLineFromRunInput) error {
 	if stdLine.UsageBased == nil {
 		stdLine.UsageBased = &billing.UsageBasedLine{}
@@ -177,12 +139,9 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 		return fmt.Errorf("creating currency calculator: %w", err)
 	}
 
-	collectionPeriodEnd, err := collectionDeadlineForRun(input.Charge, input.Run)
-	if err != nil {
-		return fmt.Errorf("getting collection deadline for run: %w", err)
-	}
-
-	stdLine.OverrideCollectionPeriodEnd = collectionPeriodEnd
+	// Wait until StoredAtLT plus the internal collection period before collecting the line.
+	// This ensures the usage snapshot bounded by StoredAtLT is no longer changing when billing reads it.
+	stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(input.Run.StoredAtLT.Add(usagebased.InternalCollectionPeriod))
 
 	if input.Charge.Intent.GetCurrency().IsCustom() {
 		return populateCustomCurrencyOverageFromRun(stdLine, input, cur)

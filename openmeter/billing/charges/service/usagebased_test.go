@@ -153,7 +153,7 @@ type customCurrencyCreditThenInvoiceRealizationVariant struct {
 func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoiceLifecycle() {
 	s.runUsageBasedCustomCurrencyCreditThenInvoiceLifecycle(customCurrencyCreditThenInvoiceRealizationVariant{
 		invoiceAt:                        datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime(),
-		expectedCollectionEnd:            datetime.MustParseTimeInLocation(s.T(), "2025-02-02T00:00:00Z", time.UTC).AsTime(),
+		expectedCollectionEnd:            datetime.MustParseTimeInLocation(s.T(), "2025-02-02T00:01:00Z", time.UTC).AsTime(),
 		expectedRunType:                  usagebased.RealizationRunTypeFinalRealization,
 		expectedChargeStatusAfterPayment: usagebased.StatusFinal,
 	})

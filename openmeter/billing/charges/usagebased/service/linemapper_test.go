@@ -25,102 +25,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestCollectionDeadlineForRun(t *testing.T) {
-	storedAtLT := time.Date(2026, 2, 1, 1, 0, 0, 0, time.UTC)
-
-	fiatCurrency, err := currencyx.NewFiatCurrency("USD")
-	require.NoError(t, err)
-
-	customCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
-		WithCode("TOKENS").
-		WithName("Tokens").
-		WithPrecision(4).
-		Build()
-	require.NoError(t, err)
-
-	chargeWithCurrency := func(currency currencyx.Currency) usagebased.Charge {
-		return usagebased.Charge{
-			ChargeBase: usagebased.ChargeBase{
-				Intent: usagebased.Intent{
-					Intent: meta.Intent{
-						Currency: currencies.Currency{
-							Currency: currency,
-						},
-					},
-				}.AsOverridableIntent(),
-			},
-		}
-	}
-
-	tests := []struct {
-		name     string
-		charge   usagebased.Charge
-		runType  usagebased.RealizationRunType
-		expected *time.Time
-		wantErr  string
-	}{
-		{
-			name:     "partial metered line uses internal collection deadline",
-			charge:   chargeWithCurrency(fiatCurrency),
-			runType:  usagebased.RealizationRunTypePartialInvoice,
-			expected: lo.ToPtr(storedAtLT.Add(usagebased.InternalCollectionPeriod)),
-		},
-		{
-			name:     "partial custom currency overage uses internal collection deadline",
-			charge:   chargeWithCurrency(customCurrency),
-			runType:  usagebased.RealizationRunTypePartialInvoice,
-			expected: lo.ToPtr(storedAtLT.Add(usagebased.InternalCollectionPeriod)),
-		},
-		{
-			name:    "final metered line uses billing profile deadline",
-			charge:  chargeWithCurrency(fiatCurrency),
-			runType: usagebased.RealizationRunTypeFinalRealization,
-		},
-		{
-			name:     "final custom currency overage retains profile derived deadline",
-			charge:   chargeWithCurrency(customCurrency),
-			runType:  usagebased.RealizationRunTypeFinalRealization,
-			expected: lo.ToPtr(storedAtLT),
-		},
-		{
-			name:    "unknown run type is rejected",
-			charge:  chargeWithCurrency(fiatCurrency),
-			runType: usagebased.RealizationRunType("unknown"),
-			wantErr: "unknown run type: unknown",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// given:
-			// - a usage-based run whose StoredAtLT reflects its run-specific collection policy
-			// when:
-			// - the standard-line collection deadline is resolved
-			// then:
-			// - only deadlines billing cannot derive itself are made explicit
-			run := usagebased.RealizationRun{
-				RealizationRunBase: usagebased.RealizationRunBase{
-					Type:       tt.runType,
-					StoredAtLT: storedAtLT,
-				},
-			}
-
-			actual, err := collectionDeadlineForRun(tt.charge, run)
-
-			if tt.wantErr != "" {
-				require.ErrorContains(t, err, tt.wantErr)
-				require.Nil(t, actual)
-				require.Equal(t, storedAtLT, run.StoredAtLT)
-				return
-			}
-
-			require.NoError(t, err)
-			require.Equal(t, tt.expected, actual)
-			require.Equal(t, storedAtLT, run.StoredAtLT)
-		})
-	}
-}
-
 func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testing.T) {
 	period := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -433,7 +337,7 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	require.True(t, line.RateCardDiscounts.IsEmpty())
 	require.Empty(t, line.Discounts.Usage)
 	require.Empty(t, line.CreditsApplied)
-	require.Equal(t, period.To, *line.OverrideCollectionPeriodEnd)
+	require.Equal(t, period.To.Add(usagebased.InternalCollectionPeriod), *line.OverrideCollectionPeriodEnd)
 
 	reason, ok := line.Annotations[billing.AnnotationKeyReason].(*string)
 	require.True(t, ok)
