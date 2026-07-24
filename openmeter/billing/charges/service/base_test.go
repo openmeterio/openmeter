@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
@@ -69,6 +70,18 @@ type BaseSuite struct {
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
 	UsageBasedTestHandler     *usageBasedTestHandler
+}
+
+type customCurrencyEnabler interface {
+	SetEnableCustomCurrency(t *testing.T, enabled bool) error
+}
+
+func (s *BaseSuite) setUsageBasedCustomCurrencyEnabled(enabled bool) {
+	s.T().Helper()
+
+	enabler, ok := s.Charges.usageBasedService.(customCurrencyEnabler)
+	s.Require().True(ok)
+	s.Require().NoError(enabler.SetEnableCustomCurrency(s.T(), enabled))
 }
 
 func (s *BaseSuite) SetupSuite() {

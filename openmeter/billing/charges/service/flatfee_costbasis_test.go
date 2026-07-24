@@ -30,10 +30,6 @@ type FlatFeeCostBasisCreateSuite struct {
 	BaseSuite
 }
 
-type customCurrencyEnabler interface {
-	SetEnableCustomCurrency(t *testing.T, enabled bool) error
-}
-
 func (s *FlatFeeCostBasisCreateSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 }

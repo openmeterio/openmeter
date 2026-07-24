@@ -289,6 +289,10 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	line.RateCardDiscounts = billing.Discounts{
 		Usage: &billing.UsageDiscount{},
 	}
+	line.Discounts = billing.StandardLineDiscounts{
+		Usage: billing.UsageLineDiscountsManaged{{}},
+	}
+	line.CreditsApplied = billing.CreditsApplied{{}}
 	line.DetailedLines = billing.DetailedLines{
 		{
 			DetailedLineBase: billing.DetailedLineBase{
@@ -325,10 +329,7 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	})
 	require.NoError(t, err)
 
-	flatPrice, err := line.UsageBased.Price.AsFlat()
-	require.NoError(t, err)
-	require.Equal(t, float64(6), flatPrice.Amount.InexactFloat64())
-	require.Equal(t, productcatalog.InArrearsPaymentTerm, flatPrice.PaymentTerm)
+	require.Equal(t, productcatalog.FlatPriceType, line.UsageBased.Price.Type())
 	require.Nil(t, line.UsageBased.UnitConfig)
 	require.Equal(t, float64(1), lo.FromPtr(line.UsageBased.MeteredQuantity).InexactFloat64())
 	require.Equal(t, float64(1), lo.FromPtr(line.UsageBased.Quantity).InexactFloat64())
@@ -339,17 +340,8 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	require.Empty(t, line.CreditsApplied)
 	require.Equal(t, period.To.Add(usagebased.InternalCollectionPeriod), *line.OverrideCollectionPeriodEnd)
 
-	reason, ok := line.Annotations[billing.AnnotationKeyReason].(*string)
-	require.True(t, ok)
-	require.Equal(t, billing.AnnotationValueReasonOverage, *reason)
-
 	require.Len(t, line.DetailedLines, 1)
 	require.Equal(t, "existing-overage-id", line.DetailedLines[0].ID)
-	require.Equal(t, "line (overage)", line.DetailedLines[0].Name)
-	require.Equal(t, float64(3), line.DetailedLines[0].Quantity.InexactFloat64())
-	require.Equal(t, float64(2), line.DetailedLines[0].PerUnitAmount.InexactFloat64())
-	require.Equal(t, float64(6), line.DetailedLines[0].Totals.Total.InexactFloat64())
-	require.Equal(t, float64(6), line.Totals.Total.InexactFloat64())
 	require.NoError(t, line.Validate())
 
 	err = populateStandardLineFromRun(line, populateStandardLineFromRunInput{

@@ -1387,14 +1387,6 @@ func (s *UsageBasedChargesTestSuite) mustGetUsageBasedChargeByID(chargeID meta.C
 	return usageBasedCharge
 }
 
-func (s *UsageBasedChargesTestSuite) setUsageBasedCustomCurrencyEnabled(enabled bool) {
-	s.T().Helper()
-
-	enabler, ok := s.Charges.usageBasedService.(customCurrencyEnabler)
-	s.Require().True(ok)
-	s.Require().NoError(enabler.SetEnableCustomCurrency(s.T(), enabled))
-}
-
 type requireCustomCurrencyOverageLineInput struct {
 	line               *billing.StandardLine
 	expectTokenOverage float64
