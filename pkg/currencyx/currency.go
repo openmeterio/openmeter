@@ -115,39 +115,39 @@ type FiatCurrency struct {
 	def *currency.Def
 }
 
-func (f *FiatCurrency) Definition() *currency.Def {
+func (f FiatCurrency) Definition() *currency.Def {
 	return cloneDef(f.def)
 }
 
-func (f *FiatCurrency) FormatAmount(amount alpacadecimal.Decimal) string {
+func (f FiatCurrency) FormatAmount(amount alpacadecimal.Decimal) string {
 	return formatCurrencyAmount(f.def, amount)
 }
 
-func (f *FiatCurrency) Unit() alpacadecimal.Decimal {
+func (f FiatCurrency) Unit() alpacadecimal.Decimal {
 	return alpacadecimal.NewFromInt(1).Shift(-int32(f.def.Subunits))
 }
 
-func (f *FiatCurrency) RoundUp(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
+func (f FiatCurrency) RoundUp(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
 	return amount.RoundUp(int32(f.def.Subunits))
 }
 
-func (f *FiatCurrency) RoundDown(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
+func (f FiatCurrency) RoundDown(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
 	return amount.RoundDown(int32(f.def.Subunits))
 }
 
-func (f *FiatCurrency) IsRoundedToPrecision(amount alpacadecimal.Decimal) bool {
+func (f FiatCurrency) IsRoundedToPrecision(amount alpacadecimal.Decimal) bool {
 	return amount.Equal(f.RoundToPrecision(amount))
 }
 
-func (f *FiatCurrency) RoundToPrecision(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
+func (f FiatCurrency) RoundToPrecision(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
 	return amount.Round(int32(f.def.Subunits))
 }
 
-func (f *FiatCurrency) Type() CurrencyType {
+func (f FiatCurrency) Type() CurrencyType {
 	return CurrencyTypeFiat
 }
 
-func (f *FiatCurrency) Details() CurrencyDetails {
+func (f FiatCurrency) Details() CurrencyDetails {
 	return CurrencyDetails{
 		Code:               Code(f.def.ISOCode),
 		Name:               f.def.Name,
@@ -158,13 +158,13 @@ func (f *FiatCurrency) Details() CurrencyDetails {
 	}
 }
 
-func (f *FiatCurrency) AsFiat() (*FiatCurrency, error) {
+func (f FiatCurrency) AsFiat() (*FiatCurrency, error) {
 	return &FiatCurrency{
 		def: cloneDef(f.def),
 	}, nil
 }
 
-func (f *FiatCurrency) AsCustom() (*CustomCurrency, error) {
+func (f FiatCurrency) AsCustom() (*CustomCurrency, error) {
 	return nil, fmt.Errorf("cannot convert fiat to custom currency")
 }
 
@@ -172,11 +172,7 @@ func (f *FiatCurrency) ValidateWith(v ...models.ValidatorFunc[Currency]) error {
 	return models.Validate[Currency](f, v...)
 }
 
-func (f *FiatCurrency) Validate() error {
-	if f == nil {
-		return errors.New("fiat currency is not initialized")
-	}
-
+func (f FiatCurrency) Validate() error {
 	var errs []error
 
 	if f.def == nil {
