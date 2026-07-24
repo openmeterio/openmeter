@@ -719,7 +719,7 @@ func (e *usageBasedHandlerTestEnv) newRunWithAuthorizedPaymentAndInvoiceUsage(li
 			Base: payment.Base{
 				ServicePeriod: run.InvoiceUsage.ServicePeriod,
 				Status:        payment.StatusAuthorized,
-				Amount:        paymentAmount,
+				FiatAmount:    paymentAmount,
 				Authorized: &ledgertransaction.TimedGroupReference{
 					GroupReference: ledgertransaction.GroupReference{
 						TransactionGroupID: "authorized-group",

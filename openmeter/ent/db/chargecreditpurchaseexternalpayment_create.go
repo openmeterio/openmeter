@@ -45,9 +45,9 @@ func (_c *ChargeCreditPurchaseExternalPaymentCreate) SetStatus(v payment.Status)
 	return _c
 }
 
-// SetAmount sets the "amount" field.
-func (_c *ChargeCreditPurchaseExternalPaymentCreate) SetAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseExternalPaymentCreate {
-	_c.mutation.SetAmount(v)
+// SetFiatAmount sets the "fiat_amount" field.
+func (_c *ChargeCreditPurchaseExternalPaymentCreate) SetFiatAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseExternalPaymentCreate {
+	_c.mutation.SetFiatAmount(v)
 	return _c
 }
 
@@ -257,8 +257,8 @@ func (_c *ChargeCreditPurchaseExternalPaymentCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchaseExternalPayment.status": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Amount(); !ok {
-		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "ChargeCreditPurchaseExternalPayment.amount"`)}
+	if _, ok := _c.mutation.FiatAmount(); !ok {
+		return &ValidationError{Name: "fiat_amount", err: errors.New(`db: missing required field "ChargeCreditPurchaseExternalPayment.fiat_amount"`)}
 	}
 	if v, ok := _c.mutation.AuthorizedTransactionGroupID(); ok {
 		if err := chargecreditpurchaseexternalpayment.AuthorizedTransactionGroupIDValidator(v); err != nil {
@@ -338,9 +338,9 @@ func (_c *ChargeCreditPurchaseExternalPaymentCreate) createSpec() (*ChargeCredit
 		_spec.SetField(chargecreditpurchaseexternalpayment.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
 	}
-	if value, ok := _c.mutation.Amount(); ok {
-		_spec.SetField(chargecreditpurchaseexternalpayment.FieldAmount, field.TypeOther, value)
-		_node.Amount = value
+	if value, ok := _c.mutation.FiatAmount(); ok {
+		_spec.SetField(chargecreditpurchaseexternalpayment.FieldFiatAmount, field.TypeOther, value)
+		_node.FiatAmount = value
 	}
 	if value, ok := _c.mutation.AuthorizedTransactionGroupID(); ok {
 		_spec.SetField(chargecreditpurchaseexternalpayment.FieldAuthorizedTransactionGroupID, field.TypeString, value)
@@ -483,15 +483,15 @@ func (u *ChargeCreditPurchaseExternalPaymentUpsert) UpdateStatus() *ChargeCredit
 	return u
 }
 
-// SetAmount sets the "amount" field.
-func (u *ChargeCreditPurchaseExternalPaymentUpsert) SetAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseExternalPaymentUpsert {
-	u.Set(chargecreditpurchaseexternalpayment.FieldAmount, v)
+// SetFiatAmount sets the "fiat_amount" field.
+func (u *ChargeCreditPurchaseExternalPaymentUpsert) SetFiatAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseExternalPaymentUpsert {
+	u.Set(chargecreditpurchaseexternalpayment.FieldFiatAmount, v)
 	return u
 }
 
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseExternalPaymentUpsert) UpdateAmount() *ChargeCreditPurchaseExternalPaymentUpsert {
-	u.SetExcluded(chargecreditpurchaseexternalpayment.FieldAmount)
+// UpdateFiatAmount sets the "fiat_amount" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseExternalPaymentUpsert) UpdateFiatAmount() *ChargeCreditPurchaseExternalPaymentUpsert {
+	u.SetExcluded(chargecreditpurchaseexternalpayment.FieldFiatAmount)
 	return u
 }
 
@@ -714,17 +714,17 @@ func (u *ChargeCreditPurchaseExternalPaymentUpsertOne) UpdateStatus() *ChargeCre
 	})
 }
 
-// SetAmount sets the "amount" field.
-func (u *ChargeCreditPurchaseExternalPaymentUpsertOne) SetAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseExternalPaymentUpsertOne {
+// SetFiatAmount sets the "fiat_amount" field.
+func (u *ChargeCreditPurchaseExternalPaymentUpsertOne) SetFiatAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseExternalPaymentUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseExternalPaymentUpsert) {
-		s.SetAmount(v)
+		s.SetFiatAmount(v)
 	})
 }
 
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseExternalPaymentUpsertOne) UpdateAmount() *ChargeCreditPurchaseExternalPaymentUpsertOne {
+// UpdateFiatAmount sets the "fiat_amount" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseExternalPaymentUpsertOne) UpdateFiatAmount() *ChargeCreditPurchaseExternalPaymentUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseExternalPaymentUpsert) {
-		s.UpdateAmount()
+		s.UpdateFiatAmount()
 	})
 }
 
@@ -1134,17 +1134,17 @@ func (u *ChargeCreditPurchaseExternalPaymentUpsertBulk) UpdateStatus() *ChargeCr
 	})
 }
 
-// SetAmount sets the "amount" field.
-func (u *ChargeCreditPurchaseExternalPaymentUpsertBulk) SetAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseExternalPaymentUpsertBulk {
+// SetFiatAmount sets the "fiat_amount" field.
+func (u *ChargeCreditPurchaseExternalPaymentUpsertBulk) SetFiatAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseExternalPaymentUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseExternalPaymentUpsert) {
-		s.SetAmount(v)
+		s.SetFiatAmount(v)
 	})
 }
 
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseExternalPaymentUpsertBulk) UpdateAmount() *ChargeCreditPurchaseExternalPaymentUpsertBulk {
+// UpdateFiatAmount sets the "fiat_amount" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseExternalPaymentUpsertBulk) UpdateFiatAmount() *ChargeCreditPurchaseExternalPaymentUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseExternalPaymentUpsert) {
-		s.UpdateAmount()
+		s.UpdateFiatAmount()
 	})
 }
 

@@ -73,16 +73,16 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) SetNillableStatus(v *paymen
 	return _u
 }
 
-// SetAmount sets the "amount" field.
-func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) SetAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseInvoicedPaymentUpdate {
-	_u.mutation.SetAmount(v)
+// SetFiatAmount sets the "fiat_amount" field.
+func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) SetFiatAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseInvoicedPaymentUpdate {
+	_u.mutation.SetFiatAmount(v)
 	return _u
 }
 
-// SetNillableAmount sets the "amount" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) SetNillableAmount(v *alpacadecimal.Decimal) *ChargeCreditPurchaseInvoicedPaymentUpdate {
+// SetNillableFiatAmount sets the "fiat_amount" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) SetNillableFiatAmount(v *alpacadecimal.Decimal) *ChargeCreditPurchaseInvoicedPaymentUpdate {
 	if v != nil {
-		_u.SetAmount(*v)
+		_u.SetFiatAmount(*v)
 	}
 	return _u
 }
@@ -293,8 +293,8 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) sqlSave(ctx context.Context
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldStatus, field.TypeEnum, value)
 	}
-	if value, ok := _u.mutation.Amount(); ok {
-		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldAmount, field.TypeOther, value)
+	if value, ok := _u.mutation.FiatAmount(); ok {
+		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldFiatAmount, field.TypeOther, value)
 	}
 	if value, ok := _u.mutation.AuthorizedTransactionGroupID(); ok {
 		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldAuthorizedTransactionGroupID, field.TypeString, value)
@@ -397,16 +397,16 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) SetNillableStatus(v *pay
 	return _u
 }
 
-// SetAmount sets the "amount" field.
-func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) SetAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseInvoicedPaymentUpdateOne {
-	_u.mutation.SetAmount(v)
+// SetFiatAmount sets the "fiat_amount" field.
+func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) SetFiatAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseInvoicedPaymentUpdateOne {
+	_u.mutation.SetFiatAmount(v)
 	return _u
 }
 
-// SetNillableAmount sets the "amount" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) SetNillableAmount(v *alpacadecimal.Decimal) *ChargeCreditPurchaseInvoicedPaymentUpdateOne {
+// SetNillableFiatAmount sets the "fiat_amount" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) SetNillableFiatAmount(v *alpacadecimal.Decimal) *ChargeCreditPurchaseInvoicedPaymentUpdateOne {
 	if v != nil {
-		_u.SetAmount(*v)
+		_u.SetFiatAmount(*v)
 	}
 	return _u
 }
@@ -647,8 +647,8 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) sqlSave(ctx context.Cont
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldStatus, field.TypeEnum, value)
 	}
-	if value, ok := _u.mutation.Amount(); ok {
-		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldAmount, field.TypeOther, value)
+	if value, ok := _u.mutation.FiatAmount(); ok {
+		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldFiatAmount, field.TypeOther, value)
 	}
 	if value, ok := _u.mutation.AuthorizedTransactionGroupID(); ok {
 		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldAuthorizedTransactionGroupID, field.TypeString, value)

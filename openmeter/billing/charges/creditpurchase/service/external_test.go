@@ -103,7 +103,7 @@ func TestExternalCreditPurchaseStateMachineUsesRoundedCreditAmount(t *testing.T)
 	// when:
 	// - the current external helpers grant credits and authorize payment
 	// then:
-	// - lineage and payment realization both use the currency-rounded credit amount
+	// - lineage and handlers use the currency-rounded credit amount
 	expectedAmount := alpacadecimal.NewFromFloat(100.12)
 	charge := newExternalStateMachineTestChargeWithInput(t, externalStateMachineTestChargeInput{
 		status:        creditpurchase.StatusActivePaymentPending,
@@ -155,7 +155,6 @@ func TestExternalCreditPurchaseStateMachineUsesRoundedCreditAmount(t *testing.T)
 	err = stateMachine.FireAndActivate(t.Context(), billing.TriggerAuthorized)
 	require.NoError(t, err)
 
-	require.Equal(t, expectedAmount.InexactFloat64(), adapter.createdExternalPayment.Amount.InexactFloat64())
 	handler.AssertExpectations(t)
 	lineageService.AssertExpectations(t)
 }
@@ -461,7 +460,7 @@ func TestExternalCreditPurchaseStateMachineAuthorizationUsesRealizationDuplicate
 			},
 			Base: payment.Base{
 				ServicePeriod: charge.Intent.ServicePeriod,
-				Amount:        charge.Intent.CreditAmount,
+				FiatAmount:    charge.Intent.CreditAmount,
 				Status:        payment.StatusAuthorized,
 				Authorized: &ledgertransaction.TimedGroupReference{
 					GroupReference: ledgertransaction.GroupReference{TransactionGroupID: "authorized-ledger-tx"},

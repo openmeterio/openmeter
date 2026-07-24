@@ -67,7 +67,7 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge credi
 		Namespace: charge.Namespace,
 		Base: payment.Base{
 			ServicePeriod: charge.Intent.ServicePeriod,
-			Amount:        charge.Intent.CreditAmount,
+			FiatAmount:    lineWithHeader.Line.Totals.Total,
 			Authorized: &ledgertransaction.TimedGroupReference{
 				GroupReference: ledgerTransactionGroupReference,
 				Time:           eventAt,
