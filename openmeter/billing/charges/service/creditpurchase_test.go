@@ -575,12 +575,13 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
-	// Let's buy 100 USD credits for $0.50 each (total cost is $50)
+	// Let's buy 100.123 USD credits for $0.50 each. The credit amount is rounded
+	// to 100.12 USD, so the total fiat cost is $50.06.
 	intent := CreateCreditPurchaseIntent(s.T(),
 		createCreditPurchaseIntentInput{
 			customer: cust.GetID(),
 			currency: USD,
-			amount:   alpacadecimal.NewFromFloat(100),
+			amount:   alpacadecimal.NewFromFloat(100.123),
 			servicePeriod: timeutil.ClosedPeriod{
 				From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
 				To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
@@ -667,7 +668,7 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 			s.NotNil(creditPurchaseCharge.Realizations.ExternalPaymentSettlement, "external payment settlement should be set")
 			s.Equal(authorizedCallback.id, creditPurchaseCharge.Realizations.ExternalPaymentSettlement.Authorized.TransactionGroupID, "authorized transaction group ID should be set")
 			s.Equal(settledCallback.id, creditPurchaseCharge.Realizations.ExternalPaymentSettlement.Settled.TransactionGroupID, "settled transaction group ID should be set")
-			s.Equal(float64(50), creditPurchaseCharge.Realizations.ExternalPaymentSettlement.FiatAmount.InexactFloat64())
+			s.Equal(float64(50.06), creditPurchaseCharge.Realizations.ExternalPaymentSettlement.FiatAmount.InexactFloat64())
 
 			// The charge should be final
 			s.Equal(creditpurchase.StatusFinal, creditPurchaseCharge.Status)

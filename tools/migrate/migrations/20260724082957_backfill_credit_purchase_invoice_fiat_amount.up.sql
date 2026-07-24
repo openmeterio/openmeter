@@ -23,9 +23,9 @@ BEGIN
       ON l.id = p.line_id
      AND l.namespace = p.namespace
      AND l.invoice_id = p.invoice_id
-    WHERE l.total <= 0
+    WHERE l.total < 0
   ) THEN
-    RAISE EXCEPTION 'cannot backfill credit-purchase invoice payments from non-positive invoice-line totals';
+    RAISE EXCEPTION 'cannot backfill credit-purchase invoice payments from negative invoice-line totals';
   END IF;
 END
 $$;
