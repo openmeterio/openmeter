@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entexpose"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entmixinaccessor"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entpaginate"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entselectedparse"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entsetorclear"
 	"github.com/openmeterio/openmeter/tools/migrate/viewgen"
 )
@@ -35,6 +36,7 @@ func main() {
 			entmixinaccessor.New(),
 			entpaginate.New(),
 			entsetorclear.New(),
+			entselectedparse.New(),
 		),
 	)
 	if err != nil {
