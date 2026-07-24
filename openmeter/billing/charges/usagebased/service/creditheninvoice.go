@@ -802,7 +802,6 @@ func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
 		ServicePeriodTo:    servicePeriodTo,
 		LineID:             lo.ToPtr(input.LineID),
 		InvoiceID:          lo.ToPtr(input.InvoiceID),
-		CreditAllocation:   usagebasedrun.CreditAllocationAvailable,
 		CurrencyCalculator: s.CurrencyCalculator,
 	})
 	if err != nil {
