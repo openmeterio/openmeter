@@ -15,4 +15,9 @@ const (
 const (
 	// AnnotationValueReasonCreditPurchase indicates the line is for a credit purchase.
 	AnnotationValueReasonCreditPurchase = "credit-purchase"
+	// AnnotationValueReasonOveragePlaceholder indicates the line reserves invoice scheduling
+	// for a custom-currency overage whose fiat amount is not materialized yet.
+	AnnotationValueReasonOveragePlaceholder = "overage-placeholder"
+	// AnnotationValueReasonOverage indicates the line contains usage not covered by credits.
+	AnnotationValueReasonOverage = "overage"
 )

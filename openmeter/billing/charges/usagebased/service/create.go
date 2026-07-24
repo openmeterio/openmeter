@@ -111,6 +111,14 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		return usagebased.ChargeWithGatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
 
+	if intent.Currency.IsCustom() {
+		// TODO: This should be a different typed gathering line, but for now we don't have that.
+		if clonedAnnotations == nil {
+			clonedAnnotations = models.Annotations{}
+		}
+		clonedAnnotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonOveragePlaceholder)
+	}
+
 	var unitConfig *productcatalog.UnitConfig
 	if intent.UnitConfig != nil {
 		unitConfig = lo.ToPtr(intent.UnitConfig.Clone())

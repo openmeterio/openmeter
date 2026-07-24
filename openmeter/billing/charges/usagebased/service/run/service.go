@@ -2,12 +2,10 @@ package run
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Service owns usage-based realization run mechanics: rating snapshots,
@@ -61,25 +59,4 @@ func New(config Config) (*Service, error) {
 		handler: config.Handler,
 		lineage: config.Lineage,
 	}, nil
-}
-
-type CreditAllocationMode string
-
-const (
-	// CreditAllocationNone means no credits are allocated to the run.
-	CreditAllocationNone CreditAllocationMode = "none"
-	// CreditAllocationExact means the total's exact amount of credits is allocated to the run.
-	CreditAllocationExact CreditAllocationMode = "exact"
-	// CreditAllocationAvailable means credits should be allocated up to the total's amount of credits, but it's not an
-	// error if the total's amount of credits is not available.
-	CreditAllocationAvailable CreditAllocationMode = "available"
-)
-
-func (m CreditAllocationMode) Validate() error {
-	switch m {
-	case CreditAllocationNone, CreditAllocationExact, CreditAllocationAvailable:
-		return nil
-	default:
-		return models.NewGenericValidationError(fmt.Errorf("invalid credit allocation mode: %s", m))
-	}
 }

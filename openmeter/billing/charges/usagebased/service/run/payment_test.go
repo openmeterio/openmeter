@@ -58,6 +58,16 @@ func TestBookInvoicedPaymentAuthorizedInputValidate(t *testing.T) {
 	})
 }
 
+func TestBookInvoicedPaymentAuthorizedSkipsZeroFiatAmount(t *testing.T) {
+	in := newBookPaymentAuthorizedInput(t)
+	in.Line.Totals = totals.Totals{}
+	service := Service{handler: &usagebased.UnimplementedHandler{}}
+
+	result, err := service.BookInvoicedPaymentAuthorized(t.Context(), in)
+	require.NoError(t, err)
+	require.Nil(t, result.Payment)
+}
+
 func TestSettleInvoicedPaymentInputValidate(t *testing.T) {
 	valid := newSettlePaymentInput(t)
 	require.NoError(t, valid.Validate())
@@ -92,6 +102,16 @@ func TestSettleInvoicedPaymentInputValidate(t *testing.T) {
 		}
 		require.ErrorContains(t, in.Validate(), "payment already settled")
 	})
+}
+
+func TestSettleInvoicedPaymentSkipsZeroFiatAmount(t *testing.T) {
+	in := newSettlePaymentInput(t)
+	in.Line.Totals = totals.Totals{}
+	service := Service{handler: &usagebased.UnimplementedHandler{}}
+
+	result, err := service.SettleInvoicedPayment(t.Context(), in)
+	require.NoError(t, err)
+	require.Nil(t, result.Payment)
 }
 
 func newBookPaymentAuthorizedInput(t testing.TB) BookInvoicedPaymentAuthorizedInput {

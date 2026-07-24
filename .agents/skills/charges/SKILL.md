@@ -637,6 +637,7 @@ Use these conventions for lifecycle tests:
 - when testing service-period cutoffs, remember the event-time window is half-open: an event with `event_time == ServicePeriodTo` is excluded
 - prefer `streamingtestutils.NewMockStreamingConnector(...)` plus the real billing rating service when a usage-based rating test should exercise production quantity lookup, pricing, discounts, or commitments end-to-end
 - prefer `clock.FreezeTime(...)` for exact `StoredAtLT` / `AllocateAt` assertions
+- define fixed UTC test-fixture timestamps with `datetime.MustParseTimeInLocation(t, "...Z", time.UTC).AsTime()` so inline lifecycle variants use the same readable, failure-reporting representation as the surrounding charge tests
 - rely on the default billing profile unless the test explicitly needs customer-specific override behavior
 - for credit-only charges (usage-based or flat fee), `Create(...)` itself may return an already-advanced charge — assert the returned charge's status, do not assume it will be `created`
 - for credit-only charges (usage-based or flat fee), handler callbacks must not return credit allocations above the requested amount; exact allocation paths must return allocations that sum to the requested amount

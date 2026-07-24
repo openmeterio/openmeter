@@ -154,6 +154,7 @@ var _ usagebased.Handler = (*usageBasedTestHandler)(nil)
 
 type usageBasedTestHandler struct {
 	onInvoiceUsageAccrued               func(ctx context.Context, input usagebased.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+	onCustomCurrencyOverageAccrued      func(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error)
 	onPaymentAuthorized                 func(ctx context.Context, input usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
 	onPaymentSettled                    func(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
 	onCreditsOnlyUsageAccrued           func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
@@ -170,6 +171,14 @@ func (h *usageBasedTestHandler) OnInvoiceUsageAccrued(ctx context.Context, input
 	}
 
 	return h.onInvoiceUsageAccrued(ctx, input)
+}
+
+func (h *usageBasedTestHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error) {
+	if h.onCustomCurrencyOverageAccrued == nil {
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, errors.New("onCustomCurrencyOverageAccrued is not set")
+	}
+
+	return h.onCustomCurrencyOverageAccrued(ctx, input)
 }
 
 func (h *usageBasedTestHandler) OnPaymentAuthorized(ctx context.Context, input usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
