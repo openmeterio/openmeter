@@ -374,3 +374,24 @@ func ValidatePlanWithFeatures(ctx context.Context, resolver NamespacedFeatureRes
 		return errors.Join(errs...)
 	}
 }
+
+func ValidatePlanWithTaxCodes(ctx context.Context, resolver NamespacedTaxCodeResolver) models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		var errs []error
+
+		for _, phase := range p.Phases {
+			phaseFieldSelector := models.NewFieldSelectorGroup(
+				models.NewFieldSelector("phases").
+					WithExpression(
+						models.NewFieldAttrValue("key", phase.Key),
+					),
+			)
+
+			if err := ValidateRateCardsWithTaxCodes(ctx, resolver)(phase.RateCards); err != nil {
+				errs = append(errs, models.ErrorWithFieldPrefix(phaseFieldSelector, err))
+			}
+		}
+
+		return errors.Join(errs...)
+	}
+}

@@ -73,6 +73,17 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			)))
 		}
 
+		if params.TaxCodes != nil {
+			if p := filter.SelectPredicate[predicate.PlanRateCard](filter.Filter(*params.TaxCodes), ratecarddb.FieldTaxCodeID); p != nil {
+				query = query.Where(plandb.HasPhasesWith(
+					phasedb.HasRatecardsWith(
+						*p,
+						ratecarddb.DeletedAtIsNil(),
+					),
+				))
+			}
+		}
+
 		if !params.IncludeDeleted {
 			query = query.Where(plandb.DeletedAtIsNil())
 		}

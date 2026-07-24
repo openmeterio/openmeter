@@ -109,6 +109,9 @@ type ListPlansInput struct {
 
 	// ExcludeUnitConfig omits plans carrying a unit_config conversion on any of their rate cards. (v1 can't represent it)
 	ExcludeUnitConfig bool
+
+	// TaxCodes filters plans by their use of tax codes (AND semantics, supports eq/neq/contains/oeq).
+	TaxCodes *filter.FilterString
 }
 
 func (i ListPlansInput) Validate() error {
@@ -125,6 +128,11 @@ func (i ListPlansInput) Validate() error {
 	}
 	if i.Currency != nil {
 		if err := i.Currency.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if i.TaxCodes != nil {
+		if err := i.TaxCodes.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
