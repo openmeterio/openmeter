@@ -14,7 +14,7 @@ require (
 	github.com/IBM/sarama v1.50.3
 	github.com/ThreeDotsLabs/watermill v1.5.2
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.1.2
-	github.com/XSAM/otelsql v0.42.0
+	github.com/XSAM/otelsql v0.43.0
 	github.com/alpacahq/alpacadecimal v0.0.9
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/bhmj/jsonslice v1.1.3
@@ -220,7 +220,7 @@ require (
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/sync v0.22.0
-	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.44.0 // indirect
 	golang.org/x/text v0.40.0
 	golang.org/x/tools v0.47.0 // indirect
