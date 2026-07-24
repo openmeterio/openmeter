@@ -1186,8 +1186,8 @@ func (e *ChargeCreditPurchaseExternalPayment) GetStatus() payment.Status {
 	return e.Status
 }
 
-func (e *ChargeCreditPurchaseExternalPayment) GetAmount() alpacadecimal.Decimal {
-	return e.Amount
+func (e *ChargeCreditPurchaseExternalPayment) GetFiatAmount() alpacadecimal.Decimal {
+	return e.FiatAmount
 }
 
 func (e *ChargeCreditPurchaseExternalPayment) GetAuthorizedTransactionGroupID() *string {
@@ -1250,8 +1250,8 @@ func (e *ChargeCreditPurchaseInvoicedPayment) GetStatus() payment.Status {
 	return e.Status
 }
 
-func (e *ChargeCreditPurchaseInvoicedPayment) GetAmount() alpacadecimal.Decimal {
-	return e.Amount
+func (e *ChargeCreditPurchaseInvoicedPayment) GetFiatAmount() alpacadecimal.Decimal {
+	return e.FiatAmount
 }
 
 func (e *ChargeCreditPurchaseInvoicedPayment) GetAuthorizedTransactionGroupID() *string {
@@ -1770,8 +1770,8 @@ func (e *ChargeFlatFeeRunPayment) GetStatus() payment.Status {
 	return e.Status
 }
 
-func (e *ChargeFlatFeeRunPayment) GetAmount() alpacadecimal.Decimal {
-	return e.Amount
+func (e *ChargeFlatFeeRunPayment) GetFiatAmount() alpacadecimal.Decimal {
+	return e.FiatAmount
 }
 
 func (e *ChargeFlatFeeRunPayment) GetAuthorizedTransactionGroupID() *string {
@@ -2238,8 +2238,8 @@ func (e *ChargeUsageBasedRunPayment) GetStatus() payment.Status {
 	return e.Status
 }
 
-func (e *ChargeUsageBasedRunPayment) GetAmount() alpacadecimal.Decimal {
-	return e.Amount
+func (e *ChargeUsageBasedRunPayment) GetFiatAmount() alpacadecimal.Decimal {
+	return e.FiatAmount
 }
 
 func (e *ChargeUsageBasedRunPayment) GetAuthorizedTransactionGroupID() *string {

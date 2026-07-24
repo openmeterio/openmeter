@@ -73,16 +73,16 @@ func (_u *ChargeUsageBasedRunPaymentUpdate) SetNillableStatus(v *payment.Status)
 	return _u
 }
 
-// SetAmount sets the "amount" field.
-func (_u *ChargeUsageBasedRunPaymentUpdate) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunPaymentUpdate {
-	_u.mutation.SetAmount(v)
+// SetFiatAmount sets the "fiat_amount" field.
+func (_u *ChargeUsageBasedRunPaymentUpdate) SetFiatAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunPaymentUpdate {
+	_u.mutation.SetFiatAmount(v)
 	return _u
 }
 
-// SetNillableAmount sets the "amount" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunPaymentUpdate) SetNillableAmount(v *alpacadecimal.Decimal) *ChargeUsageBasedRunPaymentUpdate {
+// SetNillableFiatAmount sets the "fiat_amount" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunPaymentUpdate) SetNillableFiatAmount(v *alpacadecimal.Decimal) *ChargeUsageBasedRunPaymentUpdate {
 	if v != nil {
-		_u.SetAmount(*v)
+		_u.SetFiatAmount(*v)
 	}
 	return _u
 }
@@ -290,8 +290,8 @@ func (_u *ChargeUsageBasedRunPaymentUpdate) sqlSave(ctx context.Context) (_node 
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldStatus, field.TypeEnum, value)
 	}
-	if value, ok := _u.mutation.Amount(); ok {
-		_spec.SetField(chargeusagebasedrunpayment.FieldAmount, field.TypeOther, value)
+	if value, ok := _u.mutation.FiatAmount(); ok {
+		_spec.SetField(chargeusagebasedrunpayment.FieldFiatAmount, field.TypeOther, value)
 	}
 	if value, ok := _u.mutation.AuthorizedTransactionGroupID(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldAuthorizedTransactionGroupID, field.TypeString, value)
@@ -394,16 +394,16 @@ func (_u *ChargeUsageBasedRunPaymentUpdateOne) SetNillableStatus(v *payment.Stat
 	return _u
 }
 
-// SetAmount sets the "amount" field.
-func (_u *ChargeUsageBasedRunPaymentUpdateOne) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunPaymentUpdateOne {
-	_u.mutation.SetAmount(v)
+// SetFiatAmount sets the "fiat_amount" field.
+func (_u *ChargeUsageBasedRunPaymentUpdateOne) SetFiatAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunPaymentUpdateOne {
+	_u.mutation.SetFiatAmount(v)
 	return _u
 }
 
-// SetNillableAmount sets the "amount" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunPaymentUpdateOne) SetNillableAmount(v *alpacadecimal.Decimal) *ChargeUsageBasedRunPaymentUpdateOne {
+// SetNillableFiatAmount sets the "fiat_amount" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunPaymentUpdateOne) SetNillableFiatAmount(v *alpacadecimal.Decimal) *ChargeUsageBasedRunPaymentUpdateOne {
 	if v != nil {
-		_u.SetAmount(*v)
+		_u.SetFiatAmount(*v)
 	}
 	return _u
 }
@@ -641,8 +641,8 @@ func (_u *ChargeUsageBasedRunPaymentUpdateOne) sqlSave(ctx context.Context) (_no
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldStatus, field.TypeEnum, value)
 	}
-	if value, ok := _u.mutation.Amount(); ok {
-		_spec.SetField(chargeusagebasedrunpayment.FieldAmount, field.TypeOther, value)
+	if value, ok := _u.mutation.FiatAmount(); ok {
+		_spec.SetField(chargeusagebasedrunpayment.FieldFiatAmount, field.TypeOther, value)
 	}
 	if value, ok := _u.mutation.AuthorizedTransactionGroupID(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldAuthorizedTransactionGroupID, field.TypeString, value)

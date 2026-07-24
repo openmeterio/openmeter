@@ -35,7 +35,7 @@ func TestBookInvoicedPaymentAuthorizedInputValidate(t *testing.T) {
 				Base: payment.Base{
 					ServicePeriod: in.Line.Period,
 					Status:        payment.StatusAuthorized,
-					Amount:        in.Line.Totals.Total,
+					FiatAmount:    in.Line.Totals.Total,
 					Authorized: &ledgertransaction.TimedGroupReference{
 						GroupReference: ledgertransaction.GroupReference{
 							TransactionGroupID: "authorized-group",
@@ -154,7 +154,7 @@ func newSettlePaymentInput(t testing.TB) SettleInvoicedPaymentInput {
 			Base: payment.Base{
 				ServicePeriod: authInput.Line.Period,
 				Status:        payment.StatusAuthorized,
-				Amount:        authInput.Line.Totals.Total,
+				FiatAmount:    authInput.Line.Totals.Total,
 				Authorized: &ledgertransaction.TimedGroupReference{
 					GroupReference: ledgertransaction.GroupReference{
 						TransactionGroupID: "authorized-group",

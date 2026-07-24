@@ -109,6 +109,20 @@ func (s *Service) AuthorizeExternalPayment(ctx context.Context, charge creditpur
 			WithAttrs(charge.Realizations.ExternalPaymentSettlement.ErrorAttributes())
 	}
 
+	externalSettlement, err := charge.Intent.Settlement.AsExternalSettlement()
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	fiatCurrency, err := externalSettlement.Currency.AsFiatCurrency()
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	fiatAmount := fiatCurrency.RoundToPrecision(
+		charge.Intent.CreditAmount.Mul(externalSettlement.CostBasis),
+	)
+
 	eventAt := clock.Now()
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{
 		Charge:  charge,
@@ -122,7 +136,7 @@ func (s *Service) AuthorizeExternalPayment(ctx context.Context, charge creditpur
 		Namespace: charge.Namespace,
 		Base: payment.Base{
 			ServicePeriod: charge.Intent.ServicePeriod,
-			Amount:        charge.Intent.CreditAmount,
+			FiatAmount:    fiatAmount,
 			Authorized: &ledgertransaction.TimedGroupReference{
 				GroupReference: ledgerTransactionGroupReference,
 				Time:           eventAt,

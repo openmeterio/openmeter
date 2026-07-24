@@ -667,6 +667,7 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 			s.NotNil(creditPurchaseCharge.Realizations.ExternalPaymentSettlement, "external payment settlement should be set")
 			s.Equal(authorizedCallback.id, creditPurchaseCharge.Realizations.ExternalPaymentSettlement.Authorized.TransactionGroupID, "authorized transaction group ID should be set")
 			s.Equal(settledCallback.id, creditPurchaseCharge.Realizations.ExternalPaymentSettlement.Settled.TransactionGroupID, "settled transaction group ID should be set")
+			s.Equal(float64(50), creditPurchaseCharge.Realizations.ExternalPaymentSettlement.FiatAmount.InexactFloat64())
 
 			// The charge should be final
 			s.Equal(creditpurchase.StatusFinal, creditPurchaseCharge.Status)
@@ -1028,6 +1029,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		s.Equal(1, authorizedCallback.nrInvocations)
 		s.Equal(settledCallback.id, creditPurchaseCharge.Realizations.InvoiceSettlement.Settled.TransactionGroupID)
+		s.Equal(float64(50), creditPurchaseCharge.Realizations.InvoiceSettlement.FiatAmount.InexactFloat64())
 		s.Equal(payment.StatusSettled, creditPurchaseCharge.Realizations.InvoiceSettlement.Status)
 		s.Equal(creditpurchase.StatusFinal, creditPurchaseCharge.Status)
 	})

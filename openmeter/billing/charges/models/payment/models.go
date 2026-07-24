@@ -48,8 +48,8 @@ type Base struct {
 	Annotations   models.Annotations    `json:"annotations"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
-	Status Status                `json:"status"`
-	Amount alpacadecimal.Decimal `json:"amount"`
+	Status     Status                `json:"status"`
+	FiatAmount alpacadecimal.Decimal `json:"fiatAmount"`
 
 	Authorized *ledgertransaction.TimedGroupReference `json:"authorized"`
 	Settled    *ledgertransaction.TimedGroupReference `json:"settled"`
@@ -78,8 +78,8 @@ func (r Base) Validate() error {
 		}
 	}
 
-	if !r.Amount.IsPositive() {
-		errs = append(errs, fmt.Errorf("amount must be positive"))
+	if !r.FiatAmount.IsPositive() {
+		errs = append(errs, fmt.Errorf("fiat amount must be positive"))
 	}
 
 	switch r.Status {
