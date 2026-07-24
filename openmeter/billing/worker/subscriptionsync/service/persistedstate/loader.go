@@ -3,6 +3,7 @@ package persistedstate
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -12,12 +13,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type billingService interface {
-	GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error)
+	GetStandardLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) (billing.StandardLines, error)
+	GetGatheringLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) (billing.GatheringLines, error)
+	GetSplitLineGroupsForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error)
 	ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error)
 }
 
@@ -38,43 +40,87 @@ func NewLoader(billingService billingService, chargeService chargeService) Loade
 }
 
 func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subscription) (State, error) {
-	lines, err := l.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
+	getLinesInput := billing.GetLinesForSubscriptionInput{
 		Namespace:      subs.Namespace,
 		SubscriptionID: subs.ID,
 		CustomerID:     subs.CustomerId,
 		// Charge-managed invoice lines are edited through charge patches, so subscription sync loads the
 		// charge entities instead of reconciling those lines directly.
 		IncludeChargeManaged: false,
+	}
+
+	standardLines, err := l.billingService.GetStandardLinesForSubscription(ctx, getLinesInput)
+	if err != nil {
+		return State{}, fmt.Errorf("getting existing standard lines: %w", err)
+	}
+
+	gatheringLines, err := l.billingService.GetGatheringLinesForSubscription(ctx, getLinesInput)
+	if err != nil {
+		return State{}, fmt.Errorf("getting existing gathering lines: %w", err)
+	}
+
+	splitLineGroups, err := l.billingService.GetSplitLineGroupsForSubscription(ctx, getLinesInput)
+	if err != nil {
+		return State{}, fmt.Errorf("getting existing split line groups: %w", err)
+	}
+
+	invoiceLines := slices.Concat(standardLines.AsGenericLines(), gatheringLines.AsGenericLines())
+	lineItems, err := lo.MapErr(invoiceLines, func(line billing.GenericInvoiceLine, _ int) (Item, error) {
+		normalizedLine, err := normalizePersistedLine(line)
+		if err != nil {
+			return nil, fmt.Errorf("normalizing existing invoice line: %w", err)
+		}
+
+		item, err := newPersistedLine(normalizedLine)
+		if err != nil {
+			return nil, fmt.Errorf("creating persisted invoice line item: %w", err)
+		}
+
+		return item, nil
 	})
 	if err != nil {
-		return State{}, fmt.Errorf("getting existing lines: %w", err)
+		return State{}, fmt.Errorf("assembling persisted invoice line items: %w", err)
 	}
 
-	lines, err = slicesx.MapWithErr(lines, normalizePersistedLineOrHierarchy)
-	if err != nil {
-		return State{}, fmt.Errorf("normalizing existing lines: %w", err)
-	}
-
-	byUniqueID := make(map[string]Item, len(lines))
-	for _, line := range lines {
-		uniqueID := line.ChildUniqueReferenceID()
-		if uniqueID == nil {
-			continue
-		}
-
-		item, err := NewItemFromLineOrHierarchy(line)
+	hierarchyItems, err := lo.MapErr(splitLineGroups, func(hierarchy billing.SplitLineHierarchy, _ int) (Item, error) {
+		normalizedHierarchy, err := normalizePersistedSplitLineHierarchy(hierarchy)
 		if err != nil {
-			return State{}, fmt.Errorf("creating persisted item[%s]: %w", *uniqueID, err)
+			return nil, fmt.Errorf("normalizing existing split line hierarchy: %w", err)
 		}
 
-		if _, ok := byUniqueID[*uniqueID]; ok {
-			return State{}, fmt.Errorf("duplicate unique ids in the existing lines")
+		item, err := newPersistedSplitLineHierarchy(normalizedHierarchy)
+		if err != nil {
+			return nil, fmt.Errorf("creating persisted split line hierarchy item: %w", err)
 		}
 
-		byUniqueID[*uniqueID] = item
+		return item, nil
+	})
+	if err != nil {
+		return State{}, fmt.Errorf("assembling persisted split line hierarchy items: %w", err)
 	}
 
-	invoices, err := l.loadInvoicesForSubscriptionLines(ctx, subs, lines)
+	invoiceItems := slices.Concat(lineItems, hierarchyItems)
+	itemsByUniqueID := lo.GroupBy(
+		lo.Filter(invoiceItems, func(item Item, _ int) bool {
+			return item.ChildUniqueReferenceID() != nil
+		}),
+		func(item Item) string {
+			return *item.ChildUniqueReferenceID()
+		},
+	)
+
+	byUniqueID, err := lo.MapValuesErr(itemsByUniqueID, func(items []Item, uniqueID string) (Item, error) {
+		if len(items) > 1 {
+			return nil, fmt.Errorf("duplicate unique id in persisted invoice items [unique_id=%s, existing_type=%s, duplicate_type=%s]", uniqueID, items[0].Type(), items[1].Type())
+		}
+
+		return items[0], nil
+	})
+	if err != nil {
+		return State{}, err
+	}
+
+	invoices, err := l.loadInvoicesForSubscriptionItems(ctx, subs, invoiceItems)
 	if err != nil {
 		return State{}, err
 	}
@@ -176,20 +222,20 @@ func (l Loader) loadChargesForSubscription(ctx context.Context, subs subscriptio
 	return byUniqueID, nil
 }
 
-func (l Loader) loadInvoicesForSubscriptionLines(ctx context.Context, subs subscription.Subscription, lines []billing.LineOrHierarchy) (Invoices, error) {
+func (l Loader) loadInvoicesForSubscriptionItems(ctx context.Context, subs subscription.Subscription, items []Item) (Invoices, error) {
 	invoiceIDs := make(map[string]struct{})
 
-	for _, line := range lines {
-		switch line.Type() {
-		case billing.LineOrHierarchyTypeLine:
-			genericLine, err := line.AsGenericLine()
+	for _, item := range items {
+		switch item.Type() {
+		case ItemTypeInvoiceLine:
+			line, err := ItemAsLine(item)
 			if err != nil {
 				return Invoices{}, fmt.Errorf("getting line invoice id: %w", err)
 			}
 
-			invoiceIDs[genericLine.GetInvoiceID()] = struct{}{}
-		case billing.LineOrHierarchyTypeHierarchy:
-			hierarchy, err := line.AsHierarchy()
+			invoiceIDs[line.GetInvoiceID()] = struct{}{}
+		case ItemTypeInvoiceSplitLineGroup:
+			hierarchy, err := ItemAsSplitLineHierarchy(item)
 			if err != nil {
 				return Invoices{}, fmt.Errorf("getting hierarchy invoice ids: %w", err)
 			}
@@ -197,6 +243,8 @@ func (l Loader) loadInvoicesForSubscriptionLines(ctx context.Context, subs subsc
 			for _, child := range hierarchy.Lines {
 				invoiceIDs[child.Invoice.GetID()] = struct{}{}
 			}
+		default:
+			return Invoices{}, fmt.Errorf("unsupported persisted invoice item type: %s", item.Type())
 		}
 	}
 
@@ -241,7 +289,7 @@ func (l Loader) loadInvoices(ctx context.Context, namespace string, invoiceIDs [
 	return Invoices(byID), nil
 }
 
-func normalizePersistedLineOrHierarchy(lineOrHierarchy billing.LineOrHierarchy) (billing.LineOrHierarchy, error) {
+func normalizePersistedLine(line billing.GenericInvoiceLine) (billing.GenericInvoiceLine, error) {
 	// Subscription sync diffs against meter-compatible time windows. Historical persisted
 	// lines can still carry sub-second timestamps from older writes, but the meter engine
 	// only supports MinimumWindowSizeDuration precision. We normalize persisted state on
@@ -249,76 +297,49 @@ func normalizePersistedLineOrHierarchy(lineOrHierarchy billing.LineOrHierarchy) 
 	// preserved finer precision than the target state can legally represent.
 	// TODO: Add a migration to normalize existing billing timestamps to the precision
 	// supported by meter queries.
-	switch lineOrHierarchy.Type() {
-	case billing.LineOrHierarchyTypeLine:
-		line, err := lineOrHierarchy.AsGenericLine()
-		if err != nil {
-			return billing.LineOrHierarchy{}, fmt.Errorf("getting line: %w", err)
-		}
+	if line == nil {
+		return nil, fmt.Errorf("line is nil")
+	}
 
-		cloned, err := line.Clone()
-		if err != nil {
-			return billing.LineOrHierarchy{}, fmt.Errorf("cloning line: %w", err)
-		}
+	cloned, err := line.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning line: %w", err)
+	}
 
-		cloned.UpdateServicePeriod(func(period *timeutil.ClosedPeriod) {
+	cloned.UpdateServicePeriod(func(period *timeutil.ClosedPeriod) {
+		*period = period.Truncate(streaming.MinimumWindowSizeDuration)
+	})
+
+	if invoiceAtAccessor, ok := cloned.(billing.InvoiceAtAccessor); ok {
+		invoiceAtAccessor.SetInvoiceAt(invoiceAtAccessor.GetInvoiceAt().Truncate(streaming.MinimumWindowSizeDuration))
+	}
+
+	normalizeSubscriptionReference(cloned.GetSubscriptionReference())
+
+	return cloned, nil
+}
+
+func normalizePersistedSplitLineHierarchy(hierarchy billing.SplitLineHierarchy) (*billing.SplitLineHierarchy, error) {
+	cloned, err := hierarchy.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning hierarchy: %w", err)
+	}
+
+	cloned.Group.ServicePeriod = cloned.Group.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
+
+	for i := range cloned.Lines {
+		cloned.Lines[i].Line.UpdateServicePeriod(func(period *timeutil.ClosedPeriod) {
 			*period = period.Truncate(streaming.MinimumWindowSizeDuration)
 		})
 
-		if invoiceAtAccessor, ok := cloned.(billing.InvoiceAtAccessor); ok {
+		if invoiceAtAccessor, ok := cloned.Lines[i].Line.(billing.InvoiceAtAccessor); ok {
 			invoiceAtAccessor.SetInvoiceAt(invoiceAtAccessor.GetInvoiceAt().Truncate(streaming.MinimumWindowSizeDuration))
 		}
 
-		normalizeSubscriptionReference(cloned.GetSubscriptionReference())
-
-		invoiceLine := cloned.AsInvoiceLine()
-		switch invoiceLine.Type() {
-		case billing.InvoiceLineTypeStandard:
-			standardLine, err := invoiceLine.AsStandardLine()
-			if err != nil {
-				return billing.LineOrHierarchy{}, fmt.Errorf("getting standard line: %w", err)
-			}
-
-			return billing.NewLineOrHierarchy(&standardLine), nil
-		case billing.InvoiceLineTypeGathering:
-			gatheringLine, err := invoiceLine.AsGatheringLine()
-			if err != nil {
-				return billing.LineOrHierarchy{}, fmt.Errorf("getting gathering line: %w", err)
-			}
-
-			return billing.NewLineOrHierarchy(gatheringLine), nil
-		default:
-			return billing.LineOrHierarchy{}, fmt.Errorf("unsupported invoice line type: %s", invoiceLine.Type())
-		}
-	case billing.LineOrHierarchyTypeHierarchy:
-		hierarchy, err := lineOrHierarchy.AsHierarchy()
-		if err != nil {
-			return billing.LineOrHierarchy{}, fmt.Errorf("getting hierarchy: %w", err)
-		}
-
-		cloned, err := hierarchy.Clone()
-		if err != nil {
-			return billing.LineOrHierarchy{}, fmt.Errorf("cloning hierarchy: %w", err)
-		}
-
-		cloned.Group.ServicePeriod = cloned.Group.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
-
-		for i := range cloned.Lines {
-			cloned.Lines[i].Line.UpdateServicePeriod(func(period *timeutil.ClosedPeriod) {
-				*period = period.Truncate(streaming.MinimumWindowSizeDuration)
-			})
-
-			if invoiceAtAccessor, ok := cloned.Lines[i].Line.(billing.InvoiceAtAccessor); ok {
-				invoiceAtAccessor.SetInvoiceAt(invoiceAtAccessor.GetInvoiceAt().Truncate(streaming.MinimumWindowSizeDuration))
-			}
-
-			normalizeSubscriptionReference(cloned.Lines[i].Line.GetSubscriptionReference())
-		}
-
-		return billing.NewLineOrHierarchy(&cloned), nil
-	default:
-		return lineOrHierarchy, nil
+		normalizeSubscriptionReference(cloned.Lines[i].Line.GetSubscriptionReference())
 	}
+
+	return &cloned, nil
 }
 
 func normalizeSubscriptionReference(ref *billing.SubscriptionReference) {
