@@ -99,11 +99,31 @@ func (mockUsageBasedHandler) OnInvoiceUsageAccrued(context.Context, usagebased.O
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
+func (mockUsageBasedHandler) OnCustomCurrencyOverageAccrued(_ context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error) {
+	costBasis, err := input.GetCostBasis()
+	if err != nil {
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, err
+	}
+
+	return usagebased.OnCustomCurrencyOverageAccruedResult{
+		TransactionGroup: newMockLedgerTransactionGroupReference(),
+		TotalFiatAmount:  input.GetFiatCurrency().RoundToPrecision(input.GetCustomCurrencyAmountAccrued().Mul(costBasis)),
+	}, nil
+}
+
 func (mockUsageBasedHandler) OnPaymentAuthorized(context.Context, usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
 func (mockUsageBasedHandler) OnPaymentSettled(context.Context, usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
+	return newMockLedgerTransactionGroupReference(), nil
+}
+
+func (mockUsageBasedHandler) OnCustomCurrencyOveragePaymentAuthorized(context.Context, usagebased.OnCustomCurrencyOveragePaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {
+	return newMockLedgerTransactionGroupReference(), nil
+}
+
+func (mockUsageBasedHandler) OnCustomCurrencyOveragePaymentSettled(context.Context, usagebased.OnCustomCurrencyOveragePaymentSettledInput) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }
 

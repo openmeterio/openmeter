@@ -77,8 +77,12 @@ func StandardInvoiceCollectionAt(i *billing.StandardInvoice) error {
 		return errors.New("lines must be expanded")
 	}
 
+	// Invoice collection waits only for metered lines or if a line defines an explicit deadline.
+	// Flat-fee lines normally do not participate, but custom-currency usage overage is represented
+	// on the invoice as a flat fiat line and retains the usage charge's late-event collection deadline.
 	collectableLines := lo.Filter(i.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
-		return line.DeletedAt == nil && line.DependsOnMeteredQuantity()
+		return line.DeletedAt == nil &&
+			(line.DependsOnMeteredQuantity() || line.OverrideCollectionPeriodEnd != nil)
 	})
 
 	if len(collectableLines) == 0 {
