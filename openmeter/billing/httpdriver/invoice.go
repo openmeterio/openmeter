@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -45,10 +46,9 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 				return ListInvoicesRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			return ListInvoicesRequest{
+			req := ListInvoicesRequest{
 				Namespaces: []string{ns},
 
-				Customers: lo.FromPtr(input.Customers),
 				Statuses: lo.Map(
 					lo.FromPtr(input.Statuses),
 					func(status api.InvoiceStatus, _ int) string {
@@ -62,12 +62,10 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 					},
 				),
 
-				IssuedAfter:       input.IssuedAfter,
-				IssuedBefore:      input.IssuedBefore,
-				PeriodStartAfter:  input.PeriodStartAfter,
-				PeriodStartBefore: input.PeriodStartBefore,
-				CreatedAfter:      input.CreatedAfter,
-				CreatedBefore:     input.CreatedBefore,
+				IssuedAt:    filter.NewFilterTime(input.IssuedAfter, input.IssuedBefore),
+				PeriodStart: filter.NewFilterTime(input.PeriodStartAfter, input.PeriodStartBefore),
+				CreatedAt:   filter.NewFilterTime(input.CreatedAfter, input.CreatedBefore),
+
 				Expand: mapInvoiceExpandsToEntity(lo.FromPtr(input.Expand)).
 					With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 
@@ -80,7 +78,13 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 					PageSize:   lo.FromPtrOr(input.PageSize, DefaultPageSize),
 					PageNumber: lo.FromPtrOr(input.Page, DefaultPageNumber),
 				},
-			}, nil
+			}
+
+			if customers := lo.FromPtr(input.Customers); len(customers) > 0 {
+				req.CustomerID = &filter.FilterULID{FilterString: filter.FilterString{In: &customers}}
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, request ListInvoicesRequest) (ListInvoicesResponse, error) {
 			// Let's mandate properly set page size and page number.
@@ -354,31 +358,38 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 				return DeleteInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			return billing.InvoiceID{
-				ID:        params.InvoiceID,
-				Namespace: ns,
+			return billing.DeleteInvoiceInput{
+				Invoice: billing.InvoiceID{
+					ID:        params.InvoiceID,
+					Namespace: ns,
+				},
+				DeletionSource: billing.ChangeSourceAPIRequest,
 			}, nil
 		},
 		func(ctx context.Context, request DeleteInvoiceRequest) (DeleteInvoiceResponse, error) {
-			invoice, err := h.service.DeleteInvoice(ctx, request)
+			invoice, err := h.service.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+				Invoice: request.Invoice,
+				Expand:  billing.InvoiceExpandAll,
+			})
 			if err != nil {
 				return DeleteInvoiceResponse{}, err
 			}
 
-			// Given we are doing background processing, we might be in any delete.* state, but in case we ended up in delete.failed let's have
-			// proper return code for the API (otherwise we would return 200)
-			if invoice.Status == billing.StandardInvoiceStatusDeleteFailed {
-				// If we have validation issues we return them as the deletion sync handler
-				// yields validation errors
-				if len(invoice.ValidationIssues) > 0 {
-					return DeleteInvoiceResponse{}, billing.ValidationError{
-						Err: invoice.ValidationIssues.AsError(),
-					}
+			switch invoice.Type() {
+			case billing.InvoiceTypeGathering:
+				if err := billing.ValidateAPIInvoiceDeleteSupported(invoice); err != nil {
+					return DeleteInvoiceResponse{}, err
 				}
 
-				return DeleteInvoiceResponse{}, billing.ValidationError{
-					Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
+				if _, err := h.service.DeleteGatheringInvoice(ctx, request); err != nil {
+					return DeleteInvoiceResponse{}, fmt.Errorf("deleting gathering invoice: %w", err)
 				}
+			case billing.InvoiceTypeStandard:
+				if err := h.deleteStandardInvoice(ctx, request); err != nil {
+					return DeleteInvoiceResponse{}, fmt.Errorf("deleting standard invoice: %w", err)
+				}
+			default:
+				return DeleteInvoiceResponse{}, models.NewNillableGenericValidationError(fmt.Errorf("invalid invoice type: %s", invoice.Type()))
 			}
 
 			return DeleteInvoiceResponse{}, nil
@@ -390,6 +401,31 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+func (h *handler) deleteStandardInvoice(ctx context.Context, request DeleteInvoiceRequest) error {
+	invoice, err := h.service.DeleteInvoice(ctx, request)
+	if err != nil {
+		return err
+	}
+
+	// Given we are doing background processing, we might be in any delete.* state, but in case we ended up in delete.failed let's have
+	// proper return code for the API (otherwise we would return 200)
+	if invoice.Status == billing.StandardInvoiceStatusDeleteFailed {
+		// If we have validation issues we return them as the deletion sync handler
+		// yields validation errors
+		if len(invoice.ValidationIssues) > 0 {
+			return billing.ValidationError{
+				Err: invoice.ValidationIssues.AsError(),
+			}
+		}
+
+		return billing.ValidationError{
+			Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
+		}
+	}
+
+	return nil
 }
 
 type (
@@ -427,7 +463,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				CustomerID: &params.CustomerID,
 
 				Number:   body.Number,
-				Currency: currencyx.Code(body.Currency),
+				Currency: currencyx.FiatCode(body.Currency),
 				Lines:    billing.NewStandardInvoiceLines(lines),
 			}, nil
 		},
@@ -483,54 +519,35 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 			}, nil
 		},
 		func(ctx context.Context, request UpdateInvoiceRequest) (UpdateInvoiceResponse, error) {
-			invoice, err := h.service.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+			// This fetch is only used to dispatch by invoice type. We do not need a customer lock here:
+			// invoice customer IDs are immutable, and the typed update services lock and refetch before editing.
+			invoice, err := h.service.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
 				Invoice: request.InvoiceID,
-				EditFn: func(invoice billing.Invoice) (billing.Invoice, error) {
-					var err error
-
-					if invoice.Type() == billing.InvoiceTypeGathering {
-						gatheringInvoice, err := invoice.AsGatheringInvoice()
-						if err != nil {
-							return billing.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
-						}
-
-						gatheringInvoice.Lines, err = h.mergeGatheringInvoiceLinesFromAPI(ctx, &gatheringInvoice, request.Input.Lines)
-						if err != nil {
-							return billing.Invoice{}, fmt.Errorf("merging lines: %w", err)
-						}
-
-						return billing.NewInvoice(gatheringInvoice), nil
-					}
-
-					stdInvoice, err := invoice.AsStandardInvoice()
-					if err != nil {
-						return billing.Invoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
-					}
-
-					stdInvoice.Supplier = mergeInvoiceSupplierFromAPI(stdInvoice.Supplier, request.Input.Supplier)
-					stdInvoice.Customer = mergeInvoiceCustomerFromAPI(stdInvoice.Customer, request.Input.Customer)
-					stdInvoice.Workflow, err = mergeInvoiceWorkflowFromAPI(stdInvoice.Workflow, request.Input.Workflow)
-					if err != nil {
-						return billing.Invoice{}, fmt.Errorf("merging workflow: %w", err)
-					}
-
-					stdInvoice.Lines, err = h.mergeStandardInvoiceLinesFromAPI(ctx, &stdInvoice, request.Input.Lines)
-					if err != nil {
-						return billing.Invoice{}, fmt.Errorf("merging lines: %w", err)
-					}
-
-					// basic fields
-					stdInvoice.Description = request.Input.Description
-					stdInvoice.Metadata = lo.FromPtrOr(request.Input.Metadata, map[string]string{})
-
-					return billing.NewInvoice(stdInvoice), nil
-				},
 			})
 			if err != nil {
 				return UpdateInvoiceResponse{}, err
 			}
 
-			return h.MapInvoiceToAPI(ctx, invoice)
+			var updatedInvoice billing.Invoice
+
+			switch invoice.Type() {
+			case billing.InvoiceTypeGathering:
+				updatedInvoice, err = h.updateGatheringInvoice(ctx, invoice, request)
+				if err != nil {
+					h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
+					return UpdateInvoiceResponse{}, fmt.Errorf("updating gathering invoice: %w", err)
+				}
+			case billing.InvoiceTypeStandard:
+				updatedInvoice, err = h.updateStandardInvoice(ctx, invoice, request)
+				if err != nil {
+					h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
+					return UpdateInvoiceResponse{}, fmt.Errorf("updating standard invoice: %w", err)
+				}
+			default:
+				return UpdateInvoiceResponse{}, models.NewNillableGenericValidationError(fmt.Errorf("invalid invoice type: %s", invoice.Type()))
+			}
+
+			return h.MapInvoiceToAPI(ctx, updatedInvoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -539,6 +556,85 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+func (h *handler) logInvoiceEditRejected(ctx context.Context, invoiceType billing.InvoiceType, request UpdateInvoiceRequest, err error) {
+	if h.logger == nil {
+		return
+	}
+
+	h.logger.WarnContext(ctx, "billing invoice edit rejected",
+		"namespace", request.InvoiceID.Namespace,
+		"invoiceID", request.InvoiceID.ID,
+		"invoiceType", invoiceType,
+		// Line edits contain billing configuration but no invoice, customer, or supplier PII.
+		"lines", request.Input.Lines,
+		"rejection", err.Error(),
+	)
+}
+
+func (h *handler) updateGatheringInvoice(ctx context.Context, invoice billing.Invoice, request UpdateInvoiceRequest) (billing.Invoice, error) {
+	gatheringInvoice, err := invoice.AsGatheringInvoice()
+	if err != nil {
+		return billing.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
+	}
+
+	updatedGatheringInvoice, err := h.service.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice:      gatheringInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.GatheringInvoice) error {
+			var err error
+			invoice.Lines, err = h.mergeGatheringInvoiceLinesFromAPI(ctx, invoice, request.Input.Lines)
+			if err != nil {
+				return fmt.Errorf("merging lines: %w", err)
+			}
+
+			return nil
+		},
+	})
+	if err != nil {
+		return billing.Invoice{}, err
+	}
+
+	return billing.NewInvoice(updatedGatheringInvoice), nil
+}
+
+func (h *handler) updateStandardInvoice(ctx context.Context, invoice billing.Invoice, request UpdateInvoiceRequest) (billing.Invoice, error) {
+	stdInvoice, err := invoice.AsStandardInvoice()
+	if err != nil {
+		return billing.Invoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
+	}
+
+	updatedStandardInvoice, err := h.service.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      stdInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			invoice.Supplier = mergeInvoiceSupplierFromAPI(invoice.Supplier, request.Input.Supplier)
+			invoice.Customer = mergeInvoiceCustomerFromAPI(invoice.Customer, request.Input.Customer)
+
+			var err error
+			invoice.Workflow, err = mergeInvoiceWorkflowFromAPI(invoice.Workflow, request.Input.Workflow)
+			if err != nil {
+				return fmt.Errorf("merging workflow: %w", err)
+			}
+
+			invoice.Lines, err = h.mergeStandardInvoiceLinesFromAPI(ctx, invoice, request.Input.Lines)
+			if err != nil {
+				return fmt.Errorf("merging lines: %w", err)
+			}
+
+			// basic fields
+			invoice.Description = request.Input.Description
+			invoice.Metadata = lo.FromPtrOr(request.Input.Metadata, map[string]string{})
+
+			return nil
+		},
+	})
+	if err != nil {
+		return billing.Invoice{}, err
+	}
+
+	return billing.NewInvoice(updatedStandardInvoice), nil
 }
 
 func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) (api.Invoice, error) {

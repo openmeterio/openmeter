@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -18,14 +17,16 @@ import (
 type Service interface {
 	ChargeService
 
-	// Facade interfaces provide convinience helpers for the API layer.
+	// Facade interfaces provide convenience helpers for the API layer.
 	CreditPurchaseFacadeService
+	CustomerChargeAPIService
 }
 
 type ChargeService interface {
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
 	GetByIDs(ctx context.Context, input GetByIDsInput) (Charges, error)
 	Create(ctx context.Context, input CreateInput) (Charges, error)
+	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
 	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
 
 	AdvanceCharges(ctx context.Context, input AdvanceChargesInput) (Charges, error)
@@ -37,14 +38,15 @@ type ChargeService interface {
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
 }
 
-type CreditPurchaseFacadeService interface {
-	HandleCreditPurchaseExternalPaymentStateTransition(ctx context.Context, input HandleCreditPurchaseExternalPaymentStateTransitionInput) (creditpurchase.Charge, error)
-}
-
 type CreateInput struct {
 	Namespace string
 	Intents   ChargeIntents
 }
+
+type (
+	CreatePendingInvoiceLinesInput  = billing.CreatePendingInvoiceLinesInput
+	CreatePendingInvoiceLinesResult = billing.CreatePendingInvoiceLinesResult
+)
 
 func (i CreateInput) Validate() error {
 	var errs []error
@@ -105,26 +107,6 @@ func (i GetByIDsInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type HandleCreditPurchaseExternalPaymentStateTransitionInput struct {
-	ChargeID meta.ChargeID
-
-	TargetPaymentState payment.Status
-}
-
-func (i HandleCreditPurchaseExternalPaymentStateTransitionInput) Validate() error {
-	var errs []error
-
-	if err := i.ChargeID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("charge ID: %w", err))
-	}
-
-	if err := i.TargetPaymentState.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("target payment state: %w", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
 type AdvanceChargesInput struct {
 	Customer customer.CustomerID
 }
@@ -138,6 +120,22 @@ func (i AdvanceChargesInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type ListChargesDeletedAtFilter string
+
+const (
+	ListChargesDeletedAtFilterEffective  ListChargesDeletedAtFilter = "effective"
+	ListChargesDeletedAtFilterBaseIntent ListChargesDeletedAtFilter = "base_intent"
+)
+
+func (f ListChargesDeletedAtFilter) Validate() error {
+	switch f {
+	case "", ListChargesDeletedAtFilterEffective, ListChargesDeletedAtFilterBaseIntent:
+		return nil
+	default:
+		return fmt.Errorf("invalid value: %s", f)
+	}
+}
+
 type ListChargesInput struct {
 	pagination.Page
 
@@ -148,6 +146,9 @@ type ListChargesInput struct {
 	StatusIn        []meta.ChargeStatus
 	StatusNotIn     []meta.ChargeStatus
 	IncludeDeleted  bool
+	// DeletedAtFilter selects which deleted-at field is used when IncludeDeleted is false.
+	// Empty defaults to effective charge deletion.
+	DeletedAtFilter ListChargesDeletedAtFilter
 
 	// OrderBy is the field to sort by. Supported values: id, created_at,
 	// service_period.from, billing_period.from.
@@ -197,6 +198,10 @@ func (i ListChargesInput) Validate() error {
 
 	if len(i.StatusIn) > 0 && len(i.StatusNotIn) > 0 {
 		errs = append(errs, errors.New("status_in and status_not_in cannot be set at the same time"))
+	}
+
+	if err := i.DeletedAtFilter.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("deleted at filter: %w", err))
 	}
 
 	if err := i.Expands.Validate(); err != nil {

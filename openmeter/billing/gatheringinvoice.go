@@ -30,7 +30,7 @@ type GatheringInvoiceBase struct {
 
 	Number        string                `json:"number"`
 	CustomerID    string                `json:"customerID"`
-	Currency      currencyx.Code        `json:"currency"`
+	Currency      currencyx.FiatCode    `json:"currency"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
 	NextCollectionAt *time.Time `json:"nextCollectionAt,omitempty"`
@@ -110,11 +110,24 @@ func (g GatheringInvoice) GetDeletedAt() *time.Time {
 	return g.DeletedAt
 }
 
+func (g GatheringInvoice) GetType() InvoiceType {
+	return InvoiceTypeGathering
+}
+
 func (g GatheringInvoice) AsInvoice() Invoice {
 	return Invoice{
 		t:                InvoiceTypeGathering,
 		gatheringInvoice: &g,
 	}
+}
+
+func (g GatheringInvoice) CloneAsGenericInvoice() (GenericInvoice, error) {
+	cloned, err := g.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return &cloned, nil
 }
 
 func (g GatheringInvoice) Validate() error {
@@ -186,6 +199,10 @@ func (g *GatheringInvoice) SetLines(lines []GenericInvoiceLine) error {
 	return nil
 }
 
+func (g *GatheringInvoice) UnsetLines() {
+	g.Lines = GatheringInvoiceLines{}
+}
+
 type GatheringInvoiceExpand string
 
 const (
@@ -217,6 +234,34 @@ type GatheringInvoiceAvailableActions struct {
 }
 
 type GatheringLines []GatheringLine
+
+func (l GatheringLines) ToStandardLines(invoiceID string) (StandardLines, error) {
+	return slicesx.MapWithErr(l, func(gatheringLine GatheringLine) (*StandardLine, error) {
+		stdLine, err := gatheringLine.AsNewStandardLine(invoiceID)
+		if err != nil {
+			return nil, fmt.Errorf("converting gathering line to standard line: %w", err)
+		}
+
+		return stdLine, nil
+	})
+}
+
+// ValidateStandardLineIDsMatchGatheringLinesUnordered validates that a standard-line result
+// preserves the same gathering-line IDs, regardless of output order.
+func ValidateStandardLineIDsMatchGatheringLinesUnordered(expected GatheringLines, actual StandardLines) error {
+	expectedIDs := lo.Map(expected, func(line GatheringLine, _ int) string {
+		return line.ID
+	})
+	actualIDs := lo.Map(actual, func(line *StandardLine, _ int) string {
+		return line.ID
+	})
+
+	if !lo.ElementsMatch(expectedIDs, actualIDs) {
+		return fmt.Errorf("line ids mismatch: expected %v, got %v", expectedIDs, actualIDs)
+	}
+
+	return nil
+}
 
 func (l GatheringLines) Validate() error {
 	return errors.Join(
@@ -369,11 +414,20 @@ type GatheringLineBase struct {
 	Engine      LineEngineType       `json:"engine,omitempty"`
 	InvoiceID   string               `json:"invoiceID"`
 
-	Currency      currencyx.Code        `json:"currency"`
+	Currency      currencyx.FiatCode    `json:"currency"`
 	ServicePeriod timeutil.ClosedPeriod `json:"period"`
 	InvoiceAt     time.Time             `json:"invoiceAt"`
 	Price         productcatalog.Price  `json:"price"`
 	FeatureKey    string                `json:"featureKey"`
+
+	// UnitConfig is the rate card's unit_config snapshotted onto the gathering line so
+	// the legacy line-engine path converts raw metered quantity into billed units and
+	// persists the applied config. AsNewStandardLine carries it into
+	// StandardLine.UsageBased.UnitConfig, where the rating mutator (via
+	// GetUnitConfig) applies it. The charges path snapshots its own config directly on
+	// the standard line instead, so this field is only populated on legacy-path lines.
+	// Nil for lines without a unit_config rate card.
+	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
 
 	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
 	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
@@ -389,6 +443,18 @@ type GatheringLineBase struct {
 
 func (i GatheringLineBase) GetChargeID() *string {
 	return i.ChargeID
+}
+
+func (i GatheringLineBase) GetMetadata() models.Metadata {
+	return i.Metadata
+}
+
+func (i GatheringLineBase) GetTaxConfig() *TaxConfig {
+	return FromProductCatalog(i.TaxConfig)
+}
+
+func (i GatheringLineBase) GetCurrency() currencyx.FiatCode {
+	return i.Currency
 }
 
 func (i GatheringLineBase) Validate() error {
@@ -487,6 +553,10 @@ func (i GatheringLineBase) Clone() (GatheringLineBase, error) {
 		*out.Subscription = *i.Subscription
 	}
 
+	if i.UnitConfig != nil {
+		out.UnitConfig = lo.ToPtr(i.UnitConfig.Clone())
+	}
+
 	return out, nil
 }
 
@@ -549,6 +619,14 @@ func (g *GatheringLineBase) SetDeletedAt(at *time.Time) {
 	g.DeletedAt = at
 }
 
+func (g *GatheringLineBase) SetManagedBy(managedBy InvoiceLineManagedBy) {
+	g.ManagedBy = managedBy
+}
+
+func (g *GatheringLineBase) SetEngine(engine LineEngineType) {
+	g.Engine = engine
+}
+
 func (g *GatheringLineBase) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
 	fn(&g.ServicePeriod)
 }
@@ -557,8 +635,20 @@ func (g GatheringLineBase) GetInvoiceID() string {
 	return g.InvoiceID
 }
 
+func (g GatheringLineBase) GetEngine() LineEngineType {
+	return g.Engine
+}
+
+func (g GatheringLineBase) GetLineEngineType() LineEngineType {
+	return g.Engine
+}
+
 func (g GatheringLineBase) GetRateCardDiscounts() Discounts {
 	return g.RateCardDiscounts
+}
+
+func (g GatheringLineBase) GetUnitConfig() *productcatalog.UnitConfig {
+	return g.UnitConfig
 }
 
 func (g GatheringLineBase) Equal(other GatheringLineBase) bool {
@@ -574,8 +664,9 @@ func (g GatheringLineBase) GetSubscriptionReference() *SubscriptionReference {
 }
 
 var (
-	_ GenericInvoiceLine = (*gatheringInvoiceLineGenericWrapper)(nil)
-	_ InvoiceAtAccessor  = (*gatheringInvoiceLineGenericWrapper)(nil)
+	_ GenericInvoiceLine        = (*gatheringInvoiceLineGenericWrapper)(nil)
+	_ GenericInvoiceLineCreator = GatheringLine{}
+	_ InvoiceAtAccessor         = (*gatheringInvoiceLineGenericWrapper)(nil)
 )
 
 // gatheringInvoiceLineGenericWrapper is a wrapper around a gathering line that implements the GenericInvoiceLine interface.
@@ -596,6 +687,41 @@ func (i gatheringInvoiceLineGenericWrapper) Clone() (GenericInvoiceLine, error) 
 func (i gatheringInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoiceLine, error) {
 	// Gathering lines don't have children, so we can just clone the line (db state is preserved as with the standard lines)
 	return i.Clone()
+}
+
+// WithTargetState keeps the persisted gathering-line identity and invoice
+// membership from the receiver and applies the target's business state.
+// SplitLineHierarchy is intentionally not merged: charge target-state patches
+// do not currently own split/progressive hierarchy semantics.
+func (i gatheringInvoiceLineGenericWrapper) WithTargetState(target GenericInvoiceLine) (GenericInvoiceLine, error) {
+	if target == nil {
+		return nil, errors.New("target line is required")
+	}
+
+	targetLine, err := target.AsInvoiceLine().AsGatheringLine()
+	if err != nil {
+		return nil, fmt.Errorf("target line must be a gathering line: %w", err)
+	}
+
+	merged, err := targetLine.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning target line: %w", err)
+	}
+
+	merged.Namespace = i.Namespace
+	merged.ID = i.ID
+	merged.CreatedAt = i.CreatedAt
+	merged.UpdatedAt = i.UpdatedAt
+	merged.DeletedAt = i.DeletedAt
+	merged.InvoiceID = i.InvoiceID
+	merged.UBPConfigID = i.UBPConfigID
+	merged.DBState = i.DBState
+
+	return merged.AsGenericLine(), nil
+}
+
+func (i gatheringInvoiceLineGenericWrapper) AsGenericInvoiceLine() GenericInvoiceLine {
+	return &i
 }
 
 type GatheringLine struct {
@@ -667,6 +793,10 @@ func (g GatheringLine) AsInvoiceLine() InvoiceLine {
 	}
 }
 
+func (g GatheringLine) AsGenericLine() GenericInvoiceLine {
+	return &gatheringInvoiceLineGenericWrapper{GatheringLine: g}
+}
+
 func (g GatheringLine) Equal(other GatheringLine) bool {
 	return g.GatheringLineBase.Equal(other.GatheringLineBase)
 }
@@ -689,9 +819,9 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		return nil, fmt.Errorf("cloning annotations: %w", err)
 	}
 
-	var taxConfig *productcatalog.TaxConfig
+	var taxConfig *TaxConfig
 	if g.TaxConfig != nil {
-		taxConfig = lo.ToPtr(g.TaxConfig.Clone())
+		taxConfig = FromProductCatalog(lo.ToPtr(g.TaxConfig.Clone()))
 	}
 
 	var subscription *SubscriptionReference
@@ -707,6 +837,14 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		}
 
 		splitLineHierarchy = lo.ToPtr(clonedSHierarchy)
+	}
+
+	// Carry the gathering line's unit_config snapshot onto the standard line so the legacy
+	// line-engine path's rating (StandardLine.GetUnitConfig) converts from raw metered units.
+	// Deep-cloned so the standard line owns its own config, matching the charges path.
+	var unitConfig *productcatalog.UnitConfig
+	if g.UnitConfig != nil {
+		unitConfig = lo.ToPtr(g.UnitConfig.Clone())
 	}
 
 	convertedLine := &StandardLine{
@@ -732,6 +870,7 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		UsageBased: &UsageBasedLine{
 			Price:      lo.ToPtr(g.Price),
 			FeatureKey: g.FeatureKey,
+			UnitConfig: unitConfig,
 		},
 
 		SplitLineHierarchy: splitLineHierarchy,
@@ -744,7 +883,7 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 
 type CreatePendingInvoiceLinesInput struct {
 	Customer customer.CustomerID `json:"customer"`
-	Currency currencyx.Code      `json:"currency"`
+	Currency currencyx.FiatCode  `json:"currency"`
 
 	Lines []GatheringLine `json:"lines"`
 }
@@ -789,7 +928,7 @@ type CreatePendingInvoiceLinesResult struct {
 type CreateGatheringInvoiceAdapterInput struct {
 	Namespace string
 	Number    string
-	Currency  currencyx.Code
+	Currency  currencyx.FiatCode
 	Metadata  map[string]string
 
 	Description      *string
@@ -833,15 +972,16 @@ type UpdateGatheringInvoiceAdapterInput = GatheringInvoice
 type ListGatheringInvoicesInput struct {
 	pagination.Page
 
-	Namespaces     []string
-	IDs            []string
-	Customers      []string
-	Currencies     []currencyx.Code
-	OrderBy        api.InvoiceOrderBy
-	Order          sortx.Order
-	IncludeDeleted bool
-	Expand         GatheringInvoiceExpands
-	CollectionAt   filter.FilterTime
+	Namespaces         []string
+	ExcludedNamespaces []string
+	IDs                []string
+	Customers          []string
+	Currencies         []currencyx.FiatCode
+	OrderBy            api.InvoiceOrderBy
+	Order              sortx.Order
+	IncludeDeleted     bool
+	Expand             GatheringInvoiceExpands
+	CollectionAt       filter.FilterTime
 }
 
 func (i ListGatheringInvoicesInput) Validate() error {
@@ -928,8 +1068,9 @@ func (i GetGatheringInvoiceByIdInput) Validate() error {
 }
 
 type UpdateGatheringInvoiceInput struct {
-	Invoice InvoiceID
-	EditFn  func(*GatheringInvoice) error
+	Invoice      InvoiceID
+	ChangeSource ChangeSource
+	EditFn       func(*GatheringInvoice) error
 	// IncludeDeletedLines signals the update to populate the deleted lines into the lines field, for the edit function
 	IncludeDeletedLines bool
 }
@@ -943,11 +1084,15 @@ func (i UpdateGatheringInvoiceInput) Validate() error {
 		return errors.New("edit function is required")
 	}
 
+	if err := i.ChangeSource.Validate(); err != nil {
+		return fmt.Errorf("change source: %w", err)
+	}
+
 	return nil
 }
 
 type PrepareBillableLinesInput = InvoicePendingLinesInput
 
 type PrepareBillableLinesResult struct {
-	LinesByCurrency map[currencyx.Code]GatheringLines
+	LinesByCurrency map[currencyx.FiatCode]GatheringLines
 }

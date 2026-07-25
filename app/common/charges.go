@@ -15,9 +15,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	chargesservice "github.com/openmeterio/openmeter/openmeter/billing/charges/service"
@@ -25,6 +27,7 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -38,6 +41,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -208,6 +212,7 @@ func NewChargesFlatFeeService(
 	metaAdapter meta.Adapter,
 	locker *lockr.Locker,
 	ratingService rating.Service,
+	currenciesService currencies.Service,
 ) (flatfee.Service, error) {
 	flatFeeSvc, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:       flatFeeAdapter,
@@ -216,6 +221,7 @@ func NewChargesFlatFeeService(
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
 		RatingService: ratingService,
+		Currencies:    currenciesService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges flat fee service: %w", err)
@@ -247,9 +253,11 @@ func NewChargesUsageBasedService(
 	lineageService lineage.Service,
 	locker *lockr.Locker,
 	metaAdapter meta.Adapter,
+	invoiceUpdater invoiceupdater.Updater,
 	billingService billing.Service,
 	featureService feature.FeatureConnector,
 	ratingService rating.Service,
+	currenciesService currencies.Service,
 	streamingConnector streaming.Connector,
 ) (usagebased.Service, error) {
 	usageBasedSvc, err := usagebasedservice.New(usagebasedservice.Config{
@@ -258,9 +266,11 @@ func NewChargesUsageBasedService(
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
+		InvoiceUpdater:          invoiceUpdater,
 		CustomerOverrideService: billingService,
 		FeatureService:          featureService,
 		RatingService:           ratingService,
+		Currencies:              currenciesService,
 		StreamingConnector:      streamingConnector,
 	})
 	if err != nil {
@@ -268,6 +278,21 @@ func NewChargesUsageBasedService(
 	}
 
 	return usageBasedSvc, nil
+}
+
+func NewChargesInvoiceUpdater(
+	billingService billing.Service,
+	logger *slog.Logger,
+) (invoiceupdater.Updater, error) {
+	updater, err := invoiceupdater.New(invoiceupdater.Config{
+		BillingService: billingService,
+		Logger:         logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges invoice updater: %w", err)
+	}
+
+	return updater, nil
 }
 
 func NewChargesCreditPurchaseAdapter(
@@ -332,6 +357,7 @@ func NewChargesService(
 	billingService billing.Service,
 	recognizerService recognizer.Service,
 	taxCodeService taxcode.Service,
+	currencyResolver currencies.CurrencyResolver,
 	fsNamespaceLockdown []string,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
@@ -345,6 +371,7 @@ func NewChargesService(
 		BillingService:        billingService,
 		RecognizerService:     recognizerService,
 		TaxCodeService:        taxCodeService,
+		CurrencyResolver:      currencyResolver,
 		FSNamespaceLockdown:   fsNamespaceLockdown,
 	})
 	if err != nil {
@@ -390,7 +417,11 @@ func newChargesRegistry(
 	accountService ledgeraccount.Service,
 	breakageService ledgerbreakage.Service,
 	taxCodeService taxcode.Service,
+	currencyResolver currencies.CurrencyResolver,
+	currenciesService currencies.Service,
 	fsNamespaceLockdown []string,
+	creditsConfig config.CreditsConfiguration,
+	featureGate *featuregate.FeatureGateChecker,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
 	if err != nil {
@@ -447,7 +478,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, ratingService)
+	flatFeeSvc, err := NewChargesFlatFeeService(flatFeeAdapter, flatFeeHandler, lineageService, metaAdapter, locker, ratingService, currenciesService)
 	if err != nil {
 		return nil, err
 	}
@@ -461,15 +492,22 @@ func newChargesRegistry(
 		return nil, err
 	}
 
+	invoiceUpdater, err := NewChargesInvoiceUpdater(billingService, logger)
+	if err != nil {
+		return nil, err
+	}
+
 	usageBasedSvc, err := NewChargesUsageBasedService(
 		usageBasedAdapter,
 		usageBasedHandler,
 		lineageService,
 		locker,
 		metaAdapter,
+		invoiceUpdater,
 		billingService,
 		featureService,
 		ratingService,
+		currenciesService,
 		streamingConnector,
 	)
 	if err != nil {
@@ -500,6 +538,18 @@ func newChargesRegistry(
 	if err := billingService.RegisterLineEngine(creditPurchaseLineEngine); err != nil {
 		return nil, fmt.Errorf("failed to register charges credit purchase line engine: %w", err)
 	}
+	createLineRouter, err := chargeslinerouter.New(chargeslinerouter.Config{
+		CreditsEnabled:           creditsConfig.Enabled,
+		CreditThenInvoiceEnabled: creditsConfig.EnableCreditThenInvoice,
+		FeatureGate:              featureGate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges create line router: %w", err)
+	}
+
+	if err := billingService.RegisterCreateLineRouter(createLineRouter); err != nil {
+		return nil, fmt.Errorf("failed to register charges create line router: %w", err)
+	}
 
 	rootAdapter, err := NewChargesAdapter(db, logger)
 	if err != nil {
@@ -517,6 +567,7 @@ func newChargesRegistry(
 		billingService,
 		recognizerService,
 		taxCodeService,
+		currencyResolver,
 		fsNamespaceLockdown,
 	)
 	if err != nil {

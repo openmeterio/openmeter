@@ -9,6 +9,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
@@ -80,6 +81,18 @@ func (h *handler) ListCreditGrants() ListCreditGrantsHandler {
 					currency := currencyx.Code(*args.Params.Filter.Currency)
 					req.Currency = &currency
 				}
+
+				key, err := filters.FromAPIFilterString(args.Params.Filter.Key)
+				if err != nil {
+					return ListCreditGrantsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{
+							Field:  "filter[key]",
+							Reason: err.Error(),
+							Source: apierrors.InvalidParamSourceQuery,
+						},
+					})
+				}
+				req.Key = key
 			}
 
 			return req, nil

@@ -10,9 +10,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -144,7 +144,7 @@ func (c Charge) GetUniqueReferenceID() (*string, error) {
 			return nil, fmt.Errorf("flat fee charge is nil")
 		}
 
-		return c.flatFee.Intent.UniqueReferenceID, nil
+		return c.flatFee.Intent.GetUniqueReferenceID(), nil
 	case meta.ChargeTypeCreditPurchase:
 		if c.creditPurchase == nil {
 			return nil, fmt.Errorf("credit purchase charge is nil")
@@ -156,7 +156,7 @@ func (c Charge) GetUniqueReferenceID() (*string, error) {
 			return nil, fmt.Errorf("usage based charge is nil")
 		}
 
-		return c.usageBased.Intent.UniqueReferenceID, nil
+		return c.usageBased.Intent.GetUniqueReferenceID(), nil
 	}
 
 	return nil, fmt.Errorf("invalid charge type: %s", c.t)
@@ -187,29 +187,29 @@ func (c Charge) GetCustomerID() (customer.CustomerID, error) {
 	return customer.CustomerID{}, fmt.Errorf("invalid charge type: %s", c.t)
 }
 
-func (c Charge) GetCurrency() (currencyx.Code, error) {
+func (c Charge) GetCurrency() (currencies.Currency, error) {
 	switch c.t {
 	case meta.ChargeTypeFlatFee:
 		if c.flatFee == nil {
-			return "", fmt.Errorf("flat fee charge is nil")
+			return currencies.Currency{}, fmt.Errorf("flat fee charge is nil")
 		}
 
 		return c.flatFee.GetCurrency(), nil
 	case meta.ChargeTypeCreditPurchase:
 		if c.creditPurchase == nil {
-			return "", fmt.Errorf("credit purchase charge is nil")
+			return currencies.Currency{}, fmt.Errorf("credit purchase charge is nil")
 		}
 
 		return c.creditPurchase.GetCurrency(), nil
 	case meta.ChargeTypeUsageBased:
 		if c.usageBased == nil {
-			return "", fmt.Errorf("usage based charge is nil")
+			return currencies.Currency{}, fmt.Errorf("usage based charge is nil")
 		}
 
 		return c.usageBased.GetCurrency(), nil
 	}
 
-	return "", fmt.Errorf("invalid charge type: %s", c.t)
+	return currencies.Currency{}, fmt.Errorf("invalid charge type: %s", c.t)
 }
 
 func (c Charge) SettlementMode() (productcatalog.SettlementMode, error) {
@@ -219,13 +219,13 @@ func (c Charge) SettlementMode() (productcatalog.SettlementMode, error) {
 			return "", fmt.Errorf("flat fee charge is nil")
 		}
 
-		return c.flatFee.Intent.SettlementMode, nil
+		return c.flatFee.Intent.GetSettlementMode(), nil
 	case meta.ChargeTypeUsageBased:
 		if c.usageBased == nil {
 			return "", fmt.Errorf("usage based charge is nil")
 		}
 
-		return c.usageBased.Intent.SettlementMode, nil
+		return c.usageBased.Intent.GetSettlementMode(), nil
 	default:
 		return "", fmt.Errorf("settlement mode is not supported for charge type %s", c.t)
 	}
@@ -385,81 +385,64 @@ func (c ChargeIntent) GetUniqueReferenceID() (*string, error) {
 	return nil, fmt.Errorf("invalid charge type: %s", c.t)
 }
 
-// Meta returns the shared meta.Intent embedded in every charge type.
-func (i ChargeIntent) Meta() (meta.Intent, error) {
+// TaxCodeID returns the intent's configured tax code ID.
+// It is empty when no tax code is set.
+func (i ChargeIntent) TaxCodeID() (string, error) {
 	switch i.t {
 	case meta.ChargeTypeFlatFee:
 		if i.flatFee == nil {
-			return meta.Intent{}, fmt.Errorf("flat fee is nil")
+			return "", fmt.Errorf("flat fee is nil")
 		}
 
-		return i.flatFee.Intent, nil
-	case meta.ChargeTypeCreditPurchase:
-		if i.creditPurchase == nil {
-			return meta.Intent{}, fmt.Errorf("credit purchase is nil")
-		}
-
-		return i.creditPurchase.Intent, nil
+		return i.flatFee.TaxConfig.TaxCodeID, nil
 	case meta.ChargeTypeUsageBased:
 		if i.usageBased == nil {
-			return meta.Intent{}, fmt.Errorf("usage based is nil")
+			return "", fmt.Errorf("usage based is nil")
 		}
 
-		return i.usageBased.Intent, nil
+		return i.usageBased.TaxConfig.TaxCodeID, nil
+	case meta.ChargeTypeCreditPurchase:
+		if i.creditPurchase == nil {
+			return "", fmt.Errorf("credit purchase is nil")
+		}
+
+		return i.creditPurchase.TaxConfig.TaxCodeID, nil
 	}
 
-	return meta.Intent{}, fmt.Errorf("invalid charge type: %s", i.t)
+	return "", fmt.Errorf("unsupported charge type: %s", i.t)
 }
 
 // WithTaxCodeID returns a copy of the intent with TaxCodeID set to id.
-// If TaxConfig is nil a new one is created; all other fields are preserved.
+// Existing tax behavior and other intent fields are preserved.
 func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
 	switch i.t {
 	case meta.ChargeTypeFlatFee:
-		ff, err := i.AsFlatFeeIntent()
-		if err != nil {
-			return ChargeIntent{}, err
+		if i.flatFee == nil {
+			return ChargeIntent{}, fmt.Errorf("flat fee is nil")
 		}
 
-		if ff.Intent.TaxConfig == nil {
-			ff.Intent.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: &id}
-		} else {
-			cfg := *ff.Intent.TaxConfig
-			cfg.TaxCodeID = &id
-			ff.Intent.TaxConfig = &cfg
-		}
+		intent := *i.flatFee
+		intent.TaxConfig.TaxCodeID = id
 
-		return NewChargeIntent(ff), nil
+		return NewChargeIntent(intent), nil
 	case meta.ChargeTypeUsageBased:
-		ub, err := i.AsUsageBasedIntent()
-		if err != nil {
-			return ChargeIntent{}, err
+		if i.usageBased == nil {
+			return ChargeIntent{}, fmt.Errorf("usage based is nil")
 		}
 
-		if ub.Intent.TaxConfig == nil {
-			ub.Intent.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: &id}
-		} else {
-			cfg := *ub.Intent.TaxConfig
-			cfg.TaxCodeID = &id
-			ub.Intent.TaxConfig = &cfg
-		}
+		intent := *i.usageBased
+		intent.TaxConfig.TaxCodeID = id
 
-		return NewChargeIntent(ub), nil
+		return NewChargeIntent(intent), nil
 	case meta.ChargeTypeCreditPurchase:
-		cp, err := i.AsCreditPurchaseIntent()
-		if err != nil {
-			return ChargeIntent{}, err
+		if i.creditPurchase == nil {
+			return ChargeIntent{}, fmt.Errorf("credit purchase is nil")
 		}
 
-		if cp.Intent.TaxConfig == nil {
-			cp.Intent.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: &id}
-		} else {
-			cfg := *cp.Intent.TaxConfig
-			cfg.TaxCodeID = &id
-			cp.Intent.TaxConfig = &cfg
-		}
+		intent := *i.creditPurchase
+		intent.TaxConfig.TaxCodeID = id
 
-		return NewChargeIntent(cp), nil
+		return NewChargeIntent(intent), nil
 	}
 
 	return ChargeIntent{}, fmt.Errorf("unsupported charge type: %s", i.t)
@@ -489,8 +472,8 @@ func (i ChargeIntents) CollectFeatureKeys() ([]string, error) {
 			if err != nil {
 				return nil, fmt.Errorf("converting flat fee intent[%d]: %w", idx, err)
 			}
-			if flatFee.FeatureKey != "" {
-				keys = append(keys, flatFee.FeatureKey)
+			if flatFee.FeatureKey != nil && *flatFee.FeatureKey != "" {
+				keys = append(keys, *flatFee.FeatureKey)
 			}
 		case meta.ChargeTypeUsageBased:
 			usageBased, err := ch.AsUsageBasedIntent()
@@ -526,26 +509,32 @@ func (i ChargeIntents) ByType() (ChargeIntentsByType, error) {
 	for idx, ch := range i {
 		switch ch.Type() {
 		case meta.ChargeTypeFlatFee:
-			flatFee, err := ch.AsFlatFeeIntent()
-			if err != nil {
-				return ChargeIntentsByType{}, fmt.Errorf("converting flat fee intent[%d]: %w", idx, err)
+			if ch.flatFee == nil {
+				return ChargeIntentsByType{}, fmt.Errorf("flat fee intent[%d] is nil", idx)
 			}
 
-			out.FlatFee = append(out.FlatFee, WithIndex[flatfee.Intent]{Index: idx, Value: flatFee})
+			out.FlatFee = append(out.FlatFee, WithIndex[flatfee.Intent]{
+				Index: idx,
+				Value: *ch.flatFee,
+			})
 		case meta.ChargeTypeCreditPurchase:
-			creditPurchase, err := ch.AsCreditPurchaseIntent()
-			if err != nil {
-				return ChargeIntentsByType{}, fmt.Errorf("converting credit purchase intent[%d]: %w", idx, err)
+			if ch.creditPurchase == nil {
+				return ChargeIntentsByType{}, fmt.Errorf("credit purchase intent[%d] is nil", idx)
 			}
 
-			out.CreditPurchase = append(out.CreditPurchase, WithIndex[creditpurchase.Intent]{Index: idx, Value: creditPurchase})
+			out.CreditPurchase = append(out.CreditPurchase, WithIndex[creditpurchase.Intent]{
+				Index: idx,
+				Value: *ch.creditPurchase,
+			})
 		case meta.ChargeTypeUsageBased:
-			usageBased, err := ch.AsUsageBasedIntent()
-			if err != nil {
-				return ChargeIntentsByType{}, fmt.Errorf("converting usage based intent[%d]: %w", idx, err)
+			if ch.usageBased == nil {
+				return ChargeIntentsByType{}, fmt.Errorf("usage based intent[%d] is nil", idx)
 			}
 
-			out.UsageBased = append(out.UsageBased, WithIndex[usagebased.Intent]{Index: idx, Value: usageBased})
+			out.UsageBased = append(out.UsageBased, WithIndex[usagebased.Intent]{
+				Index: idx,
+				Value: *ch.usageBased,
+			})
 		default:
 			return ChargeIntentsByType{}, fmt.Errorf("unsupported charge type[%d]: %s", idx, ch.Type())
 		}

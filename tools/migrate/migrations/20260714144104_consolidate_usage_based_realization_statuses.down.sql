@@ -1,0 +1,1 @@
+-- no down migration: legacy usage-based realization statuses are intentionally not restored

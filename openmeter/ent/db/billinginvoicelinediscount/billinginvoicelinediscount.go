@@ -41,12 +41,6 @@ const (
 	FieldRoundingAmount = "rounding_amount"
 	// FieldSourceDiscount holds the string denoting the source_discount field in the database.
 	FieldSourceDiscount = "source_discount"
-	// FieldType holds the string denoting the type field in the database.
-	FieldType = "type"
-	// FieldQuantity holds the string denoting the quantity field in the database.
-	FieldQuantity = "quantity"
-	// FieldPreLinePeriodQuantity holds the string denoting the pre_line_period_quantity field in the database.
-	FieldPreLinePeriodQuantity = "pre_line_period_quantity"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
 	EdgeBillingInvoiceLine = "billing_invoice_line"
 	// Table holds the table name of the billinginvoicelinediscount in the database.
@@ -81,11 +75,6 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for _, f := range [...]string{FieldType, FieldQuantity, FieldPreLinePeriodQuantity} {
-		if column == f {
 			return true
 		}
 	}
@@ -185,21 +174,6 @@ func ByRoundingAmount(opts ...sql.OrderTermOption) OrderOption {
 // BySourceDiscount orders the results by the source_discount field.
 func BySourceDiscount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSourceDiscount, opts...).ToFunc()
-}
-
-// ByType orders the results by the type field.
-func ByType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldType, opts...).ToFunc()
-}
-
-// ByQuantity orders the results by the quantity field.
-func ByQuantity(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldQuantity, opts...).ToFunc()
-}
-
-// ByPreLinePeriodQuantity orders the results by the pre_line_period_quantity field.
-func ByPreLinePeriodQuantity(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPreLinePeriodQuantity, opts...).ToFunc()
 }
 
 // ByBillingInvoiceLineField orders the results by billing_invoice_line field.

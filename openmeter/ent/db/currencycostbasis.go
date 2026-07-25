@@ -28,14 +28,16 @@ type CurrencyCostBasis struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// CustomCurrencyID holds the value of the "custom_currency_id" field.
-	CustomCurrencyID string `json:"custom_currency_id,omitempty"`
+	// CurrencyID holds the value of the "currency_id" field.
+	CurrencyID string `json:"currency_id,omitempty"`
 	// FiatCode holds the value of the "fiat_code" field.
 	FiatCode currencyx.Code `json:"fiat_code,omitempty"`
 	// Rate holds the value of the "rate" field.
 	Rate alpacadecimal.Decimal `json:"rate,omitempty"`
 	// EffectiveFrom holds the value of the "effective_from" field.
 	EffectiveFrom time.Time `json:"effective_from,omitempty"`
+	// EffectiveTo holds the value of the "effective_to" field.
+	EffectiveTo *time.Time `json:"effective_to,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CurrencyCostBasisQuery when eager-loading is set.
 	Edges        CurrencyCostBasisEdges `json:"edges"`
@@ -69,9 +71,9 @@ func (*CurrencyCostBasis) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case currencycostbasis.FieldRate:
 			values[i] = new(alpacadecimal.Decimal)
-		case currencycostbasis.FieldID, currencycostbasis.FieldNamespace, currencycostbasis.FieldCustomCurrencyID, currencycostbasis.FieldFiatCode:
+		case currencycostbasis.FieldID, currencycostbasis.FieldNamespace, currencycostbasis.FieldCurrencyID, currencycostbasis.FieldFiatCode:
 			values[i] = new(sql.NullString)
-		case currencycostbasis.FieldCreatedAt, currencycostbasis.FieldUpdatedAt, currencycostbasis.FieldDeletedAt, currencycostbasis.FieldEffectiveFrom:
+		case currencycostbasis.FieldCreatedAt, currencycostbasis.FieldUpdatedAt, currencycostbasis.FieldDeletedAt, currencycostbasis.FieldEffectiveFrom, currencycostbasis.FieldEffectiveTo:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -119,11 +121,11 @@ func (_m *CurrencyCostBasis) assignValues(columns []string, values []any) error 
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case currencycostbasis.FieldCustomCurrencyID:
+		case currencycostbasis.FieldCurrencyID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
+				return fmt.Errorf("unexpected type %T for field currency_id", values[i])
 			} else if value.Valid {
-				_m.CustomCurrencyID = value.String
+				_m.CurrencyID = value.String
 			}
 		case currencycostbasis.FieldFiatCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -142,6 +144,13 @@ func (_m *CurrencyCostBasis) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field effective_from", values[i])
 			} else if value.Valid {
 				_m.EffectiveFrom = value.Time
+			}
+		case currencycostbasis.FieldEffectiveTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field effective_to", values[i])
+			} else if value.Valid {
+				_m.EffectiveTo = new(time.Time)
+				*_m.EffectiveTo = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -198,8 +207,8 @@ func (_m *CurrencyCostBasis) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("custom_currency_id=")
-	builder.WriteString(_m.CustomCurrencyID)
+	builder.WriteString("currency_id=")
+	builder.WriteString(_m.CurrencyID)
 	builder.WriteString(", ")
 	builder.WriteString("fiat_code=")
 	builder.WriteString(fmt.Sprintf("%v", _m.FiatCode))
@@ -209,6 +218,11 @@ func (_m *CurrencyCostBasis) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("effective_from=")
 	builder.WriteString(_m.EffectiveFrom.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.EffectiveTo; v != nil {
+		builder.WriteString("effective_to=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

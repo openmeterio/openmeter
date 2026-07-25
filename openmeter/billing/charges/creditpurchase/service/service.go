@@ -2,8 +2,12 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"sync/atomic"
+	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
@@ -42,17 +46,39 @@ func New(config Config) (creditpurchase.Service, error) {
 		return nil, err
 	}
 
+	realizations, err := creditpurchaserealizations.New(creditpurchaserealizations.Config{
+		Adapter: config.Adapter,
+		Handler: config.Handler,
+		Lineage: config.Lineage,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("realizations: %w", err)
+	}
+
 	return &service{
-		adapter:     config.Adapter,
-		handler:     config.Handler,
-		lineage:     config.Lineage,
-		metaAdapter: config.MetaAdapter,
+		adapter:      config.Adapter,
+		handler:      config.Handler,
+		lineage:      config.Lineage,
+		metaAdapter:  config.MetaAdapter,
+		realizations: realizations,
 	}, nil
 }
 
 type service struct {
-	adapter     creditpurchase.Adapter
-	metaAdapter meta.Adapter
-	handler     creditpurchase.Handler
-	lineage     lineage.Service
+	adapter              creditpurchase.Adapter
+	metaAdapter          meta.Adapter
+	handler              creditpurchase.Handler
+	lineage              lineage.Service
+	realizations         *creditpurchaserealizations.Service
+	enableCustomCurrency atomic.Bool
+}
+
+func (s *service) SetEnableCustomCurrency(t *testing.T, enabled bool) error {
+	if t == nil {
+		return errors.New("testing is nil")
+	}
+
+	t.Helper()
+	s.enableCustomCurrency.Store(enabled)
+	return nil
 }

@@ -50,6 +50,13 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 		query = filter.ApplyToQuery(query, params.Name, addondb.FieldName)
 		query = filter.ApplyToQuery(query, params.Currency, addondb.FieldCurrency)
 
+		if params.ExcludeUnitConfig {
+			query = query.Where(addondb.Not(addondb.HasRatecardsWith(
+				addonratecarddb.UnitConfigNotNil(),
+				addonratecarddb.DeletedAtIsNil(),
+			)))
+		}
+
 		if !params.IncludeDeleted {
 			query = query.Where(addondb.DeletedAtIsNil())
 		}
@@ -248,6 +255,10 @@ func rateCardBulkCreate(c *entdb.AddonRateCardClient, rateCards productcatalog.R
 
 		if rateCardEntity.Price != nil {
 			q.SetPrice(rateCardEntity.Price)
+		}
+
+		if rateCardEntity.UnitConfig != nil {
+			q.SetUnitConfig(rateCardEntity.UnitConfig)
 		}
 
 		bulk = append(bulk, q)
@@ -543,8 +554,19 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 }
 
 var AddonEagerLoadRateCardsFn = func(q *entdb.AddonRateCardQuery) {
-	q.Where(addonratecarddb.Or(
-		addonratecarddb.DeletedAtIsNil(),
-		addonratecarddb.DeletedAtGT(clock.Now().UTC()),
-	)).WithFeatures().WithTaxCode()
+	q.Where(
+		addonratecarddb.Or(
+			addonratecarddb.DeletedAtIsNil(),
+			addonratecarddb.DeletedAtGT(clock.Now().UTC()),
+		))
+	rateCardEagerLoadFeaturesFn(q)
+	rateCardEagerLoadTaxCodesFn(q)
+}
+
+var rateCardEagerLoadFeaturesFn = func(q *entdb.AddonRateCardQuery) {
+	q.WithFeatures()
+}
+
+var rateCardEagerLoadTaxCodesFn = func(q *entdb.AddonRateCardQuery) {
+	q.WithTaxCode()
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/exp/rand"
 
@@ -75,21 +76,18 @@ func (s *Fixture) setupApp(ctx context.Context, namespace string) (app.App, erro
 	// TODO: do not share env between tests
 	defer s.stripeClient.Restore()
 
-	app, err := s.app.InstallMarketplaceListingWithAPIKey(ctx, app.InstallAppWithAPIKeyInput{
-		InstallAppInput: app.InstallAppInput{
-			MarketplaceListingID: app.MarketplaceListingID{
-				Type: app.AppTypeStripe,
-			},
-
-			Namespace: namespace,
+	app, err := s.app.InstallApp(ctx, app.InstallAppV3Input{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeStripe,
 		},
-		APIKey: TestStripeAPIKey,
+		Namespace: namespace,
+		APIKey:    lo.ToPtr(TestStripeAPIKey),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("install stripe app failed: %w", err)
 	}
 
-	return app, nil
+	return app.App, nil
 }
 
 // Create test customers

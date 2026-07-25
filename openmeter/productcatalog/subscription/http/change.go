@@ -70,10 +70,6 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 				}
 
-				if !h.Credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-					return ChangeSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-				}
-
 				planInp := plansubscription.PlanInput{}
 				planInp.FromInput(&req)
 
@@ -94,6 +90,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						},
 						BillingAnchor: parsedBody.BillingAnchor,
 					},
+					RejectUnitConfig: true,
 				}, nil
 			} else {
 				// Changing to a Plan
@@ -113,6 +110,11 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 					return ChangeSubscriptionRequest{}, fmt.Errorf("failed to map timing: %w", err)
 				}
 
+				var settlementMode *productcatalog.SettlementMode
+				if parsedBody.SettlementMode != nil {
+					settlementMode = lo.ToPtr(productcatalog.SettlementMode(*parsedBody.SettlementMode))
+				}
+
 				return ChangeSubscriptionRequest{
 					ID:        models.NamespacedID{Namespace: ns, ID: params.ID},
 					PlanInput: planInp,
@@ -125,7 +127,9 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						Description:   parsedBody.Description,
 						BillingAnchor: parsedBody.BillingAnchor,
 					},
-					StartingPhase: parsedBody.StartingPhase,
+					StartingPhase:    parsedBody.StartingPhase,
+					SettlementMode:   settlementMode,
+					RejectUnitConfig: true,
 				}, nil
 			}
 		},

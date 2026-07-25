@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -16,6 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
+	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
@@ -85,6 +88,18 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	})
 	require.NoError(t, err)
 
+	billingSequenceAdapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
+		Client: deps.DBDeps.DBClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	billingSequenceService, err := billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: billingSequenceAdapter,
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
+	})
+	require.NoError(t, err)
+
 	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
 		Client: deps.DBDeps.DBClient,
 		Logger: slog.Default(),
@@ -99,7 +114,8 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
-		RatingService:                billingratingservice.New(),
+		SequenceService:              billingSequenceService,
+		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		CustomerService:              deps.CustomerService,
 		AppService:                   appService,
 		Logger:                       slog.Default(),
@@ -128,14 +144,16 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     deps.SubscriptionService,
-		FeatureGate:             featuregate.NewNoop(),
+		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 	})
 	require.NoError(t, err)
 
 	// OpenMeter sandbox (registration as side-effect)
 	_, err = appsandbox.NewMockableFactory(t, appsandbox.Config{
-		AppService:     appService,
-		BillingService: billingService,
+		AppService:      appService,
+		SequenceService: billingSequenceService,
 	})
 	require.NoError(t, err)
 
@@ -193,9 +211,10 @@ func minimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInp
 				Interval: lo.Must(datetime.ISODurationString("PT0S").Parse()),
 			},
 			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: true,
-				DraftPeriod: lo.Must(datetime.ISODurationString("P1D").Parse()),
-				DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+				AutoAdvance:                  true,
+				DraftPeriod:                  lo.Must(datetime.ISODurationString("P1D").Parse()),
+				DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,

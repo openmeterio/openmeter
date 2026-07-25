@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"slices"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -575,6 +576,24 @@ func (s *Sink) updateTopicSubscription(ctx context.Context, metadataTimeout time
 
 	if len(topics) == 0 {
 		logger.WarnContext(ctx, "no topics found to be subscribed to", "regexp", s.namespaceTopicRegexp.String())
+
+		return nil
+	}
+
+	// Calling SubscribeTopics always triggers a consumer group rejoin in librdkafka,
+	// even if the subscription is identical. As this function runs periodically
+	// (NamespaceRefetch) on every sink-worker replica, re-subscribing unconditionally
+	// keeps the consumer group in a perpetual rebalance, which blocks offset commits
+	// (REBALANCE_IN_PROGRESS) and stalls consumption. Only re-subscribe on change.
+	subscription, err := s.config.Consumer.Subscription()
+	if err != nil {
+		return fmt.Errorf("failed to get current topic subscription: %w", err)
+	}
+
+	slices.Sort(topics)
+
+	if slices.Equal(topics, slices.Sorted(slices.Values(subscription))) {
+		logger.Debug("topic subscription is unchanged, skipping re-subscribe", "topics", topics)
 
 		return nil
 	}

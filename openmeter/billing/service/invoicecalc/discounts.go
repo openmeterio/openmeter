@@ -1,22 +1,11 @@
 package invoicecalc
 
-import (
-	"fmt"
-
-	"github.com/oklog/ulid/v2"
-
-	"github.com/openmeterio/openmeter/openmeter/billing"
-)
+import "github.com/openmeterio/openmeter/openmeter/billing"
 
 func UpsertDiscountCorrelationIDs(invoice *billing.StandardInvoice) error {
 	lines := invoice.Lines.OrEmpty()
 	for _, line := range lines {
-		updatedDiscounts, err := ensureDiscountCorrelationIDs(line.RateCardDiscounts)
-		if err != nil {
-			return err
-		}
-
-		line.RateCardDiscounts = updatedDiscounts
+		line.RateCardDiscounts = line.RateCardDiscounts.UpsertCorrelationIDs()
 	}
 
 	return nil
@@ -24,12 +13,7 @@ func UpsertDiscountCorrelationIDs(invoice *billing.StandardInvoice) error {
 
 func UpsertGatheringInvoiceDiscountCorrelationIDs(invoice *billing.GatheringInvoice) error {
 	lines, err := invoice.Lines.MapWithErr(func(line billing.GatheringLine) (billing.GatheringLine, error) {
-		updatedDiscounts, err := ensureDiscountCorrelationIDs(line.RateCardDiscounts)
-		if err != nil {
-			return billing.GatheringLine{}, err
-		}
-
-		line.RateCardDiscounts = updatedDiscounts
+		line.RateCardDiscounts = line.RateCardDiscounts.UpsertCorrelationIDs()
 
 		return line, nil
 	})
@@ -40,37 +24,4 @@ func UpsertGatheringInvoiceDiscountCorrelationIDs(invoice *billing.GatheringInvo
 	invoice.Lines = lines
 
 	return nil
-}
-
-func ensureDiscountCorrelationIDs(discounts billing.Discounts) (billing.Discounts, error) {
-	if discounts.Percentage != nil {
-		corrID, err := generateDiscountCorrelationID(discounts.Percentage.CorrelationID)
-		if err != nil {
-			return billing.Discounts{}, err
-		}
-		discounts.Percentage.CorrelationID = corrID
-	}
-
-	if discounts.Usage != nil {
-		corrID, err := generateDiscountCorrelationID(discounts.Usage.CorrelationID)
-		if err != nil {
-			return billing.Discounts{}, err
-		}
-		discounts.Usage.CorrelationID = corrID
-	}
-
-	return discounts, nil
-}
-
-func generateDiscountCorrelationID(correlationID string) (string, error) {
-	if correlationID == "" {
-		return ulid.Make().String(), nil
-	}
-
-	_, err := ulid.Parse(correlationID)
-	if err != nil {
-		return "", fmt.Errorf("invalid correlation ID: %w", err)
-	}
-
-	return correlationID, nil
 }

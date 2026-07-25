@@ -5,15 +5,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -32,32 +36,58 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			return usagebased.ChargeBase{}, err
 		}
 
+		baseIntent := charge.Intent.GetBaseIntent()
+
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
-			SetDiscounts(&charge.Intent.Discounts).
+			SetDiscounts(&baseIntent.Discounts).
 			SetFeatureID(charge.State.FeatureID).
-			SetInvoiceAt(meta.NormalizeTimestamp(charge.Intent.InvoiceAt).In(time.UTC)).
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
+			SetInvoiceAt(meta.NormalizeTimestamp(baseIntent.InvoiceAt).In(time.UTC)).
+			SetPrice(&baseIntent.Price).
 			SetRatingEngine(charge.State.RatingEngine).
 			SetStatus(metaStatus).
 			SetStatusDetailed(charge.Status).
 			SetOrClearCurrentRealizationRunID(charge.State.CurrentRealizationRunID)
 
+		if baseIntent.UnitConfig != nil {
+			update = update.SetUnitConfig(baseIntent.UnitConfig)
+		} else {
+			update = update.ClearUnitConfig()
+		}
+
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
-			ManagedResource: charge.ManagedResource,
-			Intent:          charge.Intent.Intent,
-			Status:          metaStatus,
-			AdvanceAfter:    meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
+			ManagedResource:     charge.ManagedResource,
+			Intent:              baseIntent.Intent,
+			IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
+			Status:              metaStatus,
+			AdvanceAfter:        meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
 		if err != nil {
 			return usagebased.ChargeBase{}, err
 		}
+
+		update = update.SetOrClearDeletedAt(convert.TimePtrIn(charge.GetIntentDeletedAt(), time.UTC))
 
 		dbUpdatedChargeBase, err := update.Save(ctx)
 		if err != nil {
 			return usagebased.ChargeBase{}, err
 		}
 
-		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
+		if err := tx.loadCostBasisEdge(ctx, dbUpdatedChargeBase); err != nil {
+			return usagebased.ChargeBase{}, err
+		}
+
+		if overrideLayer := charge.Intent.GetOverrideLayerMutableFields(); overrideLayer != nil {
+			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), overrideLayer)
+			if err != nil {
+				return usagebased.ChargeBase{}, fmt.Errorf("updating usage based charge override: %w", err)
+			}
+
+			dbUpdatedChargeBase.Edges.IntentOverride = intentOverride
+		}
+
+		return fromDBBaseWithCurrency(dbUpdatedChargeBase, baseIntent.Currency)
 	})
 }
 
@@ -85,7 +115,17 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebase
 			return usagebased.Charge{}, err
 		}
 
-		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
+		if err := tx.loadCostBasisEdge(ctx, updatedChargeBase); err != nil {
+			return usagebased.Charge{}, err
+		}
+
+		overrideLayer := charge.Intent.GetOverrideLayerMutableFields()
+		mappedChargeBase, err := fromDBBaseWithCurrency(updatedChargeBase, charge.Intent.GetBaseIntent().Currency)
+		if err != nil {
+			return usagebased.Charge{}, err
+		}
+		charge.ChargeBase = mappedChargeBase
+		charge.Intent = usagebased.NewOverridableIntent(charge.Intent.GetBaseIntent(), overrideLayer)
 
 		return charge, nil
 	})
@@ -101,7 +141,14 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		charge.DeletedAt = lo.ToPtr(clock.Now())
+		if err := charge.Intent.MutateEffective(func(intentMutableFields *usagebased.IntentMutableFields) error {
+			intentMutableFields.IntentDeletedAt = lo.ToPtr(clock.Now())
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		charge.DeletedAt = charge.GetIntentDeletedAt()
 		charge.Status = usagebased.StatusDeleted
 
 		metaStatus, err := charge.Status.ToMetaChargeStatus()
@@ -109,23 +156,36 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 			return err
 		}
 
+		baseIntent := charge.Intent.GetBaseIntent()
+
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetStatus(metaStatus).
 			SetStatusDetailed(charge.Status)
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
-			ManagedResource: charge.ManagedResource,
-			Intent:          charge.Intent.Intent,
-			Status:          metaStatus,
-			AdvanceAfter:    charge.State.AdvanceAfter,
+			ManagedResource:     charge.ManagedResource,
+			Intent:              baseIntent.Intent,
+			IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
+			Status:              metaStatus,
+			AdvanceAfter:        charge.State.AdvanceAfter,
 		})
 		if err != nil {
 			return err
 		}
 
+		update = update.
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
+			SetOrClearDeletedAt(convert.TimePtrIn(charge.GetIntentDeletedAt(), time.UTC))
+
 		if _, err := update.Save(ctx); err != nil {
 			return err
+		}
+
+		if overrideLayer := charge.Intent.GetOverrideLayerMutableFields(); overrideLayer != nil {
+			if _, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), overrideLayer); err != nil {
+				return fmt.Errorf("updating usage based intent override: %w", err)
+			}
 		}
 
 		return tx.metaAdapter.DeleteRegisteredCharge(ctx, charge.GetChargeID())
@@ -138,20 +198,99 @@ func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateCharges
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]usagebased.Charge, error) {
-		creates, err := slicesx.MapWithErr(in.Intents, func(intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
-			return tx.buildCreateUsageBasedCharge(ctx, in.Namespace, intent)
+		type preparedCreate struct {
+			costBasis *db.ChargeUsageBasedCostBasisCreate
+			charge    *db.ChargeUsageBasedCreate
+		}
+
+		preparedCreates := make([]preparedCreate, 0, len(in.Intents))
+		for _, intent := range in.Intents {
+			chargeCreate, err := tx.buildCreateUsageBasedCharge(ctx, in.Namespace, intent)
+			if err != nil {
+				return nil, err
+			}
+
+			var costBasisCreate *db.ChargeUsageBasedCostBasisCreate
+			baseIntent := intent.Intent.GetBaseIntent()
+			if baseIntent.CostBasis != nil {
+				costBasisCreate, err = costbasis.Create(tx.db.ChargeUsageBasedCostBasis.Create(), costbasis.CreateInput{
+					NamespacedID: models.NamespacedID{
+						Namespace: in.Namespace,
+						ID:        ulid.Make().String(),
+					},
+					CurrencyID: baseIntent.Currency.ID,
+					Intent:     *baseIntent.CostBasis,
+					State:      intent.ResolvedCostBasis,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("building usage based cost basis: %w", err)
+				}
+			}
+
+			preparedCreates = append(preparedCreates, preparedCreate{
+				costBasis: costBasisCreate,
+				charge:    chargeCreate,
+			})
+		}
+
+		costBasisCreates := lo.Filter(preparedCreates, func(create preparedCreate, _ int) bool {
+			return create.costBasis != nil
+		})
+
+		var createdCostBases []*db.ChargeUsageBasedCostBasis
+		if len(costBasisCreates) > 0 {
+			var err error
+			createdCostBases, err = tx.db.ChargeUsageBasedCostBasis.CreateBulk(
+				lo.Map(costBasisCreates, func(create preparedCreate, _ int) *db.ChargeUsageBasedCostBasisCreate {
+					return create.costBasis
+				})...,
+			).Save(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("creating usage based cost bases: %w", err)
+			}
+
+			lo.ForEach(costBasisCreates, func(create preparedCreate, idx int) {
+				create.charge.SetCostBasisID(createdCostBases[idx].ID)
+			})
+		}
+
+		chargeCreates := lo.Map(preparedCreates, func(create preparedCreate, _ int) *db.ChargeUsageBasedCreate {
+			return create.charge
+		})
+		entities, err := tx.db.ChargeUsageBased.CreateBulk(chargeCreates...).Save(ctx)
+		if err != nil {
+			return nil, metaadapter.MapChargeConstraintError(err)
+		}
+
+		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
+			Namespace: in.Namespace,
+			Type:      meta.ChargeTypeUsageBased,
+			Charges: lo.Map(entities, func(entity *db.ChargeUsageBased, _ int) meta.IDWithUniqueReferenceID {
+				return meta.IDWithUniqueReferenceID{
+					ID:                entity.ID,
+					UniqueReferenceID: entity.UniqueReferenceID,
+				}
+			}),
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		entities, err := tx.db.ChargeUsageBased.CreateBulk(creates...).Save(ctx)
-		if err != nil {
-			return nil, err
-		}
+		costBasisByID := lo.SliceToMap(createdCostBases, func(entity *db.ChargeUsageBasedCostBasis) (string, *db.ChargeUsageBasedCostBasis) {
+			return entity.ID, entity
+		})
 
-		return slicesx.MapWithErr(entities, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
-			return MapChargeFromDB(entity, meta.ExpandNone)
+		return lo.MapErr(entities, func(entity *db.ChargeUsageBased, idx int) (usagebased.Charge, error) {
+			if entity.CostBasisID != nil {
+				createdCostBasis, ok := costBasisByID[*entity.CostBasisID]
+				if !ok {
+					return usagebased.Charge{}, fmt.Errorf("created usage based cost basis %s not found", *entity.CostBasisID)
+				}
+
+				entity.Edges.CostBasis = createdCostBasis
+			}
+
+			return FromDBWithCurrency(entity, in.Intents[idx].Intent.GetBaseIntent().Currency, meta.ExpandNone)
 		})
 	})
 }
@@ -165,7 +304,10 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 		query := tx.db.ChargeUsageBased.Query().
 			// Note: we are skipping the namespace filter here to allow multi-namespace expansions as needed, but InIDOrder filters for namespaces.
 			Where(dbchargeusagebased.Namespace(input.Namespace)).
-			Where(dbchargeusagebased.IDIn(input.IDs...))
+			Where(dbchargeusagebased.IDIn(input.IDs...)).
+			WithIntentOverride().
+			WithCustomCurrency().
+			WithCostBasis()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query, input.Expands)
@@ -182,7 +324,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 		}
 
 		out, err := slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
-			return MapChargeFromDB(entity, input.Expands)
+			return FromDB(entity, input.Expands)
 		})
 		if err != nil {
 			return nil, err
@@ -209,7 +351,10 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.Charge, error) {
 		query := tx.db.ChargeUsageBased.Query().
 			Where(dbchargeusagebased.Namespace(input.ChargeID.Namespace)).
-			Where(dbchargeusagebased.ID(input.ChargeID.ID))
+			Where(dbchargeusagebased.ID(input.ChargeID.ID)).
+			WithIntentOverride().
+			WithCustomCurrency().
+			WithCostBasis()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query, input.Expands)
@@ -224,7 +369,7 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 			return usagebased.Charge{}, fmt.Errorf("querying usage based charge [id=%s]: %w", input.ChargeID, err)
 		}
 
-		charge, err := MapChargeFromDB(entity, input.Expands)
+		charge, err := FromDB(entity, input.Expands)
 		if err != nil {
 			return usagebased.Charge{}, err
 		}
@@ -255,20 +400,29 @@ func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *
 }
 
 func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
+	baseIntent := intent.Intent.GetBaseIntent()
+
 	create := a.db.ChargeUsageBased.Create().
-		SetDiscounts(&intent.Discounts).
+		SetNillableDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
+		SetNillableIntentDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
+		SetDiscounts(&baseIntent.Discounts).
 		SetFeatureID(intent.FeatureID).
 		SetRatingEngine(intent.RatingEngine).
-		SetPrice(&intent.Price).
+		SetPrice(&baseIntent.Price).
 		SetStatusDetailed(usagebased.Status(meta.ChargeStatusCreated)).
-		SetFeatureKey(intent.FeatureKey).
-		SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
-		SetSettlementMode(intent.SettlementMode)
+		SetFeatureKey(baseIntent.FeatureKey).
+		SetInvoiceAt(meta.NormalizeTimestamp(baseIntent.InvoiceAt).In(time.UTC)).
+		SetSettlementMode(baseIntent.SettlementMode)
+
+	if baseIntent.UnitConfig != nil {
+		create = create.SetUnitConfig(baseIntent.UnitConfig)
+	}
 
 	create, err := chargemeta.Create[*db.ChargeUsageBasedCreate](create, chargemeta.CreateInput{
-		Namespace: ns,
-		Intent:    intent.Intent.Intent,
-		Status:    meta.ChargeStatusCreated,
+		Namespace:           ns,
+		Intent:              baseIntent.Intent,
+		IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
+		Status:              meta.ChargeStatusCreated,
 	})
 	if err != nil {
 		return nil, err

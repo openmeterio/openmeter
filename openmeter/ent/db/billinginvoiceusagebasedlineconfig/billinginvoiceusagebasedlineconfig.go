@@ -29,6 +29,8 @@ const (
 	FieldMeteredPreLinePeriodQuantity = "metered_pre_line_period_quantity"
 	// FieldMeteredQuantity holds the string denoting the metered_quantity field in the database.
 	FieldMeteredQuantity = "metered_quantity"
+	// FieldUnitConfig holds the string denoting the unit_config field in the database.
+	FieldUnitConfig = "unit_config"
 	// Table holds the table name of the billinginvoiceusagebasedlineconfig in the database.
 	Table = "billing_invoice_usage_based_line_configs"
 )
@@ -43,6 +45,7 @@ var Columns = []string{
 	FieldPreLinePeriodQuantity,
 	FieldMeteredPreLinePeriodQuantity,
 	FieldMeteredQuantity,
+	FieldUnitConfig,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -62,7 +65,8 @@ var (
 	DefaultID func() string
 	// ValueScanner of all BillingInvoiceUsageBasedLineConfig fields.
 	ValueScanner struct {
-		Price field.TypeValueScanner[*productcatalog.Price]
+		Price      field.TypeValueScanner[*productcatalog.Price]
+		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
 	}
 )
 
@@ -117,4 +121,9 @@ func ByMeteredPreLinePeriodQuantity(opts ...sql.OrderTermOption) OrderOption {
 // ByMeteredQuantity orders the results by the metered_quantity field.
 func ByMeteredQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeteredQuantity, opts...).ToFunc()
+}
+
+// ByUnitConfig orders the results by the unit_config field.
+func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
 }

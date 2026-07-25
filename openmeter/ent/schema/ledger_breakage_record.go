@@ -3,6 +3,8 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/alpacahq/alpacadecimal"
@@ -55,6 +57,13 @@ func (LedgerBreakageRecord) Fields() []ent.Field {
 			Immutable(),
 		field.Enum("source_kind").
 			GoType(ledger.BreakageSourceKind("")).
+			Immutable(),
+		field.String("source_charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
 			Immutable(),
 		field.String("source_transaction_group_id").
 			SchemaType(map[string]string{
@@ -118,11 +127,70 @@ func (LedgerBreakageRecord) Fields() []ent.Field {
 	}
 }
 
+func (LedgerBreakageRecord) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("source_transaction_group", LedgerTransactionGroup.Type).
+			Ref("source_breakage_records").
+			Field("source_transaction_group_id").
+			Immutable().
+			Unique(),
+		edge.From("source_transaction", LedgerTransaction.Type).
+			Ref("source_breakage_records").
+			Field("source_transaction_id").
+			Immutable().
+			Unique(),
+		edge.From("source_entry", LedgerEntry.Type).
+			Ref("source_breakage_records").
+			Field("source_entry_id").
+			Immutable().
+			Unique(),
+		edge.From("breakage_transaction_group", LedgerTransactionGroup.Type).
+			Ref("breakage_records").
+			Field("breakage_transaction_group_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.From("breakage_transaction", LedgerTransaction.Type).
+			Ref("breakage_records").
+			Field("breakage_transaction_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.From("fbo_sub_account", LedgerSubAccount.Type).
+			Ref("fbo_breakage_records").
+			Field("fbo_sub_account_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.From("breakage_sub_account", LedgerSubAccount.Type).
+			Ref("breakage_records").
+			Field("breakage_sub_account_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.To("planned_releases", LedgerBreakageRecord.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("release_reopens", LedgerBreakageRecord.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.From("plan", LedgerBreakageRecord.Type).
+			Ref("planned_releases").
+			Field("plan_id").
+			Immutable().
+			Unique(),
+		edge.From("release", LedgerBreakageRecord.Type).
+			Ref("release_reopens").
+			Field("release_id").
+			Immutable().
+			Unique(),
+	}
+}
+
 func (LedgerBreakageRecord) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "customer_id", "currency", "credit_priority", "expires_at", "id").
 			StorageKey("ledgerbreakagerecord_namespace_customer_id_currency_credit_"),
 		index.Fields("namespace", "plan_id"),
+		index.Fields("namespace", "source_charge_id"),
 		index.Fields("namespace", "source_transaction_group_id"),
 		index.Fields("namespace", "source_entry_id"),
 		index.Fields("namespace", "breakage_transaction_group_id"),

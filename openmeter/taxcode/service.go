@@ -19,6 +19,7 @@ type TaxCodeService interface {
 	UpdateTaxCode(ctx context.Context, input UpdateTaxCodeInput) (TaxCode, error)
 	ListTaxCodes(ctx context.Context, input ListTaxCodesInput) (pagination.Result[TaxCode], error)
 	GetTaxCode(ctx context.Context, input GetTaxCodeInput) (TaxCode, error)
+	GetTaxCodeByKey(ctx context.Context, input GetTaxCodeByKeyInput) (TaxCode, error)
 	GetTaxCodeByAppMapping(ctx context.Context, input GetTaxCodeByAppMappingInput) (TaxCode, error)
 	GetOrCreateByAppMapping(ctx context.Context, input GetOrCreateByAppMappingInput) (TaxCode, error)
 	DeleteTaxCode(ctx context.Context, input DeleteTaxCodeInput) error
@@ -38,6 +39,7 @@ var (
 	_ models.Validator = (*UpdateTaxCodeInput)(nil)
 	_ models.Validator = (*ListTaxCodesInput)(nil)
 	_ models.Validator = (*GetTaxCodeInput)(nil)
+	_ models.Validator = (*GetTaxCodeByKeyInput)(nil)
 	_ models.Validator = (*GetTaxCodeByAppMappingInput)(nil)
 	_ models.Validator = (*GetOrCreateByAppMappingInput)(nil)
 	_ models.Validator = (*DeleteTaxCodeInput)(nil)
@@ -141,6 +143,25 @@ func (i GetTaxCodeInput) Validate() error {
 	var errs []error
 	if err := i.NamespacedID.Validate(); err != nil {
 		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type GetTaxCodeByKeyInput struct {
+	Namespace string
+	Key       string
+}
+
+func (i GetTaxCodeByKeyInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, ErrResourceNamespaceEmpty)
+	}
+
+	if i.Key == "" {
+		errs = append(errs, ErrResourceKeyEmpty)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

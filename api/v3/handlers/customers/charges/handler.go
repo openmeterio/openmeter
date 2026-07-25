@@ -9,17 +9,18 @@ import (
 
 type Handler interface {
 	ListCustomerCharges() ListCustomerChargesHandler
+	CreateCustomerCharge() CreateCustomerChargesHandler
 }
 
 type handler struct {
 	resolveNamespace func(ctx context.Context) (string, error)
-	service          billingcharges.ChargeService
+	service          billingcharges.Service
 	options          []httptransport.HandlerOption
 }
 
 func New(
 	resolveNamespace func(ctx context.Context) (string, error),
-	service billingcharges.ChargeService,
+	service billingcharges.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{

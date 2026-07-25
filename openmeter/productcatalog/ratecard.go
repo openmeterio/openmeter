@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -29,9 +30,18 @@ func (s RateCardType) Values() []string {
 	}
 }
 
+type RateCardFeature interface {
+	HasFeature() bool
+	GetFeatureID() *string
+	GetFeatureKey() *string
+	SetFeature(id, key *string)
+}
+
 type RateCard interface {
 	models.Validator
 	models.Equaler[RateCard]
+
+	RateCardFeature
 
 	Type() RateCardType
 	AsMeta() RateCardMeta
@@ -42,11 +52,6 @@ type RateCard interface {
 	Compatible(RateCard) error
 	GetBillingCadence() *datetime.ISODuration
 	IsBillable() bool
-
-	HasFeature() bool
-	GetFeatureID() *string
-	GetFeatureKey() *string
-	SetFeature(id, key *string)
 }
 
 type RateCardSerde struct {
@@ -93,6 +98,11 @@ type RateCardMeta struct {
 
 	// Discounts defines a list of discounts for the RateCard
 	Discounts Discounts `json:"discounts,omitempty"`
+
+	// UnitConfig defines an optional per-rate-card conversion applied to the raw
+	// metered quantity before pricing and entitlement evaluation. Shared by plan
+	// and addon rate cards.
+	UnitConfig *UnitConfig `json:"unitConfig,omitempty"`
 }
 
 func (r RateCardMeta) HasFeature() bool {
@@ -158,6 +168,10 @@ func (r RateCardMeta) Clone() RateCardMeta {
 
 	clone.Discounts = r.Discounts.Clone()
 
+	if r.UnitConfig != nil {
+		clone.UnitConfig = lo.ToPtr(r.UnitConfig.Clone())
+	}
+
 	// TaxCode is an eagerly loaded reference, shallow copy is sufficient
 	clone.TaxCode = r.TaxCode
 
@@ -202,6 +216,10 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 		return false
 	}
 
+	if !r.UnitConfig.Equal(v.UnitConfig) {
+		return false
+	}
+
 	return r.Price.Equal(v.Price)
 }
 
@@ -230,20 +248,24 @@ func (r RateCardMeta) Validate() error {
 
 	if r.TaxConfig != nil {
 		if err := r.TaxConfig.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid tax config: %w",
+			errs = append(errs, fmt.Errorf(
+				"invalid tax config: %w",
 				models.ErrorWithFieldPrefix(
 					models.NewFieldSelectorGroup(models.NewFieldSelector("taxConfig")),
-					err),
+					err,
+				),
 			))
 		}
 	}
 
 	if r.Price != nil {
 		if err := r.Price.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid price: %w",
+			errs = append(errs, fmt.Errorf(
+				"invalid price: %w",
 				models.ErrorWithFieldPrefix(
 					models.NewFieldSelectorGroup(models.NewFieldSelector("price")),
-					err),
+					err,
+				),
 			))
 		}
 
@@ -263,6 +285,24 @@ func (r RateCardMeta) Validate() error {
 
 	if err := r.Discounts.ValidateForPrice(r.Price); err != nil {
 		errs = append(errs, err)
+	}
+
+	if r.UnitConfig != nil {
+		if err := r.UnitConfig.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf(
+				"invalid unit config: %w",
+				models.ErrorWithFieldPrefix(
+					models.NewFieldSelectorGroup(models.NewFieldSelector("unit_config")),
+					err,
+				),
+			))
+		}
+
+		// A unit_config is only valid on a price that supports a per-quantity
+		// conversion (unit or tiered); Price.SupportsUnitConfig owns that rule.
+		if r.Price == nil || !r.Price.SupportsUnitConfig() {
+			errs = append(errs, ErrRateCardUnitConfigRequiresUsageBasedPrice)
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -572,6 +612,12 @@ func (c RateCards) At(idx int) RateCard {
 	return c[idx]
 }
 
+func (c RateCards) HasUnitConfig() bool {
+	return slices.ContainsFunc(c, func(rc RateCard) bool {
+		return rc.AsMeta().UnitConfig != nil
+	})
+}
+
 func (c RateCards) Billables() RateCards {
 	var billables RateCards
 	for _, rc := range c {
@@ -653,7 +699,8 @@ func ValidateRateCards() models.ValidatorFunc[RateCards] {
 		for _, rateCard := range ratecards {
 			fieldSelector := models.NewFieldSelectorGroup(
 				models.NewFieldSelector("ratecards").WithExpression(
-					models.NewFieldAttrValue("key", rateCard.Key())),
+					models.NewFieldAttrValue("key", rateCard.Key()),
+				),
 			)
 
 			if _, ok := rateCardKeys[rateCard.Key()]; ok {
@@ -704,6 +751,7 @@ func (r RateCardWithOverlay) Validate() error {
 		ValidateRateCardsHaveCompatibleBillingCadence,
 		ValidateRateCardsHaveCompatibleEntitlementTemplate,
 		ValidateRateCardsHaveCompatibleDiscounts,
+		ValidateRateCardsHaveCompatibleUnitConfig,
 	)
 }
 
@@ -886,6 +934,23 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 	return nil
 })
 
+var ValidateRateCardsHaveCompatibleUnitConfig = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
+
+	if rMeta.UnitConfig != nil && vMeta.UnitConfig != nil && !rMeta.UnitConfig.Equal(vMeta.UnitConfig) {
+		fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
+			WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
+
+		return models.ErrorWithFieldPrefix(fieldSelector, ErrAddonRateCardUnitConfigMismatch)
+	}
+
+	return nil
+})
+
 func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatureResolver) func(cards RateCards) error {
 	return func(rateCards RateCards) error {
 		var errs []error
@@ -920,6 +985,13 @@ func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatu
 
 			if feat.ArchivedAt != nil && clock.Now().UTC().After(feat.ArchivedAt.UTC()) {
 				errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardFeatureArchived))
+			}
+
+			// Make sure that ratecard with UBP has metered feature
+			if rc.Price != nil && rc.Price.Type() != FlatPriceType {
+				if feat.MeterID == nil {
+					errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardUsageBasedPriceWithFeatureAndNoMeter))
+				}
 			}
 		}
 

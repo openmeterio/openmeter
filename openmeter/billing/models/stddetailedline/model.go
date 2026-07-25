@@ -8,13 +8,11 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -54,12 +52,10 @@ type Base struct {
 	PaymentTerm            productcatalog.PaymentTermType `json:"paymentTerm"`
 	ServicePeriod          timeutil.ClosedPeriod          `json:"servicePeriod"`
 
-	Currency      currencyx.Code        `json:"currency"`
 	PerUnitAmount alpacadecimal.Decimal `json:"perUnitAmount"`
 	Quantity      alpacadecimal.Decimal `json:"quantity"`
 	Totals        totals.Totals         `json:"totals"`
 
-	TaxConfig      *productcatalog.TaxConfig     `json:"taxConfig,omitempty"`
 	ExternalIDs    externalid.LineExternalIDs    `json:"externalIDs,omitempty"`
 	CreditsApplied creditsapplied.CreditsApplied `json:"creditsApplied,omitempty"`
 }
@@ -108,10 +104,6 @@ func (l Base) Validate(opts ...ValidateOption) error {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
-	if err := l.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency: %w", err))
-	}
-
 	if err := l.CreditsApplied.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("credits applied: %w", err))
 	}
@@ -120,11 +112,6 @@ func (l Base) Validate(opts ...ValidateOption) error {
 }
 
 func (l Base) Clone() Base {
-	if l.TaxConfig != nil {
-		taxConfig := *l.TaxConfig
-		l.TaxConfig = &taxConfig
-	}
-
 	if len(l.CreditsApplied) > 0 {
 		l.CreditsApplied = l.CreditsApplied.Clone()
 	}
@@ -170,25 +157,4 @@ func Compare[T Comparable](a, b T) int {
 		return c
 	}
 	return cmp.Compare(a.GetID(), b.GetID())
-}
-
-func BackfillTaxConfig(snapshotted *productcatalog.TaxConfig, behavior *productcatalog.TaxBehavior, resolvedTaxCodeID *string) *productcatalog.TaxConfig {
-	if snapshotted == nil && behavior == nil && resolvedTaxCodeID == nil {
-		return nil
-	}
-
-	var out productcatalog.TaxConfig
-	if snapshotted != nil {
-		out = *snapshotted
-	}
-
-	if behavior != nil {
-		out.Behavior = behavior
-	}
-
-	if resolvedTaxCodeID != nil {
-		out.TaxCodeID = lo.ToPtr(*resolvedTaxCodeID)
-	}
-
-	return &out
 }

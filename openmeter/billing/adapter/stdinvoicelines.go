@@ -146,7 +146,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						sql.ResolveWith(func(u *sql.UpdateSet) {
 							u.SetIgnore(billinginvoiceline.FieldCreatedAt)
 						})).
-					// TODO[OM-1416]: all nillable fileds must be listed explicitly
 					UpdateQuantity().
 					UpdateChildUniqueReferenceID().
 					UpdateCreditsApplied().
@@ -155,6 +154,8 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					UpdateTaxConfig().
 					UpdateTaxCodeID().
 					UpdateTaxBehavior().
+					UpdateDescription().
+					UpdateRatecardDiscounts().
 					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, line *billing.StandardLine) (*billing.StandardLine, error) {
@@ -224,7 +225,13 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						sql.ResolveWith(func(u *sql.UpdateSet) {
 							u.SetIgnore(billinginvoicelineusagediscount.FieldCreatedAt)
 						}),
-					).Exec(ctx)
+					).
+					UpdatePreLinePeriodQuantity().
+					UpdateDescription().
+					UpdateChildUniqueReferenceID().
+					UpdateDeletedAt().
+					UpdateInvoicingAppExternalID().
+					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, d usageLineDiscountManagedWithLine) (usageLineDiscountManagedWithLine, error) {
 				d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
@@ -320,17 +327,11 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				SetType(billing.InvoiceLineAdapterTypeFee).
 				SetName(line.Name).
 				SetNillableDescription(line.Description).
-				SetCurrency(line.Currency).
+				SetCurrency(lineWithParent.Parent.Currency).
 				SetNillableChildUniqueReferenceID(lo.EmptyableToPtr(line.ChildUniqueReferenceID))
 
 			create = externalid.CreateLineExternalID(create, line.ExternalIDs)
 			create = totals.Set(create, line.Totals)
-
-			if line.TaxConfig != nil {
-				create = create.SetTaxConfig(*line.TaxConfig).
-					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
-					SetNillableTaxBehavior(line.TaxConfig.Behavior)
-			}
 
 			if len(line.CreditsApplied) > 0 {
 				create = create.SetCreditsApplied(&line.CreditsApplied)
@@ -353,9 +354,7 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				UpdateQuantity().
 				UpdateChildUniqueReferenceID().
 				UpdateCreditsApplied().
-				UpdateTaxConfig().
-				UpdateTaxCodeID().
-				UpdateTaxBehavior().
+				UpdateDescription().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {
@@ -401,7 +400,14 @@ func (a *adapter) upsertDetailedLineAmountDiscounts(ctx context.Context, in deta
 					sql.ResolveWith(func(u *sql.UpdateSet) {
 						u.SetIgnore(billinginvoicelinediscount.FieldCreatedAt)
 					}),
-				).Exec(ctx)
+				).
+				UpdateRoundingAmount().
+				UpdateDescription().
+				UpdateDeletedAt().
+				UpdateChildUniqueReferenceID().
+				UpdateSourceDiscount().
+				UpdateInvoicingAppExternalID().
+				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, d detailedLineAmountDiscountWithParent) (detailedLineAmountDiscountWithParent, error) {
 			d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
@@ -432,12 +438,6 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				create = create.SetCreditsApplied(&line.CreditsApplied)
 			}
 
-			if line.TaxConfig != nil {
-				create = create.SetTaxConfig(*line.TaxConfig).
-					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
-					SetNillableTaxBehavior(line.TaxConfig.Behavior)
-			}
-
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingStandardInvoiceDetailedLineCreate) error {
@@ -452,11 +452,9 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				).
 				UpdateChildUniqueReferenceID().
 				UpdateDescription().
-				UpdateTaxConfig().
-				UpdateTaxCodeID().
-				UpdateTaxBehavior().
 				UpdateIndex().
 				UpdateDeletedAt().
+				UpdateCreditsApplied().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {
@@ -536,6 +534,19 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 				SetNillableMeteredQuantity(line.UsageBased.MeteredQuantity).
 				SetNillableMeteredPreLinePeriodQuantity(line.UsageBased.MeteredPreLinePeriodQuantity)
 
+			// unit_config is the billing-time snapshot of the rate card's unit_config. It is
+			// mutable on a draft line like price: charges re-derivation, invoice edits, and
+			// charges patching re-upsert the line, and UpdateUnitConfig below makes the
+			// conflict clause resolve this column per row regardless of batch composition —
+			// a config-bearing row writes its config, a row whose config was dropped writes
+			// NULL and clears the stale snapshot (excluded.unit_config defaults to NULL when
+			// the row omits it). Finalized lines are protected behaviorally: they are never
+			// re-upserted through this path. Left unset (not set to nil) on create so a fresh
+			// row without a config stores SQL NULL rather than a JSON "null" literal.
+			if line.UsageBased.UnitConfig != nil {
+				create = create.SetUnitConfig(line.UsageBased.UnitConfig)
+			}
+
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceUsageBasedLineConfigCreate) error {
@@ -545,6 +556,13 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 					sql.ConflictColumns(billinginvoiceusagebasedlineconfig.FieldID),
 					sql.ResolveWithNewValues(),
 				).
+				UpdateUnitConfig().
+				// Draft lines re-rate through this upsert, so the rated quantities are
+				// mutable too; resolve them per row so a nil-quantity sibling in the same
+				// batch cannot suppress another row's update via the shared column union.
+				UpdatePreLinePeriodQuantity().
+				UpdateMeteredQuantity().
+				UpdateMeteredPreLinePeriodQuantity().
 				Exec(ctx)
 		},
 	})
@@ -660,7 +678,6 @@ func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery
 		// If we want to reuse the deleted lines in ChildrenWithIDReuse, we must make sure that non-deleted lines are
 		// prioritized for reuse or we will end up with INSERT conflicts due to the child unique reference id uniqueness constraint.
 		bilq.Where(billingstandardinvoicedetailedline.DeletedAtIsNil()).
-			WithTaxCode().
 			WithAmountDiscounts(func(bilq *db.BillingStandardInvoiceDetailedLineAmountDiscountQuery) {
 				bilq.Where(billingstandardinvoicedetailedlineamountdiscount.DeletedAtIsNil())
 			})
@@ -771,12 +788,14 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			Where(billinginvoiceline.Namespace(in.Namespace)).
 			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
 			Where(billinginvoiceline.ParentLineIDIsNil()). // This one is required so that we are not fetching split line's children directly, the mapper will handle that
-			Where(billinginvoiceline.Or(
-				billinginvoiceline.DeletedAtIsNil(),
-				billinginvoiceline.And(
-					billinginvoiceline.DeletedAtNotNil(),
-					billinginvoiceline.ManagedByEQ(billing.ManuallyManagedLine),
-				)),
+			Where(
+				billinginvoiceline.Or(
+					billinginvoiceline.DeletedAtIsNil(),
+					billinginvoiceline.And(
+						billinginvoiceline.DeletedAtNotNil(),
+						billinginvoiceline.ManagedByEQ(billing.ManuallyManagedLine),
+					),
+				),
 			).
 			WithBillingInvoice()
 

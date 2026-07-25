@@ -3395,9 +3395,28 @@ export interface components {
        * @default true
        */
       progressiveBilling?: boolean
-      /** @description Default tax configuration to apply to the invoices. */
+      /**
+       * @description Controls how subscription-ending shortened service periods are billed.
+       * @default bill_actual_period
+       */
+      subscriptionEndProrationMode?: components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
+      /**
+       * @description Default tax configuration to apply to the invoices.
+       *
+       *     Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
+       *     deprecated and can no longer be added or changed: the organization default tax code is
+       *     used instead. Existing tax-code values may still be removed, and `behavior` remains
+       *     fully supported.
+       */
       defaultTaxConfig?: components['schemas']['TaxConfig']
     }
+    /**
+     * @description Billing workflow subscription end proration mode.
+     * @enum {string}
+     */
+    BillingWorkflowInvoicingSubscriptionEndProrationMode:
+      | 'bill_full_period'
+      | 'bill_actual_period'
     /**
      * Workflow payment settings
      * @description BillingWorkflowPaymentSettings represents the payment settings for a billing workflow
@@ -7706,7 +7725,10 @@ export interface components {
        *     When null, the feature or service is free.
        */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
-      /** @description The discounts that are applied to the line. */
+      /**
+       * @deprecated
+       * @description The discounts that are applied to the line.
+       */
       discounts?: components['schemas']['BillingDiscounts']
     }
     /** @description InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow. */
@@ -7731,7 +7753,19 @@ export interface components {
        * @example P30D
        */
       dueAfter?: string
-      /** @description Default tax configuration to apply to the invoices. */
+      /**
+       * @description Controls how subscription-ending shortened service periods are billed.
+       * @default bill_actual_period
+       */
+      subscriptionEndProrationMode?: components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
+      /**
+       * @description Default tax configuration to apply to the invoices.
+       *
+       *     Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
+       *     deprecated and can no longer be added or changed: the organization default tax code is
+       *     used instead. Existing tax-code values may still be removed, and `behavior` remains
+       *     fully supported.
+       */
       defaultTaxConfig?: components['schemas']['TaxConfig']
     }
     /**
@@ -9891,6 +9925,8 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       billingAnchor?: Date
+      /** @description The settlement mode of the subscription. */
+      settlementMode?: components['schemas']['BillingSettlementMode']
     }
     /**
      * Create from plan
@@ -9912,6 +9948,8 @@ export interface components {
       name?: string
       /** @description Description for the Subscription. */
       description?: string
+      /** @description The settlement mode of the subscription. */
+      settlementMode?: components['schemas']['BillingSettlementMode']
       /**
        * @description Timing configuration for the change, when the change should take effect.
        *     The default is immediate.
@@ -9931,8 +9969,6 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       billingAnchor?: Date
-      /** @description The settlement mode of the subscription. */
-      settlementMode?: components['schemas']['BillingSettlementMode']
     }
     /**
      * @description A consumer portal token.
@@ -12483,6 +12519,8 @@ export type BillingWorkflowCreate =
   components['schemas']['BillingWorkflowCreate']
 export type BillingWorkflowInvoicingSettings =
   components['schemas']['BillingWorkflowInvoicingSettings']
+export type BillingWorkflowInvoicingSubscriptionEndProrationMode =
+  components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
 export type BillingWorkflowPaymentSettings =
   components['schemas']['BillingWorkflowPaymentSettings']
 export type BillingWorkflowTaxSettings =

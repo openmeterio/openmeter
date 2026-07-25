@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -18,8 +19,9 @@ import (
 type StateItem struct {
 	SubscriptionItemWithPeriods
 
-	CurrencyCalculator currencyx.Calculator
-	Subscription       subscription.Subscription
+	Currency                     currencies.Currency
+	Subscription                 subscription.Subscription
+	SubscriptionEndProrationMode billing.SubscriptionEndProrationMode
 }
 
 // IsBillable returns true if the item is billable (e.g. we can create a gathering line for it even if it's value is 0 or create a charge for it)
@@ -49,6 +51,10 @@ func (r StateItem) GetServicePeriod() timeutil.ClosedPeriod {
 }
 
 func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
+	if !r.Currency.IsFiat() {
+		return nil, fmt.Errorf("billing line currency must be fiat: %s", r.Currency.GetCode())
+	}
+
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -57,12 +63,12 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 				Description: r.Spec.RateCard.AsMeta().Description,
 			}),
 			ManagedBy:              billing.SubscriptionManagedLine,
-			Currency:               r.CurrencyCalculator.Currency,
+			Currency:               currencyx.FiatCode(r.Currency.GetCode()),
 			ChildUniqueReferenceID: &r.UniqueID,
 			TaxConfig:              r.Spec.RateCard.AsMeta().TaxConfig,
 			ServicePeriod:          r.GetServicePeriod(),
 			InvoiceAt:              r.GetInvoiceAt(),
-			RateCardDiscounts:      discountsToBillingDiscounts(r.Spec.RateCard.AsMeta().Discounts),
+			RateCardDiscounts:      billing.DiscountsFromProductCatalog(r.Spec.RateCard.AsMeta().Discounts),
 			Subscription: &billing.SubscriptionReference{
 				SubscriptionID: r.Subscription.ID,
 				PhaseID:        r.PhaseID,
@@ -93,9 +99,9 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 			return nil, fmt.Errorf("converting price to flat: %w", err)
 		}
 
-		perUnitAmount := r.CurrencyCalculator.RoundToPrecision(price.Amount)
+		perUnitAmount := r.Currency.RoundToPrecision(price.Amount)
 		if !r.ServicePeriod.IsEmpty() && r.shouldProrate() {
-			perUnitAmount = r.CurrencyCalculator.RoundToPrecision(price.Amount.Mul(r.PeriodPercentage()))
+			perUnitAmount = r.Currency.RoundToPrecision(price.Amount.Mul(r.PeriodPercentage()))
 		}
 
 		if perUnitAmount.IsZero() {
@@ -114,23 +120,18 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 
 		line.Price = lo.FromPtr(r.SubscriptionItem.RateCard.AsMeta().Price)
 		line.FeatureKey = lo.FromPtr(r.SubscriptionItem.RateCard.AsMeta().FeatureKey)
+
+		// Snapshot the rate card's unit_config onto the gathering line so the legacy
+		// line-engine path converts raw metered quantity into billed units at rating,
+		// mirroring the charges reconciler that copies it onto the charge intent. Only
+		// usage-based prices carry it; the flat-fee branch above never does (authoring
+		// forbids unit_config on flat prices).
+		if unitConfig := r.SubscriptionItem.RateCard.AsMeta().UnitConfig; unitConfig != nil {
+			line.UnitConfig = lo.ToPtr(unitConfig.Clone())
+		}
 	}
 
 	return &line, nil
-}
-
-func discountsToBillingDiscounts(discounts productcatalog.Discounts) billing.Discounts {
-	out := billing.Discounts{}
-
-	if discounts.Usage != nil {
-		out.Usage = &billing.UsageDiscount{UsageDiscount: *discounts.Usage}
-	}
-
-	if discounts.Percentage != nil {
-		out.Percentage = &billing.PercentageDiscount{PercentageDiscount: *discounts.Percentage}
-	}
-
-	return out
 }
 
 func (r StateItem) shouldProrate() bool {
@@ -142,8 +143,12 @@ func (r StateItem) shouldProrate() bool {
 		return false
 	}
 
-	if r.Subscription.ActiveTo != nil && !r.Subscription.ActiveTo.After(r.ServicePeriod.To) {
-		return false
+	switch r.SubscriptionEndProrationMode {
+	case billing.SubscriptionEndProrationModeBillFullPeriod:
+		if r.Subscription.ActiveTo != nil && !r.Subscription.ActiveTo.After(r.ServicePeriod.To) {
+			return false
+		}
+	case billing.SubscriptionEndProrationModeBillActualPeriod:
 	}
 
 	switch r.Subscription.ProRatingConfig.Mode {

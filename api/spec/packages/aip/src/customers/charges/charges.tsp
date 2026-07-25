@@ -45,10 +45,78 @@ enum ChargeStatus {
  * This is the same as `ProductCatalog.Discounts` but without the `usage` field,
  * which is not applicable to flat fee charges.
  */
-@friendlyName("BillingFlatFeeDiscounts")
+@friendlyName("BillingChargeFlatFeeDiscounts")
 @summary("Flat fee charge discounts")
-model FlatFeeDiscounts {
+model ChargeFlatFeeDiscounts {
   ...OmitProperties<ProductCatalog.Discounts, "usage">;
+}
+
+/**
+ * Flat fee intent fields from the system lifecycle controller shadowed by a manual
+ * override.
+ */
+@friendlyName("BillingChargeFlatFeeSystemIntent")
+@summary("Flat fee system lifecycle controller charge intent")
+model ChargeFlatFeeSystemIntent {
+  ...PickProperties<
+    ChargeFlatFee,
+
+      | "name"
+      | "description"
+      | "labels"
+      | "invoice_at"
+      | "service_period"
+      | "full_service_period"
+      | "billing_period"
+      | "payment_term"
+      | "discounts"
+      | "proration_configuration"
+  >;
+
+  /**
+   * The amount before proration of the system lifecycle controller flat fee intent.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Amount before proration")
+  amount_before_proration: Shared.CurrencyAmount;
+
+  /**
+   * The timestamp when the system lifecycle controller intent was deleted. The
+   * effective charge can remain visible while a manual override is active.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Deleted at")
+  deleted_at?: Shared.DateTime;
+}
+
+/**
+ * Usage-based intent fields from the system lifecycle controller shadowed by a
+ * manual override.
+ */
+@friendlyName("BillingChargeUsageBasedSystemIntent")
+@summary("Usage-based system lifecycle controller charge intent")
+model ChargeUsageBasedSystemIntent {
+  ...PickProperties<
+    ChargeUsageBased,
+
+      | "name"
+      | "description"
+      | "labels"
+      | "invoice_at"
+      | "service_period"
+      | "full_service_period"
+      | "billing_period"
+      | "discounts"
+      | "price"
+  >;
+
+  /**
+   * The timestamp when the system lifecycle controller intent was deleted. The
+   * effective charge can remain visible while a manual override is active.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Deleted at")
+  deleted_at?: Shared.DateTime;
 }
 
 /**
@@ -63,7 +131,7 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The type of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Type")
   type: T;
 
@@ -75,11 +143,12 @@ model ChargeBase<T extends ChargeType> {
   customer: CustomerReference;
 
   /**
-   * The charge is managed by the following entity.
+   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+   * overridden by the API user.
    */
   @visibility(Lifecycle.Read)
-  @summary("Managed by")
-  managed_by: Shared.ResourceManagedBy;
+  @summary("Lifecycle controller")
+  lifecycle_controller: Shared.LifecycleController;
 
   /**
    * The subscription that originated the charge, when the charge was created from a
@@ -92,7 +161,7 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The currency of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
   currency: Shared.CurrencyCode;
 
@@ -106,14 +175,14 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The timestamp when the charge is intended to be invoiced.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Invoice at")
   invoice_at: Shared.DateTime;
 
   /**
    * The effective service period covered by the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Service period")
   service_period: Shared.ClosedPeriod;
 
@@ -140,40 +209,34 @@ model ChargeBase<T extends ChargeType> {
   advance_after?: Shared.DateTime;
 
   /**
-   * The price of the charge.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Price")
-  price: ProductCatalog.Price;
-
-  /**
    * Unique reference ID of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Unique reference ID")
   unique_reference_id?: string;
 
   /**
    * Settlement mode of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Settlement mode")
   settlement_mode: ProductCatalog.SettlementMode;
 
   /**
    * Tax configuration of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Tax configuration")
-  tax_config?: Billing.TaxConfig;
+  tax_config?: Common.BillingRoot.TaxConfig;
 }
 
 /**
  * A flat fee charge for a customer.
  */
-@friendlyName("BillingFlatFeeCharge")
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" ""
+@friendlyName("BillingChargeFlatFee")
 @summary("Flat fee charge")
-model FlatFeeCharge {
+model ChargeFlatFee {
   ...ChargeBase<ChargeType.FlatFee>;
 
   /**
@@ -188,7 +251,7 @@ model FlatFeeCharge {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Discounts")
-  discounts?: FlatFeeDiscounts;
+  discounts?: ChargeFlatFeeDiscounts;
 
   /**
    * The feature associated with the charge, when applicable.
@@ -204,6 +267,13 @@ model FlatFeeCharge {
   @summary("Proration configuration")
   proration_configuration: ProductCatalog.ProrationConfiguration;
 
+  /**
+   * The amount before proration of the charge.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Amount before proration")
+  amount_before_proration: Shared.CurrencyAmount;
+
   // Calculated fields
   /**
    * The amount after proration of the charge.
@@ -211,6 +281,22 @@ model FlatFeeCharge {
   @visibility(Lifecycle.Read)
   @summary("Amount after proration")
   amount_after_proration: Shared.CurrencyAmount;
+
+  /**
+   * The price of the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Price")
+  price: ProductCatalog.Price;
+
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("System intent")
+  system_intent?: ChargeFlatFeeSystemIntent;
 }
 
 /**
@@ -225,7 +311,7 @@ model ChargeTotals {
    */
   @visibility(Lifecycle.Read)
   @summary("Booked")
-  booked: Billing.BillingTotals;
+  booked: Common.BillingRoot.BillingTotals;
 
   /**
    * The realtime amount of the charge.
@@ -234,15 +320,15 @@ model ChargeTotals {
    */
   @visibility(Lifecycle.Read)
   @summary("Realtime totals")
-  realtime?: Billing.BillingTotals;
+  realtime?: Common.BillingRoot.BillingTotals;
 }
 
 /**
  * A usage-based charge for a customer.
  */
-@friendlyName("BillingUsageBasedCharge")
+@friendlyName("BillingChargeUsageBased")
 @summary("Usage-based charge")
-model UsageBasedCharge {
+model ChargeUsageBased {
   ...ChargeBase<ChargeType.UsageBased>;
 
   /**
@@ -267,6 +353,22 @@ model UsageBasedCharge {
   @visibility(Lifecycle.Read)
   @summary("Totals for the charge")
   totals: ChargeTotals;
+
+  /**
+   * The price of the charge.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Price")
+  price: ProductCatalog.Price;
+
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("System intent")
+  system_intent?: ChargeUsageBasedSystemIntent;
 }
 
 /**
@@ -279,12 +381,12 @@ union Charge {
   /**
    * A flat fee charge.
    */
-  flat_fee: FlatFeeCharge,
+  flat_fee: ChargeFlatFee,
 
   /**
    * A usage-based charge.
    */
-  usage_based: UsageBasedCharge,
+  usage_based: ChargeUsageBased,
 }
 
 /**
@@ -298,4 +400,83 @@ union Charge {
 @summary("Customer charge expands")
 enum ChargesExpand {
   RealTimeUsage: "real_time_usage",
+}
+
+/**
+ * Customer charge.
+ */
+@friendlyName("CreateChargeRequest")
+@summary("Customer charge create request.")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union CreateCharge {
+  /**
+   * A flat fee charge.
+   */
+  flat_fee: CreateChargeFlatFee,
+
+  /**
+   * A usage-based charge.
+   */
+  usage_based: CreateChargeUsageBased,
+}
+
+/**
+ * Create a flat fee charge for a customer.
+ */
+@doc("Flat fee charge create request.")
+@withVisibility(Lifecycle.Create)
+@friendlyName("CreateChargeFlatFeeRequest")
+model CreateChargeFlatFee {
+  ...OmitProperties<ChargeFlatFee, "full_service_period" | "billing_period">;
+
+  /**
+   * The full, unprorated service period of the charge.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Full service period")
+  full_service_period?: Shared.ClosedPeriod;
+
+  /**
+   * The billing period the charge belongs to.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Billing period")
+  billing_period?: Shared.ClosedPeriod;
+}
+
+/**
+ * Create a usage-based charge for a customer.
+ */
+@doc("Usage-based charge create request.")
+@withVisibility(Lifecycle.Create)
+@friendlyName("CreateChargeUsageBasedRequest")
+model CreateChargeUsageBased {
+  ...OmitProperties<ChargeUsageBased, "full_service_period" | "billing_period">;
+
+  /**
+   * The full, unprorated service period of the charge.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Full service period")
+  full_service_period?: Shared.ClosedPeriod;
+
+  /**
+   * The billing period the charge belongs to.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Billing period")
+  billing_period?: Shared.ClosedPeriod;
+}
+
+/**
+ * Reference to a charge associated with an invoice line.
+ */
+@friendlyName("BillingChargeReference")
+model ChargeReference {
+  /**
+   * Unique identifier for the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("ID")
+  id: Shared.ULID;
 }

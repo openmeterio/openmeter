@@ -11,10 +11,13 @@ import (
 )
 
 type AnyEntryInput struct {
-	Address          ledger.PostingAddress
-	AmountValue      alpacadecimal.Decimal
-	IdentityKeyValue string
-	AnnotationsValue models.Annotations
+	Address             ledger.PostingAddress
+	AmountValue         alpacadecimal.Decimal
+	IdentityKeyValue    string
+	SchemaVersionValue  ledger.EntrySchemaVersion
+	SourceChargeIDValue *string
+	SpendChargeIDValue  *string
+	AnnotationsValue    models.Annotations
 }
 
 var _ ledger.EntryInput = (*AnyEntryInput)(nil)
@@ -29,6 +32,22 @@ func (a *AnyEntryInput) Amount() alpacadecimal.Decimal {
 
 func (a *AnyEntryInput) IdentityKey() string {
 	return a.IdentityKeyValue
+}
+
+func (a *AnyEntryInput) SchemaVersion() ledger.EntrySchemaVersion {
+	if a.SchemaVersionValue == 0 {
+		return ledger.EntrySchemaVersionCurrent
+	}
+
+	return a.SchemaVersionValue
+}
+
+func (a *AnyEntryInput) SourceChargeID() *string {
+	return a.SourceChargeIDValue
+}
+
+func (a *AnyEntryInput) SpendChargeID() *string {
+	return a.SpendChargeIDValue
 }
 
 func (a *AnyEntryInput) Annotations() models.Annotations {

@@ -77,9 +77,9 @@ func ServicePeriodTo(v time.Time) predicate.ChargeCreditPurchaseExternalPayment 
 	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldEQ(FieldServicePeriodTo, v))
 }
 
-// Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
-func Amount(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
-	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldEQ(FieldAmount, v))
+// FiatAmount applies equality check predicate on the "fiat_amount" field. It's identical to FiatAmountEQ.
+func FiatAmount(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
+	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldEQ(FieldFiatAmount, v))
 }
 
 // AuthorizedTransactionGroupID applies equality check predicate on the "authorized_transaction_group_id" field. It's identical to AuthorizedTransactionGroupIDEQ.
@@ -237,44 +237,44 @@ func StatusNotIn(vs ...payment.Status) predicate.ChargeCreditPurchaseExternalPay
 	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldNotIn(FieldStatus, v...))
 }
 
-// AmountEQ applies the EQ predicate on the "amount" field.
-func AmountEQ(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
-	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldEQ(FieldAmount, v))
+// FiatAmountEQ applies the EQ predicate on the "fiat_amount" field.
+func FiatAmountEQ(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
+	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldEQ(FieldFiatAmount, v))
 }
 
-// AmountNEQ applies the NEQ predicate on the "amount" field.
-func AmountNEQ(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
-	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldNEQ(FieldAmount, v))
+// FiatAmountNEQ applies the NEQ predicate on the "fiat_amount" field.
+func FiatAmountNEQ(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
+	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldNEQ(FieldFiatAmount, v))
 }
 
-// AmountIn applies the In predicate on the "amount" field.
-func AmountIn(vs ...alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
-	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldIn(FieldAmount, vs...))
+// FiatAmountIn applies the In predicate on the "fiat_amount" field.
+func FiatAmountIn(vs ...alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
+	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldIn(FieldFiatAmount, vs...))
 }
 
-// AmountNotIn applies the NotIn predicate on the "amount" field.
-func AmountNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
-	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldNotIn(FieldAmount, vs...))
+// FiatAmountNotIn applies the NotIn predicate on the "fiat_amount" field.
+func FiatAmountNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
+	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldNotIn(FieldFiatAmount, vs...))
 }
 
-// AmountGT applies the GT predicate on the "amount" field.
-func AmountGT(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
-	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldGT(FieldAmount, v))
+// FiatAmountGT applies the GT predicate on the "fiat_amount" field.
+func FiatAmountGT(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
+	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldGT(FieldFiatAmount, v))
 }
 
-// AmountGTE applies the GTE predicate on the "amount" field.
-func AmountGTE(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
-	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldGTE(FieldAmount, v))
+// FiatAmountGTE applies the GTE predicate on the "fiat_amount" field.
+func FiatAmountGTE(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
+	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldGTE(FieldFiatAmount, v))
 }
 
-// AmountLT applies the LT predicate on the "amount" field.
-func AmountLT(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
-	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldLT(FieldAmount, v))
+// FiatAmountLT applies the LT predicate on the "fiat_amount" field.
+func FiatAmountLT(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
+	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldLT(FieldFiatAmount, v))
 }
 
-// AmountLTE applies the LTE predicate on the "amount" field.
-func AmountLTE(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
-	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldLTE(FieldAmount, v))
+// FiatAmountLTE applies the LTE predicate on the "fiat_amount" field.
+func FiatAmountLTE(v alpacadecimal.Decimal) predicate.ChargeCreditPurchaseExternalPayment {
+	return predicate.ChargeCreditPurchaseExternalPayment(sql.FieldLTE(FieldFiatAmount, v))
 }
 
 // AuthorizedTransactionGroupIDEQ applies the EQ predicate on the "authorized_transaction_group_id" field.

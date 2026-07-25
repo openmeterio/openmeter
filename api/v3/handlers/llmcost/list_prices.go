@@ -62,13 +62,12 @@ func (h *handler) ListPrices() ListPricesHandler {
 					})
 				}
 
-				if !validPriceSortField(sort.Field) {
-					return req, apierrors.NewBadRequestError(ctx, fmt.Errorf("unsupported sort field: %s", sort.Field), apierrors.InvalidParameters{
-						{Field: "sort", Reason: fmt.Sprintf("unsupported sort field %q, must be one of: id, provider.id, model.id, effective_from, effective_to", sort.Field), Source: apierrors.InvalidParamSourceQuery},
-					})
+				orderBy, err := FromAPILlmCostSortField(ctx, sort.Field)
+				if err != nil {
+					return req, err
 				}
 
-				req.OrderBy = sort.Field
+				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
 

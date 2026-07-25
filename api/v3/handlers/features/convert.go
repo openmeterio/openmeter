@@ -9,12 +9,30 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
+
+func FromAPIFeatureSortField(ctx context.Context, field string) (feature.FeatureOrderBy, error) {
+	switch field {
+	case "key":
+		return feature.FeatureOrderByKey, nil
+	case "name":
+		return feature.FeatureOrderByName, nil
+	case "created_at":
+		return feature.FeatureOrderByCreatedAt, nil
+	case "updated_at":
+		return feature.FeatureOrderByUpdatedAt, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "key", "name", "created_at", "updated_at",
+		)
+	}
+}
 
 func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 	resp := api.Feature{

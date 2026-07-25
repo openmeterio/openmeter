@@ -15,7 +15,10 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecostbasis"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -34,13 +37,16 @@ type ChargeFlatFeeQuery struct {
 	predicates            []predicate.ChargeFlatFee
 	withRuns              *ChargeFlatFeeRunQuery
 	withCurrentRun        *ChargeFlatFeeRunQuery
+	withCostBasis         *ChargeFlatFeeCostBasisQuery
 	withCharge            *ChargeQuery
+	withIntentOverride    *ChargeFlatFeeOverrideQuery
 	withSubscription      *SubscriptionQuery
 	withSubscriptionPhase *SubscriptionPhaseQuery
 	withSubscriptionItem  *SubscriptionItemQuery
 	withCustomer          *CustomerQuery
 	withFeature           *FeatureQuery
 	withTaxCode           *TaxCodeQuery
+	withCustomCurrency    *CustomCurrencyQuery
 	modifiers             []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -122,6 +128,28 @@ func (_q *ChargeFlatFeeQuery) QueryCurrentRun() *ChargeFlatFeeRunQuery {
 	return query
 }
 
+// QueryCostBasis chains the current query on the "cost_basis" edge.
+func (_q *ChargeFlatFeeQuery) QueryCostBasis() *ChargeFlatFeeCostBasisQuery {
+	query := (&ChargeFlatFeeCostBasisClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
+			sqlgraph.To(chargeflatfeecostbasis.Table, chargeflatfeecostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfee.CostBasisTable, chargeflatfee.CostBasisColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // QueryCharge chains the current query on the "charge" edge.
 func (_q *ChargeFlatFeeQuery) QueryCharge() *ChargeQuery {
 	query := (&ChargeClient{config: _q.config}).Query()
@@ -137,6 +165,28 @@ func (_q *ChargeFlatFeeQuery) QueryCharge() *ChargeQuery {
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
 			sqlgraph.To(charge.Table, charge.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chargeflatfee.ChargeTable, chargeflatfee.ChargeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryIntentOverride chains the current query on the "intent_override" edge.
+func (_q *ChargeFlatFeeQuery) QueryIntentOverride() *ChargeFlatFeeOverrideQuery {
+	query := (&ChargeFlatFeeOverrideClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
+			sqlgraph.To(chargeflatfeeoverride.Table, chargeflatfeeoverride.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargeflatfee.IntentOverrideTable, chargeflatfee.IntentOverrideColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -269,6 +319,28 @@ func (_q *ChargeFlatFeeQuery) QueryTaxCode() *TaxCodeQuery {
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
 			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.TaxCodeTable, chargeflatfee.TaxCodeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency chains the current query on the "custom_currency" edge.
+func (_q *ChargeFlatFeeQuery) QueryCustomCurrency() *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.CustomCurrencyTable, chargeflatfee.CustomCurrencyColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -470,13 +542,16 @@ func (_q *ChargeFlatFeeQuery) Clone() *ChargeFlatFeeQuery {
 		predicates:            append([]predicate.ChargeFlatFee{}, _q.predicates...),
 		withRuns:              _q.withRuns.Clone(),
 		withCurrentRun:        _q.withCurrentRun.Clone(),
+		withCostBasis:         _q.withCostBasis.Clone(),
 		withCharge:            _q.withCharge.Clone(),
+		withIntentOverride:    _q.withIntentOverride.Clone(),
 		withSubscription:      _q.withSubscription.Clone(),
 		withSubscriptionPhase: _q.withSubscriptionPhase.Clone(),
 		withSubscriptionItem:  _q.withSubscriptionItem.Clone(),
 		withCustomer:          _q.withCustomer.Clone(),
 		withFeature:           _q.withFeature.Clone(),
 		withTaxCode:           _q.withTaxCode.Clone(),
+		withCustomCurrency:    _q.withCustomCurrency.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -505,6 +580,17 @@ func (_q *ChargeFlatFeeQuery) WithCurrentRun(opts ...func(*ChargeFlatFeeRunQuery
 	return _q
 }
 
+// WithCostBasis tells the query-builder to eager-load the nodes that are connected to
+// the "cost_basis" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeFlatFeeQuery) WithCostBasis(opts ...func(*ChargeFlatFeeCostBasisQuery)) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeCostBasisClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCostBasis = query
+	return _q
+}
+
 // WithCharge tells the query-builder to eager-load the nodes that are connected to
 // the "charge" edge. The optional arguments are used to configure the query builder of the edge.
 func (_q *ChargeFlatFeeQuery) WithCharge(opts ...func(*ChargeQuery)) *ChargeFlatFeeQuery {
@@ -513,6 +599,17 @@ func (_q *ChargeFlatFeeQuery) WithCharge(opts ...func(*ChargeQuery)) *ChargeFlat
 		opt(query)
 	}
 	_q.withCharge = query
+	return _q
+}
+
+// WithIntentOverride tells the query-builder to eager-load the nodes that are connected to
+// the "intent_override" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeFlatFeeQuery) WithIntentOverride(opts ...func(*ChargeFlatFeeOverrideQuery)) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeOverrideClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withIntentOverride = query
 	return _q
 }
 
@@ -579,6 +676,17 @@ func (_q *ChargeFlatFeeQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *ChargeFl
 		opt(query)
 	}
 	_q.withTaxCode = query
+	return _q
+}
+
+// WithCustomCurrency tells the query-builder to eager-load the nodes that are connected to
+// the "custom_currency" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeFlatFeeQuery) WithCustomCurrency(opts ...func(*CustomCurrencyQuery)) *ChargeFlatFeeQuery {
+	query := (&CustomCurrencyClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCustomCurrency = query
 	return _q
 }
 
@@ -660,16 +768,19 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*ChargeFlatFee{}
 		_spec       = _q.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [12]bool{
 			_q.withRuns != nil,
 			_q.withCurrentRun != nil,
+			_q.withCostBasis != nil,
 			_q.withCharge != nil,
+			_q.withIntentOverride != nil,
 			_q.withSubscription != nil,
 			_q.withSubscriptionPhase != nil,
 			_q.withSubscriptionItem != nil,
 			_q.withCustomer != nil,
 			_q.withFeature != nil,
 			_q.withTaxCode != nil,
+			_q.withCustomCurrency != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -706,9 +817,21 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 			return nil, err
 		}
 	}
+	if query := _q.withCostBasis; query != nil {
+		if err := _q.loadCostBasis(ctx, query, nodes, nil,
+			func(n *ChargeFlatFee, e *ChargeFlatFeeCostBasis) { n.Edges.CostBasis = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := _q.withCharge; query != nil {
 		if err := _q.loadCharge(ctx, query, nodes, nil,
 			func(n *ChargeFlatFee, e *Charge) { n.Edges.Charge = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withIntentOverride; query != nil {
+		if err := _q.loadIntentOverride(ctx, query, nodes, nil,
+			func(n *ChargeFlatFee, e *ChargeFlatFeeOverride) { n.Edges.IntentOverride = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -745,6 +868,12 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	if query := _q.withTaxCode; query != nil {
 		if err := _q.loadTaxCode(ctx, query, nodes, nil,
 			func(n *ChargeFlatFee, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCustomCurrency; query != nil {
+		if err := _q.loadCustomCurrency(ctx, query, nodes, nil,
+			func(n *ChargeFlatFee, e *CustomCurrency) { n.Edges.CustomCurrency = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -813,6 +942,38 @@ func (_q *ChargeFlatFeeQuery) loadCurrentRun(ctx context.Context, query *ChargeF
 	}
 	return nil
 }
+func (_q *ChargeFlatFeeQuery) loadCostBasis(ctx context.Context, query *ChargeFlatFeeCostBasisQuery, nodes []*ChargeFlatFee, init func(*ChargeFlatFee), assign func(*ChargeFlatFee, *ChargeFlatFeeCostBasis)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeFlatFee)
+	for i := range nodes {
+		if nodes[i].CostBasisID == nil {
+			continue
+		}
+		fk := *nodes[i].CostBasisID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(chargeflatfeecostbasis.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "cost_basis_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *ChargeFlatFeeQuery) loadCharge(ctx context.Context, query *ChargeQuery, nodes []*ChargeFlatFee, init func(*ChargeFlatFee), assign func(*ChargeFlatFee, *Charge)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*ChargeFlatFee)
@@ -838,6 +999,33 @@ func (_q *ChargeFlatFeeQuery) loadCharge(ctx context.Context, query *ChargeQuery
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "charge_flat_fee_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeFlatFeeQuery) loadIntentOverride(ctx context.Context, query *ChargeFlatFeeOverrideQuery, nodes []*ChargeFlatFee, init func(*ChargeFlatFee), assign func(*ChargeFlatFee, *ChargeFlatFeeOverride)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeFlatFee)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfeeoverride.FieldChargeID)
+	}
+	query.Where(predicate.ChargeFlatFeeOverride(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeflatfee.IntentOverrideColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ChargeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -1004,10 +1192,7 @@ func (_q *ChargeFlatFeeQuery) loadTaxCode(ctx context.Context, query *TaxCodeQue
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*ChargeFlatFee)
 	for i := range nodes {
-		if nodes[i].TaxCodeID == nil {
-			continue
-		}
-		fk := *nodes[i].TaxCodeID
+		fk := nodes[i].TaxCodeID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -1025,6 +1210,38 @@ func (_q *ChargeFlatFeeQuery) loadTaxCode(ctx context.Context, query *TaxCodeQue
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *ChargeFlatFeeQuery) loadCustomCurrency(ctx context.Context, query *CustomCurrencyQuery, nodes []*ChargeFlatFee, init func(*ChargeFlatFee), assign func(*ChargeFlatFee, *CustomCurrency)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeFlatFee)
+	for i := range nodes {
+		if nodes[i].CustomCurrencyID == nil {
+			continue
+		}
+		fk := *nodes[i].CustomCurrencyID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(customcurrency.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "custom_currency_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -1064,6 +1281,9 @@ func (_q *ChargeFlatFeeQuery) querySpec() *sqlgraph.QuerySpec {
 		if _q.withCurrentRun != nil {
 			_spec.Node.AddColumnOnce(chargeflatfee.FieldCurrentRealizationRunID)
 		}
+		if _q.withCostBasis != nil {
+			_spec.Node.AddColumnOnce(chargeflatfee.FieldCostBasisID)
+		}
 		if _q.withSubscription != nil {
 			_spec.Node.AddColumnOnce(chargeflatfee.FieldSubscriptionID)
 		}
@@ -1081,6 +1301,9 @@ func (_q *ChargeFlatFeeQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withTaxCode != nil {
 			_spec.Node.AddColumnOnce(chargeflatfee.FieldTaxCodeID)
+		}
+		if _q.withCustomCurrency != nil {
+			_spec.Node.AddColumnOnce(chargeflatfee.FieldCustomCurrencyID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

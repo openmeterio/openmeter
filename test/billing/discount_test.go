@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -36,6 +38,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
+	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
 	s.NotNil(customerEntity)
@@ -88,7 +91,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
-				Currency: currencyx.Code(currency.USD),
+				Currency: currencyx.FiatCode(currency.USD),
 				Lines: []billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{
@@ -102,7 +105,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 
 							ManagedBy: billing.ManuallyManagedLine,
 
-							Currency: currencyx.Code(currency.USD),
+							Currency: currencyx.FiatCode(currency.USD),
 							RateCardDiscounts: billing.Discounts{
 								Percentage: &billing.PercentageDiscount{
 									PercentageDiscount: productcatalog.PercentageDiscount{
@@ -175,9 +178,10 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		draftInvoiceID = invoices[0].GetInvoiceID()
 	})
 
-	s.Run("Editing an invoice and adding a new discount generates a new correlation ID", func() {
-		editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-			Invoice: draftInvoiceID,
+	s.Run("Editing a progressively billed invoice line usage discount is rejected", func() {
+		_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      draftInvoiceID,
+			ChangeSource: billing.ChangeSourceAPIRequest,
 			EditFn: func(invoice *billing.StandardInvoice) error {
 				line := invoice.Lines.OrEmpty()[0]
 				line.RateCardDiscounts.Usage = &billing.UsageDiscount{
@@ -188,24 +192,78 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 				return nil
 			},
 		})
-		s.NoError(err)
-		s.NotNil(editedInvoice)
 
-		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, editedInvoice.Status)
-
-		rcDiscounts := editedInvoice.Lines.OrEmpty()[0].RateCardDiscounts
-		s.NotNil(rcDiscounts)
-
-		s.Equal(discountCorrelationID, rcDiscounts.Percentage.CorrelationID)
-		s.NotEqual(discountCorrelationID, rcDiscounts.Usage.CorrelationID)
-		s.NotEmpty(rcDiscounts.Usage.CorrelationID)
+		s.Error(err)
+		s.ErrorAs(err, &billing.ValidationError{})
+		s.ErrorIs(err, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden)
 	})
 
 	s.Run("Deleting the invoice works without errors", func() {
-		invoice, err := s.BillingService.DeleteInvoice(ctx, draftInvoiceID)
+		invoice, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+			Invoice:        draftInvoiceID,
+			DeletionSource: billing.ChangeSourceAPIRequest,
+		})
 		s.NoError(err)
 		s.Len(invoice.ValidationIssues, 0)
 	})
+}
+
+func (s *DiscountsTestSuite) TestFlatPriceUsageDiscountIsNotPersisted() {
+	// given:
+	// - a customer and a flat-priced pending line
+	// - the line has a valid percentage discount and an invalid usage discount
+	namespace := s.GetUniqueNamespace("ns-discounts-flat-price-usage")
+	ctx := s.T().Context()
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+	now := time.Now()
+
+	// when:
+	// - the pending line is created
+	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: []billing.GatheringLine{
+			{
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: namespace,
+						Name:      "invalid flat-price discount line",
+					}),
+					ServicePeriod: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour)},
+					InvoiceAt:     now.Add(time.Hour),
+					ManagedBy:     billing.ManuallyManagedLine,
+					RateCardDiscounts: billing.Discounts{
+						Percentage: &billing.PercentageDiscount{
+							PercentageDiscount: productcatalog.PercentageDiscount{Percentage: models.NewPercentage(50)},
+						},
+						Usage: &billing.UsageDiscount{
+							UsageDiscount: productcatalog.UsageDiscount{Quantity: alpacadecimal.NewFromInt(1)},
+						},
+					},
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(100),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					})),
+				},
+			},
+		},
+	})
+
+	// then:
+	// - validation rejects it before creating either an invoice or an invoice line
+	s.ErrorIs(err, productcatalog.ErrUsageDiscountWithFlatPrice)
+
+	lineCount, countErr := s.DBClient.BillingInvoiceLine.Query().
+		Where(billinginvoiceline.Namespace(namespace)).
+		Count(ctx)
+	s.NoError(countErr)
+	s.Zero(lineCount)
+
+	invoiceCount, countErr := s.DBClient.BillingInvoice.Query().
+		Where(billinginvoice.Namespace(namespace)).
+		Count(ctx)
+	s.NoError(countErr)
+	s.Zero(invoiceCount)
 }
 
 func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
@@ -286,7 +344,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -300,7 +358,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 
 						ManagedBy: billing.ManuallyManagedLine,
 
-						Currency: currencyx.Code(currency.USD),
+						Currency: currencyx.FiatCode(currency.USD),
 						RateCardDiscounts: billing.Discounts{
 							Usage: &billing.UsageDiscount{
 								UsageDiscount: productcatalog.UsageDiscount{

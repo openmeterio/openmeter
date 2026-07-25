@@ -59,7 +59,7 @@ func TestLineEngineSplitGatheringLineKeepsChargeGroupingWithoutChildReferences(t
 			}),
 			ManagedBy:              billing.SystemManagedLine,
 			Engine:                 billing.LineEngineTypeChargeUsageBased,
-			Currency:               currencyx.Code("USD"),
+			Currency:               currencyx.FiatCode("USD"),
 			ServicePeriod:          servicePeriod,
 			InvoiceAt:              servicePeriod.To,
 			Price:                  lo.FromPtr(price),

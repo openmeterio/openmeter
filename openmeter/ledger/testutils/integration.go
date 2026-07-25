@@ -15,7 +15,6 @@ import (
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type IntegrationEnv struct {
@@ -35,24 +34,11 @@ func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
 	clock.FreezeTime(now)
 	t.Cleanup(clock.UnFreeze)
 
-	testDB := omtestutils.InitPostgresDB(t)
+	testDB := omtestutils.InitPostgresDB(t, omtestutils.PostgresDBStateAtlasMigrated)
 	t.Cleanup(func() {
 		require.NoError(t, testDB.EntDriver.Close())
 		require.NoError(t, testDB.PGDriver.Close())
 	})
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           omtestutils.NewDiscardLogger(t),
-	})
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		srcErr, dbErr := migrator.Close()
-		require.NoError(t, srcErr)
-		require.NoError(t, dbErr)
-	})
-	require.NoError(t, migrator.Up())
 
 	namespace := fmt.Sprintf("%s-%d", namespacePrefix, clock.Now().UnixNano())
 
@@ -188,9 +174,16 @@ func (e *IntegrationEnv) EarningsSubAccount(t *testing.T) ledger.SubAccount {
 func (e *IntegrationEnv) EarningsSubAccountWithCostBasis(t *testing.T, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
+	return e.EarningsSubAccountWithCostBasisAndTaxCode(t, costBasis, nil)
+}
+
+func (e *IntegrationEnv) EarningsSubAccountWithCostBasisAndTaxCode(t *testing.T, costBasis *alpacadecimal.Decimal, taxCode *string) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.BusinessAccounts.EarningsAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
 		Currency:  e.Currency,
 		CostBasis: costBasis,
+		TaxCode:   taxCode,
 	})
 	require.NoError(t, err)
 
@@ -226,5 +219,5 @@ func (e *IntegrationEnv) SumBalance(t *testing.T, subAccount ledger.SubAccount) 
 	sum, err := e.Deps.HistoricalLedger.GetSubAccountBalance(t.Context(), subAccount, ledger.BalanceQuery{})
 	require.NoError(t, err)
 
-	return sum.Settled()
+	return sum
 }

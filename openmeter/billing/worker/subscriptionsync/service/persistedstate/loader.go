@@ -106,6 +106,9 @@ func (l Loader) loadChargesForSubscription(ctx context.Context, subs subscriptio
 	listedCharges, err := l.chargeService.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       subs.Namespace,
 		SubscriptionIDs: []string{subs.ID},
+		// Subscription sync reconciles subscription-owned source state, so API
+		// override deletion must not hide a charge whose base intent is still live.
+		DeletedAtFilter: charges.ListChargesDeletedAtFilterBaseIntent,
 		Expands:         meta.ExpandNone,
 	})
 	if err != nil {
@@ -122,40 +125,42 @@ func (l Loader) loadChargesForSubscription(ctx context.Context, subs subscriptio
 				return nil, fmt.Errorf("getting usage based charge: %w", err)
 			}
 
-			if usageBasedCharge.Intent.UniqueReferenceID == nil {
+			uniqueReferenceID := usageBasedCharge.Intent.GetUniqueReferenceID()
+			if uniqueReferenceID == nil {
 				continue
 			}
 
 			item, err := NewChargeItemFromChargeType(meta.ChargeTypeUsageBased, &usageBasedCharge, nil)
 			if err != nil {
-				return nil, fmt.Errorf("creating persisted usage based charge item[%s]: %w", *usageBasedCharge.Intent.UniqueReferenceID, err)
+				return nil, fmt.Errorf("creating persisted usage based charge item[%s]: %w", *uniqueReferenceID, err)
 			}
 
-			if _, ok := byUniqueID[*usageBasedCharge.Intent.UniqueReferenceID]; ok {
+			if _, ok := byUniqueID[*uniqueReferenceID]; ok {
 				return nil, fmt.Errorf("duplicate unique ids in the existing charges")
 			}
 
-			byUniqueID[*usageBasedCharge.Intent.UniqueReferenceID] = item
+			byUniqueID[*uniqueReferenceID] = item
 		case meta.ChargeTypeFlatFee:
 			flatFeeCharge, err := charge.AsFlatFeeCharge()
 			if err != nil {
 				return nil, fmt.Errorf("getting flat fee charge: %w", err)
 			}
 
-			if flatFeeCharge.Intent.UniqueReferenceID == nil {
+			uniqueReferenceID := flatFeeCharge.Intent.GetUniqueReferenceID()
+			if uniqueReferenceID == nil {
 				continue
 			}
 
 			item, err := NewChargeItemFromChargeType(meta.ChargeTypeFlatFee, nil, &flatFeeCharge)
 			if err != nil {
-				return nil, fmt.Errorf("creating persisted flat fee charge item[%s]: %w", *flatFeeCharge.Intent.UniqueReferenceID, err)
+				return nil, fmt.Errorf("creating persisted flat fee charge item[%s]: %w", *uniqueReferenceID, err)
 			}
 
-			if _, ok := byUniqueID[*flatFeeCharge.Intent.UniqueReferenceID]; ok {
+			if _, ok := byUniqueID[*uniqueReferenceID]; ok {
 				return nil, fmt.Errorf("duplicate unique ids in the existing charges")
 			}
 
-			byUniqueID[*flatFeeCharge.Intent.UniqueReferenceID] = item
+			byUniqueID[*uniqueReferenceID] = item
 		case meta.ChargeTypeCreditPurchase:
 			creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
 			if err != nil {

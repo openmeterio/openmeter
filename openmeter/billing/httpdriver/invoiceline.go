@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -80,12 +79,12 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 					Namespace: ns,
 					ID:        params.CustomerID,
 				},
-				Currency: currencyx.Code(req.Currency),
+				Currency: currencyx.FiatCode(req.Currency),
 				Lines:    lineEntities,
 			}, nil
 		},
 		func(ctx context.Context, request CreatePendingLineRequest) (CreatePendingLineResponse, error) {
-			res, err := h.service.CreatePendingInvoiceLines(ctx, request)
+			res, err := h.createPendingInvoiceLines(ctx, request)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to create invoice lines: %w", err)
 			}
@@ -131,6 +130,39 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 	)
 }
 
+func (h *handler) createPendingInvoiceLines(ctx context.Context, request CreatePendingLineRequest) (*billing.CreatePendingInvoiceLinesResult, error) {
+	useCharges, err := h.shouldCreatePendingLinesWithCharges(request.Customer.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if useCharges {
+		return h.chargeService.CreatePendingInvoiceLines(ctx, request)
+	}
+
+	return h.service.CreatePendingInvoiceLines(ctx, request)
+}
+
+func (h *handler) shouldCreatePendingLinesWithCharges(namespace string) (bool, error) {
+	if h.chargeService == nil {
+		return false, nil
+	}
+
+	if !h.credits.Enabled {
+		return false, nil
+	}
+
+	if !h.credits.EnableCreditThenInvoice {
+		return false, nil
+	}
+
+	if h.featureGate == nil {
+		return true, nil
+	}
+
+	return h.featureGate.Enabled(namespace, h.featureGate.Flags.Credits())
+}
+
 func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
@@ -160,7 +192,7 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 			},
 
 			InvoiceAt:         line.InvoiceAt,
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -227,9 +259,9 @@ func mapTaxConfigToAPI(to *productcatalog.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(productcataloghttp.FromTaxConfig(*to))
 }
 
-func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time) (*[]api.InvoiceDetailedLine, error) {
+func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (*[]api.InvoiceDetailedLine, error) {
 	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (api.InvoiceDetailedLine, error) {
-		return mapDetailedLineToAPI(line, invoiceAt)
+		return mapDetailedLineToAPI(line, currency, invoiceAt, taxConfig)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to map detailed lines: %w", err)
@@ -238,7 +270,7 @@ func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time) (*[
 	return lo.ToPtr(mappedLines), nil
 }
 
-func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.InvoiceDetailedLine, error) {
+func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (api.InvoiceDetailedLine, error) {
 	amountDiscountsAPI, err := mapInvoiceLineAmountDiscountsToAPI(line.AmountDiscounts)
 	if err != nil {
 		return api.InvoiceDetailedLine{}, fmt.Errorf("failed to map amount discounts: %w", err)
@@ -260,7 +292,7 @@ func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.I
 		UpdatedAt: line.UpdatedAt,
 		InvoiceAt: invoiceAt,
 
-		Currency: string(line.Currency),
+		Currency: string(currency),
 		Status:   api.InvoiceLineStatusDetailed,
 
 		Description: line.Description,
@@ -279,11 +311,11 @@ func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.I
 		PerUnitAmount: lo.ToPtr(line.PerUnitAmount.String()),
 		Quantity:      lo.ToPtr(line.Quantity.String()),
 		Category:      lo.ToPtr(api.InvoiceDetailedLineCostCategory(line.Category)),
-		TaxConfig:     mapTaxConfigToAPI(line.TaxConfig),
+		TaxConfig:     mapTaxConfigToAPI(taxConfig),
 		PaymentTerm:   lo.ToPtr(api.PricePaymentTerm(line.PaymentTerm)),
 
 		RateCard: &api.InvoiceDetailedLineRateCard{
-			TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+			TaxConfig: mapTaxConfigToAPI(taxConfig),
 			Price: &api.FlatPriceWithPaymentTerm{
 				Type:        api.FlatPriceWithPaymentTermTypeFlat,
 				PaymentTerm: lo.ToPtr(api.PricePaymentTerm(line.PaymentTerm)),
@@ -324,7 +356,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
-	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.InvoiceAt)
+	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.Currency, line.InvoiceAt, line.TaxConfig.ToProductCatalog())
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
 	}
@@ -362,7 +394,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 			To:   line.Period.To,
 		},
 
-		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+		TaxConfig: mapTaxConfigToAPI(line.TaxConfig.ToProductCatalog()),
 
 		FeatureKey:                   lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		MeteredQuantity:              decimalPtrToStringPtrIfNotEqual(line.UsageBased.MeteredQuantity, line.UsageBased.Quantity),
@@ -373,7 +405,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 		Price: lo.ToPtr(price),
 
 		RateCard: &api.InvoiceUsageBasedRateCard{
-			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig),
+			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig.ToProductCatalog()),
 			Price:      lo.ToPtr(price),
 			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		},
@@ -634,7 +666,7 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Standar
 			},
 
 			InvoiceAt:         line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -667,8 +699,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate,
 				Description: line.Description,
 			}),
 
-			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
-			ManagedBy: billing.ManuallyManagedLine,
+			Metadata: lo.FromPtrOr(line.Metadata, map[string]string{}),
 
 			InvoiceID: invoice.ID,
 			Currency:  invoice.Currency,
@@ -679,7 +710,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate,
 			},
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -716,8 +747,7 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate
 				Description: line.Description,
 			}),
 
-			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
-			ManagedBy: billing.ManuallyManagedLine,
+			Metadata: lo.FromPtrOr(line.Metadata, map[string]string{}),
 
 			InvoiceID: invoice.ID,
 			Currency:  invoice.Currency,
@@ -736,10 +766,7 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate
 	}, nil
 }
 
-func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line api.InvoiceLineReplaceUpdate) (*billing.StandardLine, bool, error) {
-	oldBase := existing.StandardLineBase.Clone()
-	oldUBP := existing.UsageBased.Clone()
-
+func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line api.InvoiceLineReplaceUpdate) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -747,7 +774,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 		FeatureKey: line.FeatureKey,
 	})
 	if err != nil {
-		return nil, false, billing.ValidationError{
+		return nil, billing.ValidationError{
 			Err: fmt.Errorf("failed to map usage based line: %w", err),
 		}
 	}
@@ -760,68 +787,15 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.Period.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	existing.TaxConfig = rateCardParsed.TaxConfig
+	existing.TaxConfig = billing.FromProductCatalog(rateCardParsed.TaxConfig)
 	existing.UsageBased.Price = rateCardParsed.Price
 	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
-
-	// Rate card discounts are not allowed to be updated on a progressively billed line (e.g. if there is
-	// already a partial invoice created), as we might go short on the discount quantity.
-	//
-	// If this is ever requested:
-	// - we should introduce the concept of a "discount pool" that is shared across invoices and
-	// - editing the discount edits the pool
-	// - editing requires that the discount pool's quantity cannot be less than the already used
-	//   quantity.
-
-	if existing.SplitLineGroupID != nil && rateCardParsed.Discounts.Usage != nil && existing.RateCardDiscounts.Usage != nil {
-		if !equal.PtrEqual(rateCardParsed.Discounts.Usage, existing.RateCardDiscounts.Usage) {
-			return nil, false, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
-			}
-		}
-	}
-
 	existing.RateCardDiscounts = rateCardParsed.Discounts
 
-	wasChange := !oldBase.Equal(existing.StandardLineBase) || !oldUBP.Equal(existing.UsageBased)
-	if wasChange {
-		if oldBase.ChargeID != nil {
-			return nil, false, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrCannotUpdateChargeManagedLine),
-			}
-		}
-
-		existing.ManagedBy = billing.ManuallyManagedLine
-	}
-
-	// We are not allowing period change for split lines (or their children), as that would mess up the
-	// calculation logic and/or we would need to update multiple invoices to correct all the references.
-	//
-	// Deletion is allowed.
-	if oldBase.SplitLineGroupID != nil && !oldBase.Period.Equal(existing.Period) {
-		return nil, false, billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
-		}
-	}
-
-	// Temporary restrictions on subscription managed lines until we have proper charges support
-	if oldBase.Subscription != nil {
-		if !oldBase.Period.Equal(existing.Period) {
-			return nil, false, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine),
-			}
-		}
-	}
-
-	return existing, wasChange, nil
+	return existing, nil
 }
 
 func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLine, line api.InvoiceLineReplaceUpdate) (billing.GatheringLine, error) {
-	old, err := existing.Clone()
-	if err != nil {
-		return billing.GatheringLine{}, fmt.Errorf("cloning existing line: %w", err)
-	}
-
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -834,7 +808,7 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 		}
 	}
 
-	if line.Price == nil {
+	if rateCardParsed.Price == nil {
 		return billing.GatheringLine{}, billing.ValidationError{
 			Err: fmt.Errorf("price is required for usage based lines"),
 		}
@@ -851,58 +825,12 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	existing.TaxConfig = rateCardParsed.TaxConfig
 	existing.Price = lo.FromPtr(rateCardParsed.Price)
 	existing.FeatureKey = rateCardParsed.FeatureKey
-
-	// Rate card discounts are not allowed to be updated on a progressively billed line (e.g. if there is
-	// already a partial invoice created), as we might go short on the discount quantity.
-	//
-	// If this is ever requested:
-	// - we should introduce the concept of a "discount pool" that is shared across invoices and
-	// - editing the discount edits the pool
-	// - editing requires that the discount pool's quantity cannot be less than the already used
-	//   quantity.
-
-	if existing.SplitLineGroupID != nil && rateCardParsed.Discounts.Usage != nil && existing.RateCardDiscounts.Usage != nil {
-		if !equal.PtrEqual(rateCardParsed.Discounts.Usage, existing.RateCardDiscounts.Usage) {
-			return billing.GatheringLine{}, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
-			}
-		}
-	}
-
 	existing.RateCardDiscounts = rateCardParsed.Discounts
-
-	if !old.Equal(existing) {
-		if old.ChargeID != nil {
-			return billing.GatheringLine{}, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrCannotUpdateChargeManagedLine),
-			}
-		}
-		existing.ManagedBy = billing.ManuallyManagedLine
-	}
-
-	// We are not allowing period change for split lines (or their children), as that would mess up the
-	// calculation logic and/or we would need to update multiple invoices to correct all the references.
-	//
-	// Deletion is allowed.
-	if old.SplitLineGroupID != nil && !old.ServicePeriod.Equal(existing.ServicePeriod) {
-		return billing.GatheringLine{}, billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
-		}
-	}
-
-	// Temporary restrictions on subscription managed lines until we have proper charges support
-	if old.Subscription != nil {
-		if !old.ServicePeriod.Equal(existing.ServicePeriod) {
-			return billing.GatheringLine{}, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine),
-			}
-		}
-	}
 
 	return existing, nil
 }
 
-func (h *handler) mergeStandardInvoiceLinesFromAPI(ctx context.Context, invoice *billing.StandardInvoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.StandardInvoiceLines, error) {
+func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *billing.StandardInvoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.StandardInvoiceLines, error) {
 	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) string {
 		return line.ID
 	})
@@ -924,34 +852,14 @@ func (h *handler) mergeStandardInvoiceLinesFromAPI(ctx context.Context, invoice 
 				return billing.StandardInvoiceLines{}, fmt.Errorf("failed to create new line: %w", err)
 			}
 
-			if invoice.Status != billing.StandardInvoiceStatusGathering {
-				newLine, err = h.service.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
-					Invoice: invoice,
-					Line:    newLine,
-				})
-				if err != nil {
-					return billing.StandardInvoiceLines{}, fmt.Errorf("failed to snapshot quantity: %w", err)
-				}
-			}
-
 			out = append(out, newLine)
 			continue
 		}
 
 		foundLines.Add(id)
-		mergedLine, changed, err := mergeStandardLineFromInvoiceLineReplaceUpdate(existingLine, line)
+		mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(existingLine, line)
 		if err != nil {
 			return billing.StandardInvoiceLines{}, fmt.Errorf("failed to merge line: %w", err)
-		}
-
-		if changed && invoice.Status != billing.StandardInvoiceStatusGathering {
-			mergedLine, err = h.service.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
-				Invoice: invoice,
-				Line:    mergedLine,
-			})
-			if err != nil {
-				return billing.StandardInvoiceLines{}, fmt.Errorf("failed to snapshot quantity: %w", err)
-			}
 		}
 
 		out = append(out, mergedLine)

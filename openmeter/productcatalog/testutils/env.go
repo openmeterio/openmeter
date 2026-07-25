@@ -1,7 +1,6 @@
 package testutils
 
 import (
-	"context"
 	"log/slog"
 	"sync"
 	"testing"
@@ -47,15 +46,6 @@ type TestEnv struct {
 	close  sync.Once
 }
 
-func (e *TestEnv) DBSchemaMigrate(t *testing.T) {
-	t.Helper()
-
-	require.NotNilf(t, e.db, "database must be initialized")
-
-	err := e.db.EntDriver.Client().Schema.Create(context.Background())
-	require.NoErrorf(t, err, "schema migration must not fail")
-}
-
 func (e *TestEnv) Close(t *testing.T) {
 	t.Helper()
 
@@ -85,7 +75,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	logger := testutils.NewDiscardLogger(t)
 
 	// Init database
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	client := db.EntDriver.Client()
 
 	// Init event publisher

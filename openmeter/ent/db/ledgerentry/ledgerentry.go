@@ -28,6 +28,12 @@ const (
 	FieldSubAccountID = "sub_account_id"
 	// FieldIdentityKey holds the string denoting the identity_key field in the database.
 	FieldIdentityKey = "identity_key"
+	// FieldSchemaVersion holds the string denoting the schema_version field in the database.
+	FieldSchemaVersion = "schema_version"
+	// FieldSourceChargeID holds the string denoting the source_charge_id field in the database.
+	FieldSourceChargeID = "source_charge_id"
+	// FieldSpendChargeID holds the string denoting the spend_charge_id field in the database.
+	FieldSpendChargeID = "spend_charge_id"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldTransactionID holds the string denoting the transaction_id field in the database.
@@ -36,6 +42,8 @@ const (
 	EdgeTransaction = "transaction"
 	// EdgeSubAccount holds the string denoting the sub_account edge name in mutations.
 	EdgeSubAccount = "sub_account"
+	// EdgeSourceBreakageRecords holds the string denoting the source_breakage_records edge name in mutations.
+	EdgeSourceBreakageRecords = "source_breakage_records"
 	// Table holds the table name of the ledgerentry in the database.
 	Table = "ledger_entries"
 	// TransactionTable is the table that holds the transaction relation/edge.
@@ -52,6 +60,13 @@ const (
 	SubAccountInverseTable = "ledger_sub_accounts"
 	// SubAccountColumn is the table column denoting the sub_account relation/edge.
 	SubAccountColumn = "sub_account_id"
+	// SourceBreakageRecordsTable is the table that holds the source_breakage_records relation/edge.
+	SourceBreakageRecordsTable = "ledger_breakage_records"
+	// SourceBreakageRecordsInverseTable is the table name for the LedgerBreakageRecord entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgerbreakagerecord" package.
+	SourceBreakageRecordsInverseTable = "ledger_breakage_records"
+	// SourceBreakageRecordsColumn is the table column denoting the source_breakage_records relation/edge.
+	SourceBreakageRecordsColumn = "source_entry_id"
 )
 
 // Columns holds all SQL columns for ledgerentry fields.
@@ -64,6 +79,9 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldSubAccountID,
 	FieldIdentityKey,
+	FieldSchemaVersion,
+	FieldSourceChargeID,
+	FieldSpendChargeID,
 	FieldAmount,
 	FieldTransactionID,
 }
@@ -89,6 +107,12 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultIdentityKey holds the default value on creation for the "identity_key" field.
 	DefaultIdentityKey string
+	// DefaultSchemaVersion holds the default value on creation for the "schema_version" field.
+	DefaultSchemaVersion int
+	// SourceChargeIDValidator is a validator for the "source_charge_id" field. It is called by the builders before save.
+	SourceChargeIDValidator func(string) error
+	// SpendChargeIDValidator is a validator for the "spend_charge_id" field. It is called by the builders before save.
+	SpendChargeIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -131,6 +155,21 @@ func ByIdentityKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIdentityKey, opts...).ToFunc()
 }
 
+// BySchemaVersion orders the results by the schema_version field.
+func BySchemaVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSchemaVersion, opts...).ToFunc()
+}
+
+// BySourceChargeID orders the results by the source_charge_id field.
+func BySourceChargeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceChargeID, opts...).ToFunc()
+}
+
+// BySpendChargeID orders the results by the spend_charge_id field.
+func BySpendChargeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSpendChargeID, opts...).ToFunc()
+}
+
 // ByAmount orders the results by the amount field.
 func ByAmount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmount, opts...).ToFunc()
@@ -154,6 +193,20 @@ func BySubAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newSubAccountStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// BySourceBreakageRecordsCount orders the results by source_breakage_records count.
+func BySourceBreakageRecordsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSourceBreakageRecordsStep(), opts...)
+	}
+}
+
+// BySourceBreakageRecords orders the results by source_breakage_records terms.
+func BySourceBreakageRecords(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSourceBreakageRecordsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newTransactionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -166,5 +219,12 @@ func newSubAccountStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubAccountInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, SubAccountTable, SubAccountColumn),
+	)
+}
+func newSourceBreakageRecordsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SourceBreakageRecordsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SourceBreakageRecordsTable, SourceBreakageRecordsColumn),
 	)
 }

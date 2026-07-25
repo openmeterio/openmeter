@@ -7,6 +7,7 @@ import { operationIdKebabCaseRule } from './rules/operation-id.js'
 import { noNullableRule } from './rules/no-nullable.js'
 import { compositionOverInheritanceRule } from './rules/composition-over-inheritance.js'
 import { repeatedPrefixGroupingRule } from './rules/field-prefix.js'
+import { sortQueryTypeRule } from './rules/sort-query-type.js'
 
 // See example rules: https://github.com/Azure/typespec-azure/tree/main/packages/typespec-azure-core/src/rules
 const rules = [
@@ -20,6 +21,7 @@ const rules = [
   operationIdKebabCaseRule,
   compositionOverInheritanceRule,
   repeatedPrefixGroupingRule,
+  sortQueryTypeRule,
 ]
 
 export const $linter = defineLinter({

@@ -14,9 +14,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -40,7 +40,7 @@ func (s *ChargeTimestampTruncationTestSuite) TearDownTest() {
 func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAndProrationInputs() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-truncation-flatfee")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
@@ -52,23 +52,30 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(flatfee.Intent{
 				Intent: meta.Intent{
-					Name:              "flat-fee-truncation",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					CustomerID:        cust.ID,
-					Currency:          currencyx.Code("USD"),
-					ServicePeriod:     timeutil.ClosedPeriod{From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01.600Z", time.UTC).AsTime(), To: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:03.400Z", time.UTC).AsTime()},
-					FullServicePeriod: timeutil.ClosedPeriod{From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00.400Z", time.UTC).AsTime(), To: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:03.400Z", time.UTC).AsTime()},
-					BillingPeriod:     timeutil.ClosedPeriod{From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01.600Z", time.UTC).AsTime(), To: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:03.400Z", time.UTC).AsTime()},
+					Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 					UniqueReferenceID: lo.ToPtr("flat-fee-truncation"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
+					},
 				},
-				InvoiceAt:      datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01.600Z", time.UTC).AsTime(),
+				IntentMutableFields: flatfee.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "flat-fee-truncation",
+						ServicePeriod:     timeutil.ClosedPeriod{From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01.600Z", time.UTC).AsTime(), To: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:03.400Z", time.UTC).AsTime()},
+						FullServicePeriod: timeutil.ClosedPeriod{From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00.400Z", time.UTC).AsTime(), To: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:03.400Z", time.UTC).AsTime()},
+						BillingPeriod:     timeutil.ClosedPeriod{From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01.600Z", time.UTC).AsTime(), To: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:03.400Z", time.UTC).AsTime()},
+					},
+					InvoiceAt:   datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01.600Z", time.UTC).AsTime(),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					ProRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+					AmountBeforeProration: alpacadecimal.NewFromInt(90),
+				},
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
-				PaymentTerm:    productcatalog.InAdvancePaymentTerm,
-				ProRating: productcatalog.ProRatingConfig{
-					Enabled: true,
-					Mode:    productcatalog.ProRatingModeProratePrices,
-				},
-				AmountBeforeProration: alpacadecimal.NewFromInt(90),
 			}),
 		},
 	})
@@ -88,17 +95,17 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 	}
 	expectedInvoiceAt := datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01Z", time.UTC).AsTime()
 
-	s.Equal(expectedServicePeriod, createdFlatFee.Intent.ServicePeriod)
-	s.Equal(expectedFullServicePeriod, createdFlatFee.Intent.FullServicePeriod)
-	s.Equal(expectedServicePeriod, createdFlatFee.Intent.BillingPeriod)
-	s.True(expectedInvoiceAt.Equal(createdFlatFee.Intent.InvoiceAt))
+	s.Equal(expectedServicePeriod, createdFlatFee.Intent.GetEffectiveServicePeriod())
+	s.Equal(expectedFullServicePeriod, createdFlatFee.Intent.GetEffectiveIntent().FullServicePeriod)
+	s.Equal(expectedServicePeriod, createdFlatFee.Intent.GetEffectiveIntent().BillingPeriod)
+	s.True(expectedInvoiceAt.Equal(createdFlatFee.Intent.GetEffectiveInvoiceAt()))
 	s.True(alpacadecimal.NewFromInt(60).Equal(createdFlatFee.State.AmountAfterProration))
 }
 
 func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersistedCalculationTimestamps() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-truncation-usagebased")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -118,21 +125,28 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(usagebased.Intent{
 				Intent: meta.Intent{
-					Name:              "usage-based-truncation",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					CustomerID:        cust.ID,
-					Currency:          currencyx.Code("USD"),
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
+					Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 					UniqueReferenceID: lo.ToPtr("usage-based-truncation"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
+					},
 				},
-				InvoiceAt:      datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00.750Z", time.UTC).AsTime(),
+				IntentMutableFields: usagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "usage-based-truncation",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+					},
+					InvoiceAt: datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00.750Z", time.UTC).AsTime(),
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(100),
+					})),
+				},
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
 				FeatureKey:     apiRequestsTotal.Feature.Key,
-				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-					Amount: alpacadecimal.NewFromInt(100),
-				})),
 			}),
 		},
 	})
@@ -148,9 +162,9 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 			From: datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime(),
 		},
-		createdUsageBased.Intent.ServicePeriod,
+		createdUsageBased.Intent.GetEffectiveServicePeriod(),
 	)
-	s.True(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime().Equal(createdUsageBased.Intent.InvoiceAt))
+	s.True(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime().Equal(createdUsageBased.Intent.GetEffectiveInvoiceAt()))
 
 	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:02:00.900Z", time.UTC).AsTime())
 

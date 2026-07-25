@@ -8,6 +8,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -18,6 +19,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
+	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -405,9 +408,26 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create billing adapter: %w", err)
 	}
 
+	billingSequenceAdapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger.WithGroup("billing.sequence"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create billing sequence adapter: %w", err)
+	}
+
+	billingSequenceService, err := billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: billingSequenceAdapter,
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create billing sequence service: %w", err)
+	}
+
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
-		RatingService:                billingratingservice.New(),
+		SequenceService:              billingSequenceService,
+		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		CustomerService:              customerService,
 		AppService:                   appService,
 		Logger:                       logger.WithGroup("billing"),
@@ -425,8 +445,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	// Set up app sandbox listing
 	_, err = appsandbox.NewMockableFactory(t, appsandbox.Config{
-		AppService:     appService,
-		BillingService: billingService,
+		AppService:      appService,
+		SequenceService: billingSequenceService,
 	})
 	require.NoError(t, err)
 
@@ -468,9 +488,10 @@ func minimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInp
 				Interval: lo.Must(datetime.ISODurationString("PT0S").Parse()),
 			},
 			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: true,
-				DraftPeriod: lo.Must(datetime.ISODurationString("P1D").Parse()),
-				DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+				AutoAdvance:                  true,
+				DraftPeriod:                  lo.Must(datetime.ISODurationString("P1D").Parse()),
+				DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,

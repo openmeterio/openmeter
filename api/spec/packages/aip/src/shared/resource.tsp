@@ -78,6 +78,6 @@ model ResourceImmutable {
 @friendlyName("{name}Reference", T)
 model ResourceReference<T extends {}> {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   id: ULID;
 }

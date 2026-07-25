@@ -8,21 +8,26 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) (creditpurchase.ChargeWithGatheringLine, error) {
-	input.Intent = input.Intent.Normalized()
-
 	if err := input.Validate(); err != nil {
 		return creditpurchase.ChargeWithGatheringLine{}, err
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) {
+		if input.Intent.Currency.IsCustom() && !s.enableCustomCurrency.Load() {
+			return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("custom currency %s is not supported for credit purchases: %w", input.Intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
+		}
+
+		input.Intent = input.Intent.Normalized()
+
 		// Let's create the credit purchase charge
-		charge, err := s.adapter.CreateCharge(ctx, creditpurchase.CreateChargeInput(input))
+		charge, err := s.adapter.CreateCharge(ctx, input)
 		if err != nil {
 			return creditpurchase.ChargeWithGatheringLine{}, err
 		}
@@ -30,7 +35,23 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 		// Let's activate the state machine for the credit purchase charge
 		switch charge.Intent.Settlement.Type() {
 		case creditpurchase.SettlementTypePromotional:
-			charge, err = s.onPromotionalCreditPurchase(ctx, charge)
+			stateMachine, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
+				Charge:  charge,
+				Adapter: s.adapter,
+				Service: s,
+			})
+			if err != nil {
+				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("new promotional state machine: %w", err)
+			}
+
+			advancedCharge, err := stateMachine.AdvanceUntilStateStable(ctx)
+			if err != nil {
+				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("advance promotional state machine: %w", err)
+			}
+
+			if advancedCharge != nil {
+				charge = *advancedCharge
+			}
 		case creditpurchase.SettlementTypeInvoice:
 			// noop, as we will transition to active state when the invoice is created, as
 			// - invocing based charges are driven by the invoice state machine
@@ -73,14 +94,15 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 
 	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
 	totalCost := intent.CreditAmount.Mul(invoiceSettlement.CostBasis)
-	calc, err := invoiceSettlement.Currency.Calculator()
+	invoiceCurrency := invoiceSettlement.Currency
+	calc, err := invoiceCurrency.AsFiatCurrency()
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("creating currency calculator: %w", err)
 	}
 	totalCost = calc.RoundToPrecision(totalCost)
 
 	// Clone metadata and add credit-purchase specific annotations
-	annotations, err := intent.Annotations.Clone()
+	annotations, err := charge.Intent.Annotations.Clone()
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
@@ -96,7 +118,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   charge.Namespace,
-				Name:        intent.Name,
+				Name:        fmt.Sprintf("%s (%s %s credits)", intent.Name, intent.CreditAmount, intent.Currency.GetCode()),
 				Description: intent.Description,
 			}),
 			Metadata:    intent.Metadata.Clone(),
@@ -110,10 +132,10 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 					},
 				),
 			),
-			Currency:      invoiceSettlement.Currency,
+			Currency:      invoiceCurrency,
 			ServicePeriod: intent.ServicePeriod,
 			InvoiceAt:     intent.CalculateEffectiveAt(),
-			TaxConfig:     intent.TaxConfig.ToTaxConfig(),
+			TaxConfig:     lo.ToPtr(intent.TaxConfig.ToTaxConfig()),
 			ChargeID:      lo.ToPtr(charge.ID),
 			Engine:        billing.LineEngineTypeChargeCreditPurchase,
 		},

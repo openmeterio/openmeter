@@ -6,6 +6,7 @@
     "generate": "tsp compile --config tspconfig.yaml ./src && node ./scripts/flatten-allof.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml && node ./scripts/seal-object-schemas.mjs ./output/definitions/metering-and-billing/v3/*.yaml",
     "bundle": "openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml",
     "watch": "tsp compile --watch --config tspconfig.yaml ./src",
+    "test": "node --test test/*.test.js",
     "format": "node ./scripts/apply-doc-fixes.mjs && prettier --ignore-path ../../.prettierignore --list-different --find-config-path --write .",
     "lint": "prettier --ignore-path ../../.prettierignore --check .",
     "lint:fix": "prettier --ignore-path ../../.prettierignore --write ."
@@ -17,17 +18,19 @@
     }
   },
   "devDependencies": {
-    "@redocly/cli": "2.29.0",
-    "@types/node": "25.6.0",
+    "@openmeter/typespec-go": "workspace:*",
+    "@openmeter/typespec-typescript": "workspace:*",
+    "@redocly/cli": "2.31.6",
+    "@types/node": "25.9.2",
     "@typespec/compiler": "1.11.0",
     "@typespec/http": "1.11.0",
     "@typespec/json-schema": "1.11.0",
     "@typespec/openapi": "1.11.0",
     "@typespec/openapi3": "1.11.0",
-    "@typespec/prettier-plugin-typespec": "1.11.0",
+    "@typespec/prettier-plugin-typespec": "1.12.0",
     "@typespec/rest": "0.81.0",
     "prettier": "3.8.3",
-    "yaml": "2.8.3"
+    "yaml": "2.9.0"
   },
   "private": true,
   "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48"

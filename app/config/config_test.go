@@ -18,6 +18,7 @@ import (
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pglockx"
@@ -58,7 +59,7 @@ func TestComplete(t *testing.T) {
 
 	expected := Configuration{
 		Postgres: PostgresConfig{
-			AutoMigrate: AutoMigrateEnt,
+			AutoMigrate: AutoMigrateMigration,
 		},
 		Address: "127.0.0.1:8888",
 		Apps: AppsConfiguration{
@@ -166,6 +167,9 @@ func TestComplete(t *testing.T) {
 		Billing: BillingConfiguration{
 			AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 			MaxParallelQuantitySnapshots: 4,
+			FeatureSwitches: BillingFeatureSwitchesConfiguration{
+				SubscriptionSyncForceAsyncAdvance: true,
+			},
 			Worker: BillingWorkerConfiguration{
 				ConsumerConfiguration: ConsumerConfiguration{
 					ProcessingTimeout: 30 * time.Second,
@@ -191,7 +195,9 @@ func TestComplete(t *testing.T) {
 		Credits: CreditsConfiguration{
 			Enabled:                 false,
 			EnableCreditThenInvoice: false,
-			FeatureFlag:             "",
+		},
+		UnitConfig: UnitConfigConfiguration{
+			Enabled: false,
 		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",
@@ -416,11 +422,21 @@ func TestComplete(t *testing.T) {
 		},
 		Server: ServerConfig{
 			ReadHeaderTimeout: 10 * time.Second,
-			ReadTimeout:       60 * time.Second,
-			WriteTimeout:      90 * time.Second,
-			IdleTimeout:       120 * time.Second,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       60 * time.Second,
 			ResponseValidation: ResponseValidationConfig{
-				Mode: ResponseValidationModeOff,
+				Mode: ResponseValidationModeUnstable,
+			},
+			ClientIPMiddleware: ClientIPMiddlewareConfig{
+				Source: ClientIPSourceXFF,
+				Header: "X-Real-IP",
+				TrustedIPPrefixes: []string{
+					"10.0.0.0/8",
+					"172.16.0.0/12",
+					"192.168.0.0/16",
+				},
+				TrustedProxies: 2,
 			},
 		},
 		ProgressManager: ProgressManagerConfiguration{
@@ -466,6 +482,12 @@ func TestComplete(t *testing.T) {
 						},
 					},
 				},
+			},
+		},
+		FeatureGate: FeatureGateConfiguration{
+			Enabled: true,
+			Flags: featuregate.Flags{
+				featuregate.FeatureFlag("om_ff_credits_enabled"): "credits",
 			},
 		},
 	}

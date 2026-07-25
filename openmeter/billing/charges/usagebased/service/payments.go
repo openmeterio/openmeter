@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type recordRunPaymentsInput struct {
@@ -95,26 +95,13 @@ func (e *LineEngine) recordPaymentSettled(ctx context.Context, stateMachine Stat
 		return fmt.Errorf("update realization run: %w", err)
 	}
 
-	if charge.Status != usagebased.StatusActiveAwaitingPaymentSettlement {
-		return nil
-	}
-
-	if !areAllInvoicedRunsSettled(charge) {
-		return nil
-	}
-
-	stateMachineConfig, err := e.service.getStateMachineConfigForPatch(ctx, charge)
-	if err != nil {
-		return fmt.Errorf("get state machine config: %w", err)
-	}
-
-	settlementStateMachine, err := e.service.newStateMachine(stateMachineConfig)
+	advancementStateMachine, err := e.service.newStateMachineForCharge(ctx, charge)
 	if err != nil {
 		return fmt.Errorf("new state machine: %w", err)
 	}
 
-	if err := settlementStateMachine.FireAndActivate(ctx, meta.TriggerAllPaymentsSettled); err != nil {
-		return fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerAllPaymentsSettled, charge.ID, err)
+	if _, err := advancementStateMachine.AdvanceUntilStateStable(ctx); err != nil {
+		return fmt.Errorf("advancing charge[%s] after payment settlement: %w", charge.ID, err)
 	}
 
 	return nil
@@ -128,7 +115,10 @@ func areAllInvoicedRunsSettled(charge usagebased.Charge) bool {
 			continue
 		}
 
-		if run.Type == usagebased.RealizationRunTypeFinalRealization && run.InvoiceUsage != nil {
+		if isFinalRunInPeriod(charge, timeutil.ClosedPeriod{
+			From: charge.Intent.GetEffectiveServicePeriod().From,
+			To:   run.ServicePeriodTo,
+		}) && run.InvoiceUsage != nil {
 			hasFinalInvoicedRun = true
 		}
 

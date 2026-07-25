@@ -10,123 +10,447 @@ namespace Common;
 /**
  * Bad Request.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/BadRequest")
 @friendlyName("BadRequest")
-model BadRequest {
+model BadRequest extends BaseError {
   @statusCode _: 400;
+
+  /**
+   * The list of parameters that failed validation.
+   */
+  invalid_parameters: InvalidParameters;
 }
 
 /**
  * Unauthorized.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/Unauthorized")
 @friendlyName("Unauthorized")
-model Unauthorized {
+model Unauthorized extends BaseError {
   @statusCode _: 401;
 }
 
 /**
  * Forbidden.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/Forbidden")
 @friendlyName("Forbidden")
-model Forbidden {
+model Forbidden extends BaseError {
   @statusCode _: 403;
 }
 
 /**
  * Not Found.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/NotFound")
 @friendlyName("NotFound")
-model NotFound {
+model NotFound extends BaseError {
   @statusCode _: 404;
 }
 
 /**
  * Conflict.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/Conflict")
 @friendlyName("Conflict")
-model Conflict {
+model Conflict extends BaseError {
   @statusCode _: 409;
 }
 
 /**
  * Gone.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/Gone")
 @friendlyName("Gone")
-model Gone {
+model Gone extends BaseError {
   @statusCode _: 410;
 }
 
 /**
  * Payload Too Large.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @friendlyName("PayloadTooLarge")
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/PayloadTooLarge")
 @friendlyName("PayloadTooLarge")
-model PayloadTooLarge {
+model PayloadTooLarge extends BaseError {
   @statusCode _: 413;
 }
 
 /**
  * Unsupported Media Type.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @friendlyName("UnsupportedMediaType")
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/UnsupportedMediaType")
 @friendlyName("UnsupportedMediaType")
-model UnsupportedMediaType {
+model UnsupportedMediaType extends BaseError {
   @statusCode _: 415;
 }
 
 /**
  * Unprocessable Content.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @friendlyName("UnprocessableContent")
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/UnprocessableContent")
 @friendlyName("UnprocessableContent")
-model UnprocessableContent {
+model UnprocessableContent extends BaseError {
   @statusCode _: 422;
 }
 
 /**
  * Too Many Requests.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @friendlyName("TooManyRequests")
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/TooManyRequests")
 @friendlyName("TooManyRequests")
-model TooManyRequests {
+model TooManyRequests extends BaseError {
   @statusCode _: 429;
 }
 
 /**
  * Internal Server Error.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/Internal")
 @friendlyName("Internal")
-model Internal {
+model Internal extends BaseError {
   @statusCode _: 500;
 }
 
 /**
  * Not Implemented.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @friendlyName("NotImplemented")
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/NotImplemented")
 @friendlyName("NotImplemented")
-model NotImplemented {
+model NotImplemented extends BaseError {
   @statusCode _: 501;
 }
 
 /**
  * Not Available.
  */
+#suppress "@openmeter/api-spec-aip/composition-over-inheritance" "inheritance"
+@error
 @useRef("../../../../common/definitions/errors.yaml#/components/responses/NotAvailable")
 @friendlyName("NotAvailable")
-model NotAvailable {
+model NotAvailable extends BaseError {
   @statusCode _: 503;
 }
 
 alias ErrorResponses = BadRequest | Unauthorized | Forbidden;
+
+/**
+ * Standard error response.
+ */
+@error
+@friendlyName("BaseError")
+model BaseError {
+  @header contentType: "application/problem+json";
+
+  /**
+   * Type contains a URI that identifies the problem type.
+   */
+  @example("about:blank")
+  @visibility(Lifecycle.Read)
+  type: string = "about:blank";
+
+  /**
+   * The HTTP status code generated by the origin server for this occurrence of the
+   * problem.
+   */
+  @example(400)
+  @visibility(Lifecycle.Read)
+  status: integer;
+
+  /**
+   * A a short, human-readable summary of the problem type.
+   */
+  @example("Bad Request")
+  @visibility(Lifecycle.Read)
+  title: string;
+
+  /**
+   * A human-readable explanation specific to this occurrence of the problem.
+   */
+  @example("The request body must be a JSON object.")
+  detail: string;
+
+  /**
+   * A URI reference that identifies the specific occurrence of the problem.
+   */
+  @visibility(Lifecycle.Read)
+  instance: string;
+
+  /**
+   * Additional properties specific to the problem type may be present.
+   */
+  ...Record<unknown>;
+}
+
+/**
+ * The list of parameters that failed validation.
+ */
+@friendlyName("InvalidParameters")
+@minItems(1)
+model InvalidParameters is InvalidParameter[];
+
+/**
+ * A parameter that failed validation.
+ */
+@friendlyName("InvalidParameter")
+union InvalidParameter {
+  standard: InvalidParameterStandard,
+  minimumLength: InvalidParameterMinimumLength,
+  maximumLength: InvalidParameterMaximumLength,
+  choice: InvalidParameterChoiceItem,
+  dependent: InvalidParameterDependentItem,
+}
+
+/**
+ * The validation rule that a parameter failed.
+ */
+@friendlyName("InvalidRules")
+enum InvalidRules {
+  Required: "required",
+  IsArray: "is_array",
+  IsBase64: "is_base64",
+  IsBoolean: "is_boolean",
+  IsDateTime: "is_date_time",
+  IsInteger: "is_integer",
+  IsNull: "is_null",
+  IsNumber: "is_number",
+  IsObject: "is_object",
+  IsString: "is_string",
+  IsUuid: "is_uuid",
+  IsFqdn: "is_fqdn",
+  IsArn: "is_arn",
+  UnknownProperty: "unknown_property",
+  MissingReference: "missing_reference",
+  IsLabel: "is_label",
+  MatchesRegex: "matches_regex",
+  Invalid: "invalid",
+  IsSupportedNetworkAvailabilityZoneList: "is_supported_network_availability_zone_list",
+  IsSupportedNetworkCidrBlock: "is_supported_network_cidr_block",
+  IsSupportedProviderRegion: "is_supported_provider_region",
+  Type: "type",
+}
+
+/**
+ * A parameter that failed a standard validation rule.
+ */
+@friendlyName("InvalidParameterStandard")
+model InvalidParameterStandard {
+  /**
+   * The name of the field that failed validation.
+   */
+  @visibility(Lifecycle.Read)
+  field: string;
+
+  /**
+   * The validation rule that was violated.
+   */
+  rule?: InvalidRules;
+
+  /**
+   * The part of the request the field came from (e.g. `body`, `query`).
+   */
+  source?: string;
+
+  /**
+   * A human readable explanation of why the field failed validation.
+   */
+  reason: string;
+}
+
+/**
+ * A parameter that failed a minimum-length (or minimum-value) validation rule.
+ */
+@friendlyName("InvalidParameterMinimumLength")
+model InvalidParameterMinimumLength {
+  /**
+   * The name of the field that failed validation.
+   */
+  field: string;
+
+  /**
+   * The minimum validation rule that was violated.
+   */
+  rule: InvalidParameterMinimumRule;
+
+  /**
+   * The minimum allowed value or length.
+   */
+  minimum: integer;
+
+  /**
+   * The part of the request the field came from (e.g. `body`, `query`).
+   */
+  source?: string;
+
+  /**
+   * A human readable explanation of why the field failed validation.
+   */
+  reason: string;
+}
+
+/**
+ * Minimum-length (or minimum-value) validation rules.
+ */
+@friendlyName("InvalidParameterMinimumRule")
+enum InvalidParameterMinimumRule {
+  MinLength: "min_length",
+  MinDigits: "min_digits",
+  MinLowercase: "min_lowercase",
+  MinUppercase: "min_uppercase",
+  MinSymbols: "min_symbols",
+  MinItems: "min_items",
+  Min: "min",
+}
+
+/**
+ * A parameter that failed a maximum-length (or maximum-value) validation rule.
+ */
+@friendlyName("InvalidParameterMaximumLength")
+model InvalidParameterMaximumLength {
+  /**
+   * The name of the field that failed validation.
+   */
+  @visibility(Lifecycle.Read)
+  field: string;
+
+  /**
+   * The maximum validation rule that was violated.
+   */
+  rule: InvalidParameterMaximumRule;
+
+  /**
+   * The maximum allowed value or length.
+   */
+  maximum: integer;
+
+  /**
+   * The part of the request the field came from (e.g. `body`, `query`).
+   */
+  source?: string;
+
+  /**
+   * A human readable explanation of why the field failed validation.
+   */
+  @visibility(Lifecycle.Read)
+  reason: string;
+}
+
+/**
+ * Maximum-length (or maximum-value) validation rules.
+ */
+@friendlyName("InvalidParameterMaximumRule")
+enum InvalidParameterMaximumRule {
+  MaxLength: "max_length",
+  MaxItems: "max_items",
+  Max: "max",
+}
+
+/**
+ * A parameter whose value was not one of the allowed choices.
+ */
+@friendlyName("InvalidParameterChoiceItem")
+model InvalidParameterChoiceItem {
+  /**
+   * The name of the field that failed validation.
+   */
+  @visibility(Lifecycle.Read)
+  field: string;
+
+  /**
+   * The enum validation rule that was violated.
+   */
+  rule: InvalidParameterChoiceRule;
+
+  /**
+   * A human readable explanation of why the field failed validation.
+   */
+  @visibility(Lifecycle.Read)
+  reason: string;
+
+  /**
+   * The allowed choices for the field.
+   */
+  @visibility(Lifecycle.Read)
+  @minItems(1)
+  choices: unknown[];
+
+  /**
+   * The part of the request the field came from (e.g. `body`, `query`).
+   */
+  source?: string;
+}
+
+/**
+ * The enum validation rule.
+ */
+@friendlyName("InvalidParameterChoiceRule")
+enum InvalidParameterChoiceRule {
+  Enum: "enum",
+}
+
+/**
+ * A parameter that failed a dependent-fields validation rule.
+ */
+@friendlyName("InvalidParameterDependentItem")
+model InvalidParameterDependentItem {
+  /**
+   * The name of the field that failed validation.
+   */
+  field: string;
+
+  /**
+   * The dependent-fields validation rule that was violated.
+   */
+  rule: InvalidParameterDependentRule;
+
+  /**
+   * A human readable explanation of why the field failed validation.
+   */
+  reason: string;
+
+  /**
+   * The fields that this field depends on.
+   */
+  dependents: unknown[];
+
+  /**
+   * The part of the request the field came from (e.g. `body`, `query`).
+   */
+  source?: string;
+}
+
+/**
+ * The dependent-fields validation rule.
+ */
+@friendlyName("InvalidParameterDependentRule")
+enum InvalidParameterDependentRule {
+  DependentFields: "dependent_fields",
+}

@@ -6,13 +6,17 @@ import (
 	"slices"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/lib/pq"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	currenciesadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	dbchargecreditpurchasecreditgrant "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entedge"
 )
 
 func (a *adapter) ListFundedCreditActivities(ctx context.Context, input creditpurchase.ListFundedCreditActivitiesInput) (creditpurchase.ListFundedCreditActivitiesResult, error) {
@@ -20,21 +24,27 @@ func (a *adapter) ListFundedCreditActivities(ctx context.Context, input creditpu
 }
 
 func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input creditpurchase.ListFundedCreditActivitiesInput) (creditpurchase.ListFundedCreditActivitiesResult, error) {
+	creditPurchasePredicates := []predicate.ChargeCreditPurchase{
+		dbchargecreditpurchase.Namespace(input.Customer.Namespace),
+		dbchargecreditpurchase.CustomerIDEQ(input.Customer.ID),
+		dbchargecreditpurchase.DeletedAtIsNil(),
+	}
+	if featurePredicate := fundedCreditActivityFeatureFilterPredicate(input.FeatureFilter); featurePredicate != nil {
+		creditPurchasePredicates = append(creditPurchasePredicates, featurePredicate)
+	}
+
 	query := dbClient.ChargeCreditPurchaseCreditGrant.Query().
 		Where(
 			dbchargecreditpurchasecreditgrant.Namespace(input.Customer.Namespace),
 			dbchargecreditpurchasecreditgrant.DeletedAtIsNil(),
-			dbchargecreditpurchasecreditgrant.HasCreditPurchaseWith(
-				dbchargecreditpurchase.Namespace(input.Customer.Namespace),
-				dbchargecreditpurchase.CustomerIDEQ(input.Customer.ID),
-				dbchargecreditpurchase.DeletedAtIsNil(),
-			),
+			dbchargecreditpurchasecreditgrant.HasCreditPurchaseWith(creditPurchasePredicates...),
 		).
 		WithCreditPurchase(func(q *db.ChargeCreditPurchaseQuery) {
 			q.Where(
 				dbchargecreditpurchase.Namespace(input.Customer.Namespace),
 				dbchargecreditpurchase.DeletedAtIsNil(),
-			)
+			).
+				WithCustomCurrency()
 		}).
 		Limit(input.Limit + 1)
 
@@ -53,11 +63,12 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 	}
 
 	if input.Currency != nil {
-		query = query.Where(
-			dbchargecreditpurchasecreditgrant.HasCreditPurchaseWith(
-				dbchargecreditpurchase.CurrencyEQ(*input.Currency),
+		query = query.Where(dbchargecreditpurchasecreditgrant.HasCreditPurchaseWith(
+			dbchargecreditpurchase.Or(
+				hasCustomCurrencyCode(input.Customer.Namespace, *input.Currency),
+				dbchargecreditpurchase.FiatCurrencyCodeEQ(*input.Currency),
 			),
-		)
+		))
 	}
 
 	if input.AsOf != nil {
@@ -89,6 +100,19 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 			return creditpurchase.ListFundedCreditActivitiesResult{}, fmt.Errorf("credit purchase not loaded for grant %s: %w", entity.ID, err)
 		}
 
+		dbCustomCurrency, err := entedge.OrNilIfNotFound(creditPurchase.Edges.CustomCurrencyOrErr())
+		if err != nil {
+			return creditpurchase.ListFundedCreditActivitiesResult{}, fmt.Errorf("failed to get custom currency: %w", err)
+		}
+
+		resolvedCurrency, err := currenciesadapter.FromDBCustomCurrencyOrFiatCurrency(currenciesadapter.CustomCurrencyOrFiatCurrency{
+			CustomCurrency: dbCustomCurrency,
+			FiatCurrency:   creditPurchase.FiatCurrencyCode,
+		})
+		if err != nil {
+			return creditpurchase.ListFundedCreditActivitiesResult{}, fmt.Errorf("failed to resolve currency: %w", err)
+		}
+
 		items = append(items, creditpurchase.FundedCreditActivity{
 			ChargeID: meta.ChargeID{
 				Namespace: creditPurchase.Namespace,
@@ -97,7 +121,7 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 			ChargeCreatedAt:    creditPurchase.CreatedAt,
 			FundedAt:           entity.GrantedAt,
 			TransactionGroupID: entity.TransactionGroupID,
-			Currency:           creditPurchase.Currency,
+			Currency:           resolvedCurrency.GetCode(),
 			Amount:             creditPurchase.CreditAmount,
 			Name:               creditPurchase.Name,
 			Description:        creditPurchase.Description,
@@ -128,6 +152,30 @@ func ListFundedCreditActivities(ctx context.Context, dbClient *db.Client, input 
 		NextCursor:  nextCursor,
 		HasPrevious: hasPrevious,
 	}, nil
+}
+
+func fundedCreditActivityFeatureFilterPredicate(filter mo.Option[creditpurchase.FeatureFilters]) predicate.ChargeCreditPurchase {
+	if filter.IsAbsent() {
+		return nil
+	}
+
+	features := filter.OrEmpty()
+	if features == nil {
+		return dbchargecreditpurchase.FeatureFiltersIsNil()
+	}
+	features = features.Normalize()
+	if len(features) == 0 {
+		return nil
+	}
+
+	return dbchargecreditpurchase.Or(
+		dbchargecreditpurchase.FeatureFiltersIsNil(),
+		func(s *sql.Selector) {
+			s.Where(sql.P(func(b *sql.Builder) {
+				b.Ident(s.C(dbchargecreditpurchase.FieldFeatureFilters)).WriteString(" @> ").Arg(pq.StringArray{features[0]})
+			}))
+		},
+	)
 }
 
 func fundedCreditActivityAfterPredicate(cursor creditpurchase.FundedCreditActivityCursor) predicate.ChargeCreditPurchaseCreditGrant {

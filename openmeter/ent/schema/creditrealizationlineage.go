@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -61,6 +62,12 @@ func (CreditRealizationLineage) Fields() []ent.Field {
 		field.Enum("origin_kind").
 			GoType(creditrealization.LineageOriginKind("")).
 			Immutable(),
+		field.Other("advance_features", pq.StringArray{}).
+			Optional().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "text[]",
+			}),
 		field.Time("created_at").
 			Default(creditRealizationLineageNow).
 			Immutable(),

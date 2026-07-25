@@ -45,6 +45,8 @@ const (
 	FieldInvoiceCollectionMethod = "invoice_collection_method"
 	// FieldInvoiceProgressiveBilling holds the string denoting the invoice_progressive_billing field in the database.
 	FieldInvoiceProgressiveBilling = "invoice_progressive_billing"
+	// FieldSubscriptionEndProrationMode holds the string denoting the subscription_end_proration_mode field in the database.
+	FieldSubscriptionEndProrationMode = "subscription_end_proration_mode"
 	// FieldInvoiceDefaultTaxSettings holds the string denoting the invoice_default_tax_settings field in the database.
 	FieldInvoiceDefaultTaxSettings = "invoice_default_tax_settings"
 	// FieldTaxEnabled holds the string denoting the tax_enabled field in the database.
@@ -99,6 +101,7 @@ var Columns = []string{
 	FieldInvoiceDueAfter,
 	FieldInvoiceCollectionMethod,
 	FieldInvoiceProgressiveBilling,
+	FieldSubscriptionEndProrationMode,
 	FieldInvoiceDefaultTaxSettings,
 	FieldTaxEnabled,
 	FieldTaxEnforced,
@@ -158,6 +161,18 @@ func InvoiceCollectionMethodValidator(icm billing.CollectionMethod) error {
 		return nil
 	default:
 		return fmt.Errorf("billingworkflowconfig: invalid enum value for invoice_collection_method field: %q", icm)
+	}
+}
+
+const DefaultSubscriptionEndProrationMode billing.SubscriptionEndProrationMode = "bill_actual_period"
+
+// SubscriptionEndProrationModeValidator is a validator for the "subscription_end_proration_mode" field enum values. It is called by the builders before save.
+func SubscriptionEndProrationModeValidator(sepm billing.SubscriptionEndProrationMode) error {
+	switch sepm {
+	case "bill_full_period", "bill_actual_period":
+		return nil
+	default:
+		return fmt.Errorf("billingworkflowconfig: invalid enum value for subscription_end_proration_mode field: %q", sepm)
 	}
 }
 
@@ -232,6 +247,11 @@ func ByInvoiceCollectionMethod(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceProgressiveBilling orders the results by the invoice_progressive_billing field.
 func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceProgressiveBilling, opts...).ToFunc()
+}
+
+// BySubscriptionEndProrationMode orders the results by the subscription_end_proration_mode field.
+func BySubscriptionEndProrationMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionEndProrationMode, opts...).ToFunc()
 }
 
 // ByTaxEnabled orders the results by the tax_enabled field.

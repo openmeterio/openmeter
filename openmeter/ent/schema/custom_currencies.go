@@ -28,6 +28,7 @@ func (CustomCurrency) Mixin() []ent.Mixin {
 func (CustomCurrency) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("code").
+			GoType(currencyx.Code("")).
 			NotEmpty().
 			MinLen(3).
 			MaxLen(24).
@@ -35,7 +36,16 @@ func (CustomCurrency) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty(),
 		field.String("symbol").
-			NotEmpty(),
+			Optional(),
+		// NOTE: add defaults in order to avoid errors during schema migration when database has data already
+		field.Uint32("precision").
+			Default(2),
+		field.String("decimal_mark").
+			NotEmpty().
+			Default("."),
+		field.String("thousands_separator").
+			NotEmpty().
+			Default(","),
 	}
 }
 
@@ -43,6 +53,12 @@ func (CustomCurrency) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("cost_basis_history", CurrencyCostBasis.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("charges_credit_purchase", ChargeCreditPurchase.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("charges_flat_fee", ChargeFlatFee.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("charges_usage_based", ChargeUsageBased.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 
@@ -72,7 +88,7 @@ func (CurrencyCostBasis) Mixin() []ent.Mixin {
 
 func (CurrencyCostBasis) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("custom_currency_id").
+		field.String("currency_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}).
@@ -88,6 +104,9 @@ func (CurrencyCostBasis) Fields() []ent.Field {
 			Immutable(),
 		field.Time("effective_from").
 			Immutable(),
+		field.Time("effective_to").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -96,7 +115,7 @@ func (CurrencyCostBasis) Edges() []ent.Edge {
 		// Many cost basis entries belong to one currency
 		edge.From("currency", CustomCurrency.Type).
 			Ref("cost_basis_history").
-			Field("custom_currency_id").
+			Field("currency_id").
 			Unique().
 			Required().
 			Immutable(),
@@ -105,7 +124,7 @@ func (CurrencyCostBasis) Edges() []ent.Edge {
 
 func (CurrencyCostBasis) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "custom_currency_id", "fiat_code", "effective_from").
+		index.Fields("namespace", "currency_id", "fiat_code", "effective_from").
 			Annotations(
 				entsql.IndexWhere("deleted_at IS NULL"),
 			).

@@ -54,14 +54,8 @@ type TaxCodeEdges struct {
 	BillingCustomerOverrides []*BillingCustomerOverride `json:"billing_customer_overrides,omitempty"`
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
-	// BillingInvoiceSplitLineGroups holds the value of the billing_invoice_split_line_groups edge.
-	BillingInvoiceSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_invoice_split_line_groups,omitempty"`
-	// BillingStandardInvoiceDetailedLines holds the value of the billing_standard_invoice_detailed_lines edge.
-	BillingStandardInvoiceDetailedLines []*BillingStandardInvoiceDetailedLine `json:"billing_standard_invoice_detailed_lines,omitempty"`
-	// ChargeUsageBasedRunDetailedLines holds the value of the charge_usage_based_run_detailed_lines edge.
-	ChargeUsageBasedRunDetailedLines []*ChargeUsageBasedRunDetailedLine `json:"charge_usage_based_run_detailed_lines,omitempty"`
-	// ChargeFlatFeeRunDetailedLines holds the value of the charge_flat_fee_run_detailed_lines edge.
-	ChargeFlatFeeRunDetailedLines []*ChargeFlatFeeRunDetailedLine `json:"charge_flat_fee_run_detailed_lines,omitempty"`
+	// BillingGatheringInvoiceLines holds the value of the billing_gathering_invoice_lines edge.
+	BillingGatheringInvoiceLines []*BillingGatheringInvoiceLine `json:"billing_gathering_invoice_lines,omitempty"`
 	// SubscriptionItems holds the value of the subscription_items edge.
 	SubscriptionItems []*SubscriptionItem `json:"subscription_items,omitempty"`
 	// PlanRateCards holds the value of the plan_rate_cards edge.
@@ -70,8 +64,12 @@ type TaxCodeEdges struct {
 	AddonRateCards []*AddonRateCard `json:"addon_rate_cards,omitempty"`
 	// ChargeFlatFees holds the value of the charge_flat_fees edge.
 	ChargeFlatFees []*ChargeFlatFee `json:"charge_flat_fees,omitempty"`
+	// ChargeFlatFeeOverrides holds the value of the charge_flat_fee_overrides edge.
+	ChargeFlatFeeOverrides []*ChargeFlatFeeOverride `json:"charge_flat_fee_overrides,omitempty"`
 	// ChargeUsageBased holds the value of the charge_usage_based edge.
 	ChargeUsageBased []*ChargeUsageBased `json:"charge_usage_based,omitempty"`
+	// ChargeUsageBasedOverrides holds the value of the charge_usage_based_overrides edge.
+	ChargeUsageBasedOverrides []*ChargeUsageBasedOverride `json:"charge_usage_based_overrides,omitempty"`
 	// ChargeCreditPurchases holds the value of the charge_credit_purchases edge.
 	ChargeCreditPurchases []*ChargeCreditPurchase `json:"charge_credit_purchases,omitempty"`
 	// OrganizationDefaultInvoicing holds the value of the organization_default_invoicing edge.
@@ -80,7 +78,7 @@ type TaxCodeEdges struct {
 	OrganizationDefaultCreditGrant []*OrganizationDefaultTaxCodes `json:"organization_default_credit_grant,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [15]bool
+	loadedTypes [14]bool
 }
 
 // BillingWorkflowConfigsOrErr returns the BillingWorkflowConfigs value or an error if the edge
@@ -110,46 +108,19 @@ func (e TaxCodeEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) 
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
 }
 
-// BillingInvoiceSplitLineGroupsOrErr returns the BillingInvoiceSplitLineGroups value or an error if the edge
+// BillingGatheringInvoiceLinesOrErr returns the BillingGatheringInvoiceLines value or an error if the edge
 // was not loaded in eager-loading.
-func (e TaxCodeEdges) BillingInvoiceSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
+func (e TaxCodeEdges) BillingGatheringInvoiceLinesOrErr() ([]*BillingGatheringInvoiceLine, error) {
 	if e.loadedTypes[3] {
-		return e.BillingInvoiceSplitLineGroups, nil
+		return e.BillingGatheringInvoiceLines, nil
 	}
-	return nil, &NotLoadedError{edge: "billing_invoice_split_line_groups"}
-}
-
-// BillingStandardInvoiceDetailedLinesOrErr returns the BillingStandardInvoiceDetailedLines value or an error if the edge
-// was not loaded in eager-loading.
-func (e TaxCodeEdges) BillingStandardInvoiceDetailedLinesOrErr() ([]*BillingStandardInvoiceDetailedLine, error) {
-	if e.loadedTypes[4] {
-		return e.BillingStandardInvoiceDetailedLines, nil
-	}
-	return nil, &NotLoadedError{edge: "billing_standard_invoice_detailed_lines"}
-}
-
-// ChargeUsageBasedRunDetailedLinesOrErr returns the ChargeUsageBasedRunDetailedLines value or an error if the edge
-// was not loaded in eager-loading.
-func (e TaxCodeEdges) ChargeUsageBasedRunDetailedLinesOrErr() ([]*ChargeUsageBasedRunDetailedLine, error) {
-	if e.loadedTypes[5] {
-		return e.ChargeUsageBasedRunDetailedLines, nil
-	}
-	return nil, &NotLoadedError{edge: "charge_usage_based_run_detailed_lines"}
-}
-
-// ChargeFlatFeeRunDetailedLinesOrErr returns the ChargeFlatFeeRunDetailedLines value or an error if the edge
-// was not loaded in eager-loading.
-func (e TaxCodeEdges) ChargeFlatFeeRunDetailedLinesOrErr() ([]*ChargeFlatFeeRunDetailedLine, error) {
-	if e.loadedTypes[6] {
-		return e.ChargeFlatFeeRunDetailedLines, nil
-	}
-	return nil, &NotLoadedError{edge: "charge_flat_fee_run_detailed_lines"}
+	return nil, &NotLoadedError{edge: "billing_gathering_invoice_lines"}
 }
 
 // SubscriptionItemsOrErr returns the SubscriptionItems value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) SubscriptionItemsOrErr() ([]*SubscriptionItem, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[4] {
 		return e.SubscriptionItems, nil
 	}
 	return nil, &NotLoadedError{edge: "subscription_items"}
@@ -158,7 +129,7 @@ func (e TaxCodeEdges) SubscriptionItemsOrErr() ([]*SubscriptionItem, error) {
 // PlanRateCardsOrErr returns the PlanRateCards value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) PlanRateCardsOrErr() ([]*PlanRateCard, error) {
-	if e.loadedTypes[8] {
+	if e.loadedTypes[5] {
 		return e.PlanRateCards, nil
 	}
 	return nil, &NotLoadedError{edge: "plan_rate_cards"}
@@ -167,7 +138,7 @@ func (e TaxCodeEdges) PlanRateCardsOrErr() ([]*PlanRateCard, error) {
 // AddonRateCardsOrErr returns the AddonRateCards value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) AddonRateCardsOrErr() ([]*AddonRateCard, error) {
-	if e.loadedTypes[9] {
+	if e.loadedTypes[6] {
 		return e.AddonRateCards, nil
 	}
 	return nil, &NotLoadedError{edge: "addon_rate_cards"}
@@ -176,25 +147,43 @@ func (e TaxCodeEdges) AddonRateCardsOrErr() ([]*AddonRateCard, error) {
 // ChargeFlatFeesOrErr returns the ChargeFlatFees value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) ChargeFlatFeesOrErr() ([]*ChargeFlatFee, error) {
-	if e.loadedTypes[10] {
+	if e.loadedTypes[7] {
 		return e.ChargeFlatFees, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_flat_fees"}
 }
 
+// ChargeFlatFeeOverridesOrErr returns the ChargeFlatFeeOverrides value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) ChargeFlatFeeOverridesOrErr() ([]*ChargeFlatFeeOverride, error) {
+	if e.loadedTypes[8] {
+		return e.ChargeFlatFeeOverrides, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_flat_fee_overrides"}
+}
+
 // ChargeUsageBasedOrErr returns the ChargeUsageBased value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) ChargeUsageBasedOrErr() ([]*ChargeUsageBased, error) {
-	if e.loadedTypes[11] {
+	if e.loadedTypes[9] {
 		return e.ChargeUsageBased, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_usage_based"}
 }
 
+// ChargeUsageBasedOverridesOrErr returns the ChargeUsageBasedOverrides value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) ChargeUsageBasedOverridesOrErr() ([]*ChargeUsageBasedOverride, error) {
+	if e.loadedTypes[10] {
+		return e.ChargeUsageBasedOverrides, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_usage_based_overrides"}
+}
+
 // ChargeCreditPurchasesOrErr returns the ChargeCreditPurchases value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) ChargeCreditPurchasesOrErr() ([]*ChargeCreditPurchase, error) {
-	if e.loadedTypes[12] {
+	if e.loadedTypes[11] {
 		return e.ChargeCreditPurchases, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_credit_purchases"}
@@ -203,7 +192,7 @@ func (e TaxCodeEdges) ChargeCreditPurchasesOrErr() ([]*ChargeCreditPurchase, err
 // OrganizationDefaultInvoicingOrErr returns the OrganizationDefaultInvoicing value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) OrganizationDefaultInvoicingOrErr() ([]*OrganizationDefaultTaxCodes, error) {
-	if e.loadedTypes[13] {
+	if e.loadedTypes[12] {
 		return e.OrganizationDefaultInvoicing, nil
 	}
 	return nil, &NotLoadedError{edge: "organization_default_invoicing"}
@@ -212,7 +201,7 @@ func (e TaxCodeEdges) OrganizationDefaultInvoicingOrErr() ([]*OrganizationDefaul
 // OrganizationDefaultCreditGrantOrErr returns the OrganizationDefaultCreditGrant value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) OrganizationDefaultCreditGrantOrErr() ([]*OrganizationDefaultTaxCodes, error) {
-	if e.loadedTypes[14] {
+	if e.loadedTypes[13] {
 		return e.OrganizationDefaultCreditGrant, nil
 	}
 	return nil, &NotLoadedError{edge: "organization_default_credit_grant"}
@@ -346,24 +335,9 @@ func (_m *TaxCode) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
 	return NewTaxCodeClient(_m.config).QueryBillingInvoiceLines(_m)
 }
 
-// QueryBillingInvoiceSplitLineGroups queries the "billing_invoice_split_line_groups" edge of the TaxCode entity.
-func (_m *TaxCode) QueryBillingInvoiceSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
-	return NewTaxCodeClient(_m.config).QueryBillingInvoiceSplitLineGroups(_m)
-}
-
-// QueryBillingStandardInvoiceDetailedLines queries the "billing_standard_invoice_detailed_lines" edge of the TaxCode entity.
-func (_m *TaxCode) QueryBillingStandardInvoiceDetailedLines() *BillingStandardInvoiceDetailedLineQuery {
-	return NewTaxCodeClient(_m.config).QueryBillingStandardInvoiceDetailedLines(_m)
-}
-
-// QueryChargeUsageBasedRunDetailedLines queries the "charge_usage_based_run_detailed_lines" edge of the TaxCode entity.
-func (_m *TaxCode) QueryChargeUsageBasedRunDetailedLines() *ChargeUsageBasedRunDetailedLineQuery {
-	return NewTaxCodeClient(_m.config).QueryChargeUsageBasedRunDetailedLines(_m)
-}
-
-// QueryChargeFlatFeeRunDetailedLines queries the "charge_flat_fee_run_detailed_lines" edge of the TaxCode entity.
-func (_m *TaxCode) QueryChargeFlatFeeRunDetailedLines() *ChargeFlatFeeRunDetailedLineQuery {
-	return NewTaxCodeClient(_m.config).QueryChargeFlatFeeRunDetailedLines(_m)
+// QueryBillingGatheringInvoiceLines queries the "billing_gathering_invoice_lines" edge of the TaxCode entity.
+func (_m *TaxCode) QueryBillingGatheringInvoiceLines() *BillingGatheringInvoiceLineQuery {
+	return NewTaxCodeClient(_m.config).QueryBillingGatheringInvoiceLines(_m)
 }
 
 // QuerySubscriptionItems queries the "subscription_items" edge of the TaxCode entity.
@@ -386,9 +360,19 @@ func (_m *TaxCode) QueryChargeFlatFees() *ChargeFlatFeeQuery {
 	return NewTaxCodeClient(_m.config).QueryChargeFlatFees(_m)
 }
 
+// QueryChargeFlatFeeOverrides queries the "charge_flat_fee_overrides" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeFlatFeeOverrides() *ChargeFlatFeeOverrideQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeFlatFeeOverrides(_m)
+}
+
 // QueryChargeUsageBased queries the "charge_usage_based" edge of the TaxCode entity.
 func (_m *TaxCode) QueryChargeUsageBased() *ChargeUsageBasedQuery {
 	return NewTaxCodeClient(_m.config).QueryChargeUsageBased(_m)
+}
+
+// QueryChargeUsageBasedOverrides queries the "charge_usage_based_overrides" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeUsageBasedOverrides() *ChargeUsageBasedOverrideQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeUsageBasedOverrides(_m)
 }
 
 // QueryChargeCreditPurchases queries the "charge_credit_purchases" edge of the TaxCode entity.

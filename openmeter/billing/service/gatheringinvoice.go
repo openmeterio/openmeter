@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -27,9 +28,9 @@ func (s *Service) ListGatheringInvoices(ctx context.Context, input billing.ListG
 	})
 }
 
-func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.UpdateGatheringInvoiceInput) error {
+func (s *Service) DeleteGatheringInvoice(ctx context.Context, input billing.DeleteInvoiceInput) (billing.GatheringInvoice, error) {
 	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
+		return billing.GatheringInvoice{}, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -38,12 +39,54 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 		Invoice: input.Invoice,
 	})
 	if err != nil {
-		return fmt.Errorf("fetching invoice: %w", err)
+		return billing.GatheringInvoice{}, fmt.Errorf("fetching invoice: %w", err)
 	}
 
-	return transactionForInvoiceManipulationNoValue(ctx, s, gatheringInvoice.GetCustomerID(), func(ctx context.Context) error {
+	if gatheringInvoice.DeletedAt != nil {
+		return gatheringInvoice, nil
+	}
+
+	return s.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice:      input.Invoice,
+		ChangeSource: input.DeletionSource,
+		EditFn:       markGatheringInvoiceLinesDeleted,
+	})
+}
+
+func markGatheringInvoiceLinesDeleted(invoice *billing.GatheringInvoice) error {
+	now := clock.Now()
+	for _, line := range invoice.Lines.OrEmpty() {
+		if line.DeletedAt != nil {
+			continue
+		}
+
+		line.DeletedAt = lo.ToPtr(now)
+		if err := invoice.Lines.ReplaceByID(line); err != nil {
+			return fmt.Errorf("setting line[%s]: %w", line.ID, err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.UpdateGatheringInvoiceInput) (billing.GatheringInvoice, error) {
+	if err := input.Validate(); err != nil {
+		return billing.GatheringInvoice{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	gatheringInvoice, err := s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: input.Invoice,
+	})
+	if err != nil {
+		return billing.GatheringInvoice{}, fmt.Errorf("fetching invoice: %w", err)
+	}
+
+	return transactionForInvoiceManipulation(ctx, s, gatheringInvoice.GetCustomerID(), func(ctx context.Context) (billing.GatheringInvoice, error) {
 		expands := billing.GatheringInvoiceExpands{
 			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandAvailableActions,
 		}
 		if input.IncludeDeletedLines {
 			expands = expands.With(billing.GatheringInvoiceExpandDeletedLines)
@@ -54,50 +97,87 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 			Expand:  expands,
 		})
 		if err != nil {
-			return fmt.Errorf("fetching invoice: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("fetching invoice: %w", err)
+		}
+
+		originalInvoice, err := invoice.Clone()
+		if err != nil {
+			return billing.GatheringInvoice{}, fmt.Errorf("cloning invoice before edit: %w", err)
 		}
 
 		if err := input.EditFn(&invoice); err != nil {
-			return fmt.Errorf("editing invoice: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("editing invoice: %w", err)
 		}
 
 		invoice.Lines, err = invoice.Lines.WithNormalizedValues()
 		if err != nil {
-			return fmt.Errorf("normalizing lines: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("normalizing lines: %w", err)
+		}
+
+		lineDiff, err := s.diffMutableInvoiceLines(ctx, originalInvoice, invoice, input.ChangeSource)
+		if err != nil {
+			return billing.GatheringInvoice{}, billing.ValidationError{
+				Err: fmt.Errorf("collecting mutable invoice line changes: %w", err),
+			}
+		}
+
+		switch input.ChangeSource {
+		case billing.ChangeSourceAPIRequest:
+			invoiceWithLineEngineChanges, err := s.applyAPIInvoiceLineEdits(ctx, applyAPIInvoiceLineEditsInput{
+				EditedInvoice: invoice,
+				LineDiff:      lineDiff,
+			})
+			if err != nil {
+				return billing.GatheringInvoice{}, fmt.Errorf("applying API gathering invoice line edits: %w", err)
+			}
+
+			gatheringInvoice, err := invoiceWithLineEngineChanges.AsInvoice().AsGatheringInvoice()
+			if err != nil {
+				return billing.GatheringInvoice{}, fmt.Errorf("converting edited invoice to gathering invoice: %w", err)
+			}
+			invoice = gatheringInvoice
+
+		case billing.ChangeSourceSystem:
+			// System-originated gathering invoice changes are initiated by billing or
+			// charges, so there is no API line-engine edit callback to fire. Gathering
+			// invoices do not emit system delete events as of now.
+
+		default:
+			return billing.GatheringInvoice{}, fmt.Errorf("unsupported change source: %s", input.ChangeSource)
 		}
 
 		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 			Customer: invoice.GetCustomerID(),
 		})
 		if err != nil {
-			return fmt.Errorf("fetching profile: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("fetching profile: %w", err)
 		}
 
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
 			Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
 		}); err != nil {
-			return fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
+			return billing.GatheringInvoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
 		}
 
 		if err := invoice.Validate(); err != nil {
-			return billing.ValidationError{
+			return billing.GatheringInvoice{}, billing.ValidationError{
 				Err: err,
 			}
 		}
 
 		featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
 		if err != nil {
-			return fmt.Errorf("resolving feature meters: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
 		}
 
 		// Check if the new lines are still invoicable
 		if err := s.checkIfGatheringLinesAreInvoicable(ctx, invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling, featureMeters); err != nil {
-			return err
+			return billing.GatheringInvoice{}, err
 		}
 
 		err = s.adapter.UpdateGatheringInvoice(ctx, invoice)
 		if err != nil {
-			return fmt.Errorf("updating invoice[%s]: %w", input.Invoice.ID, err)
+			return billing.GatheringInvoice{}, fmt.Errorf("updating invoice[%s]: %w", input.Invoice.ID, err)
 		}
 
 		// Auto delete the invoice if it has no lines, this needs to happen here, as we are in a
@@ -108,11 +188,19 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 				Namespace:  input.Invoice.Namespace,
 				InvoiceIDs: []string{invoice.ID},
 			}); err != nil {
-				return fmt.Errorf("deleting gathering invoice: %w", err)
+				return billing.GatheringInvoice{}, fmt.Errorf("deleting gathering invoice: %w", err)
 			}
 		}
 
-		return nil
+		invoice, err = s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: input.Invoice,
+			Expand:  expands,
+		})
+		if err != nil {
+			return billing.GatheringInvoice{}, fmt.Errorf("fetching updated invoice: %w", err)
+		}
+
+		return invoice, nil
 	})
 }
 

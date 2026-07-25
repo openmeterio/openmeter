@@ -32,6 +32,18 @@ func (SubscriptionAddon) Fields() []ent.Field {
 	}
 }
 
+// Indexes guarantees a subscription can hold at most one live (non-deleted) row
+// per addon, which is the conflict contract surfaced by the v3 create endpoint.
+func (SubscriptionAddon) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "subscription_id", "addon_id").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
+			Unique(),
+	}
+}
+
 func (SubscriptionAddon) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("subscription", Subscription.Type).

@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type testTransactionGroupInput struct {
@@ -41,24 +40,11 @@ func (t testTransactionGroupInput) Annotations() models.Annotations {
 
 func TestFXOnInvoiceIssued(t *testing.T) {
 	// === Setup DB ===
-	testDB := testutils.InitPostgresDB(t)
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	t.Cleanup(func() {
 		require.NoError(t, testDB.EntDriver.Close())
 		require.NoError(t, testDB.PGDriver.Close())
 	})
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           testutils.NewDiscardLogger(t),
-	})
-	require.NoError(t, err)
-	defer func() {
-		srcErr, dbErr := migrator.Close()
-		require.NoError(t, srcErr)
-		require.NoError(t, dbErr)
-	}()
-	require.NoError(t, migrator.Up())
 
 	ctx := t.Context()
 	namespace := fmt.Sprintf("ledger-fx-test-%d", time.Now().UnixNano())

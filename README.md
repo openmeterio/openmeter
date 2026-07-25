@@ -80,7 +80,7 @@ curl -X POST http://localhost:48888/api/v1/events \
     "specversion": "1.0",
     "type": "request",
     "id": "00001",
-    "time": "2024-01-01T00:00:00.001Z",
+    "time": "2026-07-07T00:00:00.001Z",
     "source": "my-service",
     "subject": "customer-1",
     "data": { "method": "GET", "route": "/api/hello" }
@@ -124,6 +124,9 @@ high-volume event ingestion and real-time aggregation:
 | **ClickHouse**           | Real-time usage aggregation and analytics                |
 | **Kafka**                | Event streaming and ingestion pipeline                   |
 | **TypeSpec**             | API-first design — OpenAPI spec and SDKs from TypeSpec   |
+
+See [Architecture and data flow](docs/architecture.md) for a
+diagram of the runtime components and their primary interactions.
 
 ## Community
 

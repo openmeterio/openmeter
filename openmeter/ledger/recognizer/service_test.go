@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -123,7 +124,7 @@ func (e *recognizerTestEnv) createLineageForRealization(t *testing.T, chargeID, 
 		Namespace:  e.Namespace,
 		ChargeID:   chargeID,
 		CustomerID: e.CustomerID.ID,
-		Currency:   e.Currency,
+		Currency:   currenciestestutils.NewFiatCurrency(t, e.Currency),
 		Realizations: creditrealization.Realizations{
 			{
 				CreateInput: creditrealization.CreateInput{
@@ -150,6 +151,7 @@ func (e *recognizerTestEnv) createLineageForRealization(t *testing.T, chargeID, 
 func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 	env := newRecognizerTestEnv(t)
 	costBasis := alpacadecimal.NewFromInt(1)
+	currency := currenciestestutils.NewFiatCurrency(t, env.Currency)
 
 	chargeID := testID()
 	realID := testID()
@@ -164,7 +166,7 @@ func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 	result1, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
 		CustomerID: env.CustomerID,
 		At:         clock.Now(),
-		Currency:   env.Currency,
+		Currency:   currency,
 	})
 	require.NoError(t, err)
 	require.True(t, result1.RecognizedAmount.Equal(alpacadecimal.NewFromInt(50)))
@@ -174,7 +176,7 @@ func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 	result2, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
 		CustomerID: env.CustomerID,
 		At:         clock.Now(),
-		Currency:   env.Currency,
+		Currency:   currency,
 	})
 	require.NoError(t, err)
 	require.True(t, result2.RecognizedAmount.IsZero())
@@ -188,6 +190,7 @@ func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 func TestRecognizeEarnings_DeterministicAllocationAndSegmentTransition(t *testing.T) {
 	env := newRecognizerTestEnv(t)
 	costBasis := alpacadecimal.NewFromInt(1)
+	currency := currenciestestutils.NewFiatCurrency(t, env.Currency)
 	chargeID := testID()
 	realA := testID()
 	realB := testID()
@@ -202,7 +205,7 @@ func TestRecognizeEarnings_DeterministicAllocationAndSegmentTransition(t *testin
 	result, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
 		CustomerID: env.CustomerID,
 		At:         clock.Now(),
-		Currency:   env.Currency,
+		Currency:   currency,
 	})
 	require.NoError(t, err)
 	require.True(t, result.RecognizedAmount.Equal(alpacadecimal.NewFromInt(70)))

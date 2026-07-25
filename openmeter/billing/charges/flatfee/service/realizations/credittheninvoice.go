@@ -67,17 +67,14 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (StartCreditThenInvoiceRunResult, error) {
-		currencyCalculator, err := in.Charge.Intent.Currency.Calculator()
-		if err != nil {
-			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("get currency calculator: %w", err)
-		}
+		currency := in.Charge.Intent.GetCurrency()
 
 		amountAfterProration, err := invoiceupdater.GetFlatFeePerUnitAmount(&in.Line)
 		if err != nil {
 			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("get flat fee line amount: %w", err)
 		}
 
-		amountAfterProration = currencyCalculator.RoundToPrecision(amountAfterProration)
+		amountAfterProration = currency.RoundToPrecision(amountAfterProration)
 
 		runBase, err := s.adapter.CreateCurrentRun(ctx, flatfee.CreateCurrentRunInput{
 			Charge:                    in.Charge.ChargeBase,
@@ -108,13 +105,13 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 			return StartCreditThenInvoiceRunResult{}, err
 		}
 
-		creditAllocationTarget := currencyCalculator.RoundToPrecision(line.Totals.Total)
+		creditAllocationTarget := currency.RoundToPrecision(line.Totals.Total)
 
 		if !creditAllocationTarget.IsZero() {
 			handlerInput := flatfee.OnAllocateCreditsInput{
 				Charge:                 charge,
 				ServicePeriod:          in.Line.Period,
-				BookedAt:               flatfee.UsageBookedAt(charge.Intent.PaymentTerm, in.Line.Period),
+				BookedAt:               flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), in.Line.Period),
 				PreTaxAmountToAllocate: creditAllocationTarget,
 			}
 			if err := handlerInput.Validate(); err != nil {
@@ -146,7 +143,7 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("mapping credit realizations to credits applied: %w", err)
 		}
 
-		mappedLine, err := applyCreditsToFlatFeeLine(*line, creditsApplied, currencyCalculator)
+		mappedLine, err := applyCreditsToFlatFeeLine(*line, creditsApplied, currency)
 		if err != nil {
 			return StartCreditThenInvoiceRunResult{}, err
 		}
@@ -253,17 +250,14 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (ReconcileStandardLineToIntentResult, error) {
-		currencyCalculator, err := in.Charge.Intent.Currency.Calculator()
-		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("get currency calculator: %w", err)
-		}
+		currency := in.Charge.Intent.GetCurrency()
 
 		amountAfterProration, err := invoiceupdater.GetFlatFeePerUnitAmount(&in.Line)
 		if err != nil {
 			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("get flat fee line amount: %w", err)
 		}
 
-		amountAfterProration = currencyCalculator.RoundToPrecision(amountAfterProration)
+		amountAfterProration = currency.RoundToPrecision(amountAfterProration)
 
 		run := in.Run
 		// The rebuilt line may carry a prorated period that differs from the
@@ -277,14 +271,14 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 			return ReconcileStandardLineToIntentResult{}, err
 		}
 
-		creditAllocationTarget := currencyCalculator.RoundToPrecision(line.Totals.Total)
+		creditAllocationTarget := currency.RoundToPrecision(line.Totals.Total)
 
 		reconcileResult, err := s.ReconcileCredits(ctx, ReconcileCreditRealizationsInput{
 			Charge:             in.Charge,
 			Run:                run,
 			AllocateAt:         in.AllocateAt,
 			TargetAmount:       creditAllocationTarget,
-			CurrencyCalculator: currencyCalculator,
+			CurrencyCalculator: currency,
 		})
 		if err != nil {
 			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("reconcile credits for run %s: %w", run.ID.ID, err)
@@ -297,7 +291,7 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("mapping credit realizations to credits applied: %w", err)
 		}
 
-		mappedLine, err := applyCreditsToFlatFeeLine(*line, creditsApplied, currencyCalculator)
+		mappedLine, err := applyCreditsToFlatFeeLine(*line, creditsApplied, currency)
 		if err != nil {
 			return ReconcileStandardLineToIntentResult{}, err
 		}
@@ -369,7 +363,7 @@ func rateFlatFeeLine(line billing.StandardLine, ratingService billingrating.Serv
 	return ratedLine, nil
 }
 
-func applyCreditsToFlatFeeLine(line billing.StandardLine, creditsApplied billing.CreditsApplied, currencyCalculator currencyx.Calculator) (*billing.StandardLine, error) {
+func applyCreditsToFlatFeeLine(line billing.StandardLine, creditsApplied billing.CreditsApplied, currencyCalculator currencyx.Currency) (*billing.StandardLine, error) {
 	mappedLine, err := line.Clone()
 	if err != nil {
 		return nil, fmt.Errorf("cloning line: %w", err)

@@ -32,10 +32,13 @@ interface SubjectEntitlementsEndpoints {
   post(
     @path subjectIdOrKey: string,
     @body entitlement: EntitlementCreateInputs,
-  ): {
-    @statusCode _: 201;
-    @body body: Entitlement;
-  } | CommonErrors | ConflictError;
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: Entitlement;
+      }
+    | CommonErrors
+    | ConflictError;
 
   /**
    * List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
@@ -47,10 +50,9 @@ interface SubjectEntitlementsEndpoints {
   @get
   @operationId("listSubjectEntitlements")
   @summary("List subject entitlements")
-  list(
-    @path subjectIdOrKey: string,
-    @query includeDeleted?: boolean = false,
-  ): Entitlement[] | CommonErrors;
+  list(@path subjectIdOrKey: string, @query includeDeleted?: boolean = false):
+    | Entitlement[]
+    | CommonErrors;
 
   /**
    * Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
@@ -62,10 +64,10 @@ interface SubjectEntitlementsEndpoints {
   @get
   @operationId("getEntitlement")
   @summary("Get subject entitlement")
-  get(
-    @path subjectIdOrKey: string,
-    @path entitlementId: string,
-  ): Entitlement | CommonErrors | NotFoundError;
+  get(@path subjectIdOrKey: string, @path entitlementId: string):
+    | Entitlement
+    | CommonErrors
+    | NotFoundError;
 
   /**
    * Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
@@ -78,9 +80,12 @@ interface SubjectEntitlementsEndpoints {
   @delete
   @operationId("deleteEntitlement")
   @summary("Delete subject entitlement")
-  delete(@path subjectIdOrKey: string, @path entitlementId: string): {
-    @statusCode _: 204;
-  } | CommonErrors | NotFoundError;
+  delete(@path subjectIdOrKey: string, @path entitlementId: string):
+    | {
+        @statusCode _: 204;
+      }
+    | CommonErrors
+    | NotFoundError;
 
   /**
    * Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided subject-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
@@ -151,10 +156,13 @@ interface SubjectEntitlementsEndpoints {
     @path subjectIdOrKey: string,
     @path entitlementIdOrFeatureKey: string,
     @body grant: GrantCreateInput,
-  ): {
-    @statusCode _: 201;
-    @body body: Grant;
-  } | CommonErrors | ConflictError;
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: Grant;
+      }
+    | CommonErrors
+    | ConflictError;
 
   /**
    * This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
@@ -233,9 +241,12 @@ interface SubjectEntitlementsEndpoints {
     @path subjectIdOrKey: string,
     @path entitlementId: string,
     @body reset: ResetEntitlementUsageInput,
-  ): {
-    @statusCode _: 204;
-  } | CommonErrors | NotFoundError;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | CommonErrors
+    | NotFoundError;
 }
 
 /**

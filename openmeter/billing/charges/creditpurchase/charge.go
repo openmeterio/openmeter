@@ -11,10 +11,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type ChargeBase struct {
@@ -62,7 +64,7 @@ func (c ChargeBase) GetCustomerID() customer.CustomerID {
 	}
 }
 
-func (c ChargeBase) GetCurrency() currencyx.Code {
+func (c ChargeBase) GetCurrency() currencies.Currency {
 	return c.Intent.Currency
 }
 
@@ -82,6 +84,24 @@ type Charge struct {
 	Realizations Realizations `json:"realizations"`
 }
 
+func (c Charge) GetStatus() Status {
+	return c.Status
+}
+
+func (c Charge) WithStatus(status Status) Charge {
+	c.Status = status
+	return c
+}
+
+func (c Charge) GetBase() ChargeBase {
+	return c.ChargeBase
+}
+
+func (c Charge) WithBase(base ChargeBase) Charge {
+	c.ChargeBase = base
+	return c
+}
+
 func (c Charge) Validate() error {
 	var errs []error
 
@@ -98,34 +118,98 @@ func (c Charge) Validate() error {
 
 type Intent struct {
 	meta.Intent
+	IntentMutableFields
+
+	// Key is the optional idempotency key: a retried create with the same key returns a conflict.
+	Key *string `json:"key,omitempty"`
+}
+
+type IntentMutableFields struct {
+	meta.IntentMutableFields
 
 	CreditAmount alpacadecimal.Decimal `json:"amount"`
 	// EffectiveAt is the time at which the credit purchase is effective.
-	// Warning/TODO[later]: Currently this is not supported in credit purchase handler and the charge will be created
-	// with booked_at set to CreatedAt.
+	// When set, the credit purchase service period is pinned to this instant.
 	EffectiveAt *time.Time `json:"effectiveAt"`
 	ExpiresAt   *time.Time `json:"expiresAt"`
 	Priority    *int       `json:"priority"`
+
+	FeatureFilters FeatureFilters `json:"featureFilters,omitempty"`
 
 	// Settlement intent
 	Settlement Settlement `json:"settlement"`
 }
 
 func (i Intent) Normalized() Intent {
-	i.Intent = i.Intent.Normalized()
-	i.EffectiveAt = meta.NormalizeOptionalTimestamp(i.EffectiveAt)
-	i.ExpiresAt = meta.NormalizeOptionalTimestamp(i.ExpiresAt)
-
-	calc, err := i.Currency.Calculator()
-	if err == nil {
-		i.CreditAmount = calc.RoundToPrecision(i.CreditAmount)
-	}
+	i.IntentMutableFields = i.IntentMutableFields.Normalized(i.Currency)
 
 	return i
 }
 
+func (f IntentMutableFields) Normalized(currency currencies.Currency) IntentMutableFields {
+	f.IntentMutableFields = f.IntentMutableFields.Normalized()
+	f.EffectiveAt = meta.NormalizeOptionalTimestamp(f.EffectiveAt)
+	f.ExpiresAt = meta.NormalizeOptionalTimestamp(f.ExpiresAt)
+	f.FeatureFilters = f.FeatureFilters.Normalize()
+
+	if f.EffectiveAt != nil {
+		period := timeutil.ClosedPeriod{
+			From: lo.FromPtr(f.EffectiveAt),
+			To:   lo.FromPtr(f.EffectiveAt),
+		}
+		f.ServicePeriod = period
+		f.FullServicePeriod = period
+		f.BillingPeriod = period
+	}
+
+	f.CreditAmount = currency.RoundToPrecision(f.CreditAmount)
+
+	return f
+}
+
+func (f IntentMutableFields) CalculateEffectiveAt() time.Time {
+	return lo.FromPtrOr(f.EffectiveAt, clock.Now().UTC())
+}
+
+func (f IntentMutableFields) Validate() error {
+	var errs []error
+
+	if err := f.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent mutable fields: %w", err))
+	}
+
+	if !f.CreditAmount.IsPositive() {
+		errs = append(errs, fmt.Errorf("credit amount must be positive"))
+	}
+
+	if err := f.Settlement.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("settlement: %w", err))
+	}
+
+	if err := f.FeatureFilters.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("feature filters: %w", err))
+	}
+
+	switch f.Settlement.Type() {
+	case SettlementTypeInvoice:
+		if _, err := f.Settlement.AsInvoiceSettlement(); err != nil {
+			errs = append(errs, fmt.Errorf("settlement: %w", err))
+		}
+	case SettlementTypeExternal:
+		if _, err := f.Settlement.AsExternalSettlement(); err != nil {
+			errs = append(errs, fmt.Errorf("settlement: %w", err))
+		}
+	}
+
+	if f.ExpiresAt != nil && !f.ExpiresAt.After(f.CalculateEffectiveAt()) {
+		errs = append(errs, fmt.Errorf("expires at must be after effective at"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 func (i Intent) CalculateEffectiveAt() time.Time {
-	return lo.FromPtrOr(i.EffectiveAt, clock.Now().UTC())
+	return i.IntentMutableFields.CalculateEffectiveAt()
 }
 
 func (i Intent) Validate() error {
@@ -135,45 +219,36 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("intent meta: %w", err))
 	}
 
-	if !i.CreditAmount.IsPositive() {
-		errs = append(errs, fmt.Errorf("credit amount must be positive"))
-	}
-
-	if err := i.Settlement.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("settlement: %w", err))
+	if err := i.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	switch i.Settlement.Type() {
 	case SettlementTypeInvoice:
 		settlement, err := i.Settlement.AsInvoiceSettlement()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("settlement: %w", err))
-		} else if settlement.Currency != i.Currency {
-			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
+		if err == nil && !i.Currency.IsCustom() && currencyx.Code(settlement.Currency) != i.Currency.GetCode() {
+			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency.GetCode()))
 		}
 	case SettlementTypeExternal:
 		settlement, err := i.Settlement.AsExternalSettlement()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("settlement: %w", err))
-		} else if settlement.Currency != i.Currency {
-			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
+		if err == nil && !i.Currency.IsCustom() && currencyx.Code(settlement.Currency) != i.Currency.GetCode() {
+			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency.GetCode()))
 		}
 	}
 
-	if i.EffectiveAt != nil {
-		return errors.New("effective at is not yet supported")
-	}
-
-	if i.ExpiresAt != nil && !i.ExpiresAt.After(i.CalculateEffectiveAt()) {
-		errs = append(errs, fmt.Errorf("expires at must be after effective at"))
+	if i.Key != nil && *i.Key == "" {
+		errs = append(errs, errors.New("key cannot be empty"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // State holds durable base-row scheduling fields for the credit purchase charge.
-// Currently empty — all lifecycle outcomes live in Realizations.
-type State struct{}
+type State struct {
+	// VoidedAt is set when the remaining value was forfeited through the
+	// ledger void flow; the breakage records stay the accounting source of truth.
+	VoidedAt *time.Time `json:"voidedAt,omitempty"`
+}
 
 func (s State) Validate() error {
 	return nil

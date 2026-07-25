@@ -1,0 +1,20 @@
+diff --git a/dist/src/typescript/components/union/expression.js b/dist/src/typescript/components/union/expression.js
+index 3c6d32a0577b9ea33c10f2279207564af2fe8e5b..fa4f470eecb40e677ef88f65b1ce9e5a5e8b6b1e 100644
+--- a/dist/src/typescript/components/union/expression.js
++++ b/dist/src/typescript/components/union/expression.js
+@@ -106,6 +106,15 @@ function NoneEnvelope(props) {
+       type: model
+     });
+   }
++  // When the variant model already declares the discriminator property, the
++  // synthesized `{ disc: "name" } & Model` intersection is redundant and breaks:
++  // the model's discriminator is typically an enum member (e.g. `ChargeType.FlatFee`)
++  // whose nominal type does not overlap the string literal `"flat_fee"`, so the
++  // intersection collapses to `never` and the whole union becomes `never`. Emit the
++  // bare model reference instead — it already carries the discriminator.
++  if (props.type.type.properties.has(props.discriminatorPropertyName)) {
++    return _$memo(() => efRefkey(props.type.type));
++  }
+   return _$createComponent(List, {
+     joiner: " & ",
+     get children() {

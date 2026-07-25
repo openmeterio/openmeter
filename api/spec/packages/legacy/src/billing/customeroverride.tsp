@@ -19,10 +19,9 @@ interface CustomerOverridesEndpoints {
   @get
   @summary("List customer overrides")
   @operationId("listBillingProfileCustomerOverrides")
-  list(
-    ...ListCustomerOverridesParams,
-    ...QueryPagination,
-  ): PaginatedResponse<BillingProfileCustomerOverrideWithDetails> | CommonErrors;
+  list(...ListCustomerOverridesParams, ...QueryPagination):
+    | PaginatedResponse<BillingProfileCustomerOverrideWithDetails>
+    | CommonErrors;
 
   /**
    * The customer override can be used to pin a given customer to a billing profile
@@ -76,9 +75,12 @@ interface CustomerOverridesEndpoints {
   delete(
     @path
     customerId: ULID,
-  ): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
 
 /**

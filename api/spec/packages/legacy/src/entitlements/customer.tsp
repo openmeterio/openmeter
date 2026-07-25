@@ -19,9 +19,10 @@ interface CustomerEndpoints {
   @operationId("getCustomerAccess")
   @route("/access")
   @summary("Get customer access")
-  getCustomerAccess(
-    @path customerIdOrKey: ULIDOrExternalKey,
-  ): CustomerAccess | CommonErrors | NotFoundError;
+  getCustomerAccess(@path customerIdOrKey: ULIDOrExternalKey):
+    | CustomerAccess
+    | CommonErrors
+    | NotFoundError;
 }
 
 @route("/api/v1/customers/{customerIdOrKey}/entitlements/{featureKey}")

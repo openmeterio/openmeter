@@ -97,7 +97,11 @@ func (h *handler) ListPlans() ListPlansHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-				req.OrderBy = plan.OrderBy(sort.Field)
+				orderBy, err := FromAPIPlanSortField(ctx, sort.Field)
+				if err != nil {
+					return ListPlansRequest{}, err
+				}
+				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
 
@@ -111,11 +115,6 @@ func (h *handler) ListPlans() ListPlansHandler {
 
 			items := make([]api.BillingPlan, 0, len(result.Items))
 			for _, p := range result.Items {
-				// FIXME: For now we skip plans containing price types not representable in v3 (e.g., package, dynamic). We'll add full bidirectional transform later on.
-				if hasUnsupportedV3Price(p) {
-					continue
-				}
-
 				billingPlan, err := ToAPIBillingPlan(p)
 				if err != nil {
 					return ListPlansResponse{}, err

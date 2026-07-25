@@ -114,16 +114,58 @@ func TestParse_FilterString(t *testing.T) {
 
 	t.Run("exists", func(t *testing.T) {
 		var f testFilter
+		require.NoError(t, Parse(url.Values{"filter[field][exists]": {"true"}}, &f))
+		require.NotNil(t, f.Field)
+		assert.Equal(t, lo.ToPtr(true), f.Field.Exists)
+	})
+
+	t.Run("exists false", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{"filter[field][exists]": {"false"}}, &f))
+		require.NotNil(t, f.Field)
+		assert.Equal(t, lo.ToPtr(false), f.Field.Exists)
+	})
+
+	t.Run("exists without value", func(t *testing.T) {
+		var f testFilter
 		require.NoError(t, Parse(url.Values{"filter[field][exists]": {""}}, &f))
 		require.NotNil(t, f.Field)
 		assert.Equal(t, lo.ToPtr(true), f.Field.Exists)
 	})
 
+	t.Run("exists invalid boolean", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[field][exists]": {"anything"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `invalid boolean "anything"`)
+	})
+
 	t.Run("nexists", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{"filter[field][nexists]": {"true"}}, &f))
+		require.NotNil(t, f.Field)
+		assert.Equal(t, lo.ToPtr(false), f.Field.Exists)
+	})
+
+	t.Run("nexists false", func(t *testing.T) {
+		var f testFilter
+		require.NoError(t, Parse(url.Values{"filter[field][nexists]": {"false"}}, &f))
+		require.NotNil(t, f.Field)
+		assert.Equal(t, lo.ToPtr(true), f.Field.Exists)
+	})
+
+	t.Run("nexists without value", func(t *testing.T) {
 		var f testFilter
 		require.NoError(t, Parse(url.Values{"filter[field][nexists]": {""}}, &f))
 		require.NotNil(t, f.Field)
 		assert.Equal(t, lo.ToPtr(false), f.Field.Exists)
+	})
+
+	t.Run("nexists invalid boolean", func(t *testing.T) {
+		var f testFilter
+		err := Parse(url.Values{"filter[field][nexists]": {"anything"}}, &f)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `invalid boolean "anything"`)
 	})
 
 	t.Run("bare key existence", func(t *testing.T) {

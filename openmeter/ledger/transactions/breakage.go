@@ -12,10 +12,12 @@ import (
 )
 
 type breakageTemplateBase struct {
-	At              time.Time
-	Amount          alpacadecimal.Decimal
-	FBOAddress      ledger.PostingAddress
-	BreakageAddress ledger.PostingAddress
+	At               time.Time
+	Amount           alpacadecimal.Decimal
+	FBOAddress       ledger.PostingAddress
+	BreakageAddress  ledger.PostingAddress
+	FBOIdentity      ledger.EntryIdentityParts
+	BreakageIdentity ledger.EntryIdentityParts
 }
 
 func (t breakageTemplateBase) validate() error {
@@ -55,22 +57,26 @@ func (t breakageTemplateBase) resolve(fboAmount, breakageAmount alpacadecimal.De
 		bookedAt: t.At,
 		entryInputs: []*EntryInput{
 			{
-				address: t.FBOAddress,
-				amount:  fboAmount,
+				address:  t.FBOAddress,
+				amount:   fboAmount,
+				identity: t.FBOIdentity,
 			},
 			{
-				address: t.BreakageAddress,
-				amount:  breakageAmount,
+				address:  t.BreakageAddress,
+				amount:   breakageAmount,
+				identity: t.BreakageIdentity,
 			},
 		},
 	}
 }
 
 type PlanCustomerFBOBreakageTemplate struct {
-	At              time.Time
-	Amount          alpacadecimal.Decimal
-	FBOAddress      ledger.PostingAddress
-	BreakageAddress ledger.PostingAddress
+	At               time.Time
+	Amount           alpacadecimal.Decimal
+	FBOAddress       ledger.PostingAddress
+	BreakageAddress  ledger.PostingAddress
+	FBOIdentity      ledger.EntryIdentityParts
+	BreakageIdentity ledger.EntryIdentityParts
 }
 
 func (t PlanCustomerFBOBreakageTemplate) Validate() error {
@@ -100,10 +106,12 @@ func (t PlanCustomerFBOBreakageTemplate) base() breakageTemplateBase {
 }
 
 type ReleaseCustomerFBOBreakageTemplate struct {
-	At              time.Time
-	Amount          alpacadecimal.Decimal
-	FBOAddress      ledger.PostingAddress
-	BreakageAddress ledger.PostingAddress
+	At               time.Time
+	Amount           alpacadecimal.Decimal
+	FBOAddress       ledger.PostingAddress
+	BreakageAddress  ledger.PostingAddress
+	FBOIdentity      ledger.EntryIdentityParts
+	BreakageIdentity ledger.EntryIdentityParts
 }
 
 func (t ReleaseCustomerFBOBreakageTemplate) Validate() error {
@@ -133,10 +141,12 @@ func (t ReleaseCustomerFBOBreakageTemplate) base() breakageTemplateBase {
 }
 
 type ReopenCustomerFBOBreakageTemplate struct {
-	At              time.Time
-	Amount          alpacadecimal.Decimal
-	FBOAddress      ledger.PostingAddress
-	BreakageAddress ledger.PostingAddress
+	At               time.Time
+	Amount           alpacadecimal.Decimal
+	FBOAddress       ledger.PostingAddress
+	BreakageAddress  ledger.PostingAddress
+	FBOIdentity      ledger.EntryIdentityParts
+	BreakageIdentity ledger.EntryIdentityParts
 }
 
 func (t ReopenCustomerFBOBreakageTemplate) Validate() error {

@@ -15,6 +15,7 @@ import "./llmcost/index.tsp";
 import "./productcatalog/index.tsp";
 import "./defaults/index.tsp";
 import "./governance/index.tsp";
+import "./invoices/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -53,6 +54,10 @@ using TypeSpec.OpenAPI;
 )
 @tagMetadata(Shared.AppsTag, #{ description: Shared.AppsDescription })
 @tagMetadata(Shared.BillingTag, #{ description: Shared.BillingDescription })
+@tagMetadata(
+  Shared.CurrenciesTag,
+  #{ description: Shared.CurrenciesDescription }
+)
 @tagMetadata(Shared.TaxTag, #{ description: Shared.TaxDescription })
 @tagMetadata(Shared.FeaturesTag, #{ description: Shared.FeaturesDescription })
 @tagMetadata(Shared.LLMCostTag, #{ description: Shared.LLMCostDescription })
@@ -86,7 +91,7 @@ interface CustomersEndpoints extends Customers.CustomersOperations {}
 @route("/openmeter/customers/{customerId}/billing")
 @tag(Shared.CustomersTag)
 interface CustomerBillingEndpoints
-  extends Customers.CustomerBillingOperations {}
+  extends Customers.Billing.CustomerBillingOperations {}
 
 @route("/openmeter/customers/{customerId}/entitlement-access")
 @tag(Shared.EntitlementsTag)
@@ -96,37 +101,37 @@ interface CustomerEntitlementsEndpoints
 @route("/openmeter/customers/{customerId}/credits/grants")
 @tag(Shared.CustomersTag)
 interface CustomerCreditGrantsEndpoints
-  extends Customers.CustomerCreditGrantsOperations {}
+  extends Customers.Credits.Grants.CustomerCreditGrantsOperations {}
 
 @route("/openmeter/customers/{customerId}/credits/balance")
 @tag(Shared.CustomersTag)
 interface CustomerCreditBalanceEndpoints
-  extends Customers.CustomerCreditBalancesOperations {}
+  extends Customers.Credits.Balance.CustomerCreditBalancesOperations {}
 
 @route("/openmeter/customers/{customerId}/credits/adjustments")
 @tag(Shared.CustomersTag)
 interface CustomerCreditAdjustmentsEndpoints
-  extends Customers.CustomerCreditAdjustmentsOperations {}
+  extends Customers.Credits.Adjustments.CustomerCreditAdjustmentsOperations {}
 
 @route("/openmeter/customers/{customerId}/credits/grants/{creditGrantId}")
 @tag(Shared.CustomersTag)
 interface CustomerCreditGrantEndpoints {
-  // @route("/void")
-  // voidGrant is Customers.CustomerCreditGrantVoidOperations.voidGrant;
+  @route("/void")
+  voidGrant is Customers.Credits.Grants.CustomerCreditGrantVoidOperations.voidGrant;
 
   @route("/settlement/external")
-  updateExternalSettlement is Customers.CustomerCreditGrantExternalSettlementOperations.updateExternalSettlement;
+  updateExternalSettlement is Customers.Credits.Grants.CustomerCreditGrantExternalSettlementOperations.updateExternalSettlement;
 }
 
 @route("/openmeter/customers/{customerId}/credits/transactions")
 @tag(Shared.CustomersTag)
 interface CustomerCreditTransactionEndpoints
-  extends Customers.CustomerCreditTransactionOperations {}
+  extends Customers.Credits.Transactions.CustomerCreditTransactionOperations {}
 
 @route("/openmeter/customers/{customerId}/charges")
-@tag(Shared.BillingTag)
+@tag(Shared.CustomersTag)
 interface CustomerChargesEndpoints
-  extends Customers.CustomerChargesOperations {}
+  extends Customers.Charges.CustomerChargesOperations {}
 
 @route("/openmeter/subscriptions")
 @tag(Shared.SubscriptionsTag)
@@ -142,25 +147,33 @@ interface SubscriptionAddonEndpoints
 @tag(Shared.AppsTag)
 interface AppsEndpoints extends Apps.AppsOperations {}
 
+@route("/openmeter/app-catalog")
+@tag(Shared.AppsTag)
+interface AppCatalogEndpoints extends Apps.AppCatalogOperations {}
+
 @route("/openmeter/profiles")
 @tag(Shared.BillingTag)
 interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
+
+@route("/openmeter/billing/invoices")
+@tag(Shared.BillingTag)
+interface BillingInvoicesEndpoints extends Invoices.InvoicesOperations {}
 
 @route("/openmeter/tax-codes")
 @tag(Shared.TaxTag)
 interface TaxCodesEndpoints extends Tax.TaxCodesOperations {}
 
 @route("/openmeter/currencies")
-@tag(Shared.BillingTag)
+@tag(Shared.CurrenciesTag)
 interface CurrenciesEndpoints extends Currencies.CurrenciesOperations {}
 
 @route("/openmeter/currencies/custom")
-@tag(Shared.BillingTag)
+@tag(Shared.CurrenciesTag)
 interface CurrenciesCustomEndpoints
   extends Currencies.CurrenciesCustomOperations {}
 
 @route("/openmeter/currencies/custom/{currencyId}/cost-bases")
-@tag(Shared.BillingTag)
+@tag(Shared.CurrenciesTag)
 interface CurrenciesCustomCostBasesEndpoints
   extends Currencies.CurrenciesCustomCostBasesOperations {}
 

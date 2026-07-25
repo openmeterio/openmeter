@@ -194,6 +194,12 @@ func (_c *AddonRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *AddonR
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *AddonRateCardCreate) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
 // SetAddonID sets the "addon_id" field.
 func (_c *AddonRateCardCreate) SetAddonID(v string) *AddonRateCardCreate {
 	_c.mutation.SetAddonID(v)
@@ -366,6 +372,11 @@ func (_c *AddonRateCardCreate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.unit_config": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.AddonID(); !ok {
 		return &ValidationError{Name: "addon_id", err: errors.New(`db: missing required field "AddonRateCard.addon_id"`)}
 	}
@@ -495,6 +506,14 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 		}
 		_spec.SetField(addonratecard.FieldDiscounts, field.TypeString, vv)
 		_node.Discounts = value
+	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		vv, err := addonratecard.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(addonratecard.FieldUnitConfig, field.TypeString, vv)
+		_node.UnitConfig = value
 	}
 	if nodes := _c.mutation.AddonIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -818,6 +837,24 @@ func (u *AddonRateCardUpsert) UpdateDiscounts() *AddonRateCardUpsert {
 // ClearDiscounts clears the value of the "discounts" field.
 func (u *AddonRateCardUpsert) ClearDiscounts() *AddonRateCardUpsert {
 	u.SetNull(addonratecard.FieldDiscounts)
+	return u
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *AddonRateCardUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldUnitConfig, v)
+	return u
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateUnitConfig() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldUnitConfig)
+	return u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *AddonRateCardUpsert) ClearUnitConfig() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldUnitConfig)
 	return u
 }
 
@@ -1167,6 +1204,27 @@ func (u *AddonRateCardUpsertOne) UpdateDiscounts() *AddonRateCardUpsertOne {
 func (u *AddonRateCardUpsertOne) ClearDiscounts() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *AddonRateCardUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateUnitConfig() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *AddonRateCardUpsertOne) ClearUnitConfig() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 
@@ -1691,6 +1749,27 @@ func (u *AddonRateCardUpsertBulk) UpdateDiscounts() *AddonRateCardUpsertBulk {
 func (u *AddonRateCardUpsertBulk) ClearDiscounts() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *AddonRateCardUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateUnitConfig() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *AddonRateCardUpsertBulk) ClearUnitConfig() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 

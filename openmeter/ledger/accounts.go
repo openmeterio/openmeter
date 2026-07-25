@@ -69,6 +69,7 @@ type CustomerReceivableAccount interface {
 type CustomerReceivableRouteParams struct {
 	Currency                       currencyx.Code
 	TaxCode                        *string
+	Features                       []string
 	CostBasis                      *alpacadecimal.Decimal
 	TransactionAuthorizationStatus TransactionAuthorizationStatus
 }
@@ -85,6 +86,7 @@ func (p CustomerReceivableRouteParams) Route() Route {
 	return Route{
 		Currency:                       p.Currency,
 		TaxCode:                        p.TaxCode,
+		Features:                       p.Features,
 		CostBasis:                      p.CostBasis,
 		TransactionAuthorizationStatus: &p.TransactionAuthorizationStatus,
 	}

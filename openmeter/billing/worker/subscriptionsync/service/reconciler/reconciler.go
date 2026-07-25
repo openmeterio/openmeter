@@ -32,8 +32,7 @@ type Config struct {
 	ChargesService          charges.Service
 	EnableCreditThenInvoice bool
 	Logger                  *slog.Logger
-	FeatureGate             featuregate.Gate
-	CreditsFlag             string
+	FeatureGate             *featuregate.FeatureGateChecker
 }
 
 func (c Config) Validate() error {
@@ -49,6 +48,10 @@ func (c Config) Validate() error {
 		return fmt.Errorf("charges service is required when credit then invoice is enabled")
 	}
 
+	if err := c.FeatureGate.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -59,8 +62,7 @@ type Service struct {
 	enableCreditThenInvoice bool
 
 	invoiceUpdater *invoiceupdater.Updater
-	featureGate    featuregate.Gate
-	creditsFlag    string
+	featureGate    *featuregate.FeatureGateChecker
 }
 
 func New(config Config) (*Service, error) {
@@ -75,13 +77,12 @@ func New(config Config) (*Service, error) {
 		chargesService:          config.ChargesService,
 		enableCreditThenInvoice: config.EnableCreditThenInvoice && config.ChargesService != nil,
 		featureGate:             config.FeatureGate,
-		creditsFlag:             config.CreditsFlag,
 	}, nil
 }
 
 type PlanInput struct {
 	SubscriptionSettlementMode productcatalog.SettlementMode
-	Currency                   currencyx.Calculator
+	Currency                   currencyx.Currency
 	Target                     targetstate.State
 	Persisted                  persistedstate.State
 }
@@ -89,7 +90,7 @@ type PlanInput struct {
 type ApplyInput struct {
 	DryRun   bool
 	Customer customer.CustomerID
-	Currency currencyx.Calculator
+	Currency currencyx.Currency
 	Plan     *Plan
 }
 
@@ -102,8 +103,12 @@ func (i ApplyInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
 
-	if err := i.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency: %w", err))
+	if i.Currency == nil {
+		errs = append(errs, errors.New("currency is required"))
+	} else {
+		if err := i.Currency.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("currency: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -228,7 +233,6 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			creditThenInvoiceEnabled: s.enableCreditThenInvoice,
 			creditsEnabled:           s.chargesService != nil,
 			featureGate:              s.featureGate,
-			creditsFlag:              s.creditsFlag,
 		})
 	if err != nil {
 		return nil, fmt.Errorf("creating collection by type: %w", err)

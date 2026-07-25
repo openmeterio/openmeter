@@ -50,6 +50,7 @@ type Record struct {
 	ExpiresAt      time.Time
 
 	SourceKind               SourceKind
+	SourceChargeID           *string
 	SourceTransactionGroupID *string
 	SourceTransactionID      *string
 	SourceEntryID            *string
@@ -123,6 +124,7 @@ type ListExpiredRecordsInput struct {
 	CustomerID customer.CustomerID
 	Currency   *currencyx.Code
 	AsOf       time.Time
+	Route      ledger.RouteFilter
 }
 
 // ListExpiredBreakageImpactsInput selects customer-visible breakage impact rows.
@@ -134,6 +136,7 @@ type ListExpiredBreakageImpactsInput struct {
 	After      *ledger.TransactionCursor
 	Before     *ledger.TransactionCursor
 	Limit      int
+	Route      ledger.RouteFilter
 }
 
 // ListExpiredBreakageImpactsResult contains breakage impacts ordered by
@@ -152,6 +155,7 @@ type BreakageImpact struct {
 	CustomerID  customer.CustomerID
 	Currency    currencyx.Code
 	Amount      alpacadecimal.Decimal
+	SourceKind  SourceKind
 	Annotations models.Annotations
 }
 

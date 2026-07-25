@@ -13,10 +13,12 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -80,9 +82,10 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 			for currency, inScopeLines := range billableLines.LinesByCurrency {
 				createdInvoice, err := s.CreateStandardInvoiceFromGatheringLines(ctx, billing.CreateStandardInvoiceFromGatheringLinesInput{
-					Customer: input.Customer,
-					Currency: currency,
-					Lines:    inScopeLines,
+					Customer:          input.Customer,
+					Currency:          currency,
+					Lines:             inScopeLines,
+					ForceAsyncAdvance: input.ForceAsyncAdvance,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("creating standard invoice from gathering lines: %w", err)
@@ -137,6 +140,12 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				return nil, fmt.Errorf("resolving collection asOf: %w", err)
 			}
 
+			if options.MaxLinesPerInvoice < 0 {
+				return nil, billing.ValidationError{
+					Err: errors.New("max lines per invoice must not be negative"),
+				}
+			}
+
 			// let's fetch the existing gathering invoices for the customer
 			existingGatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 				Namespaces: []string{input.Customer.Namespace},
@@ -158,7 +167,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				}
 			}
 
-			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.GatheringInvoice) (currencyx.Code, gatheringInvoiceWithFeatureMeters) {
+			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.GatheringInvoice) (currencyx.FiatCode, gatheringInvoiceWithFeatureMeters) {
 				return i.Currency, gatheringInvoiceWithFeatureMeters{
 					Invoice: i,
 				}
@@ -190,7 +199,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				return nil, err
 			}
 
-			linesToBeBilledByCurrency := make(map[currencyx.Code]billing.GatheringLines)
+			linesToBeBilledByCurrency := make(map[currencyx.FiatCode]billing.GatheringLines)
 
 			for currency, inScopeLines := range inScopeLinesByCurrency {
 				// Let's first make sure we have properly split the progressively billed
@@ -202,6 +211,16 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 
 				if len(inScopeLines) == 0 {
 					continue
+				}
+
+				if input.IncludePendingLines.IsPresent() && options.MaxLinesPerInvoice > 0 && len(inScopeLines) > options.MaxLinesPerInvoice {
+					return nil, billing.ValidationError{
+						Err: fmt.Errorf("include pending lines exceeds max lines per invoice: requested %d, limit %d", len(inScopeLines), options.MaxLinesPerInvoice),
+					}
+				}
+
+				if !input.IncludePendingLines.IsPresent() {
+					inScopeLines = limitGatheringLinesForInvoice(inScopeLines, options.MaxLinesPerInvoice)
 				}
 
 				// Step 1: Let's make sure we have lines properly split on the gathering invoice.
@@ -292,7 +311,7 @@ type gatheringInvoiceWithFeatureMeters struct {
 }
 
 type gatherInScopeLineInput struct {
-	GatheringInvoicesByCurrency map[currencyx.Code]gatheringInvoiceWithFeatureMeters
+	GatheringInvoicesByCurrency map[currencyx.FiatCode]gatheringInvoiceWithFeatureMeters
 	// If set restricts the lines to be included to these IDs, otherwise the AsOf is used
 	// to determine the lines to be included.
 	LinesToInclude     mo.Option[[]string]
@@ -300,7 +319,7 @@ type gatherInScopeLineInput struct {
 	ProgressiveBilling bool
 }
 
-type gatherInScopeLinesResult map[currencyx.Code][]gatheringLineWithBillablePeriod
+type gatherInScopeLinesResult map[currencyx.FiatCode][]gatheringLineWithBillablePeriod
 
 func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineInput) (gatherInScopeLinesResult, error) {
 	res := make(gatherInScopeLinesResult)
@@ -425,6 +444,27 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	return res, nil
 }
 
+func limitGatheringLinesForInvoice(lines []gatheringLineWithBillablePeriod, maxLines int) []gatheringLineWithBillablePeriod {
+	if maxLines <= 0 || len(lines) <= maxLines {
+		return lines
+	}
+
+	out := slices.Clone(lines)
+	slices.SortFunc(out, func(a, b gatheringLineWithBillablePeriod) int {
+		if result := cmpx.Compare(a.Line.ServicePeriod.From, b.Line.ServicePeriod.From); result != 0 {
+			return result
+		}
+
+		if result := cmpx.Compare(a.Line.ServicePeriod.To, b.Line.ServicePeriod.To); result != 0 {
+			return result
+		}
+
+		return strings.Compare(a.Line.ID, b.Line.ID)
+	})
+
+	return out[:maxLines]
+}
+
 type hasInvoicableLinesInput struct {
 	Invoice            billing.GatheringInvoice
 	AsOf               time.Time
@@ -456,7 +496,7 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 	}
 
 	inScopeLines, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
-		GatheringInvoicesByCurrency: map[currencyx.Code]gatheringInvoiceWithFeatureMeters{
+		GatheringInvoicesByCurrency: map[currencyx.FiatCode]gatheringInvoiceWithFeatureMeters{
 			in.Invoice.Currency: {
 				Invoice:       in.Invoice,
 				FeatureMeters: in.FeatureMeters,
@@ -638,13 +678,13 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("fetching customer profile: %w", err)
 	}
 
-	invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
-		billing.SequenceGenerationInput{
+	invoiceNumber, err := s.sequenceService.GenerateInvoiceSequenceNumber(ctx,
+		sequence.GenerationInput{
 			Namespace:    in.Customer.Namespace,
 			CustomerName: profile.Customer.Name,
 			Currency:     in.Currency,
 		},
-		billing.DraftInvoiceSequenceNumber,
+		sequence.DraftInvoiceSequenceNumber,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("generating invoice number: %w", err)
@@ -803,7 +843,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 			}
 
 			// Otherwise, let's advance the invoice to the next final state
-			if err := s.advanceUntilStateStable(ctx, sm); err != nil {
+			if err := s.advanceUntilStateStable(ctx, sm, in.ForceAsyncAdvance); err != nil {
 				return fmt.Errorf("activating invoice: %w", err)
 			}
 

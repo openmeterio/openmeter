@@ -96,16 +96,21 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
+		UnitConfig:          r.UnitConfig,
 	}
 
-	// This is a workaround to make sure that the feature key is set if the feature id is set.
-	if r.FeatureID != nil && r.FeatureKey == nil {
+	if r.FeatureID != nil || r.FeatureKey != nil {
 		ratecardFeature, err := r.Edges.FeaturesOrErr()
-		if err != nil {
-			return nil, errors.New("feature is not loaded for ratecard")
-		}
+		//if err != nil {
+		//	return nil, errors.New("feature is not loaded for ratecard")
+		//}
+		//
+		//meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
 
-		meta.FeatureKey = &ratecardFeature.Key
+		// FIXME(chrisgacsal): temporary fix until data is migrated
+		if err == nil && ratecardFeature != nil {
+			meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
+		}
 	}
 
 	// Map TaxCode if eagerly loaded.
@@ -307,6 +312,7 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
+		UnitConfig:          r.UnitConfig,
 	}
 
 	// Map TaxCode if eagerly loaded.
@@ -365,6 +371,7 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		Price:               meta.Price,
 		Type:                r.Type(),
 		Discounts:           lo.EmptyableToPtr(meta.Discounts),
+		UnitConfig:          meta.UnitConfig,
 	}
 
 	if managed, ok := r.(addon.ManagedRateCard); ok {

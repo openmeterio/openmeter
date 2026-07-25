@@ -37,7 +37,7 @@ func (c CreditsApplied) Clone() CreditsApplied {
 	})
 }
 
-func (c CreditsApplied) SumAmount(currency currencyx.Calculator) alpacadecimal.Decimal {
+func (c CreditsApplied) SumAmount(currency currencyx.Currency) alpacadecimal.Decimal {
 	sum := alpacadecimal.Zero
 
 	for _, item := range c {

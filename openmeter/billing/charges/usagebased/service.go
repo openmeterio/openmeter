@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,11 +19,24 @@ type Service interface {
 }
 
 type UsageBasedService interface {
+	// Create returns one result for each input intent, preserving input order.
+	// Pending gathering-line creation relies on this to pair charge targets with
+	// their source intents.
 	Create(ctx context.Context, input CreateInput) ([]ChargeWithGatheringLine, error)
+	// GetByIDs loads usage-based charges. Request realization expansions when
+	// callers need run, detailed-line, or credit-allocation state.
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
+	// UpdateSubscriptionItemID repairs subscription ownership metadata on the
+	// base intent; it must not rewrite an active customer-facing override layer.
 	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
+	// AdvanceCharge drives one usage-based charge. Realization runs store
+	// cumulative usage snapshots; billing-line quantities are mapped separately.
 	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
+	// TriggerPatch applies an explicit base/override target patch and then
+	// reconciles invoice artifacts from the effective usage-based intent.
 	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[Charge], error)
+	// GetCurrentTotals calculates the current customer-facing totals from the
+	// effective intent and non-voided realization history.
 	GetCurrentTotals(ctx context.Context, input GetCurrentTotalsInput) (GetCurrentTotalsResult, error)
 }
 
@@ -57,9 +71,12 @@ type ChargeWithGatheringLine struct {
 }
 
 type CreateIntent struct {
-	Intent
-	FeatureID    string
-	RatingEngine RatingEngine
+	Intent      OverridableIntent
+	Annotations models.Annotations `json:"annotations"`
+
+	FeatureID         string
+	RatingEngine      RatingEngine
+	ResolvedCostBasis *costbasis.State
 }
 
 func (i CreateIntent) Validate() error {

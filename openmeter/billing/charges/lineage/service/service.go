@@ -50,6 +50,11 @@ func (s *service) CreateInitialLineages(ctx context.Context, input lineage.Creat
 		if err != nil {
 			return fmt.Errorf("build initial credit realization lineage specs: %w", err)
 		}
+		for idx := range specs {
+			if specs[idx].OriginKind == creditrealization.LineageOriginKindAdvance {
+				specs[idx].AdvanceFeatures = input.Features
+			}
+		}
 		if len(specs) == 0 {
 			return nil
 		}
@@ -58,7 +63,7 @@ func (s *service) CreateInitialLineages(ctx context.Context, input lineage.Creat
 			Namespace:  input.Namespace,
 			ChargeID:   input.ChargeID,
 			CustomerID: input.CustomerID,
-			Currency:   input.Currency,
+			Currency:   input.Currency.GetCode(),
 			Specs:      specs,
 		})
 	})
@@ -176,10 +181,14 @@ func (s *service) BackfillAdvanceLineageSegments(ctx context.Context, input line
 	}
 
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		lineages, err := s.adapter.LockAdvanceLineagesForBackfill(ctx, input.Namespace, input.CustomerID, input.Currency)
+		lineages, err := s.adapter.LockAdvanceLineagesForBackfill(ctx, input.Namespace, input.CustomerID, input.Currency.GetCode())
 		if err != nil {
 			return fmt.Errorf("lock advance lineages for backfill: %w", err)
 		}
+		if len(lineages) == 0 {
+			return nil
+		}
+		lineages = lineage.FilterAdvanceLineagesForBackfill(lineages, input.FeatureFilters)
 		if len(lineages) == 0 {
 			return nil
 		}

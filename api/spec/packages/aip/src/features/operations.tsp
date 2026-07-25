@@ -33,7 +33,6 @@ interface FeatureOperations {
   @get
   @operationId("list-features")
   @summary("List features")
-  @extension(Shared.UnstableExtension, true)
   list(
     ...Common.PagePaginationQuery,
 
@@ -67,7 +66,6 @@ interface FeatureOperations {
   @post
   @operationId("create-feature")
   @summary("Create feature")
-  @extension(Shared.UnstableExtension, true)
   create(
     @body
     feature: Shared.CreateRequest<Feature>,
@@ -80,7 +78,6 @@ interface FeatureOperations {
   @route("/{featureId}")
   @operationId("get-feature")
   @summary("Get feature")
-  @extension(Shared.UnstableExtension, true)
   get(@path featureId: Shared.ULID):
     | Shared.GetResponse<Feature>
     | Common.ErrorResponses
@@ -94,11 +91,10 @@ interface FeatureOperations {
   @route("/{featureId}")
   @operationId("update-feature")
   @summary("Update feature")
-  @extension(Shared.UnstableExtension, true)
-  update(
-    @path featureId: Shared.ULID,
-    @body feature: FeatureUpdateRequest,
-  ): Shared.UpdateResponse<Feature> | Common.ErrorResponses | Common.NotFound;
+  update(@path featureId: Shared.ULID, @body feature: FeatureUpdateRequest):
+    | Shared.UpdateResponse<Feature>
+    | Common.ErrorResponses
+    | Common.NotFound;
 
   /**
    * Delete a feature by id.
@@ -107,10 +103,10 @@ interface FeatureOperations {
   @route("/{featureId}")
   @operationId("delete-feature")
   @summary("Delete feature")
-  @extension(Shared.UnstableExtension, true)
-  delete(
-    @path featureId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
+  delete(@path featureId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.ErrorResponses
+    | Common.NotFound;
 }
 
 interface FeatureCostOperations {

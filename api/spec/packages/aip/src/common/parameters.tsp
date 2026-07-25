@@ -14,7 +14,17 @@ namespace Common;
  */
 @useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/SortQuery")
 @friendlyName("SortQuery")
-model SortQuery {}
+model SortQuery {
+  /**
+   * The attribute to sort by.
+   */
+  by: string;
+
+  /**
+   * The sort order. `asc` for ascending, `desc` for descending.
+   */
+  order?: "asc" | "desc" = "asc";
+}
 
 /**
  * Filter by a boolean value (true/false).

@@ -13,15 +13,14 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -185,64 +184,19 @@ func (_u *TaxCodeUpdate) AddBillingInvoiceLines(v ...*BillingInvoiceLine) *TaxCo
 	return _u.AddBillingInvoiceLineIDs(ids...)
 }
 
-// AddBillingInvoiceSplitLineGroupIDs adds the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
-func (_u *TaxCodeUpdate) AddBillingInvoiceSplitLineGroupIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.AddBillingInvoiceSplitLineGroupIDs(ids...)
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_u *TaxCodeUpdate) AddBillingGatheringInvoiceLineIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
 	return _u
 }
 
-// AddBillingInvoiceSplitLineGroups adds the "billing_invoice_split_line_groups" edges to the BillingInvoiceSplitLineGroup entity.
-func (_u *TaxCodeUpdate) AddBillingInvoiceSplitLineGroups(v ...*BillingInvoiceSplitLineGroup) *TaxCodeUpdate {
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *TaxCodeUpdate) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *TaxCodeUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddBillingInvoiceSplitLineGroupIDs(ids...)
-}
-
-// AddBillingStandardInvoiceDetailedLineIDs adds the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by IDs.
-func (_u *TaxCodeUpdate) AddBillingStandardInvoiceDetailedLineIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.AddBillingStandardInvoiceDetailedLineIDs(ids...)
-	return _u
-}
-
-// AddBillingStandardInvoiceDetailedLines adds the "billing_standard_invoice_detailed_lines" edges to the BillingStandardInvoiceDetailedLine entity.
-func (_u *TaxCodeUpdate) AddBillingStandardInvoiceDetailedLines(v ...*BillingStandardInvoiceDetailedLine) *TaxCodeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddBillingStandardInvoiceDetailedLineIDs(ids...)
-}
-
-// AddChargeUsageBasedRunDetailedLineIDs adds the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
-func (_u *TaxCodeUpdate) AddChargeUsageBasedRunDetailedLineIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.AddChargeUsageBasedRunDetailedLineIDs(ids...)
-	return _u
-}
-
-// AddChargeUsageBasedRunDetailedLines adds the "charge_usage_based_run_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
-func (_u *TaxCodeUpdate) AddChargeUsageBasedRunDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *TaxCodeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddChargeUsageBasedRunDetailedLineIDs(ids...)
-}
-
-// AddChargeFlatFeeRunDetailedLineIDs adds the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
-func (_u *TaxCodeUpdate) AddChargeFlatFeeRunDetailedLineIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.AddChargeFlatFeeRunDetailedLineIDs(ids...)
-	return _u
-}
-
-// AddChargeFlatFeeRunDetailedLines adds the "charge_flat_fee_run_detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
-func (_u *TaxCodeUpdate) AddChargeFlatFeeRunDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *TaxCodeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddChargeFlatFeeRunDetailedLineIDs(ids...)
+	return _u.AddBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
@@ -305,6 +259,21 @@ func (_u *TaxCodeUpdate) AddChargeFlatFees(v ...*ChargeFlatFee) *TaxCodeUpdate {
 	return _u.AddChargeFlatFeeIDs(ids...)
 }
 
+// AddChargeFlatFeeOverrideIDs adds the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity by IDs.
+func (_u *TaxCodeUpdate) AddChargeFlatFeeOverrideIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.AddChargeFlatFeeOverrideIDs(ids...)
+	return _u
+}
+
+// AddChargeFlatFeeOverrides adds the "charge_flat_fee_overrides" edges to the ChargeFlatFeeOverride entity.
+func (_u *TaxCodeUpdate) AddChargeFlatFeeOverrides(v ...*ChargeFlatFeeOverride) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeFlatFeeOverrideIDs(ids...)
+}
+
 // AddChargeUsageBasedIDs adds the "charge_usage_based" edge to the ChargeUsageBased entity by IDs.
 func (_u *TaxCodeUpdate) AddChargeUsageBasedIDs(ids ...string) *TaxCodeUpdate {
 	_u.mutation.AddChargeUsageBasedIDs(ids...)
@@ -318,6 +287,21 @@ func (_u *TaxCodeUpdate) AddChargeUsageBased(v ...*ChargeUsageBased) *TaxCodeUpd
 		ids[i] = v[i].ID
 	}
 	return _u.AddChargeUsageBasedIDs(ids...)
+}
+
+// AddChargeUsageBasedOverrideIDs adds the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity by IDs.
+func (_u *TaxCodeUpdate) AddChargeUsageBasedOverrideIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.AddChargeUsageBasedOverrideIDs(ids...)
+	return _u
+}
+
+// AddChargeUsageBasedOverrides adds the "charge_usage_based_overrides" edges to the ChargeUsageBasedOverride entity.
+func (_u *TaxCodeUpdate) AddChargeUsageBasedOverrides(v ...*ChargeUsageBasedOverride) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeUsageBasedOverrideIDs(ids...)
 }
 
 // AddChargeCreditPurchaseIDs adds the "charge_credit_purchases" edge to the ChargeCreditPurchase entity by IDs.
@@ -433,88 +417,25 @@ func (_u *TaxCodeUpdate) RemoveBillingInvoiceLines(v ...*BillingInvoiceLine) *Ta
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
 }
 
-// ClearBillingInvoiceSplitLineGroups clears all "billing_invoice_split_line_groups" edges to the BillingInvoiceSplitLineGroup entity.
-func (_u *TaxCodeUpdate) ClearBillingInvoiceSplitLineGroups() *TaxCodeUpdate {
-	_u.mutation.ClearBillingInvoiceSplitLineGroups()
+// ClearBillingGatheringInvoiceLines clears all "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *TaxCodeUpdate) ClearBillingGatheringInvoiceLines() *TaxCodeUpdate {
+	_u.mutation.ClearBillingGatheringInvoiceLines()
 	return _u
 }
 
-// RemoveBillingInvoiceSplitLineGroupIDs removes the "billing_invoice_split_line_groups" edge to BillingInvoiceSplitLineGroup entities by IDs.
-func (_u *TaxCodeUpdate) RemoveBillingInvoiceSplitLineGroupIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.RemoveBillingInvoiceSplitLineGroupIDs(ids...)
+// RemoveBillingGatheringInvoiceLineIDs removes the "billing_gathering_invoice_lines" edge to BillingGatheringInvoiceLine entities by IDs.
+func (_u *TaxCodeUpdate) RemoveBillingGatheringInvoiceLineIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.RemoveBillingGatheringInvoiceLineIDs(ids...)
 	return _u
 }
 
-// RemoveBillingInvoiceSplitLineGroups removes "billing_invoice_split_line_groups" edges to BillingInvoiceSplitLineGroup entities.
-func (_u *TaxCodeUpdate) RemoveBillingInvoiceSplitLineGroups(v ...*BillingInvoiceSplitLineGroup) *TaxCodeUpdate {
+// RemoveBillingGatheringInvoiceLines removes "billing_gathering_invoice_lines" edges to BillingGatheringInvoiceLine entities.
+func (_u *TaxCodeUpdate) RemoveBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *TaxCodeUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveBillingInvoiceSplitLineGroupIDs(ids...)
-}
-
-// ClearBillingStandardInvoiceDetailedLines clears all "billing_standard_invoice_detailed_lines" edges to the BillingStandardInvoiceDetailedLine entity.
-func (_u *TaxCodeUpdate) ClearBillingStandardInvoiceDetailedLines() *TaxCodeUpdate {
-	_u.mutation.ClearBillingStandardInvoiceDetailedLines()
-	return _u
-}
-
-// RemoveBillingStandardInvoiceDetailedLineIDs removes the "billing_standard_invoice_detailed_lines" edge to BillingStandardInvoiceDetailedLine entities by IDs.
-func (_u *TaxCodeUpdate) RemoveBillingStandardInvoiceDetailedLineIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.RemoveBillingStandardInvoiceDetailedLineIDs(ids...)
-	return _u
-}
-
-// RemoveBillingStandardInvoiceDetailedLines removes "billing_standard_invoice_detailed_lines" edges to BillingStandardInvoiceDetailedLine entities.
-func (_u *TaxCodeUpdate) RemoveBillingStandardInvoiceDetailedLines(v ...*BillingStandardInvoiceDetailedLine) *TaxCodeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveBillingStandardInvoiceDetailedLineIDs(ids...)
-}
-
-// ClearChargeUsageBasedRunDetailedLines clears all "charge_usage_based_run_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
-func (_u *TaxCodeUpdate) ClearChargeUsageBasedRunDetailedLines() *TaxCodeUpdate {
-	_u.mutation.ClearChargeUsageBasedRunDetailedLines()
-	return _u
-}
-
-// RemoveChargeUsageBasedRunDetailedLineIDs removes the "charge_usage_based_run_detailed_lines" edge to ChargeUsageBasedRunDetailedLine entities by IDs.
-func (_u *TaxCodeUpdate) RemoveChargeUsageBasedRunDetailedLineIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.RemoveChargeUsageBasedRunDetailedLineIDs(ids...)
-	return _u
-}
-
-// RemoveChargeUsageBasedRunDetailedLines removes "charge_usage_based_run_detailed_lines" edges to ChargeUsageBasedRunDetailedLine entities.
-func (_u *TaxCodeUpdate) RemoveChargeUsageBasedRunDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *TaxCodeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveChargeUsageBasedRunDetailedLineIDs(ids...)
-}
-
-// ClearChargeFlatFeeRunDetailedLines clears all "charge_flat_fee_run_detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
-func (_u *TaxCodeUpdate) ClearChargeFlatFeeRunDetailedLines() *TaxCodeUpdate {
-	_u.mutation.ClearChargeFlatFeeRunDetailedLines()
-	return _u
-}
-
-// RemoveChargeFlatFeeRunDetailedLineIDs removes the "charge_flat_fee_run_detailed_lines" edge to ChargeFlatFeeRunDetailedLine entities by IDs.
-func (_u *TaxCodeUpdate) RemoveChargeFlatFeeRunDetailedLineIDs(ids ...string) *TaxCodeUpdate {
-	_u.mutation.RemoveChargeFlatFeeRunDetailedLineIDs(ids...)
-	return _u
-}
-
-// RemoveChargeFlatFeeRunDetailedLines removes "charge_flat_fee_run_detailed_lines" edges to ChargeFlatFeeRunDetailedLine entities.
-func (_u *TaxCodeUpdate) RemoveChargeFlatFeeRunDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *TaxCodeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveChargeFlatFeeRunDetailedLineIDs(ids...)
+	return _u.RemoveBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // ClearSubscriptionItems clears all "subscription_items" edges to the SubscriptionItem entity.
@@ -601,6 +522,27 @@ func (_u *TaxCodeUpdate) RemoveChargeFlatFees(v ...*ChargeFlatFee) *TaxCodeUpdat
 	return _u.RemoveChargeFlatFeeIDs(ids...)
 }
 
+// ClearChargeFlatFeeOverrides clears all "charge_flat_fee_overrides" edges to the ChargeFlatFeeOverride entity.
+func (_u *TaxCodeUpdate) ClearChargeFlatFeeOverrides() *TaxCodeUpdate {
+	_u.mutation.ClearChargeFlatFeeOverrides()
+	return _u
+}
+
+// RemoveChargeFlatFeeOverrideIDs removes the "charge_flat_fee_overrides" edge to ChargeFlatFeeOverride entities by IDs.
+func (_u *TaxCodeUpdate) RemoveChargeFlatFeeOverrideIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.RemoveChargeFlatFeeOverrideIDs(ids...)
+	return _u
+}
+
+// RemoveChargeFlatFeeOverrides removes "charge_flat_fee_overrides" edges to ChargeFlatFeeOverride entities.
+func (_u *TaxCodeUpdate) RemoveChargeFlatFeeOverrides(v ...*ChargeFlatFeeOverride) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeFlatFeeOverrideIDs(ids...)
+}
+
 // ClearChargeUsageBased clears all "charge_usage_based" edges to the ChargeUsageBased entity.
 func (_u *TaxCodeUpdate) ClearChargeUsageBased() *TaxCodeUpdate {
 	_u.mutation.ClearChargeUsageBased()
@@ -620,6 +562,27 @@ func (_u *TaxCodeUpdate) RemoveChargeUsageBased(v ...*ChargeUsageBased) *TaxCode
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeUsageBasedIDs(ids...)
+}
+
+// ClearChargeUsageBasedOverrides clears all "charge_usage_based_overrides" edges to the ChargeUsageBasedOverride entity.
+func (_u *TaxCodeUpdate) ClearChargeUsageBasedOverrides() *TaxCodeUpdate {
+	_u.mutation.ClearChargeUsageBasedOverrides()
+	return _u
+}
+
+// RemoveChargeUsageBasedOverrideIDs removes the "charge_usage_based_overrides" edge to ChargeUsageBasedOverride entities by IDs.
+func (_u *TaxCodeUpdate) RemoveChargeUsageBasedOverrideIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.RemoveChargeUsageBasedOverrideIDs(ids...)
+	return _u
+}
+
+// RemoveChargeUsageBasedOverrides removes "charge_usage_based_overrides" edges to ChargeUsageBasedOverride entities.
+func (_u *TaxCodeUpdate) RemoveChargeUsageBasedOverrides(v ...*ChargeUsageBasedOverride) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeUsageBasedOverrideIDs(ids...)
 }
 
 // ClearChargeCreditPurchases clears all "charge_credit_purchases" edges to the ChargeCreditPurchase entity.
@@ -905,28 +868,28 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.BillingInvoiceSplitLineGroupsCleared() {
+	if _u.mutation.BillingGatheringInvoiceLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.BillingInvoiceSplitLineGroupsTable,
-			Columns: []string{dbtaxcode.BillingInvoiceSplitLineGroupsColumn},
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedBillingInvoiceSplitLineGroupsIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoiceSplitLineGroupsCleared() {
+	if nodes := _u.mutation.RemovedBillingGatheringInvoiceLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingGatheringInvoiceLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.BillingInvoiceSplitLineGroupsTable,
-			Columns: []string{dbtaxcode.BillingInvoiceSplitLineGroupsColumn},
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -934,150 +897,15 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.BillingInvoiceSplitLineGroupsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.BillingInvoiceSplitLineGroupsTable,
-			Columns: []string{dbtaxcode.BillingInvoiceSplitLineGroupsColumn},
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.BillingStandardInvoiceDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingStandardInvoiceDetailedLinesTable,
-			Columns: []string{dbtaxcode.BillingStandardInvoiceDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingstandardinvoicedetailedline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedBillingStandardInvoiceDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingStandardInvoiceDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingStandardInvoiceDetailedLinesTable,
-			Columns: []string{dbtaxcode.BillingStandardInvoiceDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingstandardinvoicedetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.BillingStandardInvoiceDetailedLinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingStandardInvoiceDetailedLinesTable,
-			Columns: []string{dbtaxcode.BillingStandardInvoiceDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingstandardinvoicedetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.ChargeUsageBasedRunDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeUsageBasedRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeUsageBasedRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedChargeUsageBasedRunDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.ChargeUsageBasedRunDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeUsageBasedRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeUsageBasedRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.ChargeUsageBasedRunDetailedLinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeUsageBasedRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeUsageBasedRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.ChargeFlatFeeRunDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedChargeFlatFeeRunDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.ChargeFlatFeeRunDetailedLinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1265,6 +1093,51 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ChargeFlatFeeOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeFlatFeeOverridesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeFlatFeeOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.ChargeUsageBasedCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -1303,6 +1176,51 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeUsageBasedOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeUsageBasedOverridesIDs(); len(nodes) > 0 && !_u.mutation.ChargeUsageBasedOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeUsageBasedOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1606,64 +1524,19 @@ func (_u *TaxCodeUpdateOne) AddBillingInvoiceLines(v ...*BillingInvoiceLine) *Ta
 	return _u.AddBillingInvoiceLineIDs(ids...)
 }
 
-// AddBillingInvoiceSplitLineGroupIDs adds the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
-func (_u *TaxCodeUpdateOne) AddBillingInvoiceSplitLineGroupIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.AddBillingInvoiceSplitLineGroupIDs(ids...)
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_u *TaxCodeUpdateOne) AddBillingGatheringInvoiceLineIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
 	return _u
 }
 
-// AddBillingInvoiceSplitLineGroups adds the "billing_invoice_split_line_groups" edges to the BillingInvoiceSplitLineGroup entity.
-func (_u *TaxCodeUpdateOne) AddBillingInvoiceSplitLineGroups(v ...*BillingInvoiceSplitLineGroup) *TaxCodeUpdateOne {
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *TaxCodeUpdateOne) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *TaxCodeUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddBillingInvoiceSplitLineGroupIDs(ids...)
-}
-
-// AddBillingStandardInvoiceDetailedLineIDs adds the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by IDs.
-func (_u *TaxCodeUpdateOne) AddBillingStandardInvoiceDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.AddBillingStandardInvoiceDetailedLineIDs(ids...)
-	return _u
-}
-
-// AddBillingStandardInvoiceDetailedLines adds the "billing_standard_invoice_detailed_lines" edges to the BillingStandardInvoiceDetailedLine entity.
-func (_u *TaxCodeUpdateOne) AddBillingStandardInvoiceDetailedLines(v ...*BillingStandardInvoiceDetailedLine) *TaxCodeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddBillingStandardInvoiceDetailedLineIDs(ids...)
-}
-
-// AddChargeUsageBasedRunDetailedLineIDs adds the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
-func (_u *TaxCodeUpdateOne) AddChargeUsageBasedRunDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.AddChargeUsageBasedRunDetailedLineIDs(ids...)
-	return _u
-}
-
-// AddChargeUsageBasedRunDetailedLines adds the "charge_usage_based_run_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
-func (_u *TaxCodeUpdateOne) AddChargeUsageBasedRunDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *TaxCodeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddChargeUsageBasedRunDetailedLineIDs(ids...)
-}
-
-// AddChargeFlatFeeRunDetailedLineIDs adds the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
-func (_u *TaxCodeUpdateOne) AddChargeFlatFeeRunDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.AddChargeFlatFeeRunDetailedLineIDs(ids...)
-	return _u
-}
-
-// AddChargeFlatFeeRunDetailedLines adds the "charge_flat_fee_run_detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
-func (_u *TaxCodeUpdateOne) AddChargeFlatFeeRunDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *TaxCodeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddChargeFlatFeeRunDetailedLineIDs(ids...)
+	return _u.AddBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by IDs.
@@ -1726,6 +1599,21 @@ func (_u *TaxCodeUpdateOne) AddChargeFlatFees(v ...*ChargeFlatFee) *TaxCodeUpdat
 	return _u.AddChargeFlatFeeIDs(ids...)
 }
 
+// AddChargeFlatFeeOverrideIDs adds the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity by IDs.
+func (_u *TaxCodeUpdateOne) AddChargeFlatFeeOverrideIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.AddChargeFlatFeeOverrideIDs(ids...)
+	return _u
+}
+
+// AddChargeFlatFeeOverrides adds the "charge_flat_fee_overrides" edges to the ChargeFlatFeeOverride entity.
+func (_u *TaxCodeUpdateOne) AddChargeFlatFeeOverrides(v ...*ChargeFlatFeeOverride) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeFlatFeeOverrideIDs(ids...)
+}
+
 // AddChargeUsageBasedIDs adds the "charge_usage_based" edge to the ChargeUsageBased entity by IDs.
 func (_u *TaxCodeUpdateOne) AddChargeUsageBasedIDs(ids ...string) *TaxCodeUpdateOne {
 	_u.mutation.AddChargeUsageBasedIDs(ids...)
@@ -1739,6 +1627,21 @@ func (_u *TaxCodeUpdateOne) AddChargeUsageBased(v ...*ChargeUsageBased) *TaxCode
 		ids[i] = v[i].ID
 	}
 	return _u.AddChargeUsageBasedIDs(ids...)
+}
+
+// AddChargeUsageBasedOverrideIDs adds the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity by IDs.
+func (_u *TaxCodeUpdateOne) AddChargeUsageBasedOverrideIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.AddChargeUsageBasedOverrideIDs(ids...)
+	return _u
+}
+
+// AddChargeUsageBasedOverrides adds the "charge_usage_based_overrides" edges to the ChargeUsageBasedOverride entity.
+func (_u *TaxCodeUpdateOne) AddChargeUsageBasedOverrides(v ...*ChargeUsageBasedOverride) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeUsageBasedOverrideIDs(ids...)
 }
 
 // AddChargeCreditPurchaseIDs adds the "charge_credit_purchases" edge to the ChargeCreditPurchase entity by IDs.
@@ -1854,88 +1757,25 @@ func (_u *TaxCodeUpdateOne) RemoveBillingInvoiceLines(v ...*BillingInvoiceLine) 
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
 }
 
-// ClearBillingInvoiceSplitLineGroups clears all "billing_invoice_split_line_groups" edges to the BillingInvoiceSplitLineGroup entity.
-func (_u *TaxCodeUpdateOne) ClearBillingInvoiceSplitLineGroups() *TaxCodeUpdateOne {
-	_u.mutation.ClearBillingInvoiceSplitLineGroups()
+// ClearBillingGatheringInvoiceLines clears all "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *TaxCodeUpdateOne) ClearBillingGatheringInvoiceLines() *TaxCodeUpdateOne {
+	_u.mutation.ClearBillingGatheringInvoiceLines()
 	return _u
 }
 
-// RemoveBillingInvoiceSplitLineGroupIDs removes the "billing_invoice_split_line_groups" edge to BillingInvoiceSplitLineGroup entities by IDs.
-func (_u *TaxCodeUpdateOne) RemoveBillingInvoiceSplitLineGroupIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.RemoveBillingInvoiceSplitLineGroupIDs(ids...)
+// RemoveBillingGatheringInvoiceLineIDs removes the "billing_gathering_invoice_lines" edge to BillingGatheringInvoiceLine entities by IDs.
+func (_u *TaxCodeUpdateOne) RemoveBillingGatheringInvoiceLineIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.RemoveBillingGatheringInvoiceLineIDs(ids...)
 	return _u
 }
 
-// RemoveBillingInvoiceSplitLineGroups removes "billing_invoice_split_line_groups" edges to BillingInvoiceSplitLineGroup entities.
-func (_u *TaxCodeUpdateOne) RemoveBillingInvoiceSplitLineGroups(v ...*BillingInvoiceSplitLineGroup) *TaxCodeUpdateOne {
+// RemoveBillingGatheringInvoiceLines removes "billing_gathering_invoice_lines" edges to BillingGatheringInvoiceLine entities.
+func (_u *TaxCodeUpdateOne) RemoveBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *TaxCodeUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveBillingInvoiceSplitLineGroupIDs(ids...)
-}
-
-// ClearBillingStandardInvoiceDetailedLines clears all "billing_standard_invoice_detailed_lines" edges to the BillingStandardInvoiceDetailedLine entity.
-func (_u *TaxCodeUpdateOne) ClearBillingStandardInvoiceDetailedLines() *TaxCodeUpdateOne {
-	_u.mutation.ClearBillingStandardInvoiceDetailedLines()
-	return _u
-}
-
-// RemoveBillingStandardInvoiceDetailedLineIDs removes the "billing_standard_invoice_detailed_lines" edge to BillingStandardInvoiceDetailedLine entities by IDs.
-func (_u *TaxCodeUpdateOne) RemoveBillingStandardInvoiceDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.RemoveBillingStandardInvoiceDetailedLineIDs(ids...)
-	return _u
-}
-
-// RemoveBillingStandardInvoiceDetailedLines removes "billing_standard_invoice_detailed_lines" edges to BillingStandardInvoiceDetailedLine entities.
-func (_u *TaxCodeUpdateOne) RemoveBillingStandardInvoiceDetailedLines(v ...*BillingStandardInvoiceDetailedLine) *TaxCodeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveBillingStandardInvoiceDetailedLineIDs(ids...)
-}
-
-// ClearChargeUsageBasedRunDetailedLines clears all "charge_usage_based_run_detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
-func (_u *TaxCodeUpdateOne) ClearChargeUsageBasedRunDetailedLines() *TaxCodeUpdateOne {
-	_u.mutation.ClearChargeUsageBasedRunDetailedLines()
-	return _u
-}
-
-// RemoveChargeUsageBasedRunDetailedLineIDs removes the "charge_usage_based_run_detailed_lines" edge to ChargeUsageBasedRunDetailedLine entities by IDs.
-func (_u *TaxCodeUpdateOne) RemoveChargeUsageBasedRunDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.RemoveChargeUsageBasedRunDetailedLineIDs(ids...)
-	return _u
-}
-
-// RemoveChargeUsageBasedRunDetailedLines removes "charge_usage_based_run_detailed_lines" edges to ChargeUsageBasedRunDetailedLine entities.
-func (_u *TaxCodeUpdateOne) RemoveChargeUsageBasedRunDetailedLines(v ...*ChargeUsageBasedRunDetailedLine) *TaxCodeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveChargeUsageBasedRunDetailedLineIDs(ids...)
-}
-
-// ClearChargeFlatFeeRunDetailedLines clears all "charge_flat_fee_run_detailed_lines" edges to the ChargeFlatFeeRunDetailedLine entity.
-func (_u *TaxCodeUpdateOne) ClearChargeFlatFeeRunDetailedLines() *TaxCodeUpdateOne {
-	_u.mutation.ClearChargeFlatFeeRunDetailedLines()
-	return _u
-}
-
-// RemoveChargeFlatFeeRunDetailedLineIDs removes the "charge_flat_fee_run_detailed_lines" edge to ChargeFlatFeeRunDetailedLine entities by IDs.
-func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeRunDetailedLineIDs(ids ...string) *TaxCodeUpdateOne {
-	_u.mutation.RemoveChargeFlatFeeRunDetailedLineIDs(ids...)
-	return _u
-}
-
-// RemoveChargeFlatFeeRunDetailedLines removes "charge_flat_fee_run_detailed_lines" edges to ChargeFlatFeeRunDetailedLine entities.
-func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeRunDetailedLines(v ...*ChargeFlatFeeRunDetailedLine) *TaxCodeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveChargeFlatFeeRunDetailedLineIDs(ids...)
+	return _u.RemoveBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // ClearSubscriptionItems clears all "subscription_items" edges to the SubscriptionItem entity.
@@ -2022,6 +1862,27 @@ func (_u *TaxCodeUpdateOne) RemoveChargeFlatFees(v ...*ChargeFlatFee) *TaxCodeUp
 	return _u.RemoveChargeFlatFeeIDs(ids...)
 }
 
+// ClearChargeFlatFeeOverrides clears all "charge_flat_fee_overrides" edges to the ChargeFlatFeeOverride entity.
+func (_u *TaxCodeUpdateOne) ClearChargeFlatFeeOverrides() *TaxCodeUpdateOne {
+	_u.mutation.ClearChargeFlatFeeOverrides()
+	return _u
+}
+
+// RemoveChargeFlatFeeOverrideIDs removes the "charge_flat_fee_overrides" edge to ChargeFlatFeeOverride entities by IDs.
+func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeOverrideIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.RemoveChargeFlatFeeOverrideIDs(ids...)
+	return _u
+}
+
+// RemoveChargeFlatFeeOverrides removes "charge_flat_fee_overrides" edges to ChargeFlatFeeOverride entities.
+func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeOverrides(v ...*ChargeFlatFeeOverride) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeFlatFeeOverrideIDs(ids...)
+}
+
 // ClearChargeUsageBased clears all "charge_usage_based" edges to the ChargeUsageBased entity.
 func (_u *TaxCodeUpdateOne) ClearChargeUsageBased() *TaxCodeUpdateOne {
 	_u.mutation.ClearChargeUsageBased()
@@ -2041,6 +1902,27 @@ func (_u *TaxCodeUpdateOne) RemoveChargeUsageBased(v ...*ChargeUsageBased) *TaxC
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeUsageBasedIDs(ids...)
+}
+
+// ClearChargeUsageBasedOverrides clears all "charge_usage_based_overrides" edges to the ChargeUsageBasedOverride entity.
+func (_u *TaxCodeUpdateOne) ClearChargeUsageBasedOverrides() *TaxCodeUpdateOne {
+	_u.mutation.ClearChargeUsageBasedOverrides()
+	return _u
+}
+
+// RemoveChargeUsageBasedOverrideIDs removes the "charge_usage_based_overrides" edge to ChargeUsageBasedOverride entities by IDs.
+func (_u *TaxCodeUpdateOne) RemoveChargeUsageBasedOverrideIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.RemoveChargeUsageBasedOverrideIDs(ids...)
+	return _u
+}
+
+// RemoveChargeUsageBasedOverrides removes "charge_usage_based_overrides" edges to ChargeUsageBasedOverride entities.
+func (_u *TaxCodeUpdateOne) RemoveChargeUsageBasedOverrides(v ...*ChargeUsageBasedOverride) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeUsageBasedOverrideIDs(ids...)
 }
 
 // ClearChargeCreditPurchases clears all "charge_credit_purchases" edges to the ChargeCreditPurchase entity.
@@ -2356,28 +2238,28 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.BillingInvoiceSplitLineGroupsCleared() {
+	if _u.mutation.BillingGatheringInvoiceLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.BillingInvoiceSplitLineGroupsTable,
-			Columns: []string{dbtaxcode.BillingInvoiceSplitLineGroupsColumn},
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedBillingInvoiceSplitLineGroupsIDs(); len(nodes) > 0 && !_u.mutation.BillingInvoiceSplitLineGroupsCleared() {
+	if nodes := _u.mutation.RemovedBillingGatheringInvoiceLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingGatheringInvoiceLinesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.BillingInvoiceSplitLineGroupsTable,
-			Columns: []string{dbtaxcode.BillingInvoiceSplitLineGroupsColumn},
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2385,150 +2267,15 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.BillingInvoiceSplitLineGroupsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   dbtaxcode.BillingInvoiceSplitLineGroupsTable,
-			Columns: []string{dbtaxcode.BillingInvoiceSplitLineGroupsColumn},
+			Table:   dbtaxcode.BillingGatheringInvoiceLinesTable,
+			Columns: []string{dbtaxcode.BillingGatheringInvoiceLinesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.BillingStandardInvoiceDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingStandardInvoiceDetailedLinesTable,
-			Columns: []string{dbtaxcode.BillingStandardInvoiceDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingstandardinvoicedetailedline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedBillingStandardInvoiceDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingStandardInvoiceDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingStandardInvoiceDetailedLinesTable,
-			Columns: []string{dbtaxcode.BillingStandardInvoiceDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingstandardinvoicedetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.BillingStandardInvoiceDetailedLinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.BillingStandardInvoiceDetailedLinesTable,
-			Columns: []string{dbtaxcode.BillingStandardInvoiceDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(billingstandardinvoicedetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.ChargeUsageBasedRunDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeUsageBasedRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeUsageBasedRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedChargeUsageBasedRunDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.ChargeUsageBasedRunDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeUsageBasedRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeUsageBasedRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.ChargeUsageBasedRunDetailedLinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeUsageBasedRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeUsageBasedRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.ChargeFlatFeeRunDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedChargeFlatFeeRunDetailedLinesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunDetailedLinesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.ChargeFlatFeeRunDetailedLinesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   dbtaxcode.ChargeFlatFeeRunDetailedLinesTable,
-			Columns: []string{dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2716,6 +2463,51 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ChargeFlatFeeOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeFlatFeeOverridesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeFlatFeeOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.ChargeUsageBasedCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -2754,6 +2546,51 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeUsageBasedOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeUsageBasedOverridesIDs(); len(nodes) > 0 && !_u.mutation.ChargeUsageBasedOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeUsageBasedOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

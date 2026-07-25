@@ -46,7 +46,7 @@ func (i DetailedLine) Validate() error {
 	return nil
 }
 
-func (i DetailedLine) TotalAmount(currency currencyx.Calculator) alpacadecimal.Decimal {
+func (i DetailedLine) TotalAmount(currency currencyx.Currency) alpacadecimal.Decimal {
 	return TotalAmount(getTotalAmountInput{
 		Currency:        currency,
 		PerUnitAmount:   i.PerUnitAmount,
@@ -57,7 +57,7 @@ func (i DetailedLine) TotalAmount(currency currencyx.Calculator) alpacadecimal.D
 }
 
 type getTotalAmountInput struct {
-	Currency        currencyx.Calculator
+	Currency        currencyx.Currency
 	PerUnitAmount   alpacadecimal.Decimal
 	Quantity        alpacadecimal.Decimal
 	AmountDiscounts billing.AmountLineDiscountsManaged
@@ -77,7 +77,7 @@ func TotalAmount(in getTotalAmountInput) alpacadecimal.Decimal {
 type AddDiscountInput struct {
 	BilledAmountBeforeLine alpacadecimal.Decimal
 	MaxSpend               alpacadecimal.Decimal
-	Currency               currencyx.Calculator
+	Currency               currencyx.Currency
 }
 
 func (i DetailedLine) AddDiscountForOverage(in AddDiscountInput) DetailedLine {
@@ -131,7 +131,7 @@ func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string
 
 type DetailedLines []DetailedLine
 
-func (i DetailedLines) Sum(currency currencyx.Calculator) alpacadecimal.Decimal {
+func (i DetailedLines) Sum(currency currencyx.Currency) alpacadecimal.Decimal {
 	sum := alpacadecimal.Zero
 
 	for _, in := range i {

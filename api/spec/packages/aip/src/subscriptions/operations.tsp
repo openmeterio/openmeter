@@ -107,14 +107,18 @@ interface SubscriptionsOperations {
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListSubscriptionsParamsFilter,
-  ): Shared.PagePaginatedResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
+  ):
+    | Shared.PagePaginatedResponse<Subscription>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   @get
   @operationId("get-subscription")
   @summary("Get subscription")
-  get(
-    @path subscriptionId: Shared.ULID,
-  ): Shared.GetResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
+  get(@path subscriptionId: Shared.ULID):
+    | Shared.GetResponse<Subscription>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * Cancels the subscription. Will result in a scheduling conflict if there are
@@ -165,7 +169,24 @@ interface SubscriptionsOperations {
 
 interface SubscriptionAddonOperations {
   /**
-   * List the addons of a subscription.
+   * Add add-on to a subscription.
+   */
+  @post
+  @operationId("create-subscription-addon")
+  @summary("Create a new subscription add-on")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  create(
+    @path subscriptionId: Shared.ULID,
+    @body request: Shared.CreateRequest<SubscriptionAddon>,
+  ):
+    | Shared.CreateResponse<SubscriptionAddon>
+    | Common.ErrorResponses
+    | Common.NotFound
+    | Common.Conflict;
+
+  /**
+   * List the add-ons of a subscription.
    */
   @get
   @operationId("list-subscription-addons")
@@ -175,9 +196,23 @@ interface SubscriptionAddonOperations {
     @path subscriptionId: Shared.ULID,
     ...Common.PagePaginationQuery,
 
+    /**
+     * Sort subscription addons returned in the response. Supported sort attributes
+     * are:
+     *
+     * - `id`
+     * - `created_at` (default)
+     * - `updated_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
-  ): Shared.PagePaginatedResponse<SubscriptionAddon> | Common.NotFound | Common.ErrorResponses;
+  ):
+    | Shared.PagePaginatedResponse<SubscriptionAddon>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * Get an add-on association for a subscription.
@@ -190,5 +225,8 @@ interface SubscriptionAddonOperations {
   getAddon(
     @path subscriptionId: Shared.ULID,
     @path subscriptionAddonId: Shared.ULID,
-  ): Shared.GetResponse<SubscriptionAddon> | Common.ErrorResponses | Common.NotFound;
+  ):
+    | Shared.GetResponse<SubscriptionAddon>
+    | Common.ErrorResponses
+    | Common.NotFound;
 }

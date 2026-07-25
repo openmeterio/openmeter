@@ -9,8 +9,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -27,18 +29,39 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
+		now := clock.Now().UTC()
 		createIntents, err := slicesx.MapWithErr(input.Intents, func(intent usagebased.Intent) (usagebased.CreateIntent, error) {
-			intent = intent.Normalized()
+			if intent.Currency.IsCustom() && !s.enableCustomCurrency.Load() {
+				return usagebased.CreateIntent{}, fmt.Errorf("creating usage based charge with custom currency %q: %w", intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
+			}
 
-			featureMeter, err := input.FeatureMeters.Get(intent.FeatureKey, false)
+			chargeIntent := intent.Normalized()
+
+			var resolvedCostBasis *costbasis.State
+			if chargeIntent.CostBasis != nil {
+				var err error
+
+				resolvedCostBasis, err = s.costbasisResolver.ResolveInitialState(ctx, costbasis.ResolveInitialStateInput{
+					CurrencyID: chargeIntent.Currency.NamespacedID,
+					Intent:     *chargeIntent.CostBasis,
+					ResolvedAt: now,
+				})
+				if err != nil {
+					return usagebased.CreateIntent{}, fmt.Errorf("resolving cost basis: %w", err)
+				}
+			}
+
+			featureMeter, err := input.FeatureMeters.Get(chargeIntent.FeatureKey, false)
 			if err != nil {
-				return usagebased.CreateIntent{}, fmt.Errorf("resolve usage based feature for key %s: %w", intent.FeatureKey, err)
+				return usagebased.CreateIntent{}, fmt.Errorf("resolve usage based feature for key %s: %w", chargeIntent.FeatureKey, err)
 			}
 
 			return usagebased.CreateIntent{
-				Intent:       intent,
-				FeatureID:    featureMeter.Feature.ID,
-				RatingEngine: s.rater.GetPreferredRatingEngineFor(intent),
+				Intent:            chargeIntent.AsOverridableIntent(),
+				Annotations:       chargeIntent.Annotations,
+				FeatureID:         featureMeter.Feature.ID,
+				RatingEngine:      s.rater.GetPreferredRatingEngineFor(chargeIntent),
+				ResolvedCostBasis: resolvedCostBasis,
 			}, nil
 		})
 		if err != nil {
@@ -54,39 +77,21 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			return nil, err
 		}
 
-		err = s.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
-			Namespace: input.Namespace,
-			Type:      meta.ChargeTypeUsageBased,
-			Charges: lo.Map(charges, func(charge usagebased.Charge, idx int) meta.IDWithUniqueReferenceID {
-				return meta.IDWithUniqueReferenceID{
-					ID:                charge.ID,
-					UniqueReferenceID: charge.Intent.UniqueReferenceID,
-				}
-			}),
-		})
-		if err != nil {
-			return nil, err
-		}
-
 		return slicesx.MapWithErr(charges, func(charge usagebased.Charge) (usagebased.ChargeWithGatheringLine, error) {
 			// For credit only flat fees we are not relying on the invoicing stack at all, so we can return early.
-			if charge.Intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			if charge.Intent.GetSettlementMode() == productcatalog.CreditOnlySettlementMode {
 				return usagebased.ChargeWithGatheringLine{
 					Charge: charge,
 				}, nil
 			}
 
-			return gatheringLineFromUsageBasedCharge(charge)
+			return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.GetEffectiveServicePeriod(), charge.Intent.GetEffectiveInvoiceAt())
 		})
 	})
 }
 
-func gatheringLineFromUsageBasedCharge(charge usagebased.Charge) (usagebased.ChargeWithGatheringLine, error) {
-	return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.ServicePeriod, charge.Intent.InvoiceAt)
-}
-
 func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod, invoiceAt time.Time) (usagebased.ChargeWithGatheringLine, error) {
-	intent := charge.Intent
+	intent := charge.Intent.GetEffectiveIntent()
 
 	var subscription *billing.SubscriptionReference
 	if intent.Subscription != nil {
@@ -106,6 +111,16 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		return usagebased.ChargeWithGatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
 
+	var unitConfig *productcatalog.UnitConfig
+	if intent.UnitConfig != nil {
+		unitConfig = lo.ToPtr(intent.UnitConfig.Clone())
+	}
+
+	invoiceCurrency, err := charge.GetInvoiceCurrency()
+	if err != nil {
+		return usagebased.ChargeWithGatheringLine{}, fmt.Errorf("getting invoice currency: %w", err)
+	}
+
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -120,29 +135,20 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 
 			Price:      intent.Price,
 			FeatureKey: intent.FeatureKey,
+			UnitConfig: unitConfig,
 
-			Currency:      intent.Currency,
+			Currency:      invoiceCurrency,
 			ServicePeriod: servicePeriod,
 			InvoiceAt:     invoiceAt,
 
-			TaxConfig: intent.TaxConfig.ToTaxConfig(),
+			TaxConfig: lo.ToPtr(intent.TaxConfig.ToTaxConfig()),
 
 			ChargeID:     lo.ToPtr(charge.ID),
 			Engine:       billing.LineEngineTypeChargeUsageBased,
 			Subscription: subscription,
+
+			RateCardDiscounts: intent.Discounts.Clone(),
 		},
-	}
-
-	if intent.Discounts.Usage != nil {
-		gatheringLine.RateCardDiscounts.Usage = &billing.UsageDiscount{
-			UsageDiscount: *intent.Discounts.Usage,
-		}
-	}
-
-	if intent.Discounts.Percentage != nil {
-		gatheringLine.RateCardDiscounts.Percentage = &billing.PercentageDiscount{
-			PercentageDiscount: *intent.Discounts.Percentage,
-		}
 	}
 
 	return usagebased.ChargeWithGatheringLine{

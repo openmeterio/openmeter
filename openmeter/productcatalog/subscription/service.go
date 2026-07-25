@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -22,11 +23,12 @@ type SubscriptionChangeResponse struct {
 }
 
 type MigrateSubscriptionRequest struct {
-	ID            models.NamespacedID
-	TargetVersion *int
-	StartingPhase *string
-	Timing        *subscription.Timing
-	BillingAnchor *time.Time
+	ID               models.NamespacedID
+	TargetVersion    *int
+	StartingPhase    *string
+	Timing           *subscription.Timing
+	BillingAnchor    *time.Time
+	RejectUnitConfig bool
 }
 
 type ChangeSubscriptionRequest struct {
@@ -35,7 +37,10 @@ type ChangeSubscriptionRequest struct {
 	PlanInput     PlanInput
 
 	// Only used if existing plan is provided
-	StartingPhase *string
+	StartingPhase  *string
+	SettlementMode *productcatalog.SettlementMode
+
+	RejectUnitConfig bool
 }
 
 type CreateSubscriptionRequest struct {
@@ -43,5 +48,6 @@ type CreateSubscriptionRequest struct {
 	PlanInput     PlanInput
 
 	// Only used if existing plan is provided
-	StartingPhase *string
+	StartingPhase  *string
+	SettlementMode *productcatalog.SettlementMode
 }

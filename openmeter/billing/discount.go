@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -32,6 +34,14 @@ func (d PercentageDiscount) Clone() PercentageDiscount {
 		PercentageDiscount: d.PercentageDiscount.Clone(),
 		CorrelationID:      d.CorrelationID,
 	}
+}
+
+func (d *PercentageDiscount) CloneOrNil() *PercentageDiscount {
+	if d == nil {
+		return nil
+	}
+
+	return lo.ToPtr(d.Clone())
 }
 
 func (d PercentageDiscount) Equal(other PercentageDiscount) bool {
@@ -99,15 +109,87 @@ func (d Discounts) IsEmpty() bool {
 }
 
 func (d Discounts) ValidateForPrice(price *productcatalog.Price) error {
+	var errs []error
+
 	if d.Percentage != nil {
-		return d.Percentage.ValidateForPrice(price)
+		if err := d.Percentage.ValidateForPrice(price); err != nil {
+			errs = append(errs, fmt.Errorf("percentage: %w", err))
+		}
 	}
 
 	if d.Usage != nil {
-		return d.Usage.ValidateForPrice(price)
+		if err := d.Usage.ValidateForPrice(price); err != nil {
+			errs = append(errs, fmt.Errorf("usage: %w", err))
+		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (d Discounts) Equal(other Discounts) bool {
+	if !equal.PtrEqual(d.Percentage, other.Percentage) {
+		return false
+	}
+
+	if !equal.PtrEqual(d.Usage, other.Usage) {
+		return false
+	}
+
+	return true
+}
+
+func (d Discounts) Validate() error {
+	var errs []error
+
+	if d.Percentage != nil {
+		if err := d.Percentage.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("percentage: %w", err))
+		}
+	}
+
+	if d.Usage != nil {
+		if err := d.Usage.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("usage: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func DiscountsFromProductCatalog(discounts productcatalog.Discounts) Discounts {
+	out := Discounts{}
+
+	if discounts.Percentage != nil {
+		out.Percentage = &PercentageDiscount{
+			PercentageDiscount: discounts.Percentage.Clone(),
+		}
+	}
+
+	if discounts.Usage != nil {
+		out.Usage = &UsageDiscount{
+			UsageDiscount: discounts.Usage.Clone(),
+		}
+	}
+
+	return out
+}
+
+func (d Discounts) UpsertCorrelationIDs() Discounts {
+	out := d.Clone()
+
+	if out.Percentage != nil {
+		if out.Percentage.CorrelationID == "" {
+			out.Percentage.CorrelationID = ulid.Make().String()
+		}
+	}
+
+	if out.Usage != nil {
+		if out.Usage.CorrelationID == "" {
+			out.Usage.CorrelationID = ulid.Make().String()
+		}
+	}
+
+	return out
 }
 
 // DiscountReason type

@@ -36,6 +36,12 @@ type LedgerEntry struct {
 	SubAccountID string `json:"sub_account_id,omitempty"`
 	// IdentityKey holds the value of the "identity_key" field.
 	IdentityKey string `json:"identity_key,omitempty"`
+	// SchemaVersion holds the value of the "schema_version" field.
+	SchemaVersion int `json:"schema_version,omitempty"`
+	// SourceChargeID holds the value of the "source_charge_id" field.
+	SourceChargeID *string `json:"source_charge_id,omitempty"`
+	// SpendChargeID holds the value of the "spend_charge_id" field.
+	SpendChargeID *string `json:"spend_charge_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// TransactionID holds the value of the "transaction_id" field.
@@ -52,9 +58,11 @@ type LedgerEntryEdges struct {
 	Transaction *LedgerTransaction `json:"transaction,omitempty"`
 	// SubAccount holds the value of the sub_account edge.
 	SubAccount *LedgerSubAccount `json:"sub_account,omitempty"`
+	// SourceBreakageRecords holds the value of the source_breakage_records edge.
+	SourceBreakageRecords []*LedgerBreakageRecord `json:"source_breakage_records,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // TransactionOrErr returns the Transaction value or an error if the edge
@@ -79,6 +87,15 @@ func (e LedgerEntryEdges) SubAccountOrErr() (*LedgerSubAccount, error) {
 	return nil, &NotLoadedError{edge: "sub_account"}
 }
 
+// SourceBreakageRecordsOrErr returns the SourceBreakageRecords value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerEntryEdges) SourceBreakageRecordsOrErr() ([]*LedgerBreakageRecord, error) {
+	if e.loadedTypes[2] {
+		return e.SourceBreakageRecords, nil
+	}
+	return nil, &NotLoadedError{edge: "source_breakage_records"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*LedgerEntry) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -88,7 +105,9 @@ func (*LedgerEntry) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case ledgerentry.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldIdentityKey, ledgerentry.FieldTransactionID:
+		case ledgerentry.FieldSchemaVersion:
+			values[i] = new(sql.NullInt64)
+		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldIdentityKey, ledgerentry.FieldSourceChargeID, ledgerentry.FieldSpendChargeID, ledgerentry.FieldTransactionID:
 			values[i] = new(sql.NullString)
 		case ledgerentry.FieldCreatedAt, ledgerentry.FieldUpdatedAt, ledgerentry.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -158,6 +177,26 @@ func (_m *LedgerEntry) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.IdentityKey = value.String
 			}
+		case ledgerentry.FieldSchemaVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field schema_version", values[i])
+			} else if value.Valid {
+				_m.SchemaVersion = int(value.Int64)
+			}
+		case ledgerentry.FieldSourceChargeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source_charge_id", values[i])
+			} else if value.Valid {
+				_m.SourceChargeID = new(string)
+				*_m.SourceChargeID = value.String
+			}
+		case ledgerentry.FieldSpendChargeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field spend_charge_id", values[i])
+			} else if value.Valid {
+				_m.SpendChargeID = new(string)
+				*_m.SpendChargeID = value.String
+			}
 		case ledgerentry.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
@@ -191,6 +230,11 @@ func (_m *LedgerEntry) QueryTransaction() *LedgerTransactionQuery {
 // QuerySubAccount queries the "sub_account" edge of the LedgerEntry entity.
 func (_m *LedgerEntry) QuerySubAccount() *LedgerSubAccountQuery {
 	return NewLedgerEntryClient(_m.config).QuerySubAccount(_m)
+}
+
+// QuerySourceBreakageRecords queries the "source_breakage_records" edge of the LedgerEntry entity.
+func (_m *LedgerEntry) QuerySourceBreakageRecords() *LedgerBreakageRecordQuery {
+	return NewLedgerEntryClient(_m.config).QuerySourceBreakageRecords(_m)
 }
 
 // Update returns a builder for updating this LedgerEntry.
@@ -238,6 +282,19 @@ func (_m *LedgerEntry) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("identity_key=")
 	builder.WriteString(_m.IdentityKey)
+	builder.WriteString(", ")
+	builder.WriteString("schema_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SchemaVersion))
+	builder.WriteString(", ")
+	if v := _m.SourceChargeID; v != nil {
+		builder.WriteString("source_charge_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SpendChargeID; v != nil {
+		builder.WriteString("spend_charge_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Amount))

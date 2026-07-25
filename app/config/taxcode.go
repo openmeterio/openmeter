@@ -98,7 +98,7 @@ func (c TaxCodeConfiguration) Validate() error {
 func ConfigureTaxCode(v *viper.Viper) {
 	v.SetDefault("taxcode.seeds", []map[string]any{
 		{
-			"key":              "default",
+			"key":              taxcode.ProviderDefaultTaxCodeKey,
 			"name":             "Provider default",
 			"defaultInvoicing": true,
 		},

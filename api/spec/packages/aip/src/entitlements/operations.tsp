@@ -36,7 +36,8 @@ interface CustomerEntitlementsOperations {
   @get
   @operationId("list-customer-entitlement-access")
   @summary("List customer entitlement access")
-  list(
-    @path customerId: Shared.ULID,
-  ): ListCustomerEntitlementAccessResponse | Common.NotFound | Common.ErrorResponses;
+  list(@path customerId: Shared.ULID):
+    | ListCustomerEntitlementAccessResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

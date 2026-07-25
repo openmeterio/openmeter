@@ -1,39 +1,22 @@
 package featuregate
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"slices"
+	"strings"
 
-	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
+	"github.com/openmeterio/openmeter/pkg/framework/operation"
 )
 
-type Org interface {
-	Context
-
-	ID() *uuid.UUID
-	PortalID() *uuid.UUID
-	OrgName() *string
-	FeatureSet() *string
-	Tier() *string
-}
-
-type Context interface {
-	Key() string
-	Kind() string
-	Anonymous() bool
-	GetCustomAttributes() map[string]any
-	AddCustomAttribute(name string, value any)
-}
-
 type Gate interface {
-	EvaluateBool(flag string, defaultValue bool) (bool, error)
-	EvaluateInt(flag string, defaultValue int) (int, error)
-	EvaluateFloat64(flag string, defaultValue float64) (float64, error)
-	EvaluateString(flag string, defaultValue string) (string, error)
-	EvaluateJSON(flag string, defaultValue json.RawMessage) (json.RawMessage, error)
-
-	WithOrg(org Org) (Gate, error)
-	WithFFContext(custom ...Context) (Gate, error)
+	EvaluateBool(namespace, flag string, defaultValue bool) (bool, error)
 }
 
 func NewNoop() Gate {
@@ -42,72 +25,173 @@ func NewNoop() Gate {
 
 type Noop struct{}
 
-func (n Noop) EvaluateBool(string, bool) (bool, error) {
+func (n Noop) EvaluateBool(string, string, bool) (bool, error) {
 	return true, nil
 }
 
-func (n Noop) EvaluateInt(string, int) (int, error) {
-	return 0, nil
+var _ fmt.Stringer = (*FeatureFlag)(nil)
+
+type FeatureFlag string
+
+func (f FeatureFlag) String() string {
+	return string(f)
 }
 
-func (n Noop) EvaluateFloat64(string, float64) (float64, error) {
-	return 0, nil
+const (
+	CtxKeyCredits FeatureFlag = "om_ff_credits_enabled"
+)
+
+func ContextResolver() contextResolver {
+	return contextResolver{}
 }
 
-func (n Noop) EvaluateString(string, string) (string, error) {
-	return "", nil
+type contextResolver struct{}
+
+func (r contextResolver) Credits(ctx context.Context) bool {
+	value, found := ctx.Value(CtxKeyCredits).(bool)
+	if !found {
+		return true
+	}
+	return value
 }
 
-func (n Noop) EvaluateJSON(string, json.RawMessage) (json.RawMessage, error) {
-	return json.RawMessage(`{}`), nil
+type Flags map[FeatureFlag]string
+
+func (f *Flags) Keys() []FeatureFlag {
+	return []FeatureFlag{CtxKeyCredits}
 }
 
-func (n Noop) WithFFContext(custom ...Context) (Gate, error) {
-	return Noop{}, nil
-}
+func (f *Flags) Validate() error {
+	if f == nil || len(*f) == 0 {
+		return errors.New("featuregate is enabled but missing flags setup")
+	}
+	keys := f.Keys()
 
-func (n Noop) WithOrg(org Org) (Gate, error) {
-	return n.WithFFContext(org)
-}
+	for k := range *f {
+		if !slices.Contains(keys, k) {
+			return fmt.Errorf("invalid key: %s", k)
+		}
+	}
 
-type NamespaceOrg string
-
-var _ Org = NamespaceOrg("")
-
-func (n NamespaceOrg) AddCustomAttribute(name string, value any) {}
-
-func (n NamespaceOrg) Anonymous() bool {
-	return false
-}
-
-func (n NamespaceOrg) FeatureSet() *string {
 	return nil
 }
 
-func (n NamespaceOrg) GetCustomAttributes() map[string]any {
+func (f *Flags) Credits() string {
+	if f == nil {
+		return ""
+	}
+	value, ok := (*f)[CtxKeyCredits]
+	if !ok {
+		return ""
+	}
+	return value
+}
+
+const defaultCacheSize = 1024
+
+func NewFeatureGateChecker(gate Gate, flags Flags, flagOverrides map[FeatureFlag]bool) *FeatureGateChecker {
+	checker := &FeatureGateChecker{
+		Gate:          gate,
+		Flags:         flags,
+		FlagOverrides: flagOverrides,
+	}
+	cacheSize := defaultCacheSize
+
+	var err error
+	checker.store, err = lru.New[string, bool](cacheSize)
+	if err != nil {
+		return checker
+	}
+
+	return checker
+}
+
+type FeatureGateChecker struct {
+	Gate  Gate
+	Flags Flags
+	// FlagOverrides is used to handle config level feature setups
+	// ex. if a feature is disabled on config level, then we are not going to call the feature gate
+	FlagOverrides map[FeatureFlag]bool
+
+	store *lru.Cache[string, bool]
+}
+
+func (h *FeatureGateChecker) Validate() error {
+	if h == nil || h.Gate == nil {
+		return errors.New("feature gate is required")
+	}
+
 	return nil
 }
 
-func (n NamespaceOrg) ID() *uuid.UUID {
-	return lo.ToPtr(uuid.NewSHA1(uuid.NameSpaceURL, []byte(n)))
+func (h *FeatureGateChecker) Enabled(ns string, flag string) (bool, error) {
+	if h == nil {
+		return true, nil
+	}
+	if h.Gate == nil {
+		return true, nil
+	}
+	if flag == "" {
+		return true, nil
+	}
+
+	cacheKey := strings.Join([]string{flag, ns}, "_")
+
+	flagResult, cached := h.getFromCache(cacheKey)
+	if !cached {
+		enabled, err := h.Gate.EvaluateBool(ns, flag, false)
+		if err != nil {
+			return false, err
+		}
+		h.addToCache(cacheKey, enabled)
+		return enabled, nil
+	}
+
+	return flagResult, nil
 }
 
-func (n NamespaceOrg) Key() string {
-	return string(n)
+// getFromCache supposed to make cache fault tolerant
+// so if store is not initialized, we return cache false
+func (h FeatureGateChecker) getFromCache(key string) (bool, bool) {
+	if h.store == nil {
+		return false, false
+	}
+
+	return h.store.Get(key)
 }
 
-func (n NamespaceOrg) Kind() string {
-	return "namespace"
+// addToCache supposed to make cache fault tolerant
+// so if store is not initialized, we do an early exit
+func (h FeatureGateChecker) addToCache(key string, value bool) {
+	if h.store == nil {
+		return
+	}
+
+	h.store.Add(key, value)
 }
 
-func (n NamespaceOrg) OrgName() *string {
-	return lo.ToPtr(string(n))
-}
+func NewMiddleware[Request any, Response any](getNamespace func(ctx context.Context) (string, bool), checker *FeatureGateChecker) operation.Middleware[Request, Response] {
+	return func(next operation.Operation[Request, Response]) operation.Operation[Request, Response] {
+		return func(ctx context.Context, request Request) (Response, error) {
+			ns, ok := getNamespace(ctx)
+			if !ok {
+				return lo.Empty[Response](), commonhttp.NewHTTPError(http.StatusInternalServerError, errors.New("internal server error"))
+			}
 
-func (n NamespaceOrg) PortalID() *uuid.UUID {
-	return n.ID()
-}
+			for _, contextFlagKey := range lo.Union(lo.Keys(checker.Flags), lo.Keys(checker.FlagOverrides)) {
+				if !checker.FlagOverrides[contextFlagKey] {
+					ctx = context.WithValue(ctx, contextFlagKey, false)
+					continue
+				}
+				configFlagKey := checker.Flags[contextFlagKey]
+				result, err := checker.Enabled(ns, configFlagKey)
+				if err != nil {
+					return lo.Empty[Response](), err
+				}
+				ctx = context.WithValue(ctx, contextFlagKey, result)
+			}
 
-func (n NamespaceOrg) Tier() *string {
-	return nil
+			return next(ctx, request)
+		}
+	}
 }

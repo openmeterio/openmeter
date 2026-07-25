@@ -102,7 +102,11 @@ func (h *handler) ListAddons() ListAddonsHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-				req.OrderBy = addon.OrderBy(sort.Field)
+				orderBy, err := FromAPIAddonSortField(ctx, sort.Field)
+				if err != nil {
+					return ListAddonsRequest{}, err
+				}
+				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
 

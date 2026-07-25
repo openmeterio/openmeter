@@ -31,7 +31,7 @@ func NormalizeClosedPeriod(period timeutil.ClosedPeriod) timeutil.ClosedPeriod {
 	}
 }
 
-func (i Intent) Normalized() Intent {
+func (i IntentMutableFields) Normalized() IntentMutableFields {
 	i.ServicePeriod = NormalizeClosedPeriod(i.ServicePeriod)
 	i.FullServicePeriod = NormalizeClosedPeriod(i.FullServicePeriod)
 	i.BillingPeriod = NormalizeClosedPeriod(i.BillingPeriod)

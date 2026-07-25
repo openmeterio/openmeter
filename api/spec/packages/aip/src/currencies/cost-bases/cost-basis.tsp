@@ -32,6 +32,14 @@ model CostBasis {
   effective_from?: Shared.DateTime;
 
   /**
+   * An ISO-8601 timestamp representation of the date until which the cost basis is
+   * effective. If provided, it must be later than `effective_from`. If not provided,
+   * it remains effective until superseded.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  effective_to?: Shared.DateTime;
+
+  /**
    * An ISO-8601 timestamp representation of entity creation date.
    */
   @visibility(Lifecycle.Read)

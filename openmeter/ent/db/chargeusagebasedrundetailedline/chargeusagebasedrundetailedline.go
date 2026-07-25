@@ -19,12 +19,6 @@ const (
 	FieldID = "id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
-	// FieldTaxConfig holds the string denoting the tax_config field in the database.
-	FieldTaxConfig = "tax_config"
-	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
-	FieldTaxCodeID = "tax_code_id"
-	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
-	FieldTaxBehavior = "tax_behavior"
 	// FieldServicePeriodStart holds the string denoting the service_period_start field in the database.
 	FieldServicePeriodStart = "service_period_start"
 	// FieldServicePeriodEnd holds the string denoting the service_period_end field in the database.
@@ -91,8 +85,6 @@ const (
 	EdgeRun = "run"
 	// EdgeCorrectsRun holds the string denoting the corrects_run edge name in mutations.
 	EdgeCorrectsRun = "corrects_run"
-	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
-	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the chargeusagebasedrundetailedline in the database.
 	Table = "charge_usage_based_run_detailed_line"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -116,22 +108,11 @@ const (
 	CorrectsRunInverseTable = "charge_usage_based_runs"
 	// CorrectsRunColumn is the table column denoting the corrects_run relation/edge.
 	CorrectsRunColumn = "corrects_run_id"
-	// TaxCodeTable is the table that holds the tax_code relation/edge.
-	TaxCodeTable = "charge_usage_based_run_detailed_line"
-	// TaxCodeInverseTable is the table name for the TaxCode entity.
-	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
-	TaxCodeInverseTable = "tax_codes"
-	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
-	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for chargeusagebasedrundetailedline fields.
 var Columns = []string{
 	FieldID,
-	FieldCurrency,
-	FieldTaxConfig,
-	FieldTaxCodeID,
-	FieldTaxBehavior,
 	FieldServicePeriodStart,
 	FieldServicePeriodEnd,
 	FieldQuantity,
@@ -142,9 +123,7 @@ var Columns = []string{
 	FieldPaymentTerm,
 	FieldIndex,
 	FieldCreditsApplied,
-	FieldAnnotations,
 	FieldNamespace,
-	FieldMetadata,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
@@ -171,12 +150,15 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
+	for _, f := range [...]string{FieldCurrency, FieldAnnotations, FieldMetadata} {
+		if column == f {
+			return true
+		}
+	}
 	return false
 }
 
 var (
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
 	// ChildUniqueReferenceIDValidator is a validator for the "child_unique_reference_id" field. It is called by the builders before save.
 	ChildUniqueReferenceIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -194,16 +176,6 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
-
-// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
-func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
-	switch tb {
-	case "inclusive", "exclusive":
-		return nil
-	default:
-		return fmt.Errorf("chargeusagebasedrundetailedline: invalid enum value for tax_behavior field: %q", tb)
-	}
-}
 
 const DefaultCategory stddetailedline.Category = "regular"
 
@@ -240,16 +212,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
-}
-
-// ByTaxCodeID orders the results by the tax_code_id field.
-func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
-}
-
-// ByTaxBehavior orders the results by the tax_behavior field.
-func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByServicePeriodStart orders the results by the service_period_start field.
@@ -407,13 +369,6 @@ func ByCorrectsRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCorrectsRunStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// ByTaxCodeField orders the results by tax_code field.
-func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
-	}
-}
 func newChargeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -433,12 +388,5 @@ func newCorrectsRunStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CorrectsRunInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, CorrectsRunTable, CorrectsRunColumn),
-	)
-}
-func newTaxCodeStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(TaxCodeInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

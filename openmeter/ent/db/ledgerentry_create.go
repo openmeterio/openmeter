@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
@@ -101,6 +102,48 @@ func (_c *LedgerEntryCreate) SetNillableIdentityKey(v *string) *LedgerEntryCreat
 	return _c
 }
 
+// SetSchemaVersion sets the "schema_version" field.
+func (_c *LedgerEntryCreate) SetSchemaVersion(v int) *LedgerEntryCreate {
+	_c.mutation.SetSchemaVersion(v)
+	return _c
+}
+
+// SetNillableSchemaVersion sets the "schema_version" field if the given value is not nil.
+func (_c *LedgerEntryCreate) SetNillableSchemaVersion(v *int) *LedgerEntryCreate {
+	if v != nil {
+		_c.SetSchemaVersion(*v)
+	}
+	return _c
+}
+
+// SetSourceChargeID sets the "source_charge_id" field.
+func (_c *LedgerEntryCreate) SetSourceChargeID(v string) *LedgerEntryCreate {
+	_c.mutation.SetSourceChargeID(v)
+	return _c
+}
+
+// SetNillableSourceChargeID sets the "source_charge_id" field if the given value is not nil.
+func (_c *LedgerEntryCreate) SetNillableSourceChargeID(v *string) *LedgerEntryCreate {
+	if v != nil {
+		_c.SetSourceChargeID(*v)
+	}
+	return _c
+}
+
+// SetSpendChargeID sets the "spend_charge_id" field.
+func (_c *LedgerEntryCreate) SetSpendChargeID(v string) *LedgerEntryCreate {
+	_c.mutation.SetSpendChargeID(v)
+	return _c
+}
+
+// SetNillableSpendChargeID sets the "spend_charge_id" field if the given value is not nil.
+func (_c *LedgerEntryCreate) SetNillableSpendChargeID(v *string) *LedgerEntryCreate {
+	if v != nil {
+		_c.SetSpendChargeID(*v)
+	}
+	return _c
+}
+
 // SetAmount sets the "amount" field.
 func (_c *LedgerEntryCreate) SetAmount(v alpacadecimal.Decimal) *LedgerEntryCreate {
 	_c.mutation.SetAmount(v)
@@ -135,6 +178,21 @@ func (_c *LedgerEntryCreate) SetTransaction(v *LedgerTransaction) *LedgerEntryCr
 // SetSubAccount sets the "sub_account" edge to the LedgerSubAccount entity.
 func (_c *LedgerEntryCreate) SetSubAccount(v *LedgerSubAccount) *LedgerEntryCreate {
 	return _c.SetSubAccountID(v.ID)
+}
+
+// AddSourceBreakageRecordIDs adds the "source_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_c *LedgerEntryCreate) AddSourceBreakageRecordIDs(ids ...string) *LedgerEntryCreate {
+	_c.mutation.AddSourceBreakageRecordIDs(ids...)
+	return _c
+}
+
+// AddSourceBreakageRecords adds the "source_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_c *LedgerEntryCreate) AddSourceBreakageRecords(v ...*LedgerBreakageRecord) *LedgerEntryCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSourceBreakageRecordIDs(ids...)
 }
 
 // Mutation returns the LedgerEntryMutation object of the builder.
@@ -184,6 +242,10 @@ func (_c *LedgerEntryCreate) defaults() {
 		v := ledgerentry.DefaultIdentityKey
 		_c.mutation.SetIdentityKey(v)
 	}
+	if _, ok := _c.mutation.SchemaVersion(); !ok {
+		v := ledgerentry.DefaultSchemaVersion
+		_c.mutation.SetSchemaVersion(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := ledgerentry.DefaultID()
 		_c.mutation.SetID(v)
@@ -211,6 +273,19 @@ func (_c *LedgerEntryCreate) check() error {
 	}
 	if _, ok := _c.mutation.IdentityKey(); !ok {
 		return &ValidationError{Name: "identity_key", err: errors.New(`db: missing required field "LedgerEntry.identity_key"`)}
+	}
+	if _, ok := _c.mutation.SchemaVersion(); !ok {
+		return &ValidationError{Name: "schema_version", err: errors.New(`db: missing required field "LedgerEntry.schema_version"`)}
+	}
+	if v, ok := _c.mutation.SourceChargeID(); ok {
+		if err := ledgerentry.SourceChargeIDValidator(v); err != nil {
+			return &ValidationError{Name: "source_charge_id", err: fmt.Errorf(`db: validator failed for field "LedgerEntry.source_charge_id": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.SpendChargeID(); ok {
+		if err := ledgerentry.SpendChargeIDValidator(v); err != nil {
+			return &ValidationError{Name: "spend_charge_id", err: fmt.Errorf(`db: validator failed for field "LedgerEntry.spend_charge_id": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "LedgerEntry.amount"`)}
@@ -284,6 +359,18 @@ func (_c *LedgerEntryCreate) createSpec() (*LedgerEntry, *sqlgraph.CreateSpec) {
 		_spec.SetField(ledgerentry.FieldIdentityKey, field.TypeString, value)
 		_node.IdentityKey = value
 	}
+	if value, ok := _c.mutation.SchemaVersion(); ok {
+		_spec.SetField(ledgerentry.FieldSchemaVersion, field.TypeInt, value)
+		_node.SchemaVersion = value
+	}
+	if value, ok := _c.mutation.SourceChargeID(); ok {
+		_spec.SetField(ledgerentry.FieldSourceChargeID, field.TypeString, value)
+		_node.SourceChargeID = &value
+	}
+	if value, ok := _c.mutation.SpendChargeID(); ok {
+		_spec.SetField(ledgerentry.FieldSpendChargeID, field.TypeString, value)
+		_node.SpendChargeID = &value
+	}
 	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(ledgerentry.FieldAmount, field.TypeOther, value)
 		_node.Amount = value
@@ -320,6 +407,22 @@ func (_c *LedgerEntryCreate) createSpec() (*LedgerEntry, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.SubAccountID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SourceBreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerentry.SourceBreakageRecordsTable,
+			Columns: []string{ledgerentry.SourceBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -450,6 +553,15 @@ func (u *LedgerEntryUpsertOne) UpdateNewValues() *LedgerEntryUpsertOne {
 		}
 		if _, exists := u.create.mutation.IdentityKey(); exists {
 			s.SetIgnore(ledgerentry.FieldIdentityKey)
+		}
+		if _, exists := u.create.mutation.SchemaVersion(); exists {
+			s.SetIgnore(ledgerentry.FieldSchemaVersion)
+		}
+		if _, exists := u.create.mutation.SourceChargeID(); exists {
+			s.SetIgnore(ledgerentry.FieldSourceChargeID)
+		}
+		if _, exists := u.create.mutation.SpendChargeID(); exists {
+			s.SetIgnore(ledgerentry.FieldSpendChargeID)
 		}
 		if _, exists := u.create.mutation.Amount(); exists {
 			s.SetIgnore(ledgerentry.FieldAmount)
@@ -738,6 +850,15 @@ func (u *LedgerEntryUpsertBulk) UpdateNewValues() *LedgerEntryUpsertBulk {
 			}
 			if _, exists := b.mutation.IdentityKey(); exists {
 				s.SetIgnore(ledgerentry.FieldIdentityKey)
+			}
+			if _, exists := b.mutation.SchemaVersion(); exists {
+				s.SetIgnore(ledgerentry.FieldSchemaVersion)
+			}
+			if _, exists := b.mutation.SourceChargeID(); exists {
+				s.SetIgnore(ledgerentry.FieldSourceChargeID)
+			}
+			if _, exists := b.mutation.SpendChargeID(); exists {
+				s.SetIgnore(ledgerentry.FieldSpendChargeID)
 			}
 			if _, exists := b.mutation.Amount(); exists {
 				s.SetIgnore(ledgerentry.FieldAmount)

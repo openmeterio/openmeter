@@ -6,6 +6,6 @@ type BillingBehaviorOverride struct {
 	// which in practive translates to a SubscriptionItem's ActiveFrom property.
 	RestartBillingPeriod *bool `json:"restartBillingPeriod,omitempty"`
 
-	// ProratingBehavior will also be configurable here, but it's ignored for now
+	// Subscription end proration mode will also be configurable here, but it's ignored for now.
 	// ProrateItem any
 }

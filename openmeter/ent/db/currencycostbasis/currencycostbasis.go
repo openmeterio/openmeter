@@ -22,14 +22,16 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
-	FieldCustomCurrencyID = "custom_currency_id"
+	// FieldCurrencyID holds the string denoting the currency_id field in the database.
+	FieldCurrencyID = "currency_id"
 	// FieldFiatCode holds the string denoting the fiat_code field in the database.
 	FieldFiatCode = "fiat_code"
 	// FieldRate holds the string denoting the rate field in the database.
 	FieldRate = "rate"
 	// FieldEffectiveFrom holds the string denoting the effective_from field in the database.
 	FieldEffectiveFrom = "effective_from"
+	// FieldEffectiveTo holds the string denoting the effective_to field in the database.
+	FieldEffectiveTo = "effective_to"
 	// EdgeCurrency holds the string denoting the currency edge name in mutations.
 	EdgeCurrency = "currency"
 	// Table holds the table name of the currencycostbasis in the database.
@@ -40,7 +42,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "customcurrency" package.
 	CurrencyInverseTable = "custom_currencies"
 	// CurrencyColumn is the table column denoting the currency relation/edge.
-	CurrencyColumn = "custom_currency_id"
+	CurrencyColumn = "currency_id"
 )
 
 // Columns holds all SQL columns for currencycostbasis fields.
@@ -50,10 +52,11 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldCustomCurrencyID,
+	FieldCurrencyID,
 	FieldFiatCode,
 	FieldRate,
 	FieldEffectiveFrom,
+	FieldEffectiveTo,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -109,9 +112,9 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByCustomCurrencyID orders the results by the custom_currency_id field.
-func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCustomCurrencyID, opts...).ToFunc()
+// ByCurrencyID orders the results by the currency_id field.
+func ByCurrencyID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrencyID, opts...).ToFunc()
 }
 
 // ByFiatCode orders the results by the fiat_code field.
@@ -127,6 +130,11 @@ func ByRate(opts ...sql.OrderTermOption) OrderOption {
 // ByEffectiveFrom orders the results by the effective_from field.
 func ByEffectiveFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEffectiveFrom, opts...).ToFunc()
+}
+
+// ByEffectiveTo orders the results by the effective_to field.
+func ByEffectiveTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEffectiveTo, opts...).ToFunc()
 }
 
 // ByCurrencyField orders the results by currency field.

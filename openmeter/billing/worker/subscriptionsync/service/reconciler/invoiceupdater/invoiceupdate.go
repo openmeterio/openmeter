@@ -276,7 +276,7 @@ func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID custome
 		return nil
 	}
 
-	linesByCurrency := lo.GroupBy(lines, func(l billing.GatheringLine) currencyx.Code {
+	linesByCurrency := lo.GroupBy(lines, func(l billing.GatheringLine) currencyx.FiatCode {
 		return l.Currency
 	})
 
@@ -297,6 +297,7 @@ func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID custome
 func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	updatedInvoice, err := u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice:             invoice.GetInvoiceID(),
+		ChangeSource:        billing.ChangeSourceSystem,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			for _, lineID := range linePatches.deletedLines {
@@ -346,7 +347,10 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 			return nil
 		}
 
-		invoice, err := u.billingService.DeleteInvoice(ctx, updatedInvoice.GetInvoiceID())
+		invoice, err := u.billingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+			Invoice:        updatedInvoice.GetInvoiceID(),
+			DeletionSource: billing.ChangeSourceSystem,
+		})
 		if err != nil {
 			return fmt.Errorf("deleting empty invoice: %w", err)
 		}
@@ -367,8 +371,9 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 }
 
 func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
-	return u.billingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+	_, err := u.billingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice:             invoiceID,
+		ChangeSource:        billing.ChangeSourceSystem,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			for _, lineID := range linePatches.deletedLines {
@@ -398,6 +403,8 @@ func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.
 			return nil
 		},
 	})
+
+	return err
 }
 
 func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {

@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -29,16 +31,18 @@ func (f CurrencyFilter) Validate() error {
 }
 
 type GetBalancesInput struct {
-	CustomerID customer.CustomerID
-	Currencies CurrencyFilter
-	AsOf       *time.Time
+	CustomerID    customer.CustomerID
+	Currencies    CurrencyFilter
+	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	AsOf          *time.Time
 }
 
 type GetBalanceInput struct {
-	CustomerID customer.CustomerID
-	Currency   currencyx.Code
-	After      *ledger.TransactionCursor
-	AsOf       *time.Time
+	CustomerID    customer.CustomerID
+	Currency      currencyx.Code
+	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	After         *ledger.TransactionCursor
+	AsOf          *time.Time
 }
 
 func (i GetBalancesInput) Validate() error {
@@ -50,6 +54,10 @@ func (i GetBalancesInput) Validate() error {
 
 	if err := i.Currencies.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currencies: %w", err))
+	}
+
+	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
+		errs = append(errs, fmt.Errorf("feature filter: %w", err))
 	}
 
 	if i.AsOf != nil && i.AsOf.IsZero() {
@@ -68,6 +76,10 @@ func (i GetBalanceInput) Validate() error {
 
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
+		errs = append(errs, fmt.Errorf("feature filter: %w", err))
 	}
 
 	if i.After != nil {
@@ -89,7 +101,7 @@ func (i GetBalanceInput) Validate() error {
 
 type BalanceByCurrency struct {
 	Currency currencyx.Code
-	Balance  ledger.Balance
+	Balance  Balance
 }
 
 type Facade struct {
@@ -120,23 +132,32 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 		codes = dedupeCurrencies(input.Currencies.Codes)
 
 		for _, code := range codes {
-			if err := code.Validate(); err != nil {
+			if err := ledger.ValidateCurrency(code); err != nil {
 				return nil, fmt.Errorf("currency %q is not supported by ledger: %w", code, err)
 			}
 		}
 	} else {
 		var err error
 
-		codes, err = f.service.GetFBOCurrencies(ctx, input.CustomerID)
+		codes, err = f.service.GetBalanceCurrencies(ctx, GetBalanceCurrenciesInput{
+			CustomerID:    input.CustomerID,
+			FeatureFilter: input.FeatureFilter,
+			AsOf:          input.AsOf,
+		})
 		if err != nil {
-			return nil, fmt.Errorf("get FBO currencies: %w", err)
+			return nil, fmt.Errorf("get balance currencies: %w", err)
 		}
 	}
 
 	balances := make([]BalanceByCurrency, 0, len(codes))
 	for _, code := range codes {
-		balance, err := f.service.GetBalance(ctx, input.CustomerID, code, ledger.BalanceQuery{
-			AsOf: input.AsOf,
+		balance, err := f.service.GetBalance(ctx, GetBalanceServiceInput{
+			CustomerID:    input.CustomerID,
+			Currency:      code,
+			FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
+			BalanceQuery: ledger.BalanceQuery{
+				AsOf: input.AsOf,
+			},
 		})
 		if err != nil {
 			return nil, err
@@ -160,15 +181,20 @@ func (f *Facade) GetBalance(ctx context.Context, input GetBalanceInput) (alpacad
 		return alpacadecimal.Zero, err
 	}
 
-	balance, err := f.service.GetBalance(ctx, input.CustomerID, input.Currency, ledger.BalanceQuery{
-		After: input.After,
-		AsOf:  input.AsOf,
+	balance, err := f.service.GetSettledBalance(ctx, GetBalanceServiceInput{
+		CustomerID:    input.CustomerID,
+		Currency:      input.Currency,
+		FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
+		BalanceQuery: ledger.BalanceQuery{
+			After: input.After,
+			AsOf:  input.AsOf,
+		},
 	})
 	if err != nil {
 		return alpacadecimal.Zero, err
 	}
 
-	return balance.Settled(), nil
+	return balance, nil
 }
 
 func (f *Facade) ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error) {

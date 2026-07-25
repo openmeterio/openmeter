@@ -17,6 +17,9 @@ func RootCommand() *cobra.Command {
 		Short: "Database migration operations",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			migrationMode := config.AutoMigrate(migrationMode)
+			if migrationMode == "ent" {
+				return fmt.Errorf("ent migration is no longer supported; run 'openmeter-jobs migrate adopt-ent' once, then set migration mode to 'migration'")
+			}
 			if !migrationMode.Enabled() {
 				return fmt.Errorf("migration mode is disabled")
 			}
@@ -37,7 +40,25 @@ func RootCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&migrationMode, "mode", "m", string(config.AutoMigrateMigration), "Migration mode allowed values: ent, migration")
+	cmd.Flags().StringVarP(&migrationMode, "mode", "m", string(config.AutoMigrateMigration), "Migration mode allowed values: migration")
+	cmd.AddCommand(adoptEntCommand())
 
 	return cmd
+}
+
+func adoptEntCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "adopt-ent",
+		Short: "Adopt a database previously managed by Ent into versioned migrations",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := internal.App.Migrator.AdoptLegacyEnt(cmd.Context()); err != nil {
+				return fmt.Errorf("failed to adopt legacy Ent database: %w", err)
+			}
+
+			internal.App.Logger.Info("legacy Ent database adopted successfully; run the normal migration command to upgrade to the target version")
+
+			return nil
+		},
+	}
 }

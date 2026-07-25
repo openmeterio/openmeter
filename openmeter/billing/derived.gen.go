@@ -17,15 +17,16 @@ func deriveEqualGatheringLineBase(this, that *GatheringLineBase) bool {
 			this.ManagedBy == that.ManagedBy &&
 			this.Engine == that.Engine &&
 			this.InvoiceID == that.InvoiceID &&
-			this.Currency == that.Currency &&
+			this.Currency.Equal(that.Currency) &&
 			this.ServicePeriod.Equal(that.ServicePeriod) &&
 			this.InvoiceAt.Equal(that.InvoiceAt) &&
 			this.Price.Equal(&that.Price) &&
 			this.FeatureKey == that.FeatureKey &&
+			this.UnitConfig.Equal(that.UnitConfig) &&
 			this.TaxConfig.Equal(that.TaxConfig) &&
-			deriveEqual_(&this.RateCardDiscounts, &that.RateCardDiscounts) &&
+			this.RateCardDiscounts.Equal(that.RateCardDiscounts) &&
 			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
-			deriveEqual_1(this.Subscription, that.Subscription) &&
+			deriveEqual_(this.Subscription, that.Subscription) &&
 			((this.SplitLineGroupID == nil && that.SplitLineGroupID == nil) || (this.SplitLineGroupID != nil && that.SplitLineGroupID != nil && *(this.SplitLineGroupID) == *(that.SplitLineGroupID))) &&
 			((this.ChargeID == nil && that.ChargeID == nil) || (this.ChargeID != nil && that.ChargeID != nil && *(this.ChargeID) == *(that.ChargeID))) &&
 			this.UBPConfigID == that.UBPConfigID
@@ -38,7 +39,7 @@ func deriveEqualLineDiscountBase(this, that *LineDiscountBase) bool {
 			((this.Description == nil && that.Description == nil) || (this.Description != nil && that.Description != nil && *(this.Description) == *(that.Description))) &&
 			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
 			this.ExternalIDs.Equal(that.ExternalIDs) &&
-			deriveEqual_2(&this.Reason, &that.Reason)
+			deriveEqual_1(&this.Reason, &that.Reason)
 }
 
 // deriveEqualAmountLineDiscount returns whether this and that are equal.
@@ -85,7 +86,7 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 			this.ManagedBy == that.ManagedBy &&
 			this.Engine == that.Engine &&
 			this.InvoiceID == that.InvoiceID &&
-			this.Currency == that.Currency &&
+			this.Currency.Equal(that.Currency) &&
 			this.Period.Equal(that.Period) &&
 			this.InvoiceAt.Equal(that.InvoiceAt) &&
 			((this.OverrideCollectionPeriodEnd == nil && that.OverrideCollectionPeriodEnd == nil) || (this.OverrideCollectionPeriodEnd != nil && that.OverrideCollectionPeriodEnd != nil && (*(this.OverrideCollectionPeriodEnd)).Equal(*(that.OverrideCollectionPeriodEnd)))) &&
@@ -94,10 +95,10 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 			((this.ChargeID == nil && that.ChargeID == nil) || (this.ChargeID != nil && that.ChargeID != nil && *(this.ChargeID) == *(that.ChargeID))) &&
 			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
 			this.TaxConfig.Equal(that.TaxConfig) &&
-			deriveEqual_(&this.RateCardDiscounts, &that.RateCardDiscounts) &&
-			deriveEqual_3(this.CreditsApplied, that.CreditsApplied) &&
+			this.RateCardDiscounts.Equal(that.RateCardDiscounts) &&
+			deriveEqual_2(this.CreditsApplied, that.CreditsApplied) &&
 			this.ExternalIDs.Equal(that.ExternalIDs) &&
-			deriveEqual_1(this.Subscription, that.Subscription) &&
+			deriveEqual_(this.Subscription, that.Subscription) &&
 			this.Totals.Equal(that.Totals)
 }
 
@@ -111,7 +112,8 @@ func deriveEqualUsageBasedLine(this, that *UsageBasedLine) bool {
 			((this.Quantity == nil && that.Quantity == nil) || (this.Quantity != nil && that.Quantity != nil && (*(this.Quantity)).Equal(*(that.Quantity)))) &&
 			((this.MeteredQuantity == nil && that.MeteredQuantity == nil) || (this.MeteredQuantity != nil && that.MeteredQuantity != nil && (*(this.MeteredQuantity)).Equal(*(that.MeteredQuantity)))) &&
 			((this.PreLinePeriodQuantity == nil && that.PreLinePeriodQuantity == nil) || (this.PreLinePeriodQuantity != nil && that.PreLinePeriodQuantity != nil && (*(this.PreLinePeriodQuantity)).Equal(*(that.PreLinePeriodQuantity)))) &&
-			((this.MeteredPreLinePeriodQuantity == nil && that.MeteredPreLinePeriodQuantity == nil) || (this.MeteredPreLinePeriodQuantity != nil && that.MeteredPreLinePeriodQuantity != nil && (*(this.MeteredPreLinePeriodQuantity)).Equal(*(that.MeteredPreLinePeriodQuantity))))
+			((this.MeteredPreLinePeriodQuantity == nil && that.MeteredPreLinePeriodQuantity == nil) || (this.MeteredPreLinePeriodQuantity != nil && that.MeteredPreLinePeriodQuantity != nil && (*(this.MeteredPreLinePeriodQuantity)).Equal(*(that.MeteredPreLinePeriodQuantity)))) &&
+			this.UnitConfig.Equal(that.UnitConfig)
 }
 
 // deriveEqual returns whether this and that are equal.
@@ -126,15 +128,7 @@ func deriveEqual(this, that *models.ManagedResource) bool {
 }
 
 // deriveEqual_ returns whether this and that are equal.
-func deriveEqual_(this, that *Discounts) bool {
-	return (this == nil && that == nil) ||
-		this != nil && that != nil &&
-			((this.Percentage == nil && that.Percentage == nil) || (this.Percentage != nil && that.Percentage != nil && (*(this.Percentage)).Equal(*(that.Percentage)))) &&
-			((this.Usage == nil && that.Usage == nil) || (this.Usage != nil && that.Usage != nil && (*(this.Usage)).Equal(*(that.Usage))))
-}
-
-// deriveEqual_1 returns whether this and that are equal.
-func deriveEqual_1(this, that *SubscriptionReference) bool {
+func deriveEqual_(this, that *SubscriptionReference) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.SubscriptionID == that.SubscriptionID &&
@@ -143,8 +137,8 @@ func deriveEqual_1(this, that *SubscriptionReference) bool {
 			this.BillingPeriod.Equal(that.BillingPeriod)
 }
 
-// deriveEqual_2 returns whether this and that are equal.
-func deriveEqual_2(this, that *DiscountReason) bool {
+// deriveEqual_1 returns whether this and that are equal.
+func deriveEqual_1(this, that *DiscountReason) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.t == that.t &&
@@ -152,8 +146,8 @@ func deriveEqual_2(this, that *DiscountReason) bool {
 			((this.usage == nil && that.usage == nil) || (this.usage != nil && that.usage != nil && (*(this.usage)).Equal(*(that.usage))))
 }
 
-// deriveEqual_3 returns whether this and that are equal.
-func deriveEqual_3(this, that []creditsapplied.CreditApplied) bool {
+// deriveEqual_2 returns whether this and that are equal.
+func deriveEqual_2(this, that []creditsapplied.CreditApplied) bool {
 	if this == nil || that == nil {
 		return this == nil && that == nil
 	}
@@ -161,15 +155,15 @@ func deriveEqual_3(this, that []creditsapplied.CreditApplied) bool {
 		return false
 	}
 	for i := 0; i < len(this); i++ {
-		if !(deriveEqual_4(&this[i], &that[i])) {
+		if !(deriveEqual_3(&this[i], &that[i])) {
 			return false
 		}
 	}
 	return true
 }
 
-// deriveEqual_4 returns whether this and that are equal.
-func deriveEqual_4(this, that *creditsapplied.CreditApplied) bool {
+// deriveEqual_3 returns whether this and that are equal.
+func deriveEqual_3(this, that *creditsapplied.CreditApplied) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.Amount.Equal(that.Amount) &&

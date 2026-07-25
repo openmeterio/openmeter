@@ -31,10 +31,13 @@ interface CustomerEntitlementsV2Endpoints {
   post(
     @path customerIdOrKey: ULIDOrExternalKey,
     @body entitlement: EntitlementV2CreateInputs,
-  ): {
-    @statusCode _: 201;
-    @body body: EntitlementV2;
-  } | CommonErrors | ConflictError;
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: EntitlementV2;
+      }
+    | CommonErrors
+    | ConflictError;
 
   /**
    * List all entitlements for a customer. For checking entitlement access, use the /value endpoint instead.
@@ -73,9 +76,12 @@ interface CustomerEntitlementsV2Endpoints {
   delete(
     @path customerIdOrKey: ULIDOrExternalKey,
     @path entitlementIdOrFeatureKey: ULIDOrKey,
-  ): {
-    @statusCode _: 204;
-  } | CommonErrors | NotFoundError;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | CommonErrors
+    | NotFoundError;
 
   /**
    * Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes the previous entitlement for the provided customer-feature pair. If the previous entitlement is already deleted or otherwise doesnt exist, the override will fail.
@@ -142,10 +148,13 @@ interface CustomerEntitlementV2Endpoints {
     @path customerIdOrKey: ULIDOrExternalKey,
     @path entitlementIdOrFeatureKey: ULIDOrKey,
     @body grant: GrantCreateInputV2,
-  ): {
-    @statusCode _: 201;
-    @body body: GrantV2;
-  } | CommonErrors | ConflictError;
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: GrantV2;
+      }
+    | CommonErrors
+    | ConflictError;
 
   /**
    * Checks customer access to a given feature (by key). All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
@@ -210,9 +219,12 @@ interface CustomerEntitlementV2Endpoints {
     @path customerIdOrKey: ULIDOrExternalKey,
     @path entitlementIdOrFeatureKey: ULIDOrKey,
     @body reset: ResetEntitlementUsageInput,
-  ): {
-    @statusCode _: 204;
-  } | CommonErrors | NotFoundError;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | CommonErrors
+    | NotFoundError;
 }
 
 /**

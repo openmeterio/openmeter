@@ -33,6 +33,23 @@ var (
 	// goverter:enum:map AppTypeCustomInvoicing BillingAppTypeExternalInvoicing
 	ToAPIBillingAppTypeFromDomain func(source app.AppType) (api.BillingAppType, error)
 
+	// goverter:enum:map BillingAppTypeStripe AppTypeStripe
+	// goverter:enum:map BillingAppTypeSandbox AppTypeSandbox
+	// goverter:enum:map BillingAppTypeExternalInvoicing AppTypeCustomInvoicing
+	ToDomainAppTypeFromAPIBillingAppType func(source api.BillingAppType) (app.AppType, error)
+
+	// goverter:enum:map CapabilityTypeReportUsage BillingAppCapabilityTypeReportUsage
+	// goverter:enum:map CapabilityTypeReportEvents BillingAppCapabilityTypeReportEvents
+	// goverter:enum:map CapabilityTypeCalculateTax BillingAppCapabilityTypeCalculateTax
+	// goverter:enum:map CapabilityTypeInvoiceCustomers BillingAppCapabilityTypeInvoiceCustomers
+	// goverter:enum:map CapabilityTypeCollectPayments BillingAppCapabilityTypeCollectPayments
+	ToAPIBillingAppCapabilityTypeFromCapabilityType func(source app.CapabilityType) (api.BillingAppCapabilityType, error)
+
+	// goverter:enum:map InstallMethodOAuth2 BillingAppInstallMethodsWithOauth2
+	// goverter:enum:map InstallMethodAPIKey BillingAppInstallMethodsWithApiKey
+	// goverter:enum:map InstallMethodNoCredentials BillingAppInstallMethodsNoCredentialsRequired
+	ToAPIBillingAppInstallMethodsFromInstallMethod func(source app.InstallMethod) (api.BillingAppInstallMethods, error)
+
 	ToAPIBillingApps func(source []app.App) ([]api.BillingApp, error)
 )
 
@@ -172,4 +189,14 @@ func toAPIBillingAppExternalInvoicing(customInvoicingApp appcustominvoicing.Meta
 		EnableDraftSyncHook:   customInvoicingApp.Configuration.EnableDraftSyncHook,
 		EnableIssuingSyncHook: customInvoicingApp.Configuration.EnableIssuingSyncHook,
 	}, nil
+}
+
+// MustToAPIBillingAppCapabilityTypeFromCapabilityType is the strict version of the ToAPIBillingAppCapabilityTypeFromCapabilityType
+// use it with caution, only for constant mapping and/or testing
+func MustToAPIBillingAppCapabilityTypeFromCapabilityType(source app.CapabilityType) api.BillingAppCapabilityType {
+	result, err := ToAPIBillingAppCapabilityTypeFromCapabilityType(source)
+	if err != nil {
+		panic(fmt.Errorf("unable to convert capability type: %w", err))
+	}
+	return result
 }

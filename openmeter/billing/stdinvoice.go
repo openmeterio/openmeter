@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
@@ -209,6 +208,35 @@ func (s StandardInvoiceStatus) Validate() error {
 	return nil
 }
 
+// InvoiceShortStatus represents the top-level status category of an invoice
+// (e.g. "draft", "issued") as exposed in the API, in contrast to
+// StandardInvoiceStatus which carries the full extended value (e.g. "draft.created").
+// Valid values are derived from validStatuses via ShortStatus().
+type InvoiceShortStatus string
+
+// Values returns all valid short status values except the gathering, derived from the extended statuses.
+// Satisfies expand.Expandable[InvoiceShortStatus] and the FromAPIStatusFilter constraint.
+func (s InvoiceShortStatus) Values() []InvoiceShortStatus {
+	unsupportedStatuses := []StandardInvoiceStatus{
+		StandardInvoiceStatusGathering,
+		StandardInvoiceStatusDeleteInProgress,
+		StandardInvoiceStatusDeleteSyncing,
+		StandardInvoiceStatusDeleteFailed,
+		StandardInvoiceStatusDeleted,
+	}
+	return lo.Uniq(lo.Map(lo.Without(validStatuses, unsupportedStatuses...), func(st StandardInvoiceStatus, _ int) InvoiceShortStatus {
+		return InvoiceShortStatus(st.ShortStatus())
+	}))
+}
+
+func (s InvoiceShortStatus) Validate() error {
+	if !lo.Contains(s.Values(), s) {
+		return fmt.Errorf("invalid invoice short status: %s", s)
+	}
+
+	return nil
+}
+
 type StandardInvoiceBase struct {
 	Namespace string `json:"namespace"`
 	ID        string `json:"id"`
@@ -220,7 +248,7 @@ type StandardInvoiceBase struct {
 
 	Metadata map[string]string `json:"metadata"`
 
-	Currency      currencyx.Code               `json:"currency,omitempty"`
+	Currency      currencyx.FiatCode           `json:"currency,omitempty"`
 	Status        StandardInvoiceStatus        `json:"status"`
 	StatusDetails StandardInvoiceStatusDetails `json:"statusDetail,omitempty"`
 
@@ -228,14 +256,15 @@ type StandardInvoiceBase struct {
 
 	DueAt *time.Time `json:"dueDate,omitempty"`
 
-	CreatedAt            time.Time  `json:"createdAt"`
-	UpdatedAt            time.Time  `json:"updatedAt"`
-	VoidedAt             *time.Time `json:"voidedAt,omitempty"`
-	DraftUntil           *time.Time `json:"draftUntil,omitempty"`
-	IssuedAt             *time.Time `json:"issuedAt,omitempty"`
-	DeletedAt            *time.Time `json:"deletedAt,omitempty"`
-	SentToCustomerAt     *time.Time `json:"sentToCustomerAt,omitempty"`
-	QuantitySnapshotedAt *time.Time `json:"quantitySnapshotedAt,omitempty"`
+	CreatedAt            time.Time    `json:"createdAt"`
+	UpdatedAt            time.Time    `json:"updatedAt"`
+	VoidedAt             *time.Time   `json:"voidedAt,omitempty"`
+	DraftUntil           *time.Time   `json:"draftUntil,omitempty"`
+	IssuedAt             *time.Time   `json:"issuedAt,omitempty"`
+	DeletedAt            *time.Time   `json:"deletedAt,omitempty"`
+	DeletionSource       ChangeSource `json:"deletionSource,omitempty"`
+	SentToCustomerAt     *time.Time   `json:"sentToCustomerAt,omitempty"`
+	QuantitySnapshotedAt *time.Time   `json:"quantitySnapshotedAt,omitempty"`
 
 	CollectionAt *time.Time `json:"collectionAt,omitempty"`
 	// PaymentProcessingEnteredAt stores when the invoice first entered payment processing
@@ -368,6 +397,19 @@ func (i StandardInvoice) AsInvoice() Invoice {
 	}
 }
 
+func (i StandardInvoice) GetType() InvoiceType {
+	return InvoiceTypeStandard
+}
+
+func (i StandardInvoice) CloneAsGenericInvoice() (GenericInvoice, error) {
+	cloned, err := i.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return &cloned, nil
+}
+
 func (i StandardInvoice) GetGenericLines() mo.Option[[]GenericInvoiceLine] {
 	if !i.Lines.IsPresent() {
 		return mo.None[[]GenericInvoiceLine]()
@@ -393,6 +435,10 @@ func (i *StandardInvoice) SetLines(lines []GenericInvoiceLine) error {
 
 	i.Lines = NewStandardInvoiceLines(mappedLines)
 	return nil
+}
+
+func (i *StandardInvoice) UnsetLines() {
+	i.Lines = StandardInvoiceLines{}
 }
 
 func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
@@ -448,18 +494,27 @@ func (i *StandardInvoice) getLeafLines() DetailedLines {
 	return out
 }
 
-// GetLeafLinesWithConsolidatedTaxBehavior returns the leaf lines with the tax behavior set to the invoice's tax behavior
-// unless the line already has a tax behavior set.
-func (i *StandardInvoice) GetLeafLinesWithConsolidatedTaxBehavior() DetailedLines {
-	leafLines := i.getLeafLines()
-	if i.Workflow.Config.Invoicing.DefaultTaxConfig == nil {
-		return leafLines
+type DetailedLineWithResolvedTaxConfig struct {
+	DetailedLine
+	TaxConfig *TaxConfig
+}
+
+// GetLeafLinesWithResolvedTaxConfig returns invoice leaf lines together with the effective tax
+// config inherited from the parent standard line.
+func (i *StandardInvoice) GetLeafLinesWithResolvedTaxConfig() []DetailedLineWithResolvedTaxConfig {
+	out := make([]DetailedLineWithResolvedTaxConfig, 0)
+
+	for _, parentLine := range i.Lines.OrEmpty() {
+		taxConfig := MergeTaxConfigs(FromProductCatalog(i.Workflow.Config.Invoicing.DefaultTaxConfig), parentLine.TaxConfig)
+		for _, line := range parentLine.DetailedLines {
+			out = append(out, DetailedLineWithResolvedTaxConfig{
+				DetailedLine: line,
+				TaxConfig:    taxConfig,
+			})
+		}
 	}
 
-	return lo.Map(leafLines, func(line DetailedLine, _ int) DetailedLine {
-		line.TaxConfig = productcatalog.MergeTaxConfigs(i.Workflow.Config.Invoicing.DefaultTaxConfig, line.TaxConfig)
-		return line
-	})
+	return out
 }
 
 func (i StandardInvoice) Clone() (StandardInvoice, error) {
@@ -688,7 +743,7 @@ type CreateInvoiceAdapterInput struct {
 	Customer  customer.Customer
 	Profile   Profile
 	Number    string
-	Currency  currencyx.Code
+	Currency  currencyx.FiatCode
 	Status    StandardInvoiceStatus
 	Metadata  map[string]string
 	IssuedAt  time.Time
@@ -769,7 +824,45 @@ type GetOwnershipAdapterResponse struct {
 	CustomerID string
 }
 
-type DeleteInvoiceInput = InvoiceID
+type DeleteInvoiceInput struct {
+	// Invoice identifies the standard invoice to delete.
+	Invoice InvoiceID
+	// DeletionSource classifies why the invoice is being deleted.
+	//
+	// ChangeSourceAPIRequest means the delete came from the public invoice API.
+	// ChangeSourceSystem means the delete came from internal billing, charge, or
+	// subscription lifecycle code and should notify line engines about system
+	// standard-line deletion.
+	DeletionSource ChangeSource
+}
+
+func (i DeleteInvoiceInput) Validate() error {
+	var errs []error
+
+	if err := i.Invoice.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invoice: %w", err))
+	}
+
+	if err := i.DeletionSource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("deletion source: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type DeleteInvoiceTriggerInput struct {
+	Source ChangeSource
+}
+
+func (i DeleteInvoiceTriggerInput) Validate() error {
+	if err := i.Source.Validate(); err != nil {
+		return fmt.Errorf("source: %w", err)
+	}
+
+	return nil
+}
+
+var _ models.Validator = DeleteInvoiceTriggerInput{}
 
 type UpdateInvoiceLinesInternalInput struct {
 	Namespace  string
@@ -789,10 +882,26 @@ func (i UpdateInvoiceLinesInternalInput) Validate() error {
 	return nil
 }
 
+// UpdateStandardInvoiceInput updates a mutable standard invoice by applying EditFn,
+// diffing the edited lines against the original invoice, and letting line engines
+// canonicalize line changes according to ChangeSource before persistence.
 type UpdateStandardInvoiceInput struct {
+	// Invoice identifies the standard invoice to update.
 	Invoice InvoiceID
-	EditFn  func(*StandardInvoice) error
-	// IncludeDeletedLines signals the update to populate the deleted lines into the lines field, for the edit function
+	// EditFn mutates the loaded invoice into the caller's desired state.
+	EditFn func(*StandardInvoice) error
+	// ChangeSource classifies why line changes are being applied.
+	//
+	// ChangeSourceAPIRequest means the update came from the public
+	// invoice editing API and should be treated as a user override: invoice-owned
+	// lines may become manually managed, while charge-owned lines may reject the
+	// change.
+	//
+	// ChangeSourceSystem means the update came from internal billing,
+	// charge, or subscription lifecycle code. These updates should preserve system
+	// ownership semantics and allow engines to reconcile their own managed lines.
+	ChangeSource ChangeSource
+	// IncludeDeletedLines populates deleted lines into the invoice lines field before EditFn is called.
 	IncludeDeletedLines bool
 }
 
@@ -805,6 +914,10 @@ func (i UpdateStandardInvoiceInput) Validate() error {
 		return errors.New("edit function is required")
 	}
 
+	if err := i.ChangeSource.Validate(); err != nil {
+		return fmt.Errorf("line change source: %w", err)
+	}
+
 	return nil
 }
 
@@ -814,7 +927,7 @@ type SimulateInvoiceInput struct {
 	Customer   *customer.Customer
 
 	Number   *string
-	Currency currencyx.Code
+	Currency currencyx.FiatCode
 	Lines    StandardInvoiceLines
 }
 
@@ -977,6 +1090,63 @@ var StandardInvoiceExpandAll = StandardInvoiceExpands{
 	// Deleted lines are not expanded by default
 }
 
+// InvoicePendingAdvancementFilter selects invoices that have been eligible for
+// automatic advancement for at least MinimumAge as of AsOf. Scheduled states
+// use their explicit due timestamp; states without one use the invoice's last
+// update as the start of the pending period.
+type InvoicePendingAdvancementFilter struct {
+	AsOf       time.Time
+	MinimumAge time.Duration
+}
+
+var _ models.Validator = (*InvoicePendingAdvancementFilter)(nil)
+
+func (f InvoicePendingAdvancementFilter) Validate() error {
+	var errs []error
+
+	if f.AsOf.IsZero() {
+		errs = append(errs, errors.New("as of is required"))
+	}
+
+	if f.MinimumAge < 0 {
+		errs = append(errs, errors.New("minimum age cannot be negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ListStandardInvoicesPendingAdvancementInput configures retrieval of standard
+// invoices that are due for automatic advancement.
+type ListStandardInvoicesPendingAdvancementInput struct {
+	Namespaces []string
+	IDs        []string
+	AsOf       time.Time
+	MinimumAge time.Duration
+}
+
+var _ models.Validator = (*ListStandardInvoicesPendingAdvancementInput)(nil)
+
+func (i ListStandardInvoicesPendingAdvancementInput) Validate() error {
+	return InvoicePendingAdvancementFilter{
+		AsOf:       i.AsOf,
+		MinimumAge: i.MinimumAge,
+	}.Validate()
+}
+
+// CountStandardInvoicesPendingAdvancementInput configures an aggregate count
+// of advancement candidates while allowing operationally disabled namespaces
+// to be excluded.
+type CountStandardInvoicesPendingAdvancementInput struct {
+	Filter             InvoicePendingAdvancementFilter
+	ExcludedNamespaces []string
+}
+
+var _ models.Validator = (*CountStandardInvoicesPendingAdvancementInput)(nil)
+
+func (i CountStandardInvoicesPendingAdvancementInput) Validate() error {
+	return i.Filter.Validate()
+}
+
 type GetStandardInvoiceByIdInput struct {
 	Invoice InvoiceID
 	Expand  StandardInvoiceExpands
@@ -1038,11 +1208,12 @@ type ListStandardInvoicesResponse = pagination.Result[StandardInvoice]
 
 type CreateStandardInvoiceFromGatheringLinesInput struct {
 	Customer    customer.CustomerID
-	Currency    currencyx.Code
+	Currency    currencyx.FiatCode
 	Description *string
 
 	Lines                       GatheringLines
 	PostCreationCalculationHook PostCreationCalculationHook
+	ForceAsyncAdvance           bool
 }
 
 type (

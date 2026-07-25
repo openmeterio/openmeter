@@ -18,10 +18,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestListCustomersToAdvance(t *testing.T) {
@@ -34,22 +34,16 @@ type ListCustomersToAdvanceSuite struct {
 	testDB   *testutils.TestDB
 	dbClient *db.Client
 	adapter  charges.ChargesSearchAdapter
+
+	taxCodeEnv           *taxcodetestutils.TestEnv
+	taxCodeIDByNamespace map[string]string
 }
 
 func (s *ListCustomersToAdvanceSuite) SetupSuite() {
 	t := s.T()
 
-	s.testDB = testutils.InitPostgresDB(t)
+	s.testDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	s.dbClient = db.NewClient(db.Driver(s.testDB.EntDriver.Driver()))
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: s.testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           slog.Default(),
-	})
-	require.NoError(t, err)
-	defer migrator.CloseOrLogError()
-	require.NoError(t, migrator.Up())
 
 	a, err := New(Config{
 		Client: s.dbClient,
@@ -57,6 +51,9 @@ func (s *ListCustomersToAdvanceSuite) SetupSuite() {
 	})
 	require.NoError(t, err)
 	s.adapter = a
+
+	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
+	s.taxCodeIDByNamespace = make(map[string]string)
 }
 
 func (s *ListCustomersToAdvanceSuite) TearDownSuite() {
@@ -78,22 +75,28 @@ func (s *ListCustomersToAdvanceSuite) createCustomer(namespace string) string {
 }
 
 // insertFlatFeeCharge inserts a minimal flat fee charge row for testing the search view.
-func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID string, status meta.ChargeStatus, advanceAfter *time.Time) {
+func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID string, status meta.ChargeStatus, advanceAfter *time.Time) string {
 	s.T().Helper()
 
 	now := time.Now().UTC().Truncate(time.Microsecond)
+	taxCodeID, ok := s.taxCodeIDByNamespace[namespace]
+	if !ok {
+		taxCodeID = s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
+		s.taxCodeIDByNamespace[namespace] = taxCodeID
+	}
 
 	create := s.dbClient.ChargeFlatFee.Create().
 		SetNamespace(namespace).
 		SetCustomerID(customerID).
 		SetStatus(status).
 		SetStatusDetailed(flatfee.Status(status)).
-		SetCurrency(currencyx.Code("USD")).
+		SetFiatCurrencyCode(currencyx.Code("USD")).
 		SetManagedBy(billing.SubscriptionManagedLine).
 		SetName("test-charge").
 		SetPaymentTerm(productcatalog.InArrearsPaymentTerm).
 		SetInvoiceAt(now).
 		SetSettlementMode(productcatalog.CreditOnlySettlementMode).
+		SetTaxCodeID(taxCodeID).
 		SetProRating(flatfee.NoProratingAdapterMode).
 		SetAmountBeforeProration(alpacadecimal.NewFromInt(100)).
 		SetAmountAfterProration(alpacadecimal.NewFromInt(100)).
@@ -108,8 +111,62 @@ func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID 
 		create = create.SetAdvanceAfter(*advanceAfter)
 	}
 
-	_, err := create.Save(context.Background())
+	charge, err := create.Save(context.Background())
 	s.Require().NoError(err)
+
+	return charge.ID
+}
+
+func (s *ListCustomersToAdvanceSuite) TestListChargesDeletedAtFilter() {
+	ctx := s.T().Context()
+	ns := "test-list-charges-deleted-at-filter"
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	deletedAt := now.Add(time.Minute)
+
+	customerID := s.createCustomer(ns)
+
+	liveChargeID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil)
+	overrideDeletedChargeID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil)
+	baseDeletedChargeID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil)
+
+	_, err := s.dbClient.ChargeFlatFee.UpdateOneID(overrideDeletedChargeID).
+		SetDeletedAt(deletedAt).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	_, err = s.dbClient.ChargeFlatFee.UpdateOneID(baseDeletedChargeID).
+		SetDeletedAt(deletedAt).
+		SetIntentDeletedAt(deletedAt).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	listIDs := func(input charges.ListChargesInput) []string {
+		s.T().Helper()
+
+		input.Namespace = ns
+		input.ChargeTypes = []meta.ChargeType{meta.ChargeTypeFlatFee}
+
+		result, err := s.adapter.ListCharges(ctx, input)
+		s.Require().NoError(err)
+
+		out := make([]string, 0, len(result.Items))
+		for _, item := range result.Items {
+			out = append(out, item.ID.ID)
+		}
+
+		return out
+	}
+
+	s.ElementsMatch([]string{liveChargeID}, listIDs(charges.ListChargesInput{}))
+	s.ElementsMatch([]string{liveChargeID}, listIDs(charges.ListChargesInput{
+		DeletedAtFilter: charges.ListChargesDeletedAtFilterEffective,
+	}))
+	s.ElementsMatch([]string{liveChargeID, overrideDeletedChargeID}, listIDs(charges.ListChargesInput{
+		DeletedAtFilter: charges.ListChargesDeletedAtFilterBaseIntent,
+	}))
+	s.ElementsMatch([]string{liveChargeID, overrideDeletedChargeID, baseDeletedChargeID}, listIDs(charges.ListChargesInput{
+		IncludeDeleted: true,
+	}))
 }
 
 func (s *ListCustomersToAdvanceSuite) TestReturnsOnlyEligibleCustomers() {

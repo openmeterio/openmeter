@@ -268,7 +268,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchD
 			Total:        0,
 		}, line.Totals)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 		s.Len(charge.Realizations, 1)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
@@ -452,7 +452,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchK
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 		s.True(invoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 		currentRun := charge.Realizations[0]
 		runID = currentRun.ID
@@ -598,7 +598,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceCreatePatchCrea
 		flatFeeCharge, err := result.Items[0].AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
-		s.Equal(productcatalog.CreditThenInvoiceSettlementMode, flatFeeCharge.Intent.SettlementMode)
+		s.Equal(productcatalog.CreditThenInvoiceSettlementMode, flatFeeCharge.Intent.GetSettlementMode())
 
 		activeLines := s.mustGatheringLinesForCharge(ns, cust.ID, flatFeeCharge.ID, false)
 		s.Len(activeLines, 1)
@@ -1304,6 +1304,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 
 	var (
 		flatFeeChargeID meta.ChargeID
+		sourceChargeID  string
 		invoice         billing.StandardInvoice
 		lineID          billing.LineID
 		startLedger     LedgerSnapshot
@@ -1322,13 +1323,14 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		// - a 5 USD credit-then-invoice flat fee charge is created
 		// then:
 		// - the charge starts as created with a pending gathering line
-		s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+		funding := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 			Namespace: ns,
 			Customer:  cust.GetID(),
 			Amount:    alpacadecimal.NewFromInt(2),
 			At:        setupAt,
 			CostBasis: zeroCostBasis,
 		})
+		sourceChargeID = funding.Charge.ID
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
@@ -1415,6 +1417,12 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "draft line should not create authorized receivable")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "draft line should book credited portion to wash")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "draft line should book credited portion to zero-cost-basis wash")
+		expectedCreditedFlatFeeAmount := float64(2) // 2 = credited flat-fee slice keeps source and spend provenance before invoice approval.
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, &flatFeeChargeID.ID): expectedCreditedFlatFeeAmount,
+		})
 	})
 
 	s.Run("when the invoice is approved", func() {
@@ -1458,6 +1466,21 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "payment should not be authorized yet")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "approval should not settle the fiat remainder")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "approval should keep only credited portion in zero-cost-basis wash")
+		expectedCreditedFlatFeeAmount := float64(2)      // 2 = credited slice remains tied to the promotional source.
+		expectedInvoiceBackedFlatFeeAmount := float64(3) // 3 = 5 flat fee less 2 promotional credits.
+		expectedOpenReceivableAmount := float64(-3)      // -3 = approved invoice creates open receivable for the fiat remainder.
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, &flatFeeChargeID.ID): expectedCreditedFlatFeeAmount,
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID):             expectedInvoiceBackedFlatFeeAmount,
+		})
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID): expectedOpenReceivableAmount,
+		})
 	})
 
 	s.Run("when payment is authorized but not settled", func() {
@@ -1485,6 +1508,17 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-3), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "authorized payment should move fiat remainder to authorized receivable")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "authorized payment should not settle the fiat remainder")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "authorized payment should keep zero-cost-basis wash unchanged")
+		expectedAuthorizedReceivableAmount := float64(-3) // -3 = authorization preserves the fiat remainder's spend provenance.
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		}, map[string]float64{})
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID): expectedAuthorizedReceivableAmount,
+		})
 	})
 
 	s.Run("when payment is settled", func() {
@@ -1516,6 +1550,22 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-5), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "settled payment should book fiat remainder to wash in addition to credits")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "settled payment should leave zero-cost-basis wash at credited portion only")
 		s.AssertDecimalEqual(startLedger.Earnings, s.MustEarningsBalance(ns, USD), "settled payment should not change earnings")
+		expectedCreditedFlatFeeAmount := float64(2)      // 2 = credited slice remains attributed after payment settlement.
+		expectedInvoiceBackedFlatFeeAmount := float64(3) // 3 = invoice-backed slice remains attributed after payment settlement.
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		}, map[string]float64{})
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
+		}, map[string]float64{})
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, &flatFeeChargeID.ID): expectedCreditedFlatFeeAmount,
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID):             expectedInvoiceBackedFlatFeeAmount,
+		})
 	})
 }
 
@@ -1943,7 +1993,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 					},
 					Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  USD,
+							Currency:  currencyx.FiatCode(USD),
 							CostBasis: creditCostBasis,
 						},
 						InitialStatus: creditpurchase.SettledInitialPaymentSettlementStatus,
@@ -2043,6 +2093,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		// then:
 		// - the charge reaches final and the mutable standard line cleanup corrects credited usage
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -2095,6 +2146,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		// then:
 		// - the charge returns to created with a pending gathering line and a due advance timestamp
 		patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     servicePeriod.To,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     servicePeriod.To,
@@ -2111,7 +2163,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(1), charge.State.AmountAfterProration, "extended amount should become non-zero")
 		s.Require().NotNil(charge.State.AdvanceAfter)
-		s.True(servicePeriod.From.Equal(*charge.State.AdvanceAfter))
+		s.True(servicePeriod.To.Equal(*charge.State.AdvanceAfter))
 		s.Nil(charge.Realizations.CurrentRun)
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
@@ -2125,12 +2177,12 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 
 	s.Run("when charges advance after the non-zero extension", func() {
 		// given:
-		// - the non-zero charge is created again and its service period has started
+		// - the non-zero charge is created again and invoice_at has passed
 		// when:
 		// - charge advancement runs
 		// then:
 		// - the charge becomes active and waits for normal invoice-line lifecycle callbacks
-		clock.FreezeTime(servicePeriod.From)
+		clock.FreezeTime(servicePeriod.To)
 		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 			Customer: cust.GetID(),
 		})
@@ -2396,6 +2448,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 		// then:
 		// - the old run remains current and no replacement gathering line is created
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -2491,7 +2544,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 	})
 }
 
-func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActivatesAtServiceStartAndInvoicesAtInvoiceAt() {
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActivatesAndInvoicesAtInvoiceAt() {
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-in-arrears")
@@ -2585,14 +2638,14 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 		// when:
 		// - charges are advanced
 		// then:
-		// - the flat fee becomes active
+		// - the flat fee remains created because invoice_at is at service period end
 		clock.FreezeTime(servicePeriod.From)
 		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 			Customer: cust.GetID(),
 		})
 		s.NoError(err)
-		s.Len(advancedCharges, 1)
-		s.RequireChargeStatus(flatFeeChargeID, flatfee.StatusActive)
+		s.Empty(advancedCharges)
+		s.RequireChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
@@ -2616,10 +2669,17 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 		// given:
 		// - the clock is at service period end
 		// when:
-		// - billing invoices pending lines
+		// - charges advance and billing invoices pending lines
 		// then:
 		// - the in-arrears flat fee is collected into a standard invoice
 		clock.FreezeTime(servicePeriod.To)
+		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: cust.GetID(),
+		})
+		s.NoError(err)
+		s.Len(advancedCharges, 1)
+		s.RequireChargeStatus(flatFeeChargeID, flatfee.StatusActive)
+
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(servicePeriod.To),
@@ -2673,7 +2733,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 		// given:
 		// - an in-arrears flat fee has a pending gathering line
 		// when:
-		// - the service period starts and charges advance
+		// - invoice_at arrives and charges advance
 		// then:
 		// - the charge becomes active but no standard invoice exists yet
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -2701,7 +2761,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 		s.NoError(err)
 		flatFeeChargeID = flatFeeCharge.GetChargeID()
 
-		clock.FreezeTime(servicePeriod.From)
+		clock.FreezeTime(servicePeriod.To)
 		_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 			Customer: cust.GetID(),
 		})
@@ -2752,7 +2812,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 	}
 	shrunkServicePeriodTo := datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime()
 	extendedServicePeriodTo := datetime.MustParseTimeInLocation(t, "2026-04-01T00:00:00Z", time.UTC).AsTime()
-	extendedInvoiceAt := datetime.MustParseTimeInLocation(t, "2026-04-02T00:00:00Z", time.UTC).AsTime()
+	extendedInvoiceAt := datetime.MustParseTimeInLocation(t, "2025-12-15T00:00:00Z", time.UTC).AsTime()
 
 	clock.FreezeTime(setupAt)
 	defer clock.UnFreeze()
@@ -2822,8 +2882,9 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		// when:
 		// - the charge is shrunk to half of the original service period
 		// then:
-		// - the pending gathering line is replaced with a prorated half amount
+		// - the pending gathering line is updated in place with a prorated half amount
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -2838,13 +2899,15 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		}))
 
 		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
-		s.Equal(shrunkServicePeriodTo, charge.Intent.ServicePeriod.To)
+		s.Equal(shrunkServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Require().NotNil(charge.State.AdvanceAfter)
+		s.True(shrunkServicePeriodTo.Equal(*charge.State.AdvanceAfter))
 		shrunkAmount, err := alpacadecimal.NewFromString("63.05")
 		s.NoError(err)
 		s.AssertDecimalEqual(shrunkAmount, charge.State.AmountAfterProration, "charge state amount should be prorated for the shrunk period")
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
-		s.NotEqual(firstGatheringLine, activeLine.ID)
+		s.Equal(firstGatheringLine, activeLine.ID)
 		s.Equal(servicePeriod.From, activeLine.ServicePeriod.From)
 		s.Equal(shrunkServicePeriodTo, activeLine.ServicePeriod.To)
 		s.Equal(shrunkServicePeriodTo, activeLine.InvoiceAt)
@@ -2864,7 +2927,9 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		s.mustExtendChargeWithInvoiceAt(ctx, cust.GetID(), flatFeeChargeID, extendedServicePeriodTo, extendedInvoiceAt)
 
 		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
-		s.Equal(extendedServicePeriodTo, charge.Intent.ServicePeriod.To)
+		s.Equal(extendedServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Require().NotNil(charge.State.AdvanceAfter)
+		s.True(extendedInvoiceAt.Equal(*charge.State.AdvanceAfter))
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(120), charge.State.AmountAfterProration, "extension past full period should not exceed the full flat fee amount")
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
@@ -2980,6 +3045,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchUpda
 		// then:
 		// - the invoice updater updates the same standard line in place
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -3150,6 +3216,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchCorr
 		// then:
 		// - ReconcileCredits corrects the allocation down to the new amount
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     shrunkTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkTo,
@@ -3311,6 +3378,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		// then:
 		// - the prior invoice remains, the run stays current, and no replacement gathering line is created
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     firstShrinkTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     firstShrinkTo,
@@ -3344,7 +3412,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		s.Equal(runID, charge.Realizations.CurrentRun.ID)
 		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
 		s.Equal(flatfee.RealizationRunTypeInvalidDueToUnsupportedCreditNote, charge.Realizations.CurrentRun.Type)
-		s.Equal(firstShrinkTo, charge.Intent.ServicePeriod.To)
+		s.Equal(firstShrinkTo, charge.Intent.GetEffectiveServicePeriod().To)
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(15), charge.State.AmountAfterProration, "amount after proration")
 		run, err := charge.Realizations.GetByLineID(lineID.ID)
 		s.NoError(err)
@@ -3362,6 +3430,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		// then:
 		// - only the charge intent changes, while immutable ledger history stays unchanged
 		extendPatch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     servicePeriod.To,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     servicePeriod.To,
@@ -3378,11 +3447,12 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		extendedCharge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
 		s.Require().NotNil(extendedCharge.Realizations.CurrentRun)
 		s.Equal(runID, extendedCharge.Realizations.CurrentRun.ID)
-		s.Equal(servicePeriod, extendedCharge.Intent.ServicePeriod)
+		s.Equal(servicePeriod, extendedCharge.Intent.GetEffectiveServicePeriod())
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(31), extendedCharge.State.AmountAfterProration, "extended amount after proration")
 		s.Empty(s.mustGatheringLinesForCharge(ns, cust.ID, flatFeeChargeID.ID, false))
 
 		shrinkPatch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     secondShrinkTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     secondShrinkTo,
@@ -3399,7 +3469,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		shrunkCharge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
 		s.Require().NotNil(shrunkCharge.Realizations.CurrentRun)
 		s.Equal(runID, shrunkCharge.Realizations.CurrentRun.ID)
-		s.Equal(secondShrinkTo, shrunkCharge.Intent.ServicePeriod.To)
+		s.Equal(secondShrinkTo, shrunkCharge.Intent.GetEffectiveServicePeriod().To)
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(19), shrunkCharge.State.AmountAfterProration, "shrunk amount after proration")
 		run, err := shrunkCharge.Realizations.GetByLineID(lineID.ID)
 		s.NoError(err)
@@ -3501,10 +3571,10 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchU
 
 		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusCreated)
 		s.Equal(usageBasedChargeID.ID, charge.ID)
-		s.Equal(extendedServicePeriodTo, charge.Intent.ServicePeriod.To)
-		s.Equal(extendedServicePeriodTo, charge.Intent.FullServicePeriod.To)
-		s.Equal(extendedServicePeriodTo, charge.Intent.BillingPeriod.To)
-		s.Equal(extendedInvoiceAt, charge.Intent.InvoiceAt)
+		s.Equal(extendedServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Equal(extendedServicePeriodTo, charge.Intent.GetEffectiveIntent().FullServicePeriod.To)
+		s.Equal(extendedServicePeriodTo, charge.Intent.GetEffectiveIntent().BillingPeriod.To)
+		s.Equal(extendedInvoiceAt, charge.Intent.GetEffectiveIntent().InvoiceAt)
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, usageBasedChargeID.ID)
 		s.Equal(gatheringLineID, activeLine.ID)
@@ -3616,9 +3686,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchU
 
 		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusCreated)
 		s.Equal(usageBasedChargeID.ID, charge.ID)
-		s.Equal(shrunkServicePeriodTo, charge.Intent.ServicePeriod.To)
-		s.Equal(shrunkServicePeriodTo, charge.Intent.FullServicePeriod.To)
-		s.Equal(shrunkServicePeriodTo, charge.Intent.BillingPeriod.To)
+		s.Equal(shrunkServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Equal(shrunkServicePeriodTo, charge.Intent.GetEffectiveIntent().FullServicePeriod.To)
+		s.Equal(shrunkServicePeriodTo, charge.Intent.GetEffectiveIntent().BillingPeriod.To)
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, usageBasedChargeID.ID)
 		s.Equal(gatheringLineID, activeLine.ID)
@@ -3753,7 +3823,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 			Total:        0,
 		}, line.Totals)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		runID = currentRun.ID
@@ -3817,7 +3887,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.Nil(charge.State.CurrentRealizationRunID)
 		s.Require().NotNil(charge.State.AdvanceAfter)
 		s.True(charge.State.AdvanceAfter.Equal(extendedServicePeriodTo), "advance after should match the extended service-period end")
-		s.True(charge.Intent.ServicePeriod.To.Equal(extendedServicePeriodTo), "service-period end should match the extension")
+		s.True(charge.Intent.GetEffectiveServicePeriod().To.Equal(extendedServicePeriodTo), "service-period end should match the extension")
 
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "aggregate open receivable should stay empty")
@@ -3939,7 +4009,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 			Total:        0,
 		}, line.Totals)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		runID = currentRun.ID
@@ -4004,7 +4074,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 		s.Nil(charge.State.CurrentRealizationRunID)
 		s.Require().NotNil(charge.State.AdvanceAfter)
 		s.True(charge.State.AdvanceAfter.Equal(shrunkServicePeriodTo), "advance after should match the shrunk service-period end")
-		s.True(charge.Intent.ServicePeriod.To.Equal(shrunkServicePeriodTo), "service-period end should match the shrink")
+		s.True(charge.Intent.GetEffectiveServicePeriod().To.Equal(shrunkServicePeriodTo), "service-period end should match the shrink")
 
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "aggregate open receivable should stay empty")
@@ -4012,7 +4082,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 	})
 }
 
-func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchDuringAwaitingPaymentSettlementCreatesReplacementFinalRun() {
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchAfterNoFiatFinalInvoiceCreatesReplacementFinalRun() {
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-shrink-immutable")
@@ -4131,7 +4201,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 		s.True(invoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 		currentRun := charge.Realizations[0]
 		runID = currentRun.ID
@@ -4235,7 +4305,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 		s.Equal(servicePeriod.From, replacementLine.Period.From)
 		s.Equal(shrunkServicePeriodTo, replacementLine.Period.To)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationWaitingForCollection)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationWaitingForCollection)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, currentRun.Type)
@@ -4263,7 +4333,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 			Total:        0,
 		}, collectedInvoice.Lines.OrEmpty()[0].Totals)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		s.Equal(shrunkServicePeriodTo, currentRun.ServicePeriodTo)
@@ -4375,7 +4445,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.True(clock.Now().After(servicePeriod.To), "test must run after original service-period end")
 		s.True(clock.Now().Before(invoice.DefaultCollectionAtForStandardInvoice()), "test must run inside the invoice collection interval")
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationWaitingForCollection)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationWaitingForCollection)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		deletedRunID = currentRun.ID
@@ -4453,7 +4523,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.Equal(servicePeriod.From, replacementInvoice.Lines.OrEmpty()[0].Period.From)
 		s.Equal(extendedServicePeriodTo, replacementInvoice.Lines.OrEmpty()[0].Period.To)
 
-		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationWaitingForCollection)
+		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationWaitingForCollection)
 
 		charge := s.mustGetUsageBasedChargeByIDWithExpands(usageBasedChargeID, meta.Expands{
 			meta.ExpandRealizations,
@@ -4476,7 +4546,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 			Total:        0,
 		}, replacementInvoice.Lines.OrEmpty()[0].Totals)
 
-		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 
 		charge = s.mustGetUsageBasedChargeByIDWithExpands(usageBasedChargeID, meta.Expands{
 			meta.ExpandRealizations,
@@ -4494,7 +4564,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 	})
 }
 
-func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchDuringAwaitingPaymentSettlementReclassifiesFinalRunAndKeepsLedgerBookings() {
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchAfterNoFiatFinalInvoiceReclassifiesFinalRunAndKeepsLedgerBookings() {
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-extend-immutable")
@@ -4610,7 +4680,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 		s.True(invoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 		run := charge.Realizations[0]
 		runID = run.ID
@@ -4626,7 +4696,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), immutableLedger.Accrued, "immutable invoice should keep accrued credit booking")
 	})
 
-	s.Run("when the charge is extended during active.awaiting_payment_settlement", func() {
+	s.Run("when the charge is extended after the no-fiat final invoice", func() {
 		// given:
 		// - the original final run is no longer current and the invoice lifecycle callbacks have completed
 		// when:
@@ -4679,7 +4749,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.Nil(charge.State.CurrentRealizationRunID)
 		s.Require().NotNil(charge.State.AdvanceAfter)
 		s.True(charge.State.AdvanceAfter.Equal(extendedServicePeriodTo), "advance after should match the extended service-period end")
-		s.True(charge.Intent.ServicePeriod.To.Equal(extendedServicePeriodTo), "service-period end should match the extension")
+		s.True(charge.Intent.GetEffectiveServicePeriod().To.Equal(extendedServicePeriodTo), "service-period end should match the extension")
 		s.Len(charge.Realizations, 1)
 		s.Equal(usagebased.RealizationRunTypePartialInvoice, charge.Realizations[0].Type)
 
@@ -4849,7 +4919,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, firstInvoice.Status)
 		s.True(firstInvoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 		firstRun := charge.Realizations[0]
 		firstRunID = firstRun.ID
@@ -4931,7 +5001,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, secondInvoice.Status)
 		s.True(secondInvoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 2)
 		secondRun := lo.MaxBy(charge.Realizations, func(run usagebased.RealizationRun, latest usagebased.RealizationRun) bool {
 			return run.ServicePeriodTo.After(latest.ServicePeriodTo)
@@ -4967,7 +5037,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 			meta.ExpandDeletedRealizations,
 		})
 		s.Equal(usagebased.StatusActive, charge.Status)
-		s.Equal(secondShrinkTo, charge.Intent.ServicePeriod.To)
+		s.Equal(secondShrinkTo, charge.Intent.GetEffectiveServicePeriod().To)
 		s.Len(charge.Realizations, 2)
 
 		firstRun, err := charge.Realizations.GetByID(firstRunID.ID)
@@ -5055,7 +5125,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, thirdInvoice.Status)
 		s.True(thirdInvoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 3)
 		thirdRun, err := charge.Realizations.GetByLineID(thirdLineID.ID)
 		s.NoError(err)
@@ -5202,7 +5272,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchF
 			Total:        0,
 		}, line.Totals)
 
-		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 	})
 
 	s.Run("then finalizing the extended period records one final run for all visible usage", func() {
@@ -5216,7 +5286,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchF
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 
 		run := charge.Realizations[0]
@@ -5244,7 +5314,7 @@ func (s *CreditThenInvoiceTestSuite) mustGatheringLinesForCharge(namespace, cust
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(s.T().Context(), billing.ListGatheringInvoicesInput{
 		Namespaces:     []string{namespace},
 		Customers:      []string{customerID},
-		Currencies:     []currencyx.Code{USD},
+		Currencies:     []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		IncludeDeleted: includeDeletedLines,
 		Expand:         expand,
 	})
@@ -5291,6 +5361,7 @@ func (s *CreditThenInvoiceTestSuite) mustExtendChargeWithInvoiceAt(ctx context.C
 	s.T().Helper()
 
 	patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+		ChangeSource:           billing.ChangeSourceSystem,
 		NewServicePeriodTo:     servicePeriodTo,
 		NewFullServicePeriodTo: servicePeriodTo,
 		NewBillingPeriodTo:     servicePeriodTo,
@@ -5317,6 +5388,7 @@ func (s *CreditThenInvoiceTestSuite) shrinkCharge(ctx context.Context, customerI
 	s.T().Helper()
 
 	patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+		ChangeSource:           billing.ChangeSourceSystem,
 		NewServicePeriodTo:     servicePeriodTo,
 		NewFullServicePeriodTo: servicePeriodTo,
 		NewBillingPeriodTo:     servicePeriodTo,

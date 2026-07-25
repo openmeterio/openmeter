@@ -99,7 +99,7 @@ func (i CorrectCreditAllocationsInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i CorrectCreditAllocationsInput) ValidateWith(currencyCalculator currencyx.Calculator) error {
+func (i CorrectCreditAllocationsInput) ValidateWith(currencyCalculator currencyx.Currency) error {
 	var errs []error
 
 	if err := i.Validate(); err != nil {

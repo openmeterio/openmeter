@@ -37,9 +37,9 @@ interface MetersOperations {
   @post
   @operationId("create-meter")
   @summary("Create meter")
-  create(
-    @body meter: Shared.CreateRequest<Meter>,
-  ): Shared.CreateResponse<Meter> | Common.ErrorResponses;
+  create(@body meter: Shared.CreateRequest<Meter>):
+    | Shared.CreateResponse<Meter>
+    | Common.ErrorResponses;
 
   /**
    * Get a meter by ID.
@@ -47,9 +47,10 @@ interface MetersOperations {
   @get
   @operationId("get-meter")
   @summary("Get meter")
-  get(
-    @path meterId: Shared.ULID,
-  ): Shared.GetResponse<Meter> | Common.NotFound | Common.ErrorResponses;
+  get(@path meterId: Shared.ULID):
+    | Shared.GetResponse<Meter>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * List meters.
@@ -66,8 +67,8 @@ interface MetersOperations {
      * - `key`
      * - `name`
      * - `aggregation`
-     * - `createdAt` (default)
-     * - `updatedAt`
+     * - `created_at` (default)
+     * - `updated_at`
      *
      * The `asc` suffix is optional as the default sort order is ascending. The `desc`
      * suffix is used to specify a descending order.
@@ -87,14 +88,13 @@ interface MetersOperations {
   /**
    * Update a meter.
    */
-  @extension(Shared.UnstableExtension, true)
   @put
   @operationId("update-meter")
   @summary("Update meter")
-  update(
-    @path meterId: Shared.ULID,
-    @body meter: Shared.UpdateRequest<Meter>,
-  ): Shared.UpdateResponse<Meter> | Common.NotFound | Common.ErrorResponses;
+  update(@path meterId: Shared.ULID, @body meter: Shared.UpdateRequest<Meter>):
+    | Shared.UpdateResponse<Meter>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * Delete a meter.
@@ -102,9 +102,10 @@ interface MetersOperations {
   @delete
   @operationId("delete-meter")
   @summary("Delete meter")
-  delete(
-    @path meterId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
+  delete(@path meterId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
 
 interface MetersQueryOperations {
@@ -121,18 +122,19 @@ interface MetersQueryOperations {
    * `group_by_dimensions`. The three `customer_*` columns are emitted together only
    * when `customer_id` is in the query's `group_by_dimensions`.
    */
-  @extension(Shared.UnstableExtension, true)
   @post
   @operationId("query-meter")
   @summary("Query meter")
   @sharedRoute
-  query(@path meterId: Shared.ULID, @body request: MeterQueryRequest): {
-    @header contentType: "application/json";
-    @body _: MeterQueryResult;
-  } | Common.NotFound | Common.ErrorResponses;
+  query(@path meterId: Shared.ULID, @body request: MeterQueryRequest):
+    | {
+        @header contentType: "application/json";
+        @body _: MeterQueryResult;
+      }
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   #suppress "@openmeter/api-spec-aip/operation-summary" "Avoid duplicating the summary in OpenAPI yaml"
-  @extension(Shared.UnstableExtension, true)
   @opExample(
     #{
       returnType: #{
@@ -161,6 +163,7 @@ interface MetersQueryOperations {
     },
     #{ title: "Grouped by customer and dimensions" }
   )
+  @friendlyName("queryMeterCsv")
   @post
   @operationId("query-meter")
   @sharedRoute
@@ -168,10 +171,13 @@ interface MetersQueryOperations {
     @path meterId: Shared.ULID,
     // Note: to avoid generating anyOf in the OpenAPI yaml, we omit the request body
     // @body request: MeterQueryRequest
-  ): {
-    @header contentType: "text/csv";
+  ):
+    | {
+        @header contentType: "text/csv";
 
-    @body
-    _: string;
-  } | Common.NotFound | Common.ErrorResponses;
+        @body
+        _: string;
+      }
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

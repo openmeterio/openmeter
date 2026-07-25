@@ -47,7 +47,10 @@ interface CurrenciesCustomCostBasesOperations {
     filter?: ListCostBasesParamsFilter,
 
     ...Common.PagePaginationQuery,
-  ): Shared.PagePaginatedResponse<CostBasis> | Common.NotFound | Common.ErrorResponses;
+  ):
+    | Shared.PagePaginatedResponse<CostBasis>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * Create a cost basis for a currency.

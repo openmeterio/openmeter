@@ -67,7 +67,19 @@ interface CurrenciesCustomOperations {
   @post
   @operationId("create-custom-currency")
   @summary("Create custom currency")
-  create(
-    @body body: Shared.CreateRequest<CurrencyCustom>,
-  ): Shared.CreateResponse<CurrencyCustom> | Common.ErrorResponses;
+  create(@body body: Shared.CreateRequest<CurrencyCustom>):
+    | Shared.CreateResponse<CurrencyCustom>
+    | Common.ErrorResponses;
+
+  /**
+   * Get a custom currency.
+   */
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @get
+  @operationId("get-custom-currency")
+  @summary("Get custom currency")
+  get(@path currencyId: Shared.ULID):
+    | Shared.GetResponse<CurrencyCustom>
+    | Common.ErrorResponses;
 }

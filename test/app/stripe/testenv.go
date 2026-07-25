@@ -99,13 +99,9 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	publisher := eventbus.NewMock(t)
 
 	// Initialize postgres driver
-	driver := testutils.InitPostgresDB(t)
+	driver := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 
 	entClient := driver.EntDriver.Client()
-	if err := entClient.Schema.Create(ctx); err != nil {
-		t.Fatalf("failed to create schema: %v", err)
-	}
-
 	// Customer
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: entClient,

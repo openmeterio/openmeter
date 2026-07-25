@@ -1,22 +1,46 @@
 package e2e
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 )
+
+// initE2EPostgresPool opens a direct Postgres connection alongside OPENMETER_ADDRESS, for
+// e2e checks and fixtures that need to read or seed data the public API doesn't expose
+// (ledger account mappings, bulk namespace seeding). Requires OPENMETER_E2E_POSTGRES_URL,
+// or the local compose stack's default exposed port.
+func initE2EPostgresPool(t testing.TB) *pgxpool.Pool {
+	t.Helper()
+
+	dsn := os.Getenv("OPENMETER_E2E_POSTGRES_URL")
+	if dsn == "" {
+		address := os.Getenv("OPENMETER_ADDRESS")
+		if !strings.Contains(address, "localhost:38888") && !strings.Contains(address, "127.0.0.1:38888") {
+			t.Skipf("this e2e check requires OPENMETER_E2E_POSTGRES_URL or local compose stack at localhost:38888, got %q", address)
+		}
+
+		dsn = "postgres://postgres:postgres@127.0.0.1:35432/postgres?sslmode=disable"
+	}
+
+	pool, err := pgxpool.New(t.Context(), dsn)
+	require.NoError(t, err)
+
+	t.Cleanup(pool.Close)
+
+	require.NoError(t, pool.Ping(t.Context()))
+
+	return pool
+}
 
 // This will not be needed once we get rid of subjects. Cloud middleware already handles subject / customer creation.
 func CreateCustomerWithSubject(t *testing.T, client *api.ClientWithResponses, customerKey string, subjectKey string) *api.Customer {
@@ -62,47 +86,4 @@ func GetMeterIDBySlug(t *testing.T, client *api.ClientWithResponses, meterSlug s
 	require.NotNil(t, resp.JSON200)
 
 	return resp.JSON200.Id
-}
-
-func QueryMeterV3(t *testing.T, meterID string, body apiv3.MeterQueryRequest) (int, *apiv3.MeterQueryResult, error) {
-	t.Helper()
-
-	address := os.Getenv("OPENMETER_ADDRESS")
-	if address == "" {
-		t.Skip("OPENMETER_ADDRESS not set")
-	}
-
-	payload, err := json.Marshal(body)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	req, err := http.NewRequestWithContext(
-		context.Background(),
-		http.MethodPost,
-		strings.TrimRight(address, "/")+"/api/v3/openmeter/meters/"+meterID+"/query",
-		bytes.NewReader(payload),
-	)
-	if err != nil {
-		return 0, nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return resp.StatusCode, nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	var result apiv3.MeterQueryResult
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return 0, nil, err
-	}
-
-	return resp.StatusCode, &result, nil
 }

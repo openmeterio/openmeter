@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -21,12 +22,14 @@ import (
 // LedgerTransactionGroupQuery is the builder for querying LedgerTransactionGroup entities.
 type LedgerTransactionGroupQuery struct {
 	config
-	ctx              *QueryContext
-	order            []ledgertransactiongroup.OrderOption
-	inters           []Interceptor
-	predicates       []predicate.LedgerTransactionGroup
-	withTransactions *LedgerTransactionQuery
-	modifiers        []func(*sql.Selector)
+	ctx                       *QueryContext
+	order                     []ledgertransactiongroup.OrderOption
+	inters                    []Interceptor
+	predicates                []predicate.LedgerTransactionGroup
+	withTransactions          *LedgerTransactionQuery
+	withSourceBreakageRecords *LedgerBreakageRecordQuery
+	withBreakageRecords       *LedgerBreakageRecordQuery
+	modifiers                 []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -78,6 +81,50 @@ func (_q *LedgerTransactionGroupQuery) QueryTransactions() *LedgerTransactionQue
 			sqlgraph.From(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID, selector),
 			sqlgraph.To(ledgertransaction.Table, ledgertransaction.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransactiongroup.TransactionsTable, ledgertransactiongroup.TransactionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySourceBreakageRecords chains the current query on the "source_breakage_records" edge.
+func (_q *LedgerTransactionGroupQuery) QuerySourceBreakageRecords() *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID, selector),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransactiongroup.SourceBreakageRecordsTable, ledgertransactiongroup.SourceBreakageRecordsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBreakageRecords chains the current query on the "breakage_records" edge.
+func (_q *LedgerTransactionGroupQuery) QueryBreakageRecords() *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID, selector),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransactiongroup.BreakageRecordsTable, ledgertransactiongroup.BreakageRecordsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -272,12 +319,14 @@ func (_q *LedgerTransactionGroupQuery) Clone() *LedgerTransactionGroupQuery {
 		return nil
 	}
 	return &LedgerTransactionGroupQuery{
-		config:           _q.config,
-		ctx:              _q.ctx.Clone(),
-		order:            append([]ledgertransactiongroup.OrderOption{}, _q.order...),
-		inters:           append([]Interceptor{}, _q.inters...),
-		predicates:       append([]predicate.LedgerTransactionGroup{}, _q.predicates...),
-		withTransactions: _q.withTransactions.Clone(),
+		config:                    _q.config,
+		ctx:                       _q.ctx.Clone(),
+		order:                     append([]ledgertransactiongroup.OrderOption{}, _q.order...),
+		inters:                    append([]Interceptor{}, _q.inters...),
+		predicates:                append([]predicate.LedgerTransactionGroup{}, _q.predicates...),
+		withTransactions:          _q.withTransactions.Clone(),
+		withSourceBreakageRecords: _q.withSourceBreakageRecords.Clone(),
+		withBreakageRecords:       _q.withBreakageRecords.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -292,6 +341,28 @@ func (_q *LedgerTransactionGroupQuery) WithTransactions(opts ...func(*LedgerTran
 		opt(query)
 	}
 	_q.withTransactions = query
+	return _q
+}
+
+// WithSourceBreakageRecords tells the query-builder to eager-load the nodes that are connected to
+// the "source_breakage_records" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LedgerTransactionGroupQuery) WithSourceBreakageRecords(opts ...func(*LedgerBreakageRecordQuery)) *LedgerTransactionGroupQuery {
+	query := (&LedgerBreakageRecordClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSourceBreakageRecords = query
+	return _q
+}
+
+// WithBreakageRecords tells the query-builder to eager-load the nodes that are connected to
+// the "breakage_records" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LedgerTransactionGroupQuery) WithBreakageRecords(opts ...func(*LedgerBreakageRecordQuery)) *LedgerTransactionGroupQuery {
+	query := (&LedgerBreakageRecordClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBreakageRecords = query
 	return _q
 }
 
@@ -373,8 +444,10 @@ func (_q *LedgerTransactionGroupQuery) sqlAll(ctx context.Context, hooks ...quer
 	var (
 		nodes       = []*LedgerTransactionGroup{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [3]bool{
 			_q.withTransactions != nil,
+			_q.withSourceBreakageRecords != nil,
+			_q.withBreakageRecords != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -407,6 +480,24 @@ func (_q *LedgerTransactionGroupQuery) sqlAll(ctx context.Context, hooks ...quer
 			return nil, err
 		}
 	}
+	if query := _q.withSourceBreakageRecords; query != nil {
+		if err := _q.loadSourceBreakageRecords(ctx, query, nodes,
+			func(n *LedgerTransactionGroup) { n.Edges.SourceBreakageRecords = []*LedgerBreakageRecord{} },
+			func(n *LedgerTransactionGroup, e *LedgerBreakageRecord) {
+				n.Edges.SourceBreakageRecords = append(n.Edges.SourceBreakageRecords, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBreakageRecords; query != nil {
+		if err := _q.loadBreakageRecords(ctx, query, nodes,
+			func(n *LedgerTransactionGroup) { n.Edges.BreakageRecords = []*LedgerBreakageRecord{} },
+			func(n *LedgerTransactionGroup, e *LedgerBreakageRecord) {
+				n.Edges.BreakageRecords = append(n.Edges.BreakageRecords, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -435,6 +526,69 @@ func (_q *LedgerTransactionGroupQuery) loadTransactions(ctx context.Context, que
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "group_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *LedgerTransactionGroupQuery) loadSourceBreakageRecords(ctx context.Context, query *LedgerBreakageRecordQuery, nodes []*LedgerTransactionGroup, init func(*LedgerTransactionGroup), assign func(*LedgerTransactionGroup, *LedgerBreakageRecord)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*LedgerTransactionGroup)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(ledgerbreakagerecord.FieldSourceTransactionGroupID)
+	}
+	query.Where(predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(ledgertransactiongroup.SourceBreakageRecordsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SourceTransactionGroupID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "source_transaction_group_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "source_transaction_group_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *LedgerTransactionGroupQuery) loadBreakageRecords(ctx context.Context, query *LedgerBreakageRecordQuery, nodes []*LedgerTransactionGroup, init func(*LedgerTransactionGroup), assign func(*LedgerTransactionGroup, *LedgerBreakageRecord)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*LedgerTransactionGroup)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(ledgerbreakagerecord.FieldBreakageTransactionGroupID)
+	}
+	query.Where(predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(ledgertransactiongroup.BreakageRecordsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.BreakageTransactionGroupID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "breakage_transaction_group_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

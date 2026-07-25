@@ -436,22 +436,24 @@ func TestFieldFilterParse(t *testing.T) {
 			wantParse: fieldFiltersTarget{String: &filters.FilterString{Lte: lo.ToPtr("zeta")}},
 		},
 		{
-			// The parser uses key-name semantics for existence checks: the
-			// presence of [exists] sets Exists=true regardless of value, while
-			// [nexists] sets Exists=false.
 			name:      "string exists",
 			query:     "filter[string][exists]=true",
 			wantParse: fieldFiltersTarget{String: &filters.FilterString{Exists: lo.ToPtr(true)}},
 		},
 		{
-			name:      "string exists value is ignored",
-			query:     "filter[string][exists]=anything",
-			wantParse: fieldFiltersTarget{String: &filters.FilterString{Exists: lo.ToPtr(true)}},
+			name:      "string exists false",
+			query:     "filter[string][exists]=false",
+			wantParse: fieldFiltersTarget{String: &filters.FilterString{Exists: lo.ToPtr(false)}},
 		},
 		{
 			name:      "string nexists",
 			query:     "filter[string][nexists]=true",
 			wantParse: fieldFiltersTarget{String: &filters.FilterString{Exists: lo.ToPtr(false)}},
+		},
+		{
+			name:      "string nexists false",
+			query:     "filter[string][nexists]=false",
+			wantParse: fieldFiltersTarget{String: &filters.FilterString{Exists: lo.ToPtr(true)}},
 		},
 
 		// StringFieldFilterExact

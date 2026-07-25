@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -25,9 +24,9 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (currencies.Adapter, error) {
+func New(config Config) (currencies.Repository, error) {
 	if err := config.Validate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
 	return &adapter{
@@ -35,11 +34,10 @@ func New(config Config) (currencies.Adapter, error) {
 	}, nil
 }
 
-var _ currencies.Adapter = (*adapter)(nil)
+var _ currencies.Repository = (*adapter)(nil)
 
 type adapter struct {
-	db     *entdb.Client
-	logger *slog.Logger
+	db *entdb.Client
 }
 
 // Tx implements entutils.TxCreator interface
@@ -56,8 +54,7 @@ func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, 
 func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return &adapter{
-		db:     txClient.Client(),
-		logger: a.logger,
+		db: txClient.Client(),
 	}
 }
 

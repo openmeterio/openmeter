@@ -13,7 +13,7 @@ import (
 type EntryInput struct {
 	amount      alpacadecimal.Decimal
 	address     ledger.PostingAddress
-	identityKey string
+	identity    ledger.EntryIdentityParts
 	annotations models.Annotations
 }
 
@@ -32,7 +32,20 @@ func (e *EntryInput) Amount() alpacadecimal.Decimal {
 }
 
 func (e *EntryInput) IdentityKey() string {
-	return e.identityKey
+	identityKey, _ := e.identity.Text()
+	return string(identityKey)
+}
+
+func (e *EntryInput) SchemaVersion() ledger.EntrySchemaVersion {
+	return ledger.EntrySchemaVersionCurrent
+}
+
+func (e *EntryInput) SourceChargeID() *string {
+	return e.identity.SourceChargeID
+}
+
+func (e *EntryInput) SpendChargeID() *string {
+	return e.identity.SpendChargeID
 }
 
 func (e *EntryInput) Annotations() models.Annotations {

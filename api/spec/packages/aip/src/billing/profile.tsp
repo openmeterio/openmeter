@@ -199,6 +199,29 @@ model BillingWorkflowInvoicingSettings {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   progressive_billing?: boolean = true;
+
+  /**
+   * Controls how subscription-ending shortened service periods are billed.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  subscription_end_proration_mode?: BillingWorkflowInvoicingSubscriptionEndProrationMode = BillingWorkflowInvoicingSubscriptionEndProrationMode.BillActualPeriod;
+}
+
+/**
+ * Billing workflow subscription end proration mode.
+ */
+@friendlyName("BillingWorkflowInvoicingSubscriptionEndProrationMode")
+enum BillingWorkflowInvoicingSubscriptionEndProrationMode {
+  /**
+   * Bill the full billing period amount for terminal lines even when the actual
+   * service period is shorter.
+   */
+  BillFullPeriod: "bill_full_period",
+
+  /**
+   * Bill the amount for the actual terminal service period.
+   */
+  BillActualPeriod: "bill_actual_period",
 }
 
 /**
@@ -225,6 +248,11 @@ model BillingWorkflowTaxSettings {
 
   /**
    * Default tax configuration to apply to the invoices for line items.
+   *
+   * Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax
+   * config is deprecated and can no longer be added or changed: the organization
+   * default tax code is used instead. Existing tax-code values may still be removed,
+   * and `behavior` remains fully supported.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   default_tax_config?: TaxConfig;

@@ -78,6 +78,10 @@ func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.Bu
 	})
 }
 
+func (e *Engine) BuildStandardLinesForGatheringPreview(_ context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+	return input.GatheringLines.ToStandardLines(input.Invoice.ID)
+}
+
 func (e *Engine) OnCollectionCompleted(_ context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) {
 	return input.Lines, nil
 }
@@ -86,7 +90,15 @@ func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnSta
 	return input.Lines, nil
 }
 
-func (e *Engine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
+func (e *Engine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) error {
+	return billing.ErrCannotUpdateChargeManagedLine
+}
+
+func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
+	return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
+}
+
+func (e *Engine) OnMutableStandardLinesDeletedBySystem(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
 	return nil
 }
 

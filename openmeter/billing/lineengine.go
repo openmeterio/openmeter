@@ -11,6 +11,40 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+type ChangeSource string
+
+const (
+	ChangeSourceSystem     ChangeSource = "system"
+	ChangeSourceAPIRequest ChangeSource = "api_request"
+)
+
+func (ChangeSource) Values() []string {
+	return []string{
+		string(ChangeSourceSystem),
+		string(ChangeSourceAPIRequest),
+	}
+}
+
+func (i ChangeSource) Validate() error {
+	if !slices.Contains(ChangeSource("").Values(), string(i)) {
+		return fmt.Errorf("invalid change source: %s", i)
+	}
+
+	return nil
+}
+
+func (i ChangeSource) Require(value ChangeSource) error {
+	if err := i.Validate(); err != nil {
+		return err
+	}
+
+	if i != value {
+		return fmt.Errorf("must be %s", value)
+	}
+
+	return nil
+}
+
 type LineEngineType string
 
 const (
@@ -215,12 +249,37 @@ type LineEngine interface {
 	// BuildStandardInvoiceLines materializes gathering lines into standard lines for a target invoice.
 	// Returned standard lines must reuse the exact same line IDs as the input gathering lines.
 	BuildStandardInvoiceLines(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
+	// BuildStandardLinesForGatheringPreview materializes gathering lines from BuildStandardInvoiceLinesInput
+	// into transient StandardLines for a read-only standard invoice preview. Implementations must be
+	// side-effect free: they must not persist realization state, modify or allocate credits, mutate
+	// input IDs, emit events, or perform external billing side effects. Returned StandardLines must
+	// reuse the exact same line IDs as the input gathering lines.
+	BuildStandardLinesForGatheringPreview(ctx context.Context, input BuildStandardInvoiceLinesInput) (StandardLines, error)
 	// OnStandardInvoiceCreated is invoked after the standard invoice and its standard lines have been persisted.
 	OnStandardInvoiceCreated(ctx context.Context, input OnStandardInvoiceCreatedInput) (StandardLines, error)
 	// OnCollectionCompleted is invoked when a standard invoice collection window closes.
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)
-	// OnMutableStandardLinesDeleted is invoked after mutable standard invoice lines are marked deleted.
-	OnMutableStandardLinesDeleted(ctx context.Context, input OnMutableStandardLinesDeletedInput) error
+	// OnMutableStandardLinesDeletedBySystem is invoked after mutable standard invoice lines are marked deleted by the system.
+	OnMutableStandardLinesDeletedBySystem(ctx context.Context, input OnMutableStandardLinesDeletedInput) error
+	// ValidateMutableInvoiceLineEditViaAPI is invoked before mutable invoice lines are edited through the API.
+	// Can be used to reject edits that are not supported by the engine (including deletion, etc.) to prevent the
+	// invoice from entering an invalid state without recovery.
+	//
+	// Additional checks can be performed in OnMutableInvoiceLinesEditedViaAPI but those errors will become
+	// validation issues, thus alter the invoice state.
+	//
+	// For API requests it is better to reject and edit before, the existing validation issue logic is geared
+	// towards state machine failures.
+	//
+	// Implementations must not mutate invoice, charge, ledger, or external state from this hook.
+	ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, input OnMutableInvoiceUpdateInput) error
+	// OnMutableInvoiceLinesEditedViaAPI is invoked after mutable invoice lines are edited through the API.
+	// Implementations must return exactly one CreatedLines entry for each input Created line and
+	// exactly one UpdatedLines entry for each input Updated override, even when they only accept
+	// the line unchanged.
+	// Charge-backed creation semantics are documented in billing/README.md under
+	// "Lineengine Charges Integration Plan".
+	OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input OnMutableInvoiceUpdateInput) (OnMutableInvoiceUpdateResult, error)
 	// OnUnsupportedCreditNote is invoked when a line deletion targets an immutable invoice but credit-note support is not available yet.
 	OnUnsupportedCreditNote(ctx context.Context, input OnUnsupportedCreditNoteInput) error
 	// OnInvoiceIssued is invoked when a standard invoice reaches the issued state.
@@ -265,4 +324,18 @@ func NewLineEngineValidationError(engine LineEngine, err error) error {
 			Component: component,
 		},
 	)
+}
+
+type CreateLineRouter interface {
+	GetLineEngineForCreateLine(line GenericInvoiceLineReader) (LineEngineType, error)
+}
+
+type DefaultCreateLineRouter struct{}
+
+func (DefaultCreateLineRouter) GetLineEngineForCreateLine(line GenericInvoiceLineReader) (LineEngineType, error) {
+	if line == nil {
+		return "", fmt.Errorf("line is required")
+	}
+
+	return LineEngineTypeInvoice, nil
 }

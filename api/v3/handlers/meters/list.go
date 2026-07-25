@@ -80,7 +80,11 @@ func (h *handler) ListMeters() ListMetersHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-				req.OrderBy = meter.OrderBy(sort.Field)
+				orderBy, err := FromAPIMeterSortField(ctx, sort.Field)
+				if err != nil {
+					return ListMetersRequest{}, err
+				}
+				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
 

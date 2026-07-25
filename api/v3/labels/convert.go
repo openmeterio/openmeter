@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -103,4 +105,14 @@ func ToMetadata(labels *api.Labels) (models.Metadata, error) {
 	m, err := ToMetadataAnnotations(labels)
 
 	return m.Metadata, err
+}
+
+func ToMetadataPtr(labels *api.Labels) (*map[string]string, error) {
+	if labels == nil {
+		return nil, nil
+	}
+
+	m, err := ToMetadataAnnotations(labels)
+
+	return lo.ToPtr(map[string]string(m.Metadata)), err
 }

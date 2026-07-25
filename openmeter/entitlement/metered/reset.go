@@ -38,6 +38,12 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			return nil, fmt.Errorf("failed to parse entitlement: %w", err)
 		}
 
+		resetTime := params.At.Truncate(time.Minute)
+		lastReset := mEnt.LastReset.Truncate(time.Minute)
+		if resetTime.Equal(lastReset) {
+			return nil, models.NewGenericValidationError(fmt.Errorf("reset at %s must be after last reset at %s", resetTime, lastReset))
+		}
+
 		if err := e.hooks.PreUpdate(ctx, mEnt); err != nil {
 			return nil, err
 		}

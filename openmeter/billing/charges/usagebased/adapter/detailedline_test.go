@@ -18,15 +18,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebasedrundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestDetailedLineAdapter(t *testing.T) {
@@ -39,6 +39,8 @@ type DetailedLineAdapterSuite struct {
 	testDB   *testutils.TestDB
 	dbClient *entdb.Client
 	adapter  usagebased.Adapter
+
+	taxCodeEnv *taxcodetestutils.TestEnv
 }
 
 type newDetailedLineInput struct {
@@ -55,17 +57,8 @@ type newDetailedLineInput struct {
 func (s *DetailedLineAdapterSuite) SetupSuite() {
 	t := s.T()
 
-	s.testDB = testutils.InitPostgresDB(t)
+	s.testDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	s.dbClient = entdb.NewClient(entdb.Driver(s.testDB.EntDriver.Driver()))
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: s.testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           slog.Default(),
-	})
-	require.NoError(t, err)
-	defer migrator.CloseOrLogError()
-	require.NoError(t, migrator.Up())
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.dbClient,
@@ -81,6 +74,7 @@ func (s *DetailedLineAdapterSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	s.adapter = a
+	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
 }
 
 func (s *DetailedLineAdapterSuite) TearDownSuite() {
@@ -93,6 +87,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 	ctx := s.T().Context()
 	namespace := "usagebased-detailedline-adapter"
 	customerID := s.createCustomer(namespace)
+	taxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 	s.createFeature(namespace, "feature-1")
 
 	servicePeriod := timeutil.ClosedPeriod{
@@ -106,22 +101,29 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			{
 				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
-						Name:              "usage-charge",
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
+						Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
-					InvoiceAt:      servicePeriod.To,
+					IntentMutableFields: usagebased.IntentMutableFields{
+						IntentMutableFields: chargesmeta.IntentMutableFields{
+							Name:              "usage-charge",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
+						},
+						InvoiceAt: servicePeriod.To,
+						Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(0.1),
+						}),
+					},
 					SettlementMode: productcatalog.CreditOnlySettlementMode,
 					FeatureKey:     "feature-1",
-					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-						Amount: alpacadecimal.NewFromFloat(0.1),
-					}),
-				},
+				}.AsOverridableIntent(),
 				FeatureID:    "feature-1",
 				RatingEngine: usagebased.RatingEngineDelta,
 			},
@@ -446,6 +448,7 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 
 	featureID := ulid.Make().String()
 	customerID := s.createCustomer(namespace)
+	taxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 	s.createFeature(namespace, featureID)
 
 	servicePeriod := timeutil.ClosedPeriod{
@@ -459,22 +462,29 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 			{
 				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
-						Name:              "usage-charge",
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
+						Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
-					InvoiceAt:      servicePeriod.To,
+					IntentMutableFields: usagebased.IntentMutableFields{
+						IntentMutableFields: chargesmeta.IntentMutableFields{
+							Name:              "usage-charge",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
+						},
+						InvoiceAt: servicePeriod.To,
+						Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(0.1),
+						}),
+					},
 					SettlementMode: productcatalog.CreditOnlySettlementMode,
 					FeatureKey:     featureID,
-					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-						Amount: alpacadecimal.NewFromFloat(0.1),
-					}),
-				},
+				}.AsOverridableIntent(),
 				FeatureID:    featureID,
 				RatingEngine: usagebased.RatingEngineDelta,
 			},
@@ -538,7 +548,6 @@ func (s *DetailedLineAdapterSuite) newDetailedLine(input newDetailedLineInput) u
 				Description: input.Description,
 			}),
 			ServicePeriod:          input.ServicePeriod,
-			Currency:               input.Charge.Intent.Currency,
 			ChildUniqueReferenceID: input.ChildUniqueReferenceID,
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),

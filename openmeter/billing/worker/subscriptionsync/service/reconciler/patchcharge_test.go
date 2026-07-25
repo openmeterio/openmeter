@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesflatfee "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargesusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -22,63 +22,80 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestFlatFeeChargeCollectionPeriodChangesEmitEmulatedReplacement(t *testing.T) {
-	for _, tc := range []struct {
-		name string
-		add  func(*flatFeeChargeCollection, persistedstate.Item, targetstate.StateItem) error
-	}{
-		{
-			name: "shrink",
-			add: func(c *flatFeeChargeCollection, existing persistedstate.Item, target targetstate.StateItem) error {
-				return c.AddShrink(target.UniqueID, existing, target)
-			},
-		},
-		{
-			name: "extend",
-			add: func(c *flatFeeChargeCollection, existing persistedstate.Item, target targetstate.StateItem) error {
-				return c.AddExtend(existing, target)
-			},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			collection := newFlatFeeChargeCollection(1)
-			target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestFlatRateCard())
-			existing := newChargePatchTestFlatFeeItem(t, target, "flat-fee-charge")
-
-			require.NoError(t, tc.add(collection, existing, target))
-
-			assertEmulatedReplacement(t, collection.Patches(), "flat-fee-charge", func(intent charges.ChargeIntent) {
-				flatFeeIntent, err := intent.AsFlatFeeIntent()
-				require.NoError(t, err)
-				require.Equal(t, target.GetServicePeriod(), flatFeeIntent.ServicePeriod)
-				require.Equal(t, target.FullServicePeriod, flatFeeIntent.FullServicePeriod)
-				require.Equal(t, target.BillingPeriod, flatFeeIntent.BillingPeriod)
-				require.Equal(t, productcatalog.CreditOnlySettlementMode, flatFeeIntent.SettlementMode)
-			})
-		})
+func TestFlatFeeCreditOnlyChargeCollectionShrinkEmitsNativePatch(t *testing.T) {
+	collection := newFlatFeeChargeCollection(1)
+	target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestFlatRateCard())
+	existingServicePeriod := timeutil.ClosedPeriod{
+		From: target.GetServicePeriod().From,
+		To:   target.GetServicePeriod().To.AddDate(0, 1, 0),
 	}
-}
-
-func TestUsageBasedCreditOnlyChargeCollectionShrinkEmitsEmulatedReplacement(t *testing.T) {
-	collection := newUsageBasedChargeCollection(1)
-	target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestUsageRateCard())
-	existingFullServicePeriod := timeutil.ClosedPeriod{
-		From: target.FullServicePeriod.From,
-		To:   target.FullServicePeriod.To.AddDate(0, 1, 0),
-	}
-	existing := newChargePatchTestUsageBasedItemWithFullServicePeriod(t, target, "usage-based-charge", productcatalog.CreditOnlySettlementMode, existingFullServicePeriod)
+	existingIntent := newChargePatchTestExistingFlatFeeIntent(target)
+	existingIntent.ServicePeriod = existingServicePeriod
+	existing := newChargePatchTestFlatFeeItemWithIntent(t, target, "flat-fee-charge", existingIntent)
 
 	require.NoError(t, collection.AddShrink(target.UniqueID, existing, target))
 
-	assertEmulatedReplacement(t, collection.Patches(), "usage-based-charge", func(intent charges.ChargeIntent) {
-		usageBasedIntent, err := intent.AsUsageBasedIntent()
-		require.NoError(t, err)
-		require.Equal(t, target.GetServicePeriod(), usageBasedIntent.ServicePeriod)
-		require.Equal(t, target.FullServicePeriod, usageBasedIntent.FullServicePeriod)
-		require.Equal(t, target.BillingPeriod, usageBasedIntent.BillingPeriod)
-		require.Equal(t, target.GetInvoiceAt(), usageBasedIntent.InvoiceAt)
-		require.Equal(t, productcatalog.CreditOnlySettlementMode, usageBasedIntent.SettlementMode)
-	})
+	patches := collection.Patches()
+	require.Empty(t, patches.Creates)
+	require.Len(t, patches.PatchesByChargeID, 1)
+
+	patch, ok := patches.PatchesByChargeID["flat-fee-charge"]
+	require.True(t, ok)
+
+	shrinkPatch, ok := patch.(chargesmeta.PatchShrink)
+	require.True(t, ok, "expected native shrink patch, got %T", patch)
+	require.Equal(t, target.GetServicePeriod().To, shrinkPatch.GetNewServicePeriodTo())
+	require.Equal(t, target.FullServicePeriod.To, shrinkPatch.GetNewFullServicePeriodTo())
+	require.Equal(t, target.BillingPeriod.To, shrinkPatch.GetNewBillingPeriodTo())
+	require.Equal(t, target.GetInvoiceAt(), shrinkPatch.GetNewInvoiceAt())
+}
+
+func TestFlatFeeCreditOnlyChargeCollectionExtendEmitsNativePatch(t *testing.T) {
+	collection := newFlatFeeChargeCollection(1)
+	target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestFlatRateCard())
+	existing := newChargePatchTestFlatFeeItem(t, target, "flat-fee-charge")
+
+	require.NoError(t, collection.AddExtend(existing, target))
+
+	patches := collection.Patches()
+	require.Empty(t, patches.Creates)
+	require.Len(t, patches.PatchesByChargeID, 1)
+
+	patch, ok := patches.PatchesByChargeID["flat-fee-charge"]
+	require.True(t, ok)
+
+	extendPatch, ok := patch.(chargesmeta.PatchExtend)
+	require.True(t, ok, "expected native extend patch, got %T", patch)
+	require.Equal(t, target.GetServicePeriod().To, extendPatch.GetNewServicePeriodTo())
+	require.Equal(t, target.FullServicePeriod.To, extendPatch.GetNewFullServicePeriodTo())
+	require.Equal(t, target.BillingPeriod.To, extendPatch.GetNewBillingPeriodTo())
+	require.Equal(t, target.GetInvoiceAt(), extendPatch.GetNewInvoiceAt())
+}
+
+func TestUsageBasedCreditOnlyChargeCollectionShrinkEmitsNativePatch(t *testing.T) {
+	collection := newUsageBasedChargeCollection(1)
+	target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestUsageRateCard())
+	existingServicePeriod := timeutil.ClosedPeriod{
+		From: target.GetServicePeriod().From,
+		To:   target.GetServicePeriod().To.AddDate(0, 1, 0),
+	}
+	existing := newChargePatchTestUsageBasedItemWithServicePeriod(t, target, "usage-based-charge", productcatalog.CreditOnlySettlementMode, existingServicePeriod)
+
+	require.NoError(t, collection.AddShrink(target.UniqueID, existing, target))
+
+	patches := collection.Patches()
+	require.Empty(t, patches.Creates)
+	require.Len(t, patches.PatchesByChargeID, 1)
+
+	patch, ok := patches.PatchesByChargeID["usage-based-charge"]
+	require.True(t, ok)
+
+	shrinkPatch, ok := patch.(chargesmeta.PatchShrink)
+	require.True(t, ok, "expected native shrink patch, got %T", patch)
+	require.Equal(t, target.GetServicePeriod().To, shrinkPatch.GetNewServicePeriodTo())
+	require.Equal(t, target.FullServicePeriod.To, shrinkPatch.GetNewFullServicePeriodTo())
+	require.Equal(t, target.BillingPeriod.To, shrinkPatch.GetNewBillingPeriodTo())
+	require.Equal(t, target.GetInvoiceAt(), shrinkPatch.GetNewInvoiceAt())
 }
 
 func TestUsageBasedCreditThenInvoiceChargeCollectionShrinkEmitsNativePatch(t *testing.T) {
@@ -107,21 +124,26 @@ func TestUsageBasedCreditThenInvoiceChargeCollectionShrinkEmitsNativePatch(t *te
 	require.Equal(t, target.GetInvoiceAt(), shrinkPatch.GetNewInvoiceAt())
 }
 
-func TestUsageBasedCreditOnlyChargeCollectionExtendEmitsEmulatedReplacement(t *testing.T) {
+func TestUsageBasedCreditOnlyChargeCollectionExtendEmitsNativePatch(t *testing.T) {
 	collection := newUsageBasedChargeCollection(1)
 	target := newChargePatchTestTarget(t, productcatalog.CreditOnlySettlementMode, newChargePatchTestUsageRateCard())
 	existing := newChargePatchTestUsageBasedItem(t, target, "usage-based-charge", productcatalog.CreditOnlySettlementMode)
 
 	require.NoError(t, collection.AddExtend(existing, target))
 
-	assertEmulatedReplacement(t, collection.Patches(), "usage-based-charge", func(intent charges.ChargeIntent) {
-		usageBasedIntent, err := intent.AsUsageBasedIntent()
-		require.NoError(t, err)
-		require.Equal(t, target.GetServicePeriod(), usageBasedIntent.ServicePeriod)
-		require.Equal(t, target.FullServicePeriod, usageBasedIntent.FullServicePeriod)
-		require.Equal(t, target.BillingPeriod, usageBasedIntent.BillingPeriod)
-		require.Equal(t, productcatalog.CreditOnlySettlementMode, usageBasedIntent.SettlementMode)
-	})
+	patches := collection.Patches()
+	require.Empty(t, patches.Creates)
+	require.Len(t, patches.PatchesByChargeID, 1)
+
+	patch, ok := patches.PatchesByChargeID["usage-based-charge"]
+	require.True(t, ok)
+
+	extendPatch, ok := patch.(chargesmeta.PatchExtend)
+	require.True(t, ok, "expected native extend patch, got %T", patch)
+	require.Equal(t, target.GetServicePeriod().To, extendPatch.GetNewServicePeriodTo())
+	require.Equal(t, target.FullServicePeriod.To, extendPatch.GetNewFullServicePeriodTo())
+	require.Equal(t, target.BillingPeriod.To, extendPatch.GetNewBillingPeriodTo())
+	require.Equal(t, target.GetInvoiceAt(), extendPatch.GetNewInvoiceAt())
 }
 
 func TestUsageBasedCreditThenInvoiceChargeCollectionExtendEmitsNativePatch(t *testing.T) {
@@ -146,35 +168,30 @@ func TestUsageBasedCreditThenInvoiceChargeCollectionExtendEmitsNativePatch(t *te
 	require.Equal(t, target.GetInvoiceAt(), extendPatch.GetNewInvoiceAt())
 }
 
-func assertEmulatedReplacement(t *testing.T, patches charges.ApplyPatchesInput, chargeID string, assertCreate func(charges.ChargeIntent)) {
+func newChargePatchTestFlatFeeItem(t *testing.T, target targetstate.StateItem, id string) persistedstate.Item {
 	t.Helper()
 
-	require.Len(t, patches.PatchesByChargeID, 1)
-	require.Len(t, patches.Creates, 1)
-
-	patch, ok := patches.PatchesByChargeID[chargeID]
-	require.True(t, ok)
-
-	_, ok = patch.(chargesmeta.PatchDelete)
-	require.True(t, ok, "expected delete patch, got %T", patch)
-
-	assertCreate(patches.Creates[0])
+	existingIntent := newChargePatchTestExistingFlatFeeIntent(target)
+	return newChargePatchTestFlatFeeItemWithIntent(t, target, id, existingIntent)
 }
 
-func newChargePatchTestFlatFeeItem(t *testing.T, target targetstate.StateItem, id string) persistedstate.Item {
+func newChargePatchTestFlatFeeItemWithIntent(t *testing.T, target targetstate.StateItem, id string, existingIntent chargesflatfee.Intent) persistedstate.Item {
 	t.Helper()
 
 	charge := chargesflatfee.Charge{
 		ChargeBase: chargesflatfee.ChargeBase{
 			ManagedResource: newChargePatchTestManagedResource(target.Subscription.Namespace, id),
 			Intent: chargesflatfee.Intent{
-				Intent:                newChargePatchTestExistingIntent(target),
-				InvoiceAt:             target.GetInvoiceAt(),
-				SettlementMode:        target.Subscription.SettlementMode,
-				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-				ProRating:             target.Subscription.ProRatingConfig,
-				AmountBeforeProration: alpacadecimal.NewFromInt(10),
-			},
+				Intent: existingIntent.Intent,
+				IntentMutableFields: chargesflatfee.IntentMutableFields{
+					IntentMutableFields:   existingIntent.IntentMutableFields.IntentMutableFields,
+					InvoiceAt:             target.GetInvoiceAt(),
+					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+					ProRating:             target.Subscription.ProRatingConfig,
+					AmountBeforeProration: alpacadecimal.NewFromInt(10),
+				},
+				SettlementMode: target.Subscription.SettlementMode,
+			}.AsOverridableIntent(),
 			Status: chargesflatfee.StatusActive,
 			State: chargesflatfee.State{
 				AmountAfterProration: alpacadecimal.NewFromInt(10),
@@ -186,6 +203,21 @@ func newChargePatchTestFlatFeeItem(t *testing.T, target targetstate.StateItem, i
 	require.NoError(t, err)
 
 	return item
+}
+
+func newChargePatchTestExistingFlatFeeIntent(target targetstate.StateItem) chargesflatfee.Intent {
+	existingIntent := newChargePatchTestExistingIntent(target)
+
+	return chargesflatfee.Intent{
+		Intent: existingIntent.Intent,
+		IntentMutableFields: chargesflatfee.IntentMutableFields{
+			IntentMutableFields: existingIntent.IntentMutableFields.IntentMutableFields,
+			InvoiceAt:           target.GetInvoiceAt(),
+			PaymentTerm:         productcatalog.InAdvancePaymentTerm,
+			ProRating:           target.Subscription.ProRatingConfig,
+		},
+		SettlementMode: target.Subscription.SettlementMode,
+	}
 }
 
 func newChargePatchTestUsageBasedItem(t *testing.T, target targetstate.StateItem, id string, settlementMode productcatalog.SettlementMode) persistedstate.Item {
@@ -212,21 +244,24 @@ func newChargePatchTestUsageBasedItemWithServicePeriod(t *testing.T, target targ
 	return newChargePatchTestUsageBasedItemWithIntent(t, target, id, settlementMode, intent)
 }
 
-func newChargePatchTestUsageBasedItemWithIntent(t *testing.T, target targetstate.StateItem, id string, settlementMode productcatalog.SettlementMode, intent chargesmeta.Intent) persistedstate.Item {
+func newChargePatchTestUsageBasedItemWithIntent(t *testing.T, target targetstate.StateItem, id string, settlementMode productcatalog.SettlementMode, intent chargesusagebased.Intent) persistedstate.Item {
 	t.Helper()
 
 	charge := chargesusagebased.Charge{
 		ChargeBase: chargesusagebased.ChargeBase{
 			ManagedResource: newChargePatchTestManagedResource(target.Subscription.Namespace, id),
 			Intent: chargesusagebased.Intent{
-				Intent:         intent,
-				InvoiceAt:      target.GetInvoiceAt(),
+				Intent: intent.Intent,
+				IntentMutableFields: chargesusagebased.IntentMutableFields{
+					IntentMutableFields: intent.IntentMutableFields.IntentMutableFields,
+					InvoiceAt:           target.GetInvoiceAt(),
+					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					}),
+				},
 				SettlementMode: settlementMode,
 				FeatureKey:     "feature-key",
-				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-					Amount: alpacadecimal.NewFromInt(1),
-				}),
-			},
+			}.AsOverridableIntent(),
 			Status: chargesusagebased.StatusActive,
 			State: chargesusagebased.State{
 				FeatureID:    "feature-id",
@@ -256,23 +291,32 @@ func newChargePatchTestManagedResource(namespace, id string) chargesmeta.Managed
 	}
 }
 
-func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesmeta.Intent {
-	return chargesmeta.Intent{
-		Name:       "existing charge",
-		ManagedBy:  billing.SubscriptionManagedLine,
-		CustomerID: target.Subscription.CustomerId,
-		Currency:   target.CurrencyCalculator.Currency,
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-			To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusagebased.Intent {
+	return chargesusagebased.Intent{
+		Intent: chargesmeta.Intent{
+			ManagedBy:         billing.SubscriptionManagedLine,
+			CustomerID:        target.Subscription.CustomerId,
+			Currency:          target.Currency,
+			UniqueReferenceID: ptr("existing-charge"),
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: "tax-code-id",
+			},
+			Subscription: &chargesmeta.SubscriptionReference{
+				SubscriptionID: target.Subscription.ID,
+				PhaseID:        target.PhaseID,
+				ItemID:         target.SubscriptionItem.ID,
+			},
 		},
-		FullServicePeriod: target.FullServicePeriod,
-		BillingPeriod:     target.BillingPeriod,
-		UniqueReferenceID: ptr("existing-charge"),
-		Subscription: &chargesmeta.SubscriptionReference{
-			SubscriptionID: target.Subscription.ID,
-			PhaseID:        target.PhaseID,
-			ItemID:         target.SubscriptionItem.ID,
+		IntentMutableFields: chargesusagebased.IntentMutableFields{
+			IntentMutableFields: chargesmeta.IntentMutableFields{
+				Name: "existing charge",
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+					To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+				},
+				FullServicePeriod: target.FullServicePeriod,
+				BillingPeriod:     target.BillingPeriod,
+			},
 		},
 	}
 }
@@ -280,8 +324,7 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesmeta.
 func newChargePatchTestTarget(t *testing.T, settlementMode productcatalog.SettlementMode, rateCard productcatalog.RateCard) targetstate.StateItem {
 	t.Helper()
 
-	currencyCalculator, err := currencyx.Code("USD").Calculator()
-	require.NoError(t, err)
+	cur := currenciestestutils.NewFiatCurrency(t, "USD")
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -329,7 +372,7 @@ func newChargePatchTestTarget(t *testing.T, settlementMode productcatalog.Settle
 			FullServicePeriod: fullServicePeriod,
 			BillingPeriod:     billingPeriod,
 		},
-		CurrencyCalculator: currencyCalculator,
+		Currency: cur,
 		Subscription: subscription.Subscription{
 			NamespacedID: models.NamespacedID{
 				Namespace: "namespace",
@@ -348,6 +391,9 @@ func newChargePatchTestUsageRateCard() productcatalog.RateCard {
 			Key:        "usage-rate-card",
 			Name:       "Usage Rate Card",
 			FeatureKey: ptr("feature-key"),
+			TaxConfig: &productcatalog.TaxConfig{
+				TaxCodeID: ptr("tax-code-id"),
+			},
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromInt(1),
 			}),
@@ -362,6 +408,9 @@ func newChargePatchTestFlatRateCard() productcatalog.RateCard {
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:  "flat-rate-card",
 			Name: "Flat Rate Card",
+			TaxConfig: &productcatalog.TaxConfig{
+				TaxCodeID: ptr("tax-code-id"),
+			},
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromInt(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,

@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/index"
 
@@ -24,6 +25,9 @@ func (LedgerTransactionGroup) Mixin() []ent.Mixin {
 func (LedgerTransactionGroup) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("transactions", LedgerTransaction.Type),
+		edge.To("source_breakage_records", LedgerBreakageRecord.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("breakage_records", LedgerBreakageRecord.Type),
 	}
 }
 

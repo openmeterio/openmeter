@@ -2,7 +2,6 @@ package currencies
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -29,9 +28,9 @@ type (
 func (h *handler) ListCurrencies() ListCurrenciesHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params ListCurrenciesParams) (ListCurrenciesRequest, error) {
-			ns, ok := h.namespaceDecoder.GetNamespace(ctx)
-			if !ok {
-				return ListCurrenciesRequest{}, apierrors.NewInternalError(ctx, fmt.Errorf("failed to resolve namespace"))
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ListCurrenciesRequest{}, err
 			}
 
 			page := pagination.NewPage(1, 100)
@@ -44,15 +43,11 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 
 			if err := page.Validate(); err != nil {
 				return ListCurrenciesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					apierrors.InvalidParameter{
-						Field:  "page",
-						Reason: err.Error(),
-						Source: apierrors.InvalidParamSourceQuery,
-					},
+					{Field: "page", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 				})
 			}
 
-			var orderBy string
+			var orderBy currencies.OrderBy
 			var order sortx.Order
 			if params.Sort != nil {
 				sort, err := request.ParseSortBy(*params.Sort)
@@ -61,21 +56,24 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-				orderBy = sort.Field
+				orderBy, err = FromAPICurrencySortField(ctx, sort.Field)
+				if err != nil {
+					return ListCurrenciesRequest{}, err
+				}
 				order = sort.Order.ToSortxOrder()
 			}
 
 			req := ListCurrenciesRequest{
 				Page:      page,
 				Namespace: ns,
-				OrderBy:   currencies.OrderBy(orderBy),
+				OrderBy:   orderBy,
 				Order:     order,
 			}
 
 			if params.Filter != nil {
 				if params.Filter.Type != nil {
 					ft := FromAPIBillingCurrencyType(*params.Filter.Type)
-					req.FilterType = &ft
+					req.CurrencyType = &ft
 				}
 
 				code, err := filters.FromAPIFilterString(params.Filter.Code)
@@ -90,7 +88,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListCurrenciesRequest) (ListCurrenciesResponse, error) {
-			result, err := h.currencyService.ListCurrencies(ctx, request)
+			result, err := h.service.ListCurrencies(ctx, request)
 			if err != nil {
 				return ListCurrenciesResponse{}, err
 			}

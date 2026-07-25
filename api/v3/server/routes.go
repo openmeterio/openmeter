@@ -4,11 +4,15 @@ import (
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
+	planhandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
+	subscriptionhandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	subscriptionaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions/subscriptionaddons"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 )
 
@@ -86,7 +90,11 @@ func (s *Server) ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Re
 // Subscriptions
 
 func (s *Server) CreateSubscription(w http.ResponseWriter, r *http.Request) {
-	s.subscriptionsHandler.CreateSubscription().ServeHTTP(w, r)
+	s.subscriptionsHandler.CreateSubscription().
+		Chain(featuregate.NewMiddleware[subscriptionhandler.CreateSubscriptionRequest, subscriptionhandler.CreateSubscriptionResponse](
+			s.NamespaceDecoder.GetNamespace,
+			s.FeatureGate,
+		)).ServeHTTP(w, r)
 }
 
 func (s *Server) ListSubscriptions(w http.ResponseWriter, r *http.Request, params api.ListSubscriptionsParams) {
@@ -106,10 +114,18 @@ func (s *Server) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, s
 }
 
 func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
-	s.subscriptionsHandler.ChangeSubscription().With(subscriptionId).ServeHTTP(w, r)
+	s.subscriptionsHandler.ChangeSubscription().
+		Chain(featuregate.NewMiddleware[subscriptionhandler.ChangeSubscriptionRequest, subscriptionhandler.ChangeSubscriptionResponse](
+			s.NamespaceDecoder.GetNamespace,
+			s.FeatureGate,
+		)).With(subscriptionId).ServeHTTP(w, r)
 }
 
 // Subscription Addons
+func (s *Server) CreateSubscriptionAddon(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
+	s.subscriptionAddonsHandler.CreateSubscriptionAddon().With(subscriptionId).ServeHTTP(w, r)
+}
+
 func (s *Server) ListSubscriptionAddons(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID, params api.ListSubscriptionAddonsParams) {
 	s.subscriptionAddonsHandler.ListSubscriptionAddons().With(subscriptionaddonshandler.ListSubscriptionAddonsParams{
 		SubscriptionID: subscriptionId,
@@ -134,6 +150,26 @@ func (s *Server) GetApp(w http.ResponseWriter, r *http.Request, appId api.ULID) 
 	s.appsHandler.GetApp().With(appId).ServeHTTP(w, r)
 }
 
+func (s *Server) UninstallApp(w http.ResponseWriter, r *http.Request, appId api.ULID) {
+	s.appsHandler.UninstallApp().With(appId).ServeHTTP(w, r)
+}
+
+func (s *Server) UpdateApp(w http.ResponseWriter, r *http.Request, appId api.ULID) {
+	s.appsHandler.UpdateApp().With(appId).ServeHTTP(w, r)
+}
+
+func (s *Server) ListAppCatalog(w http.ResponseWriter, r *http.Request, params api.ListAppCatalogParams) {
+	s.appsHandler.ListAppCatalog().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetAppCatalogItem(w http.ResponseWriter, r *http.Request, pType api.BillingAppType) {
+	s.appsHandler.GetAppCatalog().With(pType).ServeHTTP(w, r)
+}
+
+func (s *Server) InstallApp(w http.ResponseWriter, r *http.Request) {
+	s.appsHandler.InstallApp().ServeHTTP(w, r)
+}
+
 // Billing Profiles
 
 func (s *Server) ListBillingProfiles(w http.ResponseWriter, r *http.Request, params api.ListBillingProfilesParams) {
@@ -154,6 +190,44 @@ func (s *Server) GetBillingProfile(w http.ResponseWriter, r *http.Request, id ap
 
 func (s *Server) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
 	s.billingProfilesHandler.UpdateBillingProfile().With(id).ServeHTTP(w, r)
+}
+
+// Billing Invoices
+
+func (s *Server) ListInvoices(w http.ResponseWriter, r *http.Request, params api.ListInvoicesParams) {
+	s.billingInvoicesHandler.ListBillingInvoices().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.GetBillingInvoice().With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) UpdateInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.UpdateBillingInvoice().With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) DeleteInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.DeleteBillingInvoice().With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) AdvanceInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionAdvance).
+		With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) ApproveInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionApprove).
+		With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) RetryInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionRetry).
+		With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) SnapshotQuantitiesInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionSnapshotQuantities).
+		With(invoiceId).ServeHTTP(w, r)
 }
 
 // Customer Billing
@@ -218,6 +292,10 @@ func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyI
 	s.currenciesHandler.ListCostBases().With(currencieshandler.ListCostBasesArgs{CurrencyID: currencyId, Params: params}).ServeHTTP(w, r)
 }
 
+func (s *Server) GetCustomCurrency(w http.ResponseWriter, r *http.Request, currencyId api.ULID) {
+	s.currenciesHandler.GetCurrency().With(currencyId).ServeHTTP(w, r)
+}
+
 // Features
 
 func (s *Server) ListFeatures(w http.ResponseWriter, r *http.Request, params api.ListFeaturesParams) {
@@ -277,7 +355,10 @@ func (s *Server) ListPlans(w http.ResponseWriter, r *http.Request, params api.Li
 }
 
 func (s *Server) CreatePlan(w http.ResponseWriter, r *http.Request) {
-	s.plansHandler.CreatePlan().ServeHTTP(w, r)
+	s.plansHandler.CreatePlan().Chain(featuregate.NewMiddleware[planhandler.CreatePlanRequest, planhandler.CreatePlanResponse](
+		s.NamespaceDecoder.GetNamespace,
+		s.FeatureGate,
+	)).ServeHTTP(w, r)
 }
 
 func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
@@ -285,7 +366,10 @@ func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID
 }
 
 func (s *Server) UpdatePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
-	s.plansHandler.UpdatePlan().With(planId).ServeHTTP(w, r)
+	s.plansHandler.UpdatePlan().Chain(featuregate.NewMiddleware[planhandler.UpdatePlanRequest, planhandler.UpdatePlanResponse](
+		s.NamespaceDecoder.GetNamespace,
+		s.FeatureGate,
+	)).With(planId).ServeHTTP(w, r)
 }
 
 func (s *Server) DeletePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
@@ -419,6 +503,18 @@ func (s *Server) CreateCreditAdjustment(w http.ResponseWriter, r *http.Request, 
 	unimplemented.CreateCreditAdjustment(w, r, customerId)
 }
 
+func (s *Server) VoidCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
+	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+		unimplemented.VoidCreditGrant(w, r, customerId, creditGrantId)
+		return
+	}
+
+	s.customersCreditsHandler.VoidCreditGrant().With(customerscreditshandler.VoidCreditGrantParams{
+		CustomerID:    customerId,
+		CreditGrantID: creditGrantId,
+	}).ServeHTTP(w, r)
+}
+
 func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
 	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
 		unimplemented.UpdateCreditGrantExternalSettlement(w, r, customerId, creditGrantId)
@@ -457,6 +553,17 @@ func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, cus
 	}).ServeHTTP(w, r)
 }
 
+func (s *Server) CreateCustomerCharges(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	if s.chargesHandler == nil {
+		unimplemented.CreateCustomerCharges(w, r, customerId)
+		return
+	}
+
+	s.chargesHandler.CreateCustomerCharge().With(chargeshandler.CreateCustomerChargesParams{
+		CustomerID: customerId,
+	}).ServeHTTP(w, r)
+}
+
 // Organization Default Tax Codes
 
 func (s *Server) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {
@@ -470,5 +577,5 @@ func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *htt
 // Governance
 
 func (s *Server) QueryGovernanceAccess(w http.ResponseWriter, r *http.Request, params api.QueryGovernanceAccessParams) {
-	unimplemented.QueryGovernanceAccess(w, r, params)
+	s.governanceHandler.QueryGovernanceAccess().With(params).ServeHTTP(w, r)
 }

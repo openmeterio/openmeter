@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -25,11 +26,6 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			return nil, fmt.Errorf("get feature meter: %w", err)
 		}
 
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
-		if err != nil {
-			return nil, fmt.Errorf("get currency calculator: %w", err)
-		}
-
 		stateMachine, err := s.newStateMachine(StateMachineConfig{
 			Charge:             charge,
 			Adapter:            s.adapter,
@@ -37,7 +33,8 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			Runs:               s.runs,
 			CustomerOverride:   input.CustomerOverride,
 			FeatureMeter:       featureMeter,
-			CurrencyCalculator: currencyCalculator,
+			CurrencyCalculator: charge.Intent.GetCurrency(),
+			CostBasisResolver:  s.costbasisResolver,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
@@ -59,17 +56,32 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 	var result meta.TriggerPatchResult[usagebased.Charge]
 
 	charge, err := s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {
-		stateMachineConfig, err := s.getStateMachineConfigForPatch(ctx, charge)
+		chargeWithUpdatedBase, err := applyBaseIntentPatchForOverriddenCharge(charge, patch)
 		if err != nil {
-			return nil, fmt.Errorf("get state machine config: %w", err)
+			return nil, err
 		}
 
-		stateMachine, err := s.newStateMachine(stateMachineConfig)
+		if chargeWithUpdatedBase != nil {
+			// Hidden base/source intent changes are subscription reconciliation,
+			// not customer-facing lifecycle events. Persist the source intent and
+			// skip the state machine because the active override owns lifecycle
+			// state and hidden targets are rejected there.
+			updatedChargeBase, err := s.adapter.UpdateCharge(ctx, chargeWithUpdatedBase.ChargeBase)
+			if err != nil {
+				return nil, fmt.Errorf("updating usage based charge[%s] base intent: %w", chargeWithUpdatedBase.ID, err)
+			}
+
+			chargeWithUpdatedBase.ChargeBase = updatedChargeBase
+
+			return chargeWithUpdatedBase, nil
+		}
+
+		stateMachine, err := s.newStateMachineForCharge(ctx, charge)
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, patch.Trigger(), patch.TriggerParams()); err != nil {
+		if err := stateMachine.FireAndActivate(ctx, patch.Trigger(), patch); err != nil {
 			return nil, err
 		}
 
@@ -87,8 +99,65 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 	return result, nil
 }
 
+func applyBaseIntentPatchForOverriddenCharge(charge usagebased.Charge, patch meta.Patch) (*usagebased.Charge, error) {
+	target, err := patch.GetTargetLayer(charge.Intent)
+	if err != nil {
+		return nil, fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	if target != meta.ChangeTargetBase || !charge.Intent.HasOverrideLayer() {
+		return nil, nil
+	}
+
+	switch patch := patch.(type) {
+	case meta.PatchDelete:
+		if err := charge.Intent.Mutate(meta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) error {
+			deletedAt := clock.Now()
+			fields.IntentDeletedAt = &deletedAt
+			return nil
+		}); err != nil {
+			return nil, fmt.Errorf("mutating base intent for %s patch: %w", patch.Op(), err)
+		}
+
+		return &charge, nil
+	case meta.PatchShrink:
+		if err := mutateBaseIntentPeriodForOverriddenCharge(&charge, patch); err != nil {
+			return nil, err
+		}
+
+		return &charge, nil
+	case meta.PatchExtend:
+		if err := mutateBaseIntentPeriodForOverriddenCharge(&charge, patch); err != nil {
+			return nil, err
+		}
+
+		return &charge, nil
+	}
+
+	return nil, nil
+}
+
+func mutateBaseIntentPeriodForOverriddenCharge(charge *usagebased.Charge, patch periodPatch) error {
+	if err := charge.Intent.Mutate(meta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) error {
+		if err := patch.ValidateWith(fields.IntentMutableFields); err != nil {
+			return fmt.Errorf("validate %s patch: %w", patch.Op(), err)
+		}
+
+		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
+		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+		fields.InvoiceAt = patch.GetNewInvoiceAt()
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("mutating base intent for %s patch: %w", patch.Op(), err)
+	}
+
+	return nil
+}
+
 func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, error) {
-	switch config.Charge.Intent.SettlementMode {
+	switch config.Charge.Intent.GetSettlementMode() {
 	case productcatalog.CreditOnlySettlementMode:
 		stateMachine, err := NewCreditsOnlyStateMachine(config)
 		if err != nil {
@@ -105,19 +174,33 @@ func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, erro
 		return stateMachine, nil
 	default:
 		return nil, models.NewGenericNotImplementedError(
-			fmt.Errorf("unsupported settlement mode %s for usage based charge %s", config.Charge.Intent.SettlementMode, config.Charge.ID),
+			fmt.Errorf("unsupported settlement mode %s for usage based charge %s", config.Charge.Intent.GetSettlementMode(), config.Charge.ID),
 		)
 	}
 }
 
-// getStateMachineConfigForPatch gets the state machine config for a patch.
+func (s *service) newStateMachineForCharge(ctx context.Context, charge usagebased.Charge) (StateMachine, error) {
+	stateMachineConfig, err := s.getStateMachineConfigForCharge(ctx, charge)
+	if err != nil {
+		return nil, fmt.Errorf("get state machine config: %w", err)
+	}
+
+	stateMachine, err := s.newStateMachine(stateMachineConfig)
+	if err != nil {
+		return nil, fmt.Errorf("new state machine: %w", err)
+	}
+
+	return stateMachine, nil
+}
+
+// getStateMachineConfigForCharge gets the state machine config for a charge.
 //
 // TODO[later]: This is something we can get from the callsite as we are doing a lot of unnecessary fetching here.
-func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usagebased.Charge) (StateMachineConfig, error) {
+func (s *service) getStateMachineConfigForCharge(ctx context.Context, charge usagebased.Charge) (StateMachineConfig, error) {
 	customerOverride, err := s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: customer.CustomerID{
 			Namespace: charge.Namespace,
-			ID:        charge.Intent.CustomerID,
+			ID:        charge.Intent.GetCustomerID(),
 		},
 		Expand: billing.CustomerOverrideExpand{
 			Customer: true,
@@ -138,10 +221,7 @@ func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usag
 		return StateMachineConfig{}, err
 	}
 
-	currencyCalculator, err := charge.Intent.Currency.Calculator()
-	if err != nil {
-		return StateMachineConfig{}, fmt.Errorf("get currency calculator: %w", err)
-	}
+	currency := charge.Intent.GetCurrency()
 
 	return StateMachineConfig{
 		Charge:             charge,
@@ -150,7 +230,8 @@ func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usag
 		Runs:               s.runs,
 		CustomerOverride:   customerOverride,
 		FeatureMeter:       featureMeter,
-		CurrencyCalculator: currencyCalculator,
+		CurrencyCalculator: currency,
+		CostBasisResolver:  s.costbasisResolver,
 	}, nil
 }
 

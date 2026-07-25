@@ -101,8 +101,6 @@ const (
 	FieldChargeID = "charge_id"
 	// FieldEngine holds the string denoting the engine field in the database.
 	FieldEngine = "engine"
-	// FieldLineIds holds the string denoting the line_ids field in the database.
-	FieldLineIds = "line_ids"
 	// FieldCreditsApplied holds the string denoting the credits_applied field in the database.
 	FieldCreditsApplied = "credits_applied"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
@@ -337,11 +335,6 @@ func ValidColumn(column string) bool {
 	}
 	for i := range ForeignKeys {
 		if column == ForeignKeys[i] {
-			return true
-		}
-	}
-	for _, f := range [...]string{FieldLineIds} {
-		if column == f {
 			return true
 		}
 	}
@@ -616,11 +609,6 @@ func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
 // ByEngine orders the results by the engine field.
 func ByEngine(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEngine, opts...).ToFunc()
-}
-
-// ByLineIds orders the results by the line_ids field.
-func ByLineIds(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLineIds, opts...).ToFunc()
 }
 
 // ByCreditsApplied orders the results by the credits_applied field.

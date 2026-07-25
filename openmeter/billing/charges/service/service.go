@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -23,7 +24,7 @@ type service struct {
 	// Note: if meta has a service layer, we should use it here instead of the adapter
 	metaAdapter    meta.Adapter
 	billingService billing.Service
-	invoiceUpdater *invoiceupdater.Updater
+	invoiceUpdater invoiceupdater.Updater
 	featureService feature.FeatureConnector
 
 	flatFeeService        flatfee.Service
@@ -31,6 +32,7 @@ type service struct {
 	usageBasedService     usagebased.Service
 	recognizerService     recognizer.Service
 	taxCodeService        taxcode.Service
+	currencyResolver      currencies.CurrencyResolver
 
 	fsNamespaceLockdown []string
 }
@@ -49,7 +51,8 @@ type Config struct {
 
 	BillingService billing.Service
 
-	TaxCodeService taxcode.Service
+	TaxCodeService   taxcode.Service
+	CurrencyResolver currencies.CurrencyResolver
 
 	FSNamespaceLockdown []string
 }
@@ -97,6 +100,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("tax code service cannot be null"))
 	}
 
+	if c.CurrencyResolver == nil {
+		errs = append(errs, errors.New("currency resolver cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -105,10 +112,18 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
+	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
+		BillingService: config.BillingService,
+		Logger:         config.Logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating invoice updater: %w", err)
+	}
+
 	svc := &service{
 		adapter:               config.Adapter,
 		billingService:        config.BillingService,
-		invoiceUpdater:        invoiceupdater.New(config.BillingService, config.Logger),
+		invoiceUpdater:        invoiceUpdater,
 		featureService:        config.FeatureService,
 		metaAdapter:           config.MetaAdapter,
 		flatFeeService:        config.FlatFeeService,
@@ -116,6 +131,7 @@ func New(config Config) (*service, error) {
 		usageBasedService:     config.UsageBasedService,
 		recognizerService:     config.RecognizerService,
 		taxCodeService:        config.TaxCodeService,
+		currencyResolver:      config.CurrencyResolver,
 		fsNamespaceLockdown:   config.FSNamespaceLockdown,
 	}
 

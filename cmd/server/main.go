@@ -21,10 +21,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/log"
+	pkgserver "github.com/openmeterio/openmeter/pkg/server"
 )
 
 func main() {
@@ -154,6 +156,7 @@ func main() {
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
+			NamespaceDecoder:            namespacedriver.StaticNamespaceDecoder(app.NamespaceManager.GetDefaultNamespace()),
 			Addon:                       app.Addon,
 			App:                         app.AppRegistry.Service,
 			AppStripe:                   app.AppRegistry.Stripe,
@@ -161,6 +164,7 @@ func main() {
 			Billing:                     app.BillingRegistry.Billing,
 			BillingFeatureSwitches:      conf.Billing.FeatureSwitches,
 			Credits:                     conf.Credits,
+			UnitConfig:                  conf.UnitConfig,
 			CurrencyService:             app.CurrencyService,
 			CostService:                 app.CostService,
 			CreditGrantService:          app.CreditGrantService,
@@ -173,6 +177,7 @@ func main() {
 			EntitlementBalanceConnector: app.EntitlementRegistry.MeteredEntitlement,
 			EntitlementConnector:        app.EntitlementRegistry.Entitlement,
 			FeatureConnector:            app.FeatureConnector,
+			GovernanceService:           app.GovernanceService,
 			GrantConnector:              app.EntitlementRegistry.Grant,
 			GrantRepo:                   app.EntitlementRegistry.GrantRepo,
 			IngestService:               app.IngestService,
@@ -180,7 +185,6 @@ func main() {
 			Logger:                      logger,
 			MeterManageService:          app.MeterManageService,
 			MeterEventService:           app.MeterEventService,
-			NamespaceManager:            app.NamespaceManager,
 			Notification:                app.Notification,
 			Plan:                        app.Plan,
 			PlanAddon:                   app.PlanAddon,
@@ -200,6 +204,7 @@ func main() {
 		RouterHooks:         lo.FromPtr(app.RouterHooks),
 		PostAuthMiddlewares: app.PostAuthMiddlewares,
 		ResponseValidation:  conf.Server.ResponseValidation,
+		ClientIPMiddleware:  pkgserver.MiddlewareFunc(app.ClientIPMiddleware),
 	})
 	if err != nil {
 		logger.Error("failed to create server", "error", err)

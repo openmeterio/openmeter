@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -172,7 +173,7 @@ type upsertGatheringInvoiceForCurrencyResponse struct {
 	IsInvoiceNew bool
 }
 
-func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.Code, customerProfile billing.CustomerOverrideWithDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
+func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.FiatCode, customerProfile billing.CustomerOverrideWithDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
 	// We would want to stage a pending invoice Line
 	pendingInvoiceList, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Page: pagination.Page{
@@ -181,7 +182,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		},
 		Customers:      []string{customerProfile.Customer.ID},
 		Namespaces:     []string{customerProfile.Customer.Namespace},
-		Currencies:     []currencyx.Code{currency},
+		Currencies:     []currencyx.FiatCode{currency},
 		OrderBy:        api.InvoiceOrderByCreatedAt,
 		Order:          sortx.OrderAsc,
 		IncludeDeleted: true,
@@ -192,13 +193,13 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 	}
 
 	if len(pendingInvoiceList.Items) == 0 {
-		invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
-			billing.SequenceGenerationInput{
+		invoiceNumber, err := s.sequenceService.GenerateInvoiceSequenceNumber(ctx,
+			sequence.GenerationInput{
 				Namespace:    customerProfile.Customer.Namespace,
 				CustomerName: customerProfile.Customer.Name,
 				Currency:     currency,
 			},
-			billing.GatheringInvoiceSequenceNumber)
+			sequence.GatheringInvoiceSequenceNumber)
 		if err != nil {
 			return nil, fmt.Errorf("generating invoice sequence number: %w", err)
 		}

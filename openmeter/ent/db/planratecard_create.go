@@ -194,6 +194,12 @@ func (_c *PlanRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *PlanRat
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *PlanRateCardCreate) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
 // SetPhaseID sets the "phase_id" field.
 func (_c *PlanRateCardCreate) SetPhaseID(v string) *PlanRateCardCreate {
 	_c.mutation.SetPhaseID(v)
@@ -366,6 +372,11 @@ func (_c *PlanRateCardCreate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.unit_config": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.PhaseID(); !ok {
 		return &ValidationError{Name: "phase_id", err: errors.New(`db: missing required field "PlanRateCard.phase_id"`)}
 	}
@@ -495,6 +506,14 @@ func (_c *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec,
 		}
 		_spec.SetField(planratecard.FieldDiscounts, field.TypeString, vv)
 		_node.Discounts = value
+	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		vv, err := planratecard.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(planratecard.FieldUnitConfig, field.TypeString, vv)
+		_node.UnitConfig = value
 	}
 	if nodes := _c.mutation.PhaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -818,6 +837,24 @@ func (u *PlanRateCardUpsert) UpdateDiscounts() *PlanRateCardUpsert {
 // ClearDiscounts clears the value of the "discounts" field.
 func (u *PlanRateCardUpsert) ClearDiscounts() *PlanRateCardUpsert {
 	u.SetNull(planratecard.FieldDiscounts)
+	return u
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *PlanRateCardUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldUnitConfig, v)
+	return u
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateUnitConfig() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldUnitConfig)
+	return u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *PlanRateCardUpsert) ClearUnitConfig() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldUnitConfig)
 	return u
 }
 
@@ -1167,6 +1204,27 @@ func (u *PlanRateCardUpsertOne) UpdateDiscounts() *PlanRateCardUpsertOne {
 func (u *PlanRateCardUpsertOne) ClearDiscounts() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *PlanRateCardUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateUnitConfig() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *PlanRateCardUpsertOne) ClearUnitConfig() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 
@@ -1691,6 +1749,27 @@ func (u *PlanRateCardUpsertBulk) UpdateDiscounts() *PlanRateCardUpsertBulk {
 func (u *PlanRateCardUpsertBulk) ClearDiscounts() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *PlanRateCardUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateUnitConfig() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *PlanRateCardUpsertBulk) ClearUnitConfig() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 

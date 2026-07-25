@@ -63,6 +63,15 @@ func (p Plan) ValidateWith(validators ...models.ValidatorFunc[Plan]) error {
 	return models.Validate(p, validators...)
 }
 
+// HasUnitConfig reports whether any rate card in any phase carries a unit_config
+// conversion. The v1 API cannot represent unit_config, so v1 read and mutation
+// surfaces use this to reject such plans instead of silently stripping the field.
+func (p Plan) HasUnitConfig() bool {
+	return lo.SomeBy(p.Phases, func(ph Phase) bool {
+		return ph.RateCards.HasUnitConfig()
+	})
+}
+
 func ValidatePlanMeta() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		return p.PlanMeta.Validate()

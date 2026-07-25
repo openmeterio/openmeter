@@ -27,6 +27,9 @@ type Repo interface {
 	// Sum ledger entries for a query result set
 	SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error)
 
+	// Get balance buckets grouped by sub-account and requested dimensions.
+	GetBalanceBuckets(ctx context.Context, query ledger.BalanceBucketQuery) ([]ledger.BalanceBucket, error)
+
 	// List transactions with pagination
 	ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (ledger.ListTransactionsResult, error)
 }

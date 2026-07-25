@@ -5,17 +5,20 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -25,12 +28,27 @@ type CreditThenInvoiceStateMachine struct {
 	*stateMachine
 }
 
+type periodPatch interface {
+	Op() meta.PatchType
+	GetTargetLayer(meta.LayeredIntentReader) (meta.ChangeTarget, error)
+	GetNewServicePeriodTo() time.Time
+	GetNewFullServicePeriodTo() time.Time
+	GetNewBillingPeriodTo() time.Time
+	GetNewInvoiceAt() time.Time
+	ValidateWith(meta.IntentMutableFields) error
+}
+
+var (
+	_ periodPatch = meta.PatchExtend{}
+	_ periodPatch = meta.PatchShrink{}
+)
+
 func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInvoiceStateMachine, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("validate: %w", err)
 	}
 
-	if config.Charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if config.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		return nil, fmt.Errorf("charge %s is not credit_then_invoice", config.Charge.ID)
 	}
 
@@ -55,9 +73,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			usagebased.StatusActive,
 			statelessx.BoolFn(s.IsInsideServicePeriod),
 		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
 		OnActive(
 			s.AdvanceAfterServicePeriodFrom,
 		)
@@ -66,176 +85,178 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActive).
 		Permit(
-			meta.TriggerPartialInvoiceCreated,
-			usagebased.StatusActivePartialInvoiceStarted,
+			meta.TriggerNext,
+			usagebased.StatusActiveAwaitingPaymentSettlement,
+			statelessx.BoolFn(s.HasTerminalInvoicedRealizationWithoutCurrentRun),
 		).
 		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
+			meta.TriggerInvoiceCreated,
+			usagebased.StatusActiveRealizationStarted,
 		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
 		OnActive(
 			statelessx.AllOf(
+				s.ResolveDynamicCostBasis,
 				s.SyncFeatureIDFromFeatureMeter,
 				s.AdvanceAfterServicePeriodTo,
 			),
 		)
 
-	// ############################################################
-	// Partial invoice realizations
-	// ############################################################
+	// Invoice-backed realizations
 
-	s.Configure(usagebased.StatusActivePartialInvoiceStarted).
-		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
-		).
+	s.Configure(usagebased.StatusActiveRealizationStarted).
 		Permit(
 			meta.TriggerNext,
-			usagebased.StatusActivePartialInvoiceWaitingForCollection,
+			usagebased.StatusActiveRealizationWaitingForCollection,
 		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnEntry(statelessx.WithParameters(s.StartPartialInvoiceRun))
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
+		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.StartInvoiceRun))
 
-	s.Configure(usagebased.StatusActivePartialInvoiceWaitingForCollection).
-		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
-		).
+	s.Configure(usagebased.StatusActiveRealizationWaitingForCollection).
 		Permit(
 			meta.TriggerCollectionCompleted,
-			usagebased.StatusActivePartialInvoiceProcessing,
+			usagebased.StatusActiveRealizationProcessing,
 		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
 		OnActive(s.AdvanceAfterCollectionPeriodEnd)
 
-	s.Configure(usagebased.StatusActivePartialInvoiceProcessing).
-		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
-		).
+	s.Configure(usagebased.StatusActiveRealizationProcessing).
 		Permit(
 			meta.TriggerInvoiceIssued,
-			usagebased.StatusActivePartialInvoiceIssuing,
+			usagebased.StatusActiveRealizationIssuing,
 		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
 		OnActive(
 			s.SnapshotInvoiceUsage,
 		)
 
-	s.Configure(usagebased.StatusActivePartialInvoiceIssuing).
-		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
-		).
+	s.Configure(usagebased.StatusActiveRealizationIssuing).
 		Permit(
 			meta.TriggerNext,
-			usagebased.StatusActivePartialInvoiceCompleted,
+			usagebased.StatusActiveRealizationCompleted,
 		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
-		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
-
-	s.Configure(usagebased.StatusActivePartialInvoiceCompleted).
-		Permit(
-			meta.TriggerNext,
-			usagebased.StatusActive,
-		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation))
-
-	// Final (invoice) realizations
-
-	s.Configure(usagebased.StatusActiveFinalRealizationStarted).
-		Permit(
-			meta.TriggerNext,
-			usagebased.StatusActiveFinalRealizationWaitingForCollection,
-		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnEntry(statelessx.WithParameters(s.StartFinalInvoiceRun))
-
-	s.Configure(usagebased.StatusActiveFinalRealizationWaitingForCollection).
-		Permit(
-			meta.TriggerCollectionCompleted,
-			usagebased.StatusActiveFinalRealizationProcessing,
-		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnActive(s.AdvanceAfterCollectionPeriodEnd)
-
-	s.Configure(usagebased.StatusActiveFinalRealizationProcessing).
-		Permit(
-			meta.TriggerInvoiceIssued,
-			usagebased.StatusActiveFinalRealizationIssuing,
-		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnActive(
-			s.SnapshotInvoiceUsage,
-		)
-
-	s.Configure(usagebased.StatusActiveFinalRealizationIssuing).
-		Permit(
-			meta.TriggerNext,
-			usagebased.StatusActiveFinalRealizationCompleted,
-		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		// Extend is rejected while invoice-issued callbacks own this state.
 		// Subscription sync can retry after billing advances the charge.
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.UnsupportedShrinkToRealizedPeriodOperation)).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
 
-	s.Configure(usagebased.StatusActiveFinalRealizationCompleted).
-		Permit(
+	s.Configure(usagebased.StatusActiveRealizationCompleted).
+		PermitDynamic(
 			meta.TriggerNext,
-			usagebased.StatusActiveAwaitingPaymentSettlement,
+			s.resolveStateAfterRealizationCompleted,
 		).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		// Extend is rejected because this branch still has its own next
 		// transition to payment settlement. Subscription sync can retry.
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation))
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
+		// Invoice-issued callbacks have already finalized the run in the
+		// issuing state. A gathering-line API delete may now shorten the
+		// effective period to that completed run, and the next transition still
+		// owns routing the charge to active or payment settlement.
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod))
 
 	// Payment + final
 
 	s.Configure(usagebased.StatusActiveAwaitingPaymentSettlement).
-		Permit(meta.TriggerAllPaymentsSettled, usagebased.StatusFinal, statelessx.BoolFn(s.AreAllInvoicedRunsSettled)).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		Permit(meta.TriggerNext, usagebased.StatusFinal, statelessx.BoolFn(s.AreAllInvoicedRunsSettled)).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod))
 
 	s.Configure(usagebased.StatusFinal).
-		Permit(meta.TriggerDelete, usagebased.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod))
 
 	s.Configure(usagebased.StatusDeleted).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
-		OnEntry(statelessx.WithParameters(s.DeleteCharge))
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.UnsupportedShrinkToRealizedPeriodOperation))
 }
 
-func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta.PatchDeletePolicy) error {
-	patches := []invoiceupdater.Patch{
+func (s *CreditThenInvoiceStateMachine) resolveStateAfterRealizationCompleted(_ context.Context, _ ...any) (stateless.State, error) {
+	latestRun, ok := s.Charge.Realizations.WithoutVoidedBillingHistory().Latest()
+	if !ok {
+		return nil, fmt.Errorf("no effective realization run found [charge_id=%s]", s.Charge.ID)
+	}
+
+	if isFinalRunInPeriod(s.Charge, timeutil.ClosedPeriod{
+		From: s.Charge.Intent.GetEffectiveServicePeriod().From,
+		To:   latestRun.ServicePeriodTo,
+	}) {
+		return usagebased.StatusActiveAwaitingPaymentSettlement, nil
+	}
+
+	return usagebased.StatusActive, nil
+}
+
+// HasTerminalInvoicedRealizationWithoutCurrentRun lets the active state discover
+// a completed invoice-backed realization after manual period changes. Normally
+// the realization branch moves to settlement when it creates the final run; API
+// gathering-line deletes can instead make an existing paid partial run become
+// final while the charge is already back in active.
+func (s *CreditThenInvoiceStateMachine) HasTerminalInvoicedRealizationWithoutCurrentRun() bool {
+	if s.Charge.State.CurrentRealizationRunID != nil {
+		return false
+	}
+
+	latestRun, ok := s.Charge.Realizations.WithoutVoidedBillingHistory().Latest()
+	if !ok {
+		return false
+	}
+
+	if latestRun.Type != usagebased.RealizationRunTypeFinalRealization {
+		return false
+	}
+
+	if latestRun.InvoiceUsage == nil {
+		return false
+	}
+
+	return isFinalRunInPeriod(s.Charge, timeutil.ClosedPeriod{
+		From: s.Charge.Intent.GetEffectiveServicePeriod().From,
+		To:   latestRun.ServicePeriodTo,
+	})
+}
+
+func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
+	deletedAt := lo.ToPtr(clock.Now())
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
+	if err != nil {
+		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
+	}
+
+	if err := s.mutateIntentLayer(ctx, target, func(fields *usagebased.IntentMutableFields) error {
+		fields.IntentDeletedAt = deletedAt
+		return nil
+	}); err != nil {
+		return fmt.Errorf("deleting intent: %w", err)
+	}
+
+	s.Charge.Status = usagebased.StatusDeleted
+
+	patches := invoiceupdater.Patches{
 		invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID),
 	}
 
@@ -273,26 +294,18 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
-	oldIntent := s.Charge.Intent.Intent
-	if err := patch.ValidateWith(oldIntent); err != nil {
-		return fmt.Errorf("validate extend patch: %w", err)
+	patchResult, err := s.applyPeriodPatch(ctx, patch)
+	if err != nil {
+		return err
 	}
 
-	oldServicePeriod := meta.NormalizeClosedPeriod(s.Charge.Intent.ServicePeriod)
-
-	s.Charge.Intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
-	s.Charge.Intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
-	s.Charge.Intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
-	s.Charge.Intent.InvoiceAt = patch.GetNewInvoiceAt()
-	s.Charge.Intent = s.Charge.Intent.Normalized()
-
-	newGatheringLinePeriod, err := s.handleFinalRunOnExtend(ctx, oldServicePeriod)
+	newGatheringLinePeriod, err := s.handleFinalRunOnExtend(ctx, patchResult.OldServicePeriod)
 	if err != nil {
 		return fmt.Errorf("handling final run on extend: %w", err)
 	}
 
 	if period, ok := newGatheringLinePeriod.Get(); ok {
-		withLine, err := gatheringLineFromUsageBasedChargeForPeriod(s.Charge, period, s.Charge.Intent.InvoiceAt)
+		withLine, err := gatheringLineFromUsageBasedChargeForPeriod(s.Charge, period, s.Charge.Intent.GetEffectiveInvoiceAt())
 		if err != nil {
 			return fmt.Errorf("creating gathering line for extended period: %w", err)
 		}
@@ -303,33 +316,160 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 
 		s.AddInvoicePatch(invoiceupdater.NewCreateLinePatch(*withLine.GatheringLineToCreate))
 	} else {
-		s.AddInvoicePatch(invoiceupdater.NewUpdateGatheringLineByChargeIDPatch(
-			s.Charge.ID,
-			s.Charge.Intent.ServicePeriod.To,
-			s.Charge.Intent.InvoiceAt,
-		))
+		gatheringLinePeriod := remainingGatheringLinePeriod(s.Charge)
+		if gatheringLinePeriod.IsEmpty() {
+			// Existing realization runs already cover the effective charge period,
+			// so there is no remaining unbilled tail to keep as a pending line.
+			s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
+			return nil
+		}
+
+		withLine, err := gatheringLineFromUsageBasedChargeForPeriod(
+			s.Charge,
+			gatheringLinePeriod,
+			s.Charge.Intent.GetEffectiveInvoiceAt(),
+		)
+		if err != nil {
+			return fmt.Errorf("creating gathering line update for extended period: %w", err)
+		}
+
+		if withLine.GatheringLineToCreate == nil {
+			return fmt.Errorf("creating gathering line update for extended period: gathering line is required")
+		}
+
+		s.AddInvoicePatch(invoiceupdater.NewUpsertGatheringLineByChargeIDPatch(s.Charge.ID, *withLine.GatheringLineToCreate))
 	}
 
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) ShrinkCharge(_ context.Context, patch meta.PatchShrink) error {
-	oldIntent := s.Charge.Intent.Intent
-	if err := patch.ValidateWith(oldIntent); err != nil {
-		return fmt.Errorf("validate shrink patch: %w", err)
+func remainingGatheringLinePeriod(charge usagebased.Charge) timeutil.ClosedPeriod {
+	effectivePeriod := charge.Intent.GetEffectiveServicePeriod()
+	period := timeutil.ClosedPeriod{
+		From: meta.NormalizeTimestamp(effectivePeriod.From),
+		To:   meta.NormalizeTimestamp(effectivePeriod.To),
 	}
 
-	s.Charge.Intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
-	s.Charge.Intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
-	s.Charge.Intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
-	s.Charge.Intent.InvoiceAt = patch.GetNewInvoiceAt()
-	s.Charge.Intent = s.Charge.Intent.Normalized()
+	for _, run := range charge.Realizations {
+		if run.IsVoidedBillingHistory() {
+			continue
+		}
+
+		runServicePeriodTo := meta.NormalizeTimestamp(run.ServicePeriodTo)
+		if runServicePeriodTo.After(period.From) {
+			period.From = runServicePeriodTo
+		}
+	}
+
+	return period.Truncate(streaming.MinimumWindowSizeDuration)
+}
+
+func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch meta.PatchShrink) error {
+	if _, err := s.applyPeriodPatch(ctx, patch); err != nil {
+		return err
+	}
 
 	if err := s.handleRunsOnShrink(); err != nil {
 		return fmt.Errorf("handling realization runs on shrink: %w", err)
 	}
 
 	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) ShrinkToRealizedPeriod(ctx context.Context, patch meta.PatchShrinkToRealizedPeriod) error {
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
+	if err != nil {
+		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
+	}
+
+	nonVoidedRuns := s.Charge.Realizations.WithoutVoidedBillingHistory()
+	latestRun, ok := nonVoidedRuns.Latest()
+	if !ok {
+		return fmt.Errorf("cannot shrink usage-based charge %s to realized period without realization runs: %w", s.Charge.ID, billing.ErrCannotEditProgressivelyBilledUsageBasedLine)
+	}
+	newServicePeriodTo := meta.NormalizeTimestamp(patch.GetNewServicePeriodEnd())
+	latestRunServicePeriodTo := meta.NormalizeTimestamp(latestRun.ServicePeriodTo)
+
+	if err := s.mutateIntentLayer(ctx, target, func(fields *usagebased.IntentMutableFields) error {
+		if err := patch.ValidateWith(fields.IntentMutableFields); err != nil {
+			return fmt.Errorf("validate %s patch: %w", patch.Op(), err)
+		}
+
+		if !newServicePeriodTo.Equal(latestRunServicePeriodTo) {
+			return fmt.Errorf(
+				"cannot shrink usage-based charge %s to %s because latest realization run %s ends at %s: %w",
+				s.Charge.ID,
+				newServicePeriodTo,
+				latestRun.ID.ID,
+				latestRunServicePeriodTo,
+				billing.ErrCannotEditProgressivelyBilledUsageBasedLine,
+			)
+		}
+
+		fields.ServicePeriod.To = patch.GetNewServicePeriodEnd()
+		return nil
+	}); err != nil {
+		return fmt.Errorf("mutating %s intent: %w", target, err)
+	}
+
+	if latestRun.Type == usagebased.RealizationRunTypePartialInvoice {
+		updatedRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+			ID:   latestRun.ID,
+			Type: mo.Some(usagebased.RealizationRunTypeFinalRealization),
+		})
+		if err != nil {
+			return fmt.Errorf("updating realization run[%s] type: %w", latestRun.ID.ID, err)
+		}
+
+		latestRun.RealizationRunBase = updatedRunBase
+		if err := s.Charge.Realizations.SetRealizationRun(latestRun); err != nil {
+			return fmt.Errorf("updating in-memory realization run[%s]: %w", latestRun.ID.ID, err)
+		}
+	}
+
+	s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
+
+	return nil
+}
+
+type creditThenInvoiceApplyPeriodPatchResult struct {
+	OldServicePeriod timeutil.ClosedPeriod
+}
+
+func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(ctx context.Context, patch periodPatch) (creditThenInvoiceApplyPeriodPatchResult, error) {
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
+	if err != nil {
+		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return creditThenInvoiceApplyPeriodPatchResult{}, err
+	}
+
+	var oldServicePeriod timeutil.ClosedPeriod
+
+	if err := s.mutateIntentLayer(ctx, target, func(fields *usagebased.IntentMutableFields) error {
+		if err := patch.ValidateWith(fields.IntentMutableFields); err != nil {
+			return fmt.Errorf("validate %s patch: %w", patch.Op(), err)
+		}
+
+		oldServicePeriod = meta.NormalizeClosedPeriod(fields.ServicePeriod)
+		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
+		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+		fields.InvoiceAt = patch.GetNewInvoiceAt()
+		return nil
+	}); err != nil {
+		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", target, err)
+	}
+
+	return creditThenInvoiceApplyPeriodPatchResult{
+		OldServicePeriod: oldServicePeriod,
+	}, nil
 }
 
 func (s *CreditThenInvoiceStateMachine) UnsupportedExtendOperation(_ context.Context, _ meta.PatchExtend) error {
@@ -344,10 +484,65 @@ func (s *CreditThenInvoiceStateMachine) UnsupportedShrinkOperation(_ context.Con
 	)
 }
 
+func (s *CreditThenInvoiceStateMachine) UnsupportedShrinkToRealizedPeriodOperation(_ context.Context, _ meta.PatchShrinkToRealizedPeriod) error {
+	return models.NewGenericPreConditionFailedError(
+		fmt.Errorf("cannot shrink usage-based charge to realized period in status %s; retry after billing advances", s.Charge.Status),
+	)
+}
+
+// ResolveDynamicCostBasis idempotently persists the dynamic cost basis
+// effective at the charge's service-period start. Once resolved, the persisted
+// value is authoritative and must never be overwritten by lifecycle retries.
+func (s *CreditThenInvoiceStateMachine) ResolveDynamicCostBasis(ctx context.Context) error {
+	intent := s.Charge.Intent.GetCostBasisIntent()
+	if intent == nil || intent.Kind() != costbasis.ModeDynamic {
+		return nil
+	}
+
+	if s.Charge.State.ResolvedCostBasis != nil {
+		return nil
+	}
+
+	if s.Charge.State.CostBasisID == nil {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("dynamic cost basis reference is missing for usage based charge %s", s.Charge.ID),
+		)
+	}
+
+	resolvedState, err := s.CostBasisResolver.ResolveDynamicState(ctx, costbasis.ResolveDynamicStateInput{
+		CurrencyID:        s.Charge.Intent.GetCurrency().NamespacedID,
+		Intent:            *intent,
+		ServicePeriodFrom: s.Charge.Intent.GetEffectiveServicePeriod().From,
+	})
+	if err != nil {
+		return fmt.Errorf("resolve dynamic cost basis for usage based charge %s: %w", s.Charge.ID, err)
+	}
+
+	persisted, err := s.Adapter.SetResolvedCostBasis(ctx, costbasis.SetResolvedCostBasisInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: s.Charge.Namespace,
+			ID:        *s.Charge.State.CostBasisID,
+		},
+		State: resolvedState,
+	})
+	if err != nil {
+		return fmt.Errorf("persist dynamic cost basis for usage based charge %s: %w", s.Charge.ID, err)
+	}
+
+	if persisted.State == nil {
+		return fmt.Errorf("persisted dynamic cost basis is unresolved for usage based charge %s", s.Charge.ID)
+	}
+
+	s.Charge.State.ResolvedCostBasis = persisted.State
+
+	return nil
+}
+
 func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
-	newServicePeriodTo := meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To)
+	servicePeriod := s.Charge.Intent.GetEffectiveServicePeriod()
+	newServicePeriodTo := meta.NormalizeTimestamp(servicePeriod.To)
 	runsToKeep, runsToBeDeleted := s.Charge.Realizations.BisectByTimestamp(
-		s.Charge.Intent.ServicePeriod,
+		servicePeriod,
 		newServicePeriodTo,
 	)
 
@@ -371,7 +566,7 @@ func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 	}
 
 	gatheringLinePeriod := timeutil.ClosedPeriod{
-		From: meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From),
+		From: meta.NormalizeTimestamp(servicePeriod.From),
 		To:   newServicePeriodTo,
 	}
 
@@ -388,11 +583,20 @@ func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 
 	gatheringLinePeriod = gatheringLinePeriod.Truncate(streaming.MinimumWindowSizeDuration)
 	if len(runsToBeDeleted) == 0 && !gatheringLinePeriod.IsEmpty() {
-		s.AddInvoicePatch(invoiceupdater.NewUpdateGatheringLineByChargeIDPatch(
-			s.Charge.ID,
-			gatheringLinePeriod.To,
-			s.Charge.Intent.InvoiceAt,
-		))
+		withLine, err := gatheringLineFromUsageBasedChargeForPeriod(
+			s.Charge,
+			gatheringLinePeriod,
+			s.Charge.Intent.GetEffectiveInvoiceAt(),
+		)
+		if err != nil {
+			return fmt.Errorf("creating gathering line update for shrunk period: %w", err)
+		}
+
+		if withLine.GatheringLineToCreate == nil {
+			return fmt.Errorf("creating gathering line update for shrunk period: gathering line is required")
+		}
+
+		s.AddInvoicePatch(invoiceupdater.NewUpsertGatheringLineByChargeIDPatch(s.Charge.ID, *withLine.GatheringLineToCreate))
 	} else {
 		s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
 
@@ -400,7 +604,7 @@ func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 			withLine, err := gatheringLineFromUsageBasedChargeForPeriod(
 				s.Charge,
 				gatheringLinePeriod,
-				s.Charge.Intent.InvoiceAt,
+				s.Charge.Intent.GetEffectiveInvoiceAt(),
 			)
 			if err != nil {
 				return fmt.Errorf("creating gathering line for shrunk period: %w", err)
@@ -470,9 +674,9 @@ func (s *CreditThenInvoiceStateMachine) updateStateAfterShrink(
 // that case the old invoice remains the historical partial bill and only the
 // extended tail is left for a future invoice.
 func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Context, oldServicePeriod timeutil.ClosedPeriod) (mo.Option[timeutil.ClosedPeriod], error) {
-	if usagebased.IsMutableFinalRealizationStatus(s.Charge.Status) {
+	if usagebased.IsMutableRealizationStatus(s.Charge.Status) {
 		if s.Charge.State.CurrentRealizationRunID == nil {
-			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current final realization run is required [charge_id=%s,status=%s]", s.Charge.ID, s.Charge.Status)
+			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current invoice-backed realization run is required [charge_id=%s,status=%s]", s.Charge.ID, s.Charge.Status)
 		}
 
 		currentRun, err := s.Charge.Realizations.GetByID(*s.Charge.State.CurrentRealizationRunID)
@@ -480,12 +684,17 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("get current realization run: %w", err)
 		}
 
+		// We don't want to delete a non-final realization run, just fall back to progressively billing the tail.
 		if currentRun.Type != usagebased.RealizationRunTypeFinalRealization {
-			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current run must be final realization [charge_id=%s,status=%s,run_id=%s,type=%s]", s.Charge.ID, s.Charge.Status, currentRun.ID.ID, currentRun.Type)
+			return mo.None[timeutil.ClosedPeriod](), nil
+		}
+
+		if !meta.NormalizeTimestamp(currentRun.ServicePeriodTo).Equal(meta.NormalizeTimestamp(oldServicePeriod.To)) {
+			return mo.None[timeutil.ClosedPeriod](), nil
 		}
 
 		if currentRun.LineID == nil || currentRun.InvoiceID == nil {
-			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current final realization run must be invoice-backed [charge_id=%s,status=%s,run_id=%s]", s.Charge.ID, s.Charge.Status, currentRun.ID.ID)
+			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current terminal realization run must be invoice-backed [charge_id=%s,status=%s,run_id=%s]", s.Charge.ID, s.Charge.Status, currentRun.ID.ID)
 		}
 
 		// Billing's mutable-line deletion hook owns the cleanup: it reverses the
@@ -499,21 +708,17 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 			*currentRun.InvoiceID,
 		))
 
-		return mo.Some(s.Charge.Intent.ServicePeriod), nil
+		return mo.Some(s.Charge.Intent.GetEffectiveServicePeriod()), nil
 	}
 
 	finalRuns := lo.Filter(s.Charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
-		if run.Type != usagebased.RealizationRunTypeFinalRealization {
-			return false
-		}
-
 		// Voided realizations no longer preserve invoice lifecycle state, so they
 		// cannot be reclassified when an already-extended charge is patched again.
 		if run.IsVoidedBillingHistory() {
 			return false
 		}
 
-		return meta.NormalizeTimestamp(run.ServicePeriodTo).Equal(oldServicePeriod.To)
+		return meta.NormalizeTimestamp(run.ServicePeriodTo).Equal(meta.NormalizeTimestamp(oldServicePeriod.To))
 	})
 	if len(finalRuns) == 0 {
 		return mo.None[timeutil.ClosedPeriod](), nil
@@ -538,18 +743,18 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 
 	s.Charge.Status = usagebased.StatusActive
 	s.Charge.State.CurrentRealizationRunID = nil
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To))
 
 	return mo.Some(timeutil.ClosedPeriod{
 		From: oldServicePeriod.To,
-		To:   s.Charge.Intent.ServicePeriod.To,
+		To:   s.Charge.Intent.GetEffectiveServicePeriod().To,
 	}), nil
 }
 
 type invoiceCreatedInput struct {
-	LineID          string
-	InvoiceID       string
-	ServicePeriodTo time.Time
+	LineID        string
+	InvoiceID     string
+	ServicePeriod timeutil.ClosedPeriod
 }
 
 func (i invoiceCreatedInput) Validate() error {
@@ -561,23 +766,23 @@ func (i invoiceCreatedInput) Validate() error {
 		return fmt.Errorf("invoice id is required")
 	}
 
-	if i.ServicePeriodTo.IsZero() {
-		return fmt.Errorf("service period to is required")
+	if err := i.ServicePeriod.ValidateAsRequired(); err != nil {
+		return fmt.Errorf("service period: %w", err)
 	}
 
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
+func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
 	ctx context.Context,
 	input invoiceCreatedInput,
-	runType usagebased.RealizationRunType,
 ) error {
 	if err := input.Validate(); err != nil {
 		return fmt.Errorf("validate invoice created input: %w", err)
 	}
 
-	storedAtLT := meta.NormalizeTimestamp(input.ServicePeriodTo)
+	runType := getInvoiceRealizationRunType(s.Charge, input.ServicePeriod)
+	storedAtLT := meta.NormalizeTimestamp(input.ServicePeriod.To)
 	servicePeriodTo := storedAtLT
 	if runType == usagebased.RealizationRunTypeFinalRealization {
 		var err error
@@ -585,7 +790,7 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 		if err != nil {
 			return fmt.Errorf("get stored at lt: %w", err)
 		}
-		servicePeriodTo = meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To)
+		servicePeriodTo = meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To)
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
@@ -608,20 +813,16 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) StartPartialInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
-	return s.startInvoiceCreatedRun(ctx, input, usagebased.RealizationRunTypePartialInvoice)
-}
-
-func (s *CreditThenInvoiceStateMachine) StartFinalInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
-	return s.startInvoiceCreatedRun(ctx, input, usagebased.RealizationRunTypeFinalRealization)
-}
-
-func resolveInvoiceCreatedTrigger(charge usagebased.Charge, billedPeriod timeutil.ClosedPeriod) meta.Trigger {
-	if meta.NormalizeTimestamp(billedPeriod.To).Equal(meta.NormalizeTimestamp(charge.Intent.ServicePeriod.To)) {
-		return meta.TriggerFinalInvoiceCreated
+func getInvoiceRealizationRunType(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod) usagebased.RealizationRunType {
+	if isFinalRunInPeriod(charge, servicePeriod) {
+		return usagebased.RealizationRunTypeFinalRealization
 	}
 
-	return meta.TriggerPartialInvoiceCreated
+	return usagebased.RealizationRunTypePartialInvoice
+}
+
+func isFinalRunInPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod) bool {
+	return meta.NormalizeTimestamp(servicePeriod.To).Equal(meta.NormalizeTimestamp(charge.Intent.GetEffectiveServicePeriod().To))
 }
 
 func (s *CreditThenInvoiceStateMachine) AreAllInvoicedRunsSettled() bool {

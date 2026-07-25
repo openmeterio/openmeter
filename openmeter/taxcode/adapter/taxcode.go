@@ -129,6 +129,30 @@ func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 	})
 }
 
+func (a *adapter) GetTaxCodeByKey(ctx context.Context, input taxcode.GetTaxCodeByKeyInput) (taxcode.TaxCode, error) {
+	if err := input.Validate(); err != nil {
+		return taxcode.TaxCode{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
+		query := a.db.TaxCode.Query().
+			Where(taxcodedb.Namespace(input.Namespace)).
+			Where(taxcodedb.Key(input.Key)).
+			Where(taxcodedb.DeletedAtIsNil())
+
+		entity, err := query.Only(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return taxcode.TaxCode{}, taxcode.NewTaxCodeByKeyNotFoundError(input.Key)
+			}
+
+			return taxcode.TaxCode{}, fmt.Errorf("failed to get tax code by key: %w", err)
+		}
+
+		return MapTaxCodeFromEntity(entity)
+	})
+}
+
 func (a *adapter) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
 	if err := input.Validate(); err != nil {
 		return taxcode.TaxCode{}, err

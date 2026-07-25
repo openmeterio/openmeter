@@ -14,8 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -647,47 +647,6 @@ func TestSubtractRatedRunDetailsDoesNotMatchDifferentPricerReferenceIDs(t *testi
 	}, toExpectedDetailedLines(out))
 }
 
-func TestSubtractRatedRunDetailsRejectsCurrencyMismatch(t *testing.T) {
-	t.Parallel()
-
-	servicePeriod := timeutil.ClosedPeriod{
-		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
-	}
-
-	current := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
-		referenceID:   "unit-price-usage",
-		servicePeriod: servicePeriod,
-		perUnitAmount: 10,
-		quantity:      5,
-		totals: expectedTotals{
-			Amount: 50,
-			Total:  50,
-		},
-	})
-	previous := makeRatedDetailedLineForTest(ratedDetailedLineForTestInput{
-		referenceID:   "unit-price-usage",
-		servicePeriod: servicePeriod,
-		perUnitAmount: 10,
-		quantity:      3,
-		totals: expectedTotals{
-			Amount: 30,
-			Total:  30,
-		},
-	})
-	previous.Currency = currencyx.Code("EUR")
-
-	// given:
-	// - current and previous detailed lines with different currencies
-	// when:
-	// - we subtract the previous detailed lines from the current detailed lines
-	// then:
-	// - subtraction rejects the invocation instead of treating currency as an arithmetic key
-
-	_, err := SubtractRatedRunDetails(usagebased.DetailedLines{current}, usagebased.DetailedLines{previous}, NewMockUniqueReferenceIDGenerator(t))
-	require.ErrorContains(t, err, "current and previous detailed lines: currency mismatch: USD != EUR")
-}
-
 func TestSubtractRatedRunDetailsPreservesMatchedCurrentServicePeriod(t *testing.T) {
 	t.Parallel()
 
@@ -1252,7 +1211,7 @@ func runSubtractRatedRunDetailsTestCases(
 ) {
 	t.Helper()
 
-	ratingService := billingratingservice.New()
+	ratingService := billingratingservice.New(billingratingservice.Config{})
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1383,14 +1342,18 @@ func rateRunDetailsForTest(t *testing.T, ratingService billingrating.Service, in
 	intent := usagebased.RateableIntent{
 		Intent: usagebased.Intent{
 			Intent: meta.Intent{
-				Name:              "feature",
-				Currency:          currencyx.Code("USD"),
-				ServicePeriod:     in.ServicePeriod,
-				FullServicePeriod: in.ServicePeriod,
-				BillingPeriod:     in.ServicePeriod,
+				Currency: currenciestestutils.NewFiatCurrency(t, "USD"),
+			},
+			IntentMutableFields: usagebased.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "feature",
+					ServicePeriod:     in.ServicePeriod,
+					FullServicePeriod: in.ServicePeriod,
+					BillingPeriod:     in.ServicePeriod,
+				},
+				Price: in.Price,
 			},
 			FeatureKey: "feature",
-			Price:      in.Price,
 		},
 		ServicePeriod: in.ServicePeriod,
 		MeterValue:    alpacadecimal.NewFromFloat(in.MeteredQuantity),
@@ -1427,7 +1390,6 @@ func usageBasedDetailedLinesForTest(lines billingrating.DetailedLines, servicePe
 				ChildUniqueReferenceID: line.ChildUniqueReferenceID,
 				PaymentTerm:            paymentTerm,
 				ServicePeriod:          period,
-				Currency:               currencyx.Code("USD"),
 				PerUnitAmount:          line.PerUnitAmount,
 				Quantity:               line.Quantity,
 				Totals:                 line.Totals,
@@ -1564,7 +1526,6 @@ func makeRatedDetailedLineForTest(in ratedDetailedLineForTestInput) usagebased.D
 			Index:                  in.index,
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			ServicePeriod:          in.servicePeriod,
-			Currency:               currencyx.Code("USD"),
 			PerUnitAmount:          alpacadecimal.NewFromFloat(in.perUnitAmount),
 			Quantity:               alpacadecimal.NewFromFloat(in.quantity),
 			Totals: totals.Totals{

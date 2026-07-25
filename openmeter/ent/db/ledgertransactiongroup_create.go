@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -106,6 +107,36 @@ func (_c *LedgerTransactionGroupCreate) AddTransactions(v ...*LedgerTransaction)
 		ids[i] = v[i].ID
 	}
 	return _c.AddTransactionIDs(ids...)
+}
+
+// AddSourceBreakageRecordIDs adds the "source_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_c *LedgerTransactionGroupCreate) AddSourceBreakageRecordIDs(ids ...string) *LedgerTransactionGroupCreate {
+	_c.mutation.AddSourceBreakageRecordIDs(ids...)
+	return _c
+}
+
+// AddSourceBreakageRecords adds the "source_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_c *LedgerTransactionGroupCreate) AddSourceBreakageRecords(v ...*LedgerBreakageRecord) *LedgerTransactionGroupCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSourceBreakageRecordIDs(ids...)
+}
+
+// AddBreakageRecordIDs adds the "breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_c *LedgerTransactionGroupCreate) AddBreakageRecordIDs(ids ...string) *LedgerTransactionGroupCreate {
+	_c.mutation.AddBreakageRecordIDs(ids...)
+	return _c
+}
+
+// AddBreakageRecords adds the "breakage_records" edges to the LedgerBreakageRecord entity.
+func (_c *LedgerTransactionGroupCreate) AddBreakageRecords(v ...*LedgerBreakageRecord) *LedgerTransactionGroupCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBreakageRecordIDs(ids...)
 }
 
 // Mutation returns the LedgerTransactionGroupMutation object of the builder.
@@ -238,6 +269,38 @@ func (_c *LedgerTransactionGroupCreate) createSpec() (*LedgerTransactionGroup, *
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(ledgertransaction.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SourceBreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgertransactiongroup.SourceBreakageRecordsTable,
+			Columns: []string{ledgertransactiongroup.SourceBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgertransactiongroup.BreakageRecordsTable,
+			Columns: []string{ledgertransactiongroup.BreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

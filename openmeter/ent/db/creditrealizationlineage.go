@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
@@ -32,6 +33,8 @@ type CreditRealizationLineage struct {
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// OriginKind holds the value of the "origin_kind" field.
 	OriginKind creditrealization.LineageOriginKind `json:"origin_kind,omitempty"`
+	// AdvanceFeatures holds the value of the "advance_features" field.
+	AdvanceFeatures pq.StringArray `json:"advance_features,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -76,6 +79,8 @@ func (*CreditRealizationLineage) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case creditrealizationlineage.FieldAdvanceFeatures:
+			values[i] = new(pq.StringArray)
 		case creditrealizationlineage.FieldID, creditrealizationlineage.FieldNamespace, creditrealizationlineage.FieldChargeID, creditrealizationlineage.FieldRootRealizationID, creditrealizationlineage.FieldCustomerID, creditrealizationlineage.FieldCurrency, creditrealizationlineage.FieldOriginKind:
 			values[i] = new(sql.NullString)
 		case creditrealizationlineage.FieldCreatedAt:
@@ -136,6 +141,12 @@ func (_m *CreditRealizationLineage) assignValues(columns []string, values []any)
 				return fmt.Errorf("unexpected type %T for field origin_kind", values[i])
 			} else if value.Valid {
 				_m.OriginKind = creditrealization.LineageOriginKind(value.String)
+			}
+		case creditrealizationlineage.FieldAdvanceFeatures:
+			if value, ok := values[i].(*pq.StringArray); !ok {
+				return fmt.Errorf("unexpected type %T for field advance_features", values[i])
+			} else if value != nil {
+				_m.AdvanceFeatures = *value
 			}
 		case creditrealizationlineage.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -206,6 +217,9 @@ func (_m *CreditRealizationLineage) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("origin_kind=")
 	builder.WriteString(fmt.Sprintf("%v", _m.OriginKind))
+	builder.WriteString(", ")
+	builder.WriteString("advance_features=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AdvanceFeatures))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

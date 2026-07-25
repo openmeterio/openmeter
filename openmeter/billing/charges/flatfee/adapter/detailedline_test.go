@@ -16,15 +16,15 @@ import (
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestFlatFeeDetailedLineAdapter(t *testing.T) {
@@ -37,6 +37,8 @@ type FlatFeeDetailedLineAdapterSuite struct {
 	testDB   *testutils.TestDB
 	dbClient *entdb.Client
 	adapter  flatfee.Adapter
+
+	taxCodeEnv *taxcodetestutils.TestEnv
 }
 
 type newDetailedLineInput struct {
@@ -50,17 +52,8 @@ type newDetailedLineInput struct {
 func (s *FlatFeeDetailedLineAdapterSuite) SetupSuite() {
 	t := s.T()
 
-	s.testDB = testutils.InitPostgresDB(t)
+	s.testDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	s.dbClient = entdb.NewClient(entdb.Driver(s.testDB.EntDriver.Driver()))
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: s.testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           slog.Default(),
-	})
-	require.NoError(t, err)
-	defer migrator.CloseOrLogError()
-	require.NoError(t, migrator.Up())
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.dbClient,
@@ -76,6 +69,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	s.adapter = a
+	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
 }
 
 func (s *FlatFeeDetailedLineAdapterSuite) TearDownSuite() {
@@ -88,6 +82,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 	ctx := s.T().Context()
 	namespace := "flatfee-detailedline-adapter"
 	customerID := s.createCustomer(namespace)
+	taxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -100,22 +95,29 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 			{
 				Intent: flatfee.Intent{
 					Intent: chargesmeta.Intent{
-						Name:              "flat-fee-charge",
-						ManagedBy:         billing.SubscriptionManagedLine,
-						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
+						ManagedBy:  billing.SubscriptionManagedLine,
+						CustomerID: customerID,
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
-					InvoiceAt:             servicePeriod.To,
-					SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
-					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-					AmountBeforeProration: alpacadecimal.NewFromInt(10),
-					ProRating: productcatalog.ProRatingConfig{
-						Enabled: false,
-						Mode:    productcatalog.ProRatingModeProratePrices,
+					IntentMutableFields: flatfee.IntentMutableFields{
+						IntentMutableFields: chargesmeta.IntentMutableFields{
+							Name:              "flat-fee-charge",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
+						},
+						InvoiceAt:             servicePeriod.To,
+						PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+						AmountBeforeProration: alpacadecimal.NewFromInt(10),
+						ProRating: productcatalog.ProRatingConfig{
+							Enabled: false,
+							Mode:    productcatalog.ProRatingModeProratePrices,
+						},
 					},
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				},
 				InitialStatus:        flatfee.StatusCreated,
 				AmountAfterProration: alpacadecimal.NewFromInt(10),
@@ -260,6 +262,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) newDetailedLine(input newDetailedLineI
 	s.T().Helper()
 
 	totalAmount := alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity))
+	baseIntent := input.Charge.Intent.GetBaseIntent()
 
 	return flatfee.DetailedLine{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -268,9 +271,8 @@ func (s *FlatFeeDetailedLineAdapterSuite) newDetailedLine(input newDetailedLineI
 			Description: input.Description,
 		}),
 		ServicePeriod:          input.ServicePeriod,
-		Currency:               input.Charge.Intent.Currency,
 		ChildUniqueReferenceID: input.ChildUniqueReferenceID,
-		PaymentTerm:            input.Charge.Intent.PaymentTerm,
+		PaymentTerm:            baseIntent.PaymentTerm,
 		PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),
 		Quantity:               alpacadecimal.NewFromInt(input.Quantity),
 		Category:               stddetailedline.CategoryRegular,

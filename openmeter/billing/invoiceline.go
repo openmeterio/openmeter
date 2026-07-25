@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -22,6 +23,8 @@ func (i LineID) Validate() error {
 type InvoiceLineManagedBy string
 
 const (
+	// TODO: Remove SubscriptionManagedLine once subscription ownership is represented
+	// through line engine metadata instead of a ManagedBy value.
 	// SubscriptionManagedLine is a line that is managed by a subscription.
 	SubscriptionManagedLine InvoiceLineManagedBy = "subscription"
 	// SystemManagedLine is a line that is managed by the system (non editable, detailed lines)
@@ -66,22 +69,44 @@ type GenericInvoiceLine interface {
 
 	Clone() (GenericInvoiceLine, error)
 	CloneWithoutChildren() (GenericInvoiceLine, error)
+	// WithTargetState returns the target line state merged onto the receiver's
+	// persistence identity. Implementations must retain the fields needed for
+	// DB updates, such as namespace, line ID, DBState, and child row identity,
+	// while taking the target's customer-facing/calculated line contents.
+	WithTargetState(target GenericInvoiceLine) (GenericInvoiceLine, error)
 
 	SetDeletedAt(at *time.Time)
+	SetManagedBy(managedBy InvoiceLineManagedBy)
+	SetEngine(engine LineEngineType)
 	SetPrice(price productcatalog.Price)
 	UpdateServicePeriod(func(p *timeutil.ClosedPeriod))
 	SetChildUniqueReferenceID(id *string)
+	AsGenericInvoiceLine() GenericInvoiceLine
+}
+
+type GenericInvoiceLineCreator interface {
+	AsGenericLine() GenericInvoiceLine
 }
 
 // GenericInvoiceLineReader is an interface that provides access to the generic invoice fields.
 type GenericInvoiceLineReader interface {
 	GetDeletedAt() *time.Time
+	GetCreatedAt() time.Time
+	IsDeleted() bool
 	GetID() string
+	GetName() string
+	GetDescription() *string
+	GetMetadata() models.Metadata
 	GetLineID() LineID
 	GetManagedBy() InvoiceLineManagedBy
 	GetAnnotations() models.Annotations
 	GetInvoiceID() string
+	GetEngine() LineEngineType
+	GetLineEngineType() LineEngineType
+	GetCurrency() currencyx.FiatCode
 	GetPrice() *productcatalog.Price
+	GetUnitConfig() *productcatalog.UnitConfig
+	GetTaxConfig() *TaxConfig
 	GetServicePeriod() timeutil.ClosedPeriod
 	GetChildUniqueReferenceID() *string
 	GetFeatureKey() string
@@ -118,6 +143,14 @@ var InvoiceLineTypes = []InvoiceLineType{
 func (t InvoiceLineType) Validate() error {
 	if !slices.Contains(InvoiceLineTypes, t) {
 		return fmt.Errorf("invalid invoice line type: %s", t)
+	}
+
+	return nil
+}
+
+func (t InvoiceLineType) Require(types ...InvoiceLineType) error {
+	if !slices.Contains(types, t) {
+		return fmt.Errorf("invoice line type: %s", t)
 	}
 
 	return nil

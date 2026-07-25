@@ -21,8 +21,11 @@ const SubscriptionsDescription = "Subscriptions are used to track usage of your 
 const AppsTag = "OpenMeter Apps";
 const AppsDescription = "Apps enable you to extend and customize billing and usage workflows by integrating with external systems and services. Apps can automate and enhance your billing ecosystem by supporting capabilities such as synchronizing usage data with third-party platforms, calculating taxes, generating and delivering invoices, handling payment collection, and other billing-related tasks.";
 
-const BillingTag = "OpenMeter Billing";
-const BillingDescription = "Billing manages the billing profiles, currencies, cost bases, and invoices for customers.";
+const BillingTag = "OpenMeter Billing Settings";
+const BillingDescription = "Billing settings manages the billing profiles and invoices for customers.";
+
+const CurrenciesTag = "OpenMeter Currencies";
+const CurrenciesDescription = "Currencies and cost bases for customers.";
 
 const TaxTag = "OpenMeter Tax";
 const TaxDescription = "Tax codes are used to calculate taxes for customers.";

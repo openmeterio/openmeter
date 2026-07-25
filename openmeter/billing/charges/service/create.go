@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"slices"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
@@ -15,18 +15,22 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type chargesWithInvoiceNowActions struct {
 	charges                          charges.Charges
 	collectionAlignmentBypassedLines []invoicePendingLinesInput
+	pendingLineResults               []*billing.CreatePendingInvoiceLinesResult
 }
 
 // applyDefaultTaxCodes fills in nil TaxCodeID on each intent's TaxConfig using the namespace's
@@ -34,51 +38,99 @@ type chargesWithInvoiceNowActions struct {
 // credit-grant default applies to credit purchase charges. Fails if any intent needs the fallback
 // but the namespace has no defaults provisioned.
 func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, intents charges.ChargeIntents) (charges.ChargeIntents, error) {
-	var needsDefaultIdx []int
-	for i, intent := range intents {
-		m, err := intent.Meta()
-		if err != nil {
-			return nil, err
-		}
-
-		if m.TaxConfig == nil || m.TaxConfig.TaxCodeID == nil {
-			needsDefaultIdx = append(needsDefaultIdx, i)
-		}
-	}
-
-	if len(needsDefaultIdx) == 0 {
-		return intents, nil
-	}
-
-	defaults, err := s.taxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{
-		Namespace: namespace,
+	getDefaultTaxCodes := sync.OnceValues(func() (taxcode.OrganizationDefaultTaxCodes, error) {
+		return s.taxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{
+			Namespace: namespace,
+		})
 	})
-	if err != nil {
-		return nil, fmt.Errorf("resolving default tax codes for namespace %s: %w", namespace, err)
-	}
 
-	out := slices.Clone(intents)
-	for _, idx := range needsDefaultIdx {
-		// credit purchases use the credit-grant default; flat-fee and usage-based use the invoicing default
-		defaultID := defaults.InvoicingTaxCodeID
-		if intents[idx].Type() == meta.ChargeTypeCreditPurchase {
-			defaultID = defaults.CreditGrantTaxCodeID
-		}
-
-		rebuilt, err := intents[idx].WithTaxCodeID(defaultID)
+	return slicesx.MapWithErr(intents, func(intent charges.ChargeIntent) (charges.ChargeIntent, error) {
+		taxCodeID, err := intent.TaxCodeID()
 		if err != nil {
-			return nil, err
+			return charges.ChargeIntent{}, err
 		}
 
-		out[idx] = rebuilt
+		if taxCodeID != "" {
+			return intent, nil
+		}
+
+		defaultTaxCodes, err := getDefaultTaxCodes()
+		if err != nil {
+			return charges.ChargeIntent{}, err
+		}
+
+		// credit purchases use the credit-grant default; flat-fee and usage-based use the invoicing default
+		defaultID := defaultTaxCodes.InvoicingTaxCodeID
+		if intent.Type() == meta.ChargeTypeCreditPurchase {
+			defaultID = defaultTaxCodes.CreditGrantTaxCodeID
+		}
+
+		return intent.WithTaxCodeID(defaultID)
+	})
+}
+
+// validateTaxCodesExist verifies every distinct non-empty tax code referenced by the intents
+// exists.
+func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, intents charges.ChargeIntents) error {
+	seen := make(map[string]struct{}, len(intents))
+
+	for _, intent := range intents {
+		taxCodeID, err := intent.TaxCodeID()
+		if err != nil {
+			return err
+		}
+
+		if taxCodeID == "" {
+			continue
+		}
+
+		if _, ok := seen[taxCodeID]; ok {
+			continue
+		}
+		seen[taxCodeID] = struct{}{}
+
+		_, err = s.taxCodeService.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: namespace, ID: taxCodeID},
+		})
+		if err != nil {
+			if taxcode.IsTaxCodeNotFoundError(err) {
+				return models.NewGenericValidationError(
+					models.NewValidationError("tax_code_not_found", fmt.Sprintf("referenced tax code %q does not exist", taxCodeID)).
+						WithPathString("tax_config", "tax_code"),
+				)
+			}
+
+			return err
+		}
 	}
 
-	return out, nil
+	return nil
 }
 
 func (s *service) Create(ctx context.Context, input charges.CreateInput) (charges.Charges, error) {
-	if err := input.Validate(); err != nil {
+	result, err := s.create(ctx, input)
+	if err != nil {
 		return nil, err
+	}
+
+	if result == nil {
+		return nil, fmt.Errorf("result is nil")
+	}
+
+	// TODO: once we have proper state machine for credit purchases, we can remove this and make the
+	// autoAdvanceCreatedCharges handle the invoice now actions.
+	if len(result.collectionAlignmentBypassedLines) > 0 {
+		if err := s.invokeInvoiceNowOnCreate(ctx, result.collectionAlignmentBypassedLines); err != nil {
+			return nil, fmt.Errorf("invoking invoice now on create: %w", err)
+		}
+	}
+
+	return s.autoAdvanceCreatedCharges(ctx, result.charges)
+}
+
+func (s *service) create(ctx context.Context, input charges.CreateInput) (*chargesWithInvoiceNowActions, error) {
+	if input.Namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
 	}
 
 	if err := s.validateNamespaceLockdown(input.Namespace); err != nil {
@@ -90,6 +142,14 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 		return nil, err
 	}
 	input.Intents = intentsWithDefaults
+
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := s.validateTaxCodesExist(ctx, input.Namespace, input.Intents); err != nil {
+		return nil, err
+	}
 
 	result, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*chargesWithInvoiceNowActions, error) {
 		intentsByType, err := input.Intents.ByType()
@@ -114,8 +174,10 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 
 		// Let's create all the flat fee charges in bulk and record any gathering lines to create
 		flatFees, err := s.flatFeeService.Create(ctx, flatfee.CreateInput{
-			Namespace:     input.Namespace,
-			Intents:       lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent { return intent.Value }),
+			Namespace: input.Namespace,
+			Intents: lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent {
+				return intent.Value
+			}),
 			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {
@@ -136,18 +198,17 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 			if fee.GatheringLineToCreate != nil {
 				gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
 					gatheringLine: *fee.GatheringLineToCreate,
-					customerID: customer.CustomerID{
-						Namespace: input.Namespace,
-						ID:        fee.Charge.Intent.CustomerID,
-					},
+					customerID:    fee.Charge.GetCustomerID(),
 				})
 			}
 		}
 
 		// Let's create all the usage based charges in bulk
 		usageBasedCharges, err := s.usageBasedService.Create(ctx, usagebased.CreateInput{
-			Namespace:     input.Namespace,
-			Intents:       lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent { return intent.Value }),
+			Namespace: input.Namespace,
+			Intents: lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent {
+				return intent.Value
+			}),
 			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {
@@ -168,10 +229,7 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 			if charge.GatheringLineToCreate != nil {
 				gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
 					gatheringLine: *charge.GatheringLineToCreate,
-					customerID: customer.CustomerID{
-						Namespace: input.Namespace,
-						ID:        charge.Charge.Intent.CustomerID,
-					},
+					customerID:    charge.Charge.GetCustomerID(),
 				})
 			}
 		}
@@ -198,11 +256,8 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 				}
 
 				gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
-					gatheringLine: *result.GatheringLineToCreate,
-					customerID: customer.CustomerID{
-						Namespace: input.Namespace,
-						ID:        result.Charge.Intent.CustomerID,
-					},
+					gatheringLine:             *result.GatheringLineToCreate,
+					customerID:                result.Charge.GetCustomerID(),
 					BypassCollectionAlignment: bypassCollectionAlignment,
 				})
 			}
@@ -214,7 +269,7 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 		}
 
 		// Let's generate the gathering lines for the flat fees
-		collectionAlignmentBypassedLines, err := s.createGatheringLines(ctx, gatheringLinesToCreate)
+		gatheringLineResult, err := s.createGatheringLines(ctx, gatheringLinesToCreate)
 		if err != nil {
 			return nil, err
 		}
@@ -231,26 +286,15 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 
 		return &chargesWithInvoiceNowActions{
 			charges:                          result,
-			collectionAlignmentBypassedLines: collectionAlignmentBypassedLines,
+			collectionAlignmentBypassedLines: gatheringLineResult.collectionAlignmentBypassedLines,
+			pendingLineResults:               gatheringLineResult.pendingLineResults,
 		}, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	if result == nil {
-		return nil, fmt.Errorf("result is nil")
-	}
-
-	// TODO: once we have proper state machine for credit purchases, we can remove this and mek the
-	// autoAdvanceCreatedCharges handle the invoice now actions.
-	if len(result.collectionAlignmentBypassedLines) > 0 {
-		if err := s.invokeInvoiceNowOnCreate(ctx, result.collectionAlignmentBypassedLines); err != nil {
-			return nil, fmt.Errorf("invoking invoice now on create: %w", err)
-		}
-	}
-
-	return s.autoAdvanceCreatedCharges(ctx, result.charges)
+	return result, nil
 }
 
 // autoAdvanceCreatedCharges post-processes newly created charges
@@ -259,7 +303,7 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 // a worker will try to advance the charges again).
 func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges.Charges) (charges.Charges, error) {
 	// Collect unique customer IDs that have newly created credit-only charges.
-	customerIDs := make(map[customer.CustomerID]struct{})
+	customerIDs := make([]customer.CustomerID, 0)
 	for _, c := range created {
 		switch c.Type() {
 		case meta.ChargeTypeUsageBased:
@@ -268,7 +312,7 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 				return nil, err
 			}
 
-			if ub.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+			if ub.Intent.GetSettlementMode() != productcatalog.CreditOnlySettlementMode {
 				continue
 			}
 
@@ -276,7 +320,7 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 				continue
 			}
 
-			customerIDs[customer.CustomerID{Namespace: ub.Namespace, ID: ub.Intent.CustomerID}] = struct{}{}
+			customerIDs = append(customerIDs, ub.GetCustomerID())
 
 		case meta.ChargeTypeFlatFee:
 			ff, err := c.AsFlatFeeCharge()
@@ -284,7 +328,7 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 				return nil, err
 			}
 
-			if ff.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+			if ff.Intent.GetSettlementMode() != productcatalog.CreditOnlySettlementMode {
 				continue
 			}
 
@@ -292,16 +336,17 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 				continue
 			}
 
-			customerIDs[customer.CustomerID{Namespace: ff.Namespace, ID: ff.Intent.CustomerID}] = struct{}{}
+			customerIDs = append(customerIDs, ff.GetCustomerID())
 		}
 	}
+	customerIDs = lo.Uniq(customerIDs)
 
 	if len(customerIDs) == 0 {
 		return created, nil
 	}
 
 	advancedByID := make(map[string]charges.Charge)
-	for custID := range customerIDs {
+	for _, custID := range customerIDs {
 		advancedCharges, err := s.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 			Customer: custID,
 		})
@@ -344,7 +389,12 @@ func isAdvanceDue(advanceAfter *time.Time) bool {
 }
 
 type currencyAndCustomerID struct {
-	currency   currencyx.Code
+	currency   currencies.Currency
+	customerID customer.CustomerID
+}
+
+type currencyCodeAndCustomerID struct {
+	currency   currencyx.FiatCode
 	customerID customer.CustomerID
 }
 
@@ -385,19 +435,27 @@ type invoicePendingLinesInput struct {
 	LineID     string
 }
 
-func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCreate []gatheringLineWithCustomerID) ([]invoicePendingLinesInput, error) {
+type createGatheringLinesResult struct {
+	collectionAlignmentBypassedLines []invoicePendingLinesInput
+	pendingLineResults               []*billing.CreatePendingInvoiceLinesResult
+}
+
+func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCreate []gatheringLineWithCustomerID) (createGatheringLinesResult, error) {
 	if len(gatheringLinesToCreate) == 0 {
-		return nil, nil
+		return createGatheringLinesResult{}, nil
 	}
 
-	gatheringLinesByCurrencyAndCustomer := lo.GroupBy(gatheringLinesToCreate, func(item gatheringLineWithCustomerID) currencyAndCustomerID {
-		return currencyAndCustomerID{
+	gatheringLinesByCurrencyAndCustomer := lo.GroupBy(gatheringLinesToCreate, func(item gatheringLineWithCustomerID) currencyCodeAndCustomerID {
+		return currencyCodeAndCustomerID{
 			currency:   item.gatheringLine.Currency,
 			customerID: item.customerID,
 		}
 	})
 
-	invoiceNowLines := make([]invoicePendingLinesInput, 0, len(gatheringLinesToCreate))
+	out := createGatheringLinesResult{
+		collectionAlignmentBypassedLines: make([]invoicePendingLinesInput, 0, len(gatheringLinesToCreate)),
+		pendingLineResults:               make([]*billing.CreatePendingInvoiceLinesResult, 0, len(gatheringLinesByCurrencyAndCustomer)),
+	}
 
 	for custAndCurrency, lines := range gatheringLinesByCurrencyAndCustomer {
 		// Let's create the gathering invoice on invoicing side
@@ -409,12 +467,37 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 			}),
 		})
 		if err != nil {
-			return nil, fmt.Errorf("creating pending invoice lines for charges: %w", err)
+			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: %w", err)
+		}
+		if result == nil {
+			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: result is nil")
 		}
 
-		for idx, line := range result.Lines {
-			if lines[idx].BypassCollectionAlignment {
-				invoiceNowLines = append(invoiceNowLines, invoicePendingLinesInput{
+		out.pendingLineResults = append(out.pendingLineResults, result)
+
+		// Correlate the returned lines back to their inputs by charge ID rather than by
+		// position: billing may drop lines (e.g. zero-amount lines), which would make
+		// index-based correlation silently read BypassCollectionAlignment from the wrong line.
+		bypassChargeIDs := make(map[string]struct{}, len(lines))
+		for _, line := range lines {
+			if !line.BypassCollectionAlignment {
+				continue
+			}
+
+			if line.gatheringLine.ChargeID == nil {
+				return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: bypass collection alignment requested for line without charge ID")
+			}
+
+			bypassChargeIDs[*line.gatheringLine.ChargeID] = struct{}{}
+		}
+
+		for _, line := range result.Lines {
+			if line.ChargeID == nil {
+				continue
+			}
+
+			if _, ok := bypassChargeIDs[*line.ChargeID]; ok {
+				out.collectionAlignmentBypassedLines = append(out.collectionAlignmentBypassedLines, invoicePendingLinesInput{
 					CustomerID: custAndCurrency.customerID,
 					LineID:     line.ID,
 				})
@@ -422,5 +505,5 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 		}
 	}
 
-	return invoiceNowLines, nil
+	return out, nil
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
@@ -18,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type stateMachine struct {
@@ -31,7 +33,8 @@ type stateMachine struct {
 
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
+	CostBasisResolver  costbasis.Resolver
 }
 
 type StateMachine = chargestatemachine.StateMachine[usagebased.Charge]
@@ -44,7 +47,8 @@ type StateMachineConfig struct {
 	Logger             *slog.Logger
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
+	CostBasisResolver  costbasis.Resolver
 }
 
 func (c StateMachineConfig) Validate() error {
@@ -78,8 +82,18 @@ func (c StateMachineConfig) Validate() error {
 		errs = append(errs, errors.New("feature meter is required"))
 	}
 
-	if err := c.CurrencyCalculator.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
+	if c.CurrencyCalculator == nil {
+		return fmt.Errorf("currency calculator is required")
+	}
+
+	if c.CurrencyCalculator != nil {
+		if err := c.CurrencyCalculator.Validate(); err != nil {
+			return fmt.Errorf("currency calculator: %w", err)
+		}
+	}
+
+	if c.CostBasisResolver == nil {
+		errs = append(errs, errors.New("cost basis resolver is required"))
 	}
 
 	return errors.Join(errs...)
@@ -98,6 +112,7 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 		CustomerOverride:   config.CustomerOverride,
 		FeatureMeter:       config.FeatureMeter,
 		CurrencyCalculator: config.CurrencyCalculator,
+		CostBasisResolver:  config.CostBasisResolver,
 	}
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
@@ -123,16 +138,72 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	return out, nil
 }
 
+// mutateIntentLayer mutates the requested intent layer, creating a new override
+// layer first when the target is override and the charge has no override yet.
+func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.ChangeTarget, editFn func(*usagebased.IntentMutableFields) error) error {
+	switch target {
+	case meta.ChangeTargetBase:
+		if err := s.Charge.Intent.Mutate(meta.ChangeTargetBase, editFn); err != nil {
+			return fmt.Errorf("mutating base intent: %w", err)
+		}
+	case meta.ChangeTargetOverride:
+		if s.Charge.Intent.HasOverrideLayer() {
+			if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, editFn); err != nil {
+				return fmt.Errorf("mutating override intent: %w", err)
+			}
+
+			return nil
+		}
+
+		overrideFields := s.Charge.Intent.GetEffectiveIntent().IntentMutableFields
+		if err := editFn(&overrideFields); err != nil {
+			return err
+		}
+
+		overrideFields = overrideFields.Normalized()
+		if err := overrideFields.Validate(); err != nil {
+			return fmt.Errorf("validating override intent: %w", err)
+		}
+
+		base, err := s.Adapter.CreateChargeOverride(ctx, s.Charge.ChargeBase, overrideFields)
+		if err != nil {
+			return fmt.Errorf("creating override intent: %w", err)
+		}
+
+		s.Charge.ChargeBase = base
+	default:
+		return fmt.Errorf("invalid change target: %s", target)
+	}
+
+	return nil
+}
+
+// rejectHiddenIntentTarget prevents lifecycle state machines from processing a
+// hidden source intent. When an override layer exists, the override is the
+// active customer-facing charge: it owns status transitions, realization runs,
+// credit corrections, and invoice patches. Subscription-owned base/source
+// changes must be applied before state-machine dispatch by service-level
+// reconciliation, not interpreted as lifecycle events.
+func (s *stateMachine) rejectHiddenIntentTarget(target meta.ChangeTarget) error {
+	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("cannot mutate hidden base intent while override intent is active"),
+		)
+	}
+
+	return nil
+}
+
 func (s *stateMachine) IsInsideServicePeriod() bool {
-	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.From)
+	return !clock.Now().Before(s.Charge.Intent.GetEffectiveServicePeriod().From)
 }
 
 func (s *stateMachine) IsAfterServicePeriod() bool {
-	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.To)
+	return !clock.Now().Before(s.Charge.Intent.GetEffectiveServicePeriod().To)
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To))
 	return nil
 }
 
@@ -142,7 +213,7 @@ func (s *stateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error 
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().From))
 	return nil
 }
 
@@ -160,7 +231,7 @@ func (s *stateMachine) AdvanceAfterCollectionPeriodEnd(ctx context.Context) erro
 func (s *stateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bool {
 	snapshotAfter, err := s.getCurrentRunSnapshotAfter()
 	if err != nil {
-		s.Logger.ErrorContext(ctx, "failed to get snapshot after", "error", err, "customerID", s.Charge.Intent.CustomerID)
+		s.Logger.ErrorContext(ctx, "failed to get snapshot after", "error", err, "customerID", s.Charge.Intent.GetCustomerID())
 		return false
 	}
 
@@ -169,7 +240,7 @@ func (s *stateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bo
 
 func (s *stateMachine) getFinalRunStoredAtLT() (time.Time, error) {
 	collectionPeriod := s.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval
-	storedAtLT, _ := collectionPeriod.AddTo(s.Charge.Intent.ServicePeriod.To)
+	storedAtLT, _ := collectionPeriod.AddTo(s.Charge.Intent.GetEffectiveServicePeriod().To)
 	return meta.NormalizeTimestamp(storedAtLT), nil
 }
 

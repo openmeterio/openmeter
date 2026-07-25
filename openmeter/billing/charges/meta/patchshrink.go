@@ -7,6 +7,7 @@ import (
 
 	"github.com/qmuntal/stateless"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -16,6 +17,7 @@ var (
 )
 
 type PatchShrink struct {
+	changeSource           billing.ChangeSource
 	newServicePeriodTo     time.Time
 	newFullServicePeriodTo time.Time
 	newBillingPeriodTo     time.Time
@@ -23,6 +25,7 @@ type PatchShrink struct {
 }
 
 type NewPatchShrinkInput struct {
+	ChangeSource           billing.ChangeSource
 	NewServicePeriodTo     time.Time
 	NewFullServicePeriodTo time.Time
 	NewBillingPeriodTo     time.Time
@@ -30,23 +33,29 @@ type NewPatchShrinkInput struct {
 }
 
 func (i NewPatchShrinkInput) Validate() error {
+	var errs []error
+
+	if err := i.ChangeSource.Require(billing.ChangeSourceSystem); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
+	}
+
 	if i.NewServicePeriodTo.IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new service period to is required"))
+		errs = append(errs, fmt.Errorf("new service period to is required"))
 	}
 
 	if i.NewFullServicePeriodTo.IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new full service period to is required"))
+		errs = append(errs, fmt.Errorf("new full service period to is required"))
 	}
 
 	if i.NewBillingPeriodTo.IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
+		errs = append(errs, fmt.Errorf("new billing period to is required"))
 	}
 
 	if i.NewInvoiceAt.IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new invoice at is required"))
+		errs = append(errs, fmt.Errorf("new invoice at is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func NewPatchShrink(input NewPatchShrinkInput) (PatchShrink, error) {
@@ -54,40 +63,42 @@ func NewPatchShrink(input NewPatchShrinkInput) (PatchShrink, error) {
 		return PatchShrink{}, err
 	}
 
-	var patch PatchShrink
-	patch.SetNewServicePeriodTo(input.NewServicePeriodTo)
-	patch.SetNewFullServicePeriodTo(input.NewFullServicePeriodTo)
-	patch.SetNewBillingPeriodTo(input.NewBillingPeriodTo)
-	patch.SetNewInvoiceAt(input.NewInvoiceAt)
+	patch := PatchShrink{
+		changeSource:           input.ChangeSource,
+		newServicePeriodTo:     NormalizeTimestamp(input.NewServicePeriodTo),
+		newFullServicePeriodTo: NormalizeTimestamp(input.NewFullServicePeriodTo),
+		newBillingPeriodTo:     NormalizeTimestamp(input.NewBillingPeriodTo),
+		newInvoiceAt:           NormalizeTimestamp(input.NewInvoiceAt),
+	}
+	if err := patch.Validate(); err != nil {
+		return PatchShrink{}, err
+	}
+
 	return patch, nil
 }
 
-func (p *PatchShrink) SetNewServicePeriodTo(v time.Time) {
-	p.newServicePeriodTo = NormalizeTimestamp(v)
+func (p PatchShrink) GetChangeSource() billing.ChangeSource {
+	return p.changeSource
+}
+
+func (p PatchShrink) GetTargetLayer(LayeredIntentReader) (ChangeTarget, error) {
+	if err := p.GetChangeSource().Require(billing.ChangeSourceSystem); err != nil {
+		return "", fmt.Errorf("change source: %w", err)
+	}
+
+	return ChangeTargetBase, nil
 }
 
 func (p PatchShrink) GetNewServicePeriodTo() time.Time {
 	return p.newServicePeriodTo
 }
 
-func (p *PatchShrink) SetNewFullServicePeriodTo(v time.Time) {
-	p.newFullServicePeriodTo = NormalizeTimestamp(v)
-}
-
 func (p PatchShrink) GetNewFullServicePeriodTo() time.Time {
 	return p.newFullServicePeriodTo
 }
 
-func (p *PatchShrink) SetNewBillingPeriodTo(v time.Time) {
-	p.newBillingPeriodTo = NormalizeTimestamp(v)
-}
-
 func (p PatchShrink) GetNewBillingPeriodTo() time.Time {
 	return p.newBillingPeriodTo
-}
-
-func (p *PatchShrink) SetNewInvoiceAt(v time.Time) {
-	p.newInvoiceAt = NormalizeTimestamp(v)
 }
 
 func (p PatchShrink) GetNewInvoiceAt() time.Time {
@@ -102,31 +113,33 @@ func (p PatchShrink) Trigger() stateless.Trigger {
 	return TriggerShrink
 }
 
-func (p PatchShrink) TriggerParams() any {
-	return p
-}
-
 func (p PatchShrink) Validate() error {
+	var errs []error
+
+	if err := p.GetChangeSource().Require(billing.ChangeSourceSystem); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
+	}
+
 	if p.GetNewServicePeriodTo().IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new service period to is required"))
+		errs = append(errs, fmt.Errorf("new service period to is required"))
 	}
 
 	if p.GetNewFullServicePeriodTo().IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new full service period to is required"))
+		errs = append(errs, fmt.Errorf("new full service period to is required"))
 	}
 
 	if p.GetNewBillingPeriodTo().IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
+		errs = append(errs, fmt.Errorf("new billing period to is required"))
 	}
 
 	if p.GetNewInvoiceAt().IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new invoice at is required"))
+		errs = append(errs, fmt.Errorf("new invoice at is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (p PatchShrink) ValidateWith(intent Intent) error {
+func (p PatchShrink) ValidateWith(intent IntentMutableFields) error {
 	var errs []error
 
 	if err := p.Validate(); err != nil {

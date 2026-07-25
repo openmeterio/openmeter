@@ -44,9 +44,11 @@ type LedgerAccountEdges struct {
 	SubAccounts []*LedgerSubAccount `json:"sub_accounts,omitempty"`
 	// SubAccountRoutes holds the value of the sub_account_routes edge.
 	SubAccountRoutes []*LedgerSubAccountRoute `json:"sub_account_routes,omitempty"`
+	// CustomerAccounts holds the value of the customer_accounts edge.
+	CustomerAccounts []*LedgerCustomerAccount `json:"customer_accounts,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // SubAccountsOrErr returns the SubAccounts value or an error if the edge
@@ -65,6 +67,15 @@ func (e LedgerAccountEdges) SubAccountRoutesOrErr() ([]*LedgerSubAccountRoute, e
 		return e.SubAccountRoutes, nil
 	}
 	return nil, &NotLoadedError{edge: "sub_account_routes"}
+}
+
+// CustomerAccountsOrErr returns the CustomerAccounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerAccountEdges) CustomerAccountsOrErr() ([]*LedgerCustomerAccount, error) {
+	if e.loadedTypes[2] {
+		return e.CustomerAccounts, nil
+	}
+	return nil, &NotLoadedError{edge: "customer_accounts"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -159,6 +170,11 @@ func (_m *LedgerAccount) QuerySubAccounts() *LedgerSubAccountQuery {
 // QuerySubAccountRoutes queries the "sub_account_routes" edge of the LedgerAccount entity.
 func (_m *LedgerAccount) QuerySubAccountRoutes() *LedgerSubAccountRouteQuery {
 	return NewLedgerAccountClient(_m.config).QuerySubAccountRoutes(_m)
+}
+
+// QueryCustomerAccounts queries the "customer_accounts" edge of the LedgerAccount entity.
+func (_m *LedgerAccount) QueryCustomerAccounts() *LedgerCustomerAccountQuery {
+	return NewLedgerAccountClient(_m.config).QueryCustomerAccounts(_m)
 }
 
 // Update returns a builder for updating this LedgerAccount.

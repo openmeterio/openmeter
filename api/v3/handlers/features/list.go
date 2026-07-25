@@ -89,7 +89,11 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 					})
 				}
 
-				req.OrderBy = feature.FeatureOrderBy(sort.Field)
+				orderBy, err := FromAPIFeatureSortField(ctx, sort.Field)
+				if err != nil {
+					return ListFeaturesRequest{}, err
+				}
+				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
 

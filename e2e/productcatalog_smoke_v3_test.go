@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 // TestV3ProductCatalogSmoke exercises the cross-cutting plan + addon
@@ -40,21 +41,21 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		uniqueKey("sanity_meter"),
 	}
 
-	meters := make([]apiv3.Meter, 0, len(meterKeys))
+	meters := make([]v3sdk.Meter, 0, len(meterKeys))
 
 	for i := range meterKeys {
 		valueProperty := "$.value"
 
-		status, m, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+		m, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
 			Key:           meterKeys[i],
 			Name:          "Test Meter " + meterKeys[i],
-			Aggregation:   apiv3.MeterAggregationSum,
+			Aggregation:   v3sdk.MeterAggregationSum,
 			EventType:     eventTypes[i],
 			ValueProperty: &valueProperty,
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, m)
-		require.NotEmpty(t, m.Id)
+		require.NotEmpty(t, m.ID)
 
 		meters = append(meters, *m)
 	}
@@ -64,19 +65,19 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		uniqueKey("sanity_feature"),
 	}
 
-	features := make([]apiv3.Feature, 0, len(featureKeys))
+	features := make([]v3sdk.Feature, 0, len(featureKeys))
 
 	for i := range featureKeys {
-		status, f, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+		f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:  featureKeys[i],
 			Name: "Test Feature " + featureKeys[i],
-			Meter: &apiv3.FeatureMeterReference{
-				Id: meters[i].Id,
+			Meter: &v3sdk.FeatureMeterReferenceInput{
+				ID: meters[i].ID,
 			},
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, f)
-		require.NotEmpty(t, f.Id)
+		require.NotEmpty(t, f.ID)
 
 		features = append(features, *f)
 	}
@@ -92,14 +93,14 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		body := validPlanRequest("sanity_plan")
 		phaseKey = body.Phases[0].Key
 
-		status, plan, problem := c.CreatePlan(body)
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		plan, err := c.Plans.Create(t.Context(), body)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, plan)
-		assert.Equal(t, apiv3.BillingPlanStatusDraft, plan.Status)
+		assert.Equal(t, v3sdk.PlanStatusDraft, plan.Status)
 		require.Len(t, plan.Phases, 1)
 		require.Len(t, plan.Phases[0].RateCards, 1)
 
-		planID = plan.Id
+		planID = plan.ID
 	})
 
 	t.Run("Should update the plan to carry flat + usage + graduated rate cards", func(t *testing.T) {
@@ -113,22 +114,22 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		usage := validUnitRateCard(features[0])
 		graduated := validGraduatedRateCard(features[1])
 
-		update := apiv3.UpsertPlanRequest{
+		update := v3sdk.UpsertPlanRequest{
 			Name: "Sanity Plan",
-			Phases: []apiv3.BillingPlanPhase{{
+			Phases: []v3sdk.PlanPhaseInput{{
 				Key:       phaseKey,
 				Name:      "Sanity Phase",
-				RateCards: []apiv3.BillingRateCard{flat, usage, graduated},
+				RateCards: []v3sdk.RateCardInput{flat, usage, graduated},
 			}},
 		}
 
-		status, plan, problem := c.UpdatePlan(planID, update)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := c.Plans.Update(t.Context(), planID, update)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 		require.Len(t, plan.Phases, 1)
 		assert.Len(t, plan.Phases[0].RateCards, 3, "expected three rate cards on the phase")
 
-		var usageRC *apiv3.BillingRateCard
+		var usageRC *v3sdk.RateCard
 		for i := range plan.Phases[0].RateCards {
 			if plan.Phases[0].RateCards[i].Key == usage.Key {
 				usageRC = &plan.Phases[0].RateCards[i]
@@ -137,12 +138,12 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		}
 		require.NotNil(t, usageRC, "usage rate card missing after update")
 		require.NotNil(t, usageRC.Feature, "usage rate card lost its feature binding after update")
-		assert.Equal(t, usage.Feature.Id, usageRC.Feature.Id)
+		assert.Equal(t, usage.Feature.ID, usageRC.Feature.ID)
 	})
 
 	// Track the three valid rate cards across the invalid-loop subtests so
 	// "remove defective" PUTs can rebuild the phase from the same baseline.
-	var validRateCards []apiv3.BillingRateCard
+	var validRateCards []v3sdk.RateCardInput
 
 	t.Run("Should add a defective rate card and surface validation_errors", func(t *testing.T) {
 		require.NotEmpty(t, planID)
@@ -150,12 +151,28 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 
 		// Read the current valid rate cards back from the plan so we don't
 		// drift from server-normalized values (e.g., "0.10" → "0.1").
-		status, plan, problem := c.GetPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := c.Plans.Get(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 		require.Len(t, plan.Phases, 1)
 		require.Len(t, plan.Phases[0].RateCards, 3)
-		validRateCards = plan.Phases[0].RateCards
+		validRateCards = lo.Map(plan.Phases[0].RateCards, func(rc v3sdk.RateCard, _ int) v3sdk.RateCardInput {
+			return v3sdk.RateCardInput{
+				Name:           rc.Name,
+				Description:    rc.Description,
+				Labels:         lo.EmptyableToPtr(rc.Labels),
+				Key:            rc.Key,
+				Feature:        rc.Feature,
+				BillingCadence: rc.BillingCadence,
+				Price:          rc.Price,
+				UnitConfig:     rc.UnitConfig,
+				PaymentTerm:    rc.PaymentTerm,
+				Commitments:    rc.Commitments,
+				Discounts:      rc.Discounts,
+				TaxConfig:      rc.TaxConfig,
+				Entitlement:    rc.Entitlement,
+			}
+		})
 
 		// The defect: a flat rate card whose billing cadence (P2W) doesn't
 		// align with the plan's P1M cadence. Picked because it surfaces a
@@ -163,35 +180,35 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		// other defects (e.g., usage discount on flat price) emit
 		// duplicates with empty fields, which makes assertions brittle.
 		defective := validFlatRateCard("defective_cadence")
-		misaligned := apiv3.ISO8601Duration("P2W")
+		misaligned := "P2W"
 		defective.BillingCadence = &misaligned
 
-		update := apiv3.UpsertPlanRequest{
+		update := v3sdk.UpsertPlanRequest{
 			Name: "Sanity Plan",
-			Phases: []apiv3.BillingPlanPhase{{
+			Phases: []v3sdk.PlanPhaseInput{{
 				Key:       phaseKey,
 				Name:      "Sanity Phase",
-				RateCards: append(append([]apiv3.BillingRateCard{}, validRateCards...), defective),
+				RateCards: append(append([]v3sdk.RateCardInput{}, validRateCards...), defective),
 			}},
 		}
 
-		status, _, problem = c.UpdatePlan(planID, update)
-		require.Equal(t, http.StatusOK, status, "update with defective rate card should accept the draft: %+v", problem)
+		_, err = c.Plans.Update(t.Context(), planID, update)
+		c.requireStatus(http.StatusOK, err)
 
-		status, got, problem := c.GetPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		got, err := c.Plans.Get(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, got)
-		require.NotNil(t, got.ValidationErrors, "expected validation_errors on the draft")
+		require.NotEmpty(t, got.ValidationErrors, "expected validation_errors on the draft")
 
 		var codes []string
-		for _, e := range *got.ValidationErrors {
+		for _, e := range got.ValidationErrors {
 			codes = append(codes, e.Code)
 		}
 		assert.Contains(t, codes, "rate_card_billing_cadence_unaligned")
 
 		// Publish should reject with the same code.
-		status, _, problem = c.PublishPlan(planID)
-		require.Equal(t, http.StatusBadRequest, status, "publish should reject the defective draft: %+v", problem)
+		_, err = c.Plans.Publish(t.Context(), planID)
+		problem := requireProblem(t, err, http.StatusBadRequest)
 		assertValidationCode(t, problem, "rate_card_billing_cadence_unaligned")
 	})
 
@@ -200,43 +217,41 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		require.NotEmpty(t, phaseKey)
 		require.NotEmpty(t, validRateCards)
 
-		update := apiv3.UpsertPlanRequest{
+		update := v3sdk.UpsertPlanRequest{
 			Name: "Sanity Plan",
-			Phases: []apiv3.BillingPlanPhase{{
+			Phases: []v3sdk.PlanPhaseInput{{
 				Key:       phaseKey,
 				Name:      "Sanity Phase",
 				RateCards: validRateCards,
 			}},
 		}
 
-		status, plan, problem := c.UpdatePlan(planID, update)
-		require.Equal(t, http.StatusOK, status, "update removing defective rate card: %+v", problem)
+		plan, err := c.Plans.Update(t.Context(), planID, update)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 		assert.Len(t, plan.Phases[0].RateCards, 3, "expected three rate cards after removal")
 
-		status, got, problem := c.GetPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		got, err := c.Plans.Get(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, got)
-		if got.ValidationErrors != nil {
-			assert.Empty(t, *got.ValidationErrors, "expected validation_errors to clear after removing the defective rate card")
-		}
+		assert.Empty(t, got.ValidationErrors, "expected validation_errors to clear after removing the defective rate card")
 	})
 
 	t.Run("Should create a draft addon", func(t *testing.T) {
-		status, addon, problem := c.CreateAddon(validAddonRequest("sanity_addon"))
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		addon, err := c.Addons.Create(t.Context(), validAddonRequest("sanity_addon"))
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, addon)
-		assert.Equal(t, apiv3.AddonStatusDraft, addon.Status)
-		addonID = addon.Id
+		assert.Equal(t, v3sdk.AddonStatusDraft, addon.Status)
+		addonID = addon.ID
 	})
 
 	t.Run("Should publish the addon", func(t *testing.T) {
 		require.NotEmpty(t, addonID)
 
-		status, addon, problem := c.PublishAddon(addonID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		addon, err := c.Addons.Publish(t.Context(), addonID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, addon)
-		assert.Equal(t, apiv3.AddonStatusActive, addon.Status)
+		assert.Equal(t, v3sdk.AddonStatusActive, addon.Status)
 	})
 
 	t.Run("Should attach the published addon to the plan", func(t *testing.T) {
@@ -244,32 +259,32 @@ func TestV3ProductCatalogSmoke(t *testing.T) {
 		require.NotEmpty(t, addonID)
 		require.NotEmpty(t, phaseKey)
 
-		status, planAddon, problem := c.AttachAddon(planID, validPlanAddonRequest(phaseKey, addonID))
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		planAddon, err := c.PlanAddons.Create(t.Context(), planID, validPlanAddonRequest(phaseKey, addonID))
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, planAddon)
-		assert.Equal(t, addonID, planAddon.Addon.Id)
+		assert.Equal(t, addonID, planAddon.Addon.ID)
 		assert.Equal(t, phaseKey, planAddon.FromPlanPhase)
 
-		planAddonID = planAddon.Id
+		planAddonID = planAddon.ID
 	})
 
 	t.Run("Should publish the plan and keep the attached addon", func(t *testing.T) {
 		require.NotEmpty(t, planID)
 		require.NotEmpty(t, planAddonID)
 
-		status, plan, problem := c.PublishPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := c.Plans.Publish(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
-		assert.Equal(t, apiv3.BillingPlanStatusActive, plan.Status)
+		assert.Equal(t, v3sdk.PlanStatusActive, plan.Status)
 		require.NotNil(t, plan.EffectiveFrom)
 
-		status, page, problem := c.ListPlanAddons(planID)
-		require.Equal(t, http.StatusOK, status, "list plan-addons: %+v", problem)
+		page, err := c.PlanAddons.List(t.Context(), planID, v3sdk.PlanAddonListParams{})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, page)
 
 		found := false
 		for _, pa := range page.Data {
-			if pa.Id == planAddonID {
+			if pa.ID == planAddonID {
 				found = true
 				break
 			}

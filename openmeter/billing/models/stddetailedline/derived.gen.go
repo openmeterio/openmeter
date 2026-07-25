@@ -17,11 +17,9 @@ func deriveEqualBase(this, that *Base) bool {
 			((this.Index == nil && that.Index == nil) || (this.Index != nil && that.Index != nil && *(this.Index) == *(that.Index))) &&
 			this.PaymentTerm == that.PaymentTerm &&
 			this.ServicePeriod.Equal(that.ServicePeriod) &&
-			this.Currency == that.Currency &&
 			this.PerUnitAmount.Equal(that.PerUnitAmount) &&
 			this.Quantity.Equal(that.Quantity) &&
 			this.Totals.Equal(that.Totals) &&
-			this.TaxConfig.Equal(that.TaxConfig) &&
 			this.ExternalIDs.Equal(that.ExternalIDs) &&
 			deriveEqual_(this.CreditsApplied, that.CreditsApplied)
 }

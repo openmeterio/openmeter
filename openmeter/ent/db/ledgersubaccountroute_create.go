@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
@@ -128,7 +129,7 @@ func (_c *LedgerSubAccountRouteCreate) SetNillableTaxBehavior(v *ledger.TaxBehav
 }
 
 // SetFeatures sets the "features" field.
-func (_c *LedgerSubAccountRouteCreate) SetFeatures(v []string) *LedgerSubAccountRouteCreate {
+func (_c *LedgerSubAccountRouteCreate) SetFeatures(v pq.StringArray) *LedgerSubAccountRouteCreate {
 	_c.mutation.SetFeatures(v)
 	return _c
 }
@@ -377,7 +378,7 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 		_node.TaxBehavior = &value
 	}
 	if value, ok := _c.mutation.Features(); ok {
-		_spec.SetField(ledgersubaccountroute.FieldFeatures, field.TypeJSON, value)
+		_spec.SetField(ledgersubaccountroute.FieldFeatures, field.TypeOther, value)
 		_node.Features = value
 	}
 	if value, ok := _c.mutation.CostBasis(); ok {

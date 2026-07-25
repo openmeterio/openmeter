@@ -16,6 +16,10 @@ func GetDriverFromContext(ctx context.Context) (Driver, error) {
 	return tx, nil
 }
 
+func withDriver(ctx context.Context, tx Driver) context.Context {
+	return context.WithValue(ctx, contextKey, tx)
+}
+
 type DriverNotFoundError struct{}
 
 func (e *DriverNotFoundError) Error() string {

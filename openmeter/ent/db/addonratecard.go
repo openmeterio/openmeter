@@ -57,6 +57,8 @@ type AddonRateCard struct {
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+	// UnitConfig holds the value of the "unit_config" field.
+	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
 	// The add-on identifier the ratecard is assigned to.
 	AddonID string `json:"addon_id,omitempty"`
 	// The feature identifier the ratecard is related to.
@@ -132,6 +134,8 @@ func (*AddonRateCard) scanValues(columns []string) ([]any, error) {
 			values[i] = addonratecard.ValueScanner.Price.ScanValue()
 		case addonratecard.FieldDiscounts:
 			values[i] = addonratecard.ValueScanner.Discounts.ScanValue()
+		case addonratecard.FieldUnitConfig:
+			values[i] = addonratecard.ValueScanner.UnitConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -262,6 +266,12 @@ func (_m *AddonRateCard) assignValues(columns []string, values []any) error {
 				return err
 			} else {
 				_m.Discounts = value
+			}
+		case addonratecard.FieldUnitConfig:
+			if value, err := addonratecard.ValueScanner.UnitConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.UnitConfig = value
 			}
 		case addonratecard.FieldAddonID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -395,6 +405,11 @@ func (_m *AddonRateCard) String() string {
 	builder.WriteString(", ")
 	if v := _m.Discounts; v != nil {
 		builder.WriteString("discounts=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitConfig; v != nil {
+		builder.WriteString("unit_config=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

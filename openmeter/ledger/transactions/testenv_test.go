@@ -63,10 +63,10 @@ func (e *transactionsTestEnv) resolveAndCommit(t *testing.T, templates ...Transa
 func (e *transactionsTestEnv) fundPriority(t *testing.T, priority int, amount int64) ledger.SubAccount {
 	t.Helper()
 
-	return e.fundPriorityWithCostBasis(t, priority, amount, nil)
+	return e.fundPriorityWithCostBasis(t, priority, amount, nil, nil)
 }
 
-func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority int, amount int64, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority int, amount int64, costBasis *alpacadecimal.Decimal, sourceChargeID *string) ledger.SubAccount {
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
@@ -83,19 +83,22 @@ func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority i
 			Amount:         alpacadecimal.NewFromInt(amount),
 			Currency:       e.Currency,
 			CostBasis:      costBasis,
+			SourceChargeID: sourceChargeID,
 			CreditPriority: &priority,
 		},
 		AuthorizeCustomerReceivablePaymentTemplate{
-			At:        e.Now(),
-			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
-			CostBasis: costBasis,
+			At:             e.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       e.Currency,
+			CostBasis:      costBasis,
+			SourceChargeID: sourceChargeID,
 		},
 		SettleCustomerReceivableFromPaymentTemplate{
-			At:        e.Now(),
-			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
-			CostBasis: costBasis,
+			At:             e.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       e.Currency,
+			CostBasis:      costBasis,
+			SourceChargeID: sourceChargeID,
 		},
 	)
 

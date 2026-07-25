@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	v3server "github.com/openmeterio/openmeter/api/v3/server"
 	appconfig "github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/portal/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/contextx"
@@ -64,19 +63,39 @@ type RouterHooks struct {
 
 type PostAuthMiddlewares []server.MiddlewareFunc
 
+var _ models.Validator = (*Config)(nil)
+
 type Config struct {
 	RouterConfig        router.Config
 	RouterHooks         RouterHooks
 	PostAuthMiddlewares PostAuthMiddlewares
 	ResponseValidation  appconfig.ResponseValidationConfig
+	ClientIPMiddleware  server.MiddlewareFunc
+}
+
+func (c Config) Validate() error {
+	var errs []error
+
+	if err := c.RouterConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid router config: %w", err))
+	}
+
+	if c.ClientIPMiddleware == nil {
+		errs = append(errs, errors.New("client IP middleware is required"))
+	}
+
+	return errors.Join(errs...)
 }
 
 func NewServer(config *Config) (*Server, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid server config: %w", err)
+	}
+
 	// Get the OpenAPI spec
 	swagger, err := api.GetSwagger()
 	if err != nil {
-		slog.Error("failed to get swagger", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to get swagger: %w", err)
 	}
 
 	// Clear out the servers array in the swagger spec, that skips validating
@@ -85,15 +104,23 @@ func NewServer(config *Config) (*Server, error) {
 
 	impl, err := router.NewRouter(config.RouterConfig)
 	if err != nil {
-		slog.Error("failed to create API", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create API: %w", err)
 	}
 
 	r := chi.NewRouter()
 	r.Use(server.NewPoweredByMiddleware())
 
-	v3Middlewares := []server.MiddlewareFunc{
-		middleware.RealIP,
+	// Materialize the router-hook middlewares once (running each hook body a single
+	// time) and apply the same slice to both the v3 and v1 groups below. Invoking the
+	// hooks per-group instead would run their bodies twice — harmless for the stateless
+	// telemetry hook, but unsafe for any future hook with construction side effects.
+	hookMiddlewares := collectMiddlewareHooks(config.RouterHooks.Middlewares)
+
+	// v3 gets the hook middlewares (e.g. otelhttp tracing/metrics) plus the standard
+	// stack, so it has the same OTEL HTTP instrumentation as the v1 router group.
+	v3Middlewares := append([]server.MiddlewareFunc{}, hookMiddlewares...)
+	v3Middlewares = append(v3Middlewares, []server.MiddlewareFunc{
+		config.ClientIPMiddleware,
 		middleware.RequestID,
 		func(h http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -105,46 +132,48 @@ func NewServer(config *Config) (*Server, error) {
 		},
 		server.NewRequestLoggerMiddleware(slog.Default().Handler()),
 		middleware.Recoverer,
-	}
+	}...)
 
 	v3API, err := v3server.NewServer(&v3server.Config{
-		BaseURL:                  "/api/v3",
-		NamespaceDecoder:         namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
-		ErrorHandler:             config.RouterConfig.ErrorHandler,
-		Credits:                  config.RouterConfig.Credits,
-		AddonService:             config.RouterConfig.Addon,
-		AppService:               config.RouterConfig.App,
-		BillingService:           config.RouterConfig.Billing,
-		CustomerService:          config.RouterConfig.Customer,
-		CreditGrantService:       config.RouterConfig.CreditGrantService,
-		Ledger:                   config.RouterConfig.Ledger,
-		AccountResolver:          config.RouterConfig.AccountResolver,
-		CustomerBalanceFacade:    config.RouterConfig.CustomerBalanceFacade,
-		CurrencyService:          config.RouterConfig.CurrencyService,
-		EntitlementService:       config.RouterConfig.EntitlementConnector,
-		IngestService:            config.RouterConfig.IngestService,
-		MeterEventService:        config.RouterConfig.MeterEventService,
-		LLMCostService:           config.RouterConfig.LLMCostService,
-		MeterService:             config.RouterConfig.MeterManageService,
-		StreamingConnector:       config.RouterConfig.StreamingConnector,
-		PlanService:              config.RouterConfig.Plan,
-		PlanAddonService:         config.RouterConfig.PlanAddon,
-		PlanSubscriptionService:  config.RouterConfig.PlanSubscriptionService,
-		StripeService:            config.RouterConfig.AppStripe,
-		SubscriptionService:      config.RouterConfig.SubscriptionService,
-		SubscriptionAddonService: config.RouterConfig.SubscriptionAddonService,
-		ChargeService:            config.RouterConfig.ChargeService,
-		TaxCodeService:           config.RouterConfig.TaxCodeService,
-		CostService:              config.RouterConfig.CostService,
-		FeatureConnector:         config.RouterConfig.FeatureConnector,
-		Middlewares:              v3Middlewares,
-		PostAuthMiddlewares:      config.PostAuthMiddlewares,
-		ResponseValidation:       config.ResponseValidation,
-		FeatureGate:              config.RouterConfig.FeatureGate,
+		BaseURL:                     "/api/v3",
+		NamespaceDecoder:            config.RouterConfig.NamespaceDecoder,
+		ErrorHandler:                config.RouterConfig.ErrorHandler,
+		Credits:                     config.RouterConfig.Credits,
+		UnitConfig:                  config.RouterConfig.UnitConfig,
+		AddonService:                config.RouterConfig.Addon,
+		AppService:                  config.RouterConfig.App,
+		BillingService:              config.RouterConfig.Billing,
+		CustomerService:             config.RouterConfig.Customer,
+		CreditGrantService:          config.RouterConfig.CreditGrantService,
+		Ledger:                      config.RouterConfig.Ledger,
+		AccountResolver:             config.RouterConfig.AccountResolver,
+		CustomerBalanceFacade:       config.RouterConfig.CustomerBalanceFacade,
+		CurrencyService:             config.RouterConfig.CurrencyService,
+		EntitlementService:          config.RouterConfig.EntitlementConnector,
+		GovernanceService:           config.RouterConfig.GovernanceService,
+		IngestService:               config.RouterConfig.IngestService,
+		MeterEventService:           config.RouterConfig.MeterEventService,
+		LLMCostService:              config.RouterConfig.LLMCostService,
+		MeterService:                config.RouterConfig.MeterManageService,
+		StreamingConnector:          config.RouterConfig.StreamingConnector,
+		PlanService:                 config.RouterConfig.Plan,
+		PlanAddonService:            config.RouterConfig.PlanAddon,
+		PlanSubscriptionService:     config.RouterConfig.PlanSubscriptionService,
+		StripeService:               config.RouterConfig.AppStripe,
+		SubscriptionService:         config.RouterConfig.SubscriptionService,
+		SubscriptionAddonService:    config.RouterConfig.SubscriptionAddonService,
+		SubscriptionWorkflowService: config.RouterConfig.SubscriptionWorkflowService,
+		ChargeService:               config.RouterConfig.ChargeService,
+		TaxCodeService:              config.RouterConfig.TaxCodeService,
+		CostService:                 config.RouterConfig.CostService,
+		FeatureConnector:            config.RouterConfig.FeatureConnector,
+		Middlewares:                 v3Middlewares,
+		PostAuthMiddlewares:         config.PostAuthMiddlewares,
+		ResponseValidation:          config.ResponseValidation,
+		FeatureGate:                 config.RouterConfig.FeatureGate,
 	})
 	if err != nil {
-		slog.Error("failed to create v3 API", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create v3 API: %w", err)
 	}
 
 	var v3RegisterErr error
@@ -152,17 +181,16 @@ func NewServer(config *Config) (*Server, error) {
 		v3RegisterErr = v3API.RegisterRoutes(r)
 	})
 	if v3RegisterErr != nil {
-		slog.Error("failed to register v3 API routes", "error", v3RegisterErr)
-		return nil, fmt.Errorf("register v3 routes: %w", v3RegisterErr)
+		return nil, fmt.Errorf("failed to register v3 API routes: %w", v3RegisterErr)
 	}
 
 	r.Group(func(r chi.Router) {
-		// Apply middlewares
-		for _, middlewareHook := range config.RouterHooks.Middlewares {
-			middlewareHook(r)
+		// Apply the same materialized hook middlewares as the v3 group above.
+		for _, mw := range hookMiddlewares {
+			r.Use(mw)
 		}
 
-		r.Use(middleware.RealIP)
+		r.Use(config.ClientIPMiddleware)
 		r.Use(middleware.RequestID)
 		r.Use(func(h http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -245,6 +273,26 @@ func NewServer(config *Config) (*Server, error) {
 	return &Server{
 		Router: r,
 	}, nil
+}
+
+// middlewareCollector implements MiddlewareManager to collect middlewares from hooks.
+type middlewareCollector struct {
+	middlewares []server.MiddlewareFunc
+}
+
+func (c *middlewareCollector) Use(middlewares ...func(http.Handler) http.Handler) {
+	for _, mw := range middlewares {
+		c.middlewares = append(c.middlewares, server.MiddlewareFunc(mw))
+	}
+}
+
+// collectMiddlewareHooks materializes MiddlewareHooks into a flat slice of middleware funcs.
+func collectMiddlewareHooks(hooks []MiddlewareHook) []server.MiddlewareFunc {
+	c := &middlewareCollector{}
+	for _, hook := range hooks {
+		hook(c)
+	}
+	return c.middlewares
 }
 
 // errorHandlerReply handles errors returned by the OpenAPI layer.

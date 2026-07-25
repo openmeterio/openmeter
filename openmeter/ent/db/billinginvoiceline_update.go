@@ -135,13 +135,13 @@ func (_u *BillingInvoiceLineUpdate) ClearDescription() *BillingInvoiceLineUpdate
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_u *BillingInvoiceLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
+func (_u *BillingInvoiceLineUpdate) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpdate {
 	_u.mutation.SetTaxConfig(v)
 	return _u
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
+func (_u *BillingInvoiceLineUpdate) SetNillableTaxConfig(v *billing.TaxConfig) *BillingInvoiceLineUpdate {
 	if v != nil {
 		_u.SetTaxConfig(*v)
 	}
@@ -656,26 +656,6 @@ func (_u *BillingInvoiceLineUpdate) SetNillableEngine(v *billing.LineEngineType)
 	return _u
 }
 
-// SetLineIds sets the "line_ids" field.
-func (_u *BillingInvoiceLineUpdate) SetLineIds(v string) *BillingInvoiceLineUpdate {
-	_u.mutation.SetLineIds(v)
-	return _u
-}
-
-// SetNillableLineIds sets the "line_ids" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillableLineIds(v *string) *BillingInvoiceLineUpdate {
-	if v != nil {
-		_u.SetLineIds(*v)
-	}
-	return _u
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (_u *BillingInvoiceLineUpdate) ClearLineIds() *BillingInvoiceLineUpdate {
-	_u.mutation.ClearLineIds()
-	return _u
-}
-
 // SetCreditsApplied sets the "credits_applied" field.
 func (_u *BillingInvoiceLineUpdate) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingInvoiceLineUpdate {
 	_u.mutation.SetCreditsApplied(v)
@@ -1175,6 +1155,11 @@ func (_u *BillingInvoiceLineUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.RatecardDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "ratecard_discounts", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.ratecard_discounts": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Engine(); ok {
 		if err := billinginvoiceline.EngineValidator(v); err != nil {
 			return &ValidationError{Name: "engine", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.engine": %w`, err)}
@@ -1332,12 +1317,6 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	}
 	if value, ok := _u.mutation.Engine(); ok {
 		_spec.SetField(billinginvoiceline.FieldEngine, field.TypeEnum, value)
-	}
-	if value, ok := _u.mutation.LineIds(); ok {
-		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
-	}
-	if _u.mutation.LineIdsCleared() {
-		_spec.ClearField(billinginvoiceline.FieldLineIds, field.TypeString)
 	}
 	if value, ok := _u.mutation.CreditsApplied(); ok {
 		vv, err := billinginvoiceline.ValueScanner.CreditsApplied.Value(value)
@@ -2085,13 +2064,13 @@ func (_u *BillingInvoiceLineUpdateOne) ClearDescription() *BillingInvoiceLineUpd
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_u *BillingInvoiceLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (_u *BillingInvoiceLineUpdateOne) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetTaxConfig(v)
 	return _u
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(v *billing.TaxConfig) *BillingInvoiceLineUpdateOne {
 	if v != nil {
 		_u.SetTaxConfig(*v)
 	}
@@ -2603,26 +2582,6 @@ func (_u *BillingInvoiceLineUpdateOne) SetNillableEngine(v *billing.LineEngineTy
 	if v != nil {
 		_u.SetEngine(*v)
 	}
-	return _u
-}
-
-// SetLineIds sets the "line_ids" field.
-func (_u *BillingInvoiceLineUpdateOne) SetLineIds(v string) *BillingInvoiceLineUpdateOne {
-	_u.mutation.SetLineIds(v)
-	return _u
-}
-
-// SetNillableLineIds sets the "line_ids" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillableLineIds(v *string) *BillingInvoiceLineUpdateOne {
-	if v != nil {
-		_u.SetLineIds(*v)
-	}
-	return _u
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (_u *BillingInvoiceLineUpdateOne) ClearLineIds() *BillingInvoiceLineUpdateOne {
-	_u.mutation.ClearLineIds()
 	return _u
 }
 
@@ -3138,6 +3097,11 @@ func (_u *BillingInvoiceLineUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.RatecardDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "ratecard_discounts", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.ratecard_discounts": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Engine(); ok {
 		if err := billinginvoiceline.EngineValidator(v); err != nil {
 			return &ValidationError{Name: "engine", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.engine": %w`, err)}
@@ -3312,12 +3276,6 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	}
 	if value, ok := _u.mutation.Engine(); ok {
 		_spec.SetField(billinginvoiceline.FieldEngine, field.TypeEnum, value)
-	}
-	if value, ok := _u.mutation.LineIds(); ok {
-		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
-	}
-	if _u.mutation.LineIdsCleared() {
-		_spec.ClearField(billinginvoiceline.FieldLineIds, field.TypeString)
 	}
 	if value, ok := _u.mutation.CreditsApplied(); ok {
 		vv, err := billinginvoiceline.ValueScanner.CreditsApplied.Value(value)

@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -27,13 +26,9 @@ type ChargeFlatFeeRunDetailedLine struct {
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
-	// TaxConfig holds the value of the "tax_config" field.
-	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
-	// TaxCodeID holds the value of the "tax_code_id" field.
-	TaxCodeID *string `json:"tax_code_id,omitempty"`
-	// TaxBehavior holds the value of the "tax_behavior" field.
-	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
+	//
+	// Deprecated: currency is defined by the parent line or charge
+	Currency *currencyx.Code `json:"currency,omitempty"`
 	// ServicePeriodStart holds the value of the "service_period_start" field.
 	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
 	// ServicePeriodEnd holds the value of the "service_period_end" field.
@@ -55,10 +50,14 @@ type ChargeFlatFeeRunDetailedLine struct {
 	// CreditsApplied holds the value of the "credits_applied" field.
 	CreditsApplied *creditsapplied.CreditsApplied `json:"credits_applied,omitempty"`
 	// Annotations holds the value of the "annotations" field.
+	//
+	// Deprecated: Field "annotations" was marked as deprecated in the schema.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// Metadata holds the value of the "metadata" field.
+	//
+	// Deprecated: Field "metadata" was marked as deprecated in the schema.
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
@@ -100,11 +99,9 @@ type ChargeFlatFeeRunDetailedLine struct {
 type ChargeFlatFeeRunDetailedLineEdges struct {
 	// Run holds the value of the run edge.
 	Run *ChargeFlatFeeRun `json:"run,omitempty"`
-	// TaxCode holds the value of the tax_code edge.
-	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [1]bool
 }
 
 // RunOrErr returns the Run value or an error if the edge
@@ -118,29 +115,18 @@ func (e ChargeFlatFeeRunDetailedLineEdges) RunOrErr() (*ChargeFlatFeeRun, error)
 	return nil, &NotLoadedError{edge: "run"}
 }
 
-// TaxCodeOrErr returns the TaxCode value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeeRunDetailedLineEdges) TaxCodeOrErr() (*TaxCode, error) {
-	if e.TaxCode != nil {
-		return e.TaxCode, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: dbtaxcode.Label}
-	}
-	return nil, &NotLoadedError{edge: "tax_code"}
-}
-
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeFlatFeeRunDetailedLine) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeflatfeerundetailedline.FieldTaxConfig, chargeflatfeerundetailedline.FieldCreditsApplied, chargeflatfeerundetailedline.FieldAnnotations, chargeflatfeerundetailedline.FieldMetadata:
+		case chargeflatfeerundetailedline.FieldCreditsApplied, chargeflatfeerundetailedline.FieldAnnotations, chargeflatfeerundetailedline.FieldMetadata:
 			values[i] = new([]byte)
 		case chargeflatfeerundetailedline.FieldQuantity, chargeflatfeerundetailedline.FieldPerUnitAmount, chargeflatfeerundetailedline.FieldAmount, chargeflatfeerundetailedline.FieldTaxesTotal, chargeflatfeerundetailedline.FieldTaxesInclusiveTotal, chargeflatfeerundetailedline.FieldTaxesExclusiveTotal, chargeflatfeerundetailedline.FieldChargesTotal, chargeflatfeerundetailedline.FieldDiscountsTotal, chargeflatfeerundetailedline.FieldCreditsTotal, chargeflatfeerundetailedline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeflatfeerundetailedline.FieldIndex:
 			values[i] = new(sql.NullInt64)
-		case chargeflatfeerundetailedline.FieldID, chargeflatfeerundetailedline.FieldCurrency, chargeflatfeerundetailedline.FieldTaxCodeID, chargeflatfeerundetailedline.FieldTaxBehavior, chargeflatfeerundetailedline.FieldInvoicingAppExternalID, chargeflatfeerundetailedline.FieldChildUniqueReferenceID, chargeflatfeerundetailedline.FieldCategory, chargeflatfeerundetailedline.FieldPaymentTerm, chargeflatfeerundetailedline.FieldNamespace, chargeflatfeerundetailedline.FieldName, chargeflatfeerundetailedline.FieldDescription, chargeflatfeerundetailedline.FieldRunID, chargeflatfeerundetailedline.FieldPricerReferenceID:
+		case chargeflatfeerundetailedline.FieldID, chargeflatfeerundetailedline.FieldCurrency, chargeflatfeerundetailedline.FieldInvoicingAppExternalID, chargeflatfeerundetailedline.FieldChildUniqueReferenceID, chargeflatfeerundetailedline.FieldCategory, chargeflatfeerundetailedline.FieldPaymentTerm, chargeflatfeerundetailedline.FieldNamespace, chargeflatfeerundetailedline.FieldName, chargeflatfeerundetailedline.FieldDescription, chargeflatfeerundetailedline.FieldRunID, chargeflatfeerundetailedline.FieldPricerReferenceID:
 			values[i] = new(sql.NullString)
 		case chargeflatfeerundetailedline.FieldServicePeriodStart, chargeflatfeerundetailedline.FieldServicePeriodEnd, chargeflatfeerundetailedline.FieldCreatedAt, chargeflatfeerundetailedline.FieldUpdatedAt, chargeflatfeerundetailedline.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -169,29 +155,8 @@ func (_m *ChargeFlatFeeRunDetailedLine) assignValues(columns []string, values []
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
-			}
-		case chargeflatfeerundetailedline.FieldTaxConfig:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
-					return fmt.Errorf("unmarshal field tax_config: %w", err)
-				}
-			}
-		case chargeflatfeerundetailedline.FieldTaxCodeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
-			} else if value.Valid {
-				_m.TaxCodeID = new(string)
-				*_m.TaxCodeID = value.String
-			}
-		case chargeflatfeerundetailedline.FieldTaxBehavior:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
-			} else if value.Valid {
-				_m.TaxBehavior = new(productcatalog.TaxBehavior)
-				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
+				_m.Currency = new(currencyx.Code)
+				*_m.Currency = currencyx.Code(value.String)
 			}
 		case chargeflatfeerundetailedline.FieldServicePeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -389,11 +354,6 @@ func (_m *ChargeFlatFeeRunDetailedLine) QueryRun() *ChargeFlatFeeRunQuery {
 	return NewChargeFlatFeeRunDetailedLineClient(_m.config).QueryRun(_m)
 }
 
-// QueryTaxCode queries the "tax_code" edge of the ChargeFlatFeeRunDetailedLine entity.
-func (_m *ChargeFlatFeeRunDetailedLine) QueryTaxCode() *TaxCodeQuery {
-	return NewChargeFlatFeeRunDetailedLineClient(_m.config).QueryTaxCode(_m)
-}
-
 // Update returns a builder for updating this ChargeFlatFeeRunDetailedLine.
 // Note that you need to call ChargeFlatFeeRunDetailedLine.Unwrap() before calling this method if this ChargeFlatFeeRunDetailedLine
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -417,19 +377,8 @@ func (_m *ChargeFlatFeeRunDetailedLine) String() string {
 	var builder strings.Builder
 	builder.WriteString("ChargeFlatFeeRunDetailedLine(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
-	builder.WriteString(", ")
-	builder.WriteString("tax_config=")
-	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
-	builder.WriteString(", ")
-	if v := _m.TaxCodeID; v != nil {
-		builder.WriteString("tax_code_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.TaxBehavior; v != nil {
-		builder.WriteString("tax_behavior=")
+	if v := _m.Currency; v != nil {
+		builder.WriteString("currency=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

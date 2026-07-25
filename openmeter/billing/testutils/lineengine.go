@@ -2,7 +2,6 @@ package testutils
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
@@ -34,18 +33,11 @@ func (NoopLineEngine) SplitGatheringLine(_ context.Context, input billing.SplitG
 }
 
 func (NoopLineEngine) BuildStandardInvoiceLines(_ context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
-	lines := make(billing.StandardLines, 0, len(input.GatheringLines))
+	return input.GatheringLines.ToStandardLines(input.Invoice.ID)
+}
 
-	for _, gatheringLine := range input.GatheringLines {
-		stdLine, err := gatheringLine.AsNewStandardLine(input.Invoice.ID)
-		if err != nil {
-			return nil, fmt.Errorf("converting gathering line to standard line: %w", err)
-		}
-
-		lines = append(lines, stdLine)
-	}
-
-	return lines, nil
+func (NoopLineEngine) BuildStandardLinesForGatheringPreview(_ context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+	return input.GatheringLines.ToStandardLines(input.Invoice.ID)
 }
 
 func (NoopLineEngine) OnStandardInvoiceCreated(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
@@ -56,7 +48,28 @@ func (NoopLineEngine) OnCollectionCompleted(_ context.Context, input billing.OnC
 	return input.Lines, nil
 }
 
-func (NoopLineEngine) OnMutableStandardLinesDeleted(context.Context, billing.OnMutableStandardLinesDeletedInput) error {
+func (NoopLineEngine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) error {
+	return input.Validate()
+}
+
+func (NoopLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
+	updatedLines := make([]billing.GenericInvoiceLine, 0, len(input.Updated))
+	for _, override := range input.Updated {
+		line, err := override.ChangesToApply.Apply(override.ExistingLine)
+		if err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, err
+		}
+
+		updatedLines = append(updatedLines, line)
+	}
+
+	return billing.OnMutableInvoiceUpdateResult{
+		CreatedLines: input.Created,
+		UpdatedLines: updatedLines,
+	}, nil
+}
+
+func (NoopLineEngine) OnMutableStandardLinesDeletedBySystem(context.Context, billing.OnMutableStandardLinesDeletedInput) error {
 	return nil
 }
 

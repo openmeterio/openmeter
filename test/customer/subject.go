@@ -393,7 +393,7 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 			Namespace: s.namespace,
 			ID:        createdCustomer.ID,
 		},
-		Currency: currencyx.Code("USD"),
+		Currency: currencyx.FiatCode("USD"),
 		Lines:    []billing.GatheringLine{pendingLine},
 	})
 	require.NoError(t, err, "creating pending invoice lines should succeed")

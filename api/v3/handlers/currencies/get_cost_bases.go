@@ -2,7 +2,6 @@ package currencies
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -11,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -31,9 +31,9 @@ type ListCostBasesArgs struct {
 func (h *handler) ListCostBases() ListCostBasesHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, args ListCostBasesArgs) (ListCostBasesRequest, error) {
-			ns, ok := h.namespaceDecoder.GetNamespace(ctx)
-			if !ok {
-				return ListCostBasesRequest{}, apierrors.NewInternalError(ctx, fmt.Errorf("failed to resolve namespace"))
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ListCostBasesRequest{}, err
 			}
 
 			page := pagination.NewPage(1, 20)
@@ -46,18 +46,14 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 
 			if err := page.Validate(); err != nil {
 				return ListCostBasesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					apierrors.InvalidParameter{
-						Field:  "page",
-						Reason: err.Error(),
-						Source: apierrors.InvalidParamSourceQuery,
-					},
+					{Field: "page", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 				})
 			}
 
-			var filterFiatCode *string
+			var filterFiatCode *currencyx.Code
 			if args.Params.Filter != nil && args.Params.Filter.FiatCode != nil {
 				s := *args.Params.Filter.FiatCode
-				filterFiatCode = &s
+				filterFiatCode = lo.ToPtr(currencyx.Code(s))
 			}
 
 			return ListCostBasesRequest{
@@ -68,7 +64,7 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 			}, nil
 		},
 		func(ctx context.Context, req ListCostBasesRequest) (ListCostBasesResponse, error) {
-			result, err := h.currencyService.ListCostBases(ctx, req)
+			result, err := h.service.ListCostBases(ctx, req)
 			if err != nil {
 				return ListCostBasesResponse{}, err
 			}

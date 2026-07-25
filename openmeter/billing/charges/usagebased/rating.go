@@ -41,8 +41,8 @@ func (r RateableIntent) GetFeatureKey() string {
 	return r.FeatureKey
 }
 
-func (r RateableIntent) GetCurrency() currencyx.Code {
-	return r.Currency
+func (r RateableIntent) GetCurrencyCalculator() (currencyx.Currency, error) {
+	return r.Intent.Intent.Currency, nil
 }
 
 func (r RateableIntent) GetName() string {
@@ -50,25 +50,15 @@ func (r RateableIntent) GetName() string {
 }
 
 func (r RateableIntent) GetRateCardDiscounts() billing.Discounts {
-	out := billing.Discounts{}
+	return r.Discounts.Clone()
+}
 
-	if r.Discounts.Usage != nil {
-		out.Usage = &billing.UsageDiscount{
-			UsageDiscount: *r.Discounts.Usage,
-			// Note: given we are not using splitlinegroups this correlation ID is not used for anything in charges.
-			CorrelationID: "usagebased-ratecard-usage",
-		}
+func (r RateableIntent) GetUnitConfig() *productcatalog.UnitConfig {
+	if r.UnitConfig == nil {
+		return nil
 	}
 
-	if r.Discounts.Percentage != nil {
-		out.Percentage = &billing.PercentageDiscount{
-			PercentageDiscount: *r.Discounts.Percentage,
-			// Note: given we are not using splitlinegroups this correlation ID is not used for anything in charges.
-			CorrelationID: "usagebased-ratecard-percentage",
-		}
-	}
-
-	return out
+	return lo.ToPtr(r.UnitConfig.Clone())
 }
 
 func (r RateableIntent) GetStandardLineDiscounts() billing.StandardLineDiscounts {

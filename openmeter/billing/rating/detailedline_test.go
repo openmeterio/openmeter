@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -35,7 +34,9 @@ func TestDetailedLineValidateRejectsNegativePerUnitAmount(t *testing.T) {
 }
 
 func TestAddDiscountForOverage(t *testing.T) {
-	currency, err := currencyx.Code(currency.USD).Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code("USD")).
+		Build()
 	require.NoError(t, err)
 
 	l := DetailedLine{

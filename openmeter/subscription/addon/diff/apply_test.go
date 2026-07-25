@@ -140,6 +140,9 @@ func TestApply(t *testing.T) {
 
 	t.Run("Should add multiple instances of new item to the subscription", func(t *testing.T) {
 		runWithDeps(t, func(t *testing.T, deps *tcDeps) {
+			exampleAddonRateCard3, ok := (subscriptiontestutils.ExampleAddonRateCard3.Clone()).(*productcatalog.FlatFeeRateCard)
+			require.True(t, ok, "expected FlatFeeRateCard, got %T", exampleAddonRateCard3)
+
 			p, a := subscriptiontestutils.CreatePlanWithAddon(
 				t,
 				deps.deps,
@@ -150,7 +153,7 @@ func TestApply(t *testing.T) {
 						EffectiveTo:   nil,
 					},
 					productcatalog.AddonInstanceTypeSingle,
-					subscriptiontestutils.ExampleAddonRateCard3.Clone(),
+					exampleAddonRateCard3,
 				),
 			)
 
@@ -182,7 +185,7 @@ func TestApply(t *testing.T) {
 			for _, p := range spec.GetSortedPhases() {
 				b, _ := json.MarshalIndent(p, "", "  ")
 
-				itemHistory, ok := p.ItemsByKey[subscriptiontestutils.ExampleAddonRateCard3.Key()]
+				itemHistory, ok := p.ItemsByKey[exampleAddonRateCard3.Key()]
 				require.True(t, ok, "item history missing in phase %s, got %+v, \nfull: %s", p.PhaseKey, lo.Keys(p.ItemsByKey), string(b))
 
 				// It should have a single entry in all phases
@@ -205,7 +208,7 @@ func TestApply(t *testing.T) {
 				require.Equal(t, int64(300), pr.Amount.IntPart())
 
 				// It should have the proper RateCard info, which is price * quantity + bool access
-				compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleAddonRateCard3, 100*3, item.RateCard, "phase %s", p.PhaseKey)
+				compareRateCardsWithAmountChange(t, exampleAddonRateCard3, 100*3, item.RateCard, "phase %s", p.PhaseKey)
 			}
 		})
 	})
@@ -957,16 +960,10 @@ func compareRateCardsWithAmountChange(t *testing.T, baseTarget *productcatalog.F
 	msgX := fmt.Sprintf("item %s not equal to target %s", b1, b2)
 
 	left := target.Clone()
-	require.NoError(t, left.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-		m.FeatureID = nil
-		return m, nil
-	}))
+	left.SetFeature(nil, left.GetFeatureKey())
 
 	right := value.Clone()
-	require.NoError(t, right.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-		m.FeatureID = nil
-		return m, nil
-	}))
+	right.SetFeature(nil, right.GetFeatureKey())
 
 	if len(msgAndArgs) > 0 {
 		customMsg := fmt.Sprintf(msgAndArgs[0].(string), msgAndArgs[1:]...)

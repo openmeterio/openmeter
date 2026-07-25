@@ -32,8 +32,8 @@ type ChargeUsageBasedRunPayment struct {
 	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
 	// Status holds the value of the "status" field.
 	Status payment.Status `json:"status,omitempty"`
-	// Amount holds the value of the "amount" field.
-	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
+	// FiatAmount holds the value of the "fiat_amount" field.
+	FiatAmount alpacadecimal.Decimal `json:"fiat_amount,omitempty"`
 	// AuthorizedTransactionGroupID holds the value of the "authorized_transaction_group_id" field.
 	AuthorizedTransactionGroupID *string `json:"authorized_transaction_group_id,omitempty"`
 	// AuthorizedAt holds the value of the "authorized_at" field.
@@ -87,7 +87,7 @@ func (*ChargeUsageBasedRunPayment) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebasedrunpayment.FieldAnnotations:
 			values[i] = new([]byte)
-		case chargeusagebasedrunpayment.FieldAmount:
+		case chargeusagebasedrunpayment.FieldFiatAmount:
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedrunpayment.FieldID, chargeusagebasedrunpayment.FieldLineID, chargeusagebasedrunpayment.FieldInvoiceID, chargeusagebasedrunpayment.FieldStatus, chargeusagebasedrunpayment.FieldAuthorizedTransactionGroupID, chargeusagebasedrunpayment.FieldSettledTransactionGroupID, chargeusagebasedrunpayment.FieldNamespace, chargeusagebasedrunpayment.FieldRunID:
 			values[i] = new(sql.NullString)
@@ -144,11 +144,11 @@ func (_m *ChargeUsageBasedRunPayment) assignValues(columns []string, values []an
 			} else if value.Valid {
 				_m.Status = payment.Status(value.String)
 			}
-		case chargeusagebasedrunpayment.FieldAmount:
+		case chargeusagebasedrunpayment.FieldFiatAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field amount", values[i])
+				return fmt.Errorf("unexpected type %T for field fiat_amount", values[i])
 			} else if value != nil {
-				_m.Amount = *value
+				_m.FiatAmount = *value
 			}
 		case chargeusagebasedrunpayment.FieldAuthorizedTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -273,8 +273,8 @@ func (_m *ChargeUsageBasedRunPayment) String() string {
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
 	builder.WriteString(", ")
-	builder.WriteString("amount=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
+	builder.WriteString("fiat_amount=")
+	builder.WriteString(fmt.Sprintf("%v", _m.FiatAmount))
 	builder.WriteString(", ")
 	if v := _m.AuthorizedTransactionGroupID; v != nil {
 		builder.WriteString("authorized_transaction_group_id=")

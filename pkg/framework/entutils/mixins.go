@@ -52,13 +52,14 @@ func (UniqueResourceMixin) Indexes() []ent.Index {
 // ResourceMixin adds common fields
 type ResourceMixin struct {
 	mixin.Schema
+	MetadataDeprecatedReason string
 }
 
-func (ResourceMixin) Fields() []ent.Field {
+func (m ResourceMixin) Fields() []ent.Field {
 	var fields []ent.Field
 	fields = append(fields, IDMixin{}.Fields()...)
 	fields = append(fields, NamespaceMixin{}.Fields()...)
-	fields = append(fields, MetadataMixin{}.Fields()...)
+	fields = append(fields, MetadataMixin{DeprecatedReason: m.MetadataDeprecatedReason}.Fields()...)
 	fields = append(fields, TimeMixin{}.Fields()...)
 	fields = append(fields,
 		field.String("name"),
@@ -158,33 +159,41 @@ type NamespaceMixinCreator[T any] interface {
 // MetadataMixin adds metadata to the schema
 type MetadataMixin struct {
 	mixin.Schema
+	DeprecatedReason string
 }
 
 // Fields of the IDMixin.
-func (MetadataMixin) Fields() []ent.Field {
-	return []ent.Field{
-		field.JSON("metadata", map[string]string{}).
-			Optional().
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}),
+func (m MetadataMixin) Fields() []ent.Field {
+	metadata := field.JSON("metadata", map[string]string{}).
+		Optional().
+		SchemaType(map[string]string{
+			dialect.Postgres: "jsonb",
+		})
+	if m.DeprecatedReason != "" {
+		metadata.Deprecated(m.DeprecatedReason)
 	}
+
+	return []ent.Field{metadata}
 }
 
 // AnnotationsMixin adds annotations to the schema
 type AnnotationsMixin struct {
 	mixin.Schema
+	DeprecatedReason string
 }
 
 // Fields of the IDMixin.
-func (AnnotationsMixin) Fields() []ent.Field {
-	return []ent.Field{
-		field.JSON("annotations", models.Annotations{}).
-			Optional().
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}),
+func (m AnnotationsMixin) Fields() []ent.Field {
+	annotations := field.JSON("annotations", models.Annotations{}).
+		Optional().
+		SchemaType(map[string]string{
+			dialect.Postgres: "jsonb",
+		})
+	if m.DeprecatedReason != "" {
+		annotations.Deprecated(m.DeprecatedReason)
 	}
+
+	return []ent.Field{annotations}
 }
 
 func (AnnotationsMixin) Indexes() []ent.Index {

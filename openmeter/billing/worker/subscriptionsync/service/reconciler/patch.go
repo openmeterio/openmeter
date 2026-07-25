@@ -63,8 +63,7 @@ type patchCollectionRouter struct {
 	usageBasedChargeCollection *usageBasedChargeCollection
 	creditThenInvoiceEnabled   bool
 	creditsEnabled             bool
-	featureGate                featuregate.Gate
-	creditsFlag                string
+	featureGate                *featuregate.FeatureGateChecker
 }
 
 type patchCollectionRouterConfig struct {
@@ -72,17 +71,22 @@ type patchCollectionRouterConfig struct {
 	invoices                 persistedstate.Invoices
 	creditThenInvoiceEnabled bool
 	creditsEnabled           bool
-	featureGate              featuregate.Gate
-	creditsFlag              string
+	featureGate              *featuregate.FeatureGateChecker
 }
 
 func (c patchCollectionRouterConfig) Validate() error {
 	if c.capacity <= 0 {
 		return fmt.Errorf("capacity is required")
 	}
+
 	if c.invoices == nil {
 		return fmt.Errorf("invoices is required")
 	}
+
+	if err := c.featureGate.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -104,7 +108,6 @@ func newPatchCollectionRouter(cfg patchCollectionRouterConfig) (*patchCollection
 		creditThenInvoiceEnabled:   cfg.creditThenInvoiceEnabled,
 		creditsEnabled:             cfg.creditsEnabled,
 		featureGate:                cfg.featureGate,
-		creditsFlag:                cfg.creditsFlag,
 	}, nil
 }
 
@@ -127,17 +130,7 @@ func (c patchCollectionRouter) isCreditsEnabled(ns string) (bool, error) {
 	if !c.creditsEnabled {
 		return false, nil
 	}
-	if c.featureGate == nil {
-		return true, nil
-	}
-	if c.creditsFlag == "" {
-		return true, nil
-	}
-	gate, err := c.featureGate.WithOrg(featuregate.NamespaceOrg(ns))
-	if err != nil {
-		return false, err
-	}
-	return gate.EvaluateBool(c.creditsFlag, false)
+	return c.featureGate.Enabled(ns, c.featureGate.Flags.Credits())
 }
 
 func (c patchCollectionRouter) ResolveDefaultCollection(target targetstate.StateItem) (PatchCollection, error) {

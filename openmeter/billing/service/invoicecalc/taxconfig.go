@@ -4,7 +4,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // SnapshotTaxConfigIntoLines merges the invoice's DefaultTaxConfig into each line and
@@ -16,7 +15,7 @@ func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps StandardI
 	}
 
 	for _, line := range invoice.Lines.OrEmpty() {
-		line.TaxConfig = productcatalog.MergeTaxConfigs(invoice.Workflow.Config.Invoicing.DefaultTaxConfig, line.TaxConfig)
+		line.TaxConfig = billing.MergeTaxConfigs(billing.FromProductCatalog(invoice.Workflow.Config.Invoicing.DefaultTaxConfig), line.TaxConfig)
 
 		if line.TaxConfig == nil || line.TaxConfig.Stripe == nil {
 			continue

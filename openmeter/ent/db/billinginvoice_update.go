@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
@@ -755,6 +756,26 @@ func (_u *BillingInvoiceUpdate) ClearQuantitySnapshotedAt() *BillingInvoiceUpdat
 	return _u
 }
 
+// SetDeletionSource sets the "deletion_source" field.
+func (_u *BillingInvoiceUpdate) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpdate {
+	_u.mutation.SetDeletionSource(v)
+	return _u
+}
+
+// SetNillableDeletionSource sets the "deletion_source" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillableDeletionSource(v *billing.ChangeSource) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetDeletionSource(*v)
+	}
+	return _u
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (_u *BillingInvoiceUpdate) ClearDeletionSource() *BillingInvoiceUpdate {
+	_u.mutation.ClearDeletionSource()
+	return _u
+}
+
 // SetDueAt sets the "due_at" field.
 func (_u *BillingInvoiceUpdate) SetDueAt(v time.Time) *BillingInvoiceUpdate {
 	_u.mutation.SetDueAt(v)
@@ -950,6 +971,21 @@ func (_u *BillingInvoiceUpdate) AddBillingInvoiceLines(v ...*BillingInvoiceLine)
 	return _u.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_u *BillingInvoiceUpdate) AddBillingGatheringInvoiceLineIDs(ids ...string) *BillingInvoiceUpdate {
+	_u.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
+	return _u
+}
+
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *BillingInvoiceUpdate) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *BillingInvoiceUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBillingGatheringInvoiceLineIDs(ids...)
+}
+
 // AddBillingInvoiceDetailedLineIDs adds the "billing_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by IDs.
 func (_u *BillingInvoiceUpdate) AddBillingInvoiceDetailedLineIDs(ids ...string) *BillingInvoiceUpdate {
 	_u.mutation.AddBillingInvoiceDetailedLineIDs(ids...)
@@ -1040,6 +1076,27 @@ func (_u *BillingInvoiceUpdate) RemoveBillingInvoiceLines(v ...*BillingInvoiceLi
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearBillingGatheringInvoiceLines clears all "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *BillingInvoiceUpdate) ClearBillingGatheringInvoiceLines() *BillingInvoiceUpdate {
+	_u.mutation.ClearBillingGatheringInvoiceLines()
+	return _u
+}
+
+// RemoveBillingGatheringInvoiceLineIDs removes the "billing_gathering_invoice_lines" edge to BillingGatheringInvoiceLine entities by IDs.
+func (_u *BillingInvoiceUpdate) RemoveBillingGatheringInvoiceLineIDs(ids ...string) *BillingInvoiceUpdate {
+	_u.mutation.RemoveBillingGatheringInvoiceLineIDs(ids...)
+	return _u
+}
+
+// RemoveBillingGatheringInvoiceLines removes "billing_gathering_invoice_lines" edges to BillingGatheringInvoiceLine entities.
+func (_u *BillingInvoiceUpdate) RemoveBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *BillingInvoiceUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // ClearBillingInvoiceDetailedLines clears all "billing_invoice_detailed_lines" edges to the BillingStandardInvoiceDetailedLine entity.
@@ -1192,6 +1249,11 @@ func (_u *BillingInvoiceUpdate) check() error {
 	if v, ok := _u.mutation.GetType(); ok {
 		if err := billinginvoice.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DeletionSource(); ok {
+		if err := billinginvoice.DeletionSourceValidator(v); err != nil {
+			return &ValidationError{Name: "deletion_source", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.deletion_source": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -1439,6 +1501,12 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	if _u.mutation.QuantitySnapshotedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.DeletionSource(); ok {
+		_spec.SetField(billinginvoice.FieldDeletionSource, field.TypeEnum, value)
+	}
+	if _u.mutation.DeletionSourceCleared() {
+		_spec.ClearField(billinginvoice.FieldDeletionSource, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)
 	}
@@ -1551,6 +1619,51 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BillingGatheringInvoiceLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingGatheringInvoiceLinesTable,
+			Columns: []string{billinginvoice.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBillingGatheringInvoiceLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingGatheringInvoiceLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingGatheringInvoiceLinesTable,
+			Columns: []string{billinginvoice.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingGatheringInvoiceLinesTable,
+			Columns: []string{billinginvoice.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2476,6 +2589,26 @@ func (_u *BillingInvoiceUpdateOne) ClearQuantitySnapshotedAt() *BillingInvoiceUp
 	return _u
 }
 
+// SetDeletionSource sets the "deletion_source" field.
+func (_u *BillingInvoiceUpdateOne) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpdateOne {
+	_u.mutation.SetDeletionSource(v)
+	return _u
+}
+
+// SetNillableDeletionSource sets the "deletion_source" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillableDeletionSource(v *billing.ChangeSource) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetDeletionSource(*v)
+	}
+	return _u
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (_u *BillingInvoiceUpdateOne) ClearDeletionSource() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearDeletionSource()
+	return _u
+}
+
 // SetDueAt sets the "due_at" field.
 func (_u *BillingInvoiceUpdateOne) SetDueAt(v time.Time) *BillingInvoiceUpdateOne {
 	_u.mutation.SetDueAt(v)
@@ -2671,6 +2804,21 @@ func (_u *BillingInvoiceUpdateOne) AddBillingInvoiceLines(v ...*BillingInvoiceLi
 	return _u.AddBillingInvoiceLineIDs(ids...)
 }
 
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_u *BillingInvoiceUpdateOne) AddBillingGatheringInvoiceLineIDs(ids ...string) *BillingInvoiceUpdateOne {
+	_u.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
+	return _u
+}
+
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *BillingInvoiceUpdateOne) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBillingGatheringInvoiceLineIDs(ids...)
+}
+
 // AddBillingInvoiceDetailedLineIDs adds the "billing_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by IDs.
 func (_u *BillingInvoiceUpdateOne) AddBillingInvoiceDetailedLineIDs(ids ...string) *BillingInvoiceUpdateOne {
 	_u.mutation.AddBillingInvoiceDetailedLineIDs(ids...)
@@ -2761,6 +2909,27 @@ func (_u *BillingInvoiceUpdateOne) RemoveBillingInvoiceLines(v ...*BillingInvoic
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingInvoiceLineIDs(ids...)
+}
+
+// ClearBillingGatheringInvoiceLines clears all "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_u *BillingInvoiceUpdateOne) ClearBillingGatheringInvoiceLines() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearBillingGatheringInvoiceLines()
+	return _u
+}
+
+// RemoveBillingGatheringInvoiceLineIDs removes the "billing_gathering_invoice_lines" edge to BillingGatheringInvoiceLine entities by IDs.
+func (_u *BillingInvoiceUpdateOne) RemoveBillingGatheringInvoiceLineIDs(ids ...string) *BillingInvoiceUpdateOne {
+	_u.mutation.RemoveBillingGatheringInvoiceLineIDs(ids...)
+	return _u
+}
+
+// RemoveBillingGatheringInvoiceLines removes "billing_gathering_invoice_lines" edges to BillingGatheringInvoiceLine entities.
+func (_u *BillingInvoiceUpdateOne) RemoveBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *BillingInvoiceUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // ClearBillingInvoiceDetailedLines clears all "billing_invoice_detailed_lines" edges to the BillingStandardInvoiceDetailedLine entity.
@@ -2926,6 +3095,11 @@ func (_u *BillingInvoiceUpdateOne) check() error {
 	if v, ok := _u.mutation.GetType(); ok {
 		if err := billinginvoice.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DeletionSource(); ok {
+		if err := billinginvoice.DeletionSourceValidator(v); err != nil {
+			return &ValidationError{Name: "deletion_source", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.deletion_source": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Status(); ok {
@@ -3190,6 +3364,12 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	if _u.mutation.QuantitySnapshotedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.DeletionSource(); ok {
+		_spec.SetField(billinginvoice.FieldDeletionSource, field.TypeEnum, value)
+	}
+	if _u.mutation.DeletionSourceCleared() {
+		_spec.ClearField(billinginvoice.FieldDeletionSource, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)
 	}
@@ -3302,6 +3482,51 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BillingGatheringInvoiceLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingGatheringInvoiceLinesTable,
+			Columns: []string{billinginvoice.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBillingGatheringInvoiceLinesIDs(); len(nodes) > 0 && !_u.mutation.BillingGatheringInvoiceLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingGatheringInvoiceLinesTable,
+			Columns: []string{billinginvoice.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingGatheringInvoiceLinesTable,
+			Columns: []string{billinginvoice.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

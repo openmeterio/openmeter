@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -67,12 +69,13 @@ func (s *Service) createCreditAllocations(ctx context.Context, charge flatfee.Ch
 	if err != nil {
 		return creditrealization.Realizations{}, err
 	}
-
+	featureKey := charge.Intent.GetFeatureKey()
 	if err := s.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,
 		ChargeID:     charge.ID,
-		CustomerID:   charge.Intent.CustomerID,
-		Currency:     charge.Intent.Currency,
+		CustomerID:   charge.Intent.GetCustomerID(),
+		Currency:     charge.Intent.GetCurrency(),
+		Features:     lo.Ternary(featureKey == "", nil, []string{featureKey}),
 		Realizations: realizations,
 	}); err != nil {
 		return creditrealization.Realizations{}, fmt.Errorf("create initial credit realization lineages: %w", err)

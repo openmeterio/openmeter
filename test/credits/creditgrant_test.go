@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -21,9 +22,12 @@ import (
 	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	creditgrantservice "github.com/openmeterio/openmeter/openmeter/billing/creditgrant/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
@@ -84,7 +88,10 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 	svc, err := creditgrantservice.New(creditgrantservice.Config{
 		CreditPurchaseService: s.CreditPurchaseService,
 		ChargesService:        s.Charges,
+		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
+		CreditVoidService:     creditvoid.NewNoopService(),
+		TransactionManager:    enttx.NewCreator(s.DBClient),
 	})
 	s.Require().NoError(err)
 
@@ -187,6 +194,79 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 	s.Len(gatheringInvoices.Items, 0)
 }
 
+func (s *CreditGrantTestSuite) TestCreatePromotionalGrantUsesEffectiveAtForServicePeriodAndLedgerBookedAt() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("creditgrant-service-promotional-effective-at")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:00Z", time.UTC).AsTime()
+	effectiveAt := datetime.MustParseTimeInLocation(s.T(), "2026-04-18T09:30:00Z", time.UTC).AsTime()
+	clock.SetTime(now)
+
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "Scheduled promotional grant",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(25),
+		EffectiveAt:   &effectiveAt,
+		FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(grant.Intent.EffectiveAt)
+	s.Equal(effectiveAt, *grant.Intent.EffectiveAt)
+
+	expectedPeriod := grant.Intent.ServicePeriod
+	s.Equal(effectiveAt, expectedPeriod.From)
+	s.Equal(effectiveAt, expectedPeriod.To)
+
+	s.Require().NotNil(grant.Realizations.CreditGrantRealization)
+	groupID := grant.Realizations.CreditGrantRealization.TransactionGroupID
+	transactions, err := s.DBClient.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(ns),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		All(ctx)
+	s.Require().NoError(err)
+	s.Require().NotEmpty(transactions)
+
+	for _, transaction := range transactions {
+		s.True(transaction.BookedAt.UTC().Equal(effectiveAt), "booked_at=%s effective_at=%s", transaction.BookedAt.UTC(), effectiveAt)
+		s.False(transaction.BookedAt.UTC().Equal(grant.CreatedAt.UTC()), "booked_at must not use wall-clock creation time")
+	}
+}
+
+func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("creditgrant-service-feature-filters")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "feature filtered grant",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(10),
+		FundingMethod: creditgrant.FundingMethodNone,
+		Filters: &creditgrant.GrantFilters{
+			Features: []string{"api-calls"},
+		},
+	})
+	s.Require().NoError(err)
+
+	s.Equal(creditpurchase.SettlementTypePromotional, grant.Intent.Settlement.Type())
+	s.Equal(creditpurchase.StatusFinal, grant.Status)
+	s.Equal(creditpurchase.FeatureFilters{"api-calls"}, grant.Intent.FeatureFilters)
+	s.NotNil(grant.Realizations.CreditGrantRealization)
+}
+
 func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-external")
@@ -217,7 +297,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	s.Require().NoError(err)
 
 	s.Equal(creditpurchase.SettlementTypeExternal, grant.Intent.Settlement.Type())
-	s.Equal(creditpurchase.StatusActive, grant.Status)
+	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
 	s.NotNil(grant.Realizations.CreditGrantRealization)
 	s.Nil(grant.Realizations.ExternalPaymentSettlement)
 
@@ -228,7 +308,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 		TargetStatus: payment.StatusAuthorized,
 	})
 	s.Require().NoError(err)
-	s.Equal(creditpurchase.StatusActive, grant.Status)
+	s.Equal(creditpurchase.StatusActivePaymentAuthorized, grant.Status)
 	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
 	s.Equal(payment.StatusAuthorized, grant.Realizations.ExternalPaymentSettlement.Status)
 
@@ -243,6 +323,95 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	s.Equal(creditpurchase.StatusFinal, grant.Status)
 	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
 	s.Equal(payment.StatusSettled, grant.Realizations.ExternalPaymentSettlement.Status)
+}
+
+func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSettle() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-service-external-sub-cent-cost-basis")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime()
+	clock.SetTime(now)
+
+	creditAmount := alpacadecimal.NewFromInt(1)
+	costBasis, err := alpacadecimal.NewFromString("0.005")
+	s.Require().NoError(err)
+	priority := int16(20)
+
+	// given:
+	// - an externally funded $1 credit grant with sub-cent per-unit cost basis
+	// when:
+	// - the grant is created before the external payment is authorized
+	// then:
+	// - the credit allocation is visible and backed by an open receivable
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "$1.00 external grant with sub-cent cost basis",
+		Description:   lo.ToPtr("External credit grant with sub-cent cost basis"),
+		Currency:      USD,
+		Amount:        creditAmount,
+		Priority:      lo.ToPtr(priority),
+		FundingMethod: creditgrant.FundingMethodExternal,
+		Purchase: &creditgrant.PurchaseTerms{
+			Currency:           USD,
+			PerUnitCostBasis:   lo.ToPtr(costBasis),
+			AvailabilityPolicy: lo.ToPtr(creditpurchase.CreatedInitialPaymentSettlementStatus),
+		},
+	})
+	s.Require().NoError(err)
+
+	s.Equal(creditpurchase.SettlementTypeExternal, grant.Intent.Settlement.Type())
+	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
+	s.NotNil(grant.Realizations.CreditGrantRealization)
+	s.Nil(grant.Realizations.ExternalPaymentSettlement)
+	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "created grant should allocate credits")
+	s.AssertDecimalEqual(creditAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "created grant should book an open receivable")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "created grant should not book authorized receivable")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "created grant should not book wash")
+
+	// when:
+	// - the external payment is authorized
+	// then:
+	// - the receivable moves from open to authorized while credits stay allocated
+	grant, err = s.CreditGrantService.UpdateExternalSettlement(ctx, creditgrant.UpdateExternalSettlementInput{
+		Namespace:    ns,
+		CustomerID:   cust.ID,
+		ChargeID:     grant.ID,
+		TargetStatus: payment.StatusAuthorized,
+	})
+	s.Require().NoError(err)
+	s.Equal(creditpurchase.StatusActivePaymentAuthorized, grant.Status)
+	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
+	s.Equal(payment.StatusAuthorized, grant.Realizations.ExternalPaymentSettlement.Status)
+	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "authorized grant should keep credits allocated")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "authorized grant should clear open receivable")
+	s.AssertDecimalEqual(creditAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "authorized grant should book authorized receivable")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "authorized grant should not book wash")
+
+	// when:
+	// - the external payment is settled
+	// then:
+	// - the charge finalizes and the receivable is funded from wash
+	grant, err = s.CreditGrantService.UpdateExternalSettlement(ctx, creditgrant.UpdateExternalSettlementInput{
+		Namespace:    ns,
+		CustomerID:   cust.ID,
+		ChargeID:     grant.ID,
+		TargetStatus: payment.StatusSettled,
+	})
+	s.Require().NoError(err)
+
+	s.Equal(creditpurchase.StatusFinal, grant.Status)
+	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
+	s.Equal(payment.StatusSettled, grant.Realizations.ExternalPaymentSettlement.Status)
+	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "settled grant should keep credits allocated")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "settled grant should keep open receivable cleared")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "settled grant should clear authorized receivable")
+	s.AssertDecimalEqual(creditAmount.Neg(), s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "settled grant should book wash")
 }
 
 func (s *CreditGrantTestSuite) TestListCreditGrants() {
@@ -441,11 +610,10 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharg
 	s.Require().NoError(err)
 	s.Equal(creditpurchase.SettlementTypeExternal, grant.Intent.Settlement.Type())
 
-	s.Require().NotNil(grant.Intent.TaxConfig, "charge intent TaxConfig must be set from CreateInput")
 	s.Require().NotNil(grant.Intent.TaxConfig.Behavior, "TaxBehavior must propagate through toIntent to charge")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *grant.Intent.TaxConfig.Behavior)
-	s.Require().NotNil(grant.Intent.TaxConfig.TaxCodeID, "TaxCodeID must propagate through toIntent to charge")
-	s.Equal(tc.ID, *grant.Intent.TaxConfig.TaxCodeID)
+	s.Require().NotEmpty(grant.Intent.TaxConfig.TaxCodeID, "TaxCodeID must propagate through toIntent to charge")
+	s.Equal(tc.ID, grant.Intent.TaxConfig.TaxCodeID)
 }
 
 // TestCreatePromotionalGrantPropagatesTaxConfigToCharge verifies that TaxConfig set on
@@ -488,11 +656,10 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrantPropagatesTaxConfigToCh
 	s.Equal(creditpurchase.SettlementTypePromotional, grant.Intent.Settlement.Type())
 	s.Equal(creditpurchase.StatusFinal, grant.Status)
 
-	s.Require().NotNil(grant.Intent.TaxConfig, "charge intent TaxConfig must be set from CreateInput")
 	s.Require().NotNil(grant.Intent.TaxConfig.Behavior, "TaxBehavior must propagate through toIntent to charge")
 	s.Equal(productcatalog.InclusiveTaxBehavior, *grant.Intent.TaxConfig.Behavior)
-	s.Require().NotNil(grant.Intent.TaxConfig.TaxCodeID, "TaxCodeID must propagate through toIntent to charge")
-	s.Equal(tc.ID, *grant.Intent.TaxConfig.TaxCodeID)
+	s.Require().NotEmpty(grant.Intent.TaxConfig.TaxCodeID, "TaxCodeID must propagate through toIntent to charge")
+	s.Equal(tc.ID, grant.Intent.TaxConfig.TaxCodeID)
 }
 
 func (s *CreditGrantTestSuite) mustCreatePromotionalCreditGrant(ctx context.Context, namespace string, customerID customer.CustomerID, name string, amount alpacadecimal.Decimal) creditpurchase.Charge {

@@ -116,8 +116,10 @@ type BillingInvoice struct {
 	DraftUntil *time.Time `json:"draft_until,omitempty"`
 	// QuantitySnapshotedAt holds the value of the "quantity_snapshoted_at" field.
 	QuantitySnapshotedAt *time.Time `json:"quantity_snapshoted_at,omitempty"`
+	// DeletionSource holds the value of the "deletion_source" field.
+	DeletionSource *billing.ChangeSource `json:"deletion_source,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	Currency currencyx.FiatCode `json:"currency,omitempty"`
 	// DueAt holds the value of the "due_at" field.
 	DueAt *time.Time `json:"due_at,omitempty"`
 	// Status holds the value of the "status" field.
@@ -156,6 +158,8 @@ type BillingInvoiceEdges struct {
 	BillingWorkflowConfig *BillingWorkflowConfig `json:"billing_workflow_config,omitempty"`
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
+	// BillingGatheringInvoiceLines holds the value of the billing_gathering_invoice_lines edge.
+	BillingGatheringInvoiceLines []*BillingGatheringInvoiceLine `json:"billing_gathering_invoice_lines,omitempty"`
 	// BillingInvoiceDetailedLines holds the value of the billing_invoice_detailed_lines edge.
 	BillingInvoiceDetailedLines []*BillingStandardInvoiceDetailedLine `json:"billing_invoice_detailed_lines,omitempty"`
 	// BillingInvoiceValidationIssues holds the value of the billing_invoice_validation_issues edge.
@@ -174,7 +178,7 @@ type BillingInvoiceEdges struct {
 	PaymentApp *App `json:"payment_app,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [11]bool
+	loadedTypes [12]bool
 }
 
 // SourceBillingProfileOrErr returns the SourceBillingProfile value or an error if the edge
@@ -208,10 +212,19 @@ func (e BillingInvoiceEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, 
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
 }
 
+// BillingGatheringInvoiceLinesOrErr returns the BillingGatheringInvoiceLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceEdges) BillingGatheringInvoiceLinesOrErr() ([]*BillingGatheringInvoiceLine, error) {
+	if e.loadedTypes[3] {
+		return e.BillingGatheringInvoiceLines, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_gathering_invoice_lines"}
+}
+
 // BillingInvoiceDetailedLinesOrErr returns the BillingInvoiceDetailedLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) BillingInvoiceDetailedLinesOrErr() ([]*BillingStandardInvoiceDetailedLine, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.BillingInvoiceDetailedLines, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_detailed_lines"}
@@ -220,7 +233,7 @@ func (e BillingInvoiceEdges) BillingInvoiceDetailedLinesOrErr() ([]*BillingStand
 // BillingInvoiceValidationIssuesOrErr returns the BillingInvoiceValidationIssues value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) BillingInvoiceValidationIssuesOrErr() ([]*BillingInvoiceValidationIssue, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.BillingInvoiceValidationIssues, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_validation_issues"}
@@ -229,7 +242,7 @@ func (e BillingInvoiceEdges) BillingInvoiceValidationIssuesOrErr() ([]*BillingIn
 // ChargeFlatFeeRunsOrErr returns the ChargeFlatFeeRuns value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) ChargeFlatFeeRunsOrErr() ([]*ChargeFlatFeeRun, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.ChargeFlatFeeRuns, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_flat_fee_runs"}
@@ -238,7 +251,7 @@ func (e BillingInvoiceEdges) ChargeFlatFeeRunsOrErr() ([]*ChargeFlatFeeRun, erro
 // ChargeUsageBasedRunsOrErr returns the ChargeUsageBasedRuns value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) ChargeUsageBasedRunsOrErr() ([]*ChargeUsageBasedRuns, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.ChargeUsageBasedRuns, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_usage_based_runs"}
@@ -249,7 +262,7 @@ func (e BillingInvoiceEdges) ChargeUsageBasedRunsOrErr() ([]*ChargeUsageBasedRun
 func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 	if e.BillingInvoiceCustomer != nil {
 		return e.BillingInvoiceCustomer, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_customer"}
@@ -260,7 +273,7 @@ func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 	if e.TaxApp != nil {
 		return e.TaxApp, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_app"}
@@ -271,7 +284,7 @@ func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 	if e.InvoicingApp != nil {
 		return e.InvoicingApp, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoicing_app"}
@@ -282,7 +295,7 @@ func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) PaymentAppOrErr() (*App, error) {
 	if e.PaymentApp != nil {
 		return e.PaymentApp, nil
-	} else if e.loadedTypes[10] {
+	} else if e.loadedTypes[11] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment_app"}
@@ -299,7 +312,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoice.FieldSchemaLevel:
 			values[i] = new(sql.NullInt64)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID, billinginvoice.FieldTaxAppExternalID, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerKey, billinginvoice.FieldCustomerName, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID, billinginvoice.FieldTaxAppExternalID, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerKey, billinginvoice.FieldCustomerName, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldDeletionSource, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldSentToCustomerAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldQuantitySnapshotedAt, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd, billinginvoice.FieldCollectionAt, billinginvoice.FieldPaymentProcessingEnteredAt:
 			values[i] = new(sql.NullTime)
@@ -624,11 +637,18 @@ func (_m *BillingInvoice) assignValues(columns []string, values []any) error {
 				_m.QuantitySnapshotedAt = new(time.Time)
 				*_m.QuantitySnapshotedAt = value.Time
 			}
+		case billinginvoice.FieldDeletionSource:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field deletion_source", values[i])
+			} else if value.Valid {
+				_m.DeletionSource = new(billing.ChangeSource)
+				*_m.DeletionSource = billing.ChangeSource(value.String)
+			}
 		case billinginvoice.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.Currency = currencyx.FiatCode(value.String)
 			}
 		case billinginvoice.FieldDueAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -735,6 +755,11 @@ func (_m *BillingInvoice) QueryBillingWorkflowConfig() *BillingWorkflowConfigQue
 // QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the BillingInvoice entity.
 func (_m *BillingInvoice) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
 	return NewBillingInvoiceClient(_m.config).QueryBillingInvoiceLines(_m)
+}
+
+// QueryBillingGatheringInvoiceLines queries the "billing_gathering_invoice_lines" edge of the BillingInvoice entity.
+func (_m *BillingInvoice) QueryBillingGatheringInvoiceLines() *BillingGatheringInvoiceLineQuery {
+	return NewBillingInvoiceClient(_m.config).QueryBillingGatheringInvoiceLines(_m)
 }
 
 // QueryBillingInvoiceDetailedLines queries the "billing_invoice_detailed_lines" edge of the BillingInvoice entity.
@@ -985,6 +1010,11 @@ func (_m *BillingInvoice) String() string {
 	if v := _m.QuantitySnapshotedAt; v != nil {
 		builder.WriteString("quantity_snapshoted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.DeletionSource; v != nil {
+		builder.WriteString("deletion_source=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("currency=")

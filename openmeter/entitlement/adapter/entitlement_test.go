@@ -49,7 +49,7 @@ func setup(t *testing.T) (deps deps, cleanup func()) {
 	t.Helper()
 
 	// create isolated pg db for tests
-	testdb := testutils.InitPostgresDB(t)
+	testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	logger := testutils.NewLogger(t)
 
 	logger.Info("testdb.URL", "testdb.URL", testdb.URL)
@@ -100,10 +100,6 @@ func setup(t *testing.T) (deps deps, cleanup func()) {
 	m.Lock()
 	defer m.Unlock()
 	// migrate db via ent schema upsert
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to create schema: %v", err)
-	}
-
 	return deps, cleanup
 }
 

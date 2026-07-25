@@ -46,10 +46,10 @@ interface AppsEndpoints {
   @route("/{id}")
   @operationId("updateApp")
   @summary("Update app")
-  update(
-    @path id: ULID,
-    @body app: AppReplaceUpdate,
-  ): App | NotFoundError | CommonErrors;
+  update(@path id: ULID, @body app: AppReplaceUpdate):
+    | App
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Uninstall an app.
@@ -58,9 +58,12 @@ interface AppsEndpoints {
   @route("/{id}")
   @operationId("uninstallApp")
   @summary("Uninstall app")
-  uninstall(@path id: ULID): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  uninstall(@path id: ULID):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
 
 /**

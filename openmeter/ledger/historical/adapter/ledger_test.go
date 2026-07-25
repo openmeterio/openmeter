@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestRepo_CreateTransactionGroup(t *testing.T) {
@@ -31,7 +31,6 @@ func TestRepo_CreateTransactionGroup(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -60,18 +59,27 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
 	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
 	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	sourceChargeID := "01JABCDEF0123456789ABCDEFG"
+	spendChargeID := "01JBCDEFG0123456789ABCDEFG"
+	collectionSource := "0"
+	identityKey, _ := ledger.EntryIdentityParts{
+		CollectionSource: &collectionSource,
+		SourceChargeID:   &sourceChargeID,
+		SpendChargeID:    &spendChargeID,
+	}.Text()
 
 	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address:          testAddress(t, subAccountA),
-			AmountValue:      alpacadecimal.NewFromInt(-100),
-			IdentityKeyValue: "source:0",
+			Address:             testAddress(t, subAccountA),
+			AmountValue:         alpacadecimal.NewFromInt(-100),
+			IdentityKeyValue:    string(identityKey),
+			SourceChargeIDValue: &sourceChargeID,
+			SpendChargeIDValue:  &spendChargeID,
 			AnnotationsValue: models.Annotations{
 				ledger.AnnotationCollectionSourceOrder: 0,
 			},
@@ -120,9 +128,17 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	entriesBySubAccount := lo.SliceToMap(entries, func(e *entdb.LedgerEntry) (string, *entdb.LedgerEntry) {
 		return e.SubAccountID, e
 	})
-	require.Equal(t, "source:0", entriesBySubAccount[subAccountA.ID].IdentityKey)
+	require.Equal(t, string(identityKey), entriesBySubAccount[subAccountA.ID].IdentityKey)
+	require.Equal(t, int(ledger.EntrySchemaVersionCurrent), entriesBySubAccount[subAccountA.ID].SchemaVersion)
+	require.NotNil(t, entriesBySubAccount[subAccountA.ID].SourceChargeID)
+	require.Equal(t, sourceChargeID, *entriesBySubAccount[subAccountA.ID].SourceChargeID)
+	require.NotNil(t, entriesBySubAccount[subAccountA.ID].SpendChargeID)
+	require.Equal(t, spendChargeID, *entriesBySubAccount[subAccountA.ID].SpendChargeID)
 	require.EqualValues(t, 0, entriesBySubAccount[subAccountA.ID].Annotations[ledger.AnnotationCollectionSourceOrder])
 	require.Equal(t, "", entriesBySubAccount[subAccountB.ID].IdentityKey)
+	require.Equal(t, int(ledger.EntrySchemaVersionCurrent), entriesBySubAccount[subAccountB.ID].SchemaVersion)
+	require.Nil(t, entriesBySubAccount[subAccountB.ID].SourceChargeID)
+	require.Nil(t, entriesBySubAccount[subAccountB.ID].SpendChargeID)
 
 	require.Len(t, tx.Entries(), 2)
 	addressesBySubAccount := map[string]ledger.PostingAddress{}
@@ -136,9 +152,144 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Version())
 	require.Equal(t, subAccountB.RouteMeta.RoutingKey, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Value())
 	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Version())
-	require.Equal(t, "source:0", entriesBySubAccountFromTx[subAccountA.ID].IdentityKey())
+	require.Equal(t, string(identityKey), entriesBySubAccountFromTx[subAccountA.ID].IdentityKey())
+	require.Equal(t, ledger.EntrySchemaVersionCurrent, entriesBySubAccountFromTx[subAccountA.ID].SchemaVersion())
+	require.Equal(t, &sourceChargeID, entriesBySubAccountFromTx[subAccountA.ID].SourceChargeID())
+	require.Equal(t, &spendChargeID, entriesBySubAccountFromTx[subAccountA.ID].SpendChargeID())
 	require.EqualValues(t, 0, entriesBySubAccountFromTx[subAccountA.ID].Annotations()[ledger.AnnotationCollectionSourceOrder])
 	require.Equal(t, "", entriesBySubAccountFromTx[subAccountB.ID].IdentityKey())
+	require.Equal(t, ledger.EntrySchemaVersionCurrent, entriesBySubAccountFromTx[subAccountB.ID].SchemaVersion())
+	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].SourceChargeID())
+	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].SpendChargeID())
+
+	hydratedGroup, err := env.repo.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	})
+	require.NoError(t, err)
+	require.Len(t, hydratedGroup.Transactions(), 1)
+	require.Len(t, hydratedGroup.Transactions()[0].Entries(), 2)
+	for _, entry := range hydratedGroup.Transactions()[0].Entries() {
+		require.Equal(t, ledger.EntrySchemaVersionCurrent, entry.SchemaVersion())
+	}
+}
+
+func TestRepo_BookTransaction_AllowsSameSubAccountEntriesWithDifferentProvenance(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	sourceChargeID1 := "01JABCDEF0123456789ABCDEFG"
+	sourceChargeID2 := "01JBCDEFG0123456789ABCDEFG"
+	spendChargeID := "01JCDEFGH0123456789ABCDEFG"
+	collectionSource := "collection-source"
+	identityKey1, _ := ledger.EntryIdentityParts{
+		CollectionSource: &collectionSource,
+		SourceChargeID:   &sourceChargeID1,
+		SpendChargeID:    &spendChargeID,
+	}.Text()
+	identityKey2, _ := ledger.EntryIdentityParts{
+		CollectionSource: &collectionSource,
+		SourceChargeID:   &sourceChargeID2,
+		SpendChargeID:    &spendChargeID,
+	}.Text()
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:             testAddress(t, subAccountA),
+			AmountValue:         alpacadecimal.NewFromInt(-20),
+			IdentityKeyValue:    string(identityKey1),
+			SourceChargeIDValue: &sourceChargeID1,
+			SpendChargeIDValue:  &spendChargeID,
+		},
+		{
+			Address:             testAddress(t, subAccountA),
+			AmountValue:         alpacadecimal.NewFromInt(-10),
+			IdentityKeyValue:    string(identityKey2),
+			SourceChargeIDValue: &sourceChargeID2,
+			SpendChargeIDValue:  &spendChargeID,
+		},
+		{
+			Address:     testAddress(t, subAccountB),
+			AmountValue: alpacadecimal.NewFromInt(30),
+		},
+	}))
+	require.NoError(t, err)
+
+	entriesForSubAccountA := lo.Filter(tx.Entries(), func(entry ledger.Entry, _ int) bool {
+		return entry.PostingAddress().SubAccountID() == subAccountA.ID
+	})
+	require.Len(t, entriesForSubAccountA, 2)
+	require.ElementsMatch(t, []string{
+		string(identityKey1),
+		string(identityKey2),
+	}, lo.Map(entriesForSubAccountA, func(entry ledger.Entry, _ int) string {
+		return entry.IdentityKey()
+	}))
+}
+
+func TestRepo_GetTransactionGroup_PreservesTaxBehavior(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	taxCode := "tax-code"
+	taxBehavior := ledger.TaxBehaviorInclusive
+	route := ledger.Route{
+		Currency:    currencyx.Code("USD"),
+		TaxCode:     &taxCode,
+		TaxBehavior: &taxBehavior,
+	}
+	accruedSubAccount := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerAccrued, route)
+	earningsSubAccount := env.createSubAccountOfType(t, namespace, ledger.AccountTypeEarnings, route)
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, accruedSubAccount),
+			AmountValue: alpacadecimal.NewFromInt(-10),
+		},
+		{
+			Address:     testAddress(t, earningsSubAccount),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+	})
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, txInput)
+	require.NoError(t, err)
+
+	hydratedGroup, err := env.repo.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	})
+	require.NoError(t, err)
+	require.Len(t, hydratedGroup.Transactions(), 1)
+
+	for _, entry := range hydratedGroup.Transactions()[0].Entries() {
+		hydratedRoute := entry.PostingAddress().Route().Route()
+		require.NotNil(t, hydratedRoute.TaxBehavior)
+		require.Equal(t, taxBehavior, *hydratedRoute.TaxBehavior)
+		require.Equal(t, ledger.RoutingKeyVersionV2, entry.PostingAddress().Route().RoutingKey().Version())
+	}
 }
 
 func TestRepo_BookTransaction_NilInput(t *testing.T) {
@@ -146,7 +297,6 @@ func TestRepo_BookTransaction_NilInput(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -168,7 +318,6 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -244,7 +393,6 @@ func TestRepo_ListTransactions_PaginatesWithBefore(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -311,7 +459,6 @@ func TestRepo_ListTransactions_BeforeNextCursorResumesWithoutOverlap(t *testing.
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -388,7 +535,6 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -469,7 +615,6 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *test
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -517,12 +662,101 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *test
 	require.Len(t, funded.Items, 0)
 }
 
+func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a"}})
+	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a", "feature-b"}})
+	featureB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-b"}})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, unrestricted),
+			AmountValue: alpacadecimal.NewFromInt(100),
+		},
+		{
+			Address:     testAddress(t, featureA),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+		{
+			Address:     testAddress(t, featureAOrB),
+			AmountValue: alpacadecimal.NewFromInt(20),
+		},
+		{
+			Address:     testAddress(t, featureB),
+			AmountValue: alpacadecimal.NewFromInt(-130),
+		},
+	}))
+	require.NoError(t, err)
+
+	accountIDs := []string{
+		unrestricted.AccountID,
+		featureA.AccountID,
+		featureAOrB.AccountID,
+		featureB.AccountID,
+	}
+
+	featureAPositive, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          20,
+		AccountIDs:     accountIDs,
+		Route:          ledger.RouteFilter{MatchFeature: "feature-a"},
+		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+	})
+	require.NoError(t, err)
+	require.Len(t, featureAPositive.Items, 1)
+	require.Equal(t, tx.ID(), featureAPositive.Items[0].ID())
+	require.ElementsMatch(t,
+		[]string{unrestricted.ID, featureA.ID, featureAOrB.ID},
+		lo.Map(featureAPositive.Items[0].Entries(), func(entry ledger.Entry, _ int) string {
+			return entry.PostingAddress().SubAccountID()
+		}),
+	)
+
+	featureBPositive, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          20,
+		AccountIDs:     accountIDs,
+		Route:          ledger.RouteFilter{MatchFeature: "feature-b"},
+		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+	})
+	require.NoError(t, err)
+	require.Len(t, featureBPositive.Items, 0)
+
+	featureBNegative, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          20,
+		AccountIDs:     accountIDs,
+		Route:          ledger.RouteFilter{MatchFeature: "feature-b"},
+		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
+	})
+	require.NoError(t, err)
+	require.Len(t, featureBNegative.Items, 1)
+	require.Equal(t, tx.ID(), featureBNegative.Items[0].ID())
+	require.ElementsMatch(t,
+		[]string{unrestricted.ID, featureAOrB.ID, featureB.ID},
+		lo.Map(featureBNegative.Items[0].Entries(), func(entry ledger.Entry, _ int) string {
+			return entry.PostingAddress().SubAccountID()
+		}),
+	)
+}
+
 func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -674,7 +908,6 @@ func TestRepo_ListTransactions_FiltersHydratedEntriesByScope(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -729,7 +962,6 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -890,6 +1122,123 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, sumAfterEarly.Equal(alpacadecimal.NewFromInt(0)))
+
+	subAccountFeatures := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: lo.ToPtr(1),
+		Features:       []string{"storage", "api-calls"},
+	})
+	subAccountUnrestricted := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: lo.ToPtr(3),
+	})
+
+	txInputFeatures := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, subAccountFeatures),
+			AmountValue: alpacadecimal.NewFromInt(40),
+		},
+		{
+			Address:     testAddress(t, subAccountUnrestricted),
+			AmountValue: alpacadecimal.NewFromInt(-40),
+		},
+	})
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputFeatures)
+	require.NoError(t, err)
+
+	sumFeatures, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("USD"),
+				Features: mo.Some([]string{"api-calls", "storage"}),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumFeatures.Equal(alpacadecimal.NewFromInt(40)))
+
+	sumPartialFeatures, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("USD"),
+				Features: mo.Some([]string{"api-calls"}),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumPartialFeatures.Equal(alpacadecimal.Zero))
+}
+
+func TestRepo_SumEntries_MatchFeature(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a"}})
+	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a", "feature-b"}})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, unrestricted),
+			AmountValue: alpacadecimal.NewFromInt(100),
+		},
+		{
+			Address:     testAddress(t, featureA),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+		{
+			Address:     testAddress(t, featureAOrB),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+	}))
+	require.NoError(t, err)
+
+	sumFeatureA, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency:     currencyx.Code("USD"),
+				MatchFeature: "feature-a",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumFeatureA.Equal(alpacadecimal.NewFromInt(120)))
+
+	sumFeatureB, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency:     currencyx.Code("USD"),
+				MatchFeature: "feature-b",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumFeatureB.Equal(alpacadecimal.NewFromInt(110)))
+
+	sumUnknownFeature, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency:     currencyx.Code("USD"),
+				MatchFeature: "feature-c",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumUnknownFeature.Equal(alpacadecimal.NewFromInt(100)))
 }
 
 func TestSumEntriesQuery_SQL(t *testing.T) {
@@ -927,6 +1276,31 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 	}, args)
 }
 
+func TestSumEntriesQuery_SQLMatchFeature(t *testing.T) {
+	q := sumEntriesQuery{
+		query: ledger.Query{
+			Namespace: "ns-test",
+			Filters: ledger.Filters{
+				Route: ledger.RouteFilter{
+					Currency:     currencyx.Code("USD"),
+					MatchFeature: "api-calls",
+				},
+			},
+		},
+	}
+
+	sqlStr, args, err := q.SQL()
+	require.NoError(t, err)
+
+	require.Contains(t, sqlStr, `"ledger_sub_account_routes"."features" IS NULL`)
+	require.Contains(t, sqlStr, `"ledger_sub_account_routes"."features" @> $3`)
+	require.Equal(t, []any{
+		"ns-test",
+		"USD",
+		pq.StringArray{"api-calls"},
+	}, args)
+}
+
 // ----------------------------------------------------------------------------
 // Test helpers
 // ----------------------------------------------------------------------------
@@ -941,7 +1315,7 @@ type TestEnv struct {
 func NewTestEnv(t *testing.T) *TestEnv {
 	t.Helper()
 
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	client := db.EntDriver.Client()
 
 	return &TestEnv{
@@ -950,24 +1324,6 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		client:      client,
 		db:          db,
 	}
-}
-
-func (e *TestEnv) DBSchemaMigrate(t *testing.T) {
-	t.Helper()
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: e.db.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           testutils.NewDiscardLogger(t),
-	})
-	require.NoError(t, err)
-	defer func() {
-		srcErr, dbErr := migrator.Close()
-		require.NoError(t, srcErr)
-		require.NoError(t, dbErr)
-	}()
-
-	require.NoError(t, migrator.Up())
 }
 
 func (e *TestEnv) Close(t *testing.T) {
@@ -982,11 +1338,17 @@ func (e *TestEnv) Close(t *testing.T) {
 func (e *TestEnv) createSubAccount(t *testing.T, namespace string, route ledger.Route) *ledgeraccount.SubAccountData {
 	t.Helper()
 
+	return e.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, route)
+}
+
+func (e *TestEnv) createSubAccountOfType(t *testing.T, namespace string, accountType ledger.AccountType, route ledger.Route) *ledgeraccount.SubAccountData {
+	t.Helper()
+
 	ctx := t.Context()
 
 	acc, err := e.accountRepo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
 		Namespace: namespace,
-		Type:      ledger.AccountTypeCustomerFBO,
+		Type:      accountType,
 	})
 	require.NoError(t, err)
 

@@ -23,8 +23,9 @@ func (s *Service) createRunCreditRealizations(ctx context.Context, charge usageb
 	if err := s.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,
 		ChargeID:     charge.ID,
-		CustomerID:   charge.Intent.CustomerID,
-		Currency:     charge.Intent.Currency,
+		CustomerID:   charge.Intent.GetCustomerID(),
+		Currency:     charge.Intent.GetCurrency(),
+		Features:     featuresForLineage(charge.Intent.GetFeatureKey()),
 		Realizations: realizations,
 	}); err != nil {
 		return nil, fmt.Errorf("create initial credit realization lineages: %w", err)
@@ -40,12 +41,20 @@ func (s *Service) createRunCreditRealizations(ctx context.Context, charge usageb
 	return realizations, nil
 }
 
+func featuresForLineage(featureKey string) []string {
+	if featureKey == "" {
+		return nil
+	}
+
+	return []string{featureKey}
+}
+
 type allocateCreditRealizationsInput struct {
 	Charge             usagebased.Charge
 	Run                usagebased.RealizationRun
 	AllocateAt         time.Time
 	AmountToAllocate   alpacadecimal.Decimal
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 	Exact              bool
 }
 
@@ -66,8 +75,14 @@ func (i allocateCreditRealizationsInput) Validate() error {
 		return fmt.Errorf("amount to allocate must be zero or positive")
 	}
 
-	if err := i.CurrencyCalculator.Validate(); err != nil {
-		return fmt.Errorf("currency calculator: %w", err)
+	if i.CurrencyCalculator == nil {
+		return fmt.Errorf("currency calculator is required")
+	}
+
+	if i.CurrencyCalculator != nil {
+		if err := i.CurrencyCalculator.Validate(); err != nil {
+			return fmt.Errorf("currency calculator: %w", err)
+		}
 	}
 
 	return nil
@@ -79,6 +94,10 @@ type allocateCreditRealizationsResult struct {
 }
 
 func (s *Service) allocate(ctx context.Context, in allocateCreditRealizationsInput) (allocateCreditRealizationsResult, error) {
+	if err := in.Validate(); err != nil {
+		return allocateCreditRealizationsResult{}, err
+	}
+
 	in.AmountToAllocate = in.CurrencyCalculator.RoundToPrecision(in.AmountToAllocate)
 
 	if err := in.Validate(); err != nil {

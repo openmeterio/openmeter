@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
-	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
 	"github.com/alpacahq/alpacadecimal"
 
@@ -27,8 +26,8 @@ type mixinBase struct {
 
 func (mixinBase) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.AnnotationsMixin{},
-		entutils.ResourceMixin{},
+		entutils.AnnotationsMixin{DeprecatedReason: "detailed line annotations are not exposed by the domain model"},
+		entutils.ResourceMixin{MetadataDeprecatedReason: "detailed line metadata is not exposed by the domain model"},
 		totals.Mixin{},
 	}
 }
@@ -37,28 +36,13 @@ func (mixinBase) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("currency").
 			GoType(currencyx.Code("")).
-			NotEmpty().
+			Optional().
+			Nillable().
 			Immutable().
+			Deprecated("currency is defined by the parent line or charge").
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(3)",
 			}),
-
-		field.JSON("tax_config", productcatalog.TaxConfig{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional(),
-
-		field.String("tax_code_id").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}),
-		field.Enum("tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
-			Optional().
-			Nillable(),
 
 		field.Time("service_period_start"),
 		field.Time("service_period_end"),
@@ -102,12 +86,6 @@ func (mixinBase) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}).
 			Optional(),
-	}
-}
-
-func (mixinBase) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("tax_code_id"),
 	}
 }
 

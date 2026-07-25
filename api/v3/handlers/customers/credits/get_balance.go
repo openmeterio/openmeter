@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/samber/mo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -18,9 +21,11 @@ import (
 
 type (
 	GetCustomerCreditBalanceRequest struct {
-		CustomerID customer.CustomerID
-		Currencies customerbalance.CurrencyFilter
-		AsOf       time.Time
+		CustomerID     customer.CustomerID
+		Currencies     customerbalance.CurrencyFilter
+		FeatureFilter  mo.Option[creditpurchase.FeatureFilters]
+		RetrievedAt    time.Time
+		HistoricalAsOf *time.Time
 	}
 	GetCustomerCreditBalanceResponse = api.BillingCreditBalances
 	GetCustomerCreditBalanceParams   struct {
@@ -38,9 +43,9 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 				return GetCustomerCreditBalanceRequest{}, err
 			}
 
-			asOf := clock.Now()
+			retrievedAt := clock.Now()
 			if args.Params.Timestamp != nil {
-				asOf = *args.Params.Timestamp
+				retrievedAt = *args.Params.Timestamp
 			}
 
 			request := GetCustomerCreditBalanceRequest{
@@ -48,7 +53,8 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 					Namespace: namespace,
 					ID:        args.CustomerID,
 				},
-				AsOf: asOf,
+				RetrievedAt:    retrievedAt,
+				HistoricalAsOf: args.Params.Timestamp,
 			}
 
 			if args.Params.Filter != nil && args.Params.Filter.Currency != nil {
@@ -76,6 +82,15 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 				}
 			}
 
+			if args.Params.Filter != nil {
+				featureFilter, err := fromAPICustomerCreditFeatureFilter(args.Params.Filter.FeatureKey)
+				if err != nil {
+					return GetCustomerCreditBalanceRequest{}, newFeatureKeyFilterBadRequest(ctx, err)
+				}
+
+				request.FeatureFilter = featureFilter
+			}
+
 			return request, nil
 		},
 		func(ctx context.Context, request GetCustomerCreditBalanceRequest) (GetCustomerCreditBalanceResponse, error) {
@@ -87,9 +102,10 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			}
 
 			balancesByCurrency, err := h.balanceFacade.GetBalances(ctx, customerbalance.GetBalancesInput{
-				CustomerID: request.CustomerID,
-				Currencies: request.Currencies,
-				AsOf:       &request.AsOf,
+				CustomerID:    request.CustomerID,
+				Currencies:    request.Currencies,
+				FeatureFilter: request.FeatureFilter,
+				AsOf:          request.HistoricalAsOf,
 			})
 			if err != nil {
 				return GetCustomerCreditBalanceResponse{}, err
@@ -101,7 +117,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			}
 
 			return GetCustomerCreditBalanceResponse{
-				RetrievedAt: request.AsOf,
+				RetrievedAt: request.RetrievedAt,
 				Balances:    balances,
 			}, nil
 		},

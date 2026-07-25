@@ -8,7 +8,43 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestLimitGatheringLinesForInvoice(t *testing.T) {
+	line := func(id, from, to string) gatheringLineWithBillablePeriod {
+		gatheringLine := billing.GatheringLine{}
+		gatheringLine.ID = id
+		gatheringLine.ServicePeriod = timeutil.ClosedPeriod{
+			From: mustTime(t, from),
+			To:   mustTime(t, to),
+		}
+
+		return gatheringLineWithBillablePeriod{
+			Line:           gatheringLine,
+			BillablePeriod: gatheringLine.ServicePeriod,
+		}
+	}
+
+	lines := []gatheringLineWithBillablePeriod{
+		line("later", "2025-03-01T00:00:00Z", "2025-04-01T00:00:00Z"),
+		line("tie-b", "2025-01-01T00:00:00Z", "2025-02-01T00:00:00Z"),
+		line("earliest", "2024-12-01T00:00:00Z", "2025-01-01T00:00:00Z"),
+		line("tie-a", "2025-01-01T00:00:00Z", "2025-02-01T00:00:00Z"),
+	}
+
+	t.Run("zero keeps all lines without reordering", func(t *testing.T) {
+		got := limitGatheringLinesForInvoice(lines, 0)
+
+		require.Equal(t, lines, got)
+	})
+
+	t.Run("positive limit keeps earliest service periods", func(t *testing.T) {
+		got := limitGatheringLinesForInvoice(lines, 3)
+
+		require.Equal(t, []string{"earliest", "tie-a", "tie-b"}, gatheringLineIDsForLimitTest(got))
+	})
+}
 
 func TestResolvePendingLineCollectionCutoff(t *testing.T) {
 	asOf := mustTime(t, "2025-06-15T12:00:00Z")
@@ -156,4 +192,13 @@ func mustTime(t *testing.T, value string) time.Time {
 	require.NoError(t, err)
 
 	return parsed
+}
+
+func gatheringLineIDsForLimitTest(lines []gatheringLineWithBillablePeriod) []string {
+	ids := make([]string, 0, len(lines))
+	for _, line := range lines {
+		ids = append(ids, line.Line.ID)
+	}
+
+	return ids
 }

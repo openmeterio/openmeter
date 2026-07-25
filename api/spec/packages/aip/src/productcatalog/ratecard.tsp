@@ -2,7 +2,9 @@ import "../shared/index.tsp";
 import "../billing/tax.tsp";
 import "../features/index.tsp";
 import "../tax/codes.tsp";
+import "../entitlements/index.tsp";
 import "./price.tsp";
+import "./unitconfig.tsp";
 
 namespace ProductCatalog;
 
@@ -55,6 +57,20 @@ model RateCard {
   price: Price;
 
   /**
+   * Unit conversion configuration for the rate card.
+   *
+   * Synthesized on read for plans authored with v1 dynamic or package prices:
+   * dynamic prices map to a unit price with a multiply unit config, and package
+   * prices map to a unit price with a divide unit config.
+   *
+   * Accepted on create and update only when the UnitConfig feature is enabled on the
+   * deployment; otherwise rejected.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Unit config")
+  unit_config?: UnitConfig;
+
+  /**
    * The payment term of the rate card. In advance payment term can only be used for
    * flat prices.
    */
@@ -83,6 +99,14 @@ model RateCard {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tax config")
   tax_config?: RateCardTaxConfig;
+
+  /**
+   * The entitlement template granted to subscribers of a plan or addon containing
+   * this rate card. Requires `feature` to be set.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Entitlement template")
+  entitlement?: Entitlements.RateCardEntitlement;
 }
 
 /**

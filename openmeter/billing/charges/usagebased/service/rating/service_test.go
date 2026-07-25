@@ -19,12 +19,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -86,13 +86,7 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 		From: time.Date(2025, 1, 15, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
-	intent := newDetailedRatingTestCharge(defaultServicePeriod, nil).Intent
-	intent.TaxConfig = &productcatalog.TaxCodeConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-	}
-
 	out := usagebased.NewDetailedLinesFromBilling(
-		intent,
 		defaultServicePeriod,
 		billingrating.DetailedLines{
 			{
@@ -121,14 +115,11 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 	require.Empty(t, out[0].Namespace)
 	require.Equal(t, "Usage", out[0].Name)
 	require.Equal(t, defaultServicePeriod, out[0].ServicePeriod)
-	require.Equal(t, currencyx.Code("USD"), out[0].Currency)
 	require.Equal(t, productcatalog.InArrearsPaymentTerm, out[0].PaymentTerm)
 	require.Equal(t, stddetailedline.CategoryRegular, out[0].Category)
 	require.Equal(t, float64(12), out[0].Quantity.InexactFloat64())
 	require.Equal(t, float64(3), out[0].PerUnitAmount.InexactFloat64())
 	require.Equal(t, float64(36), out[0].Totals.Total.InexactFloat64())
-	require.NotNil(t, out[0].TaxConfig)
-	require.NotSame(t, intent.TaxConfig, out[0].TaxConfig)
 
 	require.Equal(t, explicitServicePeriod, out[1].ServicePeriod)
 	require.Equal(t, productcatalog.InAdvancePaymentTerm, out[1].PaymentTerm)
@@ -178,7 +169,6 @@ func TestGetDetailedRatingForUsageUsesPeriodPreservingRatingEngine(t *testing.T)
 					Name: "Usage",
 				}),
 				ServicePeriod:          priorPeriod,
-				Currency:               currencyx.Code("USD"),
 				ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
 				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 				PerUnitAmount:          alpacadecimal.NewFromInt(3),
@@ -192,12 +182,12 @@ func TestGetDetailedRatingForUsageUsesPeriodPreservingRatingEngine(t *testing.T)
 		},
 	})
 
-	charge := newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{priorRun})
+	charge := newDetailedRatingTestCharge(t, servicePeriod, usagebased.RealizationRuns{priorRun})
 	charge.State.RatingEngine = usagebased.RatingEnginePeriodPreserving
 
 	svc, err := New(Config{
 		StreamingConnector:   streamingConnector,
-		RatingService:        billingratingservice.New(),
+		RatingService:        billingratingservice.New(billingratingservice.Config{}),
 		DetailedLinesFetcher: passthroughDetailedLinesFetcher,
 	})
 	require.NoError(t, err)
@@ -246,7 +236,7 @@ func TestGetDetailedRatingForUsageLoadsPriorDetailedLines(t *testing.T) {
 	t.Parallel()
 
 	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.GetEffectiveServicePeriod().From.Add(24*time.Hour), 0)
 	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
 
 	var called int
@@ -269,7 +259,7 @@ func TestGetDetailedRatingForUsageIgnoresInvalidUnsupportedCreditNotePriorRuns(t
 	t.Parallel()
 
 	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.GetEffectiveServicePeriod().From.Add(24*time.Hour), 0)
 	priorRun.Type = usagebased.RealizationRunTypeInvalidDueToUnsupportedCreditNote
 	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
 
@@ -313,7 +303,7 @@ func TestGetDetailedRatingForUsageWrapsDetailedLinesLoadError(t *testing.T) {
 	t.Parallel()
 
 	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.GetEffectiveServicePeriod().From.Add(24*time.Hour), 0)
 	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
 	fixture.config.DetailedLinesFetcher = detailedLinesFetcherFunc(func(_ context.Context, charge usagebased.Charge) (usagebased.Charge, error) {
 		return charge, errors.New("boom")
@@ -351,7 +341,7 @@ func TestGetDetailedRatingForUsageFiltersQuantityByServicePeriodToAndStoredAtLT(
 	require.NoError(t, err)
 
 	out, err := svc.GetDetailedRatingForUsage(t.Context(), GetDetailedRatingForUsageInput{
-		Charge:          newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{}),
+		Charge:          newDetailedRatingTestCharge(t, servicePeriod, usagebased.RealizationRuns{}),
 		ServicePeriodTo: servicePeriodTo,
 		StoredAtLT:      storedAtLT,
 		Customer:        newDetailedRatingTestCustomer(),
@@ -396,18 +386,22 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 
 			svc, err := New(Config{
 				StreamingConnector:   streamingConnector,
-				RatingService:        billingratingservice.New(),
+				RatingService:        billingratingservice.New(billingratingservice.Config{}),
 				DetailedLinesFetcher: passthroughDetailedLinesFetcher,
 			})
 			require.NoError(t, err)
 
-			charge := newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{})
-			charge.Intent.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromInt(3),
-				Commitments: productcatalog.Commitments{
-					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
-				},
+			charge := newDetailedRatingTestCharge(t, servicePeriod, usagebased.RealizationRuns{})
+			err = charge.Intent.MutateEffective(func(fields *usagebased.IntentMutableFields) error {
+				fields.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(3),
+					Commitments: productcatalog.Commitments{
+						MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
+					},
+				})
+				return nil
 			})
+			require.NoError(t, err)
 
 			out, err := svc.GetTotalsForUsage(t.Context(), GetTotalsForUsageInput{
 				Charge:                  charge,
@@ -426,6 +420,9 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 func newGetDetailedRatingForUsageFixture(t *testing.T, result billingrating.GenerateDetailedLinesResult) getDetailedRatingForUsageFixture {
 	t.Helper()
 
+	// TODO: add a fixture where the override layer changes ServicePeriod.From
+	// and a prior realization exists before that effective start, so rating tests
+	// cover override-window behavior instead of only base/effective-identical intents.
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -444,7 +441,7 @@ func newGetDetailedRatingForUsageFixture(t *testing.T, result billingrating.Gene
 			DetailedLinesFetcher: passthroughDetailedLinesFetcher,
 		},
 		input: GetDetailedRatingForUsageInput{
-			Charge:          newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{}),
+			Charge:          newDetailedRatingTestCharge(t, servicePeriod, usagebased.RealizationRuns{}),
 			ServicePeriodTo: servicePeriod.To,
 			StoredAtLT:      currentRun.StoredAtLT,
 			Customer:        newDetailedRatingTestCustomer(),
@@ -477,7 +474,9 @@ func newDetailedRatingTestRun(id string, servicePeriodTo time.Time, meteredQuant
 	}
 }
 
-func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.RealizationRuns) usagebased.Charge {
+func newDetailedRatingTestCharge(t testing.TB, period timeutil.ClosedPeriod, runs usagebased.RealizationRuns) usagebased.Charge {
+	t.Helper()
+
 	return usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
 			ManagedResource: chargesmeta.ManagedResource{
@@ -490,21 +489,28 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 			},
 			Intent: usagebased.Intent{
 				Intent: chargesmeta.Intent{
-					Name:              "usage-charge",
-					ManagedBy:         billing.SubscriptionManagedLine,
-					CustomerID:        "customer-1",
-					Currency:          currencyx.Code("USD"),
-					ServicePeriod:     period,
-					FullServicePeriod: period,
-					BillingPeriod:     period,
+					ManagedBy:  billing.SubscriptionManagedLine,
+					CustomerID: "customer-1",
+					Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: "tax-code-id",
+					},
 				},
-				InvoiceAt:      period.To,
+				IntentMutableFields: usagebased.IntentMutableFields{
+					IntentMutableFields: chargesmeta.IntentMutableFields{
+						Name:              "usage-charge",
+						ServicePeriod:     period,
+						FullServicePeriod: period,
+						BillingPeriod:     period,
+					},
+					InvoiceAt: period.To,
+					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(3),
+					}),
+				},
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				FeatureKey:     "feature-1",
-				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-					Amount: alpacadecimal.NewFromInt(3),
-				}),
-			},
+			}.AsOverridableIntent(),
 			Status: usagebased.StatusCreated,
 			State: usagebased.State{
 				FeatureID:    "feature-1",

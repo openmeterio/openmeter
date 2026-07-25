@@ -18,7 +18,7 @@ import (
 type AllocateCreditsOnlyInput struct {
 	Charge             flatfee.Charge
 	Amount             alpacadecimal.Decimal
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 }
 
 func (i AllocateCreditsOnlyInput) Validate() error {
@@ -30,8 +30,14 @@ func (i AllocateCreditsOnlyInput) Validate() error {
 		return fmt.Errorf("amount cannot be negative")
 	}
 
-	if err := i.CurrencyCalculator.Validate(); err != nil {
-		return fmt.Errorf("currency calculator: %w", err)
+	if i.CurrencyCalculator == nil {
+		return fmt.Errorf("currency calculator is required")
+	}
+
+	if i.CurrencyCalculator != nil {
+		if err := i.CurrencyCalculator.Validate(); err != nil {
+			return fmt.Errorf("currency calculator: %w", err)
+		}
 	}
 
 	return nil
@@ -53,10 +59,11 @@ func (s *Service) AllocateCreditsOnly(ctx context.Context, in AllocateCreditsOnl
 		return AllocateCreditsOnlyResult{}, nil
 	}
 
+	servicePeriod := in.Charge.Intent.GetEffectiveServicePeriod()
 	input := flatfee.OnAllocateCreditsInput{
 		Charge:                 in.Charge,
-		ServicePeriod:          in.Charge.Intent.ServicePeriod,
-		BookedAt:               flatfee.UsageBookedAt(in.Charge.Intent.PaymentTerm, in.Charge.Intent.ServicePeriod),
+		ServicePeriod:          servicePeriod,
+		BookedAt:               flatfee.UsageBookedAt(in.Charge.Intent.GetEffectivePaymentTerm(), servicePeriod),
 		PreTaxAmountToAllocate: in.Amount,
 	}
 	if err := input.Validate(); err != nil {

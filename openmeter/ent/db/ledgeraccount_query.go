@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -28,6 +29,7 @@ type LedgerAccountQuery struct {
 	predicates           []predicate.LedgerAccount
 	withSubAccounts      *LedgerSubAccountQuery
 	withSubAccountRoutes *LedgerSubAccountRouteQuery
+	withCustomerAccounts *LedgerCustomerAccountQuery
 	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -102,6 +104,28 @@ func (_q *LedgerAccountQuery) QuerySubAccountRoutes() *LedgerSubAccountRouteQuer
 			sqlgraph.From(ledgeraccount.Table, ledgeraccount.FieldID, selector),
 			sqlgraph.To(ledgersubaccountroute.Table, ledgersubaccountroute.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, ledgeraccount.SubAccountRoutesTable, ledgeraccount.SubAccountRoutesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCustomerAccounts chains the current query on the "customer_accounts" edge.
+func (_q *LedgerAccountQuery) QueryCustomerAccounts() *LedgerCustomerAccountQuery {
+	query := (&LedgerCustomerAccountClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgeraccount.Table, ledgeraccount.FieldID, selector),
+			sqlgraph.To(ledgercustomeraccount.Table, ledgercustomeraccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgeraccount.CustomerAccountsTable, ledgeraccount.CustomerAccountsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -303,6 +327,7 @@ func (_q *LedgerAccountQuery) Clone() *LedgerAccountQuery {
 		predicates:           append([]predicate.LedgerAccount{}, _q.predicates...),
 		withSubAccounts:      _q.withSubAccounts.Clone(),
 		withSubAccountRoutes: _q.withSubAccountRoutes.Clone(),
+		withCustomerAccounts: _q.withCustomerAccounts.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -328,6 +353,17 @@ func (_q *LedgerAccountQuery) WithSubAccountRoutes(opts ...func(*LedgerSubAccoun
 		opt(query)
 	}
 	_q.withSubAccountRoutes = query
+	return _q
+}
+
+// WithCustomerAccounts tells the query-builder to eager-load the nodes that are connected to
+// the "customer_accounts" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LedgerAccountQuery) WithCustomerAccounts(opts ...func(*LedgerCustomerAccountQuery)) *LedgerAccountQuery {
+	query := (&LedgerCustomerAccountClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCustomerAccounts = query
 	return _q
 }
 
@@ -409,9 +445,10 @@ func (_q *LedgerAccountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*LedgerAccount{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			_q.withSubAccounts != nil,
 			_q.withSubAccountRoutes != nil,
+			_q.withCustomerAccounts != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -447,6 +484,15 @@ func (_q *LedgerAccountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 			func(n *LedgerAccount) { n.Edges.SubAccountRoutes = []*LedgerSubAccountRoute{} },
 			func(n *LedgerAccount, e *LedgerSubAccountRoute) {
 				n.Edges.SubAccountRoutes = append(n.Edges.SubAccountRoutes, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCustomerAccounts; query != nil {
+		if err := _q.loadCustomerAccounts(ctx, query, nodes,
+			func(n *LedgerAccount) { n.Edges.CustomerAccounts = []*LedgerCustomerAccount{} },
+			func(n *LedgerAccount, e *LedgerCustomerAccount) {
+				n.Edges.CustomerAccounts = append(n.Edges.CustomerAccounts, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -499,6 +545,36 @@ func (_q *LedgerAccountQuery) loadSubAccountRoutes(ctx context.Context, query *L
 	}
 	query.Where(predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(ledgeraccount.SubAccountRoutesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.AccountID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "account_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *LedgerAccountQuery) loadCustomerAccounts(ctx context.Context, query *LedgerCustomerAccountQuery, nodes []*LedgerAccount, init func(*LedgerAccount), assign func(*LedgerAccount, *LedgerCustomerAccount)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*LedgerAccount)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(ledgercustomeraccount.FieldAccountID)
+	}
+	query.Where(predicate.LedgerCustomerAccount(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(ledgeraccount.CustomerAccountsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

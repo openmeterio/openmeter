@@ -3,7 +3,7 @@ package adapter
 import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqljson"
+	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
@@ -53,6 +53,24 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 
 	if b.query.Filters.TransactionID != nil {
 		entryPredicates = append(entryPredicates, ledgerentrydb.TransactionID(*b.query.Filters.TransactionID))
+	}
+
+	if b.query.Filters.SourceChargeID.IsPresent() {
+		sourceChargeID, _ := b.query.Filters.SourceChargeID.Get()
+		if sourceChargeID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeID(*sourceChargeID))
+		} else {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SourceChargeIDIsNil())
+		}
+	}
+
+	if b.query.Filters.SpendChargeID.IsPresent() {
+		spendChargeID, _ := b.query.Filters.SpendChargeID.Get()
+		if spendChargeID != nil {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeID(*spendChargeID))
+		} else {
+			entryPredicates = append(entryPredicates, ledgerentrydb.SpendChargeIDIsNil())
+		}
 	}
 
 	if b.query.Filters.BookedAtPeriod != nil {
@@ -135,11 +153,16 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCodeIsNil())
 		}
 	}
-	if len(normalizedRoute.Features) > 0 {
-		// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
-		routePredicates = append(routePredicates, func(s *sql.Selector) {
-			s.Where(sqljson.ValueEQ(ledgersubaccountroutedb.FieldFeatures, normalizedRoute.Features))
-		})
+	if normalizedRoute.Features.IsPresent() {
+		features, _ := normalizedRoute.Features.Get()
+		if len(features) == 0 {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.FeaturesIsNil())
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.Features(pq.StringArray(features)))
+		}
+	}
+	if normalizedRoute.MatchFeature != "" {
+		routePredicates = append(routePredicates, matchFeature(normalizedRoute.MatchFeature))
 	}
 	if normalizedRoute.CostBasis.IsPresent() {
 		costBasis, _ := normalizedRoute.CostBasis.Get()
@@ -166,4 +189,15 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 	}
 
 	return subAccountPredicates, nil
+}
+
+func matchFeature(feature string) predicate.LedgerSubAccountRoute {
+	return func(s *sql.Selector) {
+		s.Where(sql.Or(
+			sql.IsNull(s.C(ledgersubaccountroutedb.FieldFeatures)),
+			sql.P(func(b *sql.Builder) {
+				b.Ident(s.C(ledgersubaccountroutedb.FieldFeatures)).WriteString(" @> ").Arg(pq.StringArray{feature})
+			}),
+		))
+	}
 }

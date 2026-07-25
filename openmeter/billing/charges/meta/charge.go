@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -91,7 +92,7 @@ type Expands = expand.Expand[Expand]
 type ChargeAccessor interface {
 	GetChargeID() ChargeID
 	GetCustomerID() customer.CustomerID
-	GetCurrency() currencyx.Code
+	GetCurrency() currencies.Currency
 	ErrorAttributes() models.Attributes
 }
 
@@ -126,12 +127,22 @@ func (s ChargeStatus) Validate() error {
 	return nil
 }
 
+func DetailedStatusToMetaStatus(status string) (ChargeStatus, error) {
+	metaStatus := ChargeStatus(strings.SplitN(status, ".", 2)[0])
+	if err := metaStatus.Validate(); err != nil {
+		return ChargeStatusCreated, fmt.Errorf("invalid status: %s", status)
+	}
+
+	return metaStatus, nil
+}
+
 type Charge struct {
 	ManagedResource
 
-	Intent       Intent
-	Status       ChargeStatus
-	AdvanceAfter *time.Time
+	Intent              Intent
+	IntentMutableFields IntentMutableFields
+	Status              ChargeStatus
+	AdvanceAfter        *time.Time
 }
 
 func (c Charge) Validate() error {
@@ -139,6 +150,10 @@ func (c Charge) Validate() error {
 
 	if err := c.Intent.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("intent: %w", err))
+	}
+
+	if err := c.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent mutable fields: %w", err))
 	}
 
 	if err := c.Status.Validate(); err != nil {

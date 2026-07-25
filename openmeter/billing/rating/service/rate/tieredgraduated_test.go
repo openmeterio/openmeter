@@ -365,7 +365,10 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 }
 
 func TestTieredPriceCalculator(t *testing.T) {
-	currency := lo.Must(currencyx.Code(currency.USD).Calculator())
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code(currency.USD)).
+		Build()
+	require.NoError(t, err)
 
 	graduatedTiered := rate.GraduatedTiered{}
 
@@ -461,7 +464,7 @@ func TestTieredPriceCalculator(t *testing.T) {
 				TieredPrice: testIn,
 				FromQty:     alpacadecimal.NewFromFloat(3), // exclusive
 				ToQty:       alpacadecimal.NewFromFloat(7), // inclusive
-				Currency:    currency,
+				Currency:    cur,
 
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
@@ -515,7 +518,7 @@ func TestTieredPriceCalculator(t *testing.T) {
 				TieredPrice: testIn,
 				FromQty:     alpacadecimal.NewFromFloat(12), // exclusive
 				ToQty:       alpacadecimal.NewFromFloat(20), // inclusive
-				Currency:    currency,
+				Currency:    cur,
 
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
@@ -550,7 +553,7 @@ func TestTieredPriceCalculator(t *testing.T) {
 				TieredPrice: testIn,
 				FromQty:     alpacadecimal.NewFromFloat(5),  // exclusive
 				ToQty:       alpacadecimal.NewFromFloat(10), // inclusive
-				Currency:    currency,
+				Currency:    cur,
 
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
@@ -588,7 +591,7 @@ func TestTieredPriceCalculator(t *testing.T) {
 				TieredPrice: testIn,
 				FromQty:     alpacadecimal.NewFromFloat(6), // exclusive
 				ToQty:       alpacadecimal.NewFromFloat(7), // inclusive
-				Currency:    currency,
+				Currency:    cur,
 
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
@@ -613,7 +616,7 @@ func TestTieredPriceCalculator(t *testing.T) {
 				TieredPrice: testIn,
 				FromQty:     alpacadecimal.NewFromFloat(6), // exclusive
 				ToQty:       alpacadecimal.NewFromFloat(6), // inclusive
-				Currency:    currency,
+				Currency:    cur,
 
 				TierCallbackFn:     callback.TierCallbackFn,
 				FinalizerFn:        callback.FinalizerFn,
@@ -632,11 +635,16 @@ func getTotalAmountForGraduatedTieredPrice(t *testing.T, qty alpacadecimal.Decim
 
 	graduatedTiered := rate.GraduatedTiered{}
 
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code(currency.USD)).
+		Build()
+	require.NoError(t, err)
+
 	total := alpacadecimal.Zero
-	err := graduatedTiered.TieredPriceCalculator(rate.TieredPriceCalculatorInput{
+	err = graduatedTiered.TieredPriceCalculator(rate.TieredPriceCalculatorInput{
 		TieredPrice: tieredPrice,
 		ToQty:       qty,
-		Currency:    lo.Must(currencyx.Code(currency.USD).Calculator()),
+		Currency:    cur,
 
 		FinalizerFn: func(t alpacadecimal.Decimal) error {
 			total = t

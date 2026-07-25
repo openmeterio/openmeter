@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -36,9 +37,11 @@ func (s *Service) invoicePendingLines(ctx context.Context, customer customer.Cus
 		_, err := s.billingService.InvoicePendingLines(
 			ctx,
 			billing.InvoicePendingLinesInput{
-				Customer: customer,
+				Customer:          customer,
+				ForceAsyncAdvance: s.forceAsyncInvoicePendingLines,
 			},
 			billing.WithPartialInvoiceLinesDisabled(),
+			billing.WithMaxLinesPerInvoice(s.featureFlags.MaxLinesPerCollectedInvoice),
 		)
 		if err != nil {
 			if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
@@ -134,6 +137,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 		}
 
 		var customerDeletedAt *time.Time
+		var subscriptionEndProrationMode billing.SubscriptionEndProrationMode
 		if subsView != nil && subsView.Spec.HasBillables() {
 			// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
 			// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
@@ -150,6 +154,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			if customerOverride.Customer != nil {
 				customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
 			}
+			subscriptionEndProrationMode = customerOverride.MergedProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
 
 			if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subsView.Spec.ActiveFrom) {
 				if options.DryRun {
@@ -169,7 +174,9 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			}
 		}
 
-		currency, err := subs.Currency.Calculator()
+		cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(subs.Currency).
+			Build()
 		if err != nil {
 			return nil, fmt.Errorf("getting currency calculator: %w", err)
 		}
@@ -179,7 +186,15 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			ID:        subs.CustomerId,
 		}, func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
 			// Calculate per line patches
-			linesDiff, err := s.buildSyncPlan(ctx, subs, subsView, asOf, customerDeletedAt, currency, options.DryRun)
+			linesDiff, err := s.buildSyncPlan(ctx, buildSyncPlanInput{
+				Subscription:                 subs,
+				SubscriptionView:             subsView,
+				AsOf:                         asOf,
+				CustomerDeletedAt:            customerDeletedAt,
+				SubscriptionEndProrationMode: subscriptionEndProrationMode,
+				Currency:                     cur,
+				DryRun:                       options.DryRun,
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -215,7 +230,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			if err := s.reconciler.Apply(ctx, reconciler.ApplyInput{
 				DryRun:   options.DryRun,
 				Customer: customerID,
-				Currency: currency,
+				Currency: cur,
 				Plan:     linesDiff,
 			}); err != nil {
 				return nil, err

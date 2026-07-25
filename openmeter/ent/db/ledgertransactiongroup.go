@@ -39,9 +39,13 @@ type LedgerTransactionGroup struct {
 type LedgerTransactionGroupEdges struct {
 	// Transactions holds the value of the transactions edge.
 	Transactions []*LedgerTransaction `json:"transactions,omitempty"`
+	// SourceBreakageRecords holds the value of the source_breakage_records edge.
+	SourceBreakageRecords []*LedgerBreakageRecord `json:"source_breakage_records,omitempty"`
+	// BreakageRecords holds the value of the breakage_records edge.
+	BreakageRecords []*LedgerBreakageRecord `json:"breakage_records,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [3]bool
 }
 
 // TransactionsOrErr returns the Transactions value or an error if the edge
@@ -51,6 +55,24 @@ func (e LedgerTransactionGroupEdges) TransactionsOrErr() ([]*LedgerTransaction, 
 		return e.Transactions, nil
 	}
 	return nil, &NotLoadedError{edge: "transactions"}
+}
+
+// SourceBreakageRecordsOrErr returns the SourceBreakageRecords value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerTransactionGroupEdges) SourceBreakageRecordsOrErr() ([]*LedgerBreakageRecord, error) {
+	if e.loadedTypes[1] {
+		return e.SourceBreakageRecords, nil
+	}
+	return nil, &NotLoadedError{edge: "source_breakage_records"}
+}
+
+// BreakageRecordsOrErr returns the BreakageRecords value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerTransactionGroupEdges) BreakageRecordsOrErr() ([]*LedgerBreakageRecord, error) {
+	if e.loadedTypes[2] {
+		return e.BreakageRecords, nil
+	}
+	return nil, &NotLoadedError{edge: "breakage_records"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -134,6 +156,16 @@ func (_m *LedgerTransactionGroup) Value(name string) (ent.Value, error) {
 // QueryTransactions queries the "transactions" edge of the LedgerTransactionGroup entity.
 func (_m *LedgerTransactionGroup) QueryTransactions() *LedgerTransactionQuery {
 	return NewLedgerTransactionGroupClient(_m.config).QueryTransactions(_m)
+}
+
+// QuerySourceBreakageRecords queries the "source_breakage_records" edge of the LedgerTransactionGroup entity.
+func (_m *LedgerTransactionGroup) QuerySourceBreakageRecords() *LedgerBreakageRecordQuery {
+	return NewLedgerTransactionGroupClient(_m.config).QuerySourceBreakageRecords(_m)
+}
+
+// QueryBreakageRecords queries the "breakage_records" edge of the LedgerTransactionGroup entity.
+func (_m *LedgerTransactionGroup) QueryBreakageRecords() *LedgerBreakageRecordQuery {
+	return NewLedgerTransactionGroupClient(_m.config).QueryBreakageRecords(_m)
 }
 
 // Update returns a builder for updating this LedgerTransactionGroup.

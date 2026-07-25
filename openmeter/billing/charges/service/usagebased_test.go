@@ -201,7 +201,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		}, partialInvoice.Totals)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 		s.Len(charge.Realizations, 1)
 
 		currentRun, err := charge.GetCurrentRealizationRun()
@@ -251,7 +251,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.ErrorIs(err, usagebased.ErrActiveRealizationRunAlreadyExists)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 		s.Len(charge.Realizations, 1)
 
 		currentRun, runErr := charge.GetCurrentRealizationRun()
@@ -264,6 +264,46 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.NoError(listErr)
 		s.Len(invoicesResult.Items, 1)
 		s.Equal(partialInvoice.ID, invoicesResult.Items[0].ID)
+	})
+
+	s.Run("when gathering invoice is previewed with an active partial run", func() {
+		// given:
+		// - the partial realization run is still active
+		// - a remaining gathering line exists for the rest of the service period
+		// when:
+		// - billing lists the gathering invoice with live preview expansion
+		// then:
+		// - preview uses the active run as prior billing history and does not create a new run
+		s.assertGatheringPreview(assertGatheringPreviewInput{
+			Namespace:  ns,
+			CustomerID: cust.ID,
+			ExpectedInvoiceTotals: billingtest.ExpectedTotals{
+				Amount: 2.5,
+				Total:  2.5,
+			},
+			ExpectedLineTotals: billingtest.ExpectedTotals{
+				Amount: 2.5,
+				Total:  2.5,
+			},
+			AssertLine: func(previewLine *billing.StandardLine) {
+				s.Require().NotNil(previewLine.UsageBased)
+				s.Require().NotNil(previewLine.UsageBased.MeteredQuantity)
+				s.Require().NotNil(previewLine.UsageBased.Quantity)
+				s.Require().NotNil(previewLine.UsageBased.MeteredPreLinePeriodQuantity)
+				s.Require().NotNil(previewLine.UsageBased.PreLinePeriodQuantity)
+				s.Equal(float64(5), lo.FromPtr(previewLine.UsageBased.MeteredQuantity).InexactFloat64())
+				s.Equal(float64(5), lo.FromPtr(previewLine.UsageBased.Quantity).InexactFloat64())
+				s.Equal(float64(15), lo.FromPtr(previewLine.UsageBased.MeteredPreLinePeriodQuantity).InexactFloat64())
+				s.Equal(float64(15), lo.FromPtr(previewLine.UsageBased.PreLinePeriodQuantity).InexactFloat64())
+			},
+		})
+
+		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
+		s.Len(charge.Realizations, 1)
+		currentRun, runErr := charge.GetCurrentRealizationRun()
+		s.NoError(runErr)
+		s.Equal(partialRunID, currentRun.ID.ID)
 	})
 
 	s.Run("when the first partial invoice is advanced and approved", func() {
@@ -285,7 +325,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceProcessing, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[usagebased.OnInvoiceUsageAccruedInput]()
 		s.UsageBasedTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
@@ -332,7 +372,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		// TODO[rating]: totals are off due to rating not yet supporting progressive billing via charges
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 		s.Len(charge.Realizations, 2)
 
 		currentRun, runErr := charge.GetCurrentRealizationRun()
@@ -351,7 +391,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.NoError(err)
 
 		charge = s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationProcessing, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
 
 		currentRun, runErr = charge.GetCurrentRealizationRun()
 		s.NoError(runErr)
@@ -564,7 +604,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, partialInvoice.Status)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceProcessing, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
 	})
 
 	s.Run("when the service period ends before the partial invoice is approved", func() {
@@ -594,7 +634,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		s.Nil(invoices)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceProcessing, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
 
 		invoicesResult, listErr := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 			Namespaces: []string{ns},
@@ -652,7 +692,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		s.Len(invoices, 1)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 
 		currentRun, runErr := charge.GetCurrentRealizationRun()
 		s.NoError(runErr)

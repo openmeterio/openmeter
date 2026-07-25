@@ -23,9 +23,50 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 		billing.TriggerUpdated,
 		ExecuteTriggerWithIncludeDeletedLines(input.IncludeDeletedLines),
 		ExecuteTriggerWithAllowInStates(billing.StandardInvoiceStatusDraftUpdating),
-		ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
+		ExecuteTriggerWithEditCallback(func(ctx context.Context, sm *InvoiceStateMachine) error {
+			originalInvoice, err := sm.Invoice.Clone()
+			if err != nil {
+				return fmt.Errorf("cloning invoice before edit: %w", err)
+			}
+
 			if err := input.EditFn(&sm.Invoice); err != nil {
 				return fmt.Errorf("editing invoice: %w", err)
+			}
+
+			lineDiff, err := s.diffMutableInvoiceLines(ctx, originalInvoice, sm.Invoice, input.ChangeSource)
+			if err != nil {
+				return billing.ValidationError{
+					Err: fmt.Errorf("collecting mutable invoice line changes: %w", err),
+				}
+			}
+
+			switch input.ChangeSource {
+			case billing.ChangeSourceAPIRequest:
+				invoiceWithLineEngineChanges, err := s.applyAPIInvoiceLineEdits(ctx, applyAPIInvoiceLineEditsInput{
+					EditedInvoice: sm.Invoice,
+					LineDiff:      lineDiff,
+				})
+				if err != nil {
+					return fmt.Errorf("applying API standard invoice line edits: %w", err)
+				}
+
+				standardInvoice, err := invoiceWithLineEngineChanges.AsInvoice().AsStandardInvoice()
+				if err != nil {
+					return fmt.Errorf("converting edited invoice to standard invoice: %w", err)
+				}
+				sm.Invoice = standardInvoice
+
+			case billing.ChangeSourceSystem:
+				// System-originated create and update changes are initiated by billing or
+				// charges, so there is no extra line-engine notification for them here.
+				// Deletes still need the legacy deleted-by-system notification because
+				// the charge line updater currently relies on it to clean up realizations.
+				if err := s.dispatchSystemStandardLineDeletions(ctx, sm.Invoice, lineDiff.Deleted); err != nil {
+					return fmt.Errorf("dispatching system standard line deletions: %w", err)
+				}
+
+			default:
+				return fmt.Errorf("unsupported change source: %s", input.ChangeSource)
 			}
 
 			if err := sm.Invoice.Validate(); err != nil {
@@ -118,4 +159,17 @@ func (s *Service) ListStandardInvoices(ctx context.Context, input billing.ListSt
 		Page:       resp.Page,
 		TotalCount: resp.TotalCount,
 	}, nil
+}
+
+func (s *Service) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.StandardInvoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{Err: err}
+	}
+
+	invoices, err := s.adapter.ListStandardInvoicesPendingAdvancement(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("listing standard invoices pending advancement: %w", err)
+	}
+
+	return invoices, nil
 }

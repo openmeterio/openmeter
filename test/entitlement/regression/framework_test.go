@@ -82,13 +82,9 @@ func (d *Dependencies) Close() {
 
 func setupDependencies(t *testing.T) Dependencies {
 	log := slog.Default()
-	driver := testutils.InitPostgresDB(t)
+	driver := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	// init db
 	dbClient := db.NewClient(db.Driver(driver.EntDriver.Driver()))
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to create schema: %v", err)
-	}
-
 	tracer := noop.NewTracerProvider().Tracer("test")
 
 	// Init product catalog

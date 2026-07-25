@@ -15,6 +15,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
@@ -530,8 +531,22 @@ func (_c *BillingInvoiceCreate) SetNillableQuantitySnapshotedAt(v *time.Time) *B
 	return _c
 }
 
+// SetDeletionSource sets the "deletion_source" field.
+func (_c *BillingInvoiceCreate) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceCreate {
+	_c.mutation.SetDeletionSource(v)
+	return _c
+}
+
+// SetNillableDeletionSource sets the "deletion_source" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillableDeletionSource(v *billing.ChangeSource) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetDeletionSource(*v)
+	}
+	return _c
+}
+
 // SetCurrency sets the "currency" field.
-func (_c *BillingInvoiceCreate) SetCurrency(v currencyx.Code) *BillingInvoiceCreate {
+func (_c *BillingInvoiceCreate) SetCurrency(v currencyx.FiatCode) *BillingInvoiceCreate {
 	_c.mutation.SetCurrency(v)
 	return _c
 }
@@ -707,6 +722,21 @@ func (_c *BillingInvoiceCreate) AddBillingInvoiceLines(v ...*BillingInvoiceLine)
 		ids[i] = v[i].ID
 	}
 	return _c.AddBillingInvoiceLineIDs(ids...)
+}
+
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_c *BillingInvoiceCreate) AddBillingGatheringInvoiceLineIDs(ids ...string) *BillingInvoiceCreate {
+	_c.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
+	return _c
+}
+
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_c *BillingInvoiceCreate) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *BillingInvoiceCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // AddBillingInvoiceDetailedLineIDs adds the "billing_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by IDs.
@@ -944,6 +974,11 @@ func (_c *BillingInvoiceCreate) check() error {
 	if v, ok := _c.mutation.SourceBillingProfileID(); ok {
 		if err := billinginvoice.SourceBillingProfileIDValidator(v); err != nil {
 			return &ValidationError{Name: "source_billing_profile_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.source_billing_profile_id": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.DeletionSource(); ok {
+		if err := billinginvoice.DeletionSourceValidator(v); err != nil {
+			return &ValidationError{Name: "deletion_source", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.deletion_source": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Currency(); !ok {
@@ -1203,6 +1238,10 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 		_spec.SetField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime, value)
 		_node.QuantitySnapshotedAt = &value
 	}
+	if value, ok := _c.mutation.DeletionSource(); ok {
+		_spec.SetField(billinginvoice.FieldDeletionSource, field.TypeEnum, value)
+		_node.DeletionSource = &value
+	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(billinginvoice.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
@@ -1282,6 +1321,22 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingGatheringInvoiceLinesTable,
+			Columns: []string{billinginvoice.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2130,6 +2185,24 @@ func (u *BillingInvoiceUpsert) UpdateQuantitySnapshotedAt() *BillingInvoiceUpser
 // ClearQuantitySnapshotedAt clears the value of the "quantity_snapshoted_at" field.
 func (u *BillingInvoiceUpsert) ClearQuantitySnapshotedAt() *BillingInvoiceUpsert {
 	u.SetNull(billinginvoice.FieldQuantitySnapshotedAt)
+	return u
+}
+
+// SetDeletionSource sets the "deletion_source" field.
+func (u *BillingInvoiceUpsert) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldDeletionSource, v)
+	return u
+}
+
+// UpdateDeletionSource sets the "deletion_source" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateDeletionSource() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldDeletionSource)
+	return u
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (u *BillingInvoiceUpsert) ClearDeletionSource() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldDeletionSource)
 	return u
 }
 
@@ -3122,6 +3195,27 @@ func (u *BillingInvoiceUpsertOne) UpdateQuantitySnapshotedAt() *BillingInvoiceUp
 func (u *BillingInvoiceUpsertOne) ClearQuantitySnapshotedAt() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearQuantitySnapshotedAt()
+	})
+}
+
+// SetDeletionSource sets the "deletion_source" field.
+func (u *BillingInvoiceUpsertOne) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDeletionSource(v)
+	})
+}
+
+// UpdateDeletionSource sets the "deletion_source" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateDeletionSource() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDeletionSource()
+	})
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (u *BillingInvoiceUpsertOne) ClearDeletionSource() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDeletionSource()
 	})
 }
 
@@ -4306,6 +4400,27 @@ func (u *BillingInvoiceUpsertBulk) UpdateQuantitySnapshotedAt() *BillingInvoiceU
 func (u *BillingInvoiceUpsertBulk) ClearQuantitySnapshotedAt() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearQuantitySnapshotedAt()
+	})
+}
+
+// SetDeletionSource sets the "deletion_source" field.
+func (u *BillingInvoiceUpsertBulk) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDeletionSource(v)
+	})
+}
+
+// UpdateDeletionSource sets the "deletion_source" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateDeletionSource() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDeletionSource()
+	})
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (u *BillingInvoiceUpsertBulk) ClearDeletionSource() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDeletionSource()
 	})
 }
 

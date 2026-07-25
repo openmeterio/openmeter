@@ -1,0 +1,69 @@
+# Release gate for the v3 Go SDK (nested module at api/v3/client).
+#
+# The SDK is released in lockstep with the main module, like the other SDKs:
+# every root release tag (vX.Y.Z[-suffix]) runs the SDK gate and then pushes
+# the paired nested-module tag api/v3/client/vX.Y.Z at the same commit — the
+# tag itself is the release, with no stamping commit required first, because
+# Version resolves at runtime from the consumer's build info (see
+# api/v3/client/option.go), falling back to the sdk-version emitter option
+# only when that is unavailable. There is no standalone SDK release path.
+#
+# This lives separately from release.yaml (which fires on the same root
+# tags for containers, Helm charts, binaries, and the Python SDK) so the SDK
+# gate and tag push stay independent of those jobs' outcomes and gates.
+
+name: Go SDK Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Go SDK Release
+    runs-on: ubuntu-latest
+    environment: prod
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: api/v3/client/go.mod
+          cache: false
+
+      - name: Run Go SDK checks
+        run: make test-go-sdk
+
+      # Tags pushed with GITHUB_TOKEN do not recursively trigger workflows,
+      # so pushing the nested tag here does not fire this workflow again —
+      # intentional, since the gate above already validated this commit.
+      - name: Push paired nested-module tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NESTED_TAG="api/v3/client/${GITHUB_REF_NAME}"
+
+          if error="$(gh api --method POST "repos/${{ github.repository }}/git/refs" \
+            -f ref="refs/tags/${NESTED_TAG}" \
+            -f sha="${GITHUB_SHA}" 2>&1)"; then
+            echo "Pushed ${NESTED_TAG}"
+          elif echo "$error" | grep -qi "already exists"; then
+            echo "Tag ${NESTED_TAG} already exists; skipping."
+          else
+            echo "$error" >&2
+            exit 1
+          fi

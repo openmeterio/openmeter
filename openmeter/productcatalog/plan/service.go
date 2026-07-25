@@ -106,6 +106,9 @@ type ListPlansInput struct {
 
 	// Currency filters plans by their currency field (AND semantics, supports eq/neq/contains/oeq).
 	Currency *filter.FilterString
+
+	// ExcludeUnitConfig omits plans carrying a unit_config conversion on any of their rate cards. (v1 can't represent it)
+	ExcludeUnitConfig bool
 }
 
 func (i ListPlansInput) Validate() error {
@@ -214,6 +217,9 @@ type UpdatePlanInput struct {
 	// Phases
 	Phases *[]productcatalog.Phase `json:"phases"`
 
+	// RejectUnitConfig makes mutation validation reject a plan that carries a unit_config conversion on any rate card.
+	RejectUnitConfig bool
+
 	inputOptions
 }
 
@@ -319,6 +325,10 @@ func (i UpdatePlanInput) Validate() error {
 }
 
 func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
+	if i.RejectUnitConfig && p.HasUnitConfig() {
+		return productcatalog.ErrUnitConfigNotRepresentable
+	}
+
 	var errs []error
 
 	if i.Name != nil {
@@ -420,6 +430,10 @@ type PublishPlanInput struct {
 
 	// EffectivePeriod
 	productcatalog.EffectivePeriod
+
+	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
+	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
 }
 
 func (i PublishPlanInput) Validate() error {
@@ -468,6 +482,10 @@ type ArchivePlanInput struct {
 
 	// EffectiveFrom defines the time from the Plan is going to be unpublished.
 	EffectiveTo time.Time `json:"effectiveTo,omitempty"`
+
+	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
+	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
 }
 
 func (i ArchivePlanInput) Validate() error {
@@ -503,6 +521,10 @@ type NextPlanInput struct {
 	// Version is the version of the Plan.
 	// If not set the latest version is assumed.
 	Version int `json:"version,omitempty"`
+
+	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
+	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
 }
 
 func (i NextPlanInput) Validate() error {

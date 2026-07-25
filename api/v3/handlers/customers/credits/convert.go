@@ -12,12 +12,12 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -29,15 +29,20 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		Name:          charge.Intent.Name,
 		Description:   charge.Intent.Description,
 		Amount:        charge.Intent.CreditAmount.String(),
-		Currency:      api.BillingCurrencyCode(charge.Intent.Currency),
+		Currency:      api.BillingCurrencyCode(charge.Intent.Currency.GetCode()),
+		EffectiveAt:   charge.Intent.EffectiveAt,
 		ExpiresAt:     charge.Intent.ExpiresAt,
 		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
 		Status:        toAPIBillingCreditGrantStatus(charge),
+		VoidedAt:      charge.State.VoidedAt,
 		CreatedAt:     charge.CreatedAt,
 		UpdatedAt:     charge.UpdatedAt,
 		DeletedAt:     charge.DeletedAt,
 		Labels:        labels.FromMetadata(charge.Intent.Metadata),
+		Key:           charge.Intent.Key,
 	}
+
+	grant.Filters = toAPIBillingCreditGrantFilters(charge.Intent.FeatureFilters)
 
 	if charge.Intent.Priority != nil {
 		p := int16(*charge.Intent.Priority)
@@ -66,6 +71,13 @@ func toAPIBillingCreditFundingMethod(settlement creditpurchase.Settlement) api.B
 }
 
 func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
+	if charge.State.VoidedAt != nil {
+		return api.BillingCreditGrantStatusVoided
+	}
+	if charge.Intent.ExpiresAt != nil && !charge.Intent.ExpiresAt.After(clock.Now()) {
+		return api.BillingCreditGrantStatusExpired
+	}
+
 	switch charge.Status {
 	case creditpurchase.StatusActive, creditpurchase.StatusFinal:
 		return api.BillingCreditGrantStatusActive
@@ -91,11 +103,7 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 		}
 
 		costBasis := inv.CostBasis.String()
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
-		if err != nil {
-			return nil, fmt.Errorf("getting currency calculator: %w", err)
-		}
-		purchaseAmount := currencyCalculator.RoundToPrecision(charge.Intent.CreditAmount.Mul(inv.CostBasis))
+		purchaseAmount := charge.Intent.Currency.RoundToPrecision(charge.Intent.CreditAmount.Mul(inv.CostBasis))
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
 		if charge.Realizations.InvoiceSettlement != nil {
@@ -116,11 +124,7 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 		}
 
 		costBasis := ext.CostBasis.String()
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
-		if err != nil {
-			return nil, fmt.Errorf("getting currency calculator: %w", err)
-		}
-		purchaseAmount := currencyCalculator.RoundToPrecision(charge.Intent.CreditAmount.Mul(ext.CostBasis))
+		purchaseAmount := charge.Intent.Currency.RoundToPrecision(charge.Intent.CreditAmount.Mul(ext.CostBasis))
 		availPolicy, err := toAPIBillingCreditAvailabilityPolicy(ext.InitialStatus)
 		if err != nil {
 			return nil, fmt.Errorf("converting availability policy: %w", err)
@@ -168,22 +172,37 @@ func toAPIBillingCreditAvailabilityPolicy(status creditpurchase.InitialPaymentSe
 }
 
 func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.BillingCreditGrantTaxConfig {
-	if charge.Intent.TaxConfig == nil {
+	cfg := charge.Intent.TaxConfig
+	if lo.IsEmpty(cfg) {
 		return nil
 	}
 
 	tc := &api.BillingCreditGrantTaxConfig{}
 
-	if charge.Intent.TaxConfig.Behavior != nil {
-		behavior := api.BillingTaxBehavior(*charge.Intent.TaxConfig.Behavior)
+	if cfg.Behavior != nil {
+		behavior := api.BillingTaxBehavior(*cfg.Behavior)
 		tc.Behavior = &behavior
 	}
 
-	if charge.Intent.TaxConfig.TaxCodeID != nil {
-		tc.TaxCode = &api.TaxCodeReference{Id: *charge.Intent.TaxConfig.TaxCodeID}
+	if cfg.TaxCodeID != "" {
+		tc.TaxCode = &api.TaxCodeReference{Id: cfg.TaxCodeID}
 	}
 
 	return tc
+}
+
+func toAPIBillingCreditGrantFilters(filters creditpurchase.FeatureFilters) *api.BillingCreditGrantFilters {
+	if len(filters) == 0 {
+		return nil
+	}
+
+	apiFeatures := lo.Map(filters.Normalize(), func(key string, _ int) api.ResourceKey {
+		return key
+	})
+
+	return &api.BillingCreditGrantFilters{
+		Features: &apiFeatures,
+	}
 }
 
 func fromAPIBillingCreditFundingMethod(fm api.BillingCreditFundingMethod) creditgrant.FundingMethod {
@@ -225,17 +244,34 @@ func fromAPIBillingCreditGrantTaxConfig(tc *api.CreateCreditGrantTaxConfig) *pro
 	return config
 }
 
-func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (meta.ChargeStatus, error) {
+func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*creditgrant.GrantFilters, error) {
+	if filters == nil || filters.Features == nil || len(*filters.Features) == 0 {
+		return nil, nil
+	}
+
+	featureFilters := creditpurchase.FeatureFilters(lo.Map(*filters.Features, func(key api.ResourceKey, _ int) string {
+		return key
+	}))
+
+	if err := featureFilters.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &creditgrant.GrantFilters{
+		Features: featureFilters.Normalize(),
+	}, nil
+}
+
+func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (creditgrant.GrantStatus, error) {
 	switch status {
 	case api.BillingCreditGrantStatusActive:
-		return meta.ChargeStatusActive, nil
+		return creditgrant.GrantStatusActive, nil
 	case api.BillingCreditGrantStatusPending:
-		return meta.ChargeStatusCreated, nil
+		return creditgrant.GrantStatusPending, nil
 	case api.BillingCreditGrantStatusVoided:
-		return meta.ChargeStatusDeleted, nil
+		return creditgrant.GrantStatusVoided, nil
 	case api.BillingCreditGrantStatusExpired:
-		// Expired maps to final (terminal state, no further actions).
-		return meta.ChargeStatusFinal, nil
+		return creditgrant.GrantStatusExpired, nil
 	default:
 		return "", fmt.Errorf("unsupported credit grant status: %s", status)
 	}
@@ -302,9 +338,11 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 		Description:   body.Description,
 		Currency:      currencyx.Code(body.Currency),
 		Amount:        amount,
+		EffectiveAt:   body.EffectiveAt,
 		FundingMethod: fromAPIBillingCreditFundingMethod(body.FundingMethod),
 		Priority:      body.Priority,
 		Labels:        lo.FromPtrOr(body.Labels, api.Labels{}),
+		Key:           body.Key,
 	}
 
 	if body.ExpiresAfter != nil {
@@ -345,11 +383,32 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 		req.TaxConfig = fromAPIBillingCreditGrantTaxConfig(body.TaxConfig)
 	}
 
-	if body.Filters != nil && body.Filters.Features != nil && len(*body.Filters.Features) > 0 {
-		return creditgrant.CreateInput{}, fmt.Errorf("feature filters are not yet supported for credit grants")
+	filters, err := fromAPIBillingCreditGrantFilters(body.Filters)
+	if err != nil {
+		return creditgrant.CreateInput{}, fmt.Errorf("invalid filters: %w", err)
 	}
+	req.Filters = filters
 
 	return req, nil
+}
+
+func fromAPIVoidCreditGrantRequest(
+	ns string,
+	customerID api.ULID,
+	creditGrantID api.ULID,
+	body api.VoidCreditGrantRequest,
+) (creditgrant.VoidInput, error) {
+	paymentAdjustment, err := fromAPIBillingCreditGrantVoidPaymentAdjustment(body.PaymentAdjustment)
+	if err != nil {
+		return creditgrant.VoidInput{}, err
+	}
+
+	return creditgrant.VoidInput{
+		Namespace:         ns,
+		CustomerID:        customerID,
+		ChargeID:          creditGrantID,
+		PaymentAdjustment: paymentAdjustment,
+	}, nil
 }
 
 func fromAPIUpdateCreditGrantExternalSettlementRequest(
@@ -371,6 +430,19 @@ func fromAPIUpdateCreditGrantExternalSettlementRequest(
 	}, nil
 }
 
+func fromAPIBillingCreditGrantVoidPaymentAdjustment(adjustment *api.BillingCreditGrantVoidPaymentAdjustment) (creditgrant.VoidPaymentAdjustment, error) {
+	if adjustment == nil {
+		return creditgrant.VoidPaymentAdjustmentNone, nil
+	}
+
+	switch *adjustment {
+	case api.BillingCreditGrantVoidPaymentAdjustmentNone:
+		return creditgrant.VoidPaymentAdjustmentNone, nil
+	default:
+		return "", newCreditGrantVoidPaymentAdjustmentInvalid(string(*adjustment))
+	}
+}
+
 func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCreditPurchasePaymentSettlementStatus) (payment.Status, error) {
 	switch status {
 	case api.BillingCreditPurchasePaymentSettlementStatusAuthorized:
@@ -382,13 +454,12 @@ func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCredi
 	}
 }
 
-func toAPICreditBalance(currency currencyx.Code, balance ledger.Balance) api.CreditBalance {
-	// Temporary mapping while the v3 credit-balance schema still predates the
-	// customerbalance service's settled/live-pending semantics.
+func toAPICreditBalance(currency currencyx.Code, balance customerbalance.Balance) api.CreditBalance {
 	return api.CreditBalance{
-		Currency:  api.BillingCurrencyCode(currency),
-		Available: balance.Settled().String(),
-		Pending:   balance.Pending().String(),
+		Currency: api.BillingCurrencyCode(currency),
+		Settled:  balance.Settled().String(),
+		Live:     balance.Live().String(),
+		Pending:  balance.Pending().String(),
 	}
 }
 
@@ -405,6 +476,8 @@ func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionTyp
 		txType = customerbalance.CreditTransactionTypeConsumed
 	case api.BillingCreditTransactionTypeExpired:
 		txType = customerbalance.CreditTransactionTypeExpired
+	case api.BillingCreditTransactionTypeVoided:
+		txType = customerbalance.CreditTransactionTypeVoided
 	default:
 		return nil
 	}
@@ -456,6 +529,8 @@ func toAPIBillingCreditTransactionType(txType customerbalance.CreditTransactionT
 		return api.BillingCreditTransactionTypeFunded
 	case customerbalance.CreditTransactionTypeExpired:
 		return api.BillingCreditTransactionTypeExpired
+	case customerbalance.CreditTransactionTypeVoided:
+		return api.BillingCreditTransactionTypeVoided
 	default:
 		return api.BillingCreditTransactionTypeConsumed
 	}

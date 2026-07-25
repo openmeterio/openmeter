@@ -14,8 +14,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/governance"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -222,7 +224,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	ratingService := common.NewBillingRatingService()
+	unitConfigConfiguration := conf.UnitConfig
+	ratingService := common.NewBillingRatingService(unitConfigConfiguration)
 	customerService, err := common.NewCustomerService(logger, client, eventbusPublisher)
 	if err != nil {
 		cleanup6()
@@ -329,6 +332,39 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
 	creditsConfiguration := conf.Credits
+	currenciesRepository, err := common.NewCurrencyAdapter(client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	currenciesService, err := common.NewCurrencyService(currenciesRepository)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	currencyResolver, err := currencyresolver.New(currenciesService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	repo := common.NewLedgerHistoricalRepo(client)
 	accountRepo := common.NewLedgerAccountRepo(client)
 	accountService := common.NewLedgerAccountService(creditsConfiguration, accountRepo, locker)
@@ -353,7 +389,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	gate := featuregate.NewNoop()
-	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, gate)
+	featureGateConfiguration := conf.FeatureGate
+	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -477,17 +515,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	currencyService, err := common.NewCurrencyService(logger, client)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	llmcostService, err := common.NewLLMCostService(logger, client)
 	if err != nil {
 		cleanup7()
@@ -510,7 +537,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	creditgrantService, err := common.NewCreditGrantService(billingRegistry, customerService)
+	creditvoidService, err := common.NewCreditVoidService(creditsConfiguration, client, ledger, balanceQuerier, accountResolver, accountService, breakageService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -521,7 +548,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	customerbalanceService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, balanceQuerier, accountResolver, accountService, billingRegistry, breakageService)
+	creditgrantService, err := common.NewCreditGrantService(client, billingRegistry, customerService, creditvoidService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	customerbalanceService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, balanceQuerier, accountResolver, accountService, billingRegistry, breakageService, creditvoidService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -533,6 +571,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	facade, err := common.NewCustomerBalanceFacade(customerbalanceService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	governanceService, err := common.NewGovernanceService(customerService, entitlement, tracer, meter)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -780,6 +829,21 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	serverConfig := conf.Server
+	clientIPMiddlewareConfig := serverConfig.ClientIPMiddleware
+	clientIPMiddleware, err := common.NewClientIPMiddleware(clientIPMiddlewareConfig)
+	if err != nil {
+		cleanup9()
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
 		GlobalInitializer:                globalInitializer,
 		Migrator:                         migrator,
@@ -790,7 +854,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		CustomerSubjectHook:              customerSubjectHook,
 		CustomerEntitlementValidatorHook: customerEntitlementValidatorHook,
 		BillingRegistry:                  billingRegistry,
-		CurrencyService:                  currencyService,
+		CurrencyService:                  currenciesService,
 		CostService:                      costService,
 		CreditGrantService:               creditgrantService,
 		Ledger:                           ledger,
@@ -801,6 +865,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		EntitlementRegistry:              entitlement,
 		FeatureConnector:                 featureConnector,
 		FeatureFlags:                     ffxService,
+		GovernanceService:                governanceService,
 		IngestCollector:                  ingestCollector,
 		IngestService:                    ingestService,
 		KafkaProducer:                    producer,
@@ -833,7 +898,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,
-		FeatureGate:                      gate,
+		FeatureGate:                      featureGateChecker,
+		ClientIPMiddleware:               clientIPMiddleware,
 	}
 	return application, func() {
 		cleanup9()
@@ -861,7 +927,7 @@ type Application struct {
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
 	BillingRegistry                  common.BillingRegistry
-	CurrencyService                  currencies.CurrencyService
+	CurrencyService                  currencies.Service
 	CostService                      cost.Service
 	CreditGrantService               creditgrant.Service
 	Ledger                           ledger.Ledger
@@ -872,6 +938,7 @@ type Application struct {
 	EntitlementRegistry              *registry.Entitlement
 	FeatureConnector                 feature.FeatureConnector
 	FeatureFlags                     ffx.Service
+	GovernanceService                governance.Service
 	IngestCollector                  ingest.Collector
 	IngestService                    ingest.Service
 	KafkaProducer                    *kafka2.Producer
@@ -904,7 +971,8 @@ type Application struct {
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
 	Tracer                           trace.Tracer
-	FeatureGate                      featuregate.Gate
+	FeatureGate                      *featuregate.FeatureGateChecker
+	ClientIPMiddleware               common.ClientIPMiddleware
 }
 
 func metadata(conf config.Configuration) common.Metadata {

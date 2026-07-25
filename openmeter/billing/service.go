@@ -17,7 +17,6 @@ type Service interface {
 	InvoiceService
 	GatheringInvoiceService
 	StandardInvoiceService
-	SequenceService
 	LockableService
 
 	InvoiceAppService
@@ -62,9 +61,9 @@ type InvoiceLineService interface {
 
 type LineEngineService interface {
 	RegisterLineEngine(engine LineEngine) error
+	RegisterCreateLineRouter(router CreateLineRouter) error
 	DeregisterLineEngine(engineType LineEngineType) error
 	GetRegisteredLineEngines() []LineEngineType
-	OnMutableStandardLinesDeleted(ctx context.Context, input OnMutableStandardLinesDeletedInput) error
 	// OnUnsupportedCreditNote is invoked when a line deletion targets an immutable invoice but credit-note support is not available yet.
 	// This is a temporary placeholder instead of the credit-note implementation that allows us to externally
 	// invoke the right line engine for the line deletion.
@@ -94,7 +93,6 @@ type InvoiceService interface {
 	PaymentAuthorized(ctx context.Context, input PaymentAuthorizedInput) (StandardInvoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (StandardInvoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (StandardInvoice, error)
-	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
 
 	// SimulateInvoice generates an invoice based on the provided input, but does not persist it
 	// can be used to execute the invoice generation logic without actually creating an invoice in the database
@@ -115,6 +113,8 @@ type StandardInvoiceService interface {
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 	// ListStandardInvoices lists standard invoices
 	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
+	// ListStandardInvoicesPendingAdvancement lists standard invoices due for automatic advancement.
+	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]StandardInvoice, error)
 	// CreateStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
 	CreateStandardInvoiceFromGatheringLines(ctx context.Context, input CreateStandardInvoiceFromGatheringLinesInput) (*StandardInvoice, error)
 	// RegisterStandardInvoiceHooks registers hooks for standard invoice lifecycle events
@@ -127,12 +127,9 @@ type GatheringInvoiceService interface {
 
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
-	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) error
+	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) (GatheringInvoice, error)
+	DeleteGatheringInvoice(ctx context.Context, input DeleteInvoiceInput) (GatheringInvoice, error)
 	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
-}
-
-type SequenceService interface {
-	GenerateInvoiceSequenceNumber(ctx context.Context, in SequenceGenerationInput, def SequenceDefinition) (string, error)
 }
 
 type InvoiceAppService interface {

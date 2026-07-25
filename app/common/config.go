@@ -52,6 +52,8 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "ReservedEventTypes"),
 	// Svix
 	wire.FieldsOf(new(config.Configuration), "Svix"),
+	// UnitConfig
+	wire.FieldsOf(new(config.Configuration), "UnitConfig"),
 	// Telemetry
 	wire.FieldsOf(new(config.Configuration), "Telemetry"),
 	wire.FieldsOf(new(config.TelemetryConfig), "Metrics"),
@@ -59,4 +61,7 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.TelemetryConfig), "Log"),
 	// Termination
 	wire.FieldsOf(new(config.Configuration), "Termination"),
+	// Server
+	wire.FieldsOf(new(config.Configuration), "Server"),
+	wire.FieldsOf(new(config.ServerConfig), "ClientIPMiddleware"),
 )

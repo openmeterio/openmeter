@@ -44,8 +44,8 @@
 
               javascript = {
                 enable = true;
-                package = pkgs.nodejs-slim_24;
-                corepack = {
+                package = pkgs.nodejs-slim_26;
+                pnpm = {
                   enable = true;
                 };
               };
@@ -80,13 +80,13 @@
               # Check actual version via:
               # $ pkg-config --modversion rdkafka++
               # Getting sha256 hash for git ref:
-              # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.14.1 | jq -r '.sha256')"
+              # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.15.0 | jq -r '.sha256')"
               (rdkafka.overrideAttrs (_: rec {
                 src = fetchFromGitHub {
                   owner = "confluentinc";
                   repo = "librdkafka";
-                  rev = "v2.14.1";
-                  sha256 = "sha256-bJab+PEz2Y6+QNmgtkHDSzEd7FqzAZ8rFlJLPSh12Fg=";
+                  rev = "v2.15.0";
+                  sha256 = "sha256-WW64fwh0xR4lEVwmrv00tP9mo6b49aCNgLLH/P0YS8k=";
                 };
               }))
 
@@ -96,10 +96,12 @@
 
               golangci-lint
               goreleaser
+              gotestsum
               air
 
               curl
               jq
+              yq-go
               minikube
               kind
               kubectl
@@ -112,15 +114,17 @@
               # Multi-platform support makes this a bit more difficult
               postgresql
 
-              # node
-              corepack_24
+              # node: pnpm (from javascript.pnpm) provides `pnpm dlx` as the
+              # npx-style runner for these one-off CLIs. The invoked bin runs
+              # under the dev shell's `node` (nodejs-slim_26) via its env-node
+              # shebang, so no separate corepack/Node runtime is needed.
               # We can consider adding a pkgs.buildNpmPackage for spectral-cli if build takes a lot of time, but for now
               # this is a quick fix to get it working.
               (writeShellScriptBin "spectral" ''
-                exec ${pkgs.corepack_24}/bin/pnpx @stoplight/spectral-cli@6.16.0 "$@"
+                exec ${pkgs.pnpm}/bin/pnpm dlx @stoplight/spectral-cli@6.16.0 "$@"
               '')
               (writeShellScriptBin "codegraph" ''
-                exec ${pkgs.corepack_24}/bin/pnpx @colbymchenry/codegraph@0.9.6 "$@"
+                exec ${pkgs.pnpm}/bin/pnpm dlx @colbymchenry/codegraph@1.2.0 "$@"
               '')
 
               # python

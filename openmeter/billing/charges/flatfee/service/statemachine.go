@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type stateMachine struct {
@@ -93,8 +94,62 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	return out, nil
 }
 
+// mutateIntentLayer mutates the requested intent layer, creating a new override
+// layer first when the target is override and the charge has no override yet.
+func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.ChangeTarget, editFn func(*flatfee.IntentMutableFields)) error {
+	switch target {
+	case meta.ChangeTargetBase:
+		if err := s.Charge.Intent.Mutate(meta.ChangeTargetBase, editFn); err != nil {
+			return fmt.Errorf("mutating base intent: %w", err)
+		}
+	case meta.ChangeTargetOverride:
+		if s.Charge.Intent.HasOverrideLayer() {
+			if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, editFn); err != nil {
+				return fmt.Errorf("mutating override intent: %w", err)
+			}
+
+			return nil
+		}
+
+		effectiveIntent := s.Charge.Intent.GetEffectiveIntent()
+		overrideFields := effectiveIntent.IntentMutableFields
+		editFn(&overrideFields)
+		overrideFields = overrideFields.Normalized(effectiveIntent.Currency)
+		if err := overrideFields.Validate(); err != nil {
+			return fmt.Errorf("validating override intent: %w", err)
+		}
+
+		base, err := s.Adapter.CreateChargeOverride(ctx, s.Charge.ChargeBase, overrideFields)
+		if err != nil {
+			return fmt.Errorf("creating override intent: %w", err)
+		}
+
+		s.Charge.ChargeBase = base
+	default:
+		return fmt.Errorf("invalid change target: %s", target)
+	}
+
+	return nil
+}
+
+// rejectHiddenIntentTarget prevents lifecycle state machines from processing a
+// hidden source intent. When an override layer exists, the override is the
+// active customer-facing charge: it owns status transitions, realization runs,
+// credit corrections, and invoice patches. Subscription-owned base/source
+// changes must be applied before state-machine dispatch by service-level
+// reconciliation, not interpreted as lifecycle events.
+func (s *stateMachine) rejectHiddenIntentTarget(target meta.ChangeTarget) error {
+	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("cannot mutate hidden base intent while override intent is active"),
+		)
+	}
+
+	return nil
+}
+
 func (s *stateMachine) IsInsideServicePeriod() bool {
-	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.From)
+	return !clock.Now().Before(s.Charge.Intent.GetEffectiveServicePeriod().From)
 }
 
 func (s *stateMachine) IsInsideServicePeriodAndZeroAmount() bool {
@@ -105,17 +160,34 @@ func (s *stateMachine) IsInsideServicePeriodAndNonZeroAmount() bool {
 	return s.IsInsideServicePeriod() && !s.Charge.State.AmountAfterProration.IsZero()
 }
 
+func (s *stateMachine) IsAfterInvoiceAt() bool {
+	return !clock.Now().Before(s.Charge.Intent.GetEffectiveInvoiceAt())
+}
+
+func (s *stateMachine) IsAfterInvoiceAtAndZeroAmount() bool {
+	return s.IsAfterInvoiceAt() && s.Charge.State.AmountAfterProration.IsZero()
+}
+
+func (s *stateMachine) IsAfterInvoiceAtAndNonZeroAmount() bool {
+	return s.IsAfterInvoiceAt() && !s.Charge.State.AmountAfterProration.IsZero()
+}
+
 func (s *stateMachine) IsZeroAmount() bool {
 	return s.Charge.State.AmountAfterProration.IsZero()
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().From))
+	return nil
+}
+
+func (s *stateMachine) AdvanceAfterInvoiceAt(ctx context.Context) error {
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveInvoiceAt()))
 	return nil
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To))
 	return nil
 }
 

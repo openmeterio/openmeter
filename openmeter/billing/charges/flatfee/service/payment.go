@@ -60,7 +60,7 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 			InvoiceID: lineWithHeader.Invoice.ID,
 			Base: payment.Base{
 				ServicePeriod: run.ServicePeriod,
-				Amount:        lineWithHeader.Line.Totals.Total,
+				FiatAmount:    lineWithHeader.Line.Totals.Total,
 				Authorized: &ledgertransaction.TimedGroupReference{
 					GroupReference: ledgertransaction.GroupReference{
 						TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,

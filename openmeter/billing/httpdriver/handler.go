@@ -10,7 +10,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -53,9 +55,13 @@ type CustomerOverrideHandler interface {
 
 type handler struct {
 	service          billing.Service
+	chargeService    billingcharges.ChargeService
 	appService       app.Service
+	logger           *slog.Logger
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	featureSwitches  config.BillingFeatureSwitchesConfiguration
+	credits          config.CreditsConfiguration
+	featureGate      *featuregate.FeatureGateChecker
 	options          []httptransport.HandlerOption
 }
 
@@ -75,13 +81,20 @@ func New(
 	service billing.Service,
 	appService app.Service,
 	stripeAppService appstripe.Service,
+	chargeService billingcharges.ChargeService,
+	credits config.CreditsConfiguration,
+	featureGate *featuregate.FeatureGateChecker,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
 		service:          service,
+		chargeService:    chargeService,
 		appService:       appService,
+		logger:           logger,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		featureSwitches:  featureSwitches,
+		credits:          credits,
+		featureGate:      featureGate,
 	}
 }

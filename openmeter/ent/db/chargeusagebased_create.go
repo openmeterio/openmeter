@@ -17,8 +17,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -100,9 +103,31 @@ func (_c *ChargeUsageBasedCreate) SetNillableUniqueReferenceID(v *string) *Charg
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *ChargeUsageBasedCreate) SetCurrency(v currencyx.Code) *ChargeUsageBasedCreate {
-	_c.mutation.SetCurrency(v)
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_c *ChargeUsageBasedCreate) SetFiatCurrencyCode(v currencyx.Code) *ChargeUsageBasedCreate {
+	_c.mutation.SetFiatCurrencyCode(v)
+	return _c
+}
+
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableFiatCurrencyCode(v *currencyx.Code) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetFiatCurrencyCode(*v)
+	}
+	return _c
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *ChargeUsageBasedCreate) SetCustomCurrencyID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableCustomCurrencyID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
+	}
 	return _c
 }
 
@@ -171,14 +196,6 @@ func (_c *ChargeUsageBasedCreate) SetNillableAdvanceAfter(v *time.Time) *ChargeU
 // SetTaxCodeID sets the "tax_code_id" field.
 func (_c *ChargeUsageBasedCreate) SetTaxCodeID(v string) *ChargeUsageBasedCreate {
 	_c.mutation.SetTaxCodeID(v)
-	return _c
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_c *ChargeUsageBasedCreate) SetNillableTaxCodeID(v *string) *ChargeUsageBasedCreate {
-	if v != nil {
-		_c.SetTaxCodeID(*v)
-	}
 	return _c
 }
 
@@ -288,8 +305,22 @@ func (_c *ChargeUsageBasedCreate) SetSettlementMode(v productcatalog.SettlementM
 	return _c
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (_c *ChargeUsageBasedCreate) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetIntentDeletedAt(v)
+	return _c
+}
+
+// SetNillableIntentDeletedAt sets the "intent_deleted_at" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableIntentDeletedAt(v *time.Time) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetIntentDeletedAt(*v)
+	}
+	return _c
+}
+
 // SetDiscounts sets the "discounts" field.
-func (_c *ChargeUsageBasedCreate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedCreate {
+func (_c *ChargeUsageBasedCreate) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedCreate {
 	_c.mutation.SetDiscounts(v)
 	return _c
 }
@@ -318,6 +349,12 @@ func (_c *ChargeUsageBasedCreate) SetPrice(v *productcatalog.Price) *ChargeUsage
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *ChargeUsageBasedCreate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (_c *ChargeUsageBasedCreate) SetCurrentRealizationRunID(v string) *ChargeUsageBasedCreate {
 	_c.mutation.SetCurrentRealizationRunID(v)
@@ -328,6 +365,20 @@ func (_c *ChargeUsageBasedCreate) SetCurrentRealizationRunID(v string) *ChargeUs
 func (_c *ChargeUsageBasedCreate) SetNillableCurrentRealizationRunID(v *string) *ChargeUsageBasedCreate {
 	if v != nil {
 		_c.SetCurrentRealizationRunID(*v)
+	}
+	return _c
+}
+
+// SetCostBasisID sets the "cost_basis_id" field.
+func (_c *ChargeUsageBasedCreate) SetCostBasisID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetCostBasisID(v)
+	return _c
+}
+
+// SetNillableCostBasisID sets the "cost_basis_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableCostBasisID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetCostBasisID(*v)
 	}
 	return _c
 }
@@ -401,6 +452,11 @@ func (_c *ChargeUsageBasedCreate) SetCurrentRun(v *ChargeUsageBasedRuns) *Charge
 	return _c.SetCurrentRunID(v.ID)
 }
 
+// SetCostBasis sets the "cost_basis" edge to the ChargeUsageBasedCostBasis entity.
+func (_c *ChargeUsageBasedCreate) SetCostBasis(v *ChargeUsageBasedCostBasis) *ChargeUsageBasedCreate {
+	return _c.SetCostBasisID(v.ID)
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_c *ChargeUsageBasedCreate) SetChargeID(id string) *ChargeUsageBasedCreate {
 	_c.mutation.SetChargeID(id)
@@ -418,6 +474,25 @@ func (_c *ChargeUsageBasedCreate) SetNillableChargeID(id *string) *ChargeUsageBa
 // SetCharge sets the "charge" edge to the Charge entity.
 func (_c *ChargeUsageBasedCreate) SetCharge(v *Charge) *ChargeUsageBasedCreate {
 	return _c.SetChargeID(v.ID)
+}
+
+// SetIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID.
+func (_c *ChargeUsageBasedCreate) SetIntentOverrideID(id string) *ChargeUsageBasedCreate {
+	_c.mutation.SetIntentOverrideID(id)
+	return _c
+}
+
+// SetNillableIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableIntentOverrideID(id *string) *ChargeUsageBasedCreate {
+	if id != nil {
+		_c = _c.SetIntentOverrideID(*id)
+	}
+	return _c
+}
+
+// SetIntentOverride sets the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_c *ChargeUsageBasedCreate) SetIntentOverride(v *ChargeUsageBasedOverride) *ChargeUsageBasedCreate {
+	return _c.SetIntentOverrideID(v.ID)
 }
 
 // SetSubscription sets the "subscription" edge to the Subscription entity.
@@ -448,6 +523,11 @@ func (_c *ChargeUsageBasedCreate) SetFeature(v *Feature) *ChargeUsageBasedCreate
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_c *ChargeUsageBasedCreate) SetTaxCode(v *TaxCode) *ChargeUsageBasedCreate {
 	return _c.SetTaxCodeID(v.ID)
+}
+
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *ChargeUsageBasedCreate) SetCustomCurrency(v *CustomCurrency) *ChargeUsageBasedCreate {
+	return _c.SetCustomCurrencyID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
@@ -535,12 +615,14 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeUsageBased.currency"`)}
+	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
+		if err := chargeusagebased.FiatCurrencyCodeValidator(string(v)); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.fiat_currency_code": %w`, err)}
+		}
 	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := chargeusagebased.CurrencyValidator(string(v)); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.currency": %w`, err)}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := chargeusagebased.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.custom_currency_id": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ManagedBy(); !ok {
@@ -549,6 +631,14 @@ func (_c *ChargeUsageBasedCreate) check() error {
 	if v, ok := _c.mutation.ManagedBy(); ok {
 		if err := chargeusagebased.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.TaxCodeID(); !ok {
+		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeUsageBased.tax_code_id"`)}
+	}
+	if v, ok := _c.mutation.TaxCodeID(); ok {
+		if err := chargeusagebased.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_code_id": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
@@ -621,6 +711,11 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.unit_config": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.StatusDetailed(); !ok {
 		return &ValidationError{Name: "status_detailed", err: errors.New(`db: missing required field "ChargeUsageBased.status_detailed"`)}
 	}
@@ -634,6 +729,9 @@ func (_c *ChargeUsageBasedCreate) check() error {
 	}
 	if len(_c.mutation.FeatureIDs()) == 0 {
 		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "ChargeUsageBased.feature"`)}
+	}
+	if len(_c.mutation.TaxCodeIDs()) == 0 {
+		return &ValidationError{Name: "tax_code", err: errors.New(`db: missing required edge "ChargeUsageBased.tax_code"`)}
 	}
 	return nil
 }
@@ -706,9 +804,9 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_spec.SetField(chargeusagebased.FieldUniqueReferenceID, field.TypeString, value)
 		_node.UniqueReferenceID = &value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(chargeusagebased.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(chargeusagebased.FieldFiatCurrencyCode, field.TypeString, value)
+		_node.FiatCurrencyCode = &value
 	}
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargeusagebased.FieldManagedBy, field.TypeEnum, value)
@@ -762,6 +860,10 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_spec.SetField(chargeusagebased.FieldSettlementMode, field.TypeEnum, value)
 		_node.SettlementMode = value
 	}
+	if value, ok := _c.mutation.IntentDeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime, value)
+		_node.IntentDeletedAt = &value
+	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -785,6 +887,14 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		}
 		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
 		_node.Price = value
+	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebased.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeusagebased.FieldUnitConfig, field.TypeString, vv)
+		_node.UnitConfig = value
 	}
 	if value, ok := _c.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
@@ -839,6 +949,23 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_node.CurrentRealizationRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.CostBasisIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebased.CostBasisTable,
+			Columns: []string{chargeusagebased.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedcostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CostBasisID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -848,6 +975,22 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.IntentOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -954,7 +1097,24 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.TaxCodeID = &nodes[0]
+		_node.TaxCodeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.CustomCurrencyTable,
+			Columns: []string{chargeusagebased.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1093,18 +1253,6 @@ func (u *ChargeUsageBasedUpsert) UpdateStatus() *ChargeUsageBasedUpsert {
 	return u
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeUsageBasedUpsert) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldManagedBy, v)
-	return u
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateManagedBy() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldManagedBy)
-	return u
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeUsageBasedUpsert) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldSubscriptionItemID, v)
@@ -1138,42 +1286,6 @@ func (u *ChargeUsageBasedUpsert) UpdateAdvanceAfter() *ChargeUsageBasedUpsert {
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (u *ChargeUsageBasedUpsert) ClearAdvanceAfter() *ChargeUsageBasedUpsert {
 	u.SetNull(chargeusagebased.FieldAdvanceAfter)
-	return u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsert) SetTaxCodeID(v string) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldTaxCodeID, v)
-	return u
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateTaxCodeID() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldTaxCodeID)
-	return u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsert) ClearTaxCodeID() *ChargeUsageBasedUpsert {
-	u.SetNull(chargeusagebased.FieldTaxCodeID)
-	return u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldTaxBehavior, v)
-	return u
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateTaxBehavior() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldTaxBehavior)
-	return u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsert) ClearTaxBehavior() *ChargeUsageBasedUpsert {
-	u.SetNull(chargeusagebased.FieldTaxBehavior)
 	return u
 }
 
@@ -1285,8 +1397,26 @@ func (u *ChargeUsageBasedUpsert) UpdateInvoiceAt() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsert) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldIntentDeletedAt, v)
+	return u
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateIntentDeletedAt() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldIntentDeletedAt)
+	return u
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsert) ClearIntentDeletedAt() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldIntentDeletedAt)
+	return u
+}
+
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeUsageBasedUpsert) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsert {
+func (u *ChargeUsageBasedUpsert) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldDiscounts, v)
 	return u
 }
@@ -1324,6 +1454,36 @@ func (u *ChargeUsageBasedUpsert) SetRatingEngine(v usagebased.RatingEngine) *Cha
 // UpdateRatingEngine sets the "rating_engine" field to the value that was provided on create.
 func (u *ChargeUsageBasedUpsert) UpdateRatingEngine() *ChargeUsageBasedUpsert {
 	u.SetExcluded(chargeusagebased.FieldRatingEngine)
+	return u
+}
+
+// SetPrice sets the "price" field.
+func (u *ChargeUsageBasedUpsert) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldPrice, v)
+	return u
+}
+
+// UpdatePrice sets the "price" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdatePrice() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldPrice)
+	return u
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *ChargeUsageBasedUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldUnitConfig, v)
+	return u
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateUnitConfig() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldUnitConfig)
+	return u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *ChargeUsageBasedUpsert) ClearUnitConfig() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldUnitConfig)
 	return u
 }
 
@@ -1380,14 +1540,26 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
 			s.SetIgnore(chargeusagebased.FieldUniqueReferenceID)
 		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(chargeusagebased.FieldCurrency)
+		if _, exists := u.create.mutation.FiatCurrencyCode(); exists {
+			s.SetIgnore(chargeusagebased.FieldFiatCurrencyCode)
+		}
+		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
+			s.SetIgnore(chargeusagebased.FieldCustomCurrencyID)
+		}
+		if _, exists := u.create.mutation.ManagedBy(); exists {
+			s.SetIgnore(chargeusagebased.FieldManagedBy)
 		}
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargeusagebased.FieldSubscriptionID)
 		}
 		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
 			s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
+		}
+		if _, exists := u.create.mutation.TaxCodeID(); exists {
+			s.SetIgnore(chargeusagebased.FieldTaxCodeID)
+		}
+		if _, exists := u.create.mutation.TaxBehavior(); exists {
+			s.SetIgnore(chargeusagebased.FieldTaxBehavior)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeusagebased.FieldNamespace)
@@ -1401,8 +1573,8 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.FeatureKey(); exists {
 			s.SetIgnore(chargeusagebased.FieldFeatureKey)
 		}
-		if _, exists := u.create.mutation.Price(); exists {
-			s.SetIgnore(chargeusagebased.FieldPrice)
+		if _, exists := u.create.mutation.CostBasisID(); exists {
+			s.SetIgnore(chargeusagebased.FieldCostBasisID)
 		}
 	}))
 	return u
@@ -1533,20 +1705,6 @@ func (u *ChargeUsageBasedUpsertOne) UpdateStatus() *ChargeUsageBasedUpsertOne {
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeUsageBasedUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateManagedBy() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeUsageBasedUpsertOne) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -1586,48 +1744,6 @@ func (u *ChargeUsageBasedUpsertOne) UpdateAdvanceAfter() *ChargeUsageBasedUpsert
 func (u *ChargeUsageBasedUpsertOne) ClearAdvanceAfter() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsertOne) SetTaxCodeID(v string) *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateTaxCodeID() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsertOne) ClearTaxCodeID() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateTaxBehavior() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsertOne) ClearTaxBehavior() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -1757,8 +1873,29 @@ func (u *ChargeUsageBasedUpsertOne) UpdateInvoiceAt() *ChargeUsageBasedUpsertOne
 	})
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertOne) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetIntentDeletedAt(v)
+	})
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateIntentDeletedAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateIntentDeletedAt()
+	})
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertOne) ClearIntentDeletedAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearIntentDeletedAt()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeUsageBasedUpsertOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsertOne {
+func (u *ChargeUsageBasedUpsertOne) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -1803,6 +1940,41 @@ func (u *ChargeUsageBasedUpsertOne) SetRatingEngine(v usagebased.RatingEngine) *
 func (u *ChargeUsageBasedUpsertOne) UpdateRatingEngine() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateRatingEngine()
+	})
+}
+
+// SetPrice sets the "price" field.
+func (u *ChargeUsageBasedUpsertOne) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetPrice(v)
+	})
+}
+
+// UpdatePrice sets the "price" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdatePrice() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdatePrice()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *ChargeUsageBasedUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateUnitConfig() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *ChargeUsageBasedUpsertOne) ClearUnitConfig() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 
@@ -2033,14 +2205,26 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			if _, exists := b.mutation.UniqueReferenceID(); exists {
 				s.SetIgnore(chargeusagebased.FieldUniqueReferenceID)
 			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(chargeusagebased.FieldCurrency)
+			if _, exists := b.mutation.FiatCurrencyCode(); exists {
+				s.SetIgnore(chargeusagebased.FieldFiatCurrencyCode)
+			}
+			if _, exists := b.mutation.CustomCurrencyID(); exists {
+				s.SetIgnore(chargeusagebased.FieldCustomCurrencyID)
+			}
+			if _, exists := b.mutation.ManagedBy(); exists {
+				s.SetIgnore(chargeusagebased.FieldManagedBy)
 			}
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargeusagebased.FieldSubscriptionID)
 			}
 			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
 				s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
+			}
+			if _, exists := b.mutation.TaxCodeID(); exists {
+				s.SetIgnore(chargeusagebased.FieldTaxCodeID)
+			}
+			if _, exists := b.mutation.TaxBehavior(); exists {
+				s.SetIgnore(chargeusagebased.FieldTaxBehavior)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeusagebased.FieldNamespace)
@@ -2054,8 +2238,8 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			if _, exists := b.mutation.FeatureKey(); exists {
 				s.SetIgnore(chargeusagebased.FieldFeatureKey)
 			}
-			if _, exists := b.mutation.Price(); exists {
-				s.SetIgnore(chargeusagebased.FieldPrice)
+			if _, exists := b.mutation.CostBasisID(); exists {
+				s.SetIgnore(chargeusagebased.FieldCostBasisID)
 			}
 		}
 	}))
@@ -2187,20 +2371,6 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateStatus() *ChargeUsageBasedUpsertBulk 
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeUsageBasedUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateManagedBy() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeUsageBasedUpsertBulk) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -2240,48 +2410,6 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateAdvanceAfter() *ChargeUsageBasedUpser
 func (u *ChargeUsageBasedUpsertBulk) ClearAdvanceAfter() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsertBulk) SetTaxCodeID(v string) *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateTaxCodeID() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsertBulk) ClearTaxCodeID() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateTaxBehavior() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsertBulk) ClearTaxBehavior() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -2411,8 +2539,29 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateInvoiceAt() *ChargeUsageBasedUpsertBu
 	})
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertBulk) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetIntentDeletedAt(v)
+	})
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateIntentDeletedAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateIntentDeletedAt()
+	})
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearIntentDeletedAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearIntentDeletedAt()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeUsageBasedUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsertBulk {
+func (u *ChargeUsageBasedUpsertBulk) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -2457,6 +2606,41 @@ func (u *ChargeUsageBasedUpsertBulk) SetRatingEngine(v usagebased.RatingEngine) 
 func (u *ChargeUsageBasedUpsertBulk) UpdateRatingEngine() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateRatingEngine()
+	})
+}
+
+// SetPrice sets the "price" field.
+func (u *ChargeUsageBasedUpsertBulk) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetPrice(v)
+	})
+}
+
+// UpdatePrice sets the "price" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdatePrice() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdatePrice()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *ChargeUsageBasedUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateUnitConfig() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearUnitConfig() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 

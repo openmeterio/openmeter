@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -136,6 +137,39 @@ func (i InstallAppWithAPIKeyInput) Validate() error {
 	}
 
 	return nil
+}
+
+type InstallAppV3Input struct {
+	MarketplaceListingID
+
+	Namespace                   string
+	Name                        string
+	APIKey                      *string
+	CreateDefaultBillingProfile bool
+
+	CreateDefaultBillingProfileFn func(ctx context.Context, installedApp App) ([]CapabilityType, error)
+}
+
+func (i InstallAppV3Input) Validate() error {
+	var errs []error
+	if err := i.MarketplaceListingID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("error validating marketplace listing id: %w", err))
+	}
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.APIKey != nil && *i.APIKey == "" {
+		errs = append(errs, errors.New("api key is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type InstallAppV3Output struct {
+	App               App
+	DefaultCapabilies []CapabilityType
 }
 
 type InstallAppInput struct {

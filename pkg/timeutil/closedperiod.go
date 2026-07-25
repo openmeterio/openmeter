@@ -104,6 +104,21 @@ func (p ClosedPeriod) Validate() error {
 	return nil
 }
 
+func (p ClosedPeriod) ValidateAsRequired() error {
+	if p.From.IsZero() || p.To.IsZero() {
+		var err []error
+		if p.From.IsZero() {
+			err = append(err, errors.New("from is required"))
+		}
+		if p.To.IsZero() {
+			err = append(err, errors.New("to is required"))
+		}
+		return errors.Join(err...)
+	}
+
+	return p.Validate()
+}
+
 func (p ClosedPeriod) Truncate(resolution time.Duration) ClosedPeriod {
 	return ClosedPeriod{
 		From: p.From.Truncate(resolution),

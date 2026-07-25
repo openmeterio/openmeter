@@ -5,10 +5,18 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ActionFn func(context.Context) error
+
+func EntryFunc(fn ActionFn) func(context.Context, ...any) error {
+	return func(ctx context.Context, _ ...any) error {
+		return fn(ctx)
+	}
+}
 
 // allOf chains multiple action functions into a single action function, all functions
 // will be called, regardless of their error state.
@@ -43,5 +51,15 @@ func WithParameters[T models.Validator](fn func(context.Context, T) error) func(
 		}
 
 		return fn(ctx, converted)
+	}
+}
+
+func AllOfWithParameters[T models.Validator](fn ...func(context.Context, T) error) func(context.Context, ...any) error {
+	return func(ctx context.Context, args ...any) error {
+		return errors.Join(
+			lo.Map(fn, func(fn func(context.Context, T) error, _ int) error {
+				return WithParameters[T](fn)(ctx, args...)
+			})...,
+		)
 	}
 }

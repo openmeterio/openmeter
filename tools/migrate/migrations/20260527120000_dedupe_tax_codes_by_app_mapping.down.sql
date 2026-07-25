@@ -1,0 +1,9 @@
+-- Intentionally no-op.
+--
+-- This migration soft-deletes duplicate tax_codes rows and repoints all
+-- tax_code_id FK columns from losers to winners. Rolling back would require
+-- restoring the soft-deleted losers and re-pointing every FK back — but the
+-- original loser IDs are no longer stored anywhere, and re-introducing them
+-- would leave the FK columns pointing at rows that may have been deleted for
+-- other reasons. The dedup is a one-way data cleanup; re-running the migration
+-- on a clean database is a no-op (the temp table will be empty).

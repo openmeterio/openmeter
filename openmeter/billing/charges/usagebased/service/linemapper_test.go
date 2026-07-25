@@ -97,7 +97,10 @@ func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testi
 		},
 	}
 
-	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{priorRun, run})
+	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Run:  run,
+		Runs: usagebased.RealizationRuns{priorRun, run},
+	})
 	require.NoError(t, err)
 
 	require.Len(t, line.DetailedLines, 2)
@@ -163,7 +166,10 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 		},
 	}
 
-	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{priorRun, run})
+	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Run:  run,
+		Runs: usagebased.RealizationRuns{priorRun, run},
+	})
 	require.NoError(t, err)
 
 	require.Equal(t, float64(10), lo.FromPtr(line.UsageBased.Quantity).InexactFloat64())
@@ -206,7 +212,10 @@ func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing
 		},
 	}
 
-	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{run})
+	err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Run:  run,
+		Runs: usagebased.RealizationRuns{run},
+	})
 	require.ErrorContains(t, err, "detailed lines must be expanded")
 }
 
@@ -225,7 +234,7 @@ func newUsageBasedStandardLineForTest(period timeutil.ClosedPeriod) *billing.Sta
 			ManagedBy: billing.SystemManagedLine,
 			Engine:    billing.LineEngineTypeChargeUsageBased,
 			InvoiceID: "invoice-id",
-			Currency:  currencyx.Code("USD"),
+			Currency:  currencyx.FiatCode("USD"),
 			Period:    period,
 			InvoiceAt: period.To,
 			ChargeID:  lo.ToPtr("charge-id"),
@@ -250,7 +259,6 @@ func newUsageBasedDetailedLineForTest(ref string, period timeutil.ClosedPeriod, 
 			Index:                  lo.ToPtr(0),
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			ServicePeriod:          period,
-			Currency:               currencyx.Code("USD"),
 			PerUnitAmount:          amount,
 			Quantity:               alpacadecimal.NewFromInt(1),
 			Totals: totals.Totals{

@@ -3,7 +3,6 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -42,7 +42,7 @@ type LedgerSubAccountRoute struct {
 	// TaxBehavior holds the value of the "tax_behavior" field.
 	TaxBehavior *ledger.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Features holds the value of the "features" field.
-	Features []string `json:"features,omitempty"`
+	Features pq.StringArray `json:"features,omitempty"`
 	// CostBasis holds the value of the "cost_basis" field.
 	CostBasis *alpacadecimal.Decimal `json:"cost_basis,omitempty"`
 	// CreditPriority holds the value of the "credit_priority" field.
@@ -94,7 +94,7 @@ func (*LedgerSubAccountRoute) scanValues(columns []string) ([]any, error) {
 		case ledgersubaccountroute.FieldCostBasis:
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case ledgersubaccountroute.FieldFeatures:
-			values[i] = new([]byte)
+			values[i] = new(pq.StringArray)
 		case ledgersubaccountroute.FieldCreditPriority:
 			values[i] = new(sql.NullInt64)
 		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTaxBehavior, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
@@ -186,12 +186,10 @@ func (_m *LedgerSubAccountRoute) assignValues(columns []string, values []any) er
 				*_m.TaxBehavior = ledger.TaxBehavior(value.String)
 			}
 		case ledgersubaccountroute.FieldFeatures:
-			if value, ok := values[i].(*[]byte); !ok {
+			if value, ok := values[i].(*pq.StringArray); !ok {
 				return fmt.Errorf("unexpected type %T for field features", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Features); err != nil {
-					return fmt.Errorf("unmarshal field features: %w", err)
-				}
+			} else if value != nil {
+				_m.Features = *value
 			}
 		case ledgersubaccountroute.FieldCostBasis:
 			if value, ok := values[i].(*sql.NullScanner); !ok {

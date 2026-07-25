@@ -656,6 +656,7 @@ model InvoiceUsageBasedRateCard {
   /**
    * The discounts that are applied to the line.
    */
+  #deprecated "V1 invoice responses do not expose persisted rate card discounts"
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   discounts?: BillingDiscounts;
 }

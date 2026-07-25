@@ -30,13 +30,17 @@ type StandardLineBase struct {
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
 	Engine      LineEngineType       `json:"engine,omitempty"`
 
-	InvoiceID string         `json:"invoiceID,omitempty"`
-	Currency  currencyx.Code `json:"currency"`
+	InvoiceID string             `json:"invoiceID,omitempty"`
+	Currency  currencyx.FiatCode `json:"currency"`
 
 	// Lifecycle
-	Period                      timeutil.ClosedPeriod `json:"period"`
-	InvoiceAt                   time.Time             `json:"invoiceAt"`
-	OverrideCollectionPeriodEnd *time.Time            `json:"overrideCollectionPeriodEnd,omitempty"`
+	Period timeutil.ClosedPeriod `json:"period"`
+	// InvoiceAt is retained only to display the original invoice-at timestamp
+	// when a gathering line is rendered into a standard invoice line. Standard
+	// line business logic must not treat it as the line's scheduling source; use
+	// the line's creation timestamp when a standard-line fallback is needed.
+	InvoiceAt                   time.Time  `json:"invoiceAt"`
+	OverrideCollectionPeriodEnd *time.Time `json:"overrideCollectionPeriodEnd,omitempty"`
 
 	// Relationships
 	ParentLineID     *string `json:"parentLine,omitempty"`
@@ -45,9 +49,9 @@ type StandardLineBase struct {
 
 	ChildUniqueReferenceID *string `json:"childUniqueReferenceID,omitempty"`
 
-	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
-	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
-	CreditsApplied    CreditsApplied            `json:"creditsApplied,omitempty"`
+	TaxConfig         *TaxConfig     `json:"taxOverrides,omitempty"`
+	RateCardDiscounts Discounts      `json:"rateCardDiscounts,omitempty"`
+	CreditsApplied    CreditsApplied `json:"creditsApplied,omitempty"`
 
 	ExternalIDs  externalid.LineExternalIDs `json:"externalIDs,omitempty"`
 	Subscription *SubscriptionReference     `json:"subscription,omitempty"`
@@ -68,6 +72,14 @@ func (i StandardLineBase) GetParentID() (string, bool) {
 
 func (i StandardLineBase) GetChargeID() *string {
 	return i.ChargeID
+}
+
+func (i StandardLineBase) GetMetadata() models.Metadata {
+	return i.Metadata
+}
+
+func (i StandardLineBase) GetTaxConfig() *TaxConfig {
+	return i.TaxConfig
 }
 
 func (i StandardLineBase) Validate() error {
@@ -172,8 +184,17 @@ func (i StandardLineBase) GetCreditsApplied() CreditsApplied {
 	return i.CreditsApplied
 }
 
-func (i StandardLineBase) GetCurrency() currencyx.Code {
+func (i StandardLineBase) GetCurrency() currencyx.FiatCode {
 	return i.Currency
+}
+
+func (i StandardLineBase) GetCurrencyCalculator() (currencyx.Currency, error) {
+	currency, err := i.Currency.AsFiatCurrency()
+	if err != nil {
+		return nil, fmt.Errorf("resolving fiat currency calculator: %w", err)
+	}
+
+	return currency, nil
 }
 
 func (i StandardLineBase) GetName() string {
@@ -223,8 +244,9 @@ func (i SubscriptionReference) Clone() *SubscriptionReference {
 }
 
 var (
-	_ GenericInvoiceLine = (*standardInvoiceLineGenericWrapper)(nil)
-	_ QuantityAccessor   = (*standardInvoiceLineGenericWrapper)(nil)
+	_ GenericInvoiceLine        = (*standardInvoiceLineGenericWrapper)(nil)
+	_ GenericInvoiceLineCreator = (*StandardLine)(nil)
+	_ QuantityAccessor          = (*standardInvoiceLineGenericWrapper)(nil)
 )
 
 // standardInvoiceLineGenericWrapper is a wrapper around a standard line that implements the GenericInvoiceLine interface.
@@ -249,6 +271,45 @@ func (i standardInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoic
 	}
 
 	return standardInvoiceLineGenericWrapper{StandardLine: cloned}, nil
+}
+
+// WithTargetState keeps the persisted standard-line identity from the receiver
+// and applies the target's business state. Detailed lines reuse receiver child
+// row IDs by ChildUniqueReferenceID so invoice updates become DB updates instead
+// of conflicting inserts.
+//
+// SplitLineHierarchy is intentionally not merged here: legacy progressive
+// billing is being deprecated, and charge-backed manual edits do not support
+// preserving or mutating split-line hierarchy state.
+func (i standardInvoiceLineGenericWrapper) WithTargetState(target GenericInvoiceLine) (GenericInvoiceLine, error) {
+	if target == nil {
+		return nil, errors.New("target line is required")
+	}
+
+	targetLine, err := target.AsInvoiceLine().AsStandardLine()
+	if err != nil {
+		return nil, fmt.Errorf("target line must be a standard line: %w", err)
+	}
+
+	merged, err := targetLine.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning target line: %w", err)
+	}
+
+	merged.Namespace = i.Namespace
+	merged.ID = i.ID
+	merged.CreatedAt = i.CreatedAt
+	merged.UpdatedAt = i.UpdatedAt
+	merged.DeletedAt = i.DeletedAt
+	merged.InvoiceID = i.InvoiceID
+	merged.DBState = i.DBState
+	merged.DetailedLines = i.DetailedLinesWithIDReuse(merged.DetailedLines)
+
+	return merged.AsGenericLine(), nil
+}
+
+func (i standardInvoiceLineGenericWrapper) AsGenericInvoiceLine() GenericInvoiceLine {
+	return &i
 }
 
 type StandardLine struct {
@@ -287,6 +348,14 @@ func (i *StandardLine) SetDeletedAt(at *time.Time) {
 	i.DeletedAt = at
 }
 
+func (i *StandardLine) SetManagedBy(managedBy InvoiceLineManagedBy) {
+	i.ManagedBy = managedBy
+}
+
+func (i *StandardLine) SetEngine(engine LineEngineType) {
+	i.Engine = engine
+}
+
 func (i *StandardLine) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
 	period := i.Period
 	fn(&period)
@@ -295,6 +364,14 @@ func (i *StandardLine) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
 
 func (i StandardLine) GetInvoiceID() string {
 	return i.InvoiceID
+}
+
+func (i StandardLine) GetEngine() LineEngineType {
+	return i.Engine
+}
+
+func (i StandardLine) GetLineEngineType() LineEngineType {
+	return i.Engine
 }
 
 func (i StandardLine) GetChildUniqueReferenceID() *string {
@@ -310,6 +387,10 @@ func (i StandardLine) AsInvoiceLine() InvoiceLine {
 		t:            InvoiceLineTypeStandard,
 		standardLine: &i,
 	}
+}
+
+func (i *StandardLine) AsGenericLine() GenericInvoiceLine {
+	return &standardInvoiceLineGenericWrapper{StandardLine: i}
 }
 
 func (i StandardLine) GetQuantity() *alpacadecimal.Decimal {
@@ -406,7 +487,7 @@ func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
 		InvoiceAt:              i.InvoiceAt,
 		Price:                  lo.FromPtr(i.UsageBased.Price),
 		FeatureKey:             i.UsageBased.FeatureKey,
-		TaxConfig:              i.TaxConfig,
+		TaxConfig:              i.TaxConfig.ToProductCatalog(),
 		RateCardDiscounts:      i.RateCardDiscounts,
 		ChildUniqueReferenceID: i.ChildUniqueReferenceID,
 		Subscription:           i.Subscription,
@@ -520,6 +601,17 @@ func (i StandardLine) GetRateCardDiscounts() Discounts {
 	return i.RateCardDiscounts
 }
 
+// GetUnitConfig returns the unit_config snapshot captured at billing time, so
+// re-rating converts from raw metered quantities exactly as the original rating
+// did — even if the originating rate card's unit_config was edited since.
+func (i StandardLine) GetUnitConfig() *productcatalog.UnitConfig {
+	if i.UsageBased == nil {
+		return nil
+	}
+
+	return i.UsageBased.UnitConfig
+}
+
 func (i StandardLine) GetServicePeriod() timeutil.ClosedPeriod {
 	return timeutil.ClosedPeriod{
 		From: i.Period.From,
@@ -529,10 +621,6 @@ func (i StandardLine) GetServicePeriod() timeutil.ClosedPeriod {
 
 func (i StandardLine) GetSplitLineGroupID() *string {
 	return i.SplitLineGroupID
-}
-
-func (i StandardLine) GetInvoiceAt() time.Time {
-	return i.InvoiceAt
 }
 
 func (i StandardLine) GetSubscriptionReference() *SubscriptionReference {
@@ -621,12 +709,6 @@ func (i StandardLine) Validate() error {
 
 	if err := i.DetailedLines.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("detailed lines: %w", err))
-	}
-
-	for _, detailedLine := range i.DetailedLines {
-		if detailedLine.Currency != i.Currency {
-			errs = append(errs, fmt.Errorf("detailed line[%s]: currency[%s] is not equal to line currency[%s]", detailedLine.ID, detailedLine.Currency, i.Currency))
-		}
 	}
 
 	if err := i.UsageBased.Validate(); err != nil {
@@ -768,7 +850,7 @@ type NewFlatFeeLineInput struct {
 	Annotations models.Annotations
 	Description *string
 
-	Currency currencyx.Code
+	Currency currencyx.FiatCode
 
 	ManagedBy InvoiceLineManagedBy
 
@@ -1003,6 +1085,11 @@ type UsageBasedLine struct {
 
 	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
 	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"meteredPreLinePeriodQuantity,omitempty"`
+
+	// UnitConfig is the unit_config snapshot captured at billing time.
+	// It is nil for lines billed before unit_config was introduced, or for lines
+	// on prices that do not support unit conversion.
+	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
 }
 
 func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {

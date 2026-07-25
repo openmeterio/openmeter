@@ -93,6 +93,19 @@ enum CreditGrantStatus {
 }
 
 /**
+ * Describes how voiding a credit grant adjusts related payment state.
+ *
+ * - `none`: Voiding does not adjust invoices, payment authorization, settlement,
+ *   payment intents, or external collection state.
+ */
+@friendlyName("BillingCreditGrantVoidPaymentAdjustment")
+@summary("Credit grant void payment adjustment")
+enum CreditGrantVoidPaymentAdjustment {
+  // No payment state is adjusted by the void operation.
+  None: "none",
+}
+
+/**
  * Tax configuration for a credit grant.
  *
  * Tax configuration should be provided to ensure correct revenue recognition,
@@ -104,7 +117,7 @@ model CreditGrantTaxConfig {
   /**
    * Tax behavior applied to the invoice line item.
    */
-  behavior?: Billing.TaxBehavior;
+  behavior?: Common.BillingRoot.TaxBehavior;
 
   /**
    * Tax code applied to the invoice line item.
@@ -177,13 +190,13 @@ model CreditGrant {
   @maxValue(1000)
   priority?: int16 = 10;
 
-  // /**
-  //  * The timestamp when the credit grant becomes effective.
-  //  *
-  //  * Defaults to the current date and time.
-  //  */
-  // @visibility(Lifecycle.Create, Lifecycle.Read)
-  // effective_at?: Shared.DateTime;
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  effective_at?: Shared.DateTime;
 
   /**
    * The duration after which the credit grant expires.
@@ -192,6 +205,16 @@ model CreditGrant {
    */
   @visibility(Lifecycle.Create)
   expires_after?: Shared.ISO8601Duration;
+
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * Unique per customer: reusing the same key for the same customer returns an HTTP
+   * 409 Conflict instead of creating a duplicate grant, which makes create requests
+   * safe to retry. The same key may be reused across different customers.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  key?: Shared.ExternalResourceKey;
 
   /**
    * The timestamp when the credit grant expires.

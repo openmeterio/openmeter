@@ -45,7 +45,7 @@ func runDeltaRatingTestCase(t *testing.T, tc deltaRatingTestCase) {
 	}
 
 	intent := ratingtestutils.NewIntentForTest(t, fullServicePeriod, tc.price, tc.discounts)
-	engine := New(billingratingservice.New())
+	engine := New(billingratingservice.New(billingratingservice.Config{}))
 	bookedDetailedLinesByPhase := make([]usagebased.DetailedLines, len(tc.phases))
 
 	for phaseIdx, phase := range tc.phases {

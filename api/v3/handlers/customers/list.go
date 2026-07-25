@@ -65,7 +65,10 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 						},
 					})
 				}
-				orderBy = sort.Field
+				orderBy, err = FromAPICustomerSortField(ctx, sort.Field)
+				if err != nil {
+					return ListCustomersRequest{}, err
+				}
 				order = sort.Order.ToSortxOrder()
 			}
 

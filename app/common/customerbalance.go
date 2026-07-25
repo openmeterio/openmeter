@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 )
 
@@ -23,6 +24,7 @@ func NewCustomerBalanceService(
 	accountService ledgeraccount.Service,
 	billingRegistry BillingRegistry,
 	breakageService ledgerbreakage.Service,
+	creditVoidService creditvoid.Service,
 ) (customerbalance.Service, error) {
 	if !creditsConfig.Enabled {
 		return customerbalance.NewNoopService(), nil
@@ -37,6 +39,7 @@ func NewCustomerBalanceService(
 		Ledger:            historicalLedger,
 		BalanceQuerier:    balanceQuerier,
 		Breakage:          breakageService,
+		CreditVoid:        creditVoidService,
 	})
 }
 

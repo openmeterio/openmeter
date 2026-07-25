@@ -39,10 +39,11 @@ type Config[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] st
 type StateMachine[CHARGE any] interface {
 	AdvanceUntilStateStable(ctx context.Context) (*CHARGE, error)
 	CanFire(ctx context.Context, trigger meta.Trigger) (bool, error)
-	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error
+	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error
 	GetCharge() CHARGE
-	InvoicePatches() []invoiceupdater.Patch
-	DrainInvoicePatches() []invoiceupdater.Patch
+	InvoicePatches() invoiceupdater.Patches
+	DrainInvoicePatches() invoiceupdater.Patches
+	RefetchCharge(ctx context.Context) error
 }
 
 func (c Config[CHARGE, BASE, STATUS]) Validate() error {
@@ -63,7 +64,7 @@ type Machine[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] s
 	Charge         CHARGE
 	stateMachine   *stateless.StateMachine
 	config         Config[CHARGE, BASE, STATUS]
-	invoicePatches []invoiceupdater.Patch
+	invoicePatches invoiceupdater.Patches
 }
 
 func New[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status](config Config[CHARGE, BASE, STATUS]) (*Machine[CHARGE, BASE, STATUS], error) {
@@ -108,11 +109,11 @@ func (m *Machine[CHARGE, BASE, STATUS]) GetCharge() CHARGE {
 	return m.Charge
 }
 
-func (m *Machine[CHARGE, BASE, STATUS]) InvoicePatches() []invoiceupdater.Patch {
+func (m *Machine[CHARGE, BASE, STATUS]) InvoicePatches() invoiceupdater.Patches {
 	return slices.Clone(m.invoicePatches)
 }
 
-func (m *Machine[CHARGE, BASE, STATUS]) DrainInvoicePatches() []invoiceupdater.Patch {
+func (m *Machine[CHARGE, BASE, STATUS]) DrainInvoicePatches() invoiceupdater.Patches {
 	patches := m.invoicePatches
 	m.invoicePatches = nil
 	return patches
@@ -124,7 +125,20 @@ func (m *Machine[CHARGE, BASE, STATUS]) AddInvoicePatch(patches ...invoiceupdate
 
 var ErrUnsupportedOperation = models.NewGenericPreConditionFailedError(fmt.Errorf("unsupported operation"))
 
-func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
+func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error {
+	fireArgs := make([]any, 0, len(args))
+	for _, arg := range args {
+		if arg == nil {
+			return fmt.Errorf("trigger %s argument: argument is required", trigger)
+		}
+
+		if err := arg.Validate(); err != nil {
+			return fmt.Errorf("trigger %s argument: %w", trigger, err)
+		}
+
+		fireArgs = append(fireArgs, arg)
+	}
+
 	canFire, err := m.CanFire(ctx, trigger)
 	if err != nil {
 		return err
@@ -140,7 +154,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, tri
 		)
 	}
 
-	if err := m.stateMachine.FireCtx(ctx, trigger, args...); err != nil {
+	if err := m.stateMachine.FireCtx(ctx, trigger, fireArgs...); err != nil {
 		return err
 	}
 

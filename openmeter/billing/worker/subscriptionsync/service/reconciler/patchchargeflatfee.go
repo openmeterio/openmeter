@@ -3,8 +3,6 @@ package reconciler
 import (
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesflatfee "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -12,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type flatFeeChargeCollection struct {
@@ -34,24 +33,14 @@ func (c *flatFeeChargeCollection) AddCreate(target targetstate.StateItem) error 
 }
 
 func (c *flatFeeChargeCollection) AddShrink(_ string, existing persistedstate.Item, target targetstate.StateItem) error {
-	existingCharge, ok := existing.(persistedstate.FlatFeeChargeGetter)
+	_, ok := existing.(persistedstate.FlatFeeChargeGetter)
 	if !ok {
 		return fmt.Errorf("existing item is not a flat fee charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
 	}
 
-	if existingCharge.GetFlatFeeCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
-		intent, err := newFlatFeeChargeIntent(target)
-		if err != nil {
-			return err
-		}
-
-		return c.addEmulatedReplacement(existing, intent)
-	}
-
-	targetServicePeriod := target.GetServicePeriod()
-
 	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
-		NewServicePeriodTo:     targetServicePeriod.To,
+		ChangeSource:           billing.ChangeSourceSystem,
+		NewServicePeriodTo:     target.GetServicePeriod().To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,
 		NewInvoiceAt:           target.GetInvoiceAt(),
@@ -64,24 +53,14 @@ func (c *flatFeeChargeCollection) AddShrink(_ string, existing persistedstate.It
 }
 
 func (c *flatFeeChargeCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
-	existingCharge, ok := existing.(persistedstate.FlatFeeChargeGetter)
+	_, ok := existing.(persistedstate.FlatFeeChargeGetter)
 	if !ok {
 		return fmt.Errorf("existing item is not a flat fee charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
 	}
 
-	if existingCharge.GetFlatFeeCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
-		intent, err := newFlatFeeChargeIntent(target)
-		if err != nil {
-			return err
-		}
-
-		return c.addEmulatedReplacement(existing, intent)
-	}
-
-	targetServicePeriod := target.GetServicePeriod()
-
 	patch, err := chargesmeta.NewPatchExtend(chargesmeta.NewPatchExtendInput{
-		NewServicePeriodTo:     targetServicePeriod.To,
+		ChangeSource:           billing.ChangeSourceSystem,
+		NewServicePeriodTo:     target.GetServicePeriod().To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,
 		NewInvoiceAt:           target.GetInvoiceAt(),
@@ -105,21 +84,47 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 		return charges.ChargeIntent{}, fmt.Errorf("converting price to flat: %w", err)
 	}
 
-	baseIntent, err := newChargeIntentBaseFromTargetState(target)
+	annotations, err := target.SubscriptionItem.Annotations.Clone()
 	if err != nil {
 		return charges.ChargeIntent{}, err
 	}
 
-	intent := charges.NewChargeIntent(chargesflatfee.Intent{
-		Intent:                baseIntent,
-		InvoiceAt:             target.GetInvoiceAt(),
-		SettlementMode:        target.Subscription.SettlementMode,
-		PaymentTerm:           flatPrice.PaymentTerm,
-		FeatureKey:            lo.FromPtr(rateCardMeta.FeatureKey),
-		PercentageDiscounts:   rateCardMeta.Discounts.Percentage,
-		ProRating:             target.Subscription.ProRatingConfig,
-		AmountBeforeProration: flatPrice.Amount,
-	})
-
-	return intent, nil
+	return charges.NewChargeIntent(chargesflatfee.Intent{
+		Intent: chargesmeta.Intent{
+			ManagedBy:         billing.SubscriptionManagedLine,
+			CustomerID:        target.Subscription.CustomerId,
+			Annotations:       annotations,
+			Currency:          target.Currency,
+			UniqueReferenceID: &target.UniqueID,
+			TaxConfig:         productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
+			Subscription: &chargesmeta.SubscriptionReference{
+				SubscriptionID: target.Subscription.ID,
+				PhaseID:        target.PhaseID,
+				ItemID:         target.SubscriptionItem.ID,
+			},
+		},
+		IntentMutableFields: chargesflatfee.IntentMutableFields{
+			IntentMutableFields: chargesmeta.IntentMutableFields{
+				Name:          rateCardMeta.Name,
+				Description:   rateCardMeta.Description,
+				Metadata:      target.SubscriptionItem.Metadata.Clone(),
+				ServicePeriod: target.GetServicePeriod(),
+				FullServicePeriod: timeutil.ClosedPeriod{
+					From: target.FullServicePeriod.From,
+					To:   target.FullServicePeriod.To,
+				},
+				BillingPeriod: timeutil.ClosedPeriod{
+					From: target.BillingPeriod.From,
+					To:   target.BillingPeriod.To,
+				},
+			},
+			InvoiceAt:             target.GetInvoiceAt(),
+			PaymentTerm:           flatPrice.PaymentTerm,
+			PercentageDiscounts:   billing.DiscountsFromProductCatalog(rateCardMeta.Discounts).UpsertCorrelationIDs().Percentage,
+			ProRating:             target.Subscription.ProRatingConfig,
+			AmountBeforeProration: flatPrice.Amount,
+		},
+		FeatureKey:     rateCardMeta.FeatureKey,
+		SettlementMode: target.Subscription.SettlementMode,
+	}), nil
 }

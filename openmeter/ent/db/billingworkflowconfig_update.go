@@ -210,6 +210,20 @@ func (_u *BillingWorkflowConfigUpdate) SetNillableInvoiceProgressiveBilling(v *b
 	return _u
 }
 
+// SetSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field.
+func (_u *BillingWorkflowConfigUpdate) SetSubscriptionEndProrationMode(v billing.SubscriptionEndProrationMode) *BillingWorkflowConfigUpdate {
+	_u.mutation.SetSubscriptionEndProrationMode(v)
+	return _u
+}
+
+// SetNillableSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdate) SetNillableSubscriptionEndProrationMode(v *billing.SubscriptionEndProrationMode) *BillingWorkflowConfigUpdate {
+	if v != nil {
+		_u.SetSubscriptionEndProrationMode(*v)
+	}
+	return _u
+}
+
 // SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
 func (_u *BillingWorkflowConfigUpdate) SetInvoiceDefaultTaxSettings(v productcatalog.TaxConfig) *BillingWorkflowConfigUpdate {
 	_u.mutation.SetInvoiceDefaultTaxSettings(v)
@@ -382,6 +396,11 @@ func (_u *BillingWorkflowConfigUpdate) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.SubscriptionEndProrationMode(); ok {
+		if err := billingworkflowconfig.SubscriptionEndProrationModeValidator(v); err != nil {
+			return &ValidationError{Name: "subscription_end_proration_mode", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.subscription_end_proration_mode": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.InvoiceDefaultTaxSettings(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
@@ -443,6 +462,9 @@ func (_u *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if value, ok := _u.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SubscriptionEndProrationMode(); ok {
+		_spec.SetField(billingworkflowconfig.FieldSubscriptionEndProrationMode, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.InvoiceDefaultTaxSettings(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON, value)
@@ -739,6 +761,20 @@ func (_u *BillingWorkflowConfigUpdateOne) SetNillableInvoiceProgressiveBilling(v
 	return _u
 }
 
+// SetSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field.
+func (_u *BillingWorkflowConfigUpdateOne) SetSubscriptionEndProrationMode(v billing.SubscriptionEndProrationMode) *BillingWorkflowConfigUpdateOne {
+	_u.mutation.SetSubscriptionEndProrationMode(v)
+	return _u
+}
+
+// SetNillableSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdateOne) SetNillableSubscriptionEndProrationMode(v *billing.SubscriptionEndProrationMode) *BillingWorkflowConfigUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionEndProrationMode(*v)
+	}
+	return _u
+}
+
 // SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
 func (_u *BillingWorkflowConfigUpdateOne) SetInvoiceDefaultTaxSettings(v productcatalog.TaxConfig) *BillingWorkflowConfigUpdateOne {
 	_u.mutation.SetInvoiceDefaultTaxSettings(v)
@@ -924,6 +960,11 @@ func (_u *BillingWorkflowConfigUpdateOne) check() error {
 			return &ValidationError{Name: "invoice_collection_method", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_collection_method": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.SubscriptionEndProrationMode(); ok {
+		if err := billingworkflowconfig.SubscriptionEndProrationModeValidator(v); err != nil {
+			return &ValidationError{Name: "subscription_end_proration_mode", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.subscription_end_proration_mode": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.InvoiceDefaultTaxSettings(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
@@ -1002,6 +1043,9 @@ func (_u *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if value, ok := _u.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SubscriptionEndProrationMode(); ok {
+		_spec.SetField(billingworkflowconfig.FieldSubscriptionEndProrationMode, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.InvoiceDefaultTaxSettings(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON, value)

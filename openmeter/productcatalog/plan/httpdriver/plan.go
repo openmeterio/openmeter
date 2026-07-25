@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -51,13 +52,14 @@ func (h *handler) ListPlans() ListPlansHandler {
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
-				Namespaces:     []string{ns},
-				IDs:            lo.FromPtr(params.Id),
-				Keys:           lo.FromPtr(params.Key),
-				KeyVersions:    lo.FromPtr(params.KeyVersion),
-				IncludeDeleted: lo.FromPtr(params.IncludeDeleted),
-				Currencies:     lo.FromPtr(params.Currency),
-				Status:         statusFilter,
+				Namespaces:        []string{ns},
+				IDs:               lo.FromPtr(params.Id),
+				Keys:              lo.FromPtr(params.Key),
+				KeyVersions:       lo.FromPtr(params.KeyVersion),
+				IncludeDeleted:    lo.FromPtr(params.IncludeDeleted),
+				Currencies:        lo.FromPtr(params.Currency),
+				Status:            statusFilter,
+				ExcludeUnitConfig: true,
 			}
 
 			return req, nil
@@ -121,10 +123,6 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
 			}
 
-			if !h.credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-			}
-
 			req.NamespacedModel = models.NamespacedModel{
 				Namespace: ns,
 			}
@@ -134,6 +132,11 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request CreatePlanRequest) (CreatePlanResponse, error) {
+			creditEnabled := featuregate.ContextResolver().Credits(ctx)
+			if !creditEnabled && request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				return CreatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
+
 			p, err := h.service.CreatePlan(ctx, request)
 			if err != nil {
 				return CreatePlanResponse{}, fmt.Errorf("failed to create plan: %w", err)
@@ -180,15 +183,17 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 			}
 
 			req.IgnoreNonCriticalIssues = true
-
-			// Validate credit_only settlement mode when credits are disabled
-			if !h.credits.Enabled && req.SettlementMode != nil && *req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-				return UpdatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-			}
+			req.RejectUnitConfig = true
 
 			return req, nil
 		},
 		func(ctx context.Context, request UpdatePlanRequest) (UpdatePlanResponse, error) {
+			// Validate credit_only settlement mode when credits are disabled
+			creditEnabled := featuregate.ContextResolver().Credits(ctx)
+			if !creditEnabled && request.SettlementMode != nil && *request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				return UpdatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
+
 			p, err := h.service.UpdatePlan(ctx, request)
 			if err != nil {
 				return UpdatePlanResponse{}, fmt.Errorf("failed to update plan: %w", err)
@@ -288,6 +293,10 @@ func (h *handler) GetPlan() GetPlanHandler {
 				return GetPlanResponse{}, fmt.Errorf("failed to get plan: %w", err)
 			}
 
+			if p.HasUnitConfig() {
+				return GetPlanResponse{}, productcatalog.ErrUnitConfigNotRepresentable
+			}
+
 			return FromPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
@@ -323,6 +332,7 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 				EffectivePeriod: productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(clock.Now()),
 				},
+				RejectUnitConfig: true,
 			}
 
 			return req, nil
@@ -365,7 +375,8 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 					Namespace: ns,
 					ID:        planID,
 				},
-				EffectiveTo: clock.Now(),
+				EffectiveTo:      clock.Now(),
+				RejectUnitConfig: true,
 			}
 
 			return req, nil
@@ -411,8 +422,9 @@ func (h *handler) NextPlan() NextPlanHandler {
 					Namespace: ns,
 					ID:        idOrKey.ID,
 				},
-				Key:     idOrKey.Key,
-				Version: 0,
+				Key:              idOrKey.Key,
+				Version:          0,
+				RejectUnitConfig: true,
 			}
 
 			return req, nil

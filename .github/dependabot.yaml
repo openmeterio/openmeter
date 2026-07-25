@@ -5,6 +5,8 @@ updates:
     directories:
       - "/"
       - "/collector"
+      - "/e2e"
+      - "/api/v3/client"
     open-pull-requests-limit: 10
     schedule:
       interval: daily

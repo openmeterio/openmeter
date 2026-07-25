@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stripe/stripe-go/v80"
@@ -19,14 +20,56 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
+
+func (s *StripeInvoiceTestSuite) TestInvoiceFundedCreditGrantRequiresStripeCustomerData() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("stripe-credit-grant-missing-customer-data")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	stripeApp, err := s.Fixture.setupApp(ctx, ns)
+	s.NoError(err)
+
+	cust := s.createStripeLedgerBackedCustomer(ctx, ns, "test-subject")
+
+	s.ProvisionBillingProfile(ctx, ns, stripeApp.GetID(),
+		billingtest.WithManualApproval(),
+	)
+
+	_, err = s.CreditGrant.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "Invoice-funded credit grant",
+		Currency:      currencyx.Code("USD"),
+		Amount:        alpacadecimal.NewFromInt(10),
+		FundingMethod: creditgrant.FundingMethodInvoice,
+		Purchase: &creditgrant.PurchaseTerms{
+			Currency:         currencyx.Code("USD"),
+			PerUnitCostBasis: lo.ToPtr(alpacadecimal.NewFromInt(1)),
+		},
+	})
+	s.Error(err)
+	s.ErrorContains(err, "invalid billing setup")
+	s.ErrorContains(err, "customer has no data for stripe app")
+	s.True(models.IsGenericPreConditionFailedError(err))
+
+	invoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+		Namespaces: []string{ns},
+	})
+	s.NoError(err)
+	s.Empty(invoices.Items)
+}
 
 func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBillingCreditAllocation() {
 	t := s.T()
@@ -81,7 +124,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 					servicePeriod: timeutil.ClosedPeriod{From: setupAt, To: setupAt},
 					settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  currencyx.Code("USD"),
+							Currency:  currencyx.FiatCode("USD"),
 							CostBasis: costBasis,
 						},
 						InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -143,13 +186,18 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 		s.NoError(err)
 		s.Len(partialInvoice.Lines.OrEmpty(), 1)
 
+		cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(currencyx.Code(currency.USD)).
+			Build()
+		s.NoError(err)
+
 		partialLine := partialInvoice.Lines.OrEmpty()[0]
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       5,
 			CreditsTotal: 5,
 			Total:        0,
 		}, partialLine.Totals)
-		s.Equal(float64(5), partialLine.CreditsApplied.SumAmount(lo.Must(currencyx.Code("USD").Calculator())).InexactFloat64())
+		s.Equal(float64(5), partialLine.CreditsApplied.SumAmount(cur).InexactFloat64())
 
 		s.expectStripeInvoiceCreate(stripeApp.GetID(), cust.GetID(), partialInvoice.ID, customerData.StripeCustomerID, "stripe-partial-invoice-id")
 		s.expectStripeInvoiceAddLines("stripe-partial-invoice-id", []expectedStripeInvoiceItem{
@@ -206,13 +254,18 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 		s.NoError(err)
 		s.Len(finalInvoice.Lines.OrEmpty(), 1)
 
+		cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(currencyx.Code(currency.USD)).
+			Build()
+		s.NoError(err)
+
 		finalLine := finalInvoice.Lines.OrEmpty()[0]
 		s.RequireTotals(billingtest.ExpectedTotals{
 			Amount:       15,
 			CreditsTotal: 2,
 			Total:        13,
 		}, finalLine.Totals)
-		s.Equal(float64(2), finalLine.CreditsApplied.SumAmount(lo.Must(currencyx.Code("USD").Calculator())).InexactFloat64())
+		s.Equal(float64(2), finalLine.CreditsApplied.SumAmount(cur).InexactFloat64())
 
 		s.expectStripeInvoiceCreate(stripeApp.GetID(), cust.GetID(), finalInvoice.ID, customerData.StripeCustomerID, "stripe-final-invoice-id")
 		s.expectStripeInvoiceAddLines("stripe-final-invoice-id", []expectedStripeInvoiceItem{
@@ -252,7 +305,7 @@ func (s *StripeInvoiceTestSuite) expectStripeInvoiceCreate(appID app.AppID, cust
 			InvoiceID:           invoiceID,
 			AutomaticTaxEnabled: true,
 			CollectionMethod:    billing.CollectionMethodChargeAutomatically,
-			Currency:            currencyx.Code("USD"),
+			Currency:            currencyx.FiatCode("USD"),
 			StripeCustomerID:    stripeCustomerID,
 		}).
 		Once().
@@ -328,19 +381,23 @@ func (s *StripeInvoiceTestSuite) createMockChargeIntent(input createMockChargeIn
 
 	return charges.NewChargeIntent(usagebased.Intent{
 		Intent: meta.Intent{
-			Name:              input.name,
 			ManagedBy:         input.managedBy,
-			ServicePeriod:     input.servicePeriod,
-			FullServicePeriod: input.servicePeriod,
-			BillingPeriod:     input.servicePeriod,
 			UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
 			CustomerID:        input.customer.ID,
-			Currency:          input.currency,
+			Currency:          currenciestestutils.NewFiatCurrency(s.T(), input.currency),
 		},
-		Price:          *input.price,
-		InvoiceAt:      input.servicePeriod.To,
-		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              input.name,
+				ServicePeriod:     input.servicePeriod,
+				FullServicePeriod: input.servicePeriod,
+				BillingPeriod:     input.servicePeriod,
+			},
+			Price:     *input.price,
+			InvoiceAt: input.servicePeriod.To,
+		},
 		FeatureKey:     input.featureKey,
+		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 	})
 }
 
@@ -362,16 +419,20 @@ func (s *StripeInvoiceTestSuite) createCreditPurchaseIntent(input createCreditPu
 
 	return charges.NewChargeIntent(creditpurchase.Intent{
 		Intent: meta.Intent{
-			Name:              "Credit Purchase",
-			ManagedBy:         billing.ManuallyManagedLine,
-			CustomerID:        input.customer.ID,
-			Currency:          input.currency,
-			ServicePeriod:     input.servicePeriod,
-			BillingPeriod:     input.servicePeriod,
-			FullServicePeriod: input.servicePeriod,
+			ManagedBy:  billing.ManuallyManagedLine,
+			CustomerID: input.customer.ID,
+			Currency:   currenciestestutils.NewFiatCurrency(s.T(), input.currency),
 		},
-		CreditAmount: input.amount,
-		Settlement:   input.settlement,
+		IntentMutableFields: creditpurchase.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "Credit Purchase",
+				ServicePeriod:     input.servicePeriod,
+				BillingPeriod:     input.servicePeriod,
+				FullServicePeriod: input.servicePeriod,
+			},
+			CreditAmount: input.amount,
+			Settlement:   input.settlement,
+		},
 	})
 }
 

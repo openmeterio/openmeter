@@ -14167,12 +14167,29 @@ components:
           type: boolean
           description: Should progressive billing be allowed for this workflow?
           default: true
+        subscriptionEndProrationMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowInvoicingSubscriptionEndProrationMode'
+          description: Controls how subscription-ending shortened service periods are billed.
+          default: bill_actual_period
         defaultTaxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
-          description: Default tax configuration to apply to the invoices.
+          description: |-
+            Default tax configuration to apply to the invoices.
+
+            Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
+            deprecated and can no longer be added or changed: the organization default tax code is
+            used instead. Existing tax-code values may still be removed, and `behavior` remains
+            fully supported.
       description: BillingWorkflowInvoicingSettings represents the invoice settings for a billing workflow
       title: Workflow invoice settings
+    BillingWorkflowInvoicingSubscriptionEndProrationMode:
+      type: string
+      enum:
+        - bill_full_period
+        - bill_actual_period
+      description: Billing workflow subscription end proration mode.
     BillingWorkflowPaymentSettings:
       type: object
       properties:
@@ -19756,6 +19773,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingDiscounts'
           description: The discounts that are applied to the line.
+          deprecated: true
       description: InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
     InvoiceWorkflowInvoicingSettingsReplaceUpdate:
       type: object
@@ -19778,10 +19796,21 @@ components:
             With some payment solutions it's only applicable for manual collection method.
           example: P30D
           default: P30D
+        subscriptionEndProrationMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowInvoicingSubscriptionEndProrationMode'
+          description: Controls how subscription-ending shortened service periods are billed.
+          default: bill_actual_period
         defaultTaxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
-          description: Default tax configuration to apply to the invoices.
+          description: |-
+            Default tax configuration to apply to the invoices.
+
+            Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
+            deprecated and can no longer be added or changed: the organization default tax code is
+            used instead. Existing tax-code values may still be removed, and `behavior` remains
+            fully supported.
       description: InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow.
     InvoiceWorkflowReplaceUpdate:
       type: object
@@ -22589,6 +22618,10 @@ components:
           format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
           example: '2023-01-01T01:01:01.001Z'
+        settlementMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: The settlement mode of the subscription.
       description: Change subscription based on plan.
     PlanSubscriptionCreate:
       type: object
@@ -22619,6 +22652,10 @@ components:
         description:
           type: string
           description: Description for the Subscription.
+        settlementMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: The settlement mode of the subscription.
         timing:
           allOf:
             - $ref: '#/components/schemas/SubscriptionTiming'
@@ -22641,10 +22678,6 @@ components:
           format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
           example: '2023-01-01T01:01:01.001Z'
-        settlementMode:
-          allOf:
-            - $ref: '#/components/schemas/BillingSettlementMode'
-          description: The settlement mode of the subscription.
       description: Create subscription based on plan.
       title: Create from plan
     PortalToken:

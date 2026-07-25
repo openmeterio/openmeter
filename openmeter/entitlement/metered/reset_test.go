@@ -205,6 +205,47 @@ func TestResetEntitlementUsage(t *testing.T) {
 			},
 		},
 		{
+			name: "Should error if requested reset time is the same minute as the last reset",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				ctx := t.Context()
+				startTime := getAnchor(t)
+				randName := testutils.NameGenerator.Generate()
+
+				// given:
+				// - a metered entitlement that has already been reset in a specific minute
+				// when:
+				// - reset is requested again inside the same minute
+				// then:
+				// - the second reset is rejected as a duplicate reset time
+
+				// create customer and subject
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
+				inp.MeasureUsageFrom = &startTime
+				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				require.NoError(t, err)
+
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
+
+				resetTime := startTime.Add(3*time.Hour + 10*time.Second)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
+				require.NoError(t, err)
+
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime.Truncate(time.Minute).Add(30 * time.Second),
+					})
+				assert.ErrorContains(t, err, "must be after last reset")
+			},
+		},
+		{
 			name: "Should invalidate snapshots after the reset time",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()

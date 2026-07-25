@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 // Plan-addon attach lifecycle: build a draft plan with two phases + a published
@@ -22,31 +22,31 @@ func TestV3PlanAddonAttachLifecycle(t *testing.T) {
 	standardPhase := validPlanPhase("standard", true /* isLast */)
 
 	planBody := validPlanRequest("test_v3_plan_addon_golden")
-	planBody.Phases = []apiv3.BillingPlanPhase{trialPhase, standardPhase}
+	planBody.Phases = []v3sdk.PlanPhaseInput{trialPhase, standardPhase}
 
 	addonBody := validAddonRequest("test_v3_plan_addon_golden_addon")
 
 	var planID, addonID, planAddonID string
 
 	t.Run("Should create a draft plan with two phases", func(t *testing.T) {
-		status, plan, problem := c.CreatePlan(planBody)
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		plan, err := c.Plans.Create(t.Context(), planBody)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, plan)
 		require.Len(t, plan.Phases, 2)
 
-		planID = plan.Id
+		planID = plan.ID
 	})
 
 	t.Run("Should create and publish the addon", func(t *testing.T) {
-		status, addon, problem := c.CreateAddon(addonBody)
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		addon, err := c.Addons.Create(t.Context(), addonBody)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, addon)
-		addonID = addon.Id
+		addonID = addon.ID
 
-		status, addon, problem = c.PublishAddon(addonID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		addon, err = c.Addons.Publish(t.Context(), addonID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, addon)
-		require.Equal(t, apiv3.AddonStatusActive, addon.Status)
+		require.Equal(t, v3sdk.AddonStatusActive, addon.Status)
 	})
 
 	t.Run("Should attach the addon to the plan at the standard phase", func(t *testing.T) {
@@ -55,38 +55,38 @@ func TestV3PlanAddonAttachLifecycle(t *testing.T) {
 
 		body := validPlanAddonRequest(standardPhase.Key, addonID)
 
-		status, planAddon, problem := c.AttachAddon(planID, body)
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		planAddon, err := c.PlanAddons.Create(t.Context(), planID, body)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, planAddon)
 
 		assert.Equal(t, standardPhase.Key, planAddon.FromPlanPhase)
-		assert.Equal(t, addonID, planAddon.Addon.Id)
+		assert.Equal(t, addonID, planAddon.Addon.ID)
 
-		planAddonID = planAddon.Id
+		planAddonID = planAddon.ID
 	})
 
 	t.Run("Should get the plan-addon junction", func(t *testing.T) {
 		require.NotEmpty(t, planAddonID)
 
-		status, planAddon, problem := c.GetPlanAddon(planID, planAddonID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		planAddon, err := c.PlanAddons.Get(t.Context(), planID, planAddonID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, planAddon)
 
-		assert.Equal(t, planAddonID, planAddon.Id)
+		assert.Equal(t, planAddonID, planAddon.ID)
 		assert.Equal(t, standardPhase.Key, planAddon.FromPlanPhase)
-		assert.Equal(t, addonID, planAddon.Addon.Id)
+		assert.Equal(t, addonID, planAddon.Addon.ID)
 	})
 
 	t.Run("Should list plan-addons and find the attached addon", func(t *testing.T) {
 		require.NotEmpty(t, planAddonID)
 
-		status, page, problem := c.ListPlanAddons(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		page, err := c.PlanAddons.List(t.Context(), planID, v3sdk.PlanAddonListParams{})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, page)
 
 		found := false
 		for _, pa := range page.Data {
-			if pa.Id == planAddonID {
+			if pa.ID == planAddonID {
 				found = true
 				break
 			}
@@ -97,13 +97,13 @@ func TestV3PlanAddonAttachLifecycle(t *testing.T) {
 	t.Run("Should update the junction to attach from the trial phase", func(t *testing.T) {
 		require.NotEmpty(t, planAddonID)
 
-		update := apiv3.UpsertPlanAddonRequest{
+		update := v3sdk.UpsertPlanAddonRequest{
 			Name:          "Test Plan Addon",
 			FromPlanPhase: trialPhase.Key,
 		}
 
-		status, planAddon, problem := c.UpdatePlanAddon(planID, planAddonID, update)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		planAddon, err := c.PlanAddons.Update(t.Context(), planID, planAddonID, update)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, planAddon)
 
 		assert.Equal(t, trialPhase.Key, planAddon.FromPlanPhase)
@@ -112,19 +112,19 @@ func TestV3PlanAddonAttachLifecycle(t *testing.T) {
 	t.Run("Should detach the addon from the plan", func(t *testing.T) {
 		require.NotEmpty(t, planAddonID)
 
-		status, _ := c.DetachAddon(planID, planAddonID)
-		assert.Equal(t, http.StatusNoContent, status)
+		err := c.PlanAddons.Delete(t.Context(), planID, planAddonID)
+		c.requireStatus(http.StatusNoContent, err)
 	})
 
 	t.Run("Should not find the junction in the list after detach", func(t *testing.T) {
 		require.NotEmpty(t, planAddonID)
 
-		status, page, problem := c.ListPlanAddons(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		page, err := c.PlanAddons.List(t.Context(), planID, v3sdk.PlanAddonListParams{})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, page)
 
 		for _, pa := range page.Data {
-			assert.NotEqual(t, planAddonID, pa.Id, "detached plan-addon still present in list")
+			assert.NotEqual(t, planAddonID, pa.ID, "detached plan-addon still present in list")
 		}
 	})
 }
@@ -144,42 +144,42 @@ func TestV3PlanAddonAttachLifecycle(t *testing.T) {
 func TestV3PlanAddonAttachStatusMatrix(t *testing.T) {
 	cases := []struct {
 		name             string
-		planStatus       apiv3.BillingPlanStatus
-		addonStatus      apiv3.AddonStatus
+		planStatus       v3sdk.PlanStatus
+		addonStatus      v3sdk.AddonStatus
 		expectedStatus   int
 		expectedDetailIn string // substring of Detail; empty when expectedStatus is 2xx
 	}{
 		{
 			name:           "draft plan + active addon → 201",
-			planStatus:     apiv3.BillingPlanStatusDraft,
-			addonStatus:    apiv3.AddonStatusActive,
+			planStatus:     v3sdk.PlanStatusDraft,
+			addonStatus:    v3sdk.AddonStatusActive,
 			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:             "active plan + active addon → 400 (plan must be draft or scheduled)",
-			planStatus:       apiv3.BillingPlanStatusActive,
-			addonStatus:      apiv3.AddonStatusActive,
+			planStatus:       v3sdk.PlanStatusActive,
+			addonStatus:      v3sdk.AddonStatusActive,
 			expectedStatus:   http.StatusBadRequest,
 			expectedDetailIn: "invalid active status, allowed statuses: [draft scheduled]",
 		},
 		{
 			name:             "archived plan + active addon → 400",
-			planStatus:       apiv3.BillingPlanStatusArchived,
-			addonStatus:      apiv3.AddonStatusActive,
+			planStatus:       v3sdk.PlanStatusArchived,
+			addonStatus:      v3sdk.AddonStatusActive,
 			expectedStatus:   http.StatusBadRequest,
 			expectedDetailIn: "invalid archived status, allowed statuses: [draft scheduled]",
 		},
 		{
 			name:             "draft plan + draft addon → 400 (addon must be active)",
-			planStatus:       apiv3.BillingPlanStatusDraft,
-			addonStatus:      apiv3.AddonStatusDraft,
+			planStatus:       v3sdk.PlanStatusDraft,
+			addonStatus:      v3sdk.AddonStatusDraft,
 			expectedStatus:   http.StatusBadRequest,
 			expectedDetailIn: "invalid draft status, allowed statuses: [active]",
 		},
 		{
 			name:             "draft plan + archived addon → 400",
-			planStatus:       apiv3.BillingPlanStatusDraft,
-			addonStatus:      apiv3.AddonStatusArchived,
+			planStatus:       v3sdk.PlanStatusDraft,
+			addonStatus:      v3sdk.AddonStatusArchived,
 			expectedStatus:   http.StatusBadRequest,
 			expectedDetailIn: "invalid archived status, allowed statuses: [active]",
 		},
@@ -193,13 +193,13 @@ func TestV3PlanAddonAttachStatusMatrix(t *testing.T) {
 			addon := makeAddonWithStatus(t, c, "matrix_addon", tc.addonStatus)
 
 			phaseKey := plan.Phases[0].Key
-			status, planAddon, problem := c.AttachAddon(plan.Id, validPlanAddonRequest(phaseKey, addon.Id))
-
-			assert.Equal(t, tc.expectedStatus, status, "problem: %+v", problem)
+			planAddon, err := c.PlanAddons.Create(t.Context(), plan.ID, validPlanAddonRequest(phaseKey, addon.ID))
 
 			if tc.expectedDetailIn != "" {
+				problem := requireProblem(t, err, tc.expectedStatus)
 				assertProblemDetail(t, problem, tc.expectedDetailIn)
 			} else {
+				c.requireStatus(tc.expectedStatus, err)
 				require.NotNil(t, planAddon)
 			}
 		})
@@ -213,35 +213,35 @@ func TestV3PlanAddonAttachStatusMatrix(t *testing.T) {
 func TestV3PlanAddonInstanceTypeMaxQuantityMatrix(t *testing.T) {
 	cases := []struct {
 		name           string
-		instanceType   apiv3.AddonInstanceType
-		maxQuantity    *int
+		instanceType   v3sdk.AddonInstanceType
+		maxQuantity    *int64
 		expectedStatus int
 		expectedRule   string // schema-layer rule (invalid_parameters)
 	}{
 		{
 			name:           "single + nil max_quantity → 201",
-			instanceType:   apiv3.AddonInstanceTypeSingle,
+			instanceType:   v3sdk.AddonInstanceTypeSingle,
 			maxQuantity:    nil,
 			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "multiple + nil max_quantity → 201",
-			instanceType:   apiv3.AddonInstanceTypeMultiple,
+			instanceType:   v3sdk.AddonInstanceTypeMultiple,
 			maxQuantity:    nil,
 			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "multiple + max_quantity=5 → 201",
-			instanceType:   apiv3.AddonInstanceTypeMultiple,
-			maxQuantity:    lo.ToPtr(5),
+			instanceType:   v3sdk.AddonInstanceTypeMultiple,
+			maxQuantity:    lo.ToPtr(int64(5)),
 			expectedStatus: http.StatusCreated,
 		},
 		{
 			// Caught by the TypeSpec binder (minimum: 1), not the domain
 			// validator — the schema layer fires first for max_quantity<1.
 			name:           "multiple + max_quantity=0 → 400 schema minimum",
-			instanceType:   apiv3.AddonInstanceTypeMultiple,
-			maxQuantity:    lo.ToPtr(0),
+			instanceType:   v3sdk.AddonInstanceTypeMultiple,
+			maxQuantity:    lo.ToPtr(int64(0)),
 			expectedStatus: http.StatusBadRequest,
 			expectedRule:   "minimum",
 		},
@@ -251,34 +251,36 @@ func TestV3PlanAddonInstanceTypeMaxQuantityMatrix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			c := newV3Client(t)
 
-			planStatus, plan, problem := c.CreatePlan(validPlanRequest("iq_plan"))
-			require.Equal(t, http.StatusCreated, planStatus, "create plan: %+v", problem)
+			plan, err := c.Plans.Create(t.Context(), validPlanRequest("iq_plan"))
+			c.requireStatus(http.StatusCreated, err)
 			require.NotNil(t, plan)
 
 			addonBody := validAddonRequest("iq_addon")
 			addonBody.InstanceType = tc.instanceType
 
-			addonStatus, addon, problem := c.CreateAddon(addonBody)
-			require.Equal(t, http.StatusCreated, addonStatus, "create addon: %+v", problem)
+			addon, err := c.Addons.Create(t.Context(), addonBody)
+			c.requireStatus(http.StatusCreated, err)
 			require.NotNil(t, addon)
 
-			pubStatus, published, problem := c.PublishAddon(addon.Id)
-			require.Equal(t, http.StatusOK, pubStatus, "publish addon: %+v", problem)
+			published, err := c.Addons.Publish(t.Context(), addon.ID)
+			c.requireStatus(http.StatusOK, err)
 			require.NotNil(t, published)
 
-			body := validPlanAddonRequest(plan.Phases[0].Key, addon.Id)
+			body := validPlanAddonRequest(plan.Phases[0].Key, addon.ID)
 			body.MaxQuantity = tc.maxQuantity
 
-			status, planAddon, problem := c.AttachAddon(plan.Id, body)
-			assert.Equal(t, tc.expectedStatus, status, "attach response: %+v", problem)
+			planAddon, err := c.PlanAddons.Create(t.Context(), plan.ID, body)
 
 			switch {
 			case tc.expectedRule != "":
+				problem := requireProblem(t, err, tc.expectedStatus)
 				assertInvalidParameterRule(t, problem, tc.expectedRule)
 			case tc.expectedStatus >= 400:
+				problem := requireProblem(t, err, tc.expectedStatus)
 				require.NotNil(t, problem, "expected a problem response")
 				assert.NotEmpty(t, problem.Detail, "expected problem.Detail to be populated")
 			default:
+				c.requireStatus(tc.expectedStatus, err)
 				require.NotNil(t, planAddon)
 			}
 		})
@@ -294,8 +296,8 @@ func TestV3PlanAddonDetachRulesByPlanStatus(t *testing.T) {
 
 		planID, planAddonID := setupAttachedPlanAddon(t, c, "detach_draft")
 
-		status, problem := c.DetachAddon(planID, planAddonID)
-		assert.Equal(t, http.StatusNoContent, status, "%+v", problem)
+		err := c.PlanAddons.Delete(t.Context(), planID, planAddonID)
+		c.requireStatus(http.StatusNoContent, err)
 	})
 
 	t.Run("detach from an active plan → 400", func(t *testing.T) {
@@ -303,11 +305,11 @@ func TestV3PlanAddonDetachRulesByPlanStatus(t *testing.T) {
 
 		planID, planAddonID := setupAttachedPlanAddon(t, c, "detach_active")
 
-		status, _, problem := c.PublishPlan(planID)
-		require.Equal(t, http.StatusOK, status, "publish plan: %+v", problem)
+		_, err := c.Plans.Publish(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 
-		status, problem = c.DetachAddon(planID, planAddonID)
-		assert.Equal(t, http.StatusBadRequest, status, "detach from active should reject: %+v", problem)
+		err = c.PlanAddons.Delete(t.Context(), planID, planAddonID)
+		requireProblem(t, err, http.StatusBadRequest)
 	})
 
 	t.Run("detach from a deleted plan → 400 'plan is deleted'", func(t *testing.T) {
@@ -318,15 +320,15 @@ func TestV3PlanAddonDetachRulesByPlanStatus(t *testing.T) {
 		planID, planAddonID := setupAttachedPlanAddon(t, c, "detach_deleted")
 
 		// Publish → archive → delete to reach the deleted state.
-		status, _, problem := c.PublishPlan(planID)
-		require.Equal(t, http.StatusOK, status, "publish: %+v", problem)
-		status, _, problem = c.ArchivePlan(planID)
-		require.Equal(t, http.StatusOK, status, "archive: %+v", problem)
-		status, problem = c.DeletePlan(planID)
-		require.Equal(t, http.StatusNoContent, status, "delete: %+v", problem)
+		_, err := c.Plans.Publish(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
+		_, err = c.Plans.Archive(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
+		err = c.Plans.Delete(t.Context(), planID)
+		c.requireStatus(http.StatusNoContent, err)
 
-		status, problem = c.DetachAddon(planID, planAddonID)
-		assert.Equal(t, http.StatusBadRequest, status, "detach from deleted: %+v", problem)
+		err = c.PlanAddons.Delete(t.Context(), planID, planAddonID)
+		problem := requireProblem(t, err, http.StatusBadRequest)
 		assertProblemDetail(t, problem, "plan is deleted")
 	})
 }
@@ -336,18 +338,18 @@ func TestV3PlanAddonDetachRulesByPlanStatus(t *testing.T) {
 func setupAttachedPlanAddon(t *testing.T, c *v3Client, keyPrefix string) (string, string) {
 	t.Helper()
 
-	status, plan, problem := c.CreatePlan(validPlanRequest(keyPrefix + "_plan"))
-	require.Equal(t, http.StatusCreated, status, "create plan: %+v", problem)
+	plan, err := c.Plans.Create(t.Context(), validPlanRequest(keyPrefix+"_plan"))
+	c.requireStatus(http.StatusCreated, err)
 
-	status, addon, problem := c.CreateAddon(validAddonRequest(keyPrefix + "_addon"))
-	require.Equal(t, http.StatusCreated, status, "create addon: %+v", problem)
-	status, _, problem = c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, status, "publish addon: %+v", problem)
+	addon, err := c.Addons.Create(t.Context(), validAddonRequest(keyPrefix+"_addon"))
+	c.requireStatus(http.StatusCreated, err)
+	_, err = c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
 
-	status, planAddon, problem := c.AttachAddon(plan.Id, validPlanAddonRequest(plan.Phases[0].Key, addon.Id))
-	require.Equal(t, http.StatusCreated, status, "attach: %+v", problem)
+	planAddon, err := c.PlanAddons.Create(t.Context(), plan.ID, validPlanAddonRequest(plan.Phases[0].Key, addon.ID))
+	c.requireStatus(http.StatusCreated, err)
 
-	return plan.Id, planAddon.Id
+	return plan.ID, planAddon.ID
 }
 
 // Publishing a plan whose attached addon is archived should be rejected.
@@ -358,39 +360,37 @@ func TestV3PlanAddonPublishAgainstArchivedAddon(t *testing.T) {
 
 	// Archive the attached addon. We need the addon ID — grab it from the
 	// plan's addon list.
-	status, list, problem := c.ListPlanAddons(planID)
-	require.Equal(t, http.StatusOK, status, "%+v", problem)
+	list, err := c.PlanAddons.List(t.Context(), planID, v3sdk.PlanAddonListParams{})
+	c.requireStatus(http.StatusOK, err)
 	require.Len(t, list.Data, 1)
-	addonID := list.Data[0].Addon.Id
+	addonID := list.Data[0].Addon.ID
 
-	status, _, problem = c.ArchiveAddon(addonID)
-	require.Equal(t, http.StatusOK, status, "archive addon: %+v", problem)
+	_, err = c.Addons.Archive(t.Context(), addonID)
+	c.requireStatus(http.StatusOK, err)
 
-	status, _, problem = c.PublishPlan(planID)
-	assert.Equal(t, http.StatusBadRequest, status, "publish against archived addon should reject: %+v", problem)
-	require.NotNil(t, problem)
+	_, err = c.Plans.Publish(t.Context(), planID)
+	requireProblem(t, err, http.StatusBadRequest)
 }
 
 // Attaching the same addon twice is rejected.
 func TestV3PlanAddonDuplicateAttachmentRejected(t *testing.T) {
 	c := newV3Client(t)
 
-	status, plan, problem := c.CreatePlan(validPlanRequest("dup_attach_plan"))
-	require.Equal(t, http.StatusCreated, status, "%+v", problem)
+	plan, err := c.Plans.Create(t.Context(), validPlanRequest("dup_attach_plan"))
+	c.requireStatus(http.StatusCreated, err)
 
-	status, addon, problem := c.CreateAddon(validAddonRequest("dup_attach_addon"))
-	require.Equal(t, http.StatusCreated, status, "%+v", problem)
-	status, _, problem = c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, status, "%+v", problem)
+	addon, err := c.Addons.Create(t.Context(), validAddonRequest("dup_attach_addon"))
+	c.requireStatus(http.StatusCreated, err)
+	_, err = c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
 
-	body := validPlanAddonRequest(plan.Phases[0].Key, addon.Id)
+	body := validPlanAddonRequest(plan.Phases[0].Key, addon.ID)
 
-	status, _, problem = c.AttachAddon(plan.Id, body)
-	require.Equal(t, http.StatusCreated, status, "first attach: %+v", problem)
+	_, err = c.PlanAddons.Create(t.Context(), plan.ID, body)
+	c.requireStatus(http.StatusCreated, err)
 
-	status, _, problem = c.AttachAddon(plan.Id, body)
-	assert.Equal(t, http.StatusConflict, status, "duplicate attach should be rejected: %+v", problem)
-	require.NotNil(t, problem)
+	_, err = c.PlanAddons.Create(t.Context(), plan.ID, body)
+	requireProblem(t, err, http.StatusConflict)
 }
 
 // Publishing a plan with an attached addon succeeds and the junction
@@ -398,36 +398,36 @@ func TestV3PlanAddonDuplicateAttachmentRejected(t *testing.T) {
 func TestV3PlanAddonPublishWithAttachedAddon(t *testing.T) {
 	c := newV3Client(t)
 
-	status, plan, problem := c.CreatePlan(validPlanRequest("publish_attached_plan"))
-	require.Equal(t, http.StatusCreated, status, "create plan: %+v", problem)
+	plan, err := c.Plans.Create(t.Context(), validPlanRequest("publish_attached_plan"))
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, plan)
 
-	status, addon, problem := c.CreateAddon(validAddonRequest("publish_attached_addon"))
-	require.Equal(t, http.StatusCreated, status, "create addon: %+v", problem)
+	addon, err := c.Addons.Create(t.Context(), validAddonRequest("publish_attached_addon"))
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, addon)
 
-	status, _, problem = c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, status, "publish addon: %+v", problem)
+	_, err = c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
 
-	status, planAddon, problem := c.AttachAddon(plan.Id, validPlanAddonRequest(plan.Phases[0].Key, addon.Id))
-	require.Equal(t, http.StatusCreated, status, "attach: %+v", problem)
+	planAddon, err := c.PlanAddons.Create(t.Context(), plan.ID, validPlanAddonRequest(plan.Phases[0].Key, addon.ID))
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, planAddon)
-	planAddonID := planAddon.Id
+	planAddonID := planAddon.ID
 
-	status, published, problem := c.PublishPlan(plan.Id)
-	require.Equal(t, http.StatusOK, status, "publish plan: %+v", problem)
+	published, err := c.Plans.Publish(t.Context(), plan.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, published)
-	assert.Equal(t, apiv3.BillingPlanStatusActive, published.Status)
+	assert.Equal(t, v3sdk.PlanStatusActive, published.Status)
 
-	status, page, problem := c.ListPlanAddons(plan.Id)
-	require.Equal(t, http.StatusOK, status, "list plan addons: %+v", problem)
+	page, err := c.PlanAddons.List(t.Context(), plan.ID, v3sdk.PlanAddonListParams{})
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, page)
 
 	found := false
 	for _, pa := range page.Data {
-		if pa.Id == planAddonID {
+		if pa.ID == planAddonID {
 			found = true
-			assert.Equal(t, addon.Id, pa.Addon.Id)
+			assert.Equal(t, addon.ID, pa.Addon.ID)
 			break
 		}
 	}
@@ -436,25 +436,25 @@ func TestV3PlanAddonPublishWithAttachedAddon(t *testing.T) {
 
 // makePlanWithStatus creates a plan and advances it to the requested lifecycle
 // state. Scheduled is intentionally unsupported: see TestV3PlanAddonAttachStatusMatrix.
-func makePlanWithStatus(t *testing.T, c *v3Client, keyPrefix string, target apiv3.BillingPlanStatus) *apiv3.BillingPlan {
+func makePlanWithStatus(t *testing.T, c *v3Client, keyPrefix string, target v3sdk.PlanStatus) *v3sdk.Plan {
 	t.Helper()
 
-	status, plan, problem := c.CreatePlan(validPlanRequest(keyPrefix))
-	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	plan, err := c.Plans.Create(t.Context(), validPlanRequest(keyPrefix))
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, plan)
 
 	switch target {
-	case apiv3.BillingPlanStatusDraft:
+	case v3sdk.PlanStatusDraft:
 		return plan
-	case apiv3.BillingPlanStatusActive:
-		status, plan, problem = c.PublishPlan(plan.Id)
-		require.Equal(t, http.StatusOK, status, "publish plan: %+v", problem)
+	case v3sdk.PlanStatusActive:
+		plan, err = c.Plans.Publish(t.Context(), plan.ID)
+		c.requireStatus(http.StatusOK, err)
 		return plan
-	case apiv3.BillingPlanStatusArchived:
-		status, plan, problem = c.PublishPlan(plan.Id)
-		require.Equal(t, http.StatusOK, status, "publish plan: %+v", problem)
-		status, plan, problem = c.ArchivePlan(plan.Id)
-		require.Equal(t, http.StatusOK, status, "archive plan: %+v", problem)
+	case v3sdk.PlanStatusArchived:
+		plan, err = c.Plans.Publish(t.Context(), plan.ID)
+		c.requireStatus(http.StatusOK, err)
+		plan, err = c.Plans.Archive(t.Context(), plan.ID)
+		c.requireStatus(http.StatusOK, err)
 		return plan
 	default:
 		t.Fatalf("unsupported plan target status %q", target)
@@ -464,25 +464,25 @@ func makePlanWithStatus(t *testing.T, c *v3Client, keyPrefix string, target apiv
 
 // makeAddonWithStatus creates an addon and advances it to the requested
 // lifecycle state.
-func makeAddonWithStatus(t *testing.T, c *v3Client, keyPrefix string, target apiv3.AddonStatus) *apiv3.Addon {
+func makeAddonWithStatus(t *testing.T, c *v3Client, keyPrefix string, target v3sdk.AddonStatus) *v3sdk.Addon {
 	t.Helper()
 
-	status, addon, problem := c.CreateAddon(validAddonRequest(keyPrefix))
-	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	addon, err := c.Addons.Create(t.Context(), validAddonRequest(keyPrefix))
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, addon)
 
 	switch target {
-	case apiv3.AddonStatusDraft:
+	case v3sdk.AddonStatusDraft:
 		return addon
-	case apiv3.AddonStatusActive:
-		status, addon, problem = c.PublishAddon(addon.Id)
-		require.Equal(t, http.StatusOK, status, "publish addon: %+v", problem)
+	case v3sdk.AddonStatusActive:
+		addon, err = c.Addons.Publish(t.Context(), addon.ID)
+		c.requireStatus(http.StatusOK, err)
 		return addon
-	case apiv3.AddonStatusArchived:
-		status, addon, problem = c.PublishAddon(addon.Id)
-		require.Equal(t, http.StatusOK, status, "publish addon: %+v", problem)
-		status, addon, problem = c.ArchiveAddon(addon.Id)
-		require.Equal(t, http.StatusOK, status, "archive addon: %+v", problem)
+	case v3sdk.AddonStatusArchived:
+		addon, err = c.Addons.Publish(t.Context(), addon.ID)
+		c.requireStatus(http.StatusOK, err)
+		addon, err = c.Addons.Archive(t.Context(), addon.ID)
+		c.requireStatus(http.StatusOK, err)
 		return addon
 	default:
 		t.Fatalf("unsupported addon target status %q", target)

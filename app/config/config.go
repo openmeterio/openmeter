@@ -52,6 +52,8 @@ type Configuration struct {
 	Apps               AppsConfiguration
 	Svix               SvixConfig
 	TaxCode            TaxCodeConfiguration
+	FeatureGate        FeatureGateConfiguration
+	UnitConfig         UnitConfigConfiguration
 }
 
 // Validate validates the configuration.
@@ -177,6 +179,16 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "taxcode"))
 	}
 
+	if c.FeatureGate.Enabled {
+		if err := c.FeatureGate.Flags.Validate(); err != nil {
+			errs = append(errs, errorsx.WithPrefix(err, "featuregate.flags"))
+		}
+	}
+
+	if err := c.UnitConfig.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "unitConfig"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -203,11 +215,7 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureTelemetry(v, flags)
 
 	ConfigurePostgres(v, "postgres")
-	// TODO: This is set to ensure backwards compatibility with the old config, however it should be removed in the future.
-	//
-	// In cloud this must never be explicitly set to prevent accidental behavior, so let's not add any kind of defaulting in
-	// the reusable config parts.
-	v.SetDefault("postgres.autoMigrate", "ent")
+	v.SetDefault("postgres.autoMigrate", "migration")
 
 	ConfigureNamespace(v)
 	ConfigureIngest(v)
@@ -218,7 +226,6 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureEvents(v)
 	ConfigureBalanceWorker(v)
 	ConfigureNotification(v)
-	ConfigureCredits(v, "credits")
 	ConfigureBilling(v, flags)
 	ConfigureProductCatalog(v)
 	ConfigureApps(v, flags)
@@ -229,4 +236,6 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureCustomer(v, "customer")
 	ConfigureCredits(v, "credits")
 	ConfigureTaxCode(v)
+	ConfigureFeatureGate(v, "featureGate")
+	ConfigureUnitConfig(v, "unitConfig")
 }

@@ -14,8 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -81,19 +81,26 @@ func NewIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod, price p
 
 	intent := usagebased.Intent{
 		Intent: chargesmeta.Intent{
-			Name:              "usage-charge",
-			ManagedBy:         billing.SubscriptionManagedLine,
-			CustomerID:        "customer-1",
-			Currency:          currencyx.Code("USD"),
-			ServicePeriod:     servicePeriod,
-			FullServicePeriod: servicePeriod,
-			BillingPeriod:     servicePeriod,
+			ManagedBy:  billing.SubscriptionManagedLine,
+			CustomerID: "customer-1",
+			Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: "tax-code-id",
+			},
 		},
-		InvoiceAt:      servicePeriod.To,
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: chargesmeta.IntentMutableFields{
+				Name:              "usage-charge",
+				ServicePeriod:     servicePeriod,
+				FullServicePeriod: servicePeriod,
+				BillingPeriod:     servicePeriod,
+			},
+			InvoiceAt: servicePeriod.To,
+			Price:     price,
+			Discounts: billing.DiscountsFromProductCatalog(discounts).UpsertCorrelationIDs(),
+		},
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		FeatureKey:     "feature-1",
-		Price:          price,
-		Discounts:      discounts,
 	}
 
 	require.NoError(t, intent.Validate())

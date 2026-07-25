@@ -44,7 +44,7 @@ var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata | ConvertLabelsToMetadata
-	// goverter:map Workflow WorkflowConfig | FromAPIBillingWorkflow
+	// goverter:map Workflow WorkflowConfig | FromAPIBillingWorkflowCreate
 	FromAPICreateBillingProfileRequest func(namespace string, req api.CreateBillingProfileRequest) (billing.CreateProfileInput, error)
 	// goverter:context namespacedID
 	// goverter:map Namespace | ResolveNamespaceFromContext
@@ -69,7 +69,6 @@ var (
 	// goverter:ignore TaxCode
 	ToAPIBillingTaxConfig func(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error)
 	// goverter:map Stripe Stripe
-	// goverter:ignore TaxCode
 	FromAPIBillingTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
 
@@ -142,7 +141,12 @@ func ToAPIBillingParty(supplier billing.SupplierContact) api.BillingParty {
 		Name: &supplier.Name,
 	}
 
-	if supplier.Address.Country != nil {
+	// Emit the billing address whenever any address field is present. Gating on
+	// Country alone would drop line1/city/state/phone-only addresses from
+	// supplier snapshots, since every address field is optional in the API shape.
+	addr := supplier.Address
+	if addr.Country != nil || addr.PostalCode != nil || addr.State != nil ||
+		addr.City != nil || addr.Line1 != nil || addr.Line2 != nil || addr.PhoneNumber != nil {
 		party.Addresses = &api.BillingPartyAddresses{
 			BillingAddress: ToAPIAddress(supplier.Address),
 		}
@@ -155,6 +159,19 @@ func ToAPIBillingParty(supplier billing.SupplierContact) api.BillingParty {
 	}
 
 	return party
+}
+
+// ToAPIBillingSupplier converts billing.SupplierContact to the invoice's
+// BillingSupplier snapshot, a read-only subset of BillingParty.
+func ToAPIBillingSupplier(supplier billing.SupplierContact) api.BillingSupplier {
+	party := ToAPIBillingParty(supplier)
+
+	return api.BillingSupplier{
+		Id:        party.Id,
+		Name:      party.Name,
+		TaxId:     party.TaxId,
+		Addresses: party.Addresses,
+	}
 }
 
 // FromAPIBillingParty converts API BillingParty to billing.SupplierContact
@@ -215,9 +232,10 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 
 	// Invoicing settings
 	workflow.Invoicing = &api.BillingWorkflowInvoicingSettings{
-		AutoAdvance:        lo.ToPtr(config.Invoicing.AutoAdvance),
-		DraftPeriod:        lo.ToPtr(config.Invoicing.DraftPeriod.String()),
-		ProgressiveBilling: lo.ToPtr(config.Invoicing.ProgressiveBilling),
+		AutoAdvance:                  lo.ToPtr(config.Invoicing.AutoAdvance),
+		DraftPeriod:                  lo.ToPtr(config.Invoicing.DraftPeriod.String()),
+		ProgressiveBilling:           lo.ToPtr(config.Invoicing.ProgressiveBilling),
+		SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(config.Invoicing.SubscriptionEndProrationMode)),
 	}
 
 	// Tax settings
@@ -259,6 +277,15 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 
 // FromAPIBillingWorkflow converts API BillingWorkflow to billing.WorkflowConfig
 func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
+	return fromAPIBillingWorkflow(workflow, "")
+}
+
+// FromAPIBillingWorkflowCreate converts API BillingWorkflow to billing.WorkflowConfig for profile creation.
+func FromAPIBillingWorkflowCreate(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
+	return fromAPIBillingWorkflow(workflow, billing.DefaultWorkflowConfig.Invoicing.SubscriptionEndProrationMode)
+}
+
+func fromAPIBillingWorkflow(workflow api.BillingWorkflow, defaultSubscriptionEndProrationMode billing.SubscriptionEndProrationMode) (billing.WorkflowConfig, error) {
 	// Start with default configuration
 	def := billing.DefaultWorkflowConfig
 
@@ -347,6 +374,11 @@ func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfi
 		}
 	}
 
+	subscriptionEndProrationMode := defaultSubscriptionEndProrationMode
+	if workflow.Invoicing.SubscriptionEndProrationMode != nil {
+		subscriptionEndProrationMode = billing.SubscriptionEndProrationMode(*workflow.Invoicing.SubscriptionEndProrationMode)
+	}
+
 	return billing.WorkflowConfig{
 		Collection: billing.CollectionConfig{
 			Alignment:               alignment,
@@ -354,11 +386,12 @@ func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfi
 			Interval:                collInterval,
 		},
 		Invoicing: billing.InvoicingConfig{
-			AutoAdvance:        lo.FromPtrOr(workflow.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
-			DraftPeriod:        draftPeriod,
-			DueAfter:           dueAfter,
-			ProgressiveBilling: lo.FromPtrOr(workflow.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
-			DefaultTaxConfig:   defaultTaxConfig,
+			AutoAdvance:                  lo.FromPtrOr(workflow.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
+			DraftPeriod:                  draftPeriod,
+			DueAfter:                     dueAfter,
+			ProgressiveBilling:           lo.FromPtrOr(workflow.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
+			SubscriptionEndProrationMode: subscriptionEndProrationMode,
+			DefaultTaxConfig:             defaultTaxConfig,
 		},
 		Payment: billing.PaymentConfig{
 			CollectionMethod: collectionMethod,

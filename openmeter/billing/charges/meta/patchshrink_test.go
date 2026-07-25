@@ -6,13 +6,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestPatchShrinkValidateWith(t *testing.T) {
 	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	intent := Intent{
+	intent := IntentMutableFields{
 		ServicePeriod: timeutil.ClosedPeriod{
 			From: base,
 			To:   base.AddDate(0, 1, 0),
@@ -35,6 +36,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "allows service period shrink with unchanged full service and billing periods",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -44,6 +46,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "allows full service and billing period shrink",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To.Add(-time.Hour),
 				NewBillingPeriodTo:     intent.BillingPeriod.To.Add(-time.Hour),
@@ -53,6 +56,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "rejects unchanged service period end",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To,
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -63,6 +67,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "rejects later service period end",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -73,6 +78,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "rejects service period end at service period start",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.From,
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -83,6 +89,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "rejects service period end before service period start",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.From.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -93,6 +100,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "rejects later full service period end",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To.Add(time.Hour),
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -103,6 +111,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "rejects full service period end at full service period start",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.From,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -113,6 +122,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "rejects later billing period end",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To.Add(time.Hour),
@@ -123,6 +133,7 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 		{
 			name: "rejects billing period end at billing period start",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.From,
@@ -143,6 +154,39 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestNewPatchShrinkInputValidateRequiresChangeSource(t *testing.T) {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	_, err := NewPatchShrink(NewPatchShrinkInput{
+		NewServicePeriodTo:     base.AddDate(0, 1, 0),
+		NewFullServicePeriodTo: base.AddDate(0, 1, 0),
+		NewBillingPeriodTo:     base.AddDate(0, 1, 0),
+		NewInvoiceAt:           base.AddDate(0, 1, 0),
+	})
+	require.Error(t, err)
+}
+
+func TestPatchShrinkGetTargetLayer(t *testing.T) {
+	patch := PatchShrink{changeSource: billing.ChangeSourceSystem}
+
+	got, err := patch.GetTargetLayer(layeredIntentReaderForTest{
+		baseManagedBy: billing.SubscriptionManagedLine,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, ChangeTargetBase, got)
+}
+
+func TestPatchShrinkGetTargetLayerRejectsAPIChange(t *testing.T) {
+	patch := PatchShrink{changeSource: billing.ChangeSourceAPIRequest}
+
+	_, err := patch.GetTargetLayer(layeredIntentReaderForTest{
+		baseManagedBy: billing.SubscriptionManagedLine,
+	})
+
+	require.ErrorContains(t, err, "change source")
 }
 
 func mustNewPatchShrink(t *testing.T, input NewPatchShrinkInput) PatchShrink {

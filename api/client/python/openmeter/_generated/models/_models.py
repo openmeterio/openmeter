@@ -1697,7 +1697,16 @@ class BillingWorkflowInvoicingSettings(_Model):
     :vartype due_after: str
     :ivar progressive_billing: Should progressive billing be allowed for this workflow?.
     :vartype progressive_billing: bool
+    :ivar subscription_end_proration_mode: Controls how subscription-ending shortened service
+     periods are billed. Known values are: "bill_full_period" and "bill_actual_period".
+    :vartype subscription_end_proration_mode: str or
+     ~openmeter.models.BillingWorkflowInvoicingSubscriptionEndProrationMode
     :ivar default_tax_config: Default tax configuration to apply to the invoices.
+
+     Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
+     deprecated and can no longer be added or changed: the organization default tax code is
+     used instead. Existing tax-code values may still be removed, and ``behavior`` remains
+     fully supported.
     :vartype default_tax_config: ~openmeter._generated.models.TaxConfig
     """
 
@@ -1710,10 +1719,20 @@ class BillingWorkflowInvoicingSettings(_Model):
      manual collection method."""
     progressive_billing: Optional[bool] = rest_field(name="progressiveBilling", visibility=["read", "create", "update"])
     """Should progressive billing be allowed for this workflow?."""
+    subscription_end_proration_mode: Optional[
+        Union[str, "_models.BillingWorkflowInvoicingSubscriptionEndProrationMode"]
+    ] = rest_field(name="subscriptionEndProrationMode", visibility=["read", "create", "update"])
+    """Controls how subscription-ending shortened service periods are billed. Known values are:
+     \"bill_full_period\" and \"bill_actual_period\"."""
     default_tax_config: Optional["_models.TaxConfig"] = rest_field(
         name="defaultTaxConfig", visibility=["read", "create", "update"]
     )
-    """Default tax configuration to apply to the invoices."""
+    """Default tax configuration to apply to the invoices.
+     
+     Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
+     deprecated and can no longer be added or changed: the organization default tax code is
+     used instead. Existing tax-code values may still be removed, and ``behavior`` remains
+     fully supported."""
 
     @overload
     def __init__(
@@ -1723,6 +1742,9 @@ class BillingWorkflowInvoicingSettings(_Model):
         draft_period: Optional[str] = None,
         due_after: Optional[str] = None,
         progressive_billing: Optional[bool] = None,
+        subscription_end_proration_mode: Optional[
+            Union[str, "_models.BillingWorkflowInvoicingSubscriptionEndProrationMode"]
+        ] = None,
         default_tax_config: Optional["_models.TaxConfig"] = None,
     ) -> None: ...
 
@@ -9157,7 +9179,16 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
     :ivar due_after: The period after which the invoice is due. With some payment solutions it's
      only applicable for manual collection method.
     :vartype due_after: str
+    :ivar subscription_end_proration_mode: Controls how subscription-ending shortened service
+     periods are billed. Known values are: "bill_full_period" and "bill_actual_period".
+    :vartype subscription_end_proration_mode: str or
+     ~openmeter.models.BillingWorkflowInvoicingSubscriptionEndProrationMode
     :ivar default_tax_config: Default tax configuration to apply to the invoices.
+
+     Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
+     deprecated and can no longer be added or changed: the organization default tax code is
+     used instead. Existing tax-code values may still be removed, and ``behavior`` remains
+     fully supported.
     :vartype default_tax_config: ~openmeter._generated.models.TaxConfig
     """
 
@@ -9168,10 +9199,20 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
     due_after: Optional[str] = rest_field(name="dueAfter", visibility=["read", "create", "update"])
     """The period after which the invoice is due. With some payment solutions it's only applicable for
      manual collection method."""
+    subscription_end_proration_mode: Optional[
+        Union[str, "_models.BillingWorkflowInvoicingSubscriptionEndProrationMode"]
+    ] = rest_field(name="subscriptionEndProrationMode", visibility=["read", "create", "update"])
+    """Controls how subscription-ending shortened service periods are billed. Known values are:
+     \"bill_full_period\" and \"bill_actual_period\"."""
     default_tax_config: Optional["_models.TaxConfig"] = rest_field(
         name="defaultTaxConfig", visibility=["read", "create", "update"]
     )
-    """Default tax configuration to apply to the invoices."""
+    """Default tax configuration to apply to the invoices.
+     
+     Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
+     deprecated and can no longer be added or changed: the organization default tax code is
+     used instead. Existing tax-code values may still be removed, and ``behavior`` remains
+     fully supported."""
 
     @overload
     def __init__(
@@ -9180,6 +9221,9 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
         auto_advance: Optional[bool] = None,
         draft_period: Optional[str] = None,
         due_after: Optional[str] = None,
+        subscription_end_proration_mode: Optional[
+            Union[str, "_models.BillingWorkflowInvoicingSubscriptionEndProrationMode"]
+        ] = None,
         default_tax_config: Optional["_models.TaxConfig"] = None,
     ) -> None: ...
 
@@ -12120,6 +12164,9 @@ class PlanSubscriptionChange(_Model):
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the previous subscription billing anchor will be used.
     :vartype billing_anchor: ~datetime.datetime
+    :ivar settlement_mode: The settlement mode of the subscription. Known values are:
+     "credit_then_invoice" and "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
     """
 
     timing: "_types.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -12147,6 +12194,11 @@ class PlanSubscriptionChange(_Model):
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the previous
      subscription billing anchor will be used."""
+    settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
+     \"credit_only\"."""
 
     @overload
     def __init__(
@@ -12160,6 +12212,7 @@ class PlanSubscriptionChange(_Model):
         name: Optional[str] = None,
         description: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -12189,6 +12242,9 @@ class PlanSubscriptionCreate(_Model):
     :vartype name: str
     :ivar description: Description for the Subscription.
     :vartype description: str
+    :ivar settlement_mode: The settlement mode of the subscription. Known values are:
+     "credit_then_invoice" and "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
     :ivar timing: Timing configuration for the change, when the change should take effect. The
      default is immediate. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a
      datetime.datetime type.
@@ -12202,9 +12258,6 @@ class PlanSubscriptionCreate(_Model):
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the subscription start time will be used.
     :vartype billing_anchor: ~datetime.datetime
-    :ivar settlement_mode: The settlement mode of the subscription. Known values are:
-     "credit_then_invoice" and "credit_only".
-    :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
     """
 
     alignment: Optional["_models.Alignment"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -12222,6 +12275,11 @@ class PlanSubscriptionCreate(_Model):
     """The name of the Subscription. If not provided the plan name is used."""
     description: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Description for the Subscription."""
+    settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
+     \"credit_only\"."""
     timing: Optional["_types.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
@@ -12242,11 +12300,6 @@ class PlanSubscriptionCreate(_Model):
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the subscription
      start time will be used."""
-    settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = rest_field(
-        name="settlementMode", visibility=["read", "create", "update", "delete", "query"]
-    )
-    """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
-     \"credit_only\"."""
 
     @overload
     def __init__(
@@ -12258,11 +12311,11 @@ class PlanSubscriptionCreate(_Model):
         starting_phase: Optional[str] = None,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = None,
         timing: Optional["_types.SubscriptionTiming"] = None,
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
-        settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = None,
     ) -> None: ...
 
     @overload

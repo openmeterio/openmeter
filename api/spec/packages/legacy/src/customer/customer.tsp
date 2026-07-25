@@ -26,12 +26,12 @@ interface CustomersEndpoints {
   @post
   @operationId("createCustomer")
   @summary("Create customer")
-  create(
-    @body customer: TypeSpec.Rest.Resource.ResourceCreateModel<Customer>,
-  ): {
-    @statusCode _: 201;
-    @body body: Customer;
-  } | CommonErrors;
+  create(@body customer: TypeSpec.Rest.Resource.ResourceCreateModel<Customer>):
+    | {
+        @statusCode _: 201;
+        @body body: Customer;
+      }
+    | CommonErrors;
 
   /**
    * List customers.
@@ -48,10 +48,10 @@ interface CustomersEndpoints {
   @route("/{customerIdOrKey}")
   @operationId("getCustomer")
   @summary("Get customer")
-  get(
-    @path customerIdOrKey: ULIDOrExternalKey,
-    ...GetCustomerParams,
-  ): Customer | NotFoundError | CommonErrors;
+  get(@path customerIdOrKey: ULIDOrExternalKey, ...GetCustomerParams):
+    | Customer
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Update a customer by ID.
@@ -72,9 +72,12 @@ interface CustomersEndpoints {
   @route("/{customerIdOrKey}")
   @operationId("deleteCustomer")
   @summary("Delete customer")
-  delete(@path customerIdOrKey: ULIDOrExternalKey): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  delete(@path customerIdOrKey: ULIDOrExternalKey):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Lists all subscriptions for a customer.

@@ -7,6 +7,7 @@ import (
 
 	"github.com/qmuntal/stateless"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -16,17 +17,59 @@ var (
 )
 
 type PatchDelete struct {
-	policy PatchDeletePolicy
+	changeSource billing.ChangeSource
+	policy       PatchDeletePolicy
 }
 
-func NewPatchDelete(policy PatchDeletePolicy) PatchDelete {
-	var patch PatchDelete
-	patch.SetPolicy(policy)
-	return patch
+type NewPatchDeleteInput struct {
+	ChangeSource billing.ChangeSource
+	Policy       PatchDeletePolicy
 }
 
-func (p *PatchDelete) SetPolicy(policy PatchDeletePolicy) {
-	p.policy = policy
+func (i NewPatchDeleteInput) Validate() error {
+	var errs []error
+
+	if err := i.ChangeSource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
+	}
+
+	if err := i.Policy.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("policy: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func NewPatchDelete(input NewPatchDeleteInput) (PatchDelete, error) {
+	if err := input.Validate(); err != nil {
+		return PatchDelete{}, err
+	}
+
+	patch := PatchDelete{
+		changeSource: input.ChangeSource,
+		policy:       input.Policy,
+	}
+	if err := patch.Validate(); err != nil {
+		return PatchDelete{}, err
+	}
+
+	return patch, nil
+}
+
+func (p PatchDelete) GetChangeSource() billing.ChangeSource {
+	return p.changeSource
+}
+
+func (p PatchDelete) GetTargetLayer(intent LayeredIntentReader) (ChangeTarget, error) {
+	if err := p.GetChangeSource().Validate(); err != nil {
+		return "", fmt.Errorf("change source: %w", err)
+	}
+
+	if p.GetChangeSource() == billing.ChangeSourceAPIRequest {
+		return apiPatchTargetLayer(intent)
+	}
+
+	return ChangeTargetBase, nil
 }
 
 func (p PatchDelete) GetPolicy() PatchDeletePolicy {
@@ -41,12 +84,18 @@ func (p PatchDelete) Trigger() stateless.Trigger {
 	return TriggerDelete
 }
 
-func (p PatchDelete) TriggerParams() any {
-	return p.GetPolicy()
-}
-
 func (p PatchDelete) Validate() error {
-	return p.GetPolicy().Validate()
+	var errs []error
+
+	if err := p.GetChangeSource().Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
+	}
+
+	if err := p.GetPolicy().Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("policy: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreditRefundPolicy string

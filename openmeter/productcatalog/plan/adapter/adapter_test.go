@@ -10,10 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -26,8 +28,6 @@ func TestPostgresAdapter(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-
-	env.DBSchemaMigrate(t)
 
 	// Get new namespace ID
 	namespace := pctestutils.NewTestNamespace(t)
@@ -143,6 +143,13 @@ func TestPostgresAdapter(t *testing.T) {
 								MaximumAmount: nil,
 							},
 						}),
+						UnitConfig: &productcatalog.UnitConfig{
+							Operation:        productcatalog.UnitConfigOperationDivide,
+							ConversionFactor: decimal.NewFromInt(1000),
+							Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+							Precision:        0,
+							DisplayUnit:      lo.ToPtr("K"),
+						},
 					},
 					BillingCadence: pctestutils.MonthPeriod,
 				},
@@ -168,7 +175,8 @@ func TestPostgresAdapter(t *testing.T) {
 		})
 
 		t.Run("CreateWithCreditOnlySettlement", func(t *testing.T) {
-			input := pctestutils.NewTestPlan(t, namespace,
+			input := pctestutils.NewTestPlan(
+				t, namespace,
 				pctestutils.WithPlanPhases(planPhases...),
 				func(t *testing.T, p *productcatalog.Plan) {
 					t.Helper()
@@ -381,6 +389,106 @@ func TestPostgresAdapter(t *testing.T) {
 		t.Run("ListStatusFilter", func(t *testing.T) {
 			testListPlanStatusFilter(t.Context(), t, env.PlanRepository)
 		})
+	})
+}
+
+// TestFromAddonRateCardRowMapsUnitConfig guards the cross-package mapper used when a
+// plan is loaded with expanded add-ons (FromPlanRow → FromAddonRow → FromAddonRateCardRow).
+// This mapper is separate from the own-type plan rate-card mapper, so a RateCardMeta field
+// added to one is not automatically carried by the other; UnitConfig dropping here would
+// surface a stored config as nil and rate raw usage instead of converted units.
+func TestFromAddonRateCardRowMapsUnitConfig(t *testing.T) {
+	unitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: decimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		Precision:        0,
+		DisplayUnit:      lo.ToPtr("K"),
+	}
+
+	rc, err := adapter.FromAddonRateCardRow(entdb.AddonRateCard{
+		Key:        "rc",
+		Name:       "RC",
+		Type:       productcatalog.UsageBasedRateCardType,
+		Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
+		UnitConfig: unitConfig,
+	})
+	require.NoError(t, err, "mapping addon rate card row must not fail")
+
+	require.Equal(t, unitConfig, rc.AsMeta().UnitConfig,
+		"UnitConfig must survive the plan adapter's linked add-on mapper")
+}
+
+func TestListPlansExcludeUnitConfig(t *testing.T) {
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	// A usage-based rate card carrying a unit_config needs a feature (usage-based price requires one).
+	require.NoError(t, env.Meter.ReplaceMeters(t.Context(), pctestutils.NewTestMeters(t, namespace)),
+		"replacing meters must not fail")
+
+	meters, err := env.Meter.ListMeters(t.Context(), meter.ListMetersParams{
+		Page:      pagination.Page{PageSize: 1000, PageNumber: 1},
+		Namespace: namespace,
+	})
+	require.NoError(t, err, "listing meters must not fail")
+	require.NotEmpty(t, meters.Items, "list of meters must not be empty")
+
+	feat, err := env.Feature.CreateFeature(t.Context(), pctestutils.NewTestFeatureFromMeter(t, &meters.Items[0]))
+	require.NoError(t, err, "creating feature must not fail")
+
+	// Plain plan: default flat-fee rate card, no unit_config → v1-representable.
+	_, err = env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("plain")))
+	require.NoError(t, err, "creating plain plan must not fail")
+
+	// unit_config plan: usage-based rate card carrying a unit_config → not v1-representable.
+	ucPhases := []productcatalog.Phase{
+		{
+			PhaseMeta: productcatalog.PhaseMeta{Key: "pro", Name: "Pro"},
+			RateCards: []productcatalog.RateCard{
+				&productcatalog.UsageBasedRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:        feat.Key,
+						Name:       "Pro RateCard",
+						FeatureKey: &feat.Key,
+						Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
+						UnitConfig: &productcatalog.UnitConfig{
+							Operation:        productcatalog.UnitConfigOperationDivide,
+							ConversionFactor: decimal.NewFromInt(1000),
+						},
+					},
+					BillingCadence: pctestutils.MonthPeriod,
+				},
+			},
+		},
+	}
+	_, err = env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(t, namespace,
+		pctestutils.WithPlanKey("with-uc"), pctestutils.WithPlanPhases(ucPhases...)))
+	require.NoError(t, err, "creating unit_config plan must not fail")
+
+	t.Run("included when ExcludeUnitConfig is false", func(t *testing.T) {
+		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+			Namespaces: []string{namespace},
+		})
+		require.NoError(t, err, "listing plans must not fail")
+
+		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
+		require.ElementsMatch(t, []string{"plain", "with-uc"}, keys)
+		require.Equal(t, 2, list.TotalCount, "TotalCount must count both plans")
+	})
+
+	t.Run("excluded when ExcludeUnitConfig is true, TotalCount stays consistent", func(t *testing.T) {
+		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+			Namespaces:        []string{namespace},
+			ExcludeUnitConfig: true,
+		})
+		require.NoError(t, err, "listing plans must not fail")
+
+		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
+		require.ElementsMatch(t, []string{"plain"}, keys)
+		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude the unit_config plan, not just the page slice")
 	})
 }
 

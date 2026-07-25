@@ -38,7 +38,8 @@ func (mixin) Fields() []ent.Field {
 		field.Enum("status").
 			GoType(Status("")),
 
-		field.Other("amount", alpacadecimal.Decimal{}).
+		field.Other("fiat_amount", alpacadecimal.Decimal{}).
+			StorageKey("amount").
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
@@ -67,7 +68,7 @@ func (mixin) Fields() []ent.Field {
 }
 
 type MutableFieldSetter[T any] interface {
-	SetAmount(amount alpacadecimal.Decimal) T
+	SetFiatAmount(fiatAmount alpacadecimal.Decimal) T
 	SetStatus(status Status) T
 	SetServicePeriodFrom(servicePeriodFrom time.Time) T
 	SetServicePeriodTo(servicePeriodTo time.Time) T
@@ -89,7 +90,7 @@ func Create[T Creator[T]](creator Creator[T], namespace string, paymentSettlemen
 		SetNamespace(namespace).
 		SetServicePeriodFrom(paymentSettlement.ServicePeriod.From).
 		SetServicePeriodTo(paymentSettlement.ServicePeriod.To).
-		SetAmount(paymentSettlement.Amount).
+		SetFiatAmount(paymentSettlement.FiatAmount).
 		SetStatus(paymentSettlement.Status).
 		SetNillableAuthorizedTransactionGroupID(paymentSettlement.Authorized.GetIDOrNull()).
 		SetNillableAuthorizedAt(paymentSettlement.Authorized.GetTimeOrNull()).
@@ -107,7 +108,7 @@ func Update[T Updater[T]](updater Updater[T], in Payment) T {
 	return updater.SetAnnotations(in.Annotations).
 		SetServicePeriodFrom(in.ServicePeriod.From).
 		SetServicePeriodTo(in.ServicePeriod.To).
-		SetAmount(in.Amount).
+		SetFiatAmount(in.FiatAmount).
 		SetStatus(in.Status).
 		SetNillableDeletedAt(convert.TimePtrIn(in.DeletedAt, time.UTC)).
 		SetNillableAuthorizedTransactionGroupID(in.Authorized.GetIDOrNull()).
@@ -123,7 +124,7 @@ type Getter interface {
 	entutils.AnnotationsMixinGetter
 	GetServicePeriodFrom() time.Time
 	GetServicePeriodTo() time.Time
-	GetAmount() alpacadecimal.Decimal
+	GetFiatAmount() alpacadecimal.Decimal
 	GetStatus() Status
 	GetAuthorizedTransactionGroupID() *string
 	GetAuthorizedAt() *time.Time
@@ -139,7 +140,7 @@ func mapBaseFromDB(dbEntity Getter) Base {
 			To:   dbEntity.GetServicePeriodTo().In(time.UTC),
 		},
 		Status:     dbEntity.GetStatus(),
-		Amount:     dbEntity.GetAmount(),
+		FiatAmount: dbEntity.GetFiatAmount(),
 		Authorized: mapTimedLedgerTransactionGroupReferenceFromDB(dbEntity.GetAuthorizedTransactionGroupID(), dbEntity.GetAuthorizedAt()),
 		Settled:    mapTimedLedgerTransactionGroupReferenceFromDB(dbEntity.GetSettledTransactionGroupID(), dbEntity.GetSettledAt()),
 	}

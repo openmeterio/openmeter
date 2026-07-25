@@ -147,6 +147,18 @@ class BillingSettlementMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """CREDIT_ONLY."""
 
 
+class BillingWorkflowInvoicingSubscriptionEndProrationMode(  # pylint: disable=name-too-long
+    str, Enum, metaclass=CaseInsensitiveEnumMeta
+):
+    """Billing workflow subscription end proration mode."""
+
+    BILL_FULL_PERIOD = "bill_full_period"
+    """Bill the full billing period amount for terminal lines even when the actual service period is
+    shorter."""
+    BILL_ACTUAL_PERIOD = "bill_actual_period"
+    """Bill the amount for the actual terminal service period."""
+
+
 class CheckoutSessionUIMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Stripe CheckoutSession.ui_mode."""
 

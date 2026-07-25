@@ -13,7 +13,6 @@ import (
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -55,10 +54,8 @@ func (c chargePatchCollection) Patches() charges.ApplyPatchesInput {
 }
 
 func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent) error {
-	if err := intent.Validate(); err != nil {
-		return fmt.Errorf("invalid intent: %w", err)
-	}
-
+	// Full intent validation is intentionally delayed until charges.Service.ApplyPatches,
+	// after namespace default tax codes are applied to create intents.
 	uniqueReferenceID, err := intent.GetUniqueReferenceID()
 	if err != nil {
 		return fmt.Errorf("getting unique reference ID: %w", err)
@@ -94,7 +91,15 @@ func (c *chargePatchCollection) addPatch(chargeID string, patch charges.Patch) e
 }
 
 func (c *chargePatchCollection) AddDelete(_ string, existing persistedstate.Item) error {
-	return c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy))
+	patch, err := chargesmeta.NewPatchDelete(chargesmeta.NewPatchDeleteInput{
+		ChangeSource: billing.ChangeSourceSystem,
+		Policy:       chargesmeta.RefundAsCreditsDeletePolicy,
+	})
+	if err != nil {
+		return err
+	}
+
+	return c.addPatch(existing.ID().ID, patch)
 }
 
 func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target targetstate.StateItem, originalPeriod, targetPeriod timeutil.ClosedPeriod, originalAmount, targetAmount alpacadecimal.Decimal) error {
@@ -105,11 +110,19 @@ func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target 
 }
 
 func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.Item, replacement charges.ChargeIntent) error {
-	if err := replacement.Validate(); err != nil {
-		return fmt.Errorf("invalid replacement intent: %w", err)
+	// TODO: Do not add charge override support for credit-only charges while
+	// period changes are modeled as delete+create replacements. A base-target
+	// delete intentionally leaves an active override customer-facing, which does
+	// not compose with creating a replacement charge for the same subscription item.
+	deletePatch, err := chargesmeta.NewPatchDelete(chargesmeta.NewPatchDeleteInput{
+		ChangeSource: billing.ChangeSourceSystem,
+		Policy:       chargesmeta.RefundAsCreditsDeletePolicy,
+	})
+	if err != nil {
+		return fmt.Errorf("creating replacement delete patch: %w", err)
 	}
 
-	if err := c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy)); err != nil {
+	if err := c.addPatch(existing.ID().ID, deletePatch); err != nil {
 		return fmt.Errorf("adding replacement delete patch: %w", err)
 	}
 
@@ -118,40 +131,6 @@ func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.I
 	}
 
 	return nil
-}
-
-func newChargeIntentBaseFromTargetState(target targetstate.StateItem) (chargesmeta.Intent, error) {
-	rateCardMeta := target.Spec.RateCard.AsMeta()
-	annotations, err := target.SubscriptionItem.Annotations.Clone()
-	if err != nil {
-		return chargesmeta.Intent{}, fmt.Errorf("cloning annotations: %w", err)
-	}
-
-	return chargesmeta.Intent{
-		Name:          rateCardMeta.Name,
-		Description:   rateCardMeta.Description,
-		Metadata:      target.SubscriptionItem.Metadata.Clone(),
-		Annotations:   annotations,
-		ManagedBy:     billing.SubscriptionManagedLine,
-		CustomerID:    target.Subscription.CustomerId,
-		Currency:      target.CurrencyCalculator.Currency,
-		ServicePeriod: target.GetServicePeriod(),
-		FullServicePeriod: timeutil.ClosedPeriod{
-			From: target.FullServicePeriod.From,
-			To:   target.FullServicePeriod.To,
-		},
-		BillingPeriod: timeutil.ClosedPeriod{
-			From: target.BillingPeriod.From,
-			To:   target.BillingPeriod.To,
-		},
-		TaxConfig:         productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
-		UniqueReferenceID: &target.UniqueID,
-		Subscription: &chargesmeta.SubscriptionReference{
-			SubscriptionID: target.Subscription.ID,
-			PhaseID:        target.PhaseID,
-			ItemID:         target.SubscriptionItem.ID,
-		},
-	}, nil
 }
 
 func logChargesPatches(ctx context.Context, log *slog.Logger, patches charges.ApplyPatchesInput) {

@@ -1,8 +1,9 @@
 package currencies
 
 import (
+	"context"
+
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
@@ -11,18 +12,23 @@ type Handler interface {
 	CreateCurrency() CreateCurrencyHandler
 	CreateCostBasis() CreateCostBasisHandler
 	ListCostBases() ListCostBasesHandler
+	GetCurrency() GetCurrencyHandler
 }
 
 type handler struct {
-	namespaceDecoder namespacedriver.NamespaceDecoder
+	resolveNamespace func(ctx context.Context) (string, error)
 	options          []httptransport.HandlerOption
-	currencyService  currencies.CurrencyService
+	service          currencies.Service
 }
 
-func New(namespaceDecoder namespacedriver.NamespaceDecoder, currencyService currencies.CurrencyService, options ...httptransport.HandlerOption) Handler {
+func New(
+	resolveNamespace func(ctx context.Context) (string, error),
+	currencyService currencies.Service,
+	options ...httptransport.HandlerOption,
+) Handler {
 	return &handler{
-		namespaceDecoder: namespaceDecoder,
+		resolveNamespace: resolveNamespace,
 		options:          options,
-		currencyService:  currencyService,
+		service:          currencyService,
 	}
 }

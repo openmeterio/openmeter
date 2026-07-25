@@ -40,7 +40,6 @@ func TestPlanService(t *testing.T) {
 	})
 
 	// Run database migrations
-	env.DBSchemaMigrate(t)
 
 	// Get new namespace ID
 	namespace := pctestutils.NewTestNamespace(t)
@@ -847,8 +846,6 @@ func TestListPlansFilters(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-
-	env.DBSchemaMigrate(t)
 
 	ns := pctestutils.NewTestNamespace(t)
 

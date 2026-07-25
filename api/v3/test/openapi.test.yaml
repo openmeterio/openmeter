@@ -127,10 +127,6 @@ components:
               description: Value does not equal the given numeric value.
             oeq:
               type: string
-              items:
-                type: number
-                format: double
-              format: ArrayEncoding.commaDelimited
               description: Returns entities that match any of the comma-delimited numeric values.
             lt:
               type: number
@@ -172,17 +168,11 @@ components:
               description: Value contains the given string value (fuzzy match).
             ocontains:
               type: string
-              items:
-                type: string
-              format: ArrayEncoding.commaDelimited
               description: |-
                 Returns entities that fuzzy-match any of the comma-delimited phrases in the
                 filter string.
             oeq:
               type: string
-              items:
-                type: string
-              format: ArrayEncoding.commaDelimited
               description: |-
                 Returns entities that exact match any of the comma-delimited phrases in the
                 filter string.
@@ -222,9 +212,6 @@ components:
               description: Value strictly equals the given string value.
             oeq:
               type: string
-              items:
-                type: string
-              format: ArrayEncoding.commaDelimited
               description: |-
                 Returns entities that exact match any of the comma-delimited phrases in the
                 filter string.
@@ -256,9 +243,6 @@ components:
               description: Value strictly equals the given ULID value.
             oeq:
               type: string
-              items:
-                $ref: "#/components/schemas/ULID"
-              format: ArrayEncoding.commaDelimited
               description: |-
                 Returns entities that exact match any of the comma-delimited ULIDs in the filter
                 string.

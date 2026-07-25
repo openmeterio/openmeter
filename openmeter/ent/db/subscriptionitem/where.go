@@ -1337,6 +1337,16 @@ func DiscountsNotNil() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldNotNull(FieldDiscounts))
 }
 
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotNull(FieldUnitConfig))
+}
+
 // HasPhase applies the HasEdge predicate on the "phase" edge.
 func HasPhase() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(func(s *sql.Selector) {
@@ -1398,6 +1408,29 @@ func HasBillingLines() predicate.SubscriptionItem {
 func HasBillingLinesWith(preds ...predicate.BillingInvoiceLine) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(func(s *sql.Selector) {
 		step := newBillingLinesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBillingGatheringInvoiceLines applies the HasEdge predicate on the "billing_gathering_invoice_lines" edge.
+func HasBillingGatheringInvoiceLines() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingGatheringInvoiceLinesTable, BillingGatheringInvoiceLinesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingGatheringInvoiceLinesWith applies the HasEdge predicate on the "billing_gathering_invoice_lines" edge with a given conditions (other predicates).
+func HasBillingGatheringInvoiceLinesWith(preds ...predicate.BillingGatheringInvoiceLine) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := newBillingGatheringInvoiceLinesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -99,6 +100,21 @@ func (_u *LedgerAccountUpdate) AddSubAccountRoutes(v ...*LedgerSubAccountRoute) 
 	return _u.AddSubAccountRouteIDs(ids...)
 }
 
+// AddCustomerAccountIDs adds the "customer_accounts" edge to the LedgerCustomerAccount entity by IDs.
+func (_u *LedgerAccountUpdate) AddCustomerAccountIDs(ids ...string) *LedgerAccountUpdate {
+	_u.mutation.AddCustomerAccountIDs(ids...)
+	return _u
+}
+
+// AddCustomerAccounts adds the "customer_accounts" edges to the LedgerCustomerAccount entity.
+func (_u *LedgerAccountUpdate) AddCustomerAccounts(v ...*LedgerCustomerAccount) *LedgerAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCustomerAccountIDs(ids...)
+}
+
 // Mutation returns the LedgerAccountMutation object of the builder.
 func (_u *LedgerAccountUpdate) Mutation() *LedgerAccountMutation {
 	return _u.mutation
@@ -144,6 +160,27 @@ func (_u *LedgerAccountUpdate) RemoveSubAccountRoutes(v ...*LedgerSubAccountRout
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveSubAccountRouteIDs(ids...)
+}
+
+// ClearCustomerAccounts clears all "customer_accounts" edges to the LedgerCustomerAccount entity.
+func (_u *LedgerAccountUpdate) ClearCustomerAccounts() *LedgerAccountUpdate {
+	_u.mutation.ClearCustomerAccounts()
+	return _u
+}
+
+// RemoveCustomerAccountIDs removes the "customer_accounts" edge to LedgerCustomerAccount entities by IDs.
+func (_u *LedgerAccountUpdate) RemoveCustomerAccountIDs(ids ...string) *LedgerAccountUpdate {
+	_u.mutation.RemoveCustomerAccountIDs(ids...)
+	return _u
+}
+
+// RemoveCustomerAccounts removes "customer_accounts" edges to LedgerCustomerAccount entities.
+func (_u *LedgerAccountUpdate) RemoveCustomerAccounts(v ...*LedgerCustomerAccount) *LedgerAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCustomerAccountIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -296,6 +333,51 @@ func (_u *LedgerAccountUpdate) sqlSave(ctx context.Context) (_node int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.CustomerAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.CustomerAccountsTable,
+			Columns: []string{ledgeraccount.CustomerAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgercustomeraccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCustomerAccountsIDs(); len(nodes) > 0 && !_u.mutation.CustomerAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.CustomerAccountsTable,
+			Columns: []string{ledgeraccount.CustomerAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgercustomeraccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CustomerAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.CustomerAccountsTable,
+			Columns: []string{ledgeraccount.CustomerAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgercustomeraccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ledgeraccount.Label}
@@ -384,6 +466,21 @@ func (_u *LedgerAccountUpdateOne) AddSubAccountRoutes(v ...*LedgerSubAccountRout
 	return _u.AddSubAccountRouteIDs(ids...)
 }
 
+// AddCustomerAccountIDs adds the "customer_accounts" edge to the LedgerCustomerAccount entity by IDs.
+func (_u *LedgerAccountUpdateOne) AddCustomerAccountIDs(ids ...string) *LedgerAccountUpdateOne {
+	_u.mutation.AddCustomerAccountIDs(ids...)
+	return _u
+}
+
+// AddCustomerAccounts adds the "customer_accounts" edges to the LedgerCustomerAccount entity.
+func (_u *LedgerAccountUpdateOne) AddCustomerAccounts(v ...*LedgerCustomerAccount) *LedgerAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCustomerAccountIDs(ids...)
+}
+
 // Mutation returns the LedgerAccountMutation object of the builder.
 func (_u *LedgerAccountUpdateOne) Mutation() *LedgerAccountMutation {
 	return _u.mutation
@@ -429,6 +526,27 @@ func (_u *LedgerAccountUpdateOne) RemoveSubAccountRoutes(v ...*LedgerSubAccountR
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveSubAccountRouteIDs(ids...)
+}
+
+// ClearCustomerAccounts clears all "customer_accounts" edges to the LedgerCustomerAccount entity.
+func (_u *LedgerAccountUpdateOne) ClearCustomerAccounts() *LedgerAccountUpdateOne {
+	_u.mutation.ClearCustomerAccounts()
+	return _u
+}
+
+// RemoveCustomerAccountIDs removes the "customer_accounts" edge to LedgerCustomerAccount entities by IDs.
+func (_u *LedgerAccountUpdateOne) RemoveCustomerAccountIDs(ids ...string) *LedgerAccountUpdateOne {
+	_u.mutation.RemoveCustomerAccountIDs(ids...)
+	return _u
+}
+
+// RemoveCustomerAccounts removes "customer_accounts" edges to LedgerCustomerAccount entities.
+func (_u *LedgerAccountUpdateOne) RemoveCustomerAccounts(v ...*LedgerCustomerAccount) *LedgerAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCustomerAccountIDs(ids...)
 }
 
 // Where appends a list predicates to the LedgerAccountUpdate builder.
@@ -604,6 +722,51 @@ func (_u *LedgerAccountUpdateOne) sqlSave(ctx context.Context) (_node *LedgerAcc
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CustomerAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.CustomerAccountsTable,
+			Columns: []string{ledgeraccount.CustomerAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgercustomeraccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCustomerAccountsIDs(); len(nodes) > 0 && !_u.mutation.CustomerAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.CustomerAccountsTable,
+			Columns: []string{ledgeraccount.CustomerAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgercustomeraccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CustomerAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.CustomerAccountsTable,
+			Columns: []string{ledgeraccount.CustomerAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgercustomeraccount.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

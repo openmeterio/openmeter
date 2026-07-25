@@ -13,12 +13,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestFlatFeeRealizationRunAdapter(t *testing.T) {
@@ -31,22 +31,15 @@ type FlatFeeRealizationRunAdapterSuite struct {
 	testDB   *testutils.TestDB
 	dbClient *entdb.Client
 	adapter  flatfee.Adapter
+
+	taxCodeEnv *taxcodetestutils.TestEnv
 }
 
 func (s *FlatFeeRealizationRunAdapterSuite) SetupSuite() {
 	t := s.T()
 
-	s.testDB = testutils.InitPostgresDB(t)
+	s.testDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	s.dbClient = entdb.NewClient(entdb.Driver(s.testDB.EntDriver.Driver()))
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: s.testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           slog.Default(),
-	})
-	require.NoError(t, err)
-	defer migrator.CloseOrLogError()
-	require.NoError(t, migrator.Up())
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.dbClient,
@@ -62,6 +55,7 @@ func (s *FlatFeeRealizationRunAdapterSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	s.adapter = a
+	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
 }
 
 func (s *FlatFeeRealizationRunAdapterSuite) TearDownSuite() {
@@ -74,6 +68,7 @@ func (s *FlatFeeRealizationRunAdapterSuite) TestCreateCurrentRunFailsWhenCurrent
 	ctx := s.T().Context()
 	namespace := "flatfee-current-run-adapter"
 	customerID := s.createCustomer(namespace)
+	taxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -86,22 +81,29 @@ func (s *FlatFeeRealizationRunAdapterSuite) TestCreateCurrentRunFailsWhenCurrent
 			{
 				Intent: flatfee.Intent{
 					Intent: chargesmeta.Intent{
-						Name:              "flat-fee-charge",
-						ManagedBy:         billing.SubscriptionManagedLine,
-						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
+						ManagedBy:  billing.SubscriptionManagedLine,
+						CustomerID: customerID,
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
-					InvoiceAt:             servicePeriod.To,
-					SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
-					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-					AmountBeforeProration: alpacadecimal.NewFromInt(10),
-					ProRating: productcatalog.ProRatingConfig{
-						Enabled: false,
-						Mode:    productcatalog.ProRatingModeProratePrices,
+					IntentMutableFields: flatfee.IntentMutableFields{
+						IntentMutableFields: chargesmeta.IntentMutableFields{
+							Name:              "flat-fee-charge",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
+						},
+						InvoiceAt:             servicePeriod.To,
+						PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+						AmountBeforeProration: alpacadecimal.NewFromInt(10),
+						ProRating: productcatalog.ProRatingConfig{
+							Enabled: false,
+							Mode:    productcatalog.ProRatingModeProratePrices,
+						},
 					},
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				},
 				InitialStatus:        flatfee.StatusCreated,
 				AmountAfterProration: alpacadecimal.NewFromInt(10),

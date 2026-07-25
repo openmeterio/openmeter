@@ -6,8 +6,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	customerbilling "github.com/openmeterio/openmeter/openmeter/billing/validators/customerbilling"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -53,34 +53,20 @@ func (v Validator) validateBillingSetup(ctx context.Context, view subscription.S
 		return nil
 	}
 
-	// Check if the customer has a billing setup
-	customerProfile, err := v.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-		Customer: customer.CustomerID{
+	return customerbilling.ValidateCustomerInvoicingApp(
+		ctx,
+		v.billingService,
+		customer.CustomerID{
 			Namespace: view.Subscription.Namespace,
 			ID:        view.Subscription.CustomerId,
 		},
-		Expand: billing.CustomerOverrideExpand{
-			Apps:     true,
-			Customer: true,
+		[]app.CapabilityType{
+			// For now we only support Stripe with automatic tax calculation and payment collection.
+			app.CapabilityTypeCalculateTax,
+			app.CapabilityTypeInvoiceCustomers,
+			app.CapabilityTypeCollectPayments,
 		},
-	})
-	if err != nil {
-		return err
-	}
-
-	appBase := customerProfile.MergedProfile.Apps.Invoicing
-	customerApp, err := customerapp.AsCustomerApp(appBase)
-	if err != nil {
-		// This should not happen, as the app should have been already verified by the billing service, but let's make sure
-		return err
-	}
-
-	return customerApp.ValidateCustomer(ctx, customerProfile.Customer, []app.CapabilityType{
-		// For now now we only support Stripe with automatic tax calculation and payment collection.
-		app.CapabilityTypeCalculateTax,
-		app.CapabilityTypeInvoiceCustomers,
-		app.CapabilityTypeCollectPayments,
-	})
+	)
 }
 
 func (v Validator) hasBillableItems(view subscription.SubscriptionView) bool {

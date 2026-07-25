@@ -2,6 +2,7 @@ package customerbalance
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -89,9 +90,12 @@ func TestApplyChargeMetadataToCreditTransactions(t *testing.T) {
 							ID: chargeID,
 						},
 						Intent: creditpurchase.Intent{
-							Intent: chargemeta.Intent{
-								Name:        "Intro Credits",
-								Description: lo.ToPtr(description),
+							Intent: chargemeta.Intent{},
+							IntentMutableFields: creditpurchase.IntentMutableFields{
+								IntentMutableFields: chargemeta.IntentMutableFields{
+									Name:        "Intro Credits",
+									Description: lo.ToPtr(description),
+								},
 							},
 						},
 					},
@@ -216,4 +220,16 @@ func (s staticChargeService) GetByIDs(_ context.Context, input charges.GetByIDsI
 
 func (s staticChargeService) ListCharges(context.Context, charges.ListChargesInput) (pagination.Result[charges.Charge], error) {
 	return pagination.Result[charges.Charge]{}, nil
+}
+
+type noListChargesService struct {
+	ChargesService chargesService
+}
+
+func (s noListChargesService) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (charges.Charges, error) {
+	return s.ChargesService.GetByIDs(ctx, input)
+}
+
+func (s noListChargesService) ListCharges(context.Context, charges.ListChargesInput) (pagination.Result[charges.Charge], error) {
+	return pagination.Result[charges.Charge]{}, errors.New("ListCharges must not be called")
 }

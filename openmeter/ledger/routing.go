@@ -3,6 +3,7 @@ package ledger
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -198,6 +199,10 @@ func (r Route) Validate() error {
 		}
 	}
 
+	if err := validateFeatures(r.Features); err != nil {
+		return fmt.Errorf("features: %w", err)
+	}
+
 	return nil
 }
 
@@ -208,11 +213,69 @@ func (r Route) Filter() RouteFilter {
 		Currency:                       r.Currency,
 		TaxCode:                        mo.Some(r.TaxCode),
 		TaxBehavior:                    mo.Some(r.TaxBehavior),
-		Features:                       r.Features,
+		Features:                       mo.Some(r.Features),
 		CostBasis:                      mo.Some(r.CostBasis),
 		CreditPriority:                 r.CreditPriority,
 		TransactionAuthorizationStatus: r.TransactionAuthorizationStatus,
 	}
+}
+
+func (r Route) Matches(filter RouteFilter) bool {
+	if filter.Currency != "" && r.Currency != filter.Currency {
+		return false
+	}
+	if filter.TaxCode.IsPresent() {
+		taxCode, _ := filter.TaxCode.Get()
+		switch {
+		case taxCode == nil && r.TaxCode != nil:
+			return false
+		case taxCode != nil && r.TaxCode == nil:
+			return false
+		case taxCode != nil && r.TaxCode != nil && *taxCode != *r.TaxCode:
+			return false
+		}
+	}
+	if filter.TaxBehavior.IsPresent() {
+		taxBehavior, _ := filter.TaxBehavior.Get()
+		switch {
+		case taxBehavior == nil && r.TaxBehavior != nil:
+			return false
+		case taxBehavior != nil && r.TaxBehavior == nil:
+			return false
+		case taxBehavior != nil && r.TaxBehavior != nil && *taxBehavior != *r.TaxBehavior:
+			return false
+		}
+	}
+	if filter.Features.IsPresent() {
+		features, _ := filter.Features.Get()
+		if !slices.Equal(SortedFeatures(r.Features), SortedFeatures(features)) {
+			return false
+		}
+	}
+	if filter.MatchFeature != "" {
+		if len(r.Features) > 0 && !slices.Contains(r.Features, filter.MatchFeature) {
+			return false
+		}
+	}
+	if filter.CostBasis.IsPresent() {
+		costBasis, _ := filter.CostBasis.Get()
+		switch {
+		case costBasis == nil && r.CostBasis != nil:
+			return false
+		case costBasis != nil && r.CostBasis == nil:
+			return false
+		case costBasis != nil && r.CostBasis != nil && !costBasis.Equal(*r.CostBasis):
+			return false
+		}
+	}
+	if filter.CreditPriority != nil && (r.CreditPriority == nil || *r.CreditPriority != *filter.CreditPriority) {
+		return false
+	}
+	if filter.TransactionAuthorizationStatus != nil && (r.TransactionAuthorizationStatus == nil || *r.TransactionAuthorizationStatus != *filter.TransactionAuthorizationStatus) {
+		return false
+	}
+
+	return true
 }
 
 // Normalize canonicalizes route values so semantically equivalent routes share
@@ -232,18 +295,27 @@ func (r Route) Normalize() (Route, error) {
 
 // Normalize canonicalizes route filter values before querying.
 func (f RouteFilter) Normalize() (RouteFilter, error) {
-	if f.Currency == "" && f.TaxCode.IsAbsent() && len(f.Features) == 0 && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
+	if f.Currency == "" && f.TaxCode.IsAbsent() && f.Features.IsAbsent() && f.MatchFeature == "" && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
 		return f, nil
+	}
+	if f.Features.IsPresent() && f.MatchFeature != "" {
+		return RouteFilter{}, errors.New("features and match feature filters cannot be combined")
+	}
+	if f.MatchFeature != "" {
+		if err := validateFeatures([]string{f.MatchFeature}); err != nil {
+			return RouteFilter{}, fmt.Errorf("match feature: %w", err)
+		}
 	}
 
 	taxCode, _ := f.TaxCode.Get()
 	taxBehavior, _ := f.TaxBehavior.Get()
+	features, _ := f.Features.Get()
 	costBasis, _ := f.CostBasis.Get()
 	normalized, err := Route{
 		Currency:                       f.Currency,
 		TaxCode:                        taxCode,
 		TaxBehavior:                    taxBehavior,
-		Features:                       f.Features,
+		Features:                       features,
 		CostBasis:                      costBasis,
 		CreditPriority:                 f.CreditPriority,
 		TransactionAuthorizationStatus: f.TransactionAuthorizationStatus,
@@ -267,11 +339,17 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		normalizedTaxBehavior = mo.Some(normalized.TaxBehavior)
 	}
 
+	normalizedFeatures := mo.None[[]string]()
+	if f.Features.IsPresent() {
+		normalizedFeatures = mo.Some(normalized.Features)
+	}
+
 	return RouteFilter{
 		Currency:                       normalized.Currency,
 		TaxCode:                        normalizedTaxCode,
 		TaxBehavior:                    normalizedTaxBehavior,
-		Features:                       normalized.Features,
+		Features:                       normalizedFeatures,
+		MatchFeature:                   f.MatchFeature,
 		CostBasis:                      normalizedCostBasis,
 		CreditPriority:                 normalized.CreditPriority,
 		TransactionAuthorizationStatus: normalized.TransactionAuthorizationStatus,
@@ -416,6 +494,13 @@ func ValidateCurrency(value currencyx.Code) error {
 		})
 	}
 
+	if !value.IsFiat() {
+		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+			"currency": value,
+			"reason":   "custom_currency_not_supported",
+		})
+	}
+
 	return nil
 }
 
@@ -443,6 +528,32 @@ func SortedFeatures(features []string) []string {
 	copy(sorted, features)
 	sort.Strings(sorted)
 	return sorted
+}
+
+// ValidateFeatures validates feature route keys.
+func ValidateFeatures(features []string) error {
+	return validateFeatures(features)
+}
+
+func validateFeatures(features []string) error {
+	var errs []error
+	seen := make(map[string]struct{}, len(features))
+
+	for i, feature := range features {
+		if feature == "" {
+			errs = append(errs, fmt.Errorf("[%d]: feature key is required", i))
+			continue
+		}
+
+		if _, ok := seen[feature]; ok {
+			errs = append(errs, fmt.Errorf("[%d]: duplicate feature key", i))
+			continue
+		}
+
+		seen[feature] = struct{}{}
+	}
+
+	return errors.Join(errs...)
 }
 
 func canonicalFeatures(features []string) string {

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	health "github.com/AppsFlyer/go-sundheit"
@@ -13,7 +14,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
+	"github.com/google/uuid"
 	"github.com/google/wire"
+	"github.com/oklog/ulid/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -34,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
 
@@ -197,6 +201,9 @@ func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, re
 		return nil, nil, fmt.Errorf("failed to initialize OpenTelemetry Trace provider: %w", err)
 	}
 
+	// Apply the global per-operation child-span toggle once, at trace init.
+	httptransport.EnableOperationSpans(conf.OperationSpans)
+
 	return tracerProvider, func() {
 		// Use dedicated context with timeout for shutdown as parent context might be canceled
 		// by the time the execution reaches this stage.
@@ -278,21 +285,125 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 
 					routePattern := chi.RouteContext(r.Context()).RoutePattern()
 
+					// Record the route template as http.route on the span and request
+					// metrics — the canonical low-cardinality routing dimension. The span
+					// *name* is set separately by WithSpanNameFormatter below: otelhttp
+					// fixes the name at tracer.Start and a post-start SetName here is a
+					// no-op in this setup, so we cannot rename the span from this point.
 					span := trace.SpanFromContext(r.Context())
-					span.SetName(routePattern)
-					span.SetAttributes(semconv.URLPath(r.URL.String()), semconv.HTTPRoute(routePattern))
+					span.SetAttributes(semconv.URLPath(r.URL.Path), semconv.HTTPRoute(routePattern))
 
-					labeler, ok := otelhttp.LabelerFromContext(r.Context())
-					if ok {
+					if labeler, ok := otelhttp.LabelerFromContext(r.Context()); ok {
 						labeler.Add(semconv.HTTPRoute(routePattern))
 					}
 				}),
 				"",
 				otelhttp.WithMeterProvider(meterProvider),
 				otelhttp.WithTracerProvider(tracerProvider),
+				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+					// Name the server span "METHOD /route/{template}" using the lowest-
+					// cardinality route identifier available.
+					//
+					// Two-pass note: otelhttp calls this formatter once when the span
+					// starts (before chi has finished routing) and, in v0.68, again after
+					// the handler only when r.Pattern is set. r.Pattern is the net/http
+					// ServeMux pattern; chi does not populate it, so under chi the name is
+					// set on the first (pre-routing) call only. We therefore resolve the
+					// route from the available signals, most specific first:
+					//   1. r.Pattern           — net/http ServeMux pattern; chi sets it to the
+					//                            mount prefix ("/api/v3/*") for sub-routers
+					//   2. chi RoutePattern    — matched chi template ("{param}" placeholders)
+					//   3. ULID-collapsed path — fallback when no resolved template is available
+					// The exact template is also recorded on the http.route attribute.
+					//
+					// A value containing "*" is an unresolved mount prefix (e.g. "/api/v3/*"
+					// when otelhttp runs inside a sub-router, before the leaf is matched —
+					// this surfaces via r.Pattern on otelhttp's post-handler pass). It is not
+					// a usable route name, so skip it (from any source) and fall back to the
+					// ULID-collapsed path.
+					route := r.Pattern
+					if route == "" {
+						if rctx := chi.RouteContext(r.Context()); rctx != nil {
+							route = rctx.RoutePattern()
+						}
+					}
+					if route == "" || strings.Contains(route, "*") {
+						route = lowCardinalityPath(r.URL.Path)
+					}
+					return r.Method + " " + route
+				}),
 			)
 		})
 	}
+}
+
+const (
+	// maxRouteSegmentLen: segments longer than this are treated as opaque identifiers
+	// (tokens, keys, random slugs — typical of unmatched/scanner traffic). Legitimate
+	// route segments are well under this (longest is ~"entitlement-access").
+	maxRouteSegmentLen = 32
+	// maxRouteSegments: paths deeper than this are truncated. Real routes are shallow;
+	// deeper paths are almost always scanner traversal.
+	maxRouteSegments = 12
+)
+
+// lowCardinalityPath turns a raw request path into a bounded span-name fragment.
+// It masks high-cardinality segments (ULIDs, UUIDs, numeric ids, over-long opaque
+// tokens) to ":id" and truncates pathologically deep paths, so unmatched/scanner
+// traffic cannot blow up span-name cardinality. It is the name source both for v3
+// routes (whose chi pattern is the skipped "/api/v3/*" mount wildcard) and for
+// unmatched requests. The exact route template, when one matched, is carried
+// separately on the http.route attribute.
+func lowCardinalityPath(path string) string {
+	segments := strings.Split(path, "/")
+
+	truncated := false
+	if len(segments) > maxRouteSegments {
+		segments = segments[:maxRouteSegments]
+		truncated = true
+	}
+
+	for i, seg := range segments {
+		if isHighCardinalitySegment(seg) {
+			segments[i] = ":id"
+		}
+	}
+
+	out := strings.Join(segments, "/")
+	if truncated {
+		out += "/..."
+	}
+	return out
+}
+
+// isHighCardinalitySegment reports whether a path segment looks like an identifier or
+// opaque token rather than a fixed route word.
+func isHighCardinalitySegment(seg string) bool {
+	if len(seg) > maxRouteSegmentLen {
+		return true
+	}
+	if isAllDigits(seg) {
+		return true
+	}
+	if _, err := ulid.ParseStrict(seg); err == nil {
+		return true
+	}
+	if _, err := uuid.Parse(seg); err == nil {
+		return true
+	}
+	return false
+}
+
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 type RuntimeMetricsCollector struct{}

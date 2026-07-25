@@ -7,7 +7,9 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 )
@@ -138,12 +140,14 @@ func (r persistedChargeSubscriptionReference) WithSubscriptionItemID(newSubscrip
 			return charges.Charge{}, err
 		}
 
-		subscription, err := subscriptionReferenceWithItemID(charge.Intent.Subscription, newSubscriptionItemID)
+		baseIntent := charge.Intent.GetBaseIntent()
+		subscription, err := subscriptionReferenceWithItemID(baseIntent.Subscription, newSubscriptionItemID)
 		if err != nil {
 			return charges.Charge{}, err
 		}
 
-		charge.Intent.Subscription = subscription
+		baseIntent.Subscription = subscription
+		charge.Intent = flatfee.NewOverridableIntent(baseIntent, charge.Intent.GetOverrideLayerMutableFields())
 
 		return charges.NewCharge(charge), nil
 	case meta.ChargeTypeUsageBased:
@@ -152,12 +156,14 @@ func (r persistedChargeSubscriptionReference) WithSubscriptionItemID(newSubscrip
 			return charges.Charge{}, err
 		}
 
-		subscription, err := subscriptionReferenceWithItemID(charge.Intent.Subscription, newSubscriptionItemID)
+		baseIntent := charge.Intent.GetBaseIntent()
+		subscription, err := subscriptionReferenceWithItemID(baseIntent.Subscription, newSubscriptionItemID)
 		if err != nil {
 			return charges.Charge{}, err
 		}
 
-		charge.Intent.Subscription = subscription
+		baseIntent.Subscription = subscription
+		charge.Intent = usagebased.NewOverridableIntent(baseIntent, charge.Intent.GetOverrideLayerMutableFields())
 
 		return charges.NewCharge(charge), nil
 	default:
@@ -187,7 +193,7 @@ func persistedChargeSubscriptionReferenceFromItem(item persistedstate.Item) (per
 		return persistedChargeSubscriptionReference{
 			Charge:       charges.NewCharge(charge),
 			ChargeID:     charge.GetChargeID(),
-			Subscription: charge.Intent.Subscription,
+			Subscription: charge.Intent.GetSubscription(),
 			IsCharge:     true,
 		}, nil
 	case persistedstate.ItemTypeChargeUsageBased:
@@ -199,7 +205,7 @@ func persistedChargeSubscriptionReferenceFromItem(item persistedstate.Item) (per
 		return persistedChargeSubscriptionReference{
 			Charge:       charges.NewCharge(charge),
 			ChargeID:     charge.GetChargeID(),
-			Subscription: charge.Intent.Subscription,
+			Subscription: charge.Intent.GetSubscription(),
 			IsCharge:     true,
 		}, nil
 	default:

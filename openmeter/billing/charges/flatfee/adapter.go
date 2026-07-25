@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -24,14 +25,21 @@ type Adapter interface {
 	ChargeRunAdapter
 	ChargeInvoicedUsageAdapter
 	ChargePaymentAdapter
+	ChargeCostBasisAdapter
 
 	entutils.TxCreator
+}
+
+type ChargeCostBasisAdapter interface {
+	SetResolvedCostBasis(ctx context.Context, input costbasis.SetResolvedCostBasisInput) (costbasis.CostBasis, error)
 }
 
 type ChargeAdapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
 
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
+	CreateChargeOverride(ctx context.Context, charge ChargeBase, override IntentMutableFields) (ChargeBase, error)
+	DeleteChargeOverride(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
 	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
@@ -132,12 +140,14 @@ func (i CreateInvoicedUsageInput) Validate() error {
 }
 
 type IntentWithInitialStatus struct {
-	Intent
+	Intent Intent
+
 	FeatureID                 *string
 	InitialStatus             Status
 	InitialAdvanceAfter       *time.Time
 	AmountAfterProration      alpacadecimal.Decimal
 	NoFiatTransactionRequired bool
+	ResolvedCostBasis         *costbasis.State
 }
 
 func (i IntentWithInitialStatus) Validate() error {

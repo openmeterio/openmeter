@@ -111,9 +111,11 @@ interface EventsEndpoints {
   ingestEvent(
     @header contentType: "application/cloudevents+json",
     @body body: Event,
-  ): {
-    @statusCode _: 204;
-  } | CommonErrors;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | CommonErrors;
 
   @post
   @operationId("ingestEvents")
@@ -122,9 +124,11 @@ interface EventsEndpoints {
   ingestEvents(
     @header contentType: "application/cloudevents-batch+json",
     @body body: Event[],
-  ): {
-    @statusCode _: 204;
-  } | CommonErrors;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | CommonErrors;
 
   @post
   @operationId("ingestEvents")
@@ -133,9 +137,11 @@ interface EventsEndpoints {
   ingestEventsJson(
     @header contentType: "application/json",
     @body body: IngestEventsBody,
-  ): {
-    @statusCode _: 204;
-  } | CommonErrors;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | CommonErrors;
 }
 
 @route("/api/v2/events")

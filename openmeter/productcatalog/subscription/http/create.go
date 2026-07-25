@@ -70,10 +70,6 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					return CreateSubscriptionRequest{}, fmt.Errorf("failed to create plan request: %w", err)
 				}
 
-				if !h.Credits.Enabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-					return CreateSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-				}
-
 				plan := plansubscription.PlanInput{}
 				plan.FromInput(&req)
 
@@ -131,6 +127,11 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 					}
 				}
 
+				var settlementMode *productcatalog.SettlementMode
+				if parsedBody.SettlementMode != nil {
+					settlementMode = lo.ToPtr(productcatalog.SettlementMode(*parsedBody.SettlementMode))
+				}
+
 				// Get the customer
 				customer, err := h.getCustomer(ctx, ns, parsedBody.CustomerId, parsedBody.CustomerKey)
 				if err != nil {
@@ -151,8 +152,9 @@ func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 						CustomerID:    customer.ID,
 						BillingAnchor: parsedBody.BillingAnchor,
 					},
-					PlanInput:     plan,
-					StartingPhase: parsedBody.StartingPhase,
+					PlanInput:      plan,
+					StartingPhase:  parsedBody.StartingPhase,
+					SettlementMode: settlementMode,
 				}, nil
 			}
 		},

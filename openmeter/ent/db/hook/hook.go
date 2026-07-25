@@ -141,6 +141,18 @@ func (f BillingCustomerOverrideFunc) Mutate(ctx context.Context, m db.Mutation) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingCustomerOverrideMutation", m)
 }
 
+// The BillingGatheringInvoiceLineFunc type is an adapter to allow the use of ordinary
+// function as BillingGatheringInvoiceLine mutator.
+type BillingGatheringInvoiceLineFunc func(context.Context, *db.BillingGatheringInvoiceLineMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingGatheringInvoiceLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingGatheringInvoiceLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingGatheringInvoiceLineMutation", m)
+}
+
 // The BillingInvoiceFunc type is an adapter to allow the use of ordinary
 // function as BillingInvoice mutator.
 type BillingInvoiceFunc func(context.Context, *db.BillingInvoiceMutation) (db.Value, error)
@@ -333,6 +345,18 @@ func (f ChargeCreditPurchaseFunc) Mutate(ctx context.Context, m db.Mutation) (db
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeCreditPurchaseMutation", m)
 }
 
+// The ChargeCreditPurchaseCostBasisFunc type is an adapter to allow the use of ordinary
+// function as ChargeCreditPurchaseCostBasis mutator.
+type ChargeCreditPurchaseCostBasisFunc func(context.Context, *db.ChargeCreditPurchaseCostBasisMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeCreditPurchaseCostBasisFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeCreditPurchaseCostBasisMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeCreditPurchaseCostBasisMutation", m)
+}
+
 // The ChargeCreditPurchaseCreditGrantFunc type is an adapter to allow the use of ordinary
 // function as ChargeCreditPurchaseCreditGrant mutator.
 type ChargeCreditPurchaseCreditGrantFunc func(context.Context, *db.ChargeCreditPurchaseCreditGrantMutation) (db.Value, error)
@@ -379,6 +403,30 @@ func (f ChargeFlatFeeFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value,
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeMutation", m)
+}
+
+// The ChargeFlatFeeCostBasisFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFeeCostBasis mutator.
+type ChargeFlatFeeCostBasisFunc func(context.Context, *db.ChargeFlatFeeCostBasisMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeFlatFeeCostBasisFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeCostBasisMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeCostBasisMutation", m)
+}
+
+// The ChargeFlatFeeOverrideFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFeeOverride mutator.
+type ChargeFlatFeeOverrideFunc func(context.Context, *db.ChargeFlatFeeOverrideMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeFlatFeeOverrideFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeOverrideMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeOverrideMutation", m)
 }
 
 // The ChargeFlatFeeRunFunc type is an adapter to allow the use of ordinary
@@ -451,6 +499,30 @@ func (f ChargeUsageBasedFunc) Mutate(ctx context.Context, m db.Mutation) (db.Val
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedMutation", m)
+}
+
+// The ChargeUsageBasedCostBasisFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedCostBasis mutator.
+type ChargeUsageBasedCostBasisFunc func(context.Context, *db.ChargeUsageBasedCostBasisMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedCostBasisFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedCostBasisMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedCostBasisMutation", m)
+}
+
+// The ChargeUsageBasedOverrideFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedOverride mutator.
+type ChargeUsageBasedOverrideFunc func(context.Context, *db.ChargeUsageBasedOverrideMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedOverrideFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedOverrideMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedOverrideMutation", m)
 }
 
 // The ChargeUsageBasedRunCreditAllocationsFunc type is an adapter to allow the use of ordinary
@@ -655,6 +727,18 @@ func (f LedgerBreakageRecordFunc) Mutate(ctx context.Context, m db.Mutation) (db
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerBreakageRecordMutation", m)
+}
+
+// The LedgerCreditVoidRecordFunc type is an adapter to allow the use of ordinary
+// function as LedgerCreditVoidRecord mutator.
+type LedgerCreditVoidRecordFunc func(context.Context, *db.LedgerCreditVoidRecordMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LedgerCreditVoidRecordFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.LedgerCreditVoidRecordMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerCreditVoidRecordMutation", m)
 }
 
 // The LedgerCustomerAccountFunc type is an adapter to allow the use of ordinary

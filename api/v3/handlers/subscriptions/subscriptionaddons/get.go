@@ -48,7 +48,15 @@ func (h *handler) GetSubscriptionAddon() GetSubscriptionAddonHandler {
 				return GetSubscriptionAddonResponse{}, models.NewGenericNotFoundError(errors.New("subscription addon not found"))
 			}
 
-			return toAPISubscriptionAddon(*a)
+			view, err := h.subscriptionService.GetView(ctx, models.NamespacedID{
+				Namespace: request.NamespacedID.Namespace,
+				ID:        request.SubscriptionID,
+			})
+			if err != nil {
+				return GetSubscriptionAddonResponse{}, err
+			}
+
+			return toAPISubscriptionAddon(view, *a)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetSubscriptionAddonResponse](http.StatusOK),
 		httptransport.AppendOptions(

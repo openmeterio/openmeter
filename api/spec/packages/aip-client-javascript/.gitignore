@@ -1,0 +1,12 @@
+# Build output
+dist/
+tsconfig.tsbuildinfo
+
+# Test coverage output
+coverage/
+
+# Dependencies
+node_modules/
+
+# Generated conformance guards (compile-time only, re-emitted by the generator)
+*.assert.ts

@@ -2,14 +2,19 @@ package service
 
 import (
 	"errors"
+	"sync/atomic"
+	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -21,9 +26,11 @@ type Config struct {
 	Lineage                 lineage.Service
 	Locker                  *lockr.Locker
 	MetaAdapter             meta.Adapter
+	InvoiceUpdater          invoiceupdater.Updater
 	CustomerOverrideService billing.CustomerOverrideService
 	FeatureService          feature.FeatureConnector
 	RatingService           rating.Service
+	Currencies              currencies.Service
 
 	StreamingConnector streaming.Connector
 }
@@ -51,6 +58,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("meta adapter cannot be null"))
 	}
 
+	if c.InvoiceUpdater == nil {
+		errs = append(errs, errors.New("invoice updater cannot be null"))
+	}
+
 	if c.CustomerOverrideService == nil {
 		errs = append(errs, errors.New("customer override service cannot be null"))
 	}
@@ -61,6 +72,10 @@ func (c Config) Validate() error {
 
 	if c.RatingService == nil {
 		errs = append(errs, errors.New("rating service cannot be null"))
+	}
+
+	if c.Currencies == nil {
+		errs = append(errs, errors.New("currencies service cannot be null"))
 	}
 
 	if c.StreamingConnector == nil {
@@ -94,15 +109,24 @@ func New(config Config) (usagebased.Service, error) {
 		return nil, err
 	}
 
+	costbasisResolver, err := costbasis.NewResolver(costbasis.ResolverConfig{
+		Currencies: config.Currencies,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &service{
 		adapter:                 config.Adapter,
 		locker:                  config.Locker,
 		metaAdapter:             config.MetaAdapter,
+		invoiceUpdater:          config.InvoiceUpdater,
 		customerOverrideService: config.CustomerOverrideService,
 		featureService:          config.FeatureService,
 		ratingService:           config.RatingService,
 		rater:                   rater,
 		runs:                    runs,
+		costbasisResolver:       costbasisResolver,
 	}, nil
 }
 
@@ -110,16 +134,30 @@ type service struct {
 	adapter                 usagebased.Adapter
 	locker                  *lockr.Locker
 	metaAdapter             meta.Adapter
+	invoiceUpdater          invoiceupdater.Updater
 	customerOverrideService billing.CustomerOverrideService
 	featureService          feature.FeatureConnector
 	ratingService           rating.Service
 
 	rater usagebasedrating.Service
 	runs  *usagebasedrun.Service
+
+	enableCustomCurrency atomic.Bool
+	costbasisResolver    costbasis.Resolver
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
 	return &LineEngine{
 		service: s,
 	}
+}
+
+func (s *service) SetEnableCustomCurrency(t *testing.T, enabled bool) error {
+	if t == nil {
+		return errors.New("testing is nil")
+	}
+
+	t.Helper()
+	s.enableCustomCurrency.Store(enabled)
+	return nil
 }

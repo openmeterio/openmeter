@@ -29,8 +29,7 @@ interface GovernanceOperations {
   @route("/query")
   @operationId("query-governance-access")
   @summary("Query governance access")
-  query(
-    ...Common.CursorPaginationQuery,
-    @body _: GovernanceQueryRequest,
-  ): GovernanceQueryResponse | Common.ErrorResponses;
+  query(...Common.CursorPaginationQuery, @body _: GovernanceQueryRequest):
+    | GovernanceQueryResponse
+    | Common.ErrorResponses;
 }

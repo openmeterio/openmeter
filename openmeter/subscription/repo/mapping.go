@@ -136,6 +136,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		TaxConfig:           item.TaxConfig,
 		Price:               item.Price,
 		Discounts:           lo.FromPtr(item.Discounts),
+		UnitConfig:          item.UnitConfig,
 		Key:                 item.Key,
 		// NOTE: resolving feature is done on service level as there is no direct relationship between subscription items and features.
 		FeatureID: nil,

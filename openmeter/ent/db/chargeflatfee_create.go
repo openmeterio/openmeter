@@ -18,7 +18,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecostbasis"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -100,9 +103,31 @@ func (_c *ChargeFlatFeeCreate) SetNillableUniqueReferenceID(v *string) *ChargeFl
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *ChargeFlatFeeCreate) SetCurrency(v currencyx.Code) *ChargeFlatFeeCreate {
-	_c.mutation.SetCurrency(v)
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_c *ChargeFlatFeeCreate) SetFiatCurrencyCode(v currencyx.Code) *ChargeFlatFeeCreate {
+	_c.mutation.SetFiatCurrencyCode(v)
+	return _c
+}
+
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableFiatCurrencyCode(v *currencyx.Code) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetFiatCurrencyCode(*v)
+	}
+	return _c
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *ChargeFlatFeeCreate) SetCustomCurrencyID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableCustomCurrencyID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
+	}
 	return _c
 }
 
@@ -171,14 +196,6 @@ func (_c *ChargeFlatFeeCreate) SetNillableAdvanceAfter(v *time.Time) *ChargeFlat
 // SetTaxCodeID sets the "tax_code_id" field.
 func (_c *ChargeFlatFeeCreate) SetTaxCodeID(v string) *ChargeFlatFeeCreate {
 	_c.mutation.SetTaxCodeID(v)
-	return _c
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeCreate) SetNillableTaxCodeID(v *string) *ChargeFlatFeeCreate {
-	if v != nil {
-		_c.SetTaxCodeID(*v)
-	}
 	return _c
 }
 
@@ -294,8 +311,22 @@ func (_c *ChargeFlatFeeCreate) SetSettlementMode(v productcatalog.SettlementMode
 	return _c
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (_c *ChargeFlatFeeCreate) SetIntentDeletedAt(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetIntentDeletedAt(v)
+	return _c
+}
+
+// SetNillableIntentDeletedAt sets the "intent_deleted_at" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableIntentDeletedAt(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetIntentDeletedAt(*v)
+	}
+	return _c
+}
+
 // SetDiscounts sets the "discounts" field.
-func (_c *ChargeFlatFeeCreate) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeCreate {
+func (_c *ChargeFlatFeeCreate) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeCreate {
 	_c.mutation.SetDiscounts(v)
 	return _c
 }
@@ -360,6 +391,20 @@ func (_c *ChargeFlatFeeCreate) SetNillableCurrentRealizationRunID(v *string) *Ch
 	return _c
 }
 
+// SetCostBasisID sets the "cost_basis_id" field.
+func (_c *ChargeFlatFeeCreate) SetCostBasisID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetCostBasisID(v)
+	return _c
+}
+
+// SetNillableCostBasisID sets the "cost_basis_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableCostBasisID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetCostBasisID(*v)
+	}
+	return _c
+}
+
 // SetStatusDetailed sets the "status_detailed" field.
 func (_c *ChargeFlatFeeCreate) SetStatusDetailed(v flatfee.Status) *ChargeFlatFeeCreate {
 	_c.mutation.SetStatusDetailed(v)
@@ -414,6 +459,11 @@ func (_c *ChargeFlatFeeCreate) SetCurrentRun(v *ChargeFlatFeeRun) *ChargeFlatFee
 	return _c.SetCurrentRunID(v.ID)
 }
 
+// SetCostBasis sets the "cost_basis" edge to the ChargeFlatFeeCostBasis entity.
+func (_c *ChargeFlatFeeCreate) SetCostBasis(v *ChargeFlatFeeCostBasis) *ChargeFlatFeeCreate {
+	return _c.SetCostBasisID(v.ID)
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_c *ChargeFlatFeeCreate) SetChargeID(id string) *ChargeFlatFeeCreate {
 	_c.mutation.SetChargeID(id)
@@ -431,6 +481,25 @@ func (_c *ChargeFlatFeeCreate) SetNillableChargeID(id *string) *ChargeFlatFeeCre
 // SetCharge sets the "charge" edge to the Charge entity.
 func (_c *ChargeFlatFeeCreate) SetCharge(v *Charge) *ChargeFlatFeeCreate {
 	return _c.SetChargeID(v.ID)
+}
+
+// SetIntentOverrideID sets the "intent_override" edge to the ChargeFlatFeeOverride entity by ID.
+func (_c *ChargeFlatFeeCreate) SetIntentOverrideID(id string) *ChargeFlatFeeCreate {
+	_c.mutation.SetIntentOverrideID(id)
+	return _c
+}
+
+// SetNillableIntentOverrideID sets the "intent_override" edge to the ChargeFlatFeeOverride entity by ID if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableIntentOverrideID(id *string) *ChargeFlatFeeCreate {
+	if id != nil {
+		_c = _c.SetIntentOverrideID(*id)
+	}
+	return _c
+}
+
+// SetIntentOverride sets the "intent_override" edge to the ChargeFlatFeeOverride entity.
+func (_c *ChargeFlatFeeCreate) SetIntentOverride(v *ChargeFlatFeeOverride) *ChargeFlatFeeCreate {
+	return _c.SetIntentOverrideID(v.ID)
 }
 
 // SetSubscription sets the "subscription" edge to the Subscription entity.
@@ -461,6 +530,11 @@ func (_c *ChargeFlatFeeCreate) SetFeature(v *Feature) *ChargeFlatFeeCreate {
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_c *ChargeFlatFeeCreate) SetTaxCode(v *TaxCode) *ChargeFlatFeeCreate {
 	return _c.SetTaxCodeID(v.ID)
+}
+
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *ChargeFlatFeeCreate) SetCustomCurrency(v *CustomCurrency) *ChargeFlatFeeCreate {
+	return _c.SetCustomCurrencyID(v.ID)
 }
 
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
@@ -548,12 +622,14 @@ func (_c *ChargeFlatFeeCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.status": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeFlatFee.currency"`)}
+	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
+		if err := chargeflatfee.FiatCurrencyCodeValidator(string(v)); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.fiat_currency_code": %w`, err)}
+		}
 	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := chargeflatfee.CurrencyValidator(string(v)); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.currency": %w`, err)}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := chargeflatfee.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.custom_currency_id": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ManagedBy(); !ok {
@@ -562,6 +638,14 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	if v, ok := _c.mutation.ManagedBy(); ok {
 		if err := chargeflatfee.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.TaxCodeID(); !ok {
+		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeFlatFee.tax_code_id"`)}
+	}
+	if v, ok := _c.mutation.TaxCodeID(); ok {
+		if err := chargeflatfee.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_code_id": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
@@ -640,6 +724,9 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "ChargeFlatFee.customer"`)}
 	}
+	if len(_c.mutation.TaxCodeIDs()) == 0 {
+		return &ValidationError{Name: "tax_code", err: errors.New(`db: missing required edge "ChargeFlatFee.tax_code"`)}
+	}
 	return nil
 }
 
@@ -711,9 +798,9 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		_spec.SetField(chargeflatfee.FieldUniqueReferenceID, field.TypeString, value)
 		_node.UniqueReferenceID = &value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(chargeflatfee.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(chargeflatfee.FieldFiatCurrencyCode, field.TypeString, value)
+		_node.FiatCurrencyCode = &value
 	}
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargeflatfee.FieldManagedBy, field.TypeEnum, value)
@@ -770,6 +857,10 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.SettlementMode(); ok {
 		_spec.SetField(chargeflatfee.FieldSettlementMode, field.TypeEnum, value)
 		_node.SettlementMode = value
+	}
+	if value, ok := _c.mutation.IntentDeletedAt(); ok {
+		_spec.SetField(chargeflatfee.FieldIntentDeletedAt, field.TypeTime, value)
+		_node.IntentDeletedAt = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := chargeflatfee.ValueScanner.Discounts.Value(value)
@@ -832,6 +923,23 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		_node.CurrentRealizationRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.CostBasisIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeflatfee.CostBasisTable,
+			Columns: []string{chargeflatfee.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeecostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CostBasisID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -841,6 +949,22 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.IntentOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.IntentOverrideTable,
+			Columns: []string{chargeflatfee.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -947,7 +1071,24 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.TaxCodeID = &nodes[0]
+		_node.TaxCodeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.CustomCurrencyTable,
+			Columns: []string{chargeflatfee.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1086,18 +1227,6 @@ func (u *ChargeFlatFeeUpsert) UpdateStatus() *ChargeFlatFeeUpsert {
 	return u
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeFlatFeeUpsert) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldManagedBy, v)
-	return u
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateManagedBy() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldManagedBy)
-	return u
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeFlatFeeUpsert) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsert {
 	u.Set(chargeflatfee.FieldSubscriptionItemID, v)
@@ -1131,42 +1260,6 @@ func (u *ChargeFlatFeeUpsert) UpdateAdvanceAfter() *ChargeFlatFeeUpsert {
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (u *ChargeFlatFeeUpsert) ClearAdvanceAfter() *ChargeFlatFeeUpsert {
 	u.SetNull(chargeflatfee.FieldAdvanceAfter)
-	return u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsert) SetTaxCodeID(v string) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldTaxCodeID, v)
-	return u
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateTaxCodeID() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldTaxCodeID)
-	return u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsert) ClearTaxCodeID() *ChargeFlatFeeUpsert {
-	u.SetNull(chargeflatfee.FieldTaxCodeID)
-	return u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldTaxBehavior, v)
-	return u
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateTaxBehavior() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldTaxBehavior)
-	return u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsert) ClearTaxBehavior() *ChargeFlatFeeUpsert {
-	u.SetNull(chargeflatfee.FieldTaxBehavior)
 	return u
 }
 
@@ -1290,8 +1383,26 @@ func (u *ChargeFlatFeeUpsert) UpdateInvoiceAt() *ChargeFlatFeeUpsert {
 	return u
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsert) SetIntentDeletedAt(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldIntentDeletedAt, v)
+	return u
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateIntentDeletedAt() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldIntentDeletedAt)
+	return u
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsert) ClearIntentDeletedAt() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldIntentDeletedAt)
+	return u
+}
+
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeFlatFeeUpsert) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeUpsert {
+func (u *ChargeFlatFeeUpsert) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeUpsert {
 	u.Set(chargeflatfee.FieldDiscounts, v)
 	return u
 }
@@ -1317,24 +1428,6 @@ func (u *ChargeFlatFeeUpsert) SetProRating(v flatfee.ProRatingModeAdapterEnum) *
 // UpdateProRating sets the "pro_rating" field to the value that was provided on create.
 func (u *ChargeFlatFeeUpsert) UpdateProRating() *ChargeFlatFeeUpsert {
 	u.SetExcluded(chargeflatfee.FieldProRating)
-	return u
-}
-
-// SetFeatureKey sets the "feature_key" field.
-func (u *ChargeFlatFeeUpsert) SetFeatureKey(v string) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldFeatureKey, v)
-	return u
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateFeatureKey() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldFeatureKey)
-	return u
-}
-
-// ClearFeatureKey clears the value of the "feature_key" field.
-func (u *ChargeFlatFeeUpsert) ClearFeatureKey() *ChargeFlatFeeUpsert {
-	u.SetNull(chargeflatfee.FieldFeatureKey)
 	return u
 }
 
@@ -1433,14 +1526,26 @@ func (u *ChargeFlatFeeUpsertOne) UpdateNewValues() *ChargeFlatFeeUpsertOne {
 		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
 			s.SetIgnore(chargeflatfee.FieldUniqueReferenceID)
 		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(chargeflatfee.FieldCurrency)
+		if _, exists := u.create.mutation.FiatCurrencyCode(); exists {
+			s.SetIgnore(chargeflatfee.FieldFiatCurrencyCode)
+		}
+		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
+			s.SetIgnore(chargeflatfee.FieldCustomCurrencyID)
+		}
+		if _, exists := u.create.mutation.ManagedBy(); exists {
+			s.SetIgnore(chargeflatfee.FieldManagedBy)
 		}
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargeflatfee.FieldSubscriptionID)
 		}
 		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
 			s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
+		}
+		if _, exists := u.create.mutation.TaxCodeID(); exists {
+			s.SetIgnore(chargeflatfee.FieldTaxCodeID)
+		}
+		if _, exists := u.create.mutation.TaxBehavior(); exists {
+			s.SetIgnore(chargeflatfee.FieldTaxBehavior)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeflatfee.FieldNamespace)
@@ -1450,6 +1555,12 @@ func (u *ChargeFlatFeeUpsertOne) UpdateNewValues() *ChargeFlatFeeUpsertOne {
 		}
 		if _, exists := u.create.mutation.SettlementMode(); exists {
 			s.SetIgnore(chargeflatfee.FieldSettlementMode)
+		}
+		if _, exists := u.create.mutation.FeatureKey(); exists {
+			s.SetIgnore(chargeflatfee.FieldFeatureKey)
+		}
+		if _, exists := u.create.mutation.CostBasisID(); exists {
+			s.SetIgnore(chargeflatfee.FieldCostBasisID)
 		}
 	}))
 	return u
@@ -1580,20 +1691,6 @@ func (u *ChargeFlatFeeUpsertOne) UpdateStatus() *ChargeFlatFeeUpsertOne {
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeFlatFeeUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateManagedBy() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeFlatFeeUpsertOne) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
@@ -1633,48 +1730,6 @@ func (u *ChargeFlatFeeUpsertOne) UpdateAdvanceAfter() *ChargeFlatFeeUpsertOne {
 func (u *ChargeFlatFeeUpsertOne) ClearAdvanceAfter() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsertOne) SetTaxCodeID(v string) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateTaxCodeID() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsertOne) ClearTaxCodeID() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateTaxBehavior() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsertOne) ClearTaxBehavior() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -1818,8 +1873,29 @@ func (u *ChargeFlatFeeUpsertOne) UpdateInvoiceAt() *ChargeFlatFeeUpsertOne {
 	})
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertOne) SetIntentDeletedAt(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetIntentDeletedAt(v)
+	})
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateIntentDeletedAt() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateIntentDeletedAt()
+	})
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertOne) ClearIntentDeletedAt() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearIntentDeletedAt()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeFlatFeeUpsertOne) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeUpsertOne {
+func (u *ChargeFlatFeeUpsertOne) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -1850,27 +1926,6 @@ func (u *ChargeFlatFeeUpsertOne) SetProRating(v flatfee.ProRatingModeAdapterEnum
 func (u *ChargeFlatFeeUpsertOne) UpdateProRating() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateProRating()
-	})
-}
-
-// SetFeatureKey sets the "feature_key" field.
-func (u *ChargeFlatFeeUpsertOne) SetFeatureKey(v string) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetFeatureKey(v)
-	})
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateFeatureKey() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateFeatureKey()
-	})
-}
-
-// ClearFeatureKey clears the value of the "feature_key" field.
-func (u *ChargeFlatFeeUpsertOne) ClearFeatureKey() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearFeatureKey()
 	})
 }
 
@@ -2150,14 +2205,26 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateNewValues() *ChargeFlatFeeUpsertBulk {
 			if _, exists := b.mutation.UniqueReferenceID(); exists {
 				s.SetIgnore(chargeflatfee.FieldUniqueReferenceID)
 			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(chargeflatfee.FieldCurrency)
+			if _, exists := b.mutation.FiatCurrencyCode(); exists {
+				s.SetIgnore(chargeflatfee.FieldFiatCurrencyCode)
+			}
+			if _, exists := b.mutation.CustomCurrencyID(); exists {
+				s.SetIgnore(chargeflatfee.FieldCustomCurrencyID)
+			}
+			if _, exists := b.mutation.ManagedBy(); exists {
+				s.SetIgnore(chargeflatfee.FieldManagedBy)
 			}
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargeflatfee.FieldSubscriptionID)
 			}
 			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
 				s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
+			}
+			if _, exists := b.mutation.TaxCodeID(); exists {
+				s.SetIgnore(chargeflatfee.FieldTaxCodeID)
+			}
+			if _, exists := b.mutation.TaxBehavior(); exists {
+				s.SetIgnore(chargeflatfee.FieldTaxBehavior)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeflatfee.FieldNamespace)
@@ -2167,6 +2234,12 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateNewValues() *ChargeFlatFeeUpsertBulk {
 			}
 			if _, exists := b.mutation.SettlementMode(); exists {
 				s.SetIgnore(chargeflatfee.FieldSettlementMode)
+			}
+			if _, exists := b.mutation.FeatureKey(); exists {
+				s.SetIgnore(chargeflatfee.FieldFeatureKey)
+			}
+			if _, exists := b.mutation.CostBasisID(); exists {
+				s.SetIgnore(chargeflatfee.FieldCostBasisID)
 			}
 		}
 	}))
@@ -2298,20 +2371,6 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateStatus() *ChargeFlatFeeUpsertBulk {
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeFlatFeeUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateManagedBy() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeFlatFeeUpsertBulk) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
@@ -2351,48 +2410,6 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateAdvanceAfter() *ChargeFlatFeeUpsertBulk 
 func (u *ChargeFlatFeeUpsertBulk) ClearAdvanceAfter() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsertBulk) SetTaxCodeID(v string) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateTaxCodeID() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsertBulk) ClearTaxCodeID() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateTaxBehavior() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsertBulk) ClearTaxBehavior() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -2536,8 +2553,29 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateInvoiceAt() *ChargeFlatFeeUpsertBulk {
 	})
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertBulk) SetIntentDeletedAt(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetIntentDeletedAt(v)
+	})
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateIntentDeletedAt() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateIntentDeletedAt()
+	})
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearIntentDeletedAt() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearIntentDeletedAt()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeFlatFeeUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeUpsertBulk {
+func (u *ChargeFlatFeeUpsertBulk) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -2568,27 +2606,6 @@ func (u *ChargeFlatFeeUpsertBulk) SetProRating(v flatfee.ProRatingModeAdapterEnu
 func (u *ChargeFlatFeeUpsertBulk) UpdateProRating() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateProRating()
-	})
-}
-
-// SetFeatureKey sets the "feature_key" field.
-func (u *ChargeFlatFeeUpsertBulk) SetFeatureKey(v string) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetFeatureKey(v)
-	})
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateFeatureKey() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateFeatureKey()
-	})
-}
-
-// ClearFeatureKey clears the value of the "feature_key" field.
-func (u *ChargeFlatFeeUpsertBulk) ClearFeatureKey() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearFeatureKey()
 	})
 }
 

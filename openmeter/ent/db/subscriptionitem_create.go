@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
@@ -282,6 +283,12 @@ func (_c *SubscriptionItemCreate) SetDiscounts(v *productcatalog.Discounts) *Sub
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *SubscriptionItemCreate) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *SubscriptionItemCreate) SetID(v string) *SubscriptionItemCreate {
 	_c.mutation.SetID(v)
@@ -319,6 +326,21 @@ func (_c *SubscriptionItemCreate) AddBillingLines(v ...*BillingInvoiceLine) *Sub
 		ids[i] = v[i].ID
 	}
 	return _c.AddBillingLineIDs(ids...)
+}
+
+// AddBillingGatheringInvoiceLineIDs adds the "billing_gathering_invoice_lines" edge to the BillingGatheringInvoiceLine entity by IDs.
+func (_c *SubscriptionItemCreate) AddBillingGatheringInvoiceLineIDs(ids ...string) *SubscriptionItemCreate {
+	_c.mutation.AddBillingGatheringInvoiceLineIDs(ids...)
+	return _c
+}
+
+// AddBillingGatheringInvoiceLines adds the "billing_gathering_invoice_lines" edges to the BillingGatheringInvoiceLine entity.
+func (_c *SubscriptionItemCreate) AddBillingGatheringInvoiceLines(v ...*BillingGatheringInvoiceLine) *SubscriptionItemCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBillingGatheringInvoiceLineIDs(ids...)
 }
 
 // AddBillingSplitLineGroupIDs adds the "billing_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
@@ -503,6 +525,11 @@ func (_c *SubscriptionItemCreate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.unit_config": %w`, err)}
+		}
+	}
 	if len(_c.mutation.PhaseIDs()) == 0 {
 		return &ValidationError{Name: "phase", err: errors.New(`db: missing required edge "SubscriptionItem.phase"`)}
 	}
@@ -649,6 +676,14 @@ func (_c *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cre
 		_spec.SetField(subscriptionitem.FieldDiscounts, field.TypeString, vv)
 		_node.Discounts = value
 	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		vv, err := subscriptionitem.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(subscriptionitem.FieldUnitConfig, field.TypeString, vv)
+		_node.UnitConfig = value
+	}
 	if nodes := _c.mutation.PhaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -692,6 +727,22 @@ func (_c *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cre
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingGatheringInvoiceLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.BillingGatheringInvoiceLinesTable,
+			Columns: []string{subscriptionitem.BillingGatheringInvoiceLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billinggatheringinvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1174,6 +1225,24 @@ func (u *SubscriptionItemUpsert) ClearDiscounts() *SubscriptionItemUpsert {
 	return u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (u *SubscriptionItemUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpsert {
+	u.Set(subscriptionitem.FieldUnitConfig, v)
+	return u
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *SubscriptionItemUpsert) UpdateUnitConfig() *SubscriptionItemUpsert {
+	u.SetExcluded(subscriptionitem.FieldUnitConfig)
+	return u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *SubscriptionItemUpsert) ClearUnitConfig() *SubscriptionItemUpsert {
+	u.SetNull(subscriptionitem.FieldUnitConfig)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1630,6 +1699,27 @@ func (u *SubscriptionItemUpsertOne) UpdateDiscounts() *SubscriptionItemUpsertOne
 func (u *SubscriptionItemUpsertOne) ClearDiscounts() *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *SubscriptionItemUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertOne) UpdateUnitConfig() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *SubscriptionItemUpsertOne) ClearUnitConfig() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 
@@ -2259,6 +2349,27 @@ func (u *SubscriptionItemUpsertBulk) UpdateDiscounts() *SubscriptionItemUpsertBu
 func (u *SubscriptionItemUpsertBulk) ClearDiscounts() *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *SubscriptionItemUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertBulk) UpdateUnitConfig() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *SubscriptionItemUpsertBulk) ClearUnitConfig() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 

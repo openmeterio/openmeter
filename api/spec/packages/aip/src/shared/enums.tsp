@@ -1,18 +1,17 @@
 namespace Shared;
 
 /**
- * Identifies which system manages a resource.
+ * Identifies whether a resource lifecycle is controlled by OpenMeter or manually
+ * overridden by the API user.
  *
  * Values:
  *
- * - `manual`: The resource is managed manually (overridden by our API users).
- * - `system`: The resource is managed by the system.
- * - `subscription`: The resource is managed by the subscription.
+ * - `system`: The resource lifecycle is controlled by OpenMeter.
+ * - `manual`: The resource lifecycle was manually overridden by the API user.
  */
-@friendlyName("ResourceManagedBy")
-@summary("Resource managed by")
-enum ResourceManagedBy {
-  Manual: "manual",
+@friendlyName("BillingLifecycleController")
+@summary("Lifecycle controller")
+enum LifecycleController {
   System: "system",
-  Subscription: "subscription",
+  Manual: "manual",
 }

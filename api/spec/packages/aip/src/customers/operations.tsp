@@ -45,9 +45,10 @@ interface CustomersOperations {
   @get
   @operationId("get-customer")
   @summary("Get customer")
-  get(
-    @path customerId: Shared.ULID,
-  ): Shared.GetResponse<Customer> | Common.NotFound | Common.ErrorResponses;
+  get(@path customerId: Shared.ULID):
+    | Shared.GetResponse<Customer>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   @get
   @operationId("list-customers")
@@ -94,90 +95,94 @@ interface CustomersOperations {
   @delete
   @operationId("delete-customer")
   @summary("Delete customer")
-  delete(
-    @path customerId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
+  delete(@path customerId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
 
-interface CustomerBillingOperations {
-  @get
-  @operationId("get-customer-billing")
-  @summary("Get customer billing data")
-  get(
-    @path customerId: Shared.ULID,
-  ): Shared.GetResponse<CustomerBillingData> | Common.NotFound | Common.ErrorResponses;
+namespace Billing {
+  interface CustomerBillingOperations {
+    @get
+    @operationId("get-customer-billing")
+    @summary("Get customer billing data")
+    get(@path customerId: Shared.ULID):
+      | Shared.GetResponse<CustomerBillingData>
+      | Common.NotFound
+      | Common.ErrorResponses;
 
-  @put
-  @operationId("update-customer-billing")
-  @summary("Update customer billing data")
-  upsert(
-    @path customerId: Shared.ULID,
-    @body body: Shared.UpsertRequest<CustomerBillingData>,
-  ):
-    | Shared.UpsertResponse<CustomerBillingData>
-    | Common.Gone
-    | Common.NotFound
-    | Common.ErrorResponses;
+    @put
+    @operationId("update-customer-billing")
+    @summary("Update customer billing data")
+    upsert(
+      @path customerId: Shared.ULID,
+      @body body: Shared.UpsertRequest<CustomerBillingData>,
+    ):
+      | Shared.UpsertResponse<CustomerBillingData>
+      | Common.Gone
+      | Common.NotFound
+      | Common.ErrorResponses;
 
-  @put
-  @route("/app-data")
-  @operationId("update-customer-billing-app-data")
-  @summary("Update customer billing app data")
-  upsertAppData(
-    @path customerId: Shared.ULID,
-    @body body: Shared.UpsertRequest<Apps.AppCustomerData>,
-  ):
-    | Shared.UpsertResponse<Apps.AppCustomerData>
-    | Common.Gone
-    | Common.NotFound
-    | Common.ErrorResponses;
+    @put
+    @route("/app-data")
+    @operationId("update-customer-billing-app-data")
+    @summary("Update customer billing app data")
+    upsertAppData(
+      @path customerId: Shared.ULID,
+      @body body: Shared.UpsertRequest<Apps.AppCustomerData>,
+    ):
+      | Shared.UpsertResponse<Apps.AppCustomerData>
+      | Common.Gone
+      | Common.NotFound
+      | Common.ErrorResponses;
 
-  /**
-   * Create a [Stripe Checkout Session](https://docs.stripe.com/payments/checkout)
-   * for the customer.
-   *
-   * Creates a Checkout Session for collecting payment method information from
-   * customers. The session operates in "setup" mode, which collects payment details
-   * without charging the customer immediately. The collected payment method can be
-   * used for future subscription billing.
-   *
-   * For hosted checkout sessions, redirect customers to the returned URL. For
-   * embedded sessions, use the client_secret to initialize Stripe.js in your
-   * application.
-   */
-  @post
-  @route("/stripe/checkout-sessions")
-  @operationId("create-customer-stripe-checkout-session")
-  @summary("Create Stripe Checkout Session")
-  createCheckoutSession(
-    @path customerId: Shared.ULID,
-    @body body: CustomerBillingStripeCreateCheckoutSessionRequest,
-  ):
-    | Shared.CreateResponse<Apps.CreateStripeCheckoutSessionResult>
-    | Common.Gone
-    | Common.NotFound
-    | Common.ErrorResponses;
+    /**
+     * Create a [Stripe Checkout Session](https://docs.stripe.com/payments/checkout)
+     * for the customer.
+     *
+     * Creates a Checkout Session for collecting payment method information from
+     * customers. The session operates in "setup" mode, which collects payment details
+     * without charging the customer immediately. The collected payment method can be
+     * used for future subscription billing.
+     *
+     * For hosted checkout sessions, redirect customers to the returned URL. For
+     * embedded sessions, use the client_secret to initialize Stripe.js in your
+     * application.
+     */
+    @post
+    @route("/stripe/checkout-sessions")
+    @operationId("create-customer-stripe-checkout-session")
+    @summary("Create Stripe Checkout Session")
+    createCheckoutSession(
+      @path customerId: Shared.ULID,
+      @body body: CustomerBillingStripeCreateCheckoutSessionRequest,
+    ):
+      | Shared.CreateResponse<Apps.CreateStripeCheckoutSessionResult>
+      | Common.Gone
+      | Common.NotFound
+      | Common.ErrorResponses;
 
-  /**
-   * Create Stripe Customer Portal Session.
-   *
-   * Useful to redirect the customer to the Stripe Customer Portal to manage their
-   * payment methods, change their billing address and access their invoice history.
-   * Only returns URL if the customer billing profile is linked to a stripe app and
-   * customer.
-   */
-  @post
-  @route("/stripe/portal-sessions")
-  @operationId("create-customer-stripe-portal-session")
-  @summary("Create Stripe customer portal session")
-  createPortalSession(
-    @path customerId: Shared.ULID,
-    @body body: CustomerBillingStripeCreateCustomerPortalSessionRequest,
-  ):
-    | Shared.CreateResponse<Apps.CreateStripeCustomerPortalSessionResult>
-    | Common.Gone
-    | Common.NotFound
-    | Common.ErrorResponses;
+    /**
+     * Create Stripe Customer Portal Session.
+     *
+     * Useful to redirect the customer to the Stripe Customer Portal to manage their
+     * payment methods, change their billing address and access their invoice history.
+     * Only returns URL if the customer billing profile is linked to a stripe app and
+     * customer.
+     */
+    @post
+    @route("/stripe/portal-sessions")
+    @operationId("create-customer-stripe-portal-session")
+    @summary("Create Stripe customer portal session")
+    createPortalSession(
+      @path customerId: Shared.ULID,
+      @body body: CustomerBillingStripeCreateCustomerPortalSessionRequest,
+    ):
+      | Shared.CreateResponse<Apps.CreateStripeCustomerPortalSessionResult>
+      | Common.Gone
+      | Common.NotFound
+      | Common.ErrorResponses;
+  }
 }
 
 /**

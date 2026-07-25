@@ -161,6 +161,20 @@ var ErrRateCardBillingCadenceMismatch = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeAddonRateCardUnitConfigMismatch models.ErrorCode = "addon_rate_card_unit_config_mismatch"
+
+// ErrAddonRateCardUnitConfigMismatch is raised when an addon rate card carries a unit_config that differs
+// from the rate card it extends. Addons layer price/entitlement/discounts additively but do not
+// redefine the unit conversion; a divergent unit_config would be silently dropped by the overlay, so
+// it is rejected here rather than accepted and ignored.
+var ErrAddonRateCardUnitConfigMismatch = models.NewValidationIssue(
+	ErrCodeAddonRateCardUnitConfigMismatch,
+	"unit config must match",
+	models.WithFieldString("unitConfig"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeRateCardEntitlementTemplateTypeMismatch models.ErrorCode = "rate_card_entitlement_template_type_mismatch"
 
 var ErrRateCardEntitlementTemplateTypeMismatch = models.NewValidationIssue(
@@ -371,6 +385,35 @@ const ErrCodeRateCardUsageBasedPriceWithNoFeature models.ErrorCode = "usage_base
 var ErrRateCardUsageBasedPriceWithNoFeature = models.NewValidationIssue(
 	ErrCodeRateCardUsageBasedPriceWithNoFeature,
 	"usage-based price requires feature to be associated with",
+	models.WithFieldString("featureKey"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeRateCardUnitConfigRequiresUsageBasedPrice models.ErrorCode = "unit_config_requires_usage_based_price"
+
+var ErrRateCardUnitConfigRequiresUsageBasedPrice = models.NewValidationIssue(
+	ErrCodeRateCardUnitConfigRequiresUsageBasedPrice,
+	"unit config requires a usage-based price (unit, graduated, or volume)",
+	models.WithFieldString("unit_config"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeUnitConfigNotRepresentable models.ErrorCode = "unit_config_not_representable"
+
+var ErrUnitConfigNotRepresentable = models.NewValidationIssue(
+	ErrCodeUnitConfigNotRepresentable,
+	"this resource uses unit_config and is only available via the v3 API",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeRateCardUsageBasedPriceWithFeatureAndNoMeter models.ErrorCode = "usage_based_price_with_feature_and_no_meter"
+
+var ErrRateCardUsageBasedPriceWithFeatureAndNoMeter = models.NewValidationIssue(
+	ErrCodeRateCardUsageBasedPriceWithFeatureAndNoMeter,
+	"usage-based price requires feature with meter to be associated with",
 	models.WithFieldString("featureKey"),
 	models.WithWarningSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),

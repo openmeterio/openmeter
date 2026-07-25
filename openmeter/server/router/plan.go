@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	planhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/httpdriver"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 // List plans
@@ -18,7 +19,11 @@ func (a *Router) ListPlans(w http.ResponseWriter, r *http.Request, params api.Li
 // Create a plan
 // (POST /api/v1/plans)
 func (a *Router) CreatePlan(w http.ResponseWriter, r *http.Request) {
-	a.planHandler.CreatePlan().ServeHTTP(w, r)
+	a.planHandler.CreatePlan().
+		Chain(featuregate.NewMiddleware[planhttpdriver.CreatePlanRequest, planhttpdriver.CreatePlanResponse](
+			a.config.NamespaceDecoder.GetNamespace,
+			a.config.FeatureGate,
+		)).ServeHTTP(w, r)
 }
 
 // Delete plan
@@ -39,7 +44,11 @@ func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planIdOrKey str
 // Update a plan
 // (PUT /api/v1/plans/{planId})
 func (a *Router) UpdatePlan(w http.ResponseWriter, r *http.Request, planId string) {
-	a.planHandler.UpdatePlan().With(planId).ServeHTTP(w, r)
+	a.planHandler.UpdatePlan().
+		Chain(featuregate.NewMiddleware[planhttpdriver.UpdatePlanRequest, planhttpdriver.UpdatePlanResponse](
+			a.config.NamespaceDecoder.GetNamespace,
+			a.config.FeatureGate,
+		)).With(planId).ServeHTTP(w, r)
 }
 
 // New draft plan

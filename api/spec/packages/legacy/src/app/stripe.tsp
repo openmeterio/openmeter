@@ -28,10 +28,10 @@ interface AppStripeEndpoints {
   @operationId("appStripeWebhook")
   @useAuth(NoAuth)
   @summary("Stripe webhook")
-  webhook(
-    @path id: ULID,
-    @body body: StripeWebhookEvent,
-  ): StripeWebhookResponse | NotFoundError | CommonErrors;
+  webhook(@path id: ULID, @body body: StripeWebhookEvent):
+    | StripeWebhookResponse
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Update the Stripe API key.
@@ -43,10 +43,9 @@ interface AppStripeEndpoints {
   @route("/api/v1/apps/{id}/stripe/api-key")
   @operationId("updateStripeAPIKey")
   @summary("Update Stripe API key")
-  updateStripeAPIKey(
-    @path id: ULID,
-    @body request: StripeAPIKeyInput,
-  ): void | CommonErrors;
+  updateStripeAPIKey(@path id: ULID, @body request: StripeAPIKeyInput):
+    | void
+    | CommonErrors;
 
   /**
    * Create checkout session.
@@ -55,10 +54,13 @@ interface AppStripeEndpoints {
   @route("/api/v1/stripe/checkout/sessions")
   @operationId("createStripeCheckoutSession")
   @summary("Create checkout session")
-  createCheckoutSession(@body body: CreateStripeCheckoutSessionRequest): {
-    @statusCode _: 201;
-    @body body: CreateStripeCheckoutSessionResult;
-  } | NotFoundError | CommonErrors;
+  createCheckoutSession(@body body: CreateStripeCheckoutSessionRequest):
+    | {
+        @statusCode _: 201;
+        @body body: CreateStripeCheckoutSessionResult;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
 
 /**
@@ -173,7 +175,10 @@ model CreateStripeCheckoutSessionRequest {
    * Provide a customer ID or key to use an existing OpenMeter customer.
    * or provide a customer object to create a new customer.
    */
-  customer: StripeCustomerId | StripeCustomerKey | TypeSpec.Rest.Resource.ResourceCreateModel<Customer>;
+  customer:
+    | StripeCustomerId
+    | StripeCustomerKey
+    | TypeSpec.Rest.Resource.ResourceCreateModel<Customer>;
 
   /**
    * Stripe customer ID.

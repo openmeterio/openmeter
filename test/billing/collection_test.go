@@ -99,7 +99,7 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -131,6 +131,79 @@ func (s *CollectionTestSuite) TestUncollectableCollection() {
 	s.Len(invoices, 0)
 }
 
+func (s *CollectionTestSuite) TestGatheringLineUnitConfigSnapshotRoundTrip() {
+	// given:
+	// - a legacy (non-charges) usage-based gathering line whose rate card carries a unit_config
+	// when:
+	// - it is persisted via CreatePendingInvoiceLines and read back from the gathering invoice
+	// then:
+	// - the unit_config snapshot round-trips on the gathering line, so the legacy line-engine
+	//   path carries it onto the standard line (AsNewStandardLine) at collection time and
+	//   GetUnitConfig converts from raw metered units instead of billing raw
+	namespace := "ns-collection-gathering-unit-config"
+	ctx := s.T().Context()
+
+	res := s.setupNS(ctx, namespace)
+	defer res.Cleanup()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
+	}
+
+	clock.SetTime(servicePeriod.From)
+	defer clock.ResetTime()
+
+	unitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		DisplayUnit:      lo.ToPtr("GB"),
+	}
+
+	created, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: res.customer.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: []billing.GatheringLine{
+			{
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "UBP - unit with unit_config",
+					}),
+					ServicePeriod: servicePeriod,
+					InvoiceAt:     servicePeriod.To,
+					ManagedBy:     billing.ManuallyManagedLine,
+					FeatureKey:    res.TestFeature.Feature.Key,
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(
+						productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)},
+					)),
+					UnitConfig: unitConfig,
+				},
+			},
+		},
+	})
+	s.Require().NoError(err)
+	s.Len(created.Lines, 1)
+
+	gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: created.Invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+	})
+	s.Require().NoError(err)
+
+	lines := gatheringInvoice.Lines.OrEmpty()
+	s.Require().Len(lines, 1)
+	s.Require().NotNil(lines[0].UnitConfig)
+	s.True(unitConfig.Equal(lines[0].UnitConfig))
+
+	// The gathering→standard conversion must carry the snapshot onto the standard line's
+	// UnitConfig (where the rating mutator reads it via GetUnitConfig).
+	stdLine, err := lines[0].AsNewStandardLine("invoice-id")
+	s.Require().NoError(err)
+	s.Require().NotNil(stdLine.UsageBased.UnitConfig)
+	s.True(unitConfig.Equal(stdLine.GetUnitConfig()))
+}
+
 func (s *CollectionTestSuite) TestCollectionFlow() {
 	namespace := "ns-collection-flow"
 	ctx := context.Background()
@@ -156,7 +229,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 	s.Run("validate collection_at calculation", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -355,7 +428,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			// Given
 			pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 				Customer: customer.GetID(),
-				Currency: currencyx.Code(currency.USD),
+				Currency: currencyx.FiatCode(currency.USD),
 				Lines:    []billing.GatheringLine{tc.line},
 			})
 			s.NoError(err)
@@ -386,6 +459,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 
 	res := s.setupNS(ctx, namespace)
 	defer res.Cleanup()
+	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
 
 	customer := res.customer
 	apiRequestsTotalFeature := res.TestFeature
@@ -408,7 +482,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -446,7 +520,8 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, periodStart.Add(time.Minute*35))
 
 	invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: invoice.GetInvoiceID(),
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			linePeriod := timeutil.ClosedPeriod{
 				From: periodEnd.Add(time.Hour * 1),
@@ -456,7 +531,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 			invoice.Lines.Append(
 				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 					Namespace: namespace,
-					Currency:  currencyx.Code(currency.USD),
+					Currency:  currencyx.FiatCode(currency.USD),
 					InvoiceID: invoice.ID,
 					Period:    linePeriod,
 					InvoiceAt: linePeriod.To,
@@ -523,7 +598,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceUsesLateEvent
 	periodEnd := now.Add(12 * time.Hour)
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -622,7 +697,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_AutomaticCollectionWaitsForA
 	periodEnd := now.Add(12 * time.Hour)
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -685,7 +760,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 	periodEnd := lo.Must(time.Parse(time.RFC3339, "2025-06-15T12:00:00Z"))
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -725,7 +800,7 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 
 	inv, err := s.BillingService.CreateStandardInvoiceFromGatheringLines(ctx, billing.CreateStandardInvoiceFromGatheringLinesInput{
 		Customer: customerEntity.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines:    invoices.Items[0].Lines.OrEmpty(),
 	})
 	s.NoError(err)
@@ -741,6 +816,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 
 	res := s.setupNS(ctx, namespace)
 	defer res.Cleanup()
+	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
 
 	customer := res.customer
 	apiRequestsTotalFeature := res.TestFeature
@@ -763,7 +839,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -802,7 +878,8 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	}
 	s.Run("adding a new line extends the collection period", func() {
 		invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-			Invoice: invoice.GetInvoiceID(),
+			Invoice:      invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
 			EditFn: func(invoice *billing.StandardInvoice) error {
 				invoice.Lines.Append(&billing.StandardLine{
 					StandardLineBase: billing.StandardLineBase{
@@ -810,7 +887,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 							Namespace: namespace,
 							Name:      "UBP - unit - new",
 						}),
-						Currency:  currencyx.Code(currency.USD),
+						Currency:  currencyx.FiatCode(currency.USD),
 						InvoiceID: invoice.ID,
 						Period:    newLinePeriod,
 						InvoiceAt: newLinePeriod.To,

@@ -650,10 +650,7 @@ func stripFeatureIDs(spec *subscription.SubscriptionSpec) {
 	for _, phase := range spec.Phases {
 		for _, items := range phase.ItemsByKey {
 			for _, item := range items {
-				_ = item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-					m.FeatureID = nil
-					return m, nil
-				})
+				item.RateCard.SetFeature(nil, item.RateCard.GetFeatureKey())
 			}
 		}
 	}

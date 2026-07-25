@@ -9,7 +9,7 @@ allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 
 Guidance for working with OpenMeter billing charges.
 
-This skill describes the charges package generically. Lifecycle state machines exist for both usage-based and flat-fee credit-only branches. All three charge types (usage-based, flat-fee, credit-purchase) follow the same structural pattern: `ChargeBase`/`Charge` with `Realizations`, own `Status` type, `status_detailed` DB column, and composite adapter interfaces.
+This skill describes the charges package generically. Lifecycle state machines exist for type-specific settlement modes. All three charge types (usage-based, flat-fee, credit-purchase) follow the same structural pattern: `ChargeBase`/`Charge` with `Realizations`, own `Status` type, `status_detailed` DB column, and composite adapter interfaces.
 
 ## Scope
 
@@ -65,12 +65,18 @@ The generic rule is:
 - type-specific service subpackages may own reusable realization mechanics when the parent service becomes too broad; keep state-machine decisions in the lifecycle files and move only mechanical operations such as rating snapshots, realization persistence, credit allocation/correction, and realization lineage persistence into these helpers
 - invoice-backed charges must not reach the meta `final` state until their payment lifecycle is fully settled; if a charge is waiting on invoice payment authorization or settlement, keep it in an `active.*` detailed status instead of collapsing to `final`
 
+Adapter rules:
+
+- Keep Ent access transaction-aware in `openmeter/billing/charges/.../adapter`, including shared helper functions. Prefer helpers to accept the adapter/repo handle rather than a raw `*entdb.Client`, so `entutils.TransactingRepo(...)` or `entutils.TransactingRepoWithNoValue(...)` can pass the transaction-bound handle from `ctx`. If a helper must accept a raw client, only call it with the swapped handle's client, such as `tx.db` inside the transacting callback.
+- For flat-fee and usage-based adapters, `UpdateCharge(ctx, ChargeBase)` persists charge base-row fields only. Realization-side rows, such as detailed lines, credit allocations/corrections, invoice accruals, payment records, and run/linkage rows, must be persisted through their dedicated adapter methods. Do not call `UpdateCharge(...)` only because expanded `Realizations` changed; expanded realizations are read-model state on the aggregate, not implicit write input.
+
 Important types:
 
 - `charges.AdvanceChargesInput` identifies the customer whose charges should advance
 - `meta.Charge` and `meta.ChargeID` define the shared charge identity and type
 - `charges.Charge` wraps concrete charge variants
-- `flatfee.Intent` carries `AmountBeforeProration`, `ProRating`, `SettlementMode`, `PaymentTerm`, `InvoiceAt` — immutable inputs provided by the caller
+- `flatfee.OverridableIntent` carries the immutable flat-fee intent plus base and optional override mutable layers. Use accessors instead of reading layer fields directly unless the caller explicitly owns the base layer.
+- `flatfee.Intent` is the concrete base/effective intent shape used when creating or cloning a flat-fee intent. `Intent.AsOverridableIntent()` maps it into the base layer.
 - `flatfee.ChargeBase` stores the persisted flat-fee charge row: current `Status` plus durable `State`
 - `flatfee.State` currently tracks:
   - `AmountAfterProration`
@@ -82,8 +88,9 @@ Important types:
   - `Payment`
   - `DetailedLines`
 - `flatfee.Intent.CalculateAmountAfterProration()` computes the prorated amount from `AmountBeforeProration`, `ServicePeriod/FullServicePeriod` ratio, and `ProRating` config, with currency-precision rounding
-- Charge-backed targets do not use invoice-style semantic proration or empty-period filtering; the charge stack materializes and prorates state itself, and the flat fee charge is responsible for omitting empty lines
-- `usagebased.Intent` carries `FeatureKey`, `Price`, `SettlementMode`, `InvoiceAt`, and `ServicePeriod`
+- Flat-fee and usage-based charge-backed targets do not use invoice-style semantic proration or empty-period filtering. The charge stack materializes, prorates, and omits empty invoice artifacts according to the charge type's lifecycle rules.
+- `usagebased.OverridableIntent` carries the immutable usage-based intent plus base and optional override mutable layers. Use accessors instead of reading layer fields directly unless the caller explicitly owns the base layer.
+- `usagebased.Intent` is the concrete base/effective intent shape used when creating or cloning a usage-based intent. `Intent.AsOverridableIntent()` maps it into the base layer.
 - `usagebased.ChargeBase` stores the current `Status` and `State`
 - `usagebased.State` currently tracks:
   - `CurrentRealizationRunID`
@@ -99,12 +106,40 @@ Important types:
 - `usagebased.RealizationRun` can expand:
   - `DetailedLines`
 
+Intent deletion rules:
+
+- `flatfee.Intent.IntentDeletedAt` and `usagebased.Intent.IntentDeletedAt` mark the concrete base/original intent as deleted; when those charge types have no active override, adapters derive effective charge `DeletedAt` from this value.
+- `flatfee.IntentOverride.IntentDeletedAt` and `usagebased.IntentOverride.IntentDeletedAt` mark the override intent as deleted; when an override row is present, adapters derive effective charge `DeletedAt` from the override value instead of the base intent value.
+- Flat-fee and usage-based intent overrides are type-owned domain objects stored in dedicated one-to-one override tables. Override presence is represented by the override row existing. The older embedded `override_*` charge columns are compatibility/deprecated fields and should not be used for active override behavior.
+- Delete flows should first update the right intent deletion field, then resolve `charge.DeletedAt` from the aggregate (`GetIntentDeletedAt()`), and then persist the type-specific row plus charge meta.
+- Credit-purchase charges do not participate in intent override deletion semantics; do not add `IntentDeletedAt` fields or persistence to credit-purchase paths.
+
+Intent layer access rules:
+
+- Customer-facing charge behavior should read the effective layer through dedicated `OverridableIntent` accessors such as `GetEffectiveServicePeriod()`, `GetEffectiveInvoiceAt()`, `GetEffectiveTaxConfig()`, `GetEffectiveFeatureKey()`, `GetEffectivePrice()`, or `GetEffectiveMetaIntentMutableFields()`.
+- Prefer field-specific effective getters over `GetEffectiveIntent()` when only a few fields are needed. `GetEffectiveIntent()` clones and assembles a full intent, so it is useful at mapping boundaries but too broad for hot lifecycle checks.
+- Subscription sync and repair code targets subscription-owned source state. It should use `GetBaseIntent()` or base-specific helpers, not effective getters, so user/API overrides do not feed back into the subscription target state.
+- Adapter writes should persist the base intent with `GetBaseIntent()` and persist override fields only through the override-specific adapter paths. Do not derive base persistence values from effective intent accessors.
+
+Patch target rules:
+
+- Charge patch payloads carry `billing.ChangeSource` source intent instead of an explicit target whenever the target can be derived. Do not rely on a zero/default source.
+- Subscription sync emits system-sourced patches because it reconciles subscription-owned source state, not user/API overrides.
+- State machines resolve the effective target layer from base intent ownership, override presence, and patch source. System period patches target base only and must reject API-sourced period changes. API manual edits/deletes target an existing override when present, target base for manually managed base intents without an override, and create/target an override for subscription/system-owned base intents.
+- Type-specific state machines own only active customer-facing charge lifecycle: status transitions, realization runs, credit corrections, and invoice patches. If a patch targets the base layer while an override exists, that base layer is hidden source state and the state machine must reject it instead of treating it as a lifecycle no-op.
+- Subscription-sync and repair paths may still need to reconcile hidden base/source intent fields, such as base period shrink/extend/delete under an active override. Apply those updates before state-machine dispatch in service-level reconciliation, persist only the source intent, and do not emit invoice patches or mutate realization/customer-facing state from that path.
+- Delete patches follow the same target rule: deleting the hidden base layer while an override is active should mark only the base intent deleted through the service-level source reconciliation path and leave the effective override-backed charge behavior intact.
+- Charge listing for subscription-sync persisted-state loading must filter on base-intent deletion state, not effective `DeletedAt`; otherwise an active override can hide a subscription-owned base charge that sync still needs to reconcile.
+- Gathering-line upsert patches are target-state patches. `PatchOpUpsertGatheringLineByChargeID` should carry the full rebuilt `billing.GatheringLine` target state, not just period deltas. The invoice updater queries the existing pending gathering line by charge ID and merges the patch target with `WithTargetState(...)` so DB identity and invoice membership stay intact; if no active pending line exists, it creates one through the regular pending-line provisioning path.
+- `PatchShrink` is system-only and always targets the base layer. API/customer-originated period shortening must use a distinct API patch such as `PatchShrinkToRealizedPeriod`, which resolves its target layer through API patch rules and creates or updates the override layer when the base intent is subscription-managed.
+
 ## Usage-Based Invoice Line Mapping
 
 Usage-based charge realization runs are not billing standard lines. When mapping a run back to `billing.StandardLine` in `openmeter/billing/charges/usagebased/service/linemapper.go`, preserve the billing-facing semantics:
 
 - `MeteredQuantity` and `MeteredPreLinePeriodQuantity` are raw metered usage for the current line period and prior line periods.
 - `Quantity` and `PreLinePeriodQuantity` are net billable usage after rate-card usage discounts.
+- `StandardLine.UsageBased.UnitConfig` is line pricing context, like `StandardLine.UsageBased.Price`; populate it before calling `populateStandardLineFromRun(...)` and have the mapper read it from the line. Do not pass unit config as a separate mapper input.
 - Reuse the standard billing usage-discount mutator contract (`billing/rating/service/mutator.ApplyUsageDiscount`) instead of reimplementing discount math in charges. This keeps usage-based charges compatible with standard billing's `discounts.usage.quantity` and `discounts.usage.preLinePeriodQuantity` API behavior.
 - Use the standard line's real `RateCardDiscounts` when mapping invoice-line discount metadata. Do not use usage-based rating's synthetic `"usagebased-ratecard-*"` correlation IDs for persisted invoice-line discount communication.
 
@@ -113,6 +148,7 @@ Do not emulate every billing rating mutator in the line mapper. Usage discounts 
 Detailed-line expansion rules:
 
 - `meta.ExpandDetailedLines` is not standalone for charge reads; it requires `meta.ExpandRealizations`
+- `meta.ExpandDeletedRealizations` is not standalone for charge reads; it requires `meta.ExpandRealizations`
 - usage-based deleted realization runs are hidden from `meta.ExpandRealizations` by default because their invoice/ledger effect has been cleaned up; request `meta.ExpandDeletedRealizations` together with `meta.ExpandRealizations` only when a caller must inspect cleanup state, such as frontend audit views or deletion tests
 - production code that sums or interprets realization history must explicitly skip runs with `DeletedAt != nil`, documenting the business reason at the guard, because deleted realizations are no longer effective billable history
 - usage-based `invalid_due_to_unsupported_credit_note` realization runs are audit history for immutable invoice lines that should have been removed by prorating/credit-note support. They must not count as billing history for rating, pre-line quantities, or balance-style aggregate checks. Prefer the domain helper (`RealizationRun.IsVoidedBillingHistory()` / `RealizationRuns.WithoutVoidedBillingHistory()`) over ad hoc checks for deleted or unsupported-credit-note runs.
@@ -143,14 +179,26 @@ Important rules:
 - production wiring must register charge line engines through `billing.Service.RegisterLineEngine(...)`
 - tests that temporarily add engines can remove them again through `billing.Service.DeregisterLineEngine(...)`; use the public registry API instead of mutating billing internals from non-service packages
 - charge test setups must also register those engines explicitly; keep this in `openmeter/billing/charges/testutils`
+- charge-enabled app/test wiring must also register the charge-aware `CreateLineRouter`; billing's default create router intentionally falls back to legacy `billing.LineEngineTypeInvoice`
 - if a charge create path stamps a new `LineEngineType`, app wiring and charge test wiring must register a matching implementation in the same change
-- usage-based exposes its billing line engine from `usagebased.Service.GetLineEngine()`; register that returned engine instead of reusing the service type directly
-- flat-fee now follows the same pattern: `flatfee.Service.GetLineEngine()` returns the engine owned by the service package
+- for charge-backed standard line creation through invoice API edits, billing preallocates the standard line ID before invoking the charge line engine; charge engines should attach charge/realization state to that existing line identity instead of creating a separate line identity
+- flat-fee and usage-based services expose billing line engines through `GetLineEngine()`; register the returned engine instead of reusing the service type directly
 - because flat-fee owns its line engine, `flatfee/service.New(...)` requires a `rating.Service`; forgetting that dependency breaks app/test wiring with `rating service cannot be null`
+- invoice-backed charge line engines must map persisted run/realization state back onto returned standard invoice lines after run creation. Do not rely on state-machine methods mutating a standard-line pointer as their public contract.
+- For invoice-backed charge line engines, flat-fee and usage-based should follow the same structural contract: charge state machines emit invoice patches, and line engines consume those patches at the billing boundary. Standard-line delete patches must flow through the same deleted-standard-line cleanup used by `OnMutableStandardLinesDeletedBySystem(...)` so credit corrections, charge-owned detailed-line cleanup, and deleted-run marking stay consistent.
+- Invoice-backed charge API invoice-line edits/deletes are mediated by emitted invoice patches. Standard-line edits use update target-state patches, gathering-line edits use upsert target-state patches, gathering-line delete patches are validated locally, and standard-line delete patches invoke deleted-standard-line cleanup after the state machine detaches the current run. Zero-proration delete patches are currently rejected unless the charge engine explicitly models that delete result.
+- Billing calls `ValidateMutableInvoiceLineEditViaAPI(...)` before `OnMutableInvoiceLinesEditedViaAPI(...)`. The validation hook must not mutate charge or invoice state; it should only validate engine ownership, patch shape, target layer, and preconditions needed to make the later state-machine patch deterministic. Charge mutation and invoice patch consumption belong in `OnMutableInvoiceLinesEditedViaAPI(...)`.
+- API-created invoice-backed charge lines are preallocated and provisionally persisted by billing before charge line-engine dispatch. Charge engines must require the billing-owned line ID, create charge/realization state against that line identity when the charge lifecycle needs it, and return target state merged onto the preallocated line. Do not create a second invoice-line identity inside the charge package for the same customer-facing line.
+- If a charge line engine creates charge intents directly, it must preserve root charges create semantics that would otherwise be bypassed. When an API-created line omits tax config, use the billing edit callback's default tax-code resolver rather than adding a charge-service dependency on tax-code lookup.
+- When a charge line engine creates an intent from an API-created invoice line, use `InvoiceAtAccessor` only for line types that expose invoice-at as customer-facing scheduling input, such as gathering lines. `billing.StandardLine.InvoiceAt` is display-only for rendered gathering lines; standard-line charge create flows should derive intent invoice-at from the charge/payment-term semantics instead of reading that field as scheduling state.
+- Usage-based API invoice-line creates build manually managed `credit_then_invoice` charges from the preallocated billing line and return target state merged onto that same line identity. Gathering-line creates should return the charge-created gathering line target state. Standard-line creates should attach an ongoing realization run to the preallocated standard line, then map the run back onto that line. Keep usage-based line-to-intent mapping code in `usagebased/service/linemapper.go` alongside the run-to-line mapper.
+- Usage-based API invoice-line updates are not supported yet and should still return `billing.ErrCannotUpdateChargeManagedLine`. Standard-line delete is allowed only when the charge has one non-voided realization run, and the line engine must validate the emitted standard-line delete patch, invoke mutable-standard-line realization cleanup, and apply at most one remaining gathering-line delete patch. Gathering-line delete with no non-voided realizations deletes the effective charge through the API delete patch. Gathering-line delete with existing non-voided realizations must use `PatchShrinkToRealizedPeriod`, delete only the remaining gathering tail, preserve existing standard invoice history, explicitly reclassify the latest kept partial run as `RealizationRunTypeFinalRealization` when that run now covers the shortened effective period, and otherwise preserve the charge's current status/state so the existing invoice lifecycle continues to own advancement. This patch carries only the new effective service-period end for validation and must not change invoice-at, billing period, or full service period.
+- For usage-based gathering-line API delete with existing realizations, `PatchShrinkToRealizedPeriod` validation in the usage-based state-machine handler must prove the requested new effective period end equals the latest non-voided realization run's `ServicePeriodTo`. Keep this boundary check with the handler that mutates the charge, not in the line engine's preliminary validation path.
 - for usage-based realization creation, validate at the run-creation boundary (`usagebased/service/run.CreateRatedRunInput.Validate`) that `Charge.State.CurrentRealizationRunID` is nil before creating a new run; keep the line-engine-side early return too so `InvoicePendingLines` fails with the charge-specific validation error at the billing boundary. In both places, key the guard off `CurrentRealizationRunID`, not a specific status prefix such as `partial_invoice`
 - usage-based payment handling is intentionally different from flat-fee and credit-purchase: the usage-based state machine owns realization only, while the usage-based line engine/run service records payment authorization/settlement directly on historical runs and only re-enters the state machine through an aggregate trigger (for example `all_payments_settled`) once all invoiced runs on the charge are settled. Do not apply this rule generically to flat-fee or credit-purchase; those charge types may still keep payment states inside their own state machines.
-- usage-based invoice branches should read in this order: `started -> waiting_for_collection -> processing -> issuing -> completed`, then auto-advance out of the branch. Keep `invoice_issued` as the boundary between `processing` and `issuing`, run `FinalizeInvoiceRun(...)` from the `issuing` state, and let `completed` be the last branch-local status before `next` returns a partial invoice to `active` or moves a final invoice to `active.awaiting_payment_settlement`
+- usage-based invoice branches use the unified `active.realization.*` statuses for both partial and final invoice-backed runs. Keep the branch order as `started -> waiting_for_collection -> processing -> issuing -> completed`, keep `invoice_issued` as the boundary between `processing` and `issuing`, run `FinalizeInvoiceRun(...)` from the `issuing` state, and let `completed` dynamically route to `active` or `active.awaiting_payment_settlement` based on the effective service-period boundary and realization history. Do not reintroduce separate partial/final status branches; legacy `active.partial_invoice.*` and `active.final_realization.*` values are normalized when loading the state machine.
 - when adding or renaming usage-based detailed statuses, remember that `status_detailed` is an Ent enum for `ChargeUsageBased`; run `make generate` so the generated enum validators and migrate schema include the new values before trusting state-machine changes
+- when charge code deletes an empty standard invoice, call billing `DeleteInvoice` with `billing.ChangeSourceSystem`; billing stores that source for audit and dispatches `OnMutableStandardLinesDeletedBySystem(...)` only for non-deleted standard lines so charge engines can clean up line-backed runs without mutating the deleted invoice's visible line history
 
 Flat-fee credit-then-invoice lifecycle rules:
 
@@ -158,12 +206,12 @@ Flat-fee credit-then-invoice lifecycle rules:
 - The charges standard-invoice hook may still run for cross-charge concerns such as revenue recognition and credit-purchase callbacks. For flat-fee invoice statuses, keep the hook processors as no-ops and let the line engine own `OnStandardInvoiceCreated`, `OnCollectionCompleted`, `OnInvoiceIssued`, `OnPaymentAuthorized`, `OnPaymentSettled`, and mutable-line cleanup.
 - Flat-fee `credit_only` is not a line-engine flow; the flat-fee line engine should treat non-`credit_then_invoice` standard invoice callbacks as lifecycle misuse.
 - Flat-fee `credit_then_invoice` charges start as `created`, become `active` at the service-period start, and use `active.realization.*` substates for invoice lifecycle. Keep invoice-issued work in the `issuing` state and only move to `final` after required fiat payment settlement or a no-fiat run.
-- The flat-fee line engine should map persisted run state back onto returned standard invoice lines after run creation. Do not rely on state-machine methods mutating a standard-line pointer as their public contract.
 - `CreateCurrentRun(...)` must fail when the charge already has a non-detached current run. It may be created with invoice and line IDs when the standard line is known; otherwise the caller should pass the required run period and amount explicitly and attach line references later through the normal lifecycle.
 - Flat-fee realization runs use `Immutable` to choose invoice patching behavior. Mutable runs may update the standard line in place; immutable runs require deleting the old invoice line and creating a replacement gathering line when the amount changes. A deleted realization run must never remain the charge's current run.
-- Flat-fee mutable-line deletion cleanup is owned by the line engine callback. The shrink/extend/delete state-machine path should detach the current run before emitting a delete-line patch; `OnMutableStandardLinesDeleted(...)` should then correct credits, clear charge-owned detailed lines, and mark only the detached run deleted.
-- For flat-fee shrink/extend before standard-line creation, replace the pending gathering line by charge ID. For a mutable standard-line-backed current run, update the same standard line in place. For an immutable current run, keep the old invoice history intact; if the recalculated amount is unchanged, emit no customer-visible invoice change, and if the amount changes, detach the run, create a replacement gathering line, reset the charge to `created`, and set `AdvanceAfter` to the replacement service-period start.
+- For flat-fee shrink/extend/manual edit before standard-line creation, update the pending gathering line by charge ID using a full target-state gathering-line patch. Only zero-proration pending gathering targets should emit a delete-by-charge patch. For a mutable standard-line-backed current run, update the same standard line in place. For an immutable current run, keep the old invoice history intact; if the recalculated amount is unchanged, emit no customer-visible invoice change, and if the amount changes, detach the run, create a replacement gathering line, reset the charge to `created`, and set `AdvanceAfter` to the replacement service-period start.
+- Flat-fee API invoice-line edits are handled by the flat-fee line engine through the `LineManualEdit` trigger. The state machine owns override persistence. The line engine consumes the emitted invoice patch locally and returns the target line merged onto the existing invoice-line identity.
 - Flat-fee shrink/extend should reject while invoice issuing/completion callbacks own the charge state. Subscription sync can retry after billing advances out of those transient states.
+- Flat-fee API invoice-line edits may change customer-facing line fields such as service period, invoice-at, price, tax config, and discounts as long as the line remains flat-fee. The edit should persist through the flat-fee manual override path; subscription sync continues reconciling the base/source state and should not rewrite the override-backed effective line.
 - Flat-fee invoice accrual should not create an accrued-usage row or call the ledger-backed accrual handler when the standard line total is zero. The run can still become immutable and move through the no-fiat finalization path.
 - Flat-fee payment booking is line/run based rather than current-run only: asynchronous payment callbacks must locate the realization run by standard-line ID so detached historical runs can still receive authorization/settlement. No-fiat runs skip payment booking callbacks.
 
@@ -171,20 +219,20 @@ Usage-based credit-then-invoice extension rules:
 
 - `PatchExtend` must represent a real extension: the new service period end must be after the persisted intent end; full service period and billing period ends may stay unchanged but must not move backwards. Carry the new invoice-at on the patch separately from the service-period end.
 - Do not stretch an in-progress final realization run to cover the extension. There can only be one active run, and stretching the old final run would keep the run open across the extension and delay the standard invoice lifecycle.
-- If the current final realization run is still backed by a mutable invoice line, the extend flow should update the charge intent, emit an invoice-line delete patch for that mutable standard line, and let the billing invoice updater/line engine delete the invoice line and mark the run deleted. The charge should move back to `active` with `AdvanceAfter` set to the new service-period end so the extended tail can realize later.
-- While a mutable final invoice run is before invoice issuing (`active.final_realization.started`, `active.final_realization.waiting_for_collection`, or `active.final_realization.processing`), billing remains the owner of the ongoing invoice lifecycle. Extension may delete the mutable line, mark the current run deleted, and recreate a gathering line; a direct `AdvanceCharges(...)` before the new service-period end must be a no-op, and the replacement final run should be created by billing when the replacement gathering line is invoiced at the extended end.
-- Once a final invoice run reaches `active.final_realization.issuing` or `active.final_realization.completed`, extend is explicitly rejected by `UnsupportedExtendOperation` because invoice lifecycle callbacks or state-machine advancement still own those states. Subscription sync is expected to retry instead of moving the charge out of those states manually.
-- Extending from `active.awaiting_payment_settlement` is allowed: preserve the invoice line and ledger bookings, reclassify the old final run as partial, move the charge back to `active`, and create only a tail gathering line.
-- If the old final realization has already passed into immutable invoice territory, keep the invoice and ledger untouched. Reclassify the old final run as a partial invoice run and move the charge back to `active`; the extended tail will produce a new final run later. Immutable invoice cleanup should be surfaced as validation warnings by billing rather than reversing ledger bookings.
-- Pending gathering lines for the charge should be extended in place by charge ID. Existing standard invoice lines should only be deleted in the mutable-current-final case above.
+- If the current invoice-backed realization run reaches the old effective service-period end and is still backed by a mutable invoice line, the extend flow should update the charge intent, emit an invoice-line delete patch for that mutable standard line, and let the billing invoice updater/line engine delete the invoice line and mark the run deleted. The charge should move back to `active` with `AdvanceAfter` set to the new service-period end so the extended tail can realize later.
+- While an invoice-backed run that reaches the old effective service-period end is before invoice issuing (`active.realization.started`, `active.realization.waiting_for_collection`, or `active.realization.processing`), billing remains the owner of the ongoing invoice lifecycle. Extension may delete the mutable line, mark the current run deleted, and recreate a gathering line; a direct `AdvanceCharges(...)` before the new service-period end must be a no-op, and the replacement final run should be created by billing when the replacement gathering line is invoiced at the extended end.
+- Once an invoice-backed run reaches `active.realization.issuing` or `active.realization.completed`, extend is explicitly rejected by `UnsupportedExtendOperation` because invoice lifecycle callbacks or state-machine advancement still own those states. Subscription sync is expected to retry instead of moving the charge out of those states manually.
+- Extending from `active.awaiting_payment_settlement` is allowed: preserve the invoice line and ledger bookings, reclassify the old terminal run as partial, move the charge back to `active`, and create only a tail gathering line.
+- If the old terminal realization has already passed into immutable invoice territory, keep the invoice and ledger untouched. Reclassify the old final run as a partial invoice run and move the charge back to `active`; the extended tail will produce a new final run later. Immutable invoice cleanup should be surfaced as validation warnings by billing rather than reversing ledger bookings.
+- Pending gathering lines for the charge should be extended in place by charge ID using a full target-state gathering-line patch. The target line's service period must cover only the remaining charge period not already represented by non-voided realization runs; do not rebuild the pending gathering line from the whole effective charge period once prior runs exist. Existing standard invoice lines should only be deleted in the mutable-current-final case above.
 - These rules are intentionally about not blocking the invoice train: extension should not hold a standard invoice lifecycle open while waiting for newly extended usage windows to finish.
 
 Usage-based credit-then-invoice shrink rules:
 
 - `PatchShrink` must represent a real shrink: the new service period end must be before the persisted intent end and after the persisted service period start. Full service period and billing period ends may stay unchanged or move earlier, but must not move later. Carry the new invoice-at on the patch separately from the service-period end.
 - Shrink is native for usage-based `credit_then_invoice` charges so immutable invoice and ledger history can be preserved. Usage-based `credit_only` shrink remains an emulated delete/create replacement unless that mode explicitly gains native support.
-- Pending gathering lines should be shrunk in place by charge ID. This updates the line service-period end, invoice-at, and subscription billing-period end through the invoice updater.
-- If the current invoice-backed realization run is still backed by a mutable invoice line (`active.partial_invoice.started`, `active.partial_invoice.waiting_for_collection`, `active.partial_invoice.processing`, `active.final_realization.started`, `active.final_realization.waiting_for_collection`, or `active.final_realization.processing`) and extends past the new service-period end, shrink should delete that mutable standard line and create a replacement gathering line for the shrunk period. Billing's mutable-line deletion hook owns credit correction, run deletion, and moving the charge back to `active`.
+- Pending gathering lines should be shrunk in place by charge ID using a full target-state gathering-line patch for the remaining unbilled period. This updates the line service period, invoice-at, price/tax/discount state, and subscription billing period through the invoice updater.
+- If the current invoice-backed realization run is still backed by a mutable invoice line (`active.realization.started`, `active.realization.waiting_for_collection`, or `active.realization.processing`) and extends past the new service-period end, shrink should delete that mutable standard line and create a replacement gathering line for the shrunk period. Billing's mutable-line deletion hook owns credit correction, run deletion, and moving the charge back to `active`.
 - In `active.awaiting_payment_settlement` and `final`, shrink is allowed even though the existing final invoice is immutable. Emit the line-delete patch anyway so billing records the immutable-invoice/prorating warning, leave existing invoice and ledger history untouched, move the charge back to `active`, and create a replacement gathering line for the shrunk period using the patch invoice-at.
 - Shrink must reject if a non-deleted run beyond the new service-period end is not invoice-backed. Do not prorate, rewrite immutable invoices, or reverse immutable ledger bookings from the charge state machine.
 - Shrink is explicitly unsupported in issuing/completed invoice states and `deleted`. Subscription sync can retry after billing advances when the invoice lifecycle owns the current state.
@@ -207,6 +255,7 @@ Current shared contract details:
 - collection-time errors should be normalized through `billing.NewLineEngineValidationError(...)` instead of rebuilding the validation-issue wrapper at each billing callsite
 - charge line engines are only responsible for invoice-backed charge flows such as `credit_then_invoice`; they are not the execution path for `credit_only` settlement mode
 - because of that boundary, it is acceptable for a charge line engine to return an error when invoked with `credit_only` settlement mode; treat that as a lifecycle misuse rather than adding `credit_only` behavior to the engine
+- charge line engines own API-edit rejection through `OnMutableInvoiceLinesEditedViaAPI(...)`; return `billing.ErrCannotUpdateChargeManagedLine` for unsupported charge-managed create/update/delete edits instead of pre-rejecting them in billing or HTTP code
 
 ## Timestamp Normalization
 
@@ -294,7 +343,7 @@ Current expected behavior:
 - ledger handlers may still defensively tolerate zero and return `ledgertransaction.GroupReference{}`
 - when a service proceeds with non-zero invoice accrual, it must require a non-empty transaction group reference before storing accrued usage
 
-Zero invoice accrual is different from payment booking. Usage-based invoice payment records (`charges/models/payment`) require a positive amount and a real ledger transaction reference. A fully credit-covered standard invoice can reach `payment_processing.pending` with `Totals.Total == 0`, but blindly sending `TriggerPaid` through the normal payment authorization/settlement path can fail with validation errors such as `amount must be positive` and `transaction group ID is required`. Add an explicit zero-total payment no-op path before expecting fully credited invoice-backed usage runs to reach settled payment state.
+Zero invoice accrual is different from payment booking. Invoice-backed charge payment records (`charges/models/payment`) require a positive amount and a real ledger transaction reference. A fully credit-covered standard invoice can reach `payment_processing.pending` with `Totals.Total == 0`, but blindly sending `TriggerPaid` through the normal payment authorization/settlement path can fail with validation errors such as `amount must be positive` and `transaction group ID is required`. Add an explicit zero-total payment no-op path before expecting fully credited invoice-backed runs to reach settled payment state.
 
 ## HTTP/API Conversion
 
@@ -361,12 +410,11 @@ This means a newly created credit-only charge (usage-based or flat fee) that is 
 
 For invoice-settled charges:
 
-- flat fee and credit purchase creation now stamp the gathering line engine in their type-specific `Create(...)` flows
-- usage-based charge creation also stamps `LineEngineTypeChargeUsageBased`; do not introduce this discriminator unless a corresponding billing engine exists or the path is intentionally blocked
+- invoice-settled charge creation must stamp gathering lines with the matching billing line engine whenever that charge type participates in billing line-engine collection. Flat-fee and usage-based must stamp `LineEngineTypeChargeFlatFee` / `LineEngineTypeChargeUsageBased` respectively; credit-purchase has a separate line-engine lifecycle and should be handled explicitly instead of forced into flat-fee/usage-based rules.
 - usage-based `IsLineBillableAsOf(...)` is currently billable only once `asOf >= resolved service period end`; keep the existing progressive-billing TODO in place when touching that logic
-- for usage-based `credit_then_invoice`, `BuildStandardInvoiceLines(...)` is allowed to drive charge lifecycle transitions needed to create the invoice-backed realization run
+- for invoice-backed flat-fee and usage-based charges, `BuildStandardInvoiceLines(...)` is allowed to drive charge lifecycle transitions needed to create or attach the invoice-backed realization/run state
 - `OnCollectionCompleted(...)` is the single collection-time line-engine hook; do not reintroduce a generic shared `SnapshotLines()` abstraction for charge engines
-- prefer explicit usage-based lifecycle triggers such as `invoice_created` and `collection_completed` over generic line-snapshot callbacks
+- prefer explicit charge lifecycle triggers such as `invoice_created` and `collection_completed` over generic line-snapshot callbacks
 - collection-time charge-engine failures must surface as invoice validation issues through the billing line-engine validation flow, not as raw invoice-state-machine failures
 
 ## Root Charges Advance Flow
@@ -423,10 +471,10 @@ Relevant statuses:
 
 - `created`
 - `active`
-- `active.final_realization.started`
-- `active.final_realization.waiting_for_collection`
-- `active.final_realization.processing`
-- `active.final_realization.completed`
+- `active.realization.started`
+- `active.realization.waiting_for_collection`
+- `active.realization.processing`
+- `active.realization.completed`
 - `final`
 
 High-level transitions:
@@ -434,19 +482,19 @@ High-level transitions:
 1. `created -> active`
    - guarded by `IsInsideServicePeriod()`
    - sets `AdvanceAfter` to service-period start while waiting
-2. `active -> active.final_realization.started`
+2. `active -> active.realization.started`
    - guarded by `IsAfterServicePeriod()`
    - sets `AdvanceAfter` to service-period end while waiting
-3. `active.final_realization.started -> active.final_realization.waiting_for_collection`
+3. `active.realization.started -> active.realization.waiting_for_collection`
    - `StartFinalRealizationRun(...)` creates the realization run
-4. `active.final_realization.waiting_for_collection -> active.final_realization.processing`
+4. `active.realization.waiting_for_collection -> active.realization.processing`
    - guarded by `IsAfterCollectionPeriod(...)`
-5. `active.final_realization.processing -> active.final_realization.completed`
+5. `active.realization.processing -> active.realization.completed`
    - `FinalizeRealizationRun(...)` re-rates usage, computes delta vs initial run totals, then:
      - positive delta → allocates additional credits via `allocateCredits`
      - negative delta → corrects existing allocations via `Realizations.Correct()` with handler callback `OnCreditsOnlyUsageAccruedCorrection`
      - zero delta → no-op
-6. `active.final_realization.completed -> final`
+6. `active.realization.completed -> final`
    - clears `AdvanceAfter`
 
 `AdvanceUntilStateStable(...)` loops until the machine can no longer fire `TriggerNext`.
@@ -478,7 +526,7 @@ Key differences from usage-based credits-only:
 - No collection period, no two-phase realization
 - Amount is computed at creation from `Intent.AmountBeforeProration` and stored in `State.AmountAfterProration`, no meter snapshot or rating
 - No `FeatureMeter` or `CustomerOverride` needed
-- Uses `flatfee.Status` with only top-level states (not sub-statuses like `active.final_realization.*`)
+- Uses `flatfee.Status` with only top-level states for credit-only (not usage-based-style sub-statuses like `active.realization.*`)
 - Persists only `flatfee.ChargeBase`; credit allocations / payment / accrued usage live in `flatfee.Realizations`
 
 Service construction requires a `*lockr.Locker` (same as usage-based).
@@ -534,10 +582,11 @@ Realization runs are the persisted checkpoint for collection progress.
 
 Important rules:
 
-- the first final-realization advance creates a run
+- invoice-backed and credits-only realization steps create runs; final vs partial behavior is represented on `RealizationRun.Type`, not by separate active status branches
 - `StoredAtLT`, `ServicePeriodTo`, and `MeteredQuantity` must be persisted on the run and mapped back into the domain model
 - `CurrentRealizationRunID` points at the active run while waiting/finalizing
 - finalization must clear `CurrentRealizationRunID`
+- use `RealizationRuns.WithoutVoidedBillingHistory().Latest()` when a state-machine handler needs the last effective realized boundary; do not hand-roll max-by-service-period selection at call sites
 
 Persistence gotcha:
 
@@ -560,6 +609,15 @@ When status changes:
 
 `usagebased.Status.ToMetaChargeStatus()`, `flatfee.Status.ToMetaChargeStatus()`, and `creditpurchase.Status.ToMetaChargeStatus()` are the bridges between the full state-machine status and the root charge meta status.
 
+Implement `ToMetaChargeStatus()` by validating the charge-type-specific status and then deriving the root status with `meta.DetailedStatusToMetaStatus(string(status))`. Do not enumerate detailed states in this conversion; detailed status lists belong in `Values()` and lifecycle transition matrices, and duplicated switch statements drift as states are added.
+
+### `status_detailed` is a Go-validated enum, not a DB constraint
+
+All three charge types declare the column as `field.Enum("status_detailed").GoType(<type>.Status(""))`, which in this repo's Atlas setup maps to a plain Postgres `character varying` column — there is **no** DB-level CHECK enumerating the values. Validation happens only in Go: the generated `StatusDetailedValidator` and `Status.Validate()`, both driven by `Status.Values()`. Consequences:
+
+- Adding or removing a detailed status requires `make generate` so the generated Go validator and the `Enums` list in `ent/db/migrate/schema.go` match `Values()`, but it does **not** require an Atlas migration — `atlas migrate --env local diff ...` reports "no changes to be made" because the column type is unchanged. Do not hand-write a migration for a `status_detailed` value change.
+- The shared state-machine base (`charges/statemachine.Machine`) uses external storage whose state setter calls `Status.Validate()` on **every** transition. A `Configure(...)`/`Permit(...)` into a status that is absent from `Status.Values()` passes `CanFire(...)` but fails the moment the transition actually fires. Keep `configureStates()` and `Values()` in sync: every status reachable in the transition matrix must be listed in `Values()`, and a status that is configured but never fired (because orchestration bypasses it) is a latent bug — either wire it into `Values()` and fire it, or remove it from `configureStates()`.
+
 ## Testing Guidance
 
 Key tests:
@@ -581,8 +639,10 @@ Use these conventions for lifecycle tests:
 - prefer `clock.FreezeTime(...)` for exact `StoredAtLT` / `AllocateAt` assertions
 - rely on the default billing profile unless the test explicitly needs customer-specific override behavior
 - for credit-only charges (usage-based or flat fee), `Create(...)` itself may return an already-advanced charge — assert the returned charge's status, do not assume it will be `created`
+- for credit-only charges (usage-based or flat fee), handler callbacks must not return credit allocations above the requested amount; exact allocation paths must return allocations that sum to the requested amount
 - for flat fee credit-only tests, use `mustAdvanceFlatFeeCharges(...)` helper — it filters the advance result to flat fee charges only
-- flat fee credit-only handler callbacks (`onCreditsOnlyUsageAccrued`) must return credit allocations that sum to the input `AmountToAllocate`
+- for credit-purchase state-machine unit tests, use testify `mock.Mock` with `On(...).Run(...).Return(...).Once()` for expected handler callbacks so missing or unexpected calls fail; in service-suite tests, leave callbacks unset when validating that a flow fails before callbacks, because the shared `CreditPurchaseTestHandler` already errors if an unset callback is invoked
+- keep custom-currency support disabled on default charge service instances so tests continue covering the production unsupported boundary; when a test needs it enabled, use a semantic suite helper that constructs and enables the service instead of repeating `SetEnableCustomCurrency` interface assertions at call sites
 - when testing timestamp truncation, use sub-second fixtures and assert the persisted charge/run fields are second-aligned after create/advance
 - `time.Time` fields on domain models are value typed; use `s.False(ts.IsZero())` instead of `s.NotNil(ts)` when asserting they are populated
 - cover the temporary shrink/extend remap path as well; it synthesizes new intents and must normalize the replacement period ends before re-create
@@ -627,6 +687,7 @@ When changing usage-based charges:
 - keep `StoredAtLT`, `ServicePeriodTo`, and `MeteredQuantity` persisted on realization runs
 - keep the `stored_at < cutoff` behavior explicit in tests
 - update lifecycle tests if late-event visibility changes
+
 When changing flat-fee charges:
 
 - the invoiced path (CreditThenInvoice/InvoiceOnly) starts as `Active` and is driven by invoice lifecycle hooks
@@ -634,8 +695,6 @@ When changing flat-fee charges:
 - `AmountAfterProration` lives on `flatfee.State`, not `flatfee.Intent` — it is computed at creation via `Intent.CalculateAmountAfterProration()` and persisted on the base charge row. Callers must not provide it; they set `AmountBeforeProration`, `ServicePeriod`, `FullServicePeriod`, and `ProRating` on the Intent
 - `IntentWithInitialStatus` carries `AmountAfterProration` alongside `InitialStatus` to pass the computed value from the service to the adapter at creation time
 - `flatfee.State.AdvanceAfter` must be passed through `chargemeta.UpdateInput.AdvanceAfter` on every `UpdateCharge(...)` call
-- `flatfee.Adapter.UpdateCharge(...)` takes `flatfee.ChargeBase` and persists only base-row fields; do not call it just because `flatfee.Realizations` changed
-- `CreatePayment(...)`, `UpdatePayment(...)`, `CreateInvoicedUsage(...)`, and `CreateCreditAllocations(...)` already persist the realization-side rows; a follow-up `UpdateCharge(...)` is redundant unless base-row fields changed too
 - `flatfee.Charge.Realizations` is expand-only data loaded from child tables; tests and service code should read payment/accrued-usage/credit-allocation state there, not from `flatfee.State`
 - `charge_flat_fees.status_detailed` mirrors `status` today; schema changes or migrations that introduce new flat-fee statuses must keep both columns consistent through `ToMetaChargeStatus()`
 - the `flatfee.Handler` interface has both invoiced-path methods and credits-only methods — implementors must satisfy all of them
@@ -650,19 +709,24 @@ Usage-based handler interface (`usagebased.Handler`):
 Credit purchase handler interface (`creditpurchase.Handler`):
 - `OnPromotionalCreditPurchase(ctx, Charge)` → `ledgertransaction.GroupReference`
 - `OnCreditPurchaseInitiated(ctx, Charge)` → `ledgertransaction.GroupReference`
-- `OnCreditPurchasePaymentAuthorized(ctx, Charge)` → `ledgertransaction.GroupReference`
-- `OnCreditPurchasePaymentSettled(ctx, Charge)` → `ledgertransaction.GroupReference`
+- `OnCreditPurchasePaymentAuthorized(ctx, PaymentEventInput)` → `ledgertransaction.GroupReference`
+- `OnCreditPurchasePaymentSettled(ctx, PaymentEventInput)` → `ledgertransaction.GroupReference`
 
 `flatfee/service/service.go` Config requires a `*lockr.Locker` — when constructing in tests, create the locker before the flat fee service
 
 When changing credit purchase charges:
 
 - `creditpurchase.ChargeBase` stores base-row data: `ManagedResource`, `Intent`, `Status` (own `creditpurchase.Status` type); `State` exists but is an empty struct
+- `creditpurchase.Intent.Currency` is the currency being purchased. For external and invoice settlements, `GenericSettlement.Currency` is the fiat settlement currency (`currencyx.FiatCode`), so it intentionally differs from the intent currency when purchasing a custom currency.
+- Custom-currency gathering lines must use the settlement fiat currency and convert the purchased credit amount using the settlement cost basis. Keep the purchased amount and currency visible in the line description so downstream billing retains both sides of the purchase.
 - `creditpurchase.Charge` embeds `ChargeBase` + `Realizations` — all lifecycle outcomes live in `Realizations`, not `State`
 - `creditpurchase.Realizations` holds `CreditGrantRealization`, `ExternalPaymentSettlement`, and `InvoiceSettlement` (all loaded from edge tables)
 - `CreditGrantRealization` is stored in its own `charge_credit_purchase_credit_grants` table, not on the base row
 - `creditpurchase.Status` mirrors the flatfee pattern: `StatusCreated`, `StatusActive`, `StatusFinal`, `StatusDeleted` with `ToMetaChargeStatus()` bridge
 - `charge_credit_purchases.status_detailed` column mirrors `status` and is set via `SetStatusDetailed(...)` on create/update
+- external credit-purchase direct provider `paid` events must authorize first so `OnCreditPurchasePaymentAuthorized(...)` observes `active.payment.authorized` without an external payment realization; run settlement before the transition to `final` is persisted, so `OnCreditPurchasePaymentSettled(...)` observes the authorized payment realization while the charge is still `active.payment.authorized`
+- prefer `OnActive(...)` for credit-purchase state-owned realization side effects such as grant initiation and payment authorization; use `OnExitWith(...)` for settlement when the callback must run before moving to `final` without adding a durable intermediate status
+- do not add credit-purchase detailed statuses only to model callback ordering; add persisted `status_detailed` values only when callers need to observe or retry a durable lifecycle state
 - `UpdateCharge(ctx, ChargeBase) (ChargeBase, error)` only updates base-row fields — do not call it just because realization edges changed
 - Realization edges are created/updated through dedicated adapter methods: `CreateCreditGrant`, `CreateExternalPayment`, `UpdateExternalPayment`, `CreateInvoicedPayment`, `UpdateInvoicedPayment`
 - Adapter interface is composite: `ChargeAdapter` + `CreditGrantAdapter` + `ExternalPaymentAdapter` + `InvoicedPaymentAdapter`
@@ -670,6 +734,16 @@ When changing credit purchase charges:
 - Service methods that only change edge data (e.g., `HandleExternalPaymentAuthorized`) update `charge.Realizations` in memory and return the full `Charge` without calling `UpdateCharge`
 - Service methods that change status (e.g., `HandleExternalPaymentSettled`, `onPromotionalCreditPurchase`) call `UpdateCharge(ctx, charge.ChargeBase)` and merge the result back: `charge.ChargeBase = updatedBase`
 - Credit grant creation must go through `adapter.CreateCreditGrant(...)` — do not write credit grant data through `UpdateCharge`
+
+External-settled credit purchase (its own lifecycle, separate from promotional/invoice):
+
+- the external settlement lifecycle has its own state machine `ExternalCreditPurchaseStateMachine` (`creditpurchase/service/external.go`), built by `onExternalCreditPurchase(...)`; promotional and invoice settlement each have their own state machine too
+- `creditpurchase.ExternalSettlement` carries `InitialStatus` (`InitialPaymentSettlementStatus`: `created` / `authorized` / `settled`). `externalInitialPaymentTrigger(...)` maps it to the lifecycle entry: `created` → no trigger (empty string), `authorized` → `billing.TriggerAuthorized`, `settled` → `billing.TriggerPaid`
+- reuse the billing invoice triggers `billing.TriggerAuthorized` / `billing.TriggerPaid` for the payment lifecycle; do not introduce external-specific trigger names even though external and invoice settlement run on separate state machines
+- external realization mechanics live in `creditpurchase/service/realizations` (`realizations.Service`): `InitiateExternalCreditPurchase`, `AuthorizeExternalPayment`, `SettleExternalPayment`, `AuthorizeAndSettleExternalPayment`. Same separation rule as the flat-fee/usage-based realization helpers — the helper executes mechanics and must not decide which trigger fires or which status is entered (its doc comment states this). Its `Config.Validate()` returns `models.NewNillableGenericValidationError(errors.Join(errs...))`
+- the realization layer owns the payment guards: authorize rejects a charge that already has `Realizations.ExternalPaymentSettlement` (`payment.ErrPaymentAlreadyAuthorized`); settle rejects a nil settlement (`payment.ErrCannotSettleNotAuthorizedPayment`) or one not in `payment.StatusAuthorized` (`payment.ErrPaymentAlreadySettled`)
+- every credit-purchase grant path must call `lineage.BackfillAdvanceLineageSegments(...)` with `FeatureFilters: charge.Intent.FeatureFilters.Normalize()` — promotional (`promotional.go`), invoice (`invoice.go`), and external (`realizations/service.go` `InitiateExternalCreditPurchase`). Omitting `FeatureFilters` silently produces over-broad lineage segments for feature-scoped grants; guard each call on a non-empty `TransactionGroupID`
+- external/invoice settlement cost basis must be positive; `GenericSettlement.Validate()` enforces it and `InitiateExternalCreditPurchase` re-checks before creating the grant realization
 
 ## Credit Realization Model
 

@@ -87,7 +87,7 @@ func (s *Service) BookInvoicedPaymentAuthorized(ctx context.Context, in BookInvo
 		InvoiceID: in.Invoice.ID,
 		Base: payment.Base{
 			ServicePeriod: in.Line.Period,
-			Amount:        in.Line.Totals.Total,
+			FiatAmount:    in.Line.Totals.Total,
 			Authorized: &ledgertransaction.TimedGroupReference{
 				GroupReference: ledgertransaction.GroupReference{
 					TransactionGroupID: ledgerTransactionRef.TransactionGroupID,

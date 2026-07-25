@@ -16,10 +16,24 @@ import (
 func TestTaxCodeService(t *testing.T) {
 	env := taxcodetestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 
 	ns := testutils.NameGenerator.Generate().Key
-	env.SetupNamespaceDefaults(t.Context(), t, ns)
+	env.SetupNamespaceDefaults(t, ns)
+
+	t.Run("GetByKey", func(t *testing.T) {
+		// given:
+		// - namespace defaults have seeded the provider-default tax code
+		// when:
+		// - resolving by the stable provider default key
+		// then:
+		// - the seeded tax code is returned
+		got, err := env.Service.GetTaxCodeByKey(t.Context(), taxcode.GetTaxCodeByKeyInput{
+			Namespace: ns,
+			Key:       taxcode.ProviderDefaultTaxCodeKey,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, taxcode.ProviderDefaultTaxCodeKey, got.Key)
+	})
 
 	t.Run("SystemManaged", func(t *testing.T) {
 		// Create a system-managed tax code by explicitly setting the annotation.
@@ -92,9 +106,9 @@ func TestTaxCodeService(t *testing.T) {
 		// - deletion is blocked with ErrCodeTaxCodeIsOrganizationDefault (409)
 		// - deletion of a non-default tax code succeeds
 		defaultNs := testutils.NameGenerator.Generate().Key
-		invoicing := env.CreateTaxCode(t.Context(), t, defaultNs)
-		creditGrant := env.CreateTaxCode(t.Context(), t, defaultNs)
-		other := env.CreateTaxCode(t.Context(), t, defaultNs)
+		invoicing := env.CreateTaxCode(t, defaultNs)
+		creditGrant := env.CreateTaxCode(t, defaultNs)
+		other := env.CreateTaxCode(t, defaultNs)
 
 		_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 			Namespace:            defaultNs,

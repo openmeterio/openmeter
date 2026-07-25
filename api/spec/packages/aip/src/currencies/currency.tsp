@@ -44,10 +44,6 @@ union CurrencyCode {
  */
 @friendlyName("BillingCustomCurrencyBase")
 model CurrencyBase<T extends CurrencyType> {
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  @visibility(Lifecycle.Read)
-  id: Shared.ULID;
-
   /**
    * The type of the currency.
    */
@@ -64,20 +60,38 @@ model CurrencyBase<T extends CurrencyType> {
   name: string;
 
   /**
-   * Description of the currency.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  @minLength(1)
-  @maxLength(256)
-  description?: string;
-
-  /**
    * The symbol of the currency. It should be a string that represents the symbol of
    * the currency, such as "$" for US Dollar or "€" for Euro.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read)
   @minLength(1)
   symbol?: string;
+
+  /**
+   * The precision of the currency. It should be a number that represents the number
+   * of decimal places used for the currency, such as 2 for US Dollar or Euro.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  precision: uint32;
+
+  /**
+   * The decimal mark for the currency. It should be a string that represents the
+   * decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @minLength(1)
+  @maxLength(1)
+  decimal_mark: string;
+
+  /**
+   * The thousand separator for the currency. It should be a string that represents
+   * the thousand separator of the currency, such as "," for US Dollar or "." for
+   * Euro.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @minLength(1)
+  @maxLength(1)
+  thousand_separator: string;
 }
 
 /**
@@ -97,7 +111,7 @@ model CurrencyFiat {
  * existing fiat currency codes.
  */
 @friendlyName("BillingCurrencyCodeCustom")
-@minLength(3)
+@minLength(4)
 @maxLength(24)
 scalar CurrencyCodeCustom extends string;
 
@@ -109,6 +123,10 @@ model CurrencyCustom {
   ...CurrencyBase<CurrencyType.Custom>;
 
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  @visibility(Lifecycle.Read)
+  id: Shared.ULID;
+
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   @visibility(Lifecycle.Create, Lifecycle.Read)
   code: CurrencyCodeCustom;
 
@@ -117,4 +135,10 @@ model CurrencyCustom {
    */
   @visibility(Lifecycle.Read)
   created_at: Shared.DateTime;
+
+  /**
+   * The list of active cost basis for the custom currency.
+   */
+  @visibility(Lifecycle.Read)
+  cost_basis?: CostBasis[];
 }

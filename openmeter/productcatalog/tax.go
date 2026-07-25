@@ -39,9 +39,6 @@ type TaxConfig struct {
 	Behavior  *TaxBehavior     `json:"behavior,omitempty"`
 	Stripe    *StripeTaxConfig `json:"stripe,omitempty"`
 	TaxCodeID *string          `json:"tax_code_id,omitempty"`
-	// TaxCode is the resolved TaxCode entity, stamped at invoice snapshot time.
-	// Present only on invoice lines (persisted in JSONB); nil on profile/rate-card configs.
-	TaxCode *taxcode.TaxCode `json:"tax_code,omitempty"`
 }
 
 func (c *TaxConfig) Equal(v *TaxConfig) bool {
@@ -73,6 +70,10 @@ func (c *TaxConfig) Equal(v *TaxConfig) bool {
 }
 
 func (c *TaxConfig) Validate() error {
+	if c == nil {
+		return nil
+	}
+
 	var errs []error
 
 	if c.Behavior != nil {
@@ -105,26 +106,25 @@ func (c TaxConfig) Clone() TaxConfig {
 		out.TaxCodeID = lo.ToPtr(*c.TaxCodeID)
 	}
 
-	if c.TaxCode != nil {
-		tc := *c.TaxCode
-		tc.AppMappings = append(taxcode.TaxCodeAppMappings(nil), c.TaxCode.AppMappings...)
-		if c.TaxCode.Description != nil {
-			tc.Description = lo.ToPtr(*c.TaxCode.Description)
-		}
-		out.TaxCode = &tc
-	}
-
 	return out
 }
 
+// MergeTaxConfigs merges two TaxConfigs with overrides taking precedence.
+//
+// Stripe and TaxCodeID are two encodings of the same intent-level tax-code identity, so they
+// merge as a unit: a config that overrides only the Stripe code must not inherit the base's
+// (different) TaxCodeID, which would leave the result pointing at two different tax entities.
 func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	if base != nil && overrides != nil {
-		// TaxCode (resolved entity) is intentionally excluded: merge operates on
-		// intent-level configs, not snapshotted invoice lines.
+		stripe, taxCodeID := base.Stripe, base.TaxCodeID
+		if overrides.Stripe != nil || overrides.TaxCodeID != nil {
+			stripe, taxCodeID = overrides.Stripe, overrides.TaxCodeID
+		}
+
 		return &TaxConfig{
 			Behavior:  lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
-			Stripe:    lo.CoalesceOrEmpty(overrides.Stripe, base.Stripe),
-			TaxCodeID: lo.CoalesceOrEmpty(overrides.TaxCodeID, base.TaxCodeID),
+			Stripe:    stripe,
+			TaxCodeID: taxCodeID,
 		}
 	}
 
@@ -177,14 +177,10 @@ func (s StripeTaxConfig) Clone() StripeTaxConfig {
 // are resolved at invoice snapshot time via BackfillTaxConfig.
 type TaxCodeConfig struct {
 	Behavior  *TaxBehavior `json:"behavior,omitempty"`
-	TaxCodeID *string      `json:"tax_code_id,omitempty"`
+	TaxCodeID string       `json:"tax_code_id"`
 }
 
-func (c *TaxCodeConfig) Validate() error {
-	if c == nil {
-		return nil
-	}
-
+func (c TaxCodeConfig) Validate() error {
 	var errs []error
 
 	if c.Behavior != nil {
@@ -193,50 +189,42 @@ func (c *TaxCodeConfig) Validate() error {
 		}
 	}
 
-	if c.TaxCodeID != nil && *c.TaxCodeID == "" {
-		errs = append(errs, fmt.Errorf("tax_code_id must not be empty when set"))
+	if c.TaxCodeID == "" {
+		errs = append(errs, fmt.Errorf("tax code id is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // ToTaxConfig converts TaxCodeConfig to TaxConfig (without provider-specific fields).
-func (c *TaxCodeConfig) ToTaxConfig() *TaxConfig {
-	if c == nil {
-		return nil
+func (c TaxCodeConfig) ToTaxConfig() TaxConfig {
+	out := TaxConfig{}
+	if c.Behavior != nil {
+		out.Behavior = lo.ToPtr(*c.Behavior)
 	}
 
-	out := &TaxConfig{}
-	if c.Behavior != nil {
-		b := *c.Behavior
-		out.Behavior = &b
+	if c.TaxCodeID != "" {
+		out.TaxCodeID = lo.ToPtr(c.TaxCodeID)
 	}
-	if c.TaxCodeID != nil {
-		id := *c.TaxCodeID
-		out.TaxCodeID = &id
-	}
+
 	return out
 }
 
 // TaxCodeConfigFrom extracts the lean reference fields from a full TaxConfig.
-// Returns nil when cfg is nil or when neither Behavior nor TaxCodeID is set (e.g. Stripe-only config).
-func TaxCodeConfigFrom(cfg *TaxConfig) *TaxCodeConfig {
+// Returns the zero value when cfg is nil or when neither Behavior nor TaxCodeID is set
+// (e.g. Stripe-only config).
+func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 	if cfg == nil {
-		return nil
+		return TaxCodeConfig{}
 	}
 
-	out := &TaxCodeConfig{}
+	out := TaxCodeConfig{}
 	if cfg.Behavior != nil {
-		b := *cfg.Behavior
-		out.Behavior = &b
-	}
-	if cfg.TaxCodeID != nil {
-		id := *cfg.TaxCodeID
-		out.TaxCodeID = &id
+		out.Behavior = lo.ToPtr(*cfg.Behavior)
 	}
 
-	if out.Behavior == nil && out.TaxCodeID == nil {
-		return nil
+	if cfg.TaxCodeID != nil {
+		out.TaxCodeID = *cfg.TaxCodeID
 	}
 
 	return out
@@ -258,6 +246,7 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 	if cfg == nil {
 		return nil
 	}
+
 	if svc == nil {
 		return fmt.Errorf("taxcode service is required")
 	}
@@ -273,6 +262,7 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 			}
 			return fmt.Errorf("resolving tax code %s: %w", *cfg.TaxCodeID, err)
 		}
+
 		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
 			cfg.Stripe = &StripeTaxConfig{Code: m.TaxCode}
 		} else {
@@ -288,6 +278,7 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 		if err != nil {
 			return fmt.Errorf("resolving tax code for stripe code %s: %w", cfg.Stripe.Code, err)
 		}
+
 		cfg.TaxCodeID = lo.ToPtr(tc.ID)
 	}
 

@@ -73,6 +73,10 @@ func (s *service) Migrate(ctx context.Context, request plansubscription.MigrateS
 		}
 	}
 
+	if request.RejectUnitConfig && p.HasUnitConfig() {
+		return def, productcatalog.ErrUnitConfigNotRepresentable
+	}
+
 	pp := PlanFromPlan(*p)
 
 	var timing subscription.Timing

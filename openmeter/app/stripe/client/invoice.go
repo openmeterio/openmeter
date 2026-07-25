@@ -144,7 +144,7 @@ type CreateInvoiceInput struct {
 	InvoiceID                    string
 	AutomaticTaxEnabled          bool
 	CollectionMethod             billing.CollectionMethod
-	Currency                     currencyx.Code
+	Currency                     currencyx.FiatCode
 	DaysUntilDue                 *int64
 	StatementDescriptor          *string
 	StripeCustomerID             string

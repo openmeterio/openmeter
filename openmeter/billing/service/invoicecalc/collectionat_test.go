@@ -379,7 +379,7 @@ func newStandardLine(t *testing.T, invoiceAt string) *billing.StandardLine {
 	return &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: billing.GatheringLineBase{}.ManagedResource,
-			Currency:        currencyx.Code("USD"),
+			Currency:        currencyx.FiatCode("USD"),
 			ManagedBy:       billing.ManuallyManagedLine,
 			InvoiceAt:       at,
 			Period: timeutil.ClosedPeriod{
@@ -427,7 +427,7 @@ func newFlatFeeStandardLine(t *testing.T, invoiceAt string) *billing.StandardLin
 			To:   at,
 		},
 		Name:      "Flat fee",
-		Currency:  currencyx.Code("USD"),
+		Currency:  currencyx.FiatCode("USD"),
 		ManagedBy: billing.ManuallyManagedLine,
 
 		PerUnitAmount: alpacadecimal.NewFromFloat(10),

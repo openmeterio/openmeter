@@ -1,0 +1,17 @@
+// Type-checks tests/ (the build tsconfig only includes src/, so without this
+// the spec files are never type-checked — vitest strips types without checking
+// them). Used by the `typecheck` script; never emits.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    // @fetch-mock/vitest's own d.ts imports the undeclared jest 'expect'
+    // package; skip dependency declaration files (our .ts sources are still
+    // fully checked, and src/ is separately checked without this flag).
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
+}

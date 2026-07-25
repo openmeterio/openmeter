@@ -599,90 +599,21 @@ func HasBillingInvoiceLinesWith(preds ...predicate.BillingInvoiceLine) predicate
 	})
 }
 
-// HasBillingInvoiceSplitLineGroups applies the HasEdge predicate on the "billing_invoice_split_line_groups" edge.
-func HasBillingInvoiceSplitLineGroups() predicate.TaxCode {
+// HasBillingGatheringInvoiceLines applies the HasEdge predicate on the "billing_gathering_invoice_lines" edge.
+func HasBillingGatheringInvoiceLines() predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceSplitLineGroupsTable, BillingInvoiceSplitLineGroupsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingGatheringInvoiceLinesTable, BillingGatheringInvoiceLinesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasBillingInvoiceSplitLineGroupsWith applies the HasEdge predicate on the "billing_invoice_split_line_groups" edge with a given conditions (other predicates).
-func HasBillingInvoiceSplitLineGroupsWith(preds ...predicate.BillingInvoiceSplitLineGroup) predicate.TaxCode {
+// HasBillingGatheringInvoiceLinesWith applies the HasEdge predicate on the "billing_gathering_invoice_lines" edge with a given conditions (other predicates).
+func HasBillingGatheringInvoiceLinesWith(preds ...predicate.BillingGatheringInvoiceLine) predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
-		step := newBillingInvoiceSplitLineGroupsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasBillingStandardInvoiceDetailedLines applies the HasEdge predicate on the "billing_standard_invoice_detailed_lines" edge.
-func HasBillingStandardInvoiceDetailedLines() predicate.TaxCode {
-	return predicate.TaxCode(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, BillingStandardInvoiceDetailedLinesTable, BillingStandardInvoiceDetailedLinesColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasBillingStandardInvoiceDetailedLinesWith applies the HasEdge predicate on the "billing_standard_invoice_detailed_lines" edge with a given conditions (other predicates).
-func HasBillingStandardInvoiceDetailedLinesWith(preds ...predicate.BillingStandardInvoiceDetailedLine) predicate.TaxCode {
-	return predicate.TaxCode(func(s *sql.Selector) {
-		step := newBillingStandardInvoiceDetailedLinesStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasChargeUsageBasedRunDetailedLines applies the HasEdge predicate on the "charge_usage_based_run_detailed_lines" edge.
-func HasChargeUsageBasedRunDetailedLines() predicate.TaxCode {
-	return predicate.TaxCode(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedRunDetailedLinesTable, ChargeUsageBasedRunDetailedLinesColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasChargeUsageBasedRunDetailedLinesWith applies the HasEdge predicate on the "charge_usage_based_run_detailed_lines" edge with a given conditions (other predicates).
-func HasChargeUsageBasedRunDetailedLinesWith(preds ...predicate.ChargeUsageBasedRunDetailedLine) predicate.TaxCode {
-	return predicate.TaxCode(func(s *sql.Selector) {
-		step := newChargeUsageBasedRunDetailedLinesStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasChargeFlatFeeRunDetailedLines applies the HasEdge predicate on the "charge_flat_fee_run_detailed_lines" edge.
-func HasChargeFlatFeeRunDetailedLines() predicate.TaxCode {
-	return predicate.TaxCode(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunDetailedLinesTable, ChargeFlatFeeRunDetailedLinesColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasChargeFlatFeeRunDetailedLinesWith applies the HasEdge predicate on the "charge_flat_fee_run_detailed_lines" edge with a given conditions (other predicates).
-func HasChargeFlatFeeRunDetailedLinesWith(preds ...predicate.ChargeFlatFeeRunDetailedLine) predicate.TaxCode {
-	return predicate.TaxCode(func(s *sql.Selector) {
-		step := newChargeFlatFeeRunDetailedLinesStep()
+		step := newBillingGatheringInvoiceLinesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -783,6 +714,29 @@ func HasChargeFlatFeesWith(preds ...predicate.ChargeFlatFee) predicate.TaxCode {
 	})
 }
 
+// HasChargeFlatFeeOverrides applies the HasEdge predicate on the "charge_flat_fee_overrides" edge.
+func HasChargeFlatFeeOverrides() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeOverridesTable, ChargeFlatFeeOverridesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeFlatFeeOverridesWith applies the HasEdge predicate on the "charge_flat_fee_overrides" edge with a given conditions (other predicates).
+func HasChargeFlatFeeOverridesWith(preds ...predicate.ChargeFlatFeeOverride) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newChargeFlatFeeOverridesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasChargeUsageBased applies the HasEdge predicate on the "charge_usage_based" edge.
 func HasChargeUsageBased() predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
@@ -798,6 +752,29 @@ func HasChargeUsageBased() predicate.TaxCode {
 func HasChargeUsageBasedWith(preds ...predicate.ChargeUsageBased) predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
 		step := newChargeUsageBasedStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChargeUsageBasedOverrides applies the HasEdge predicate on the "charge_usage_based_overrides" edge.
+func HasChargeUsageBasedOverrides() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedOverridesTable, ChargeUsageBasedOverridesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeUsageBasedOverridesWith applies the HasEdge predicate on the "charge_usage_based_overrides" edge with a given conditions (other predicates).
+func HasChargeUsageBasedOverridesWith(preds ...predicate.ChargeUsageBasedOverride) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newChargeUsageBasedOverridesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

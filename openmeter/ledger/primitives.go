@@ -27,10 +27,7 @@ type PostingAddress interface {
 	Route() SubAccountRoute
 }
 
-type Balance interface {
-	Settled() alpacadecimal.Decimal
-	Pending() alpacadecimal.Decimal
-}
+type Balance = alpacadecimal.Decimal
 
 // SubAccount is an actual address you can post against. It has all required routing information provided.
 // Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.
@@ -52,8 +49,11 @@ type RouteFilter struct {
 	// Non-currency fields are retained for near-future expansion.
 	TaxCode     mo.Option[*string]
 	TaxBehavior mo.Option[*TaxBehavior]
-	Features    []string
-	CostBasis   mo.Option[*alpacadecimal.Decimal]
+	// Features is an exact-match filter for sub-account routes.
+	Features mo.Option[[]string]
+	// MatchFeature matches unrestricted routes and routes containing this single feature key.
+	MatchFeature string
+	CostBasis    mo.Option[*alpacadecimal.Decimal]
 
 	// CreditPriority is only meaningful for customer_fbo queries.
 	CreditPriority *int
@@ -78,8 +78,18 @@ type EntryInput interface {
 	PostingAddress() PostingAddress
 	Amount() alpacadecimal.Decimal
 	IdentityKey() string
+	SchemaVersion() EntrySchemaVersion
+	SourceChargeID() *string
+	SpendChargeID() *string
 	Annotations() models.Annotations
 }
+
+type EntrySchemaVersion int
+
+const (
+	EntrySchemaVersionLegacy  EntrySchemaVersion = 1
+	EntrySchemaVersionCurrent EntrySchemaVersion = 2
+)
 
 type Entry interface {
 	EntryInput
@@ -194,6 +204,7 @@ type ListTransactionsInput struct {
 	AccountIDs []string
 	Currency   *currencyx.Code
 	AsOf       *time.Time
+	Route      RouteFilter
 
 	CreditMovement ListTransactionsCreditMovement
 
@@ -270,6 +281,14 @@ func (i ListTransactionsInput) Validate() error {
 		})
 	}
 
+	if err := validateListTransactionsRouteFilter(i.Route); err != nil {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+			"reason": "route_invalid",
+			"route":  i.Route,
+			"error":  err,
+		})
+	}
+
 	switch i.CreditMovement {
 	case ListTransactionsCreditMovementUnspecified, ListTransactionsCreditMovementPositive, ListTransactionsCreditMovementNegative:
 	default:
@@ -280,6 +299,49 @@ func (i ListTransactionsInput) Validate() error {
 	}
 
 	return nil
+}
+
+func validateListTransactionsRouteFilter(route RouteFilter) error {
+	var errs []error
+
+	if route.TaxCode.IsPresent() {
+		errs = append(errs, errors.New("tax code filter is not supported"))
+	}
+
+	if route.TaxBehavior.IsPresent() {
+		errs = append(errs, errors.New("tax behavior filter is not supported"))
+	}
+
+	if route.CostBasis.IsPresent() {
+		errs = append(errs, errors.New("cost basis filter is not supported"))
+	}
+
+	if route.CreditPriority != nil {
+		errs = append(errs, errors.New("credit priority filter is not supported"))
+	}
+
+	if route.TransactionAuthorizationStatus != nil {
+		errs = append(errs, errors.New("transaction authorization status filter is not supported"))
+	}
+
+	if route.Features.IsPresent() && route.MatchFeature != "" {
+		errs = append(errs, errors.New("features and match feature filters cannot be combined"))
+	}
+
+	if route.Features.IsPresent() {
+		features, _ := route.Features.Get()
+		if err := validateFeatures(features); err != nil {
+			errs = append(errs, fmt.Errorf("features: %w", err))
+		}
+	}
+
+	if route.MatchFeature != "" {
+		if err := validateFeatures([]string{route.MatchFeature}); err != nil {
+			errs = append(errs, fmt.Errorf("match feature: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 type ListTransactionsCreditMovement uint8

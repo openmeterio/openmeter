@@ -12,7 +12,7 @@ func ToAPIPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 
 	return api.PlanAddon{
 		Id:               a.ID,
-		Addon:            api.AddonReferenceItem{Id: a.Addon.ID},
+		Addon:            api.AddonReference{Id: a.Addon.ID},
 		FromPlanPhase:    a.PlanAddonConfig.FromPlanPhase,
 		MaxQuantity:      a.PlanAddonConfig.MaxQuantity,
 		CreatedAt:        a.CreatedAt,

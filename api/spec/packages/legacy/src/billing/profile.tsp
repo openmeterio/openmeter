@@ -39,10 +39,12 @@ interface BillingProfilesEndpoints {
   @post
   @summary("Create a new billing profile")
   @operationId("createBillingProfile")
-  create(@body profile: BillingProfileCreate): {
-    @statusCode _: 201;
-    @body profile: BillingProfile;
-  } | CommonErrors;
+  create(@body profile: BillingProfileCreate):
+    | {
+        @statusCode _: 201;
+        @body profile: BillingProfile;
+      }
+    | CommonErrors;
 
   /**
    * Delete a billing profile by id.
@@ -59,9 +61,12 @@ interface BillingProfilesEndpoints {
   delete(
     @path
     id: ULID,
-  ): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Get a billing profile by id.
@@ -452,10 +457,38 @@ model BillingWorkflowInvoicingSettings {
   progressiveBilling?: boolean = true;
 
   /**
+   * Controls how subscription-ending shortened service periods are billed.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  subscriptionEndProrationMode?: BillingWorkflowInvoicingSubscriptionEndProrationMode = BillingWorkflowInvoicingSubscriptionEndProrationMode.billActualPeriod;
+
+  /**
    * Default tax configuration to apply to the invoices.
+   *
+   * Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
+   * deprecated and can no longer be added or changed: the organization default tax code is
+   * used instead. Existing tax-code values may still be removed, and `behavior` remains
+   * fully supported.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   defaultTaxConfig?: TaxConfig;
+}
+
+/**
+ * Billing workflow subscription end proration mode.
+ */
+@friendlyName("BillingWorkflowInvoicingSubscriptionEndProrationMode")
+enum BillingWorkflowInvoicingSubscriptionEndProrationMode {
+  /**
+   * Bill the full billing period amount for terminal lines even when the actual
+   * service period is shorter.
+   */
+  billFullPeriod: "bill_full_period",
+
+  /**
+   * Bill the amount for the actual terminal service period.
+   */
+  billActualPeriod: "bill_actual_period",
 }
 
 /**

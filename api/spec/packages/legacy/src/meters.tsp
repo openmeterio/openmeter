@@ -62,9 +62,10 @@ interface MetersEndpoints {
   @route("/{meterIdOrSlug}")
   @operationId("getMeter")
   @summary("Get meter")
-  get(
-    @path meterIdOrSlug: MeterIdentifier,
-  ): Meter | NotFoundError | CommonErrors;
+  get(@path meterIdOrSlug: MeterIdentifier):
+    | Meter
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Create a meter.
@@ -75,10 +76,12 @@ interface MetersEndpoints {
   create(
     @body
     meter: MeterCreate,
-  ): {
-    @statusCode _: 201;
-    @body body: Meter;
-  } | CommonErrors;
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: Meter;
+      }
+    | CommonErrors;
 
   /**
    * Update a meter.
@@ -92,9 +95,11 @@ interface MetersEndpoints {
 
     @body
     meter: MeterUpdate,
-  ): {
-    @body body: Meter;
-  } | CommonErrors;
+  ):
+    | {
+        @body body: Meter;
+      }
+    | CommonErrors;
 
   /**
    * Delete a meter.
@@ -113,28 +118,34 @@ interface MetersEndpoints {
   @operationId("queryMeter")
   @summary("Query meter")
   @sharedRoute
-  queryJson(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
-    @header contentType: "application/json";
-    @body _: MeterQueryResult;
-  } | NotFoundError | CommonErrors;
+  queryJson(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery):
+    | {
+        @header contentType: "application/json";
+        @body _: MeterQueryResult;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   #suppress "@openmeter/api-spec-legacy/operation-summary" "Avoid duplicating the summary in OpenAPI yaml"
   @get
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
   @sharedRoute
-  queryCsv(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
-    @header contentType: "text/csv";
+  queryCsv(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery):
+    | {
+        @header contentType: "text/csv";
 
-    @body
-    @example("""
-      window_start,window_end,subject,model,type,value
-      2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
-      2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
-      2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
-      """)
-    _: string;
-  } | NotFoundError | CommonErrors;
+        @body
+        @example("""
+          window_start,window_end,subject,model,type,value
+          2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
+          2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
+          2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
+          """)
+        _: string;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   @post
   @route("/{meterIdOrSlug}/query")
@@ -144,10 +155,13 @@ interface MetersEndpoints {
   query(
     @path meterIdOrSlug: MeterIdentifier,
     @body request: MeterQueryRequest,
-  ): {
-    @header contentType: "application/json";
-    @body _: MeterQueryResult;
-  } | NotFoundError | CommonErrors;
+  ):
+    | {
+        @header contentType: "application/json";
+        @body _: MeterQueryResult;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   #suppress "@openmeter/api-spec-legacy/operation-summary" "Avoid duplicating the summary in OpenAPI yaml"
   @post
@@ -157,18 +171,21 @@ interface MetersEndpoints {
   queryCsvPost(
     @path meterIdOrSlug: MeterIdentifier,
     // @body request: MeterQueryRequest,
-  ): {
-    @header contentType: "text/csv";
+  ):
+    | {
+        @header contentType: "text/csv";
 
-    @body
-    @example("""
-      window_start,window_end,subject,model,type,value
-      2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
-      2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
-      2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
-      """)
-    _: string;
-  } | NotFoundError | CommonErrors;
+        @body
+        @example("""
+          window_start,window_end,subject,model,type,value
+          2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
+          2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
+          2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
+          """)
+        _: string;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * List subjects for a meter.
@@ -199,11 +216,13 @@ interface MetersEndpoints {
      */
     @query(#{ explode: true })
     to?: DateTime,
-  ): {
-    @body
-    @example(#["customer_1", "customer_2"])
-    _: string[];
-  } | CommonErrors;
+  ):
+    | {
+        @body
+        @example(#["customer_1", "customer_2"])
+        _: string[];
+      }
+    | CommonErrors;
 
   /**
    * List meter group by values.
@@ -235,11 +254,13 @@ interface MetersEndpoints {
      */
     @query(#{ explode: true })
     to?: DateTime,
-  ): {
-    @body
-    @example(#["gpt-4-turbo", "gpt-4o"])
-    _: string[];
-  } | CommonErrors;
+  ):
+    | {
+        @body
+        @example(#["gpt-4-turbo", "gpt-4o"])
+        _: string[];
+      }
+    | CommonErrors;
 }
 
 /**

@@ -1,11 +1,15 @@
 package customerbalance
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -15,15 +19,25 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Service interface {
-	GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, query ledger.BalanceQuery) (ledger.Balance, error)
+	GetBalance(ctx context.Context, input GetBalanceServiceInput) (Balance, error)
+	GetSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error)
 	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
-	GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error)
+	GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencyx.Code, error)
+}
+
+type Balance interface {
+	Settled() alpacadecimal.Decimal
+	Live() alpacadecimal.Decimal
+	Pending() alpacadecimal.Decimal
 }
 
 // ----------------------------------------------------------------------------
@@ -65,8 +79,9 @@ type service struct {
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
 	Breakage          ledgerbreakage.Service
+	CreditVoid        creditvoid.Service
 
-	balanceCalculator chargePendingBalanceCalculator
+	balanceCalculator chargeLiveBalanceCalculator
 }
 
 var _ Service = (*service)(nil)
@@ -80,6 +95,116 @@ type Config struct {
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
 	Breakage          ledgerbreakage.Service
+	CreditVoid        creditvoid.Service
+}
+
+type GetBalanceServiceInput struct {
+	CustomerID    customer.CustomerID
+	Currency      currencyx.Code
+	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	BalanceQuery  ledger.BalanceQuery
+}
+
+type GetBalanceCurrenciesInput struct {
+	CustomerID    customer.CustomerID
+	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	AsOf          *time.Time
+}
+
+func (i GetBalanceServiceInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if err := ledger.ValidateCurrency(i.Currency); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
+		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	}
+
+	if i.BalanceQuery.After != nil {
+		if err := i.BalanceQuery.After.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("balance query after: %w", err))
+		}
+	}
+
+	if i.BalanceQuery.AsOf != nil && i.BalanceQuery.AsOf.IsZero() {
+		errs = append(errs, errors.New("balance query asOf must not be zero"))
+	}
+
+	if i.BalanceQuery.After != nil && i.BalanceQuery.AsOf != nil {
+		errs = append(errs, errors.New("balance query after and asOf cannot both be set"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i GetBalanceServiceInput) balanceQuery() ledger.BalanceQuery {
+	query := i.BalanceQuery
+	if query.After != nil || query.AsOf != nil {
+		return query
+	}
+
+	asOf := clock.Now()
+	query.AsOf = &asOf
+	return query
+}
+
+func (i GetBalanceServiceInput) pendingGrantAsOf() time.Time {
+	if i.BalanceQuery.AsOf != nil {
+		return *i.BalanceQuery.AsOf
+	}
+
+	return clock.Now()
+}
+
+func (i GetBalanceCurrenciesInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
+		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	}
+
+	if i.AsOf != nil && i.AsOf.IsZero() {
+		errs = append(errs, errors.New("asOf must not be zero"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i GetBalanceCurrenciesInput) pendingGrantAsOf() time.Time {
+	if i.AsOf != nil {
+		return *i.AsOf
+	}
+
+	return clock.Now()
+}
+
+func (i GetBalanceServiceInput) bookedRoute() ledger.RouteFilter {
+	route := i.featureRoute()
+	route.Currency = i.Currency
+
+	return route
+}
+
+func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
+	route := i.featureRoute()
+	route.Currency = i.Currency
+	route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
+
+	return route
+}
+
+func (i GetBalanceServiceInput) featureRoute() ledger.RouteFilter {
+	return featureFilterRoute(normalizeFeatureFilter(i.FeatureFilter))
 }
 
 func (c Config) Validate() error {
@@ -125,6 +250,10 @@ func New(config Config) (*service, error) {
 	if breakageService == nil {
 		breakageService = ledgerbreakage.NewNoopService()
 	}
+	creditVoidService := config.CreditVoid
+	if creditVoidService == nil {
+		creditVoidService = creditvoid.NewNoopService()
+	}
 
 	return &service{
 		AccountResolver:   config.AccountResolver,
@@ -135,59 +264,188 @@ func New(config Config) (*service, error) {
 		Ledger:            config.Ledger,
 		BalanceQuerier:    config.BalanceQuerier,
 		Breakage:          breakageService,
-		balanceCalculator: chargePendingBalanceCalculator{},
+		CreditVoid:        creditVoidService,
+		balanceCalculator: chargeLiveBalanceCalculator{},
 	}, nil
 }
 
-func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, query ledger.BalanceQuery) (ledger.Balance, error) {
-	query = currentBalanceQuery(query)
+func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) (Balance, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
 
-	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
+	settled, err := s.getSettledBalance(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	live := alpacadecimal.Zero
+	// Open-charge state is only available as a current projection. Historical
+	// queries return zero instead of mixing current impacts with a past ledger
+	// balance that never represented one coherent point in time.
+	if input.BalanceQuery.AsOf == nil {
+		impacts, err := s.getChargeLiveBalanceImpacts(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter))
+		if err != nil {
+			return nil, fmt.Errorf("get charge live balance impacts: %w", err)
+		}
+
+		live, err = s.calculateLiveBalance(ctx, input, settled, impacts)
+		if err != nil {
+			return nil, fmt.Errorf("calculate live balance: %w", err)
+		}
+	}
+
+	pending, err := s.getPendingGrantAmount(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter), input.pendingGrantAsOf())
+	if err != nil {
+		return nil, fmt.Errorf("get pending grant amount: %w", err)
+	}
+
+	return balance{
+		settled: settled,
+		live:    live,
+		pending: pending,
+	}, nil
+}
+
+type liveBalanceSource struct {
+	route  ledger.Route
+	amount alpacadecimal.Decimal
+	cursor string
+}
+
+var _ cmpx.Comparable[liveBalanceSource] = liveBalanceSource{}
+
+func (s *service) calculateLiveBalance(ctx context.Context, input GetBalanceServiceInput, settled alpacadecimal.Decimal, impacts []Impact) (alpacadecimal.Decimal, error) {
+	// Live charge impacts must be applied against the same credit sources the
+	// collector could actually consume. An aggregate settled balance would let a
+	// charge for one feature reduce credit restricted to another feature, even
+	// though the eventual ledger collection would leave that credit untouched.
+	sources, err := s.getLiveBalanceSources(ctx, input)
+	if err != nil {
+		return alpacadecimal.Zero, err
+	}
+
+	return s.balanceCalculator.CalculateLiveBalanceFromSources(settled, sources, impacts), nil
+}
+
+func (s *service) getLiveBalanceSources(ctx context.Context, input GetBalanceServiceInput) ([]liveBalanceSource, error) {
+	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency: currency,
-	}, query)
+	subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+		Namespace: customerAccounts.FBOAccount.ID().Namespace,
+		AccountID: customerAccounts.FBOAccount.ID().ID,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("get booked balance: %w", err)
+		return nil, fmt.Errorf("list sub accounts: %w", err)
 	}
 
-	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:  currency,
-		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
-	}, query)
-	if err != nil {
-		return nil, fmt.Errorf("get advance balance: %w", err)
+	routeFilter := input.bookedRoute()
+	query := input.balanceQuery()
+	sources := make([]liveBalanceSource, 0, len(subAccounts))
+	for _, subAccount := range subAccounts {
+		route := subAccount.Route()
+		if !route.Matches(routeFilter) {
+			continue
+		}
+
+		sourceBalance, err := s.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, query)
+		if err != nil {
+			return nil, fmt.Errorf("get sub account balance: %w", err)
+		}
+
+		if !sourceBalance.IsPositive() {
+			continue
+		}
+
+		sources = append(sources, liveBalanceSource{
+			route:  route,
+			amount: sourceBalance,
+			cursor: subAccount.Address().SubAccountID(),
+		})
 	}
 
-	// Pending balance remains a current projection from open charges.
-	// Historical cursor/as-of filtering only affects the booked/settled side for now.
-	impacts, err := s.getChargePendingBalanceImpacts(ctx, customerID, currency)
-	if err != nil {
-		return nil, fmt.Errorf("get charge pending balance impacts: %w", err)
-	}
+	slices.SortStableFunc(sources, cmpx.Compare[liveBalanceSource])
 
-	settled := bookedBalance.Settled().Add(advanceBalance.Settled())
-
-	return balance{
-		settled: settled,
-		pending: s.balanceCalculator.CalculatePendingBalance(settled, impacts),
-	}, nil
+	return sources, nil
 }
 
-func currentBalanceQuery(query ledger.BalanceQuery) ledger.BalanceQuery {
-	if query.After != nil || query.AsOf != nil {
-		return query
+// Compare keeps the source walk aligned with collection order. This matters for
+// live balance because source amounts are consumed in-memory as impacts are
+// applied, so a shared unrestricted source exhausted by one impact must not be
+// counted again for a later impact.
+func (s liveBalanceSource) Compare(other liveBalanceSource) int {
+	if c := cmp.Compare(lo.FromPtrOr(s.route.CreditPriority, ledger.DefaultCustomerFBOPriority), lo.FromPtrOr(other.route.CreditPriority, ledger.DefaultCustomerFBOPriority)); c != 0 {
+		return c
 	}
 
-	asOf := clock.Now()
-	query.AsOf = &asOf
-	return query
+	leftRestricted := len(s.route.Features) > 0
+	rightRestricted := len(other.route.Features) > 0
+	if leftRestricted != rightRestricted {
+		if leftRestricted {
+			return -1
+		}
+
+		return 1
+	}
+
+	return cmp.Compare(s.cursor, other.cursor)
 }
 
-func (s *service) GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error) {
+func (s *service) GetSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
+	if err := input.Validate(); err != nil {
+		return alpacadecimal.Zero, err
+	}
+
+	return s.getSettledBalance(ctx, input)
+}
+
+func (s *service) getSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
+	query := input.balanceQuery()
+
+	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
+	if err != nil {
+		return alpacadecimal.Zero, fmt.Errorf("get customer accounts: %w", err)
+	}
+
+	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, input.bookedRoute(), query)
+	if err != nil {
+		return alpacadecimal.Zero, fmt.Errorf("get booked balance: %w", err)
+	}
+
+	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, input.advanceRoute(), query)
+	if err != nil {
+		return alpacadecimal.Zero, fmt.Errorf("get advance balance: %w", err)
+	}
+
+	return bookedBalance.Add(advanceBalance), nil
+}
+
+func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencyx.Code, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	// FIXME[RTE]: when GetBalances discovers currencies, pending grants are
+	// scanned here and then scanned again once per currency in GetBalance. This
+	// is accepted as temporary bridge behavior until scheduled grants have an
+	// RTE-owned fact/index or a shared candidate cache in this service.
+	fboCurrencies, err := s.getFBOCurrencies(ctx, input.CustomerID)
+	if err != nil {
+		return nil, err
+	}
+
+	pendingCurrencies, err := s.getPendingGrantCurrencies(ctx, input.CustomerID, normalizeFeatureFilter(input.FeatureFilter), input.pendingGrantAsOf())
+	if err != nil {
+		return nil, err
+	}
+
+	return dedupeCurrencies(append(fboCurrencies, pendingCurrencies...)), nil
+}
+
+func (s *service) getFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error) {
 	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
@@ -217,7 +475,176 @@ func (s *service) GetFBOCurrencies(ctx context.Context, customerID customer.Cust
 	return codes, nil
 }
 
-func (s *service) getChargePendingBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code) ([]Impact, error) {
+func (s *service) getPendingGrantCurrencies(
+	ctx context.Context,
+	customerID customer.CustomerID,
+	featureFilter mo.Option[creditpurchase.FeatureFilters],
+	asOf time.Time,
+) ([]currencyx.Code, error) {
+	charges, err := s.listPendingGrantCandidateCharges(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+
+	codes := make([]currencyx.Code, 0, len(charges))
+	for _, charge := range charges {
+		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
+		if err != nil {
+			return nil, fmt.Errorf("map credit purchase charge: %w", err)
+		}
+
+		if !isPendingCreditGrantAt(creditPurchaseCharge, asOf) {
+			continue
+		}
+
+		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.FeatureFilters) {
+			continue
+		}
+
+		if creditPurchaseCharge.Intent.Currency.IsCustom() {
+			return nil, fmt.Errorf("credit purchase charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+		}
+
+		codes = append(codes, creditPurchaseCharge.Intent.Currency.GetCode())
+	}
+
+	return dedupeCurrencies(codes), nil
+}
+
+func (s *service) getPendingGrantAmount(
+	ctx context.Context,
+	customerID customer.CustomerID,
+	currency currencyx.Code,
+	featureFilter mo.Option[creditpurchase.FeatureFilters],
+	asOf time.Time,
+) (alpacadecimal.Decimal, error) {
+	charges, err := s.listPendingGrantCandidateCharges(ctx, customerID)
+	if err != nil {
+		return alpacadecimal.Zero, err
+	}
+
+	total := alpacadecimal.Zero
+	for _, charge := range charges {
+		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
+		if err != nil {
+			return alpacadecimal.Zero, fmt.Errorf("map credit purchase charge: %w", err)
+		}
+
+		if creditPurchaseCharge.Intent.Currency.GetCode() != currency {
+			continue
+		}
+
+		if !isPendingCreditGrantAt(creditPurchaseCharge, asOf) {
+			continue
+		}
+
+		if !featureFilterMatchesCreditPurchase(featureFilter, creditPurchaseCharge.Intent.FeatureFilters) {
+			continue
+		}
+
+		total = total.Add(creditPurchaseCharge.Intent.CreditAmount)
+	}
+
+	return total, nil
+}
+
+func (s *service) listPendingGrantCandidateCharges(ctx context.Context, customerID customer.CustomerID) ([]charges.Charge, error) {
+	// FIXME[RTE]: this is terrible and too slow. It expands and scans
+	// credit-purchase charges on every balance read until pending scheduled
+	// grants have a durable query shape. Keep query-side heuristics conservative:
+	// only exclude charges that definitely cannot become ledger credit, and let
+	// isPendingCreditGrantAt handle lifecycle edge cases like final realized
+	// grants booked in the future.
+	items, err := pagination.CollectAll(
+		ctx,
+		pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[charges.Charge], error) {
+			return s.ChargesService.ListCharges(ctx, charges.ListChargesInput{
+				Page:        page,
+				Namespace:   customerID.Namespace,
+				CustomerIDs: []string{customerID.ID},
+				ChargeTypes: []meta.ChargeType{
+					meta.ChargeTypeCreditPurchase,
+				},
+				StatusNotIn: []meta.ChargeStatus{
+					meta.ChargeStatusDeleted,
+				},
+				Expands: meta.Expands{meta.ExpandRealizations},
+			})
+		}),
+		chargeListPageSize,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list credit purchase charges: %w", err)
+	}
+
+	return items, nil
+}
+
+// isPendingCreditGrantAt reports whether a credit purchase should contribute to
+// the scheduled-grant pending amount at asOf.
+//
+// A charge is pending only while it can still legitimately become effective
+// ledger credit and either has no credit grant realization yet, or has already
+// been realized with a future ledger booking time.
+func isPendingCreditGrantAt(charge creditpurchase.Charge, asOf time.Time) bool {
+	if !canBecomeEffectiveLedgerCreditAt(charge, asOf) {
+		return false
+	}
+
+	if charge.Realizations.CreditGrantRealization == nil {
+		return true
+	}
+
+	return charge.Intent.ServicePeriod.To.After(asOf)
+}
+
+func canBecomeEffectiveLedgerCreditAt(charge creditpurchase.Charge, asOf time.Time) bool {
+	if charge.CreatedAt.After(asOf) {
+		return false
+	}
+
+	if charge.Status == creditpurchase.StatusDeleted || charge.IsDeletedAt(asOf) {
+		return false
+	}
+
+	if charge.Realizations.InvoiceSettlement != nil && charge.Realizations.InvoiceSettlement.IsDeletedAt(asOf) {
+		return false
+	}
+
+	if charge.Realizations.ExternalPaymentSettlement != nil && charge.Realizations.ExternalPaymentSettlement.IsDeletedAt(asOf) {
+		return false
+	}
+
+	// CreditGrantRealization is a successful ledger transaction reference, not a
+	// realization state machine. Failed grant writes leave it unset; voided
+	// settlement paths are represented by deleted charge/payment realizations
+	// above.
+	if charge.Status == creditpurchase.StatusFinal && charge.Realizations.CreditGrantRealization == nil {
+		return false
+	}
+
+	return true
+}
+
+func featureFilterMatchesCreditPurchase(featureFilter mo.Option[creditpurchase.FeatureFilters], grantFeatures creditpurchase.FeatureFilters) bool {
+	if featureFilter.IsAbsent() {
+		return true
+	}
+
+	grantFeatures = grantFeatures.Normalize()
+	filterFeatures := featureFilter.OrEmpty()
+	if filterFeatures == nil {
+		return len(grantFeatures) == 0
+	}
+
+	if len(grantFeatures) == 0 {
+		return true
+	}
+
+	return len(filterFeatures) == 1 && slices.Contains(grantFeatures, filterFeatures[0])
+}
+
+func (s *service) getChargeLiveBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) ([]Impact, error) {
 	items, err := pagination.CollectAll(
 		ctx,
 		pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[charges.Charge], error) {
@@ -241,7 +668,7 @@ func (s *service) getChargePendingBalanceImpacts(ctx context.Context, customerID
 
 	impacts := make([]Impact, 0, len(items))
 	for _, charge := range items {
-		impact, err := s.getChargePendingBalanceImpact(ctx, charge, currency)
+		impact, err := s.getChargeLiveBalanceImpact(ctx, charge, currency, featureFilter)
 		if err != nil {
 			return nil, err
 		}
@@ -256,41 +683,57 @@ func (s *service) getChargePendingBalanceImpacts(ctx context.Context, customerID
 	return impacts, nil
 }
 
-func (s *service) getChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code) (*Impact, error) {
+func (s *service) getChargeLiveBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
 	if !chargeHasStarted(charge) {
 		return nil, nil
 	}
 
 	switch charge.Type() {
 	case meta.ChargeTypeFlatFee:
-		return getFlatFeeChargePendingBalanceImpact(charge, currency)
+		return getFlatFeeChargePendingBalanceImpact(charge, currency, featureFilter)
 	case meta.ChargeTypeUsageBased:
-		return s.getUsageBasedChargePendingBalanceImpact(ctx, charge, currency)
+		return s.getUsageBasedChargePendingBalanceImpact(ctx, charge, currency, featureFilter)
 	default:
 		return nil, nil
 	}
 }
 
-func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency currencyx.Code) (*Impact, error) {
+func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
 	flatFeeCharge, err := charge.AsFlatFeeCharge()
 	if err != nil {
 		return nil, fmt.Errorf("map flat fee charge: %w", err)
 	}
 
-	if flatFeeCharge.Intent.Currency != currency {
+	if flatFeeCharge.Intent.GetCurrency().GetCode() != currency {
+		return nil, nil
+	}
+
+	if flatFeeCharge.Intent.GetCurrency().IsCustom() {
+		return nil, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
+	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.GetFeatureKey()) {
 		return nil, nil
 	}
 
 	return newImpactOrNil(charge, flatFeeCharge.State.AmountAfterProration)
 }
 
-func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code) (*Impact, error) {
+func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
 	usageBasedCharge, err := charge.AsUsageBasedCharge()
 	if err != nil {
 		return nil, fmt.Errorf("map usage based charge: %w", err)
 	}
 
-	if usageBasedCharge.Intent.Currency != currency {
+	if usageBasedCharge.Intent.GetCurrency().GetCode() != currency {
+		return nil, nil
+	}
+
+	if usageBasedCharge.Intent.GetCurrency().IsCustom() {
+		return nil, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+	}
+
+	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.GetFeatureKey()) {
 		return nil, nil
 	}
 
@@ -304,6 +747,27 @@ func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, c
 	return newImpactOrNil(charges.NewCharge(currentTotals.Charge), currentTotals.DueTotals.Total)
 }
 
+// featureFilterMatchesChargeFeatureKey is query-scope matching: a feature
+// balance view includes unrestricted charge impacts so it can show the customer's
+// shared-credit exposure for that feature. Actual credit allocability is checked
+// separately when live impacts are applied to concrete credit sources.
+func featureFilterMatchesChargeFeatureKey(featureFilter mo.Option[creditpurchase.FeatureFilters], featureKey string) bool {
+	if featureFilter.IsAbsent() {
+		return true
+	}
+
+	features := featureFilter.OrEmpty()
+	if features == nil {
+		return featureKey == ""
+	}
+
+	if featureKey == "" {
+		return true
+	}
+
+	return len(features) == 1 && features[0] == featureKey
+}
+
 func chargeHasStarted(charge charges.Charge) bool {
 	now := clock.Now()
 
@@ -314,14 +778,14 @@ func chargeHasStarted(charge charges.Charge) bool {
 			return false
 		}
 
-		return !now.Before(flatFeeCharge.Intent.ServicePeriod.From)
+		return !now.Before(flatFeeCharge.Intent.GetEffectiveInvoiceAt())
 	case meta.ChargeTypeUsageBased:
 		usageBasedCharge, err := charge.AsUsageBasedCharge()
 		if err != nil {
 			return false
 		}
 
-		return !now.Before(usageBasedCharge.Intent.ServicePeriod.From)
+		return !now.Before(usageBasedCharge.Intent.GetEffectiveServicePeriod().From)
 	default:
 		return false
 	}
@@ -342,11 +806,16 @@ func newImpactOrNil(charge charges.Charge, amount alpacadecimal.Decimal) (*Impac
 
 type balance struct {
 	settled alpacadecimal.Decimal
+	live    alpacadecimal.Decimal
 	pending alpacadecimal.Decimal
 }
 
 func (b balance) Settled() alpacadecimal.Decimal {
 	return b.settled
+}
+
+func (b balance) Live() alpacadecimal.Decimal {
+	return b.live
 }
 
 func (b balance) Pending() alpacadecimal.Decimal {

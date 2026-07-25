@@ -41,14 +41,14 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	cust := s.CreateTestCustomer(namespace, "test")
 
-	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
-		profile.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-			Stripe: &productcatalog.StripeTaxConfig{
-				Code: "txcd_10000000",
-			},
-		}
-	}))
+	// The tax code is seeded via the adapter to simulate a legacy row predating the deprecation gate.
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
+		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		Stripe: &productcatalog.StripeTaxConfig{
+			Code: "txcd_10000000",
+		},
+	})
 
 	s.Run("Profile default tax config is inclusive in billing profile", func() {
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
@@ -122,10 +122,12 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
+		s.ProvisionProviderDefaultTaxCode(ctx, namespace)
 
 		// let's update the invoice
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-			Invoice: draftInvoice.GetInvoiceID(),
+			Invoice:      draftInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
 			EditFn: func(invoice *billing.StandardInvoice) error {
 				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
 					Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
@@ -207,7 +209,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -277,11 +279,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	ubpSplitLineDetailedLines := ubpSplitLine.DetailedLines
 	s.Len(ubpSplitLineDetailedLines, 1)
 
-	ubpDetailedLine := ubpSplitLineDetailedLines[0]
-	s.Require().NotNil(ubpDetailedLine.TaxConfig, "tax config is retained in detailed line")
-	s.Equal(taxConfig.Behavior, ubpDetailedLine.TaxConfig.Behavior, "detailed line tax config behavior is retained")
-	s.Equal(taxConfig.Stripe, ubpDetailedLine.TaxConfig.Stripe, "detailed line tax config stripe is retained")
-
 	// Verify the normalized tax_code_id column is written in the DB (not just the JSONB).
 	dbLine, err := s.DBClient.BillingInvoiceLine.Query().
 		Where(billinginvoicelinedb.ID(ubpSplitLine.GetID())).
@@ -291,17 +288,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(createdTC.ID, *dbLine.TaxCodeID, "tax_code_id column must match the resolved TaxCode entity")
 	s.Require().NotNil(dbLine.TaxBehavior, "tax_behavior column must be populated on the invoice line row")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbLine.TaxBehavior, "tax_behavior column must match")
-
-	// Verify the normalized tax_code_id and tax_behavior columns on the detailed line row.
-	// Detailed lines at schema level 1 are stored in the billing_invoice_lines table.
-	dbDetailedLine, err := s.DBClient.BillingInvoiceLine.Query().
-		Where(billinginvoicelinedb.ID(ubpDetailedLine.GetID())).
-		Only(ctx)
-	s.Require().NoError(err)
-	s.Require().NotNil(dbDetailedLine.TaxCodeID, "tax_code_id column must be populated on the detailed line row")
-	s.Equal(createdTC.ID, *dbDetailedLine.TaxCodeID, "detailed line tax_code_id must match")
-	s.Require().NotNil(dbDetailedLine.TaxBehavior, "tax_behavior column must be populated on the detailed line row")
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbDetailedLine.TaxBehavior, "detailed line tax_behavior must match")
 }
 
 func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.StandardInvoice {
@@ -310,7 +296,7 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, custom
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},

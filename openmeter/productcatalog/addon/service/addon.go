@@ -342,6 +342,10 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			return nil, fmt.Errorf("failed to get add-on: %w", err)
 		}
 
+		if params.RejectUnitConfig && add.AsProductCatalogAddon().HasUnitConfig() {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+
 		// Run validations prior updating add-on.
 		if err = add.AsProductCatalogAddon().ValidateWith(
 			productcatalog.ValidateAddonWithStatus(productcatalog.AddonStatusDraft),
@@ -404,6 +408,10 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			)
 		}
 
+		if params.RejectUnitConfig && add.AsProductCatalogAddon().HasUnitConfig() {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+
 		pa := add.AsProductCatalogAddon()
 
 		// Run validations prior publishing add-on.
@@ -452,7 +460,8 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 						Namespace: activeAddon.Namespace,
 						ID:        activeAddon.ID,
 					},
-					EffectiveTo: lo.FromPtr(params.EffectiveFrom),
+					EffectiveTo:      lo.FromPtr(params.EffectiveFrom),
+					RejectUnitConfig: params.RejectUnitConfig,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("failed to archive add-on with active status: %w", err)
@@ -521,6 +530,10 @@ func (s service) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInpu
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("cannot archive a deleted add-on"),
 			)
+		}
+
+		if params.RejectUnitConfig && add.AsProductCatalogAddon().HasUnitConfig() {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
 
 		// Run validations prior archiving add-on.

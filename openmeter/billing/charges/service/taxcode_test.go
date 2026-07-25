@@ -20,11 +20,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -81,9 +83,9 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 					name:              "flat-fee-taxcode",
 					managedBy:         billing.ManuallyManagedLine,
 					uniqueReferenceID: "flat-fee-taxcode",
-					taxConfig: &productcatalog.TaxCodeConfig{
+					taxConfig: productcatalog.TaxCodeConfig{
 						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-						TaxCodeID: &tc.ID,
+						TaxCodeID: tc.ID,
 					},
 				}),
 			},
@@ -98,11 +100,10 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 		flatFee, err := readBack.AsFlatFeeCharge()
 		s.NoError(err)
 
-		s.Require().NotNil(flatFee.Intent.TaxConfig, "TaxConfig must be populated on read")
-		s.Require().NotNil(flatFee.Intent.TaxConfig.Behavior, "TaxBehavior must be persisted")
-		s.Equal(productcatalog.InclusiveTaxBehavior, *flatFee.Intent.TaxConfig.Behavior)
-		s.Require().NotNil(flatFee.Intent.TaxConfig.TaxCodeID, "TaxCodeID must be persisted as FK")
-		s.Equal(tc.ID, *flatFee.Intent.TaxConfig.TaxCodeID)
+		s.Require().NotNil(flatFee.Intent.GetTaxConfig().Behavior, "TaxBehavior must be persisted")
+		s.Equal(productcatalog.InclusiveTaxBehavior, *flatFee.Intent.GetTaxConfig().Behavior)
+		s.Require().NotEmpty(flatFee.Intent.GetTaxConfig().TaxCodeID, "TaxCodeID must be persisted as FK")
+		s.Equal(tc.ID, flatFee.Intent.GetTaxConfig().TaxCodeID)
 	})
 
 	s.Run("nil tax config gets default invoicing tax code stamped", func() {
@@ -135,10 +136,9 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 		s.NoError(err)
 
 		// nil TaxConfig intents get the namespace default invoicing TaxCodeID stamped.
-		s.Require().NotNil(flatFee.Intent.TaxConfig, "TaxConfig must be stamped with the default invoicing tax code")
-		s.Require().NotNil(flatFee.Intent.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped")
-		s.Equal(defaults.InvoicingTaxCodeID, *flatFee.Intent.TaxConfig.TaxCodeID)
-		s.Nil(flatFee.Intent.TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
+		s.Require().NotEmpty(flatFee.Intent.GetTaxConfig().TaxCodeID, "default invoicing TaxCodeID must be stamped")
+		s.Equal(defaults.InvoicingTaxCodeID, flatFee.Intent.GetTaxConfig().TaxCodeID)
+		s.Nil(flatFee.Intent.GetTaxConfig().Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 	})
 }
 
@@ -179,9 +179,9 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 					name:              "usage-based-taxcode",
 					managedBy:         billing.ManuallyManagedLine,
 					uniqueReferenceID: "usage-based-taxcode",
-					taxConfig: &productcatalog.TaxCodeConfig{
+					taxConfig: productcatalog.TaxCodeConfig{
 						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-						TaxCodeID: &tc.ID,
+						TaxCodeID: tc.ID,
 					},
 				}),
 			},
@@ -196,11 +196,10 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 		usageBased, err := readBack.AsUsageBasedCharge()
 		s.NoError(err)
 
-		s.Require().NotNil(usageBased.Intent.TaxConfig, "TaxConfig must be populated on read")
-		s.Require().NotNil(usageBased.Intent.TaxConfig.Behavior, "TaxBehavior must be persisted")
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *usageBased.Intent.TaxConfig.Behavior)
-		s.Require().NotNil(usageBased.Intent.TaxConfig.TaxCodeID, "TaxCodeID must be persisted as FK")
-		s.Equal(tc.ID, *usageBased.Intent.TaxConfig.TaxCodeID)
+		s.Require().NotNil(usageBased.Intent.GetTaxConfig().Behavior, "TaxBehavior must be persisted")
+		s.Equal(productcatalog.ExclusiveTaxBehavior, *usageBased.Intent.GetTaxConfig().Behavior)
+		s.Require().NotEmpty(usageBased.Intent.GetTaxConfig().TaxCodeID, "TaxCodeID must be persisted as FK")
+		s.Equal(tc.ID, usageBased.Intent.GetTaxConfig().TaxCodeID)
 	})
 
 	s.Run("nil tax config gets default invoicing tax code stamped", func() {
@@ -233,10 +232,9 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 		s.NoError(err)
 
 		// nil TaxConfig intents get the namespace default invoicing TaxCodeID stamped.
-		s.Require().NotNil(usageBased.Intent.TaxConfig, "TaxConfig must be stamped with the default invoicing tax code")
-		s.Require().NotNil(usageBased.Intent.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped")
-		s.Equal(defaults.InvoicingTaxCodeID, *usageBased.Intent.TaxConfig.TaxCodeID)
-		s.Nil(usageBased.Intent.TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
+		s.Require().NotEmpty(usageBased.Intent.GetTaxConfig().TaxCodeID, "default invoicing TaxCodeID must be stamped")
+		s.Equal(defaults.InvoicingTaxCodeID, usageBased.Intent.GetTaxConfig().TaxCodeID)
+		s.Nil(usageBased.Intent.GetTaxConfig().Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 	})
 }
 
@@ -266,20 +264,24 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 			Intents: charges.ChargeIntents{
 				charges.NewChargeIntent(creditpurchase.Intent{
 					Intent: meta.Intent{
-						Name:              "credit-purchase-taxcode",
-						ManagedBy:         billing.ManuallyManagedLine,
-						CustomerID:        cust.GetID().ID,
-						Currency:          USD,
-						ServicePeriod:     servicePeriod,
-						BillingPeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						TaxConfig: &productcatalog.TaxCodeConfig{
+						ManagedBy:  billing.ManuallyManagedLine,
+						CustomerID: cust.GetID().ID,
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
+						TaxConfig: productcatalog.TaxCodeConfig{
 							Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-							TaxCodeID: &tc.ID,
+							TaxCodeID: tc.ID,
 						},
 					},
-					CreditAmount: alpacadecimal.NewFromFloat(50),
-					Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+					IntentMutableFields: creditpurchase.IntentMutableFields{
+						IntentMutableFields: meta.IntentMutableFields{
+							Name:              "credit-purchase-taxcode",
+							ServicePeriod:     servicePeriod,
+							BillingPeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+						},
+						CreditAmount: alpacadecimal.NewFromFloat(50),
+						Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+					},
 				}),
 			},
 		})
@@ -293,11 +295,10 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 		cp, err := readBack.AsCreditPurchaseCharge()
 		s.NoError(err)
 
-		s.Require().NotNil(cp.Intent.TaxConfig, "TaxConfig must be populated on read")
 		s.Require().NotNil(cp.Intent.TaxConfig.Behavior, "TaxBehavior must be persisted")
 		s.Equal(productcatalog.InclusiveTaxBehavior, *cp.Intent.TaxConfig.Behavior)
-		s.Require().NotNil(cp.Intent.TaxConfig.TaxCodeID, "TaxCodeID must be persisted as FK")
-		s.Equal(tc.ID, *cp.Intent.TaxConfig.TaxCodeID)
+		s.Require().NotEmpty(cp.Intent.TaxConfig.TaxCodeID, "TaxCodeID must be persisted as FK")
+		s.Equal(tc.ID, cp.Intent.TaxConfig.TaxCodeID)
 	})
 
 	s.Run("nil tax config gets default credit grant tax code stamped", func() {
@@ -309,16 +310,20 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 			Intents: charges.ChargeIntents{
 				charges.NewChargeIntent(creditpurchase.Intent{
 					Intent: meta.Intent{
-						Name:              "credit-purchase-no-taxcode",
-						ManagedBy:         billing.ManuallyManagedLine,
-						CustomerID:        cust.GetID().ID,
-						Currency:          USD,
-						ServicePeriod:     servicePeriod,
-						BillingPeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
+						ManagedBy:  billing.ManuallyManagedLine,
+						CustomerID: cust.GetID().ID,
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 					},
-					CreditAmount: alpacadecimal.NewFromFloat(50),
-					Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+					IntentMutableFields: creditpurchase.IntentMutableFields{
+						IntentMutableFields: meta.IntentMutableFields{
+							Name:              "credit-purchase-no-taxcode",
+							ServicePeriod:     servicePeriod,
+							BillingPeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+						},
+						CreditAmount: alpacadecimal.NewFromFloat(50),
+						Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+					},
 				}),
 			},
 		})
@@ -333,9 +338,8 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 		s.NoError(err)
 
 		// nil TaxConfig intents get the namespace default credit-grant TaxCodeID stamped.
-		s.Require().NotNil(cp.Intent.TaxConfig, "TaxConfig must be stamped with the default credit grant tax code")
-		s.Require().NotNil(cp.Intent.TaxConfig.TaxCodeID, "default credit grant TaxCodeID must be stamped")
-		s.Equal(defaults.CreditGrantTaxCodeID, *cp.Intent.TaxConfig.TaxCodeID)
+		s.Require().NotEmpty(cp.Intent.TaxConfig.TaxCodeID, "default credit grant TaxCodeID must be stamped")
+		s.Equal(defaults.CreditGrantTaxCodeID, cp.Intent.TaxConfig.TaxCodeID)
 		s.Nil(cp.Intent.TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 	})
 }
@@ -367,9 +371,9 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	// queryable via ListGatheringInvoices.
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
-	taxConfig := &productcatalog.TaxCodeConfig{
+	taxConfig := productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: &tc.ID,
+		TaxCodeID: tc.ID,
 	}
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -377,22 +381,26 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(creditpurchase.Intent{
 				Intent: meta.Intent{
-					Name:              "credit-purchase-invoice-taxcode",
-					ManagedBy:         billing.ManuallyManagedLine,
-					CustomerID:        cust.GetID().ID,
-					Currency:          USD,
-					ServicePeriod:     servicePeriod,
-					BillingPeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					TaxConfig:         taxConfig,
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.GetID().ID,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
+					TaxConfig:  taxConfig,
 				},
-				CreditAmount: alpacadecimal.NewFromFloat(100),
-				Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
-					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  USD,
-						CostBasis: alpacadecimal.NewFromFloat(0.5),
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "credit-purchase-invoice-taxcode",
+						ServicePeriod:     servicePeriod,
+						BillingPeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
 					},
-				}),
+					CreditAmount: alpacadecimal.NewFromFloat(100),
+					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+						GenericSettlement: creditpurchase.GenericSettlement{
+							Currency:  currencyx.FiatCode(USD),
+							CostBasis: alpacadecimal.NewFromFloat(0.5),
+						},
+					}),
+				},
 			}),
 		},
 	})
@@ -402,7 +410,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -471,7 +479,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 }
 
 // TestCreditPurchaseInvoiceSettlementNilTaxConfigGetsDefaultCreditGrantTaxCodeStamped verifies that
-// when Intent.TaxConfig is nil the gathering line's TaxConfig is populated with the namespace
+// when Intent.TaxConfig is zero the gathering line's TaxConfig is populated with the namespace
 // default credit-grant tax code ID stamped by applyDefaultTaxCodes.
 func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxConfigGetsDefaultCreditGrantTaxCodeStamped() {
 	ctx := s.T().Context()
@@ -493,21 +501,25 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(creditpurchase.Intent{
 				Intent: meta.Intent{
-					Name:              "credit-purchase-invoice-nil-taxcode",
-					ManagedBy:         billing.ManuallyManagedLine,
-					CustomerID:        cust.GetID().ID,
-					Currency:          USD,
-					ServicePeriod:     servicePeriod,
-					BillingPeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.GetID().ID,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 				},
-				CreditAmount: alpacadecimal.NewFromFloat(100),
-				Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
-					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  USD,
-						CostBasis: alpacadecimal.NewFromFloat(0.5),
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "credit-purchase-invoice-nil-taxcode",
+						ServicePeriod:     servicePeriod,
+						BillingPeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
 					},
-				}),
+					CreditAmount: alpacadecimal.NewFromFloat(100),
+					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+						GenericSettlement: creditpurchase.GenericSettlement{
+							Currency:  currencyx.FiatCode(USD),
+							CostBasis: alpacadecimal.NewFromFloat(0.5),
+						},
+					}),
+				},
 			}),
 		},
 	})
@@ -517,7 +529,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -569,9 +581,9 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 				name:              "flat-fee-creditonly-taxconfig",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "flat-fee-creditonly-taxconfig",
-				taxConfig: &productcatalog.TaxCodeConfig{
+				taxConfig: productcatalog.TaxCodeConfig{
 					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-					TaxCodeID: &tc.ID,
+					TaxCodeID: tc.ID,
 				},
 			}),
 		},
@@ -584,7 +596,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 		capturedInput = input
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.GetEffectiveServicePeriod(),
 				Amount:        input.PreTaxAmountToAllocate,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
@@ -599,11 +611,10 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 	s.NoError(err)
 	s.Require().Len(advancedCharges, 1)
 
-	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig, "handler must receive TaxConfig after DB roundtrip")
-	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig.Behavior)
-	s.Equal(productcatalog.InclusiveTaxBehavior, *capturedInput.Charge.Intent.TaxConfig.Behavior)
-	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
-	s.Equal(tc.ID, *capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
+	s.Require().NotNil(capturedInput.Charge.Intent.GetTaxConfig().Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *capturedInput.Charge.Intent.GetTaxConfig().Behavior)
+	s.Require().NotEmpty(capturedInput.Charge.Intent.GetTaxConfig().TaxCodeID)
+	s.Equal(tc.ID, capturedInput.Charge.Intent.GetTaxConfig().TaxCodeID)
 }
 
 // TestUsageBasedCreditOnlyHandlerReceivesTaxConfig verifies that when a credit-only usage-based
@@ -645,9 +656,9 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 				name:              "usage-based-creditonly-taxconfig",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "usage-based-creditonly-taxconfig",
-				taxConfig: &productcatalog.TaxCodeConfig{
+				taxConfig: productcatalog.TaxCodeConfig{
 					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-					TaxCodeID: &tc.ID,
+					TaxCodeID: tc.ID,
 				},
 			}),
 		},
@@ -668,7 +679,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 		capturedInput = input
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.GetEffectiveServicePeriod(),
 				Amount:        input.AmountToAllocate,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
@@ -682,11 +693,10 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 	_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
 	s.NoError(err)
 
-	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig, "handler must receive TaxConfig after DB roundtrip")
-	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig.Behavior)
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *capturedInput.Charge.Intent.TaxConfig.Behavior)
-	s.Require().NotNil(capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
-	s.Equal(tc.ID, *capturedInput.Charge.Intent.TaxConfig.TaxCodeID)
+	s.Require().NotNil(capturedInput.Charge.Intent.GetTaxConfig().Behavior)
+	s.Equal(productcatalog.ExclusiveTaxBehavior, *capturedInput.Charge.Intent.GetTaxConfig().Behavior)
+	s.Require().NotEmpty(capturedInput.Charge.Intent.GetTaxConfig().TaxCodeID)
+	s.Equal(tc.ID, capturedInput.Charge.Intent.GetTaxConfig().TaxCodeID)
 }
 
 // TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice verifies the dual-write
@@ -727,9 +737,9 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 				name:              "flat-fee-invoice-stripe-taxcode",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "flat-fee-invoice-stripe-taxcode",
-				taxConfig: &productcatalog.TaxCodeConfig{
+				taxConfig: productcatalog.TaxCodeConfig{
 					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-					TaxCodeID: &tc.ID,
+					TaxCodeID: tc.ID,
 				},
 			}),
 		},
@@ -810,13 +820,13 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 	clock.SetTime(servicePeriod.From)
 
 	tcID := tc.ID
-	taxConfigFlat := &productcatalog.TaxCodeConfig{
+	taxConfigFlat := productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: &tcID,
+		TaxCodeID: tcID,
 	}
-	taxConfigUsage := &productcatalog.TaxCodeConfig{
+	taxConfigUsage := productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: &tcID,
+		TaxCodeID: tcID,
 	}
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -891,28 +901,25 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 			ff, err := charge.AsFlatFeeCharge()
 			s.Require().NoError(err)
 
-			if ff.Intent.Intent.UniqueReferenceID != nil && *ff.Intent.Intent.UniqueReferenceID == "flat-fee-list-no-taxcode" {
+			if ff.Intent.GetUniqueReferenceID() != nil && *ff.Intent.GetUniqueReferenceID() == "flat-fee-list-no-taxcode" {
 				// nil TaxConfig intents get the default invoicing TaxCodeID stamped.
-				s.Require().NotNil(ff.Intent.TaxConfig, "flat fee charge without explicit tax config must have default invoicing TaxCodeID stamped")
-				s.Require().NotNil(ff.Intent.TaxConfig.TaxCodeID)
-				s.Equal(defaults.InvoicingTaxCodeID, *ff.Intent.TaxConfig.TaxCodeID)
-				s.Nil(ff.Intent.TaxConfig.Behavior)
+				s.Require().NotEmpty(ff.Intent.GetTaxConfig().TaxCodeID)
+				s.Equal(defaults.InvoicingTaxCodeID, ff.Intent.GetTaxConfig().TaxCodeID)
+				s.Nil(ff.Intent.GetTaxConfig().Behavior)
 			} else {
-				s.Require().NotNil(ff.Intent.TaxConfig, "flat fee charge must carry TaxConfig in list response")
-				s.Require().NotNil(ff.Intent.TaxConfig.Behavior)
-				s.Equal(productcatalog.InclusiveTaxBehavior, *ff.Intent.TaxConfig.Behavior)
-				s.Require().NotNil(ff.Intent.TaxConfig.TaxCodeID)
-				s.Equal(tc.ID, *ff.Intent.TaxConfig.TaxCodeID)
+				s.Require().NotNil(ff.Intent.GetTaxConfig().Behavior)
+				s.Equal(productcatalog.InclusiveTaxBehavior, *ff.Intent.GetTaxConfig().Behavior)
+				s.Require().NotEmpty(ff.Intent.GetTaxConfig().TaxCodeID)
+				s.Equal(tc.ID, ff.Intent.GetTaxConfig().TaxCodeID)
 			}
 
 		case meta.ChargeTypeUsageBased:
 			ub, err := charge.AsUsageBasedCharge()
 			s.Require().NoError(err)
-			s.Require().NotNil(ub.Intent.TaxConfig, "usage-based charge must carry TaxConfig in list response")
-			s.Require().NotNil(ub.Intent.TaxConfig.Behavior)
-			s.Equal(productcatalog.InclusiveTaxBehavior, *ub.Intent.TaxConfig.Behavior)
-			s.Require().NotNil(ub.Intent.TaxConfig.TaxCodeID)
-			s.Equal(tc.ID, *ub.Intent.TaxConfig.TaxCodeID)
+			s.Require().NotNil(ub.Intent.GetTaxConfig().Behavior)
+			s.Equal(productcatalog.InclusiveTaxBehavior, *ub.Intent.GetTaxConfig().Behavior)
+			s.Require().NotEmpty(ub.Intent.GetTaxConfig().TaxCodeID)
+			s.Equal(tc.ID, ub.Intent.GetTaxConfig().TaxCodeID)
 
 		default:
 			s.Failf("unexpected charge type", "type=%s", string(charge.Type()))
@@ -961,9 +968,9 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 				name:              "flat-fee-gathering-taxcode",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "flat-fee-gathering-taxcode",
-				taxConfig: &productcatalog.TaxCodeConfig{
+				taxConfig: productcatalog.TaxCodeConfig{
 					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-					TaxCodeID: &tc.ID,
+					TaxCodeID: tc.ID,
 				},
 			}),
 		},
@@ -973,7 +980,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -993,7 +1000,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 }
 
 // TestFlatFeeInvoiceSettlementNilTaxConfigGetsDefaultInvoicingTaxCodeStampedOnGatheringLine verifies
-// that when Intent.TaxConfig is nil, the flat-fee CreditThenInvoice gathering line's TaxConfig is
+// that when Intent.TaxConfig is zero, the flat-fee CreditThenInvoice gathering line's TaxConfig is
 // populated with the namespace default invoicing tax code ID stamped by applyDefaultTaxCodes.
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGetsDefaultInvoicingTaxCodeStampedOnGatheringLine() {
 	ctx := s.T().Context()
@@ -1033,7 +1040,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGe
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1092,9 +1099,9 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 				name:              "usage-based-gathering-taxcode",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "usage-based-gathering-taxcode",
-				taxConfig: &productcatalog.TaxCodeConfig{
+				taxConfig: productcatalog.TaxCodeConfig{
 					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-					TaxCodeID: &tc.ID,
+					TaxCodeID: tc.ID,
 				},
 			}),
 		},
@@ -1104,7 +1111,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1164,9 +1171,9 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesSt
 				name:              "usage-based-invoice-stripe-taxcode",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "usage-based-invoice-stripe-taxcode",
-				taxConfig: &productcatalog.TaxCodeConfig{
+				taxConfig: productcatalog.TaxCodeConfig{
 					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-					TaxCodeID: &tc.ID,
+					TaxCodeID: tc.ID,
 				},
 			}),
 		},
@@ -1279,7 +1286,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 				name:              "flat-fee-gathering-behavior-only",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "flat-fee-gathering-behavior-only",
-				taxConfig:         &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
+				taxConfig:         productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
 			}),
 		},
 	})
@@ -1288,7 +1295,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1355,7 +1362,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 				name:              "usage-based-gathering-behavior-only",
 				managedBy:         billing.ManuallyManagedLine,
 				uniqueReferenceID: "usage-based-gathering-behavior-only",
-				taxConfig:         &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
+				taxConfig:         productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
 			}),
 		},
 	})
@@ -1364,7 +1371,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1382,6 +1389,104 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 	s.Equal(invoicingTaxCode.ID, *gatheringLine.TaxConfig.TaxCodeID)
 	s.Require().NotNil(gatheringLine.TaxConfig.Stripe, "Stripe.Code must be backfilled from the default invoicing TaxCode entity")
 	s.Equal(invoicingStripeCode, gatheringLine.TaxConfig.Stripe.Code)
+}
+
+// TestCreateFlatFeeChargeWithMissingTaxCodeFailsValidation verifies that the type-agnostic
+// validateTaxCodesExist pre-check rejects a flat-fee intent referencing a non-existent tax code
+// with a validation error (400) before any DB write, mirroring the credit-purchase coverage in
+// the credits suite for the flat-fee charge type.
+func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithMissingTaxCodeFailsValidation() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-missing")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.SetTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-missing-taxcode",
+				managedBy:         billing.ManuallyManagedLine,
+				uniqueReferenceID: "flat-fee-missing-taxcode",
+				taxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: ulid.Make().String(),
+				},
+			}),
+		},
+	})
+	s.Require().Error(err)
+	s.True(models.IsGenericValidationError(err), "a reference to a non-existent tax code must be a validation error, got: %v", err)
+}
+
+// TestCreateChargeWithDuplicateReferenceIsConflict verifies that a unique_reference_id collision
+// raised by the bulk insert is mapped by MapChargeConstraintError to a conflict error (409), not a
+// precondition-failed (412) or a raw DB error (500). This exercises the runtime constraint-error
+// translation end-to-end: the ent ConstraintError must remain classifiable as a unique violation
+// through the wrap chain for the conflict mapping to fire.
+func (s *TaxCodePersistenceTestSuite) TestCreateChargeWithDuplicateReferenceIsConflict() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-duplicate-reference")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.SetTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	newIntent := func() charges.ChargeIntent {
+		return s.createMockChargeIntent(createMockChargeIntentInput{
+			customer:       cust.GetID(),
+			currency:       USD,
+			servicePeriod:  servicePeriod,
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(100),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			name:              "duplicate-reference",
+			managedBy:         billing.ManuallyManagedLine,
+			uniqueReferenceID: "duplicate-reference",
+		})
+	}
+
+	// given: a charge already persisted with a unique_reference_id.
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents:   charges.ChargeIntents{newIntent()},
+	})
+	s.Require().NoError(err)
+
+	// when: creating a second charge with the same reference for the same customer.
+	_, err = s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents:   charges.ChargeIntents{newIntent()},
+	})
+
+	// then: the uniqueness collision surfaces as a conflict, not a precondition or raw DB error.
+	s.Require().Error(err)
+	s.True(models.IsGenericConflictError(err), "a duplicate charge reference must be a conflict error, got: %v", err)
 }
 
 func (s *TaxCodePersistenceTestSuite) createTestTaxCode(ctx context.Context, ns, key string) taxcode.TaxCode {

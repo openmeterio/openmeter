@@ -107,6 +107,19 @@ model Plan {
   phases: PlanPhase[];
 
   /**
+   * Settlement mode for plan.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   *   invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Settlement Mode")
+  settlement_mode?: ProductCatalog.SettlementMode = ProductCatalog.SettlementMode.CreditThenInvoice;
+
+  /**
    * List of validation errors in `draft` state that prevent the plan from being
    * published.
    */

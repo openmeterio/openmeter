@@ -127,19 +127,19 @@ func (_c *BillingInvoiceLineCreate) SetNillableDescription(v *string) *BillingIn
 }
 
 // SetCurrency sets the "currency" field.
-func (_c *BillingInvoiceLineCreate) SetCurrency(v currencyx.Code) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetCurrency(v currencyx.FiatCode) *BillingInvoiceLineCreate {
 	_c.mutation.SetCurrency(v)
 	return _c
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_c *BillingInvoiceLineCreate) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineCreate {
 	_c.mutation.SetTaxConfig(v)
 	return _c
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_c *BillingInvoiceLineCreate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetNillableTaxConfig(v *billing.TaxConfig) *BillingInvoiceLineCreate {
 	if v != nil {
 		_c.SetTaxConfig(*v)
 	}
@@ -448,20 +448,6 @@ func (_c *BillingInvoiceLineCreate) SetEngine(v billing.LineEngineType) *Billing
 func (_c *BillingInvoiceLineCreate) SetNillableEngine(v *billing.LineEngineType) *BillingInvoiceLineCreate {
 	if v != nil {
 		_c.SetEngine(*v)
-	}
-	return _c
-}
-
-// SetLineIds sets the "line_ids" field.
-func (_c *BillingInvoiceLineCreate) SetLineIds(v string) *BillingInvoiceLineCreate {
-	_c.mutation.SetLineIds(v)
-	return _c
-}
-
-// SetNillableLineIds sets the "line_ids" field if the given value is not nil.
-func (_c *BillingInvoiceLineCreate) SetNillableLineIds(v *string) *BillingInvoiceLineCreate {
-	if v != nil {
-		_c.SetLineIds(*v)
 	}
 	return _c
 }
@@ -871,6 +857,11 @@ func (_c *BillingInvoiceLineCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.RatecardDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "ratecard_discounts", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.ratecard_discounts": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Engine(); !ok {
 		return &ValidationError{Name: "engine", err: errors.New(`db: missing required field "BillingInvoiceLine.engine"`)}
 	}
@@ -1061,10 +1052,6 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 	if value, ok := _c.mutation.Engine(); ok {
 		_spec.SetField(billinginvoiceline.FieldEngine, field.TypeEnum, value)
 		_node.Engine = value
-	}
-	if value, ok := _c.mutation.LineIds(); ok {
-		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
-		_node.LineIds = &value
 	}
 	if value, ok := _c.mutation.CreditsApplied(); ok {
 		vv, err := billinginvoiceline.ValueScanner.CreditsApplied.Value(value)
@@ -1537,7 +1524,7 @@ func (u *BillingInvoiceLineUpsert) ClearDescription() *BillingInvoiceLineUpsert 
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsert) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsert {
+func (u *BillingInvoiceLineUpsert) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldTaxConfig, v)
 	return u
 }
@@ -2004,24 +1991,6 @@ func (u *BillingInvoiceLineUpsert) UpdateEngine() *BillingInvoiceLineUpsert {
 	return u
 }
 
-// SetLineIds sets the "line_ids" field.
-func (u *BillingInvoiceLineUpsert) SetLineIds(v string) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldLineIds, v)
-	return u
-}
-
-// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateLineIds() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldLineIds)
-	return u
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (u *BillingInvoiceLineUpsert) ClearLineIds() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldLineIds)
-	return u
-}
-
 // SetCreditsApplied sets the "credits_applied" field.
 func (u *BillingInvoiceLineUpsert) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldCreditsApplied, v)
@@ -2213,7 +2182,7 @@ func (u *BillingInvoiceLineUpsertOne) ClearDescription() *BillingInvoiceLineUpse
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertOne {
+func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})
@@ -2758,27 +2727,6 @@ func (u *BillingInvoiceLineUpsertOne) UpdateEngine() *BillingInvoiceLineUpsertOn
 	})
 }
 
-// SetLineIds sets the "line_ids" field.
-func (u *BillingInvoiceLineUpsertOne) SetLineIds(v string) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetLineIds(v)
-	})
-}
-
-// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateLineIds() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateLineIds()
-	})
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (u *BillingInvoiceLineUpsertOne) ClearLineIds() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearLineIds()
-	})
-}
-
 // SetCreditsApplied sets the "credits_applied" field.
 func (u *BillingInvoiceLineUpsertOne) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -3143,7 +3091,7 @@ func (u *BillingInvoiceLineUpsertBulk) ClearDescription() *BillingInvoiceLineUps
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v productcatalog.TaxConfig) *BillingInvoiceLineUpsertBulk {
+func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})
@@ -3685,27 +3633,6 @@ func (u *BillingInvoiceLineUpsertBulk) SetEngine(v billing.LineEngineType) *Bill
 func (u *BillingInvoiceLineUpsertBulk) UpdateEngine() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateEngine()
-	})
-}
-
-// SetLineIds sets the "line_ids" field.
-func (u *BillingInvoiceLineUpsertBulk) SetLineIds(v string) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetLineIds(v)
-	})
-}
-
-// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateLineIds() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateLineIds()
-	})
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearLineIds() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearLineIds()
 	})
 }
 

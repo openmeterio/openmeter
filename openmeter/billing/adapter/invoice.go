@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -137,33 +138,10 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 			query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
 		}
 
-		if len(input.Customers) > 0 {
-			query = query.Where(billinginvoice.CustomerIDIn(input.Customers...))
-		}
-
-		if input.IssuedAfter != nil {
-			query = query.Where(billinginvoice.IssuedAtGTE(*input.IssuedAfter))
-		}
-
-		if input.IssuedBefore != nil {
-			query = query.Where(billinginvoice.IssuedAtLTE(*input.IssuedBefore))
-		}
-
-		if input.PeriodStartAfter != nil {
-			query = query.Where(billinginvoice.PeriodStartGTE(*input.PeriodStartAfter))
-		}
-
-		if input.PeriodStartBefore != nil {
-			query = query.Where(billinginvoice.PeriodStartLTE(*input.PeriodStartBefore))
-		}
-
-		if input.CreatedAfter != nil {
-			query = query.Where(billinginvoice.CreatedAtGTE(*input.CreatedAfter))
-		}
-
-		if input.CreatedBefore != nil {
-			query = query.Where(billinginvoice.CreatedAtLTE(*input.CreatedBefore))
-		}
+		query = filter.ApplyToQuery(query, input.CustomerID, billinginvoice.FieldCustomerID)
+		query = filter.ApplyToQuery(query, input.IssuedAt, billinginvoice.FieldIssuedAt)
+		query = filter.ApplyToQuery(query, input.PeriodStart, billinginvoice.FieldPeriodStart)
+		query = filter.ApplyToQuery(query, input.CreatedAt, billinginvoice.FieldCreatedAt)
 
 		if len(input.IDs) > 0 {
 			query = query.Where(billinginvoice.IDIn(input.IDs...))
@@ -482,6 +460,7 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 			SetOrClearDraftUntil(convert.SafeToUTC(in.DraftUntil)).
 			SetOrClearIssuedAt(convert.SafeToUTC(in.IssuedAt)).
 			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
+			SetOrClearDeletionSource(lo.EmptyableToPtr(in.DeletionSource)).
 			SetOrClearSentToCustomerAt(convert.SafeToUTC(in.SentToCustomerAt)).
 			SetOrClearQuantitySnapshotedAt(convert.SafeToUTC(in.QuantitySnapshotedAt))
 
@@ -688,11 +667,12 @@ func (a *adapter) mapStandardInvoiceBaseFromDB(invoice *db.BillingInvoice) billi
 			},
 			UsageAttribution: mapCustomerUsageAttributionFromDB(invoice.CustomerID, invoice.CustomerKey, invoice.CustomerUsageAttribution),
 		},
-		Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
-		IssuedAt:  convert.TimePtrIn(invoice.IssuedAt, time.UTC),
-		CreatedAt: invoice.CreatedAt.In(time.UTC),
-		UpdatedAt: invoice.UpdatedAt.In(time.UTC),
-		DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+		Period:         mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
+		IssuedAt:       convert.TimePtrIn(invoice.IssuedAt, time.UTC),
+		CreatedAt:      invoice.CreatedAt.In(time.UTC),
+		UpdatedAt:      invoice.UpdatedAt.In(time.UTC),
+		DeletedAt:      convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+		DeletionSource: lo.FromPtr(invoice.DeletionSource),
 
 		CollectionAt:               normalizeOptionalTime(invoice.CollectionAt),
 		PaymentProcessingEnteredAt: convert.TimePtrIn(invoice.PaymentProcessingEnteredAt, time.UTC),

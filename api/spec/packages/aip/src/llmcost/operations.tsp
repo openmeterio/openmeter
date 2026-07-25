@@ -88,9 +88,10 @@ interface LLMCostPricesOperations {
   @get
   @operationId("get-llm-cost-price")
   @summary("Get LLM cost price")
-  get_price(
-    @path priceId: Shared.ULID,
-  ): Price | Common.NotFound | Common.ErrorResponses;
+  get_price(@path priceId: Shared.ULID):
+    | Price
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
 
 /**
@@ -118,9 +119,9 @@ interface LLMCostOverridesOperations {
   @post
   @operationId("create-llm-cost-override")
   @summary("Create LLM cost override")
-  create_override(
-    @body body: OverrideCreate,
-  ): Shared.CreateResponse<Price> | Common.ErrorResponses;
+  create_override(@body body: OverrideCreate):
+    | Shared.CreateResponse<Price>
+    | Common.ErrorResponses;
 
   /**
    * Delete a per-namespace price override.
@@ -129,7 +130,8 @@ interface LLMCostOverridesOperations {
   @delete
   @operationId("delete-llm-cost-override")
   @summary("Delete LLM cost override")
-  delete_override(
-    @path priceId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
+  delete_override(@path priceId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

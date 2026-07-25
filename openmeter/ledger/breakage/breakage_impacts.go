@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -47,6 +48,10 @@ func (i ListExpiredBreakageImpactsInput) Validate() error {
 		errs = append(errs, errors.New("after and before cannot be set together"))
 	}
 
+	if err := ValidateExpiredRouteFilter(i.Route); err != nil {
+		errs = append(errs, fmt.Errorf("route: %w", err))
+	}
+
 	if i.Limit < 1 {
 		errs = append(errs, errors.New("limit must be greater than 0"))
 	}
@@ -63,6 +68,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		CustomerID: input.CustomerID,
 		Currency:   input.Currency,
 		AsOf:       input.AsOf,
+		Route:      input.Route,
 	})
 	if err != nil {
 		return ListExpiredBreakageImpactsResult{}, fmt.Errorf("list expired breakage records: %w", err)
@@ -71,15 +77,17 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 	groups := make(map[expiredBreakageImpactGroupKey]*expiredBreakageImpactGroup)
 	for _, record := range records {
 		key := expiredBreakageImpactGroupKey{
-			expiresAt: record.ExpiresAt,
-			currency:  record.Currency,
+			expiresAt:      record.ExpiresAt,
+			currency:       record.Currency,
+			sourceChargeID: lo.FromPtr(record.SourceChargeID),
 		}
 
 		group := groups[key]
 		if group == nil {
 			group = &expiredBreakageImpactGroup{
-				expiresAt: record.ExpiresAt,
-				currency:  record.Currency,
+				expiresAt:      record.ExpiresAt,
+				currency:       record.Currency,
+				sourceChargeID: record.SourceChargeID,
 			}
 			groups[key] = group
 		}
@@ -115,16 +123,22 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("expired breakage impact has no plan record for %s %s", group.expiresAt, group.currency)
 		}
 
+		annotations := models.Annotations{
+			ledger.AnnotationCollectionType: ledger.CollectionTypeBreakage,
+		}
+		if group.sourceChargeID != nil {
+			annotations[ledger.AnnotationChargeID] = *group.sourceChargeID
+		}
+
 		item := BreakageImpact{
-			ID:         group.cursorID,
-			CreatedAt:  group.expiresAt,
-			BookedAt:   group.expiresAt,
-			CustomerID: input.CustomerID,
-			Currency:   group.currency,
-			Amount:     group.amount.Neg(),
-			Annotations: models.Annotations{
-				ledger.AnnotationCollectionType: ledger.CollectionTypeBreakage,
-			},
+			ID:          group.cursorID,
+			CreatedAt:   group.expiresAt,
+			BookedAt:    group.expiresAt,
+			CustomerID:  input.CustomerID,
+			Currency:    group.currency,
+			Amount:      group.amount.Neg(),
+			SourceKind:  SourceKindCreditPurchase,
+			Annotations: annotations,
 		}
 
 		if !breakageImpactMatchesCursorWindow(item, input.After, input.Before) {
@@ -149,6 +163,29 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 	}, nil
 }
 
+func ValidateExpiredRouteFilter(route ledger.RouteFilter) error {
+	var errs []error
+
+	if route.Features.IsPresent() && route.MatchFeature != "" {
+		errs = append(errs, errors.New("features and match feature filters cannot be combined"))
+	}
+
+	if route.Features.IsPresent() {
+		features, _ := route.Features.Get()
+		if err := ledger.ValidateFeatures(features); err != nil {
+			errs = append(errs, fmt.Errorf("features: %w", err))
+		}
+	}
+
+	if route.MatchFeature != "" {
+		if err := ledger.ValidateFeatures([]string{route.MatchFeature}); err != nil {
+			errs = append(errs, fmt.Errorf("match feature: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
 func breakageImpactMatchesCursorWindow(item BreakageImpact, after, before *ledger.TransactionCursor) bool {
 	cursor := item.Cursor()
 
@@ -164,13 +201,15 @@ func breakageImpactMatchesCursorWindow(item BreakageImpact, after, before *ledge
 }
 
 type expiredBreakageImpactGroupKey struct {
-	expiresAt time.Time
-	currency  currencyx.Code
+	expiresAt      time.Time
+	currency       currencyx.Code
+	sourceChargeID string
 }
 
 type expiredBreakageImpactGroup struct {
-	expiresAt time.Time
-	currency  currencyx.Code
-	amount    alpacadecimal.Decimal
-	cursorID  models.NamespacedID
+	expiresAt      time.Time
+	currency       currencyx.Code
+	sourceChargeID *string
+	amount         alpacadecimal.Decimal
+	cursorID       models.NamespacedID
 }

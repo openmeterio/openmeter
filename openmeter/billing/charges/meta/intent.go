@@ -3,34 +3,52 @@ package meta
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Intent struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description"`
+	ManagedBy  billing.InvoiceLineManagedBy `json:"managedBy"`
+	CustomerID string                       `json:"customerID"`
 
-	Metadata    models.Metadata              `json:"metadata"`
-	Annotations models.Annotations           `json:"annotations"`
-	ManagedBy   billing.InvoiceLineManagedBy `json:"managedBy"`
-	CustomerID  string                       `json:"customerID"`
+	Annotations models.Annotations `json:"annotations"`
 
-	Currency currencyx.Code `json:"currency"`
+	Currency  currencies.Currency          `json:"currency"`
+	TaxConfig productcatalog.TaxCodeConfig `json:"taxConfig"`
 
-	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
-	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
-	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
+	UniqueReferenceID *string                `json:"childUniqueReferenceID"`
+	Subscription      *SubscriptionReference `json:"subscription"`
+}
 
-	TaxConfig         *productcatalog.TaxCodeConfig `json:"taxConfig"`
-	UniqueReferenceID *string                       `json:"childUniqueReferenceID"`
+func (i Intent) Clone() Intent {
+	out := i
 
-	Subscription *SubscriptionReference `json:"subscription"`
+	// Keep intent cloning infallible for developer ergonomics; annotations are
+	// only shallow-cloned here so GetEffectiveIntent does not need an error return.
+	out.Annotations = maps.Clone(i.Annotations)
+	out.Currency = i.Currency.Clone()
+
+	if i.UniqueReferenceID != nil {
+		out.UniqueReferenceID = lo.ToPtr(*i.UniqueReferenceID)
+	}
+
+	if i.Subscription != nil {
+		out.Subscription = lo.ToPtr(*i.Subscription)
+	}
+
+	if i.TaxConfig.Behavior != nil {
+		out.TaxConfig.Behavior = lo.ToPtr(*i.TaxConfig.Behavior)
+	}
+
+	return out
 }
 
 func (i Intent) Validate() error {
@@ -40,28 +58,12 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
 	}
 
-	if i.Name == "" {
-		errs = append(errs, fmt.Errorf("name is required"))
-	}
-
 	if i.CustomerID == "" {
 		errs = append(errs, fmt.Errorf("customer ID is required"))
 	}
 
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
-	}
-
-	if err := i.ServicePeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("service period: %w", err))
-	}
-
-	if err := i.FullServicePeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("full service period: %w", err))
-	}
-
-	if err := i.BillingPeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("billing period: %w", err))
 	}
 
 	if err := i.TaxConfig.Validate(); err != nil {
@@ -76,6 +78,50 @@ func (i Intent) Validate() error {
 
 	if i.UniqueReferenceID != nil && *i.UniqueReferenceID == "" {
 		errs = append(errs, fmt.Errorf("unique reference ID cannot be empty"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type IntentMutableFields struct {
+	Name        string          `json:"name"`
+	Description *string         `json:"description"`
+	Metadata    models.Metadata `json:"metadata"`
+
+	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
+	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
+	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
+}
+
+func (i IntentMutableFields) Clone() IntentMutableFields {
+	out := i
+
+	if i.Description != nil {
+		out.Description = lo.ToPtr(*i.Description)
+	}
+
+	out.Metadata = i.Metadata.Clone()
+
+	return out
+}
+
+func (i IntentMutableFields) Validate() error {
+	var errs []error
+
+	if i.Name == "" {
+		errs = append(errs, fmt.Errorf("name is required"))
+	}
+
+	if err := i.ServicePeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("service period: %w", err))
+	}
+
+	if err := i.FullServicePeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("full service period: %w", err))
+	}
+
+	if err := i.BillingPeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("billing period: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

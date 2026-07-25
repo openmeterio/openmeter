@@ -24,8 +24,6 @@ func Test_Adapter(t *testing.T) {
 		env.Close(t)
 	})
 
-	env.DBSchemaMigrate(t)
-
 	namespace := NewTestNamespace(t)
 
 	t.Run("Meter", func(t *testing.T) {
@@ -133,15 +131,6 @@ type TestEnv struct {
 	close  sync.Once
 }
 
-func (e *TestEnv) DBSchemaMigrate(t *testing.T) {
-	t.Helper()
-
-	require.NotNilf(t, e.db, "database must be initialized")
-
-	err := e.db.EntDriver.Client().Schema.Create(t.Context())
-	require.NoErrorf(t, err, "schema migration must not fail")
-}
-
 func (e *TestEnv) Close(t *testing.T) {
 	t.Helper()
 
@@ -171,7 +160,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	logger := testutils.NewDiscardLogger(t)
 
 	// Init database
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	client := db.EntDriver.Client()
 
 	// Init meter service

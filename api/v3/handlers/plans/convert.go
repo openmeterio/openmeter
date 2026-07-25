@@ -1,6 +1,8 @@
 package plans
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -8,7 +10,9 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -16,26 +20,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var unsupportedV3PriceTypes = map[productcatalog.PriceType]struct{}{
-	productcatalog.DynamicPriceType: {},
-	productcatalog.PackagePriceType: {},
-}
-
-func hasUnsupportedV3Price(p plan.Plan) bool {
-	for _, phase := range p.Phases {
-		for _, rc := range phase.RateCards {
-			price := rc.AsMeta().Price
-			if price == nil {
-				continue
-			}
-
-			if _, unsupported := unsupportedV3PriceTypes[price.Type()]; unsupported {
-				return true
-			}
-		}
+func FromAPIPlanSortField(ctx context.Context, field string) (plan.OrderBy, error) {
+	switch field {
+	case "id":
+		return plan.OrderByID, nil
+	case "key":
+		return plan.OrderByKey, nil
+	case "version":
+		return plan.OrderByVersion, nil
+	case "created_at":
+		return plan.OrderByCreatedAt, nil
+	case "updated_at":
+		return plan.OrderByUpdatedAt, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "id", "key", "version", "created_at", "updated_at",
+		)
 	}
-
-	return false
 }
 
 func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
@@ -55,6 +56,7 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 		UpdatedAt:        p.UpdatedAt,
 		Version:          p.Version,
 		ProRatingEnabled: lo.ToPtr(p.ProRatingConfig.Enabled),
+		SettlementMode:   lo.ToPtr(api.BillingSettlementMode(p.SettlementMode)),
 		ValidationErrors: ToAPIProductCatalogValidationErrors(validationIssues),
 	}
 
@@ -120,7 +122,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 	}
 
 	if meta.FeatureID != nil {
-		result.Feature = &api.FeatureReferenceItem{
+		result.Feature = &api.FeatureReference{
 			Id: *meta.FeatureID,
 		}
 	}
@@ -163,7 +165,183 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 
 	result.Price = price
 
+	if meta.EntitlementTemplate != nil {
+		ent, err := ToAPIBillingRateCardEntitlement(meta.EntitlementTemplate)
+		if err != nil {
+			return result, fmt.Errorf("failed to convert entitlement template: %w", err)
+		}
+
+		result.Entitlement = ent
+	}
+
+	// Prefer a stored unit config; fall back to synthesizing one from a v1
+	// dynamic/package price when none is stored. These two sources never coexist on
+	// a rate card reachable here: the v3 write path cannot author a package/dynamic
+	// price (only free/flat/unit/graduated/volume), and the v1 API has no unit_config
+	// field — so a stored unit_config and a package/dynamic price cannot be produced
+	// through either API, and there is no double-conversion ambiguity to resolve.
+	// (The RateCardMeta.Validate price-type rule is a publish-blocking warning, not a
+	// hard write-time reject, so it is not what guarantees this.)
+	if meta.UnitConfig != nil {
+		result.UnitConfig = lo.ToPtr(ToAPIBillingUnitConfig(*meta.UnitConfig))
+	} else {
+		unitConfig, err := ToAPIBillingRateCardUnitConfig(meta.Price)
+		if err != nil {
+			return result, fmt.Errorf("failed to convert unit config: %w", err)
+		}
+
+		result.UnitConfig = unitConfig
+	}
+
 	return result, nil
+}
+
+func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*api.BillingRateCardEntitlement, error) {
+	out := &api.BillingRateCardEntitlement{}
+
+	switch t.Type() {
+	case entitlement.EntitlementTypeMetered:
+		metered, err := t.AsMetered()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read metered entitlement template: %w", err)
+		}
+
+		apiMetered := api.BillingRateCardMeteredEntitlement{
+			Type:        "metered",
+			IsSoftLimit: lo.ToPtr(metered.IsSoftLimit),
+			Limit:       metered.IssueAfterReset,
+			UsagePeriod: lo.ToPtr(metered.UsagePeriod.ISOString().String()),
+		}
+
+		if err := out.FromBillingRateCardMeteredEntitlement(apiMetered); err != nil {
+			return nil, fmt.Errorf("failed to set metered entitlement template: %w", err)
+		}
+
+	case entitlement.EntitlementTypeStatic:
+		static, err := t.AsStatic()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
+		}
+
+		// The domain stores the config as a JSON string token wrapping the JSON
+		// text (v1 convention, relied on by subscription materialization). Unwrap
+		// it so the v3 API returns the raw JSON value. Legacy values that are not
+		// string-wrapped are returned as stored so reads never hard-fail.
+		var config json.RawMessage
+		if len(static.Config) > 0 {
+			var text string
+			if err := json.Unmarshal(static.Config, &text); err == nil && json.Valid([]byte(text)) {
+				config = json.RawMessage(text)
+			} else {
+				config = static.Config
+			}
+		}
+
+		if err := out.FromBillingRateCardStaticEntitlement(api.BillingRateCardStaticEntitlement{
+			Type:   "static",
+			Config: config,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to set static entitlement template: %w", err)
+		}
+
+	case entitlement.EntitlementTypeBoolean:
+		if err := out.FromBillingRateCardBooleanEntitlement(api.BillingRateCardBooleanEntitlement{
+			Type: "boolean",
+		}); err != nil {
+			return nil, fmt.Errorf("failed to set boolean entitlement template: %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unknown entitlement template type: %s", t.Type())
+	}
+
+	return out, nil
+}
+
+// ToAPIBillingRateCardUnitConfig synthesizes a v3 unit config from a v1 dynamic
+// or package price. v3 does not surface dynamic or package prices directly;
+// instead they are rendered as a unit price paired with a unit config that
+// describes the conversion that v1 applied implicitly.
+func ToAPIBillingRateCardUnitConfig(p *productcatalog.Price) (*api.BillingUnitConfig, error) {
+	if p == nil {
+		return nil, nil
+	}
+
+	switch p.Type() {
+	case productcatalog.DynamicPriceType:
+		dynamic, err := p.AsDynamic()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read dynamic price: %w", err)
+		}
+
+		return &api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationMultiply,
+			ConversionFactor: dynamic.Multiplier.String(),
+		}, nil
+
+	case productcatalog.PackagePriceType:
+		pkg, err := p.AsPackage()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read package price: %w", err)
+		}
+
+		return &api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationDivide,
+			ConversionFactor: pkg.QuantityPerPackage.String(),
+			Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+		}, nil
+
+	default:
+		return nil, nil
+	}
+}
+
+// ToAPIBillingUnitConfig maps a stored domain unit config to its API
+// representation. Rounding and Precision are omitted when no rounding is applied,
+// mirroring the domain semantics where both are inert for the "none" mode.
+func ToAPIBillingUnitConfig(uc productcatalog.UnitConfig) api.BillingUnitConfig {
+	out := api.BillingUnitConfig{
+		Operation:        api.BillingUnitConfigOperation(uc.Operation),
+		ConversionFactor: uc.ConversionFactor.String(),
+		DisplayUnit:      uc.DisplayUnit,
+	}
+
+	if !uc.Rounding.IsNone() {
+		out.Rounding = lo.ToPtr(api.BillingUnitConfigRoundingMode(uc.Rounding))
+		out.Precision = lo.ToPtr(uc.Precision)
+	}
+
+	return out
+}
+
+// FromAPIBillingUnitConfig maps the API unit config to the domain type. The enum
+// values are identical across the two layers, so operation and rounding are direct
+// casts; UnitConfig.Validate (run via RateCardMeta.Validate) rejects unknown enum
+// values and a non-positive conversion factor.
+func FromAPIBillingUnitConfig(uc api.BillingUnitConfig) (*productcatalog.UnitConfig, error) {
+	conversionFactor, err := decimal.NewFromString(uc.ConversionFactor)
+	if err != nil {
+		return nil, fmt.Errorf("invalid conversion factor: %w", err)
+	}
+
+	out := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperation(uc.Operation),
+		ConversionFactor: conversionFactor,
+		DisplayUnit:      uc.DisplayUnit,
+	}
+
+	if uc.Rounding != nil {
+		out.Rounding = productcatalog.UnitConfigRoundingMode(*uc.Rounding)
+	}
+
+	// Precision is inert without rounding; only carry it when rounding is active so
+	// it round-trips consistently with ToAPIBillingUnitConfig, which omits Precision
+	// in the "none" case.
+	if !out.Rounding.IsNone() {
+		out.Precision = lo.FromPtr(uc.Precision)
+	}
+
+	return out, nil
 }
 
 func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
@@ -236,10 +414,29 @@ func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
 		}
 
 	case productcatalog.DynamicPriceType:
-		return result, models.NewGenericConflictError(fmt.Errorf("dynamic price is not supported in v3 API"))
+		// Dynamic prices are surfaced in v3 as a unit price of amount 1; the
+		// multiplier is carried separately on the rate card's unit config.
+		if err := result.FromBillingPriceUnit(api.BillingPriceUnit{
+			Amount: "1",
+			Type:   api.BillingPriceUnitType("unit"),
+		}); err != nil {
+			return result, fmt.Errorf("failed to set unit price for dynamic price: %w", err)
+		}
 
 	case productcatalog.PackagePriceType:
-		return result, models.NewGenericConflictError(fmt.Errorf("package price is not supported in v3 API"))
+		// Package prices are surfaced in v3 as a unit price; the package size
+		// is carried separately on the rate card's unit config.
+		pkg, err := p.AsPackage()
+		if err != nil {
+			return result, fmt.Errorf("failed to read package price: %w", err)
+		}
+
+		if err = result.FromBillingPriceUnit(api.BillingPriceUnit{
+			Amount: pkg.Amount.String(),
+			Type:   api.BillingPriceUnitType("unit"),
+		}); err != nil {
+			return result, fmt.Errorf("failed to set unit price for package price: %w", err)
+		}
 
 	default:
 		return result, fmt.Errorf("unknown price type: %s", p.Type())
@@ -284,7 +481,7 @@ func ToAPIBillingRateCardTaxConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxC
 	}
 
 	result := &api.BillingRateCardTaxConfig{
-		Code: api.TaxCodeReferenceItem{
+		Code: api.TaxCodeReference{
 			Id: tc.ID,
 		},
 	}
@@ -519,6 +716,42 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		meta.Discounts = discounts
 	}
 
+	// The billing cadence doubles as the default usage period for metered
+	// entitlement templates, so parse it once up front.
+	var billingCadence *datetime.ISODuration
+	if rc.BillingCadence != nil {
+		bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
+		if err != nil {
+			return nil, fmt.Errorf("invalid billing cadence: %w", err)
+		}
+
+		billingCadence = &bc
+	}
+
+	if rc.Entitlement != nil {
+		tmpl, err := FromAPIBillingRateCardEntitlement(*rc.Entitlement, billingCadence)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert entitlement template: %w", err)
+		}
+
+		meta.EntitlementTemplate = tmpl
+	}
+
+	// Set the unit config up front: meta is copied by value into both the flat and
+	// usage-based rate cards below, so it must be populated before the switch. We do
+	// not branch on price type here; the price-type restriction lives in
+	// RateCardMeta.Validate as a publish-blocking warning, so an invalid combination
+	// (e.g. unit_config on a flat price) is mapped through and surfaces as a
+	// validation issue on the draft rather than being rejected at create/update.
+	if rc.UnitConfig != nil {
+		unitConfig, err := FromAPIBillingUnitConfig(*rc.UnitConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert unit config: %w", err)
+		}
+
+		meta.UnitConfig = unitConfig
+	}
+
 	switch priceType {
 	case "free", "flat":
 		price, err := FromAPIBillingPrice(rc.Price, rc.PaymentTerm)
@@ -529,29 +762,18 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		meta.Price = price
 
 		flatRC := &productcatalog.FlatFeeRateCard{
-			RateCardMeta: meta,
-		}
-
-		if rc.BillingCadence != nil {
-			bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
-			if err != nil {
-				return nil, fmt.Errorf("invalid billing cadence: %w", err)
-			}
-
-			flatRC.BillingCadence = &bc
+			RateCardMeta:   meta,
+			BillingCadence: billingCadence,
 		}
 
 		return flatRC, nil
 
 	case "unit", "graduated", "volume":
-		if rc.BillingCadence == nil {
+		if billingCadence == nil {
 			return nil, fmt.Errorf("billing cadence is required for usage-based rate card %q", rc.Key)
 		}
 
-		bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
-		if err != nil {
-			return nil, fmt.Errorf("invalid billing cadence: %w", err)
-		}
+		bc := *billingCadence
 
 		price, err := FromAPIBillingPriceWithCommitments(rc.Price, rc.Commitments)
 		if err != nil {
@@ -567,6 +789,85 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 
 	default:
 		return nil, fmt.Errorf("unsupported price type: %s", priceType)
+	}
+}
+
+func FromAPIBillingRateCardEntitlement(e api.BillingRateCardEntitlement, billingCadence *datetime.ISODuration) (*productcatalog.EntitlementTemplate, error) {
+	disc, err := e.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read entitlement type: %w", err)
+	}
+
+	switch disc {
+	case "metered":
+		metered, err := e.AsBillingRateCardMeteredEntitlement()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read metered entitlement template: %w", err)
+		}
+
+		// usage_period defaults to the rate card billing cadence when omitted.
+		var usagePeriod datetime.ISODuration
+		if metered.UsagePeriod != nil {
+			usagePeriod, err = datetime.ISODurationString(*metered.UsagePeriod).Parse()
+			if err != nil {
+				return nil, models.NewGenericValidationError(fmt.Errorf("invalid usage period: %w", err))
+			}
+		}
+
+		if usagePeriod.IsZero() {
+			if billingCadence == nil || billingCadence.IsZero() {
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("metered entitlement requires usage_period when it cannot be inferred from billing_cadence"),
+				)
+			}
+
+			usagePeriod = *billingCadence
+		}
+
+		tmpl := productcatalog.MeteredEntitlementTemplate{
+			IsSoftLimit:     lo.FromPtr(metered.IsSoftLimit),
+			IssueAfterReset: metered.Limit,
+			UsagePeriod:     usagePeriod,
+		}
+
+		return productcatalog.NewEntitlementTemplateFrom(tmpl), nil
+
+	case "static":
+		// Extract the config's raw JSON bytes from the union so client values
+		// survive untouched (no float64 round-trip), then wrap them in a JSON
+		// string token: the domain-wide convention (shared with v1) stores the
+		// config as JSON-encoded text, which subscription materialization
+		// unwraps when instantiating the entitlement.
+		rawEnt, err := e.MarshalJSON()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
+		}
+
+		var static struct {
+			Config json.RawMessage `json:"config"`
+		}
+		if err := json.Unmarshal(rawEnt, &static); err != nil {
+			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
+		}
+
+		if len(static.Config) == 0 {
+			static.Config = json.RawMessage("null")
+		}
+
+		token, err := json.Marshal(string(static.Config))
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode static entitlement config: %w", err)
+		}
+
+		return productcatalog.NewEntitlementTemplateFrom(productcatalog.StaticEntitlementTemplate{
+			Config: token,
+		}), nil
+
+	case "boolean":
+		return productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}), nil
+
+	default:
+		return nil, fmt.Errorf("unsupported entitlement type: %s", disc)
 	}
 }
 

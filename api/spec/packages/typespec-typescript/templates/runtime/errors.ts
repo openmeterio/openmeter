@@ -1,0 +1,83 @@
+import { z } from 'zod'
+import * as schemas from './schemas.js'
+
+// Retry-After is either delta-seconds (an integer) or an HTTP-date. Only the
+// delta-seconds form is parsed; HTTP-date values yield undefined rather than
+// a parsed Date, keeping the public type a plain number.
+function parseRetryAfter(header: string | null): number | undefined {
+  if (header === null) {
+    return undefined
+  }
+  const trimmed = header.trim()
+  return /^\d+$/.test(trimmed) ? Number(trimmed) : undefined
+}
+
+export class HTTPError extends Error {
+  constructor(
+    message: string,
+    public type: string,
+    public title: string,
+    public status: number,
+    public url: string,
+    public retryAfter: number | undefined,
+    protected __raw?: Record<string, unknown>,
+  ) {
+    super(message)
+    this.name = 'HTTPError'
+  }
+
+  static fromResponse(resp: {
+    response: Response
+    error?: z.infer<typeof schemas.baseError>
+  }) {
+    const retryAfter = parseRetryAfter(resp.response.headers.get('Retry-After'))
+
+    if (
+      resp.response.headers
+        .get('Content-Type')
+        ?.includes('application/problem+json') &&
+      resp.error
+    ) {
+      return new HTTPError(
+        resp.error.detail,
+        resp.error.type ?? resp.error.title,
+        resp.error.title,
+        resp.error.status ?? resp.response.status,
+        resp.response.url,
+        retryAfter,
+        resp.error,
+      )
+    }
+
+    return new HTTPError(
+      `Request failed: ${resp.response.statusText}`,
+      resp.response.statusText,
+      resp.response.statusText,
+      resp.response.status,
+      resp.response.url,
+      retryAfter,
+    )
+  }
+
+  /**
+   * The `invalid_parameters` problem-detail extension member, present on Bad
+   * Request (400) responses. Typed from the schema, not runtime-validated
+   * (like the rest of the SDK, this trusts the server rather than rejecting
+   * additive fields) — `undefined` when the response didn't carry one.
+   */
+  get invalidParameters():
+    | z.infer<typeof schemas.invalidParameters>
+    | undefined {
+    return this.__raw?.invalid_parameters as
+      | z.infer<typeof schemas.invalidParameters>
+      | undefined
+  }
+
+  /**
+   * Escape hatch for problem-detail extension members without a typed
+   * accessor above.
+   */
+  getField(key: string) {
+    return this.__raw?.[key]
+  }
+}

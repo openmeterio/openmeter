@@ -499,6 +499,52 @@ func HasEntriesWith(preds ...predicate.LedgerEntry) predicate.LedgerSubAccount {
 	})
 }
 
+// HasFboBreakageRecords applies the HasEdge predicate on the "fbo_breakage_records" edge.
+func HasFboBreakageRecords() predicate.LedgerSubAccount {
+	return predicate.LedgerSubAccount(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, FboBreakageRecordsTable, FboBreakageRecordsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFboBreakageRecordsWith applies the HasEdge predicate on the "fbo_breakage_records" edge with a given conditions (other predicates).
+func HasFboBreakageRecordsWith(preds ...predicate.LedgerBreakageRecord) predicate.LedgerSubAccount {
+	return predicate.LedgerSubAccount(func(s *sql.Selector) {
+		step := newFboBreakageRecordsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBreakageRecords applies the HasEdge predicate on the "breakage_records" edge.
+func HasBreakageRecords() predicate.LedgerSubAccount {
+	return predicate.LedgerSubAccount(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BreakageRecordsTable, BreakageRecordsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBreakageRecordsWith applies the HasEdge predicate on the "breakage_records" edge with a given conditions (other predicates).
+func HasBreakageRecordsWith(preds ...predicate.LedgerBreakageRecord) predicate.LedgerSubAccount {
+	return predicate.LedgerSubAccount(func(s *sql.Selector) {
+		step := newBreakageRecordsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.LedgerSubAccount) predicate.LedgerSubAccount {
 	return predicate.LedgerSubAccount(sql.AndPredicates(predicates...))

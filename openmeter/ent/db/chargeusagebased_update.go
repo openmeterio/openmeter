@@ -15,12 +15,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -136,20 +136,6 @@ func (_u *ChargeUsageBasedUpdate) SetNillableStatus(v *meta.ChargeStatus) *Charg
 	return _u
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (_u *ChargeUsageBasedUpdate) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpdate {
-	_u.mutation.SetManagedBy(v)
-	return _u
-}
-
-// SetNillableManagedBy sets the "managed_by" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdate) SetNillableManagedBy(v *billing.InvoiceLineManagedBy) *ChargeUsageBasedUpdate {
-	if v != nil {
-		_u.SetManagedBy(*v)
-	}
-	return _u
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (_u *ChargeUsageBasedUpdate) SetSubscriptionItemID(v string) *ChargeUsageBasedUpdate {
 	_u.mutation.SetSubscriptionItemID(v)
@@ -187,46 +173,6 @@ func (_u *ChargeUsageBasedUpdate) SetNillableAdvanceAfter(v *time.Time) *ChargeU
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeUsageBasedUpdate) ClearAdvanceAfter() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearAdvanceAfter()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *ChargeUsageBasedUpdate) SetTaxCodeID(v string) *ChargeUsageBasedUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdate) SetNillableTaxCodeID(v *string) *ChargeUsageBasedUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeUsageBasedUpdate) ClearTaxCodeID() *ChargeUsageBasedUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *ChargeUsageBasedUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeUsageBasedUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *ChargeUsageBasedUpdate) ClearTaxBehavior() *ChargeUsageBasedUpdate {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -328,8 +274,28 @@ func (_u *ChargeUsageBasedUpdate) SetNillableInvoiceAt(v *time.Time) *ChargeUsag
 	return _u
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdate) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetIntentDeletedAt(v)
+	return _u
+}
+
+// SetNillableIntentDeletedAt sets the "intent_deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableIntentDeletedAt(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetIntentDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdate) ClearIntentDeletedAt() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearIntentDeletedAt()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
-func (_u *ChargeUsageBasedUpdate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdate {
+func (_u *ChargeUsageBasedUpdate) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpdate {
 	_u.mutation.SetDiscounts(v)
 	return _u
 }
@@ -365,6 +331,24 @@ func (_u *ChargeUsageBasedUpdate) SetNillableRatingEngine(v *usagebased.RatingEn
 	if v != nil {
 		_u.SetRatingEngine(*v)
 	}
+	return _u
+}
+
+// SetPrice sets the "price" field.
+func (_u *ChargeUsageBasedUpdate) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpdate {
+	_u.mutation.SetPrice(v)
+	return _u
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (_u *ChargeUsageBasedUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpdate {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *ChargeUsageBasedUpdate) ClearUnitConfig() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearUnitConfig()
 	return _u
 }
 
@@ -451,6 +435,25 @@ func (_u *ChargeUsageBasedUpdate) SetCurrentRun(v *ChargeUsageBasedRuns) *Charge
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID.
+func (_u *ChargeUsageBasedUpdate) SetIntentOverrideID(id string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetIntentOverrideID(id)
+	return _u
+}
+
+// SetNillableIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableIntentOverrideID(id *string) *ChargeUsageBasedUpdate {
+	if id != nil {
+		_u = _u.SetIntentOverrideID(*id)
+	}
+	return _u
+}
+
+// SetIntentOverride sets the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_u *ChargeUsageBasedUpdate) SetIntentOverride(v *ChargeUsageBasedOverride) *ChargeUsageBasedUpdate {
+	return _u.SetIntentOverrideID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeUsageBasedUpdate) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdate {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -459,11 +462,6 @@ func (_u *ChargeUsageBasedUpdate) SetSubscriptionItem(v *SubscriptionItem) *Char
 // SetFeature sets the "feature" edge to the Feature entity.
 func (_u *ChargeUsageBasedUpdate) SetFeature(v *Feature) *ChargeUsageBasedUpdate {
 	return _u.SetFeatureID(v.ID)
-}
-
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeUsageBasedUpdate) SetTaxCode(v *TaxCode) *ChargeUsageBasedUpdate {
-	return _u.SetTaxCodeID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
@@ -519,6 +517,12 @@ func (_u *ChargeUsageBasedUpdate) ClearCurrentRun() *ChargeUsageBasedUpdate {
 	return _u
 }
 
+// ClearIntentOverride clears the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_u *ChargeUsageBasedUpdate) ClearIntentOverride() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearIntentOverride()
+	return _u
+}
+
 // ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeUsageBasedUpdate) ClearSubscriptionItem() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearSubscriptionItem()
@@ -528,12 +532,6 @@ func (_u *ChargeUsageBasedUpdate) ClearSubscriptionItem() *ChargeUsageBasedUpdat
 // ClearFeature clears the "feature" edge to the Feature entity.
 func (_u *ChargeUsageBasedUpdate) ClearFeature() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearFeature()
-	return _u
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeUsageBasedUpdate) ClearTaxCode() *ChargeUsageBasedUpdate {
-	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -580,16 +578,6 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.ManagedBy(); ok {
-		if err := chargeusagebased.ManagedByValidator(v); err != nil {
-			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := chargeusagebased.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_behavior": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
@@ -605,6 +593,16 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Price(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
@@ -615,6 +613,9 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 	}
 	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.feature"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.tax_code"`)
 	}
 	return nil
 }
@@ -655,17 +656,14 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargeusagebased.FieldUniqueReferenceID, field.TypeString)
 	}
-	if value, ok := _u.mutation.ManagedBy(); ok {
-		_spec.SetField(chargeusagebased.FieldManagedBy, field.TypeEnum, value)
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(chargeusagebased.FieldFiatCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargeusagebased.FieldAdvanceAfter, field.TypeTime)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(chargeusagebased.FieldTaxBehavior, field.TypeEnum, value)
 	}
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(chargeusagebased.FieldTaxBehavior, field.TypeEnum)
@@ -703,6 +701,12 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.IntentDeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.IntentDeletedAtCleared() {
+		_spec.ClearField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -715,6 +719,23 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.RatingEngine(); ok {
 		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Price(); ok {
+		vv, err := chargeusagebased.ValueScanner.Price.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebased.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeusagebased.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(chargeusagebased.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
@@ -838,6 +859,35 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.IntentOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IntentOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.SubscriptionItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -889,35 +939,6 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeusagebased.TaxCodeTable,
-			Columns: []string{chargeusagebased.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeusagebased.TaxCodeTable,
-			Columns: []string{chargeusagebased.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1043,20 +1064,6 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableStatus(v *meta.ChargeStatus) *Ch
 	return _u
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (_u *ChargeUsageBasedUpdateOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpdateOne {
-	_u.mutation.SetManagedBy(v)
-	return _u
-}
-
-// SetNillableManagedBy sets the "managed_by" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdateOne) SetNillableManagedBy(v *billing.InvoiceLineManagedBy) *ChargeUsageBasedUpdateOne {
-	if v != nil {
-		_u.SetManagedBy(*v)
-	}
-	return _u
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionItemID(v string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetSubscriptionItemID(v)
@@ -1094,46 +1101,6 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableAdvanceAfter(v *time.Time) *Char
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeUsageBasedUpdateOne) ClearAdvanceAfter() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearAdvanceAfter()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *ChargeUsageBasedUpdateOne) SetTaxCodeID(v string) *ChargeUsageBasedUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdateOne) SetNillableTaxCodeID(v *string) *ChargeUsageBasedUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeUsageBasedUpdateOne) ClearTaxCodeID() *ChargeUsageBasedUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *ChargeUsageBasedUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeUsageBasedUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *ChargeUsageBasedUpdateOne) ClearTaxBehavior() *ChargeUsageBasedUpdateOne {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -1235,8 +1202,28 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableInvoiceAt(v *time.Time) *ChargeU
 	return _u
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdateOne) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetIntentDeletedAt(v)
+	return _u
+}
+
+// SetNillableIntentDeletedAt sets the "intent_deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableIntentDeletedAt(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetIntentDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearIntentDeletedAt() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearIntentDeletedAt()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
-func (_u *ChargeUsageBasedUpdateOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
+func (_u *ChargeUsageBasedUpdateOne) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetDiscounts(v)
 	return _u
 }
@@ -1272,6 +1259,24 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableRatingEngine(v *usagebased.Ratin
 	if v != nil {
 		_u.SetRatingEngine(*v)
 	}
+	return _u
+}
+
+// SetPrice sets the "price" field.
+func (_u *ChargeUsageBasedUpdateOne) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetPrice(v)
+	return _u
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (_u *ChargeUsageBasedUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearUnitConfig() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearUnitConfig()
 	return _u
 }
 
@@ -1358,6 +1363,25 @@ func (_u *ChargeUsageBasedUpdateOne) SetCurrentRun(v *ChargeUsageBasedRuns) *Cha
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID.
+func (_u *ChargeUsageBasedUpdateOne) SetIntentOverrideID(id string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetIntentOverrideID(id)
+	return _u
+}
+
+// SetNillableIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableIntentOverrideID(id *string) *ChargeUsageBasedUpdateOne {
+	if id != nil {
+		_u = _u.SetIntentOverrideID(*id)
+	}
+	return _u
+}
+
+// SetIntentOverride sets the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_u *ChargeUsageBasedUpdateOne) SetIntentOverride(v *ChargeUsageBasedOverride) *ChargeUsageBasedUpdateOne {
+	return _u.SetIntentOverrideID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdateOne {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -1366,11 +1390,6 @@ func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *C
 // SetFeature sets the "feature" edge to the Feature entity.
 func (_u *ChargeUsageBasedUpdateOne) SetFeature(v *Feature) *ChargeUsageBasedUpdateOne {
 	return _u.SetFeatureID(v.ID)
-}
-
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeUsageBasedUpdateOne) SetTaxCode(v *TaxCode) *ChargeUsageBasedUpdateOne {
-	return _u.SetTaxCodeID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
@@ -1426,6 +1445,12 @@ func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRun() *ChargeUsageBasedUpdateOn
 	return _u
 }
 
+// ClearIntentOverride clears the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearIntentOverride() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearIntentOverride()
+	return _u
+}
+
 // ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeUsageBasedUpdateOne) ClearSubscriptionItem() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearSubscriptionItem()
@@ -1435,12 +1460,6 @@ func (_u *ChargeUsageBasedUpdateOne) ClearSubscriptionItem() *ChargeUsageBasedUp
 // ClearFeature clears the "feature" edge to the Feature entity.
 func (_u *ChargeUsageBasedUpdateOne) ClearFeature() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearFeature()
-	return _u
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeUsageBasedUpdateOne) ClearTaxCode() *ChargeUsageBasedUpdateOne {
-	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -1500,16 +1519,6 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.ManagedBy(); ok {
-		if err := chargeusagebased.ManagedByValidator(v); err != nil {
-			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := chargeusagebased.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_behavior": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
@@ -1525,6 +1534,16 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Price(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
@@ -1535,6 +1554,9 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 	}
 	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.feature"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.tax_code"`)
 	}
 	return nil
 }
@@ -1592,17 +1614,14 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargeusagebased.FieldUniqueReferenceID, field.TypeString)
 	}
-	if value, ok := _u.mutation.ManagedBy(); ok {
-		_spec.SetField(chargeusagebased.FieldManagedBy, field.TypeEnum, value)
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(chargeusagebased.FieldFiatCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargeusagebased.FieldAdvanceAfter, field.TypeTime)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(chargeusagebased.FieldTaxBehavior, field.TypeEnum, value)
 	}
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(chargeusagebased.FieldTaxBehavior, field.TypeEnum)
@@ -1640,6 +1659,12 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.IntentDeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.IntentDeletedAtCleared() {
+		_spec.ClearField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -1652,6 +1677,23 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if value, ok := _u.mutation.RatingEngine(); ok {
 		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Price(); ok {
+		vv, err := chargeusagebased.ValueScanner.Price.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebased.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeusagebased.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(chargeusagebased.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
@@ -1775,6 +1817,35 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.IntentOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IntentOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.SubscriptionItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -1826,35 +1897,6 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeusagebased.TaxCodeTable,
-			Columns: []string{chargeusagebased.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeusagebased.TaxCodeTable,
-			Columns: []string{chargeusagebased.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -54,6 +54,26 @@ func (_u *CurrencyCostBasisUpdate) ClearDeletedAt() *CurrencyCostBasisUpdate {
 	return _u
 }
 
+// SetEffectiveTo sets the "effective_to" field.
+func (_u *CurrencyCostBasisUpdate) SetEffectiveTo(v time.Time) *CurrencyCostBasisUpdate {
+	_u.mutation.SetEffectiveTo(v)
+	return _u
+}
+
+// SetNillableEffectiveTo sets the "effective_to" field if the given value is not nil.
+func (_u *CurrencyCostBasisUpdate) SetNillableEffectiveTo(v *time.Time) *CurrencyCostBasisUpdate {
+	if v != nil {
+		_u.SetEffectiveTo(*v)
+	}
+	return _u
+}
+
+// ClearEffectiveTo clears the value of the "effective_to" field.
+func (_u *CurrencyCostBasisUpdate) ClearEffectiveTo() *CurrencyCostBasisUpdate {
+	_u.mutation.ClearEffectiveTo()
+	return _u
+}
+
 // Mutation returns the CurrencyCostBasisMutation object of the builder.
 func (_u *CurrencyCostBasisUpdate) Mutation() *CurrencyCostBasisMutation {
 	return _u.mutation
@@ -124,6 +144,12 @@ func (_u *CurrencyCostBasisUpdate) sqlSave(ctx context.Context) (_node int, err 
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(currencycostbasis.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.EffectiveTo(); ok {
+		_spec.SetField(currencycostbasis.FieldEffectiveTo, field.TypeTime, value)
+	}
+	if _u.mutation.EffectiveToCleared() {
+		_spec.ClearField(currencycostbasis.FieldEffectiveTo, field.TypeTime)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{currencycostbasis.Label}
@@ -167,6 +193,26 @@ func (_u *CurrencyCostBasisUpdateOne) SetNillableDeletedAt(v *time.Time) *Curren
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *CurrencyCostBasisUpdateOne) ClearDeletedAt() *CurrencyCostBasisUpdateOne {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetEffectiveTo sets the "effective_to" field.
+func (_u *CurrencyCostBasisUpdateOne) SetEffectiveTo(v time.Time) *CurrencyCostBasisUpdateOne {
+	_u.mutation.SetEffectiveTo(v)
+	return _u
+}
+
+// SetNillableEffectiveTo sets the "effective_to" field if the given value is not nil.
+func (_u *CurrencyCostBasisUpdateOne) SetNillableEffectiveTo(v *time.Time) *CurrencyCostBasisUpdateOne {
+	if v != nil {
+		_u.SetEffectiveTo(*v)
+	}
+	return _u
+}
+
+// ClearEffectiveTo clears the value of the "effective_to" field.
+func (_u *CurrencyCostBasisUpdateOne) ClearEffectiveTo() *CurrencyCostBasisUpdateOne {
+	_u.mutation.ClearEffectiveTo()
 	return _u
 }
 
@@ -269,6 +315,12 @@ func (_u *CurrencyCostBasisUpdateOne) sqlSave(ctx context.Context) (_node *Curre
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(currencycostbasis.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.EffectiveTo(); ok {
+		_spec.SetField(currencycostbasis.FieldEffectiveTo, field.TypeTime, value)
+	}
+	if _u.mutation.EffectiveToCleared() {
+		_spec.ClearField(currencycostbasis.FieldEffectiveTo, field.TypeTime)
 	}
 	_node = &CurrencyCostBasis{config: _u.config}
 	_spec.Assign = _node.assignValues

@@ -3,14 +3,20 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "generate": "pnpm --filter @openmeter/api-spec-legacy run generate && pnpm --filter @openmeter/api-spec-aip run generate",
+    "build": "pnpm --filter @openmeter/typespec-typescript run build && pnpm --filter @openmeter/typespec-go run build",
+    "generate": "pnpm run build && pnpm --filter @openmeter/api-spec-legacy run generate && pnpm --filter @openmeter/api-spec-aip run generate && pnpm run format",
     "format": "prettier --list-different --find-config-path --write . && pnpm --filter @openmeter/api-spec-aip run format",
-    "lint": "prettier --check . && pnpm --filter @openmeter/api-spec-legacy run lint && pnpm --filter @openmeter/api-spec-aip run lint",
-    "lint:fix": "prettier --write ."
+    "lint": "prettier --check . && pnpm --filter @openmeter/api-spec-legacy run lint && pnpm --filter @openmeter/api-spec-aip run lint && pnpm --filter @openmeter/client run typecheck",
+    "lint:fix": "prettier --write .",
+    "test:sdk": "vitest --run --root packages/aip-client-javascript",
+    "test:sdk:coverage": "vitest --run --coverage --root packages/aip-client-javascript"
   },
   "devDependencies": {
-    "@typespec/prettier-plugin-typespec": "1.11.0",
-    "prettier": "3.8.3"
+    "@fetch-mock/vitest": "0.2.18",
+    "@typespec/prettier-plugin-typespec": "1.12.0",
+    "@vitest/coverage-v8": "4.1.8",
+    "prettier": "3.8.3",
+    "vitest": "4.1.8"
   },
   "exports": {
     "./openapi.yaml": "./packages/legacy/output/openapi.OpenMeterCloud.yaml",
@@ -19,20 +25,5 @@
     "./v3/openapi.yaml": "./packages/aip/output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml"
   },
   "private": true,
-  "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@typespec/http-client-python"
-    ],
-    "patchedDependencies": {
-      "@typespec/http": "patches/@typespec__http.patch",
-      "@typespec/compiler": "patches/@typespec__compiler.patch",
-      "@typespec/openapi": "patches/@typespec__openapi.patch",
-      "@typespec/openapi3": "patches/@typespec__openapi3.patch",
-      "@typespec/http-client-python": "patches/@typespec__http-client-python.patch"
-    },
-    "overrides": {
-      "postcss@<8.5.10": ">=8.5.10"
-    }
-  }
+  "packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499"
 }

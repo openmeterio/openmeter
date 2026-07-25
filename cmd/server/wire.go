@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/governance"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -58,7 +59,7 @@ type Application struct {
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
 	BillingRegistry                  common.BillingRegistry
-	CurrencyService                  currencies.CurrencyService
+	CurrencyService                  currencies.Service
 	CostService                      cost.Service
 	CreditGrantService               creditgrant.Service
 	Ledger                           ledger.Ledger
@@ -69,6 +70,7 @@ type Application struct {
 	EntitlementRegistry              *registry.Entitlement
 	FeatureConnector                 feature.FeatureConnector
 	FeatureFlags                     ffx.Service
+	GovernanceService                governance.Service
 	IngestCollector                  ingest.Collector
 	IngestService                    ingest.Service
 	KafkaProducer                    *kafka.Producer
@@ -101,7 +103,8 @@ type Application struct {
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
 	Tracer                           trace.Tracer
-	FeatureGate                      featuregate.Gate
+	FeatureGate                      *featuregate.FeatureGateChecker
+	ClientIPMiddleware               common.ClientIPMiddleware
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
@@ -122,6 +125,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Entitlement,
 		common.Framework,
 		common.FFX,
+		common.Governance,
 		common.Kafka,
 		common.KafkaIngest,
 		common.LLMCost,
@@ -156,7 +160,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewTerminationChecker,
 		common.WatermillNoPublisher,
 		wire.Struct(new(Application), "*"),
-		common.FeatureGateNoopSet,
+		common.FeatureGateChecker,
 	)
 
 	return Application{}, nil, nil

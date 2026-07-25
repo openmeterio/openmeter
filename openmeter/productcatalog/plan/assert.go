@@ -200,6 +200,8 @@ func AssertRateCardEqual(t *testing.T, r1, r2 productcatalog.RateCard) {
 
 	assert.Truef(t, m1.Price.Equal(m2.Price), "price mismatch")
 
+	assert.Truef(t, m1.UnitConfig.Equal(m2.UnitConfig), "unit config mismatch")
+
 	billingCadence1 := r1.GetBillingCadence().ISOStringPtrOrNil()
 	billingCadence2 := r2.GetBillingCadence().ISOStringPtrOrNil()
 

@@ -42,14 +42,8 @@ const (
 	EdgeBillingCustomerOverrides = "billing_customer_overrides"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
-	// EdgeBillingInvoiceSplitLineGroups holds the string denoting the billing_invoice_split_line_groups edge name in mutations.
-	EdgeBillingInvoiceSplitLineGroups = "billing_invoice_split_line_groups"
-	// EdgeBillingStandardInvoiceDetailedLines holds the string denoting the billing_standard_invoice_detailed_lines edge name in mutations.
-	EdgeBillingStandardInvoiceDetailedLines = "billing_standard_invoice_detailed_lines"
-	// EdgeChargeUsageBasedRunDetailedLines holds the string denoting the charge_usage_based_run_detailed_lines edge name in mutations.
-	EdgeChargeUsageBasedRunDetailedLines = "charge_usage_based_run_detailed_lines"
-	// EdgeChargeFlatFeeRunDetailedLines holds the string denoting the charge_flat_fee_run_detailed_lines edge name in mutations.
-	EdgeChargeFlatFeeRunDetailedLines = "charge_flat_fee_run_detailed_lines"
+	// EdgeBillingGatheringInvoiceLines holds the string denoting the billing_gathering_invoice_lines edge name in mutations.
+	EdgeBillingGatheringInvoiceLines = "billing_gathering_invoice_lines"
 	// EdgeSubscriptionItems holds the string denoting the subscription_items edge name in mutations.
 	EdgeSubscriptionItems = "subscription_items"
 	// EdgePlanRateCards holds the string denoting the plan_rate_cards edge name in mutations.
@@ -58,8 +52,12 @@ const (
 	EdgeAddonRateCards = "addon_rate_cards"
 	// EdgeChargeFlatFees holds the string denoting the charge_flat_fees edge name in mutations.
 	EdgeChargeFlatFees = "charge_flat_fees"
+	// EdgeChargeFlatFeeOverrides holds the string denoting the charge_flat_fee_overrides edge name in mutations.
+	EdgeChargeFlatFeeOverrides = "charge_flat_fee_overrides"
 	// EdgeChargeUsageBased holds the string denoting the charge_usage_based edge name in mutations.
 	EdgeChargeUsageBased = "charge_usage_based"
+	// EdgeChargeUsageBasedOverrides holds the string denoting the charge_usage_based_overrides edge name in mutations.
+	EdgeChargeUsageBasedOverrides = "charge_usage_based_overrides"
 	// EdgeChargeCreditPurchases holds the string denoting the charge_credit_purchases edge name in mutations.
 	EdgeChargeCreditPurchases = "charge_credit_purchases"
 	// EdgeOrganizationDefaultInvoicing holds the string denoting the organization_default_invoicing edge name in mutations.
@@ -89,34 +87,13 @@ const (
 	BillingInvoiceLinesInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLinesColumn is the table column denoting the billing_invoice_lines relation/edge.
 	BillingInvoiceLinesColumn = "tax_code_id"
-	// BillingInvoiceSplitLineGroupsTable is the table that holds the billing_invoice_split_line_groups relation/edge.
-	BillingInvoiceSplitLineGroupsTable = "billing_invoice_split_line_groups"
-	// BillingInvoiceSplitLineGroupsInverseTable is the table name for the BillingInvoiceSplitLineGroup entity.
-	// It exists in this package in order to avoid circular dependency with the "billinginvoicesplitlinegroup" package.
-	BillingInvoiceSplitLineGroupsInverseTable = "billing_invoice_split_line_groups"
-	// BillingInvoiceSplitLineGroupsColumn is the table column denoting the billing_invoice_split_line_groups relation/edge.
-	BillingInvoiceSplitLineGroupsColumn = "tax_code_id"
-	// BillingStandardInvoiceDetailedLinesTable is the table that holds the billing_standard_invoice_detailed_lines relation/edge.
-	BillingStandardInvoiceDetailedLinesTable = "billing_standard_invoice_detailed_lines"
-	// BillingStandardInvoiceDetailedLinesInverseTable is the table name for the BillingStandardInvoiceDetailedLine entity.
-	// It exists in this package in order to avoid circular dependency with the "billingstandardinvoicedetailedline" package.
-	BillingStandardInvoiceDetailedLinesInverseTable = "billing_standard_invoice_detailed_lines"
-	// BillingStandardInvoiceDetailedLinesColumn is the table column denoting the billing_standard_invoice_detailed_lines relation/edge.
-	BillingStandardInvoiceDetailedLinesColumn = "tax_code_id"
-	// ChargeUsageBasedRunDetailedLinesTable is the table that holds the charge_usage_based_run_detailed_lines relation/edge.
-	ChargeUsageBasedRunDetailedLinesTable = "charge_usage_based_run_detailed_line"
-	// ChargeUsageBasedRunDetailedLinesInverseTable is the table name for the ChargeUsageBasedRunDetailedLine entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrundetailedline" package.
-	ChargeUsageBasedRunDetailedLinesInverseTable = "charge_usage_based_run_detailed_line"
-	// ChargeUsageBasedRunDetailedLinesColumn is the table column denoting the charge_usage_based_run_detailed_lines relation/edge.
-	ChargeUsageBasedRunDetailedLinesColumn = "tax_code_id"
-	// ChargeFlatFeeRunDetailedLinesTable is the table that holds the charge_flat_fee_run_detailed_lines relation/edge.
-	ChargeFlatFeeRunDetailedLinesTable = "charge_flat_fee_run_detailed_lines"
-	// ChargeFlatFeeRunDetailedLinesInverseTable is the table name for the ChargeFlatFeeRunDetailedLine entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeflatfeerundetailedline" package.
-	ChargeFlatFeeRunDetailedLinesInverseTable = "charge_flat_fee_run_detailed_lines"
-	// ChargeFlatFeeRunDetailedLinesColumn is the table column denoting the charge_flat_fee_run_detailed_lines relation/edge.
-	ChargeFlatFeeRunDetailedLinesColumn = "tax_code_id"
+	// BillingGatheringInvoiceLinesTable is the table that holds the billing_gathering_invoice_lines relation/edge.
+	BillingGatheringInvoiceLinesTable = "billing_gathering_invoice_lines"
+	// BillingGatheringInvoiceLinesInverseTable is the table name for the BillingGatheringInvoiceLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinggatheringinvoiceline" package.
+	BillingGatheringInvoiceLinesInverseTable = "billing_gathering_invoice_lines"
+	// BillingGatheringInvoiceLinesColumn is the table column denoting the billing_gathering_invoice_lines relation/edge.
+	BillingGatheringInvoiceLinesColumn = "tax_code_id"
 	// SubscriptionItemsTable is the table that holds the subscription_items relation/edge.
 	SubscriptionItemsTable = "subscription_items"
 	// SubscriptionItemsInverseTable is the table name for the SubscriptionItem entity.
@@ -145,6 +122,13 @@ const (
 	ChargeFlatFeesInverseTable = "charge_flat_fees"
 	// ChargeFlatFeesColumn is the table column denoting the charge_flat_fees relation/edge.
 	ChargeFlatFeesColumn = "tax_code_id"
+	// ChargeFlatFeeOverridesTable is the table that holds the charge_flat_fee_overrides relation/edge.
+	ChargeFlatFeeOverridesTable = "charge_flat_fee_overrides"
+	// ChargeFlatFeeOverridesInverseTable is the table name for the ChargeFlatFeeOverride entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeeoverride" package.
+	ChargeFlatFeeOverridesInverseTable = "charge_flat_fee_overrides"
+	// ChargeFlatFeeOverridesColumn is the table column denoting the charge_flat_fee_overrides relation/edge.
+	ChargeFlatFeeOverridesColumn = "tax_code_id"
 	// ChargeUsageBasedTable is the table that holds the charge_usage_based relation/edge.
 	ChargeUsageBasedTable = "charge_usage_based"
 	// ChargeUsageBasedInverseTable is the table name for the ChargeUsageBased entity.
@@ -152,6 +136,13 @@ const (
 	ChargeUsageBasedInverseTable = "charge_usage_based"
 	// ChargeUsageBasedColumn is the table column denoting the charge_usage_based relation/edge.
 	ChargeUsageBasedColumn = "tax_code_id"
+	// ChargeUsageBasedOverridesTable is the table that holds the charge_usage_based_overrides relation/edge.
+	ChargeUsageBasedOverridesTable = "charge_usage_based_overrides"
+	// ChargeUsageBasedOverridesInverseTable is the table name for the ChargeUsageBasedOverride entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedoverride" package.
+	ChargeUsageBasedOverridesInverseTable = "charge_usage_based_overrides"
+	// ChargeUsageBasedOverridesColumn is the table column denoting the charge_usage_based_overrides relation/edge.
+	ChargeUsageBasedOverridesColumn = "tax_code_id"
 	// ChargeCreditPurchasesTable is the table that holds the charge_credit_purchases relation/edge.
 	ChargeCreditPurchasesTable = "charge_credit_purchases"
 	// ChargeCreditPurchasesInverseTable is the table name for the ChargeCreditPurchase entity.
@@ -309,59 +300,17 @@ func ByBillingInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOpti
 	}
 }
 
-// ByBillingInvoiceSplitLineGroupsCount orders the results by billing_invoice_split_line_groups count.
-func ByBillingInvoiceSplitLineGroupsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByBillingGatheringInvoiceLinesCount orders the results by billing_gathering_invoice_lines count.
+func ByBillingGatheringInvoiceLinesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceSplitLineGroupsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newBillingGatheringInvoiceLinesStep(), opts...)
 	}
 }
 
-// ByBillingInvoiceSplitLineGroups orders the results by billing_invoice_split_line_groups terms.
-func ByBillingInvoiceSplitLineGroups(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByBillingGatheringInvoiceLines orders the results by billing_gathering_invoice_lines terms.
+func ByBillingGatheringInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceSplitLineGroupsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByBillingStandardInvoiceDetailedLinesCount orders the results by billing_standard_invoice_detailed_lines count.
-func ByBillingStandardInvoiceDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newBillingStandardInvoiceDetailedLinesStep(), opts...)
-	}
-}
-
-// ByBillingStandardInvoiceDetailedLines orders the results by billing_standard_invoice_detailed_lines terms.
-func ByBillingStandardInvoiceDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newBillingStandardInvoiceDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByChargeUsageBasedRunDetailedLinesCount orders the results by charge_usage_based_run_detailed_lines count.
-func ByChargeUsageBasedRunDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChargeUsageBasedRunDetailedLinesStep(), opts...)
-	}
-}
-
-// ByChargeUsageBasedRunDetailedLines orders the results by charge_usage_based_run_detailed_lines terms.
-func ByChargeUsageBasedRunDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeUsageBasedRunDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByChargeFlatFeeRunDetailedLinesCount orders the results by charge_flat_fee_run_detailed_lines count.
-func ByChargeFlatFeeRunDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChargeFlatFeeRunDetailedLinesStep(), opts...)
-	}
-}
-
-// ByChargeFlatFeeRunDetailedLines orders the results by charge_flat_fee_run_detailed_lines terms.
-func ByChargeFlatFeeRunDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeRunDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newBillingGatheringInvoiceLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -421,6 +370,20 @@ func ByChargeFlatFees(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByChargeFlatFeeOverridesCount orders the results by charge_flat_fee_overrides count.
+func ByChargeFlatFeeOverridesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargeFlatFeeOverridesStep(), opts...)
+	}
+}
+
+// ByChargeFlatFeeOverrides orders the results by charge_flat_fee_overrides terms.
+func ByChargeFlatFeeOverrides(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeOverridesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByChargeUsageBasedCount orders the results by charge_usage_based count.
 func ByChargeUsageBasedCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -432,6 +395,20 @@ func ByChargeUsageBasedCount(opts ...sql.OrderTermOption) OrderOption {
 func ByChargeUsageBased(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newChargeUsageBasedStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByChargeUsageBasedOverridesCount orders the results by charge_usage_based_overrides count.
+func ByChargeUsageBasedOverridesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargeUsageBasedOverridesStep(), opts...)
+	}
+}
+
+// ByChargeUsageBasedOverrides orders the results by charge_usage_based_overrides terms.
+func ByChargeUsageBasedOverrides(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeUsageBasedOverridesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -497,32 +474,11 @@ func newBillingInvoiceLinesStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceLinesTable, BillingInvoiceLinesColumn),
 	)
 }
-func newBillingInvoiceSplitLineGroupsStep() *sqlgraph.Step {
+func newBillingGatheringInvoiceLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingInvoiceSplitLineGroupsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceSplitLineGroupsTable, BillingInvoiceSplitLineGroupsColumn),
-	)
-}
-func newBillingStandardInvoiceDetailedLinesStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(BillingStandardInvoiceDetailedLinesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, BillingStandardInvoiceDetailedLinesTable, BillingStandardInvoiceDetailedLinesColumn),
-	)
-}
-func newChargeUsageBasedRunDetailedLinesStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeUsageBasedRunDetailedLinesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedRunDetailedLinesTable, ChargeUsageBasedRunDetailedLinesColumn),
-	)
-}
-func newChargeFlatFeeRunDetailedLinesStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeFlatFeeRunDetailedLinesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunDetailedLinesTable, ChargeFlatFeeRunDetailedLinesColumn),
+		sqlgraph.To(BillingGatheringInvoiceLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingGatheringInvoiceLinesTable, BillingGatheringInvoiceLinesColumn),
 	)
 }
 func newSubscriptionItemsStep() *sqlgraph.Step {
@@ -553,11 +509,25 @@ func newChargeFlatFeesStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeesTable, ChargeFlatFeesColumn),
 	)
 }
+func newChargeFlatFeeOverridesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeFlatFeeOverridesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeOverridesTable, ChargeFlatFeeOverridesColumn),
+	)
+}
 func newChargeUsageBasedStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeUsageBasedInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedTable, ChargeUsageBasedColumn),
+	)
+}
+func newChargeUsageBasedOverridesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeUsageBasedOverridesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedOverridesTable, ChargeUsageBasedOverridesColumn),
 	)
 }
 func newChargeCreditPurchasesStep() *sqlgraph.Step {

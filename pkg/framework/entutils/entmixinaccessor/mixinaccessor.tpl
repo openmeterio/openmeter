@@ -4,7 +4,7 @@
     For each node and each mixed-in field, it generates:
       func (e *<Node>) Get<Field>() <Type> { return e.<Field> }
 
-    For nillable fields, it returns a pointer type (matching the generated entity field type).
+    For nillable value fields, it returns a pointer type (matching the generated entity field type).
 
     The ID field is handled separately since ent exposes it via $n.ID rather than $n.Fields.
 */}}
@@ -24,7 +24,7 @@ func (e *{{ $n.Name }}) GetID() {{ $n.ID.Type }} {
 	{{ range $f := $n.Fields }}
 		{{- if and $f.Position $f.Position.MixedIn }}
 
-func (e *{{ $n.Name }}) Get{{ $f.StructField }}() {{ if $f.Nillable }}*{{ end }}{{ $f.Type }} {
+func (e *{{ $n.Name }}) Get{{ $f.StructField }}() {{ if $f.NillableValue }}*{{ end }}{{ $f.Type }} {
 	return e.{{ $f.StructField }}
 }
 
@@ -33,4 +33,3 @@ func (e *{{ $n.Name }}) Get{{ $f.StructField }}() {{ if $f.Nillable }}*{{ end }}
 {{ end }}
 
 {{ end }}
-

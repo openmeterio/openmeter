@@ -175,6 +175,19 @@ func (s *service) Delete<Resource>(ctx context.Context, input <domain>.Delete<Re
 }
 ```
 
+`transaction.RunInNewTransaction()` is exceptional because it deliberately
+breaks atomicity with any transaction already carried by the caller. Do not
+introduce a new call without explicit confirmation from a human developer or
+reviewer. Before requesting confirmation:
+
+- Document why caller rollback must not undo the operation
+- Verify the operation does not depend on the caller's uncommitted writes
+- Verify it cannot wait on locks held by the caller's transaction
+- Assess the additional database connection demand under concurrency
+
+Prefer `transaction.Run()` unless the domain explicitly requires the independent
+commit semantics and these risks have been reviewed.
+
 Reference: `openmeter/llmcost/service/service.go`, `openmeter/customer/service/customer.go`
 
 ### Service Hooks Pattern

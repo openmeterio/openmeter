@@ -149,15 +149,15 @@ func Sum(others ...Totals) Totals {
 	return res.Add(others...)
 }
 
-func (t Totals) RoundToPrecision(calc currencyx.Calculator) Totals {
-	t.Amount = calc.RoundToPrecision(t.Amount)
-	t.ChargesTotal = calc.RoundToPrecision(t.ChargesTotal)
-	t.DiscountsTotal = calc.RoundToPrecision(t.DiscountsTotal)
-	t.TaxesInclusiveTotal = calc.RoundToPrecision(t.TaxesInclusiveTotal)
-	t.TaxesExclusiveTotal = calc.RoundToPrecision(t.TaxesExclusiveTotal)
-	t.TaxesTotal = calc.RoundToPrecision(t.TaxesTotal)
-	t.CreditsTotal = calc.RoundToPrecision(t.CreditsTotal)
-	t.Total = calc.RoundToPrecision(t.Total)
+func (t Totals) RoundToPrecision(currency currencyx.Currency) Totals {
+	t.Amount = currency.RoundToPrecision(t.Amount)
+	t.ChargesTotal = currency.RoundToPrecision(t.ChargesTotal)
+	t.DiscountsTotal = currency.RoundToPrecision(t.DiscountsTotal)
+	t.TaxesInclusiveTotal = currency.RoundToPrecision(t.TaxesInclusiveTotal)
+	t.TaxesExclusiveTotal = currency.RoundToPrecision(t.TaxesExclusiveTotal)
+	t.TaxesTotal = currency.RoundToPrecision(t.TaxesTotal)
+	t.CreditsTotal = currency.RoundToPrecision(t.CreditsTotal)
+	t.Total = currency.RoundToPrecision(t.Total)
 
 	return t
 }

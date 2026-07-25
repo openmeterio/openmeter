@@ -12,11 +12,12 @@ var DefaultWorkflowConfig = WorkflowConfig{
 		Interval:  lo.Must(datetime.ISODurationString("PT1H").Parse()),
 	},
 	Invoicing: InvoicingConfig{
-		AutoAdvance:        true,
-		DraftPeriod:        lo.Must(datetime.ISODurationString("P0D").Parse()),
-		DueAfter:           lo.Must(datetime.ISODurationString("P30D").Parse()),
-		ProgressiveBilling: true,
-		DefaultTaxConfig:   nil,
+		AutoAdvance:                  true,
+		DraftPeriod:                  lo.Must(datetime.ISODurationString("P0D").Parse()),
+		DueAfter:                     lo.Must(datetime.ISODurationString("P30D").Parse()),
+		ProgressiveBilling:           true,
+		SubscriptionEndProrationMode: SubscriptionEndProrationModeBillActualPeriod,
+		DefaultTaxConfig:             nil,
 	},
 	Payment: PaymentConfig{
 		CollectionMethod: CollectionMethodChargeAutomatically,

@@ -410,7 +410,7 @@ func (_q *CurrencyCostBasisQuery) loadCurrency(ctx context.Context, query *Custo
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*CurrencyCostBasis)
 	for i := range nodes {
-		fk := nodes[i].CustomCurrencyID
+		fk := nodes[i].CurrencyID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -427,7 +427,7 @@ func (_q *CurrencyCostBasisQuery) loadCurrency(ctx context.Context, query *Custo
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "custom_currency_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "currency_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -465,7 +465,7 @@ func (_q *CurrencyCostBasisQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 		if _q.withCurrency != nil {
-			_spec.Node.AddColumnOnce(currencycostbasis.FieldCustomCurrencyID)
+			_spec.Node.AddColumnOnce(currencycostbasis.FieldCurrencyID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
