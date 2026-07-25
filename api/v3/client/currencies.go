@@ -23,6 +23,7 @@ type CurrencyListParams struct {
 	Page   *PageParams
 	Sort   *Sort
 	Filter *CurrencyFilter
+	Expand []CurrencyExpand
 }
 
 func (p CurrencyListParams) values() url.Values {
@@ -37,6 +38,10 @@ func (p CurrencyListParams) values() url.Values {
 			q.Set("filter[type]", string(*p.Filter.Type))
 		}
 		addStringFilter(q, "filter[code]", p.Filter.Code)
+	}
+
+	for _, value := range p.Expand {
+		q.Add("expand", string(value))
 	}
 
 	return q

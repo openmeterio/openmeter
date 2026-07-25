@@ -179,6 +179,26 @@ type CurrencyCustom struct {
 	CostBasis []CostBasis `json:"cost_basis,omitempty"`
 }
 
+// Expands for currencies.
+//
+// Values:
+//
+// - `cost_basis`: The currency's currently-active cost basis.
+type CurrencyExpand string
+
+const (
+	CurrencyExpandCostBasis CurrencyExpand = "cost_basis"
+)
+
+func (value CurrencyExpand) Valid() bool {
+	switch value {
+	case CurrencyExpandCostBasis:
+		return true
+	default:
+		return false
+	}
+}
+
 // Currency describes a currency supported by the billing system.
 type CurrencyFiat struct {
 	// The type of the currency.

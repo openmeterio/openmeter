@@ -16,6 +16,19 @@ enum CurrencyType {
 }
 
 /**
+ * Expands for currencies.
+ *
+ * Values:
+ *
+ * - `cost_basis`: The currency's currently-active cost basis.
+ */
+@friendlyName("BillingCurrencyExpand")
+@summary("Currency expands")
+enum CurrenciesExpand {
+  CostBasis: "cost_basis",
+}
+
+/**
  * Fiat or custom currency.
  */
 @friendlyName("BillingCurrency")

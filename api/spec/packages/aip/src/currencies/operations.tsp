@@ -54,6 +54,14 @@ interface CurrenciesOperations {
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListCurrenciesParamsFilter,
+
+    /**
+     * Expand the currencies returned in the response.
+     *
+     * To include the currently-active cost basis add: expand=cost_basis
+     */
+    @query(#{ name: "expand", explode: true })
+    expand?: CurrenciesExpand[],
   ): Shared.PagePaginatedResponse<Currency> | Common.ErrorResponses;
 }
 
