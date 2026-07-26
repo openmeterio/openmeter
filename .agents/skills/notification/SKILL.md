@@ -115,7 +115,8 @@ type Service interface {
 Every event mutating operation:
 1. Validates input (rule exists, rule is not disabled, payload matches type)
 2. Persists event + per-channel delivery statuses atomically via adapter
-3. Dispatches asynchronously via `EventHandler.Dispatch()`
+
+The service does NOT trigger delivery: events are written as `PENDING` and picked up by the background `Reconcile()` loop. `EventHandler.Dispatch` exists on the interface but has no call sites.
 
 Reference: `openmeter/notification/service.go`, `openmeter/notification/service/event.go`
 
@@ -130,16 +131,12 @@ Consumer handler (consumer/)
   ↓
 Service.CreateEvent()
   ├── Validates rule + payload
-  ├── adapter.CreateEvent() → writes notification_event + delivery_status rows
-  └── EventHandler.Dispatch() → async goroutine (30s timeout)
-       ↓
-       reconcileEvent() → reconcileWebhookEvent()
-       ├── webhook.SendMessage() → Svix API
-       └── Updates delivery status based on Svix response
+  └── adapter.CreateEvent() → writes notification_event + PENDING delivery_status rows
   ↓
-Background Reconcile() loop (every 15s)
+Background Reconcile() loop (every 15s, started only in cmd/server)
   ├── Lists PENDING/SENDING/RESENDING delivery statuses
-  ├── Fetches status from Svix for each
+  ├── PENDING → webhook.SendMessage() → Svix API
+  ├── SENDING → fetches message/attempt status from Svix
   └── Updates to SUCCESS/FAILED or retries
 ```
 
@@ -296,23 +293,23 @@ Reference: `openmeter/notification/defaults.go`
 
 Two wire sets in `app/common/notification.go`:
 
-- `Notification` — full production wiring (Svix webhook handler + real event handler with reconciliation loop)
-- `NotificationService` — service-only wiring with no-op webhook and event handler (used by non-notification services like `cmd/server`)
+- `Notification` — full production wiring (Svix webhook handler + event handler with reconciliation loop). Used by `cmd/server`, the only binary that starts the reconcile loop and the only one whose call paths (channel/rule CRUD over HTTP) reach the webhook handler. `cmd/balance-worker` and `cmd/jobs` also use this set: wire prunes the event handler there, but they still construct the real Svix webhook handler.
+- `NotificationService` — service-only wiring with a no-op webhook handler, for binaries that only need `notification.Service` without Svix. Used by `cmd/notification-service`: its consumer only calls `CreateEvent` (persist pending events), so its startup must not depend on Svix availability.
 
 ```go
 func NewNotificationService(
     logger *slog.Logger,
     adapter notification.Repository,
     webhook notificationwebhook.Handler,
-    eventHandler notification.EventHandler,
     featureConnector feature.FeatureConnector,
 ) (notification.Service, error)
 ```
 
-The `cmd/notification-service/` standalone worker wires the full consumer + Kafka subscriber + production Svix handler.
+The `cmd/notification-service/` standalone worker runs only the Kafka consumer + telemetry server; webhook delivery and reconciliation are `cmd/server`'s job.
 
 ## Non-Obvious Pitfalls
 
+- **Constructing the Svix webhook handler is not side-effect-free.** `webhooksvix.New` registers `NotificationEventTypes` with the Svix API at construction time and fails startup on error unless `notification.webhook.skipEventTypeRegistrationOnError` is set. Any binary wired with the real handler therefore requires Svix reachability at boot, even if it never sends a message.
 - **Rules and channels are NOT auto-disabled after delivery failures.** Svix retries for up to 48h; after that the delivery status is `FAILED` but the rule stays active for future events.
 - **Balance threshold dedup is rule-scoped.** The dedup hash includes `ruleID` — if a second rule is added for the same event type, it will independently trigger (no cross-rule dedup).
 - **Invoice events skip `gathering` status.** The consumer explicitly checks `event.Invoice.Status` and skips if the invoice is still being assembled.

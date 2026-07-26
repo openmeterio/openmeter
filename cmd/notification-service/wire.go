@@ -27,15 +27,15 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	BrokerOptions      watermillkafka.BrokerOptions
-	EventPublisher     eventbus.Publisher
-	EntClient          *db.Client
-	FeatureConnector   feature.FeatureConnector
-	Logger             *slog.Logger
-	MessagePublisher   message.Publisher
-	Meter              metric.Meter
-	Tracer             trace.Tracer
-	Metadata           common.Metadata
+	BrokerOptions           watermillkafka.BrokerOptions
+	EventPublisher          eventbus.Publisher
+	EntClient               *db.Client
+	FeatureConnector        feature.FeatureConnector
+	Logger                  *slog.Logger
+	MessagePublisher        message.Publisher
+	Meter                   metric.Meter
+	Tracer                  trace.Tracer
+	Metadata                common.Metadata
 	MeterService            meter.Service
 	Notification            notification.Service
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
@@ -55,11 +55,13 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Namespace,
 		common.NewDefaultTextMapPropagator,
 		common.NewKafkaTopicProvisioner,
-		common.Notification,
+		// This worker only persists pending notification events (consumer -> Service.CreateEvent);
+		// webhook delivery and reconciliation run in cmd/server. Use the noop-webhook service set
+		// so startup does not construct a Svix client or depend on Svix availability.
+		common.NotificationService,
 		common.NotificationServiceProvisionTopics,
 		common.ProgressManager,
 		common.Streaming,
-		common.NewSvixAPIClient,
 		common.Telemetry,
 		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.Watermill,
