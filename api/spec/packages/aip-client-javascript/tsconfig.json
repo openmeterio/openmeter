@@ -2,6 +2,9 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "nodenext",
+    // TypeScript 7 (tsgo) does not auto-include node_modules/@types packages
+    // the way tsc 5.x did; without this, `process` in src/core.ts is untyped.
+    "types": ["node"],
     "strict": true,
     "declaration": true,
     "outDir": "dist"

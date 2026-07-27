@@ -60,8 +60,6 @@ async function compileFixture(code: string): Promise<Program> {
   })
   const runner = await createTestRunner(host)
   await runner.compile(`
-    import "@typespec/http";
-    import "@typespec/openapi";
     using TypeSpec.Http;
     using TypeSpec.OpenAPI;
     ${code}

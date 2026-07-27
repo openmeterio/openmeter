@@ -364,14 +364,13 @@ model EntitlementMetered {
   type: EntitlementType.metered;
   ...OmitProperties<
     EntitlementMeteredCreateInputs,
-
-      | "type"
-      | "measureUsageFrom"
-      | "metadata"
-      | "usagePeriod"
-      | "featureKey"
-      | "featureId"
-      | "currentUsagePeriod"
+    | "type"
+    | "measureUsageFrom"
+    | "metadata"
+    | "usagePeriod"
+    | "featureKey"
+    | "featureId"
+    | "currentUsagePeriod"
   >;
   ...OmitProperties<
     EntitlementSharedFields,

@@ -66,11 +66,9 @@ export class HTTPError extends Error {
    * additive fields) — `undefined` when the response didn't carry one.
    */
   get invalidParameters():
-    | z.infer<typeof schemas.invalidParameters>
-    | undefined {
+    z.infer<typeof schemas.invalidParameters> | undefined {
     return this.__raw?.invalid_parameters as
-      | z.infer<typeof schemas.invalidParameters>
-      | undefined
+      z.infer<typeof schemas.invalidParameters> | undefined
   }
 
   /**

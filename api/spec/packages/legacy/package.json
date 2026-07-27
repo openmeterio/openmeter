@@ -19,17 +19,17 @@
     }
   },
   "devDependencies": {
-    "@azure-tools/typespec-client-generator-core": "0.68.4",
-    "@types/node": "25.9.2",
-    "@typespec/compiler": "1.11.0",
-    "@typespec/http": "1.11.0",
-    "@typespec/http-client-python": "0.28.3",
-    "@typespec/openapi": "1.11.0",
-    "@typespec/openapi3": "1.11.0",
-    "@typespec/prettier-plugin-typespec": "1.12.0",
-    "@typespec/rest": "0.81.0",
-    "@typespec/streams": "0.81.0",
-    "@typespec/versioning": "0.81.0"
+    "@azure-tools/typespec-client-generator-core": "0.70.0",
+    "@types/node": "26.1.1",
+    "@typespec/compiler": "1.14.0",
+    "@typespec/http": "1.14.0",
+    "@typespec/http-client-python": "0.35.0",
+    "@typespec/openapi": "1.14.0",
+    "@typespec/openapi3": "1.14.0",
+    "@typespec/prettier-plugin-typespec": "1.14.0",
+    "@typespec/rest": "0.84.0",
+    "@typespec/streams": "0.84.0",
+    "@typespec/versioning": "0.84.0"
   },
   "private": true,
   "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48"

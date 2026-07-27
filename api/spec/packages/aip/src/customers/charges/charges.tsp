@@ -60,17 +60,16 @@ model ChargeFlatFeeDiscounts {
 model ChargeFlatFeeSystemIntent {
   ...PickProperties<
     ChargeFlatFee,
-
-      | "name"
-      | "description"
-      | "labels"
-      | "invoice_at"
-      | "service_period"
-      | "full_service_period"
-      | "billing_period"
-      | "payment_term"
-      | "discounts"
-      | "proration_configuration"
+    | "name"
+    | "description"
+    | "labels"
+    | "invoice_at"
+    | "service_period"
+    | "full_service_period"
+    | "billing_period"
+    | "payment_term"
+    | "discounts"
+    | "proration_configuration"
   >;
 
   /**
@@ -98,16 +97,15 @@ model ChargeFlatFeeSystemIntent {
 model ChargeUsageBasedSystemIntent {
   ...PickProperties<
     ChargeUsageBased,
-
-      | "name"
-      | "description"
-      | "labels"
-      | "invoice_at"
-      | "service_period"
-      | "full_service_period"
-      | "billing_period"
-      | "discounts"
-      | "price"
+    | "name"
+    | "description"
+    | "labels"
+    | "invoice_at"
+    | "service_period"
+    | "full_service_period"
+    | "billing_period"
+    | "discounts"
+    | "price"
   >;
 
   /**

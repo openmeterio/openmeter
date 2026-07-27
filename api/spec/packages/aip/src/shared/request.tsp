@@ -10,12 +10,11 @@ model CreateRequest<T extends {}> is DefaultKeyVisibility<T, Lifecycle.Read>;
 // Supports visibility filtering for models with nested fields.
 @doc("{name} create request.", T)
 @friendlyName("Create{name}Request", T)
-model CreateRequestNested<T extends {}>
-  is FilterVisibility<
-    DefaultKeyVisibility<T, Lifecycle.Read>,
-    #{ all: #[Lifecycle.Create] },
-    "Create{name}"
-  >;
+model CreateRequestNested<T extends {}> is FilterVisibility<
+  DefaultKeyVisibility<T, Lifecycle.Read>,
+  #{ all: #[Lifecycle.Create] },
+  "Create{name}"
+>;
 
 @doc("{name} upsert request.", T)
 @friendlyName("Upsert{name}Request", T)
@@ -34,9 +33,8 @@ model UpdateRequest<T extends {}>
 // Supports visibility filtering for models with nested fields.
 @doc("{name} update request.", T)
 @friendlyName("Update{name}Request", T)
-model UpdateRequestNested<T extends {}>
-  is FilterVisibility<
-    DefaultKeyVisibility<T, Lifecycle.Read>,
-    #{ all: #[Lifecycle.Update] },
-    "Update{name}"
-  >;
+model UpdateRequestNested<T extends {}> is FilterVisibility<
+  DefaultKeyVisibility<T, Lifecycle.Read>,
+  #{ all: #[Lifecycle.Update] },
+  "Update{name}"
+>;
