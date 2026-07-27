@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -147,6 +148,15 @@ func (c Charge) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (c Charge) ConvertCustomCurrencyOverageToFiat(creditCurrencyTotals totals.Totals) (meta.FiatOverage, error) {
+	return meta.ConvertCustomCurrencyOverageToFiat(meta.ConvertCustomCurrencyOverageToFiatInput{
+		Currency:          c.Intent.GetCurrency(),
+		CostBasisIntent:   c.Intent.GetCostBasisIntent(),
+		ResolvedCostBasis: c.State.ResolvedCostBasis,
+		Totals:            creditCurrencyTotals,
+	})
 }
 
 type Intent struct {

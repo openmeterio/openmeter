@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -42,6 +43,14 @@ func (i AccrueInvoiceUsageInput) Validate() error {
 		if i.LineWithHeader.Line != nil {
 			if currentRun.LineID == nil || *currentRun.LineID != i.LineWithHeader.Line.ID {
 				errs = append(errs, fmt.Errorf("current run line id must match standard line"))
+			}
+
+			if currentRun.NoFiatTransactionRequired && !i.LineWithHeader.Line.Totals.Total.IsZero() {
+				errs = append(errs, fmt.Errorf("current run requires no fiat transaction but line total is non-zero"))
+			}
+
+			if !currentRun.NoFiatTransactionRequired && i.LineWithHeader.Line.Totals.Total.IsZero() {
+				errs = append(errs, fmt.Errorf("current run has zero line total but requires a fiat transaction"))
 			}
 		}
 
@@ -77,15 +86,48 @@ func (s *Service) AccrueInvoiceUsage(ctx context.Context, in AccrueInvoiceUsageI
 			Run: currentRun,
 		}
 
-		if !line.Totals.Total.IsZero() {
-			ledgerTransactionRef, err := s.handler.OnInvoiceUsageAccrued(ctx, flatfee.OnInvoiceUsageAccruedInput{
-				Charge:        in.Charge,
-				ServicePeriod: line.Period,
-				BookedAt:      flatfee.UsageBookedAt(in.Charge.Intent.GetEffectivePaymentTerm(), line.Period),
-				Totals:        line.Totals,
-			})
-			if err != nil {
-				return AccrueInvoiceUsageResult{}, fmt.Errorf("on flat fee standard invoice usage accrued: %w", err)
+		if !currentRun.NoFiatTransactionRequired {
+			var ledgerTransactionRef ledgertransaction.GroupReference
+			if in.Charge.Intent.GetCurrency().IsCustom() {
+				handlerInput := flatfee.OnCustomCurrencyOverageAccruedInput{
+					Charge: in.Charge,
+					Run:    currentRun,
+				}
+				if err := handlerInput.Validate(); err != nil {
+					return AccrueInvoiceUsageResult{}, fmt.Errorf("validating custom currency overage accrued input: %w", err)
+				}
+
+				handlerResult, err := s.handler.OnCustomCurrencyOverageAccrued(ctx, handlerInput)
+				if err != nil {
+					return AccrueInvoiceUsageResult{}, fmt.Errorf("on flat fee custom currency overage accrued: %w", err)
+				}
+				if err := handlerResult.Validate(); err != nil {
+					return AccrueInvoiceUsageResult{}, fmt.Errorf("validating custom currency overage accrued result: %w", err)
+				}
+				if !handlerResult.TotalFiatAmount.Equal(line.Totals.Total) {
+					return AccrueInvoiceUsageResult{}, fmt.Errorf(
+						"custom currency overage booked fiat amount does not match line total: %s != %s",
+						handlerResult.TotalFiatAmount,
+						line.Totals.Total,
+					)
+				}
+
+				ledgerTransactionRef = handlerResult.TransactionGroup
+			} else {
+				var err error
+				ledgerTransactionRef, err = s.handler.OnInvoiceUsageAccrued(ctx, flatfee.OnInvoiceUsageAccruedInput{
+					Charge:        in.Charge,
+					ServicePeriod: line.Period,
+					BookedAt:      flatfee.UsageBookedAt(in.Charge.Intent.GetEffectivePaymentTerm(), line.Period),
+					Totals:        line.Totals,
+				})
+				if err != nil {
+					return AccrueInvoiceUsageResult{}, fmt.Errorf("on flat fee standard invoice usage accrued: %w", err)
+				}
+			}
+
+			if ledgerTransactionRef.TransactionGroupID == "" {
+				return AccrueInvoiceUsageResult{}, fmt.Errorf("no ledger transaction is returned for run %s", currentRun.ID.ID)
 			}
 
 			accruedUsage := invoicedusage.AccruedUsage{
@@ -94,7 +136,7 @@ func (s *Service) AccrueInvoiceUsage(ctx context.Context, in AccrueInvoiceUsageI
 				LedgerTransaction: &ledgerTransactionRef,
 			}
 
-			accruedUsage, err = s.adapter.CreateInvoicedUsage(ctx, flatfee.CreateInvoicedUsageInput{
+			accruedUsage, err := s.adapter.CreateInvoicedUsage(ctx, flatfee.CreateInvoicedUsageInput{
 				RunID:         currentRun.ID,
 				LineID:        line.ID,
 				InvoiceID:     in.LineWithHeader.Invoice.ID,

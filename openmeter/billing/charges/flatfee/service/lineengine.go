@@ -81,6 +81,17 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 			return nil, fmt.Errorf("flat fee charge[%s] not found for gathering preview line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
 
+		// Custom-currency gathering lines are scheduling placeholders. They
+		// remain zero until an actual draft invoice realization has resolved
+		// and persisted the charge's cost basis.
+		if charge.Intent.GetCurrency().IsCustom() {
+			if err := stdLine.Validate(); err != nil {
+				return nil, fmt.Errorf("validating custom currency gathering preview line[%s]: %w", stdLine.ID, err)
+			}
+
+			continue
+		}
+
 		previewResult, err := e.service.realizations.BuildCreditThenInvoiceGatheringPreviewRun(flatfeerealizations.BuildCreditThenInvoiceGatheringPreviewRunInput{
 			Charge:    charge,
 			LineID:    stdLine.ID,
@@ -225,6 +236,14 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 			)
 		}
 
+		if charge.Intent.GetCurrency().IsCustom() {
+			return nil, fmt.Errorf(
+				"custom-currency flat fee line[%s] cannot be edited: %w",
+				override.ExistingLine.GetID(),
+				billing.ErrCannotUpdateChargeManagedLine,
+			)
+		}
+
 		stateMachine, err := e.service.newStateMachineForCharge(charge)
 		if err != nil {
 			return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
@@ -313,6 +332,14 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 				"flat fee line[%s]: unsupported settlement mode for API delete: %s",
 				line.GetID(),
 				charge.Intent.GetSettlementMode(),
+			)
+		}
+
+		if charge.Intent.GetCurrency().IsCustom() {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf(
+				"custom-currency flat fee line[%s] cannot be deleted: %w",
+				line.GetID(),
+				billing.ErrCannotUpdateChargeManagedLine,
 			)
 		}
 
@@ -405,6 +432,14 @@ func (e *LineEngine) validateManualUpdateLineViaAPI(ctx context.Context, overrid
 		)
 	}
 
+	if charge.Intent.GetCurrency().IsCustom() {
+		return fmt.Errorf(
+			"custom-currency flat fee line[%s] cannot be edited: %w",
+			override.ExistingLine.GetID(),
+			billing.ErrCannotUpdateChargeManagedLine,
+		)
+	}
+
 	if err := override.ExistingLine.AsInvoiceLine().Type().Require(billing.InvoiceLineTypeStandard, billing.InvoiceLineTypeGathering); err != nil {
 		return fmt.Errorf("flat fee line[%s]: unsupported line type for API edit: %s", override.ExistingLine.GetID(), override.ExistingLine.AsInvoiceLine().Type())
 	}
@@ -443,6 +478,14 @@ func (e *LineEngine) validateManualDeleteLineViaAPI(ctx context.Context, line bi
 			"flat fee line[%s]: unsupported settlement mode for API delete: %s",
 			line.GetID(),
 			charge.Intent.GetSettlementMode(),
+		)
+	}
+
+	if charge.Intent.GetCurrency().IsCustom() {
+		return fmt.Errorf(
+			"custom-currency flat fee line[%s] cannot be deleted: %w",
+			line.GetID(),
+			billing.ErrCannotUpdateChargeManagedLine,
 		)
 	}
 

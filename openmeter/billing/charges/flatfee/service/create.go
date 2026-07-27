@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -176,6 +177,27 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		return billing.GatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
 
+	lineName := lineIntent.Name
+	linePrice := lo.FromPtr(rateableIntent.GetPrice())
+	lineDiscounts := rateableIntent.GetRateCardDiscounts()
+	if lineIntent.Currency.IsCustom() {
+		if clonedAnnotations == nil {
+			clonedAnnotations = models.Annotations{}
+		}
+		clonedAnnotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonOveragePlaceholder)
+
+		lineName = "overage"
+		if lineIntent.Name != "" {
+			lineName = fmt.Sprintf("%s (overage)", lineIntent.Name)
+		}
+
+		linePrice = lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.Zero,
+			PaymentTerm: productcatalog.InArrearsPaymentTerm,
+		}))
+		lineDiscounts = billing.Discounts{}
+	}
+
 	managedBy := lineIntent.ManagedBy
 	if flatFee.Intent.HasOverrideLayer() {
 		managedBy = billing.ManuallyManagedLine
@@ -190,7 +212,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   flatFee.Namespace,
-				Name:        lineIntent.Name,
+				Name:        lineName,
 				Description: lineIntent.Description,
 			}),
 
@@ -198,7 +220,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 			Annotations: clonedAnnotations,
 			ManagedBy:   managedBy,
 
-			Price:      lo.FromPtr(rateableIntent.GetPrice()),
+			Price:      linePrice,
 			FeatureKey: lo.FromPtr(lineIntent.FeatureKey),
 
 			Currency:      invoiceCurrency,
@@ -213,7 +235,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		},
 	}
 
-	gatheringLine.RateCardDiscounts = rateableIntent.GetRateCardDiscounts()
+	gatheringLine.RateCardDiscounts = lineDiscounts
 
 	return gatheringLine, nil
 }

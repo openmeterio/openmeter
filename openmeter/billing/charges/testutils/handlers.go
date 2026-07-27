@@ -49,6 +49,23 @@ func (mockFlatFeeHandler) OnInvoiceUsageAccrued(context.Context, flatfee.OnInvoi
 	return newMockLedgerTransactionGroupReference(), nil
 }
 
+func (mockFlatFeeHandler) OnCustomCurrencyOverageAccrued(_ context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
+	costBasis, err := input.GetCostBasis()
+	if err != nil {
+		return flatfee.OnCustomCurrencyOverageAccruedResult{}, err
+	}
+
+	fiatCurrency, err := input.GetFiatCurrency()
+	if err != nil {
+		return flatfee.OnCustomCurrencyOverageAccruedResult{}, err
+	}
+
+	return flatfee.OnCustomCurrencyOverageAccruedResult{
+		TransactionGroup: newMockLedgerTransactionGroupReference(),
+		TotalFiatAmount:  fiatCurrency.RoundToPrecision(input.GetCustomCurrencyAmountAccrued().Mul(costBasis)),
+	}, nil
+}
+
 func (mockFlatFeeHandler) OnCorrectCreditAllocations(_ context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
 	return lo.Map(input.Corrections, func(correction creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
 		return creditrealization.CreateCorrectionInput{
