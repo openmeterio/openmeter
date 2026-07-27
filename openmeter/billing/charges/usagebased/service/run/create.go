@@ -172,9 +172,6 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 		return CreateRatedRunResult{}, err
 	}
 
-	if err := s.adapter.UpsertRunDetailedLines(ctx, updatedCharge.GetChargeID(), currentRun.ID, ratingResult.DetailedLines); err != nil {
-		return CreateRatedRunResult{}, fmt.Errorf("upsert run detailed lines: %w", err)
-	}
 	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
 
 	allocationResult, err := s.allocate(ctx, allocateCreditRealizationsInput{
@@ -192,6 +189,31 @@ func (s *Service) CreateRatedRun(ctx context.Context, in CreateRatedRunInput) (C
 	currentRun.CreditsAllocated = allocationResult.Realizations
 	runTotals.CreditsTotal = runTotals.CreditsTotal.Add(allocationResult.Allocated)
 	runTotals.Total = in.CurrencyCalculator.RoundToPrecision(runTotals.Total.Sub(allocationResult.Allocated))
+
+	detailedLines := ratingResult.DetailedLines
+	detailedLinesIncludeCreditAllocations := settlementMode == productcatalog.CreditThenInvoiceSettlementMode
+	if detailedLinesIncludeCreditAllocations {
+		creditsApplied, err := currentRun.CreditsAllocated.AsCreditsApplied()
+		if err != nil {
+			return CreateRatedRunResult{}, fmt.Errorf("map credit realizations to detailed line credits: %w", err)
+		}
+
+		detailedLines, err = detailedLines.WithCreditsApplied(creditsApplied, in.CurrencyCalculator)
+		if err != nil {
+			return CreateRatedRunResult{}, fmt.Errorf("apply credit allocations to run detailed lines: %w", err)
+		}
+	}
+
+	if err := s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID:                              updatedCharge.GetChargeID(),
+		RunID:                                 currentRun.ID,
+		DetailedLines:                         detailedLines,
+		DetailedLinesIncludeCreditAllocations: detailedLinesIncludeCreditAllocations,
+	}); err != nil {
+		return CreateRatedRunResult{}, fmt.Errorf("upsert run detailed lines: %w", err)
+	}
+	currentRun.DetailedLines = mo.Some(detailedLines)
+	currentRun.DetailedLinesIncludeCreditAllocations = detailedLinesIncludeCreditAllocations
 
 	// Let's calculate if the current run at this point requires a fiat transaction.
 	noFiatTransactionRequired := isCreditsOnlySettlementMode || runTotals.Total.IsZero()

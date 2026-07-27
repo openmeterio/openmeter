@@ -212,6 +212,12 @@ type RealizationRunBase struct {
 	// Totals includes credit allocations and excludes taxes.
 	Totals                    totals.Totals `json:"totals"`
 	NoFiatTransactionRequired bool          `json:"noFiatTransactionRequired"`
+	// DetailedLinesIncludeCreditAllocations describes if credit allocation is applied to the detailed lines.
+	// Credits-only: always false
+	// Credit-then-invoice:
+	// - true, for all runs (even when 0 credits were allocated)
+	// - legacy runs have false, as previously we didn't store credit allocations on detailed lines
+	DetailedLinesIncludeCreditAllocations bool `json:"detailedLinesIncludeCreditAllocations"`
 }
 
 func (r RealizationRunBase) Normalized() RealizationRunBase {
@@ -282,7 +288,8 @@ type RealizationRun struct {
 	CreditsAllocated creditrealization.Realizations `json:"creditsAllocated"`
 	InvoiceUsage     *invoicedusage.AccruedUsage    `json:"invoicedUsage"`
 	Payment          *payment.Invoiced              `json:"payment"`
-	// DetailedLines contains rated details before credit allocations and taxes.
+	// DetailedLines excludes taxes. Credit-then-invoice runs include credit
+	// allocations, while credits-only runs retain their gross rated details.
 	DetailedLines mo.Option[DetailedLines] `json:"detailedLines,omitzero"`
 }
 

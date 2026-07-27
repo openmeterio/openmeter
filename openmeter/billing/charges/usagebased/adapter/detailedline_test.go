@@ -176,7 +176,11 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			Description:            lo.ToPtr("delete me"),
 		}),
 	}
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, initialLines))
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID:      charge.GetChargeID(),
+		RunID:         runBase.ID,
+		DetailedLines: initialLines,
+	}))
 
 	initialKeepRow, err := s.dbClient.ChargeUsageBasedRunDetailedLine.Query().
 		Where(
@@ -208,7 +212,11 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			Description:            lo.ToPtr("new description"),
 		}),
 	}
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, replacementLines))
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID:      charge.GetChargeID(),
+		RunID:         runBase.ID,
+		DetailedLines: replacementLines,
+	}))
 
 	replacedKeepRow, err := s.dbClient.ChargeUsageBasedRunDetailedLine.Query().
 		Where(
@@ -274,7 +282,10 @@ func (s *DetailedLineAdapterSuite) TestFetchDetailedLinesUsesDetailedLinesPresen
 	s.Require().Len(fetchedWithoutMaterializedLines.Realizations, 1)
 	s.False(fetchedWithoutMaterializedLines.Realizations[0].DetailedLines.IsPresent())
 
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, nil))
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID: charge.GetChargeID(),
+		RunID:    runBase.ID,
+	}))
 
 	fetchedWithMaterializedEmptyLines, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
@@ -303,14 +314,18 @@ func (s *DetailedLineAdapterSuite) TestFetchDetailedLinesDoesNotRepairDetailedLi
 	namespace := "usagebased-detailedline-adapter-fetch-does-not-repair-flag"
 	charge, runBase, servicePeriod := s.createChargeWithRun(namespace)
 
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, usagebased.DetailedLines{
-		s.newDetailedLine(newDetailedLineInput{
-			Charge:                 charge,
-			RunID:                  runBase.ID,
-			ServicePeriod:          servicePeriod,
-			ChildUniqueReferenceID: "existing@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
-			Quantity:               1,
-		}),
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID: charge.GetChargeID(),
+		RunID:    runBase.ID,
+		DetailedLines: usagebased.DetailedLines{
+			s.newDetailedLine(newDetailedLineInput{
+				Charge:                 charge,
+				RunID:                  runBase.ID,
+				ServicePeriod:          servicePeriod,
+				ChildUniqueReferenceID: "existing@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
+				Quantity:               1,
+			}),
+		},
 	}))
 
 	_, err := s.dbClient.ChargeUsageBasedRuns.UpdateOneID(runBase.ID.ID).
@@ -345,14 +360,18 @@ func (s *DetailedLineAdapterSuite) TestFetchDetailedLinesUsesPersistedDetailedLi
 	namespace := "usagebased-detailedline-adapter-fetch-uses-persisted-flag"
 	charge, runBase, servicePeriod := s.createChargeWithRun(namespace)
 
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, usagebased.DetailedLines{
-		s.newDetailedLine(newDetailedLineInput{
-			Charge:                 charge,
-			RunID:                  runBase.ID,
-			ServicePeriod:          servicePeriod,
-			ChildUniqueReferenceID: "persisted@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
-			Quantity:               1,
-		}),
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID: charge.GetChargeID(),
+		RunID:    runBase.ID,
+		DetailedLines: usagebased.DetailedLines{
+			s.newDetailedLine(newDetailedLineInput{
+				Charge:                 charge,
+				RunID:                  runBase.ID,
+				ServicePeriod:          servicePeriod,
+				ChildUniqueReferenceID: "persisted@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
+				Quantity:               1,
+			}),
+		},
 	}))
 
 	_, err := s.dbClient.ChargeUsageBasedRuns.UpdateOneID(runBase.ID.ID).

@@ -3338,6 +3338,7 @@ var (
 		{Name: "stored_at_lt", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "detailed_lines_present", Type: field.TypeBool},
+		{Name: "detailed_lines_include_credit_allocations", Type: field.TypeBool, Default: false},
 		{Name: "metered_quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "no_fiat_transaction_required", Type: field.TypeBool},
 		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3353,25 +3354,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_runs_billing_invoices_charge_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[20]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[21]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_runs_billing_invoice_lines_charge_usage_based_run",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[21]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[22]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_runs_charge_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[22]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[23]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_usage_based_runs_features_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[23]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[24]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -3390,7 +3391,7 @@ var (
 			{
 				Name:    "chargeusagebasedruns_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[22]},
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[23]},
 			},
 		},
 	}

@@ -73881,53 +73881,54 @@ func (m *ChargeUsageBasedRunPaymentMutation) ResetEdge(name string) error {
 // ChargeUsageBasedRunsMutation represents an operation that mutates the ChargeUsageBasedRuns nodes in the graph.
 type ChargeUsageBasedRunsMutation struct {
 	config
-	op                              Op
-	typ                             string
-	id                              *string
-	namespace                       *string
-	created_at                      *time.Time
-	updated_at                      *time.Time
-	deleted_at                      *time.Time
-	amount                          *alpacadecimal.Decimal
-	taxes_total                     *alpacadecimal.Decimal
-	taxes_inclusive_total           *alpacadecimal.Decimal
-	taxes_exclusive_total           *alpacadecimal.Decimal
-	charges_total                   *alpacadecimal.Decimal
-	discounts_total                 *alpacadecimal.Decimal
-	credits_total                   *alpacadecimal.Decimal
-	total                           *alpacadecimal.Decimal
-	_type                           *usagebased.RealizationRunType
-	initial_type                    *usagebased.RealizationRunType
-	stored_at_lt                    *time.Time
-	service_period_to               *time.Time
-	detailed_lines_present          *bool
-	metered_quantity                *alpacadecimal.Decimal
-	no_fiat_transaction_required    *bool
-	clearedFields                   map[string]struct{}
-	usage_based                     *string
-	clearedusage_based              bool
-	feature                         *string
-	clearedfeature                  bool
-	billing_invoice_line            *string
-	clearedbilling_invoice_line     bool
-	billing_invoice                 *string
-	clearedbilling_invoice          bool
-	credit_allocations              map[string]struct{}
-	removedcredit_allocations       map[string]struct{}
-	clearedcredit_allocations       bool
-	detailed_lines                  map[string]struct{}
-	removeddetailed_lines           map[string]struct{}
-	cleareddetailed_lines           bool
-	corrected_detailed_lines        map[string]struct{}
-	removedcorrected_detailed_lines map[string]struct{}
-	clearedcorrected_detailed_lines bool
-	invoiced_usage                  *string
-	clearedinvoiced_usage           bool
-	payment                         *string
-	clearedpayment                  bool
-	done                            bool
-	oldValue                        func(context.Context) (*ChargeUsageBasedRuns, error)
-	predicates                      []predicate.ChargeUsageBasedRuns
+	op                                        Op
+	typ                                       string
+	id                                        *string
+	namespace                                 *string
+	created_at                                *time.Time
+	updated_at                                *time.Time
+	deleted_at                                *time.Time
+	amount                                    *alpacadecimal.Decimal
+	taxes_total                               *alpacadecimal.Decimal
+	taxes_inclusive_total                     *alpacadecimal.Decimal
+	taxes_exclusive_total                     *alpacadecimal.Decimal
+	charges_total                             *alpacadecimal.Decimal
+	discounts_total                           *alpacadecimal.Decimal
+	credits_total                             *alpacadecimal.Decimal
+	total                                     *alpacadecimal.Decimal
+	_type                                     *usagebased.RealizationRunType
+	initial_type                              *usagebased.RealizationRunType
+	stored_at_lt                              *time.Time
+	service_period_to                         *time.Time
+	detailed_lines_present                    *bool
+	detailed_lines_include_credit_allocations *bool
+	metered_quantity                          *alpacadecimal.Decimal
+	no_fiat_transaction_required              *bool
+	clearedFields                             map[string]struct{}
+	usage_based                               *string
+	clearedusage_based                        bool
+	feature                                   *string
+	clearedfeature                            bool
+	billing_invoice_line                      *string
+	clearedbilling_invoice_line               bool
+	billing_invoice                           *string
+	clearedbilling_invoice                    bool
+	credit_allocations                        map[string]struct{}
+	removedcredit_allocations                 map[string]struct{}
+	clearedcredit_allocations                 bool
+	detailed_lines                            map[string]struct{}
+	removeddetailed_lines                     map[string]struct{}
+	cleareddetailed_lines                     bool
+	corrected_detailed_lines                  map[string]struct{}
+	removedcorrected_detailed_lines           map[string]struct{}
+	clearedcorrected_detailed_lines           bool
+	invoiced_usage                            *string
+	clearedinvoiced_usage                     bool
+	payment                                   *string
+	clearedpayment                            bool
+	done                                      bool
+	oldValue                                  func(context.Context) (*ChargeUsageBasedRuns, error)
+	predicates                                []predicate.ChargeUsageBasedRuns
 }
 
 var _ ent.Mutation = (*ChargeUsageBasedRunsMutation)(nil)
@@ -74731,6 +74732,42 @@ func (m *ChargeUsageBasedRunsMutation) ResetDetailedLinesPresent() {
 	m.detailed_lines_present = nil
 }
 
+// SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
+func (m *ChargeUsageBasedRunsMutation) SetDetailedLinesIncludeCreditAllocations(b bool) {
+	m.detailed_lines_include_credit_allocations = &b
+}
+
+// DetailedLinesIncludeCreditAllocations returns the value of the "detailed_lines_include_credit_allocations" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) DetailedLinesIncludeCreditAllocations() (r bool, exists bool) {
+	v := m.detailed_lines_include_credit_allocations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDetailedLinesIncludeCreditAllocations returns the old "detailed_lines_include_credit_allocations" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldDetailedLinesIncludeCreditAllocations(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDetailedLinesIncludeCreditAllocations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDetailedLinesIncludeCreditAllocations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDetailedLinesIncludeCreditAllocations: %w", err)
+	}
+	return oldValue.DetailedLinesIncludeCreditAllocations, nil
+}
+
+// ResetDetailedLinesIncludeCreditAllocations resets all changes to the "detailed_lines_include_credit_allocations" field.
+func (m *ChargeUsageBasedRunsMutation) ResetDetailedLinesIncludeCreditAllocations() {
+	m.detailed_lines_include_credit_allocations = nil
+}
+
 // SetLineID sets the "line_id" field.
 func (m *ChargeUsageBasedRunsMutation) SetLineID(s string) {
 	m.billing_invoice_line = &s
@@ -75322,7 +75359,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 23)
+	fields := make([]string, 0, 24)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -75379,6 +75416,9 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	}
 	if m.detailed_lines_present != nil {
 		fields = append(fields, chargeusagebasedruns.FieldDetailedLinesPresent)
+	}
+	if m.detailed_lines_include_credit_allocations != nil {
+		fields = append(fields, chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations)
 	}
 	if m.billing_invoice_line != nil {
 		fields = append(fields, chargeusagebasedruns.FieldLineID)
@@ -75438,6 +75478,8 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.ServicePeriodTo()
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		return m.DetailedLinesPresent()
+	case chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations:
+		return m.DetailedLinesIncludeCreditAllocations()
 	case chargeusagebasedruns.FieldLineID:
 		return m.LineID()
 	case chargeusagebasedruns.FieldInvoiceID:
@@ -75493,6 +75535,8 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldServicePeriodTo(ctx)
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		return m.OldDetailedLinesPresent(ctx)
+	case chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations:
+		return m.OldDetailedLinesIncludeCreditAllocations(ctx)
 	case chargeusagebasedruns.FieldLineID:
 		return m.OldLineID(ctx)
 	case chargeusagebasedruns.FieldInvoiceID:
@@ -75642,6 +75686,13 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDetailedLinesPresent(v)
+		return nil
+	case chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDetailedLinesIncludeCreditAllocations(v)
 		return nil
 	case chargeusagebasedruns.FieldLineID:
 		v, ok := value.(string)
@@ -75797,6 +75848,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		m.ResetDetailedLinesPresent()
+		return nil
+	case chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations:
+		m.ResetDetailedLinesIncludeCreditAllocations()
 		return nil
 	case chargeusagebasedruns.FieldLineID:
 		m.ResetLineID()
