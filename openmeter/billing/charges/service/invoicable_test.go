@@ -35,6 +35,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -2745,6 +2746,12 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 					name:              flatFeeName,
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: flatFeeName,
+					percentageDiscounts: &billing.PercentageDiscount{
+						PercentageDiscount: productcatalog.PercentageDiscount{
+							Percentage: models.NewPercentage(10),
+						},
+						CorrelationID: "flat-fee-credit-only-discount",
+					},
 				}),
 			},
 		})
@@ -2834,12 +2841,26 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 		// The handler was called exactly once with the correct amount.
 		s.Len(callbacks, 1)
-		s.Equal(float64(100), callbacks[0].Input.PreTaxAmountToAllocate.InexactFloat64())
+		s.Equal(float64(90), callbacks[0].Input.PreTaxAmountToAllocate.InexactFloat64())
 
-		// Credit realizations were persisted.
+		// Credit realizations and gross rated details were persisted separately.
+		fetchedFF = s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
 		s.Require().NotNil(fetchedFF.Realizations.CurrentRun)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:         100,
+			DiscountsTotal: 10,
+			CreditsTotal:   90,
+		}, fetchedFF.Realizations.CurrentRun.Totals)
 		s.Len(fetchedFF.Realizations.CurrentRun.CreditRealizations, 1)
-		s.Equal(float64(100), fetchedFF.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
+		s.Equal(float64(90), fetchedFF.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
+		s.True(fetchedFF.Realizations.CurrentRun.DetailedLines.IsPresent())
+		s.Require().Len(fetchedFF.Realizations.CurrentRun.DetailedLines.OrEmpty(), 1)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:         100,
+			DiscountsTotal: 10,
+			Total:          90,
+		}, fetchedFF.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Totals)
+		s.Empty(fetchedFF.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].CreditsApplied)
 	})
 
 	s.Run("#3 final charge advance is noop", func() {
@@ -3056,9 +3077,20 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 		s.True(createdCharge.Intent.GetCurrency().IsCustom())
 		s.Equal(customCurrency.ID, createdCharge.Intent.GetCurrency().ID)
 		s.Require().NotNil(createdCharge.Realizations.CurrentRun)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount:       50.123,
+			CreditsTotal: 50.123,
+		}, createdCharge.Realizations.CurrentRun.Totals)
 		s.Require().Len(createdCharge.Realizations.CurrentRun.CreditRealizations, 1)
 		s.Equal(float64(50.123), createdCharge.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
 		s.Equal(allocationTransactionGroupID, createdCharge.Realizations.CurrentRun.CreditRealizations[0].LedgerTransaction.TransactionGroupID)
+		s.True(createdCharge.Realizations.CurrentRun.DetailedLines.IsPresent())
+		s.Require().Len(createdCharge.Realizations.CurrentRun.DetailedLines.OrEmpty(), 1)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount: 50.123,
+			Total:  50.123,
+		}, createdCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Totals)
+		s.Empty(createdCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].CreditsApplied)
 	})
 
 	s.Run("#3 reload persisted charge", func() {
@@ -3066,8 +3098,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 		// - the flat-fee charge is loaded again from Postgres
 		// then:
 		// - its final state, custom currency, totals, and allocation are preserved
-		persisted, err := s.mustGetChargeByID(createdCharge.GetChargeID()).AsFlatFeeCharge()
-		s.Require().NoError(err)
+		persisted := s.mustGetFlatFeeChargeByIDWithDetailedLines(createdCharge.GetChargeID())
 		s.Equal(flatfee.StatusFinal, persisted.Status)
 		s.True(persisted.Intent.GetCurrency().IsCustom())
 		s.Equal(customCurrency.ID, persisted.Intent.GetCurrency().ID)
@@ -3078,6 +3109,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 		}, persisted.Realizations.CurrentRun.Totals)
 		s.Require().Len(persisted.Realizations.CurrentRun.CreditRealizations, 1)
 		s.Equal(allocationTransactionGroupID, persisted.Realizations.CurrentRun.CreditRealizations[0].LedgerTransaction.TransactionGroupID)
+		s.True(persisted.Realizations.CurrentRun.DetailedLines.IsPresent())
+		s.Require().Len(persisted.Realizations.CurrentRun.DetailedLines.OrEmpty(), 1)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount: 50.123,
+			Total:  50.123,
+		}, persisted.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Totals)
+		s.Empty(persisted.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].CreditsApplied)
 	})
 }
 

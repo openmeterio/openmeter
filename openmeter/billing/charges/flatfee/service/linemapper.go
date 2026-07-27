@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -8,22 +9,70 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, run flatfee.RealizationRun) error {
+type populateFlatFeeStandardLineFromRunInput struct {
+	Charge flatfee.Charge
+	Run    flatfee.RealizationRun
+}
+
+func (i populateFlatFeeStandardLineFromRunInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	effectiveServicePeriod := i.Charge.Intent.GetEffectiveServicePeriod()
+	if !i.Run.ServicePeriod.Equal(effectiveServicePeriod) {
+		errs = append(errs, fmt.Errorf(
+			"run service period does not match effective intent [run_id=%s run_period=%v intent_period=%v]",
+			i.Run.ID.ID,
+			i.Run.ServicePeriod,
+			effectiveServicePeriod,
+		))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, input populateFlatFeeStandardLineFromRunInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	if stdLine.UsageBased == nil {
+		return fmt.Errorf("standard line[%s]: usage based line is required", stdLine.ID)
+	}
+
+	rateableIntent, err := input.Charge.GetRateableIntent()
+	if err != nil {
+		return fmt.Errorf("getting rateable intent: %w", err)
+	}
+
+	stdLine.Name = rateableIntent.GetName()
+	stdLine.Period = rateableIntent.GetServicePeriod()
+	stdLine.UsageBased.Price = rateableIntent.GetPrice()
+	stdLine.RateCardDiscounts = rateableIntent.GetRateCardDiscounts()
+
 	currency, err := stdLine.Currency.AsFiatCurrency()
 	if err != nil {
 		return fmt.Errorf("creating currency calculator: %w", err)
 	}
 
-	creditsApplied, err := run.CreditRealizations.AsCreditsApplied()
+	creditsApplied, err := input.Run.CreditRealizations.AsCreditsApplied()
 	if err != nil {
 		return err
 	}
 
 	stdLine.CreditsApplied = creditsApplied
 
-	mappedDetailedLines, err := mapFlatFeeDetailedLines(stdLine, run)
+	mappedDetailedLines, err := mapFlatFeeDetailedLines(stdLine, input.Run)
 	if err != nil {
 		return fmt.Errorf("mapping run detailed lines: %w", err)
 	}
@@ -36,10 +85,10 @@ func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, run flatf
 	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(mappedDetailedLines)
 	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(currency)
 
-	expectedTotals := run.Totals.RoundToPrecision(currency)
+	expectedTotals := input.Run.Totals.RoundToPrecision(currency)
 	if !stdLine.Totals.Equal(expectedTotals) {
 		return fmt.Errorf("mapped line totals do not match run totals [line_id=%s run_id=%s line_total=%s run_total=%s]",
-			stdLine.ID, run.ID.ID, stdLine.Totals.Total.String(), expectedTotals.Total.String())
+			stdLine.ID, input.Run.ID.ID, stdLine.Totals.Total.String(), expectedTotals.Total.String())
 	}
 
 	return nil

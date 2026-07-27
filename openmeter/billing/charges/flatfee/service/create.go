@@ -108,9 +108,8 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			}
 
 			gatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
-				Charge:        charge,
-				ServicePeriod: charge.Intent.GetEffectiveServicePeriod(),
-				InvoiceAt:     charge.Intent.GetEffectiveInvoiceAt(),
+				Charge:    charge,
+				InvoiceAt: charge.Intent.GetEffectiveInvoiceAt(),
 			})
 			if err != nil {
 				return flatfee.ChargeWithGatheringLine{}, err
@@ -125,18 +124,13 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 }
 
 type buildFlatFeeGatheringLineInput struct {
-	Charge        flatfee.Charge
-	ServicePeriod timeutil.ClosedPeriod
-	InvoiceAt     time.Time
+	Charge    flatfee.Charge
+	InvoiceAt time.Time
 }
 
 func (i buildFlatFeeGatheringLineInput) Validate() error {
 	if err := i.Charge.Validate(); err != nil {
 		return fmt.Errorf("charge: %w", err)
-	}
-
-	if err := i.ServicePeriod.Validate(); err != nil {
-		return fmt.Errorf("service period: %w", err)
 	}
 
 	if i.InvoiceAt.IsZero() {
@@ -156,19 +150,13 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 	}
 
 	flatFee := input.Charge
-	lineIntent := flatFee.Intent.GetEffectiveIntent()
-	lineIntent.ServicePeriod = input.ServicePeriod
-	lineIntent.InvoiceAt = input.InvoiceAt
-	lineIntent = lineIntent.Normalized()
-
-	if err := lineIntent.Validate(); err != nil {
-		return billing.GatheringLine{}, fmt.Errorf("validating line intent: %w", err)
-	}
-
-	amountAfterProration, err := lineIntent.CalculateAmountAfterProration()
+	rateableIntent, err := flatFee.GetRateableIntent()
 	if err != nil {
-		return billing.GatheringLine{}, fmt.Errorf("calculating amount after proration: %w", err)
+		return billing.GatheringLine{}, fmt.Errorf("getting rateable intent: %w", err)
 	}
+
+	lineIntent := rateableIntent.Intent
+	lineIntent.InvoiceAt = meta.NormalizeTimestamp(input.InvoiceAt)
 
 	var subscription *billing.SubscriptionReference
 	if lineIntent.Subscription != nil {
@@ -210,14 +198,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 			Annotations: clonedAnnotations,
 			ManagedBy:   managedBy,
 
-			Price: lo.FromPtr(
-				productcatalog.NewPriceFrom(
-					productcatalog.FlatPrice{
-						Amount:      amountAfterProration,
-						PaymentTerm: lineIntent.PaymentTerm,
-					},
-				),
-			),
+			Price:      lo.FromPtr(rateableIntent.GetPrice()),
 			FeatureKey: lo.FromPtr(lineIntent.FeatureKey),
 
 			Currency:      invoiceCurrency,
@@ -232,11 +213,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		},
 	}
 
-	if lineIntent.PercentageDiscounts != nil {
-		gatheringLine.RateCardDiscounts = billing.Discounts{
-			Percentage: lineIntent.PercentageDiscounts.CloneOrNil(),
-		}
-	}
+	gatheringLine.RateCardDiscounts = rateableIntent.GetRateCardDiscounts()
 
 	return gatheringLine, nil
 }

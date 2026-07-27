@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -130,6 +132,46 @@ func TestOverridableIntentPreservesCostBasis(t *testing.T) {
 		FiatCurrency: newFiatCurrency(t, "EUR"),
 	})
 	requireManualCostBasisIntent(t, overridable.GetCostBasisIntent())
+}
+
+func TestChargeGetRateableIntentUsesEffectiveIntent(t *testing.T) {
+	intent := newValidIntent(t, currenciestestutils.NewFiatCurrency(t, "USD"), productcatalog.CreditThenInvoiceSettlementMode)
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC),
+	}
+	override := intent.IntentMutableFields.Clone()
+	override.Name = "overridden flat fee"
+	override.ServicePeriod = servicePeriod
+	override.AmountBeforeProration = alpacadecimal.NewFromFloat(42.123)
+	override.PercentageDiscounts = &billing.PercentageDiscount{
+		PercentageDiscount: productcatalog.PercentageDiscount{
+			Percentage: models.NewPercentage(10),
+		},
+		CorrelationID: "discount-1",
+	}
+
+	charge := Charge{
+		ChargeBase: ChargeBase{
+			Intent: NewOverridableIntent(intent, &override),
+		},
+	}
+
+	rateableIntent, err := charge.GetRateableIntent()
+	require.NoError(t, err)
+	require.Equal(t, "overridden flat fee", rateableIntent.Name)
+	require.Equal(t, servicePeriod, rateableIntent.ServicePeriod)
+	require.Equal(t, float64(42.12), rateableIntent.AmountAfterProration.InexactFloat64())
+	require.Equal(t, "discount-1", rateableIntent.PercentageDiscounts.CorrelationID)
+
+	firstPrice := rateableIntent.GetPrice()
+	secondPrice := rateableIntent.GetPrice()
+	require.NotSame(t, firstPrice, secondPrice)
+
+	discounts := rateableIntent.GetRateCardDiscounts()
+	require.NotNil(t, discounts.Percentage)
+	discounts.Percentage.CorrelationID = "mutated"
+	require.Equal(t, "discount-1", rateableIntent.PercentageDiscounts.CorrelationID)
 }
 
 func newCustomCurrency(t testing.TB) currencies.Currency {

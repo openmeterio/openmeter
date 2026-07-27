@@ -270,18 +270,19 @@ func (s *BaseSuite) createTestCustomCurrency(ctx context.Context, namespace stri
 }
 
 type createMockChargeIntentInput struct {
-	customer          customer.CustomerID
-	currency          currencyx.Code
-	servicePeriod     timeutil.ClosedPeriod
-	price             *productcatalog.Price
-	unitConfig        *productcatalog.UnitConfig
-	featureKey        string
-	name              string
-	settlementMode    productcatalog.SettlementMode
-	managedBy         billing.InvoiceLineManagedBy
-	uniqueReferenceID string
-	taxConfig         productcatalog.TaxCodeConfig
-	proRating         productcatalog.ProRatingConfig
+	customer            customer.CustomerID
+	currency            currencyx.Code
+	servicePeriod       timeutil.ClosedPeriod
+	price               *productcatalog.Price
+	unitConfig          *productcatalog.UnitConfig
+	featureKey          string
+	name                string
+	settlementMode      productcatalog.SettlementMode
+	managedBy           billing.InvoiceLineManagedBy
+	uniqueReferenceID   string
+	taxConfig           productcatalog.TaxCodeConfig
+	proRating           productcatalog.ProRatingConfig
+	percentageDiscounts *billing.PercentageDiscount
 }
 
 func (i *createMockChargeIntentInput) Validate() error {
@@ -351,6 +352,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 				InvoiceAt:             invoiceAt,
 				AmountBeforeProration: price.Amount,
 				ProRating:             input.proRating,
+				PercentageDiscounts:   input.percentageDiscounts.CloneOrNil(),
 			},
 			FeatureKey:     lo.EmptyableToPtr(input.featureKey),
 			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
