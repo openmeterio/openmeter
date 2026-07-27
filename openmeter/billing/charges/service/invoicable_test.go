@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -122,6 +123,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsW
 			Amount: 100,
 			Total:  100,
 		},
+		ExpectedDetailedLines: 1,
 		AssertLine: func(previewLine *billing.StandardLine) {
 			s.Equal(flatFeeChargeID.ID, lo.FromPtr(previewLine.ChargeID))
 			s.Empty(previewLine.CreditsApplied)
@@ -132,6 +134,1262 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsW
 	s.Nil(chargeAfterPreview.Realizations.CurrentRun)
 	s.Empty(chargeAfterPreview.Realizations.PriorRuns)
 	s.Zero(creditAllocationCallback.nrInvocations)
+}
+
+func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceLifecycle() {
+	type tc struct {
+		name string
+
+		// chargeAmount is the gross flat-fee amount in TOKENS.
+		chargeAmount float64
+		// creditsAllocated is the TOKENS allocation returned for the run.
+		creditsAllocated float64
+
+		// expectRunTotals contains the realization run totals in TOKENS.
+		expectRunTotals billingtest.ExpectedTotals
+		// expectInvoiceTotals contains the standard invoice totals in USD.
+		expectInvoiceTotals billingtest.ExpectedTotals
+
+		expectPaymentSettled bool
+		// TODO[later]: one we have proper overage line deletion we can remove this flag, and instead check that the line is deleted.
+		// TODO[later]: let's also validate that the invoice is deleted if there's no lines left on it.
+		skipDeletionCheck bool
+	}
+
+	// setup:
+	// - the charge is a flat fee settled through credit then invoice
+	// - the charge and its credit allocations are denominated in TOKENS
+	// - TOKENS use a manual USD cost basis of 0.5
+	// - the invoice represents the post-allocation overage in USD
+	tests := []tc{
+		// given:
+		// - a 10 TOKENS flat fee with no credit allocation
+		// when:
+		// - the charge is invoiced and paid
+		// then:
+		// - all 10 TOKENS are billed as 5 USD
+		{
+			name:                 "happy path",
+			chargeAmount:         10,
+			expectRunTotals:      billingtest.ExpectedTotals{Amount: 10, Total: 10},
+			expectInvoiceTotals:  billingtest.ExpectedTotals{Amount: 5, Total: 5},
+			expectPaymentSettled: true,
+		},
+		// given:
+		// - a 10 TOKENS flat fee with 2 TOKENS allocated from credits
+		// when:
+		// - the charge is invoiced and paid
+		// then:
+		// - the remaining 8 TOKENS are billed as 4 USD
+		{
+			name:                 "happy path with credit allocation",
+			chargeAmount:         10,
+			creditsAllocated:     2,
+			expectRunTotals:      billingtest.ExpectedTotals{Amount: 10, CreditsTotal: 2, Total: 8},
+			expectInvoiceTotals:  billingtest.ExpectedTotals{Amount: 4, Total: 4},
+			expectPaymentSettled: true,
+		},
+		// given:
+		// - a 10 TOKENS flat fee fully covered by allocated credits
+		// when:
+		// - the charge is invoiced
+		// then:
+		// - no fiat transaction or payment is needed
+		{
+			name:                "fully covered by credits",
+			chargeAmount:        10,
+			creditsAllocated:    10,
+			expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, CreditsTotal: 10},
+			expectInvoiceTotals: billingtest.ExpectedTotals{},
+			skipDeletionCheck:   true,
+		},
+		// given:
+		// - a positive 0.001 TOKENS overage whose converted value is below USD precision
+		// when:
+		// - the charge is invoiced
+		// then:
+		// - the fiat amount rounds to zero and no fiat transaction or payment is needed
+		{
+			name:                "fiat overage rounds to zero",
+			chargeAmount:        0.001,
+			expectRunTotals:     billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001},
+			expectInvoiceTotals: billingtest.ExpectedTotals{},
+			skipDeletionCheck:   true,
+		},
+	}
+
+	s.enableFlatFeeCustomCurrenciesWithMockLineage()
+
+	for _, test := range tests {
+		s.Run(test.name, func() {
+			ctx := s.T().Context()
+			ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-lifecycle")
+
+			s.FlatFeeTestHandler.Reset()
+			defer s.FlatFeeTestHandler.Reset()
+			clock.UnFreeze()
+			defer clock.UnFreeze()
+
+			defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+			sandboxApp := s.InstallSandboxApp(s.T(), ns)
+			customer := s.CreateTestCustomer(ns, "customer-c1")
+			_ = s.ProvisionBillingProfile(
+				ctx,
+				ns,
+				sandboxApp.GetID(),
+				billingtest.WithManualApproval(),
+			)
+
+			customCurrency := s.createTestCustomCurrency(ctx, ns)
+			fiatCurrency, err := currencyx.NewFiatCurrency(USD)
+			s.Require().NoError(err)
+
+			createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
+			servicePeriod := timeutil.ClosedPeriod{
+				From: datetime.MustParseTimeInLocation(s.T(), "2025-01-01T00:00:00Z", time.UTC).AsTime(),
+				To:   datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime(),
+			}
+			chargeName := "flat-fee-custom-currency"
+			overageName := chargeName + " (overage)"
+
+			clock.FreezeTime(createAt)
+
+			var (
+				chargeID meta.ChargeID
+				invoice  billing.StandardInvoice
+				lineID   string
+				runID    string
+
+				allocationCallback                *countedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]
+				customCurrencyOverageAccruedCalls int
+				accruedTransactionGroupID         string
+				authorizedCallback                *countedLedgerTransactionCallback[flatfee.OnPaymentAuthorizedInput]
+				settledCallback                   *countedLedgerTransactionCallback[flatfee.OnPaymentSettledInput]
+			)
+
+			s.Run("create charge and overage placeholder", func() {
+				costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+					FiatCurrency: fiatCurrency,
+					Rate:         alpacadecimal.NewFromFloat(0.5),
+				})
+
+				created, err := s.Charges.Create(ctx, charges.CreateInput{
+					Namespace: ns,
+					Intents: []charges.ChargeIntent{
+						charges.NewChargeIntent(flatfee.Intent{
+							Intent: meta.Intent{
+								ManagedBy:         billing.SubscriptionManagedLine,
+								UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-lifecycle"),
+								CustomerID:        customer.ID,
+								Currency:          customCurrency,
+								TaxConfig: productcatalog.TaxCodeConfig{
+									TaxCodeID: defaults.InvoicingTaxCodeID,
+								},
+							},
+							IntentMutableFields: flatfee.IntentMutableFields{
+								IntentMutableFields: meta.IntentMutableFields{
+									Name:              chargeName,
+									ServicePeriod:     servicePeriod,
+									FullServicePeriod: servicePeriod,
+									BillingPeriod:     servicePeriod,
+								},
+								InvoiceAt:             servicePeriod.To,
+								PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+								AmountBeforeProration: alpacadecimal.NewFromFloat(test.chargeAmount),
+							},
+							SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+							CostBasis:      &costBasisIntent,
+						}),
+					},
+				})
+				s.Require().NoError(err)
+				s.Require().Len(created, 1)
+
+				charge, err := created[0].AsFlatFeeCharge()
+				s.Require().NoError(err)
+				chargeID = charge.GetChargeID()
+				s.Require().NotNil(charge.State.ResolvedCostBasis)
+				s.Equal(float64(0.5), charge.State.ResolvedCostBasis.CostBasis.InexactFloat64())
+
+				lines := activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, charge.ID)
+				s.Require().Len(lines, 1)
+
+				line := lines[0]
+				s.Equal(overageName, line.Name)
+				s.Equal(currencyx.FiatCode(USD), line.Currency)
+				s.Equal(billing.LineEngineTypeChargeFlatFee, line.Engine)
+				s.Require().NotNil(line.ChargeID)
+				s.Equal(charge.ID, *line.ChargeID)
+				reason, ok := line.Annotations.GetString(billing.AnnotationKeyReason)
+				s.True(ok)
+				s.Equal(billing.AnnotationValueReasonOveragePlaceholder, reason)
+				s.Empty(line.RateCardDiscounts)
+
+				flatPrice, err := line.Price.AsFlat()
+				s.Require().NoError(err)
+				s.True(flatPrice.Amount.IsZero())
+				s.Equal(productcatalog.InArrearsPaymentTerm, flatPrice.PaymentTerm)
+
+				persistedCharge := mustGetFlatFeeChargeWithExpands(&s.BaseSuite, chargeID, meta.Expands{meta.ExpandRealizations})
+				s.Nil(persistedCharge.Realizations.CurrentRun)
+			})
+
+			s.Run("invoice overage and create run", func() {
+				allocationCallback = newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+				s.FlatFeeTestHandler.onAllocateCredits = allocationCallback.Handler(
+					s.T(),
+					func(input flatfee.OnAllocateCreditsInput, transactionGroup ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+						amount := input.PreTaxAmountToAllocate
+						creditsAllocated := alpacadecimal.NewFromFloat(test.creditsAllocated)
+						if amount.GreaterThan(creditsAllocated) {
+							amount = creditsAllocated
+						}
+						if amount.IsZero() {
+							return nil
+						}
+
+						return creditrealization.CreateAllocationInputs{
+							{
+								ServicePeriod:     input.ServicePeriod,
+								Amount:            amount,
+								LedgerTransaction: transactionGroup,
+							},
+						}
+					},
+					func(t *testing.T, input flatfee.OnAllocateCreditsInput) {
+						assert.Equal(t, chargeID.ID, input.Charge.ID)
+						assert.True(t, input.Charge.Intent.GetCurrency().IsCustom())
+						assert.Equal(t, customCurrency.ID, input.Charge.Intent.GetCurrency().ID)
+						assert.Equal(t, servicePeriod, input.ServicePeriod)
+						assert.Equal(t, test.chargeAmount, input.PreTaxAmountToAllocate.InexactFloat64())
+					},
+				)
+
+				clock.FreezeTime(servicePeriod.To)
+				invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+					Customer: customer.GetID(),
+					AsOf:     lo.ToPtr(servicePeriod.To),
+				})
+				s.Require().NoError(err)
+				s.Require().Len(invoices, 1)
+				invoice = invoices[0]
+				s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+				s.Equal(currencyx.FiatCode(USD), invoice.Currency)
+				s.RequireTotals(test.expectInvoiceTotals, invoice.Totals)
+
+				s.Require().Len(invoice.Lines.OrEmpty(), 1)
+				line := invoice.Lines.OrEmpty()[0]
+				lineID = line.ID
+				s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+					line:               line,
+					expectTokenOverage: test.expectRunTotals.Total,
+					expectCostBasis:    0.5,
+					expectFiatTotals:   test.expectInvoiceTotals,
+				})
+				s.Equal(overageName, line.Name)
+				s.Empty(line.RateCardDiscounts)
+				s.Empty(line.Discounts)
+				s.Empty(line.CreditsApplied)
+
+				charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+				s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+				s.Require().NotNil(charge.Realizations.CurrentRun)
+
+				run := charge.Realizations.CurrentRun
+				runID = run.ID.ID
+				s.Equal(servicePeriod, run.ServicePeriod)
+				s.Require().NotNil(run.LineID)
+				s.Equal(lineID, *run.LineID)
+				s.Require().NotNil(run.InvoiceID)
+				s.Equal(invoice.ID, *run.InvoiceID)
+				s.RequireTotals(test.expectRunTotals, run.Totals)
+				s.Equal(test.creditsAllocated, run.CreditRealizations.Sum().InexactFloat64())
+				s.True(run.DetailedLines.IsPresent())
+				s.Require().Len(run.DetailedLines.OrEmpty(), 1)
+				s.RequireTotals(test.expectRunTotals, run.DetailedLines.OrEmpty()[0].Totals)
+
+				expectedCreditsApplied := 0
+				if test.creditsAllocated > 0 {
+					expectedCreditsApplied = 1
+				}
+				s.Len(run.CreditRealizations, expectedCreditsApplied)
+				s.Len(run.DetailedLines.OrEmpty()[0].CreditsApplied, expectedCreditsApplied)
+				s.Equal(!test.expectPaymentSettled, run.NoFiatTransactionRequired)
+				s.False(run.Immutable)
+				s.Equal(1, allocationCallback.nrInvocations)
+			})
+
+			s.Run("approve invoice and settle overage", func() {
+				if test.expectPaymentSettled {
+					s.FlatFeeTestHandler.onCustomCurrencyOverageAccrued = func(_ context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
+						customCurrencyOverageAccruedCalls++
+						s.Equal(chargeID.ID, input.Charge.ID)
+						s.Equal(runID, input.Run.ID.ID)
+						s.Equal(test.expectRunTotals.Total, input.GetCustomCurrencyAmountAccrued().InexactFloat64())
+
+						resolvedCostBasis, err := input.GetCostBasis()
+						s.Require().NoError(err)
+						s.Equal(float64(0.5), resolvedCostBasis.InexactFloat64())
+
+						resolvedFiatCurrency, err := input.GetFiatCurrency()
+						s.Require().NoError(err)
+						s.Equal(USD, resolvedFiatCurrency.Details().Code)
+
+						accruedTransactionGroupID = ulid.Make().String()
+
+						return flatfee.OnCustomCurrencyOverageAccruedResult{
+							TransactionGroup: ledgertransaction.GroupReference{
+								TransactionGroupID: accruedTransactionGroupID,
+							},
+							TotalFiatAmount: alpacadecimal.NewFromFloat(test.expectInvoiceTotals.Total),
+						}, nil
+					}
+
+					authorizedCallback = newCountedLedgerTransactionCallback[flatfee.OnPaymentAuthorizedInput]()
+					s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, input flatfee.OnPaymentAuthorizedInput) {
+						assert.Equal(t, chargeID.ID, input.Charge.ID)
+						assert.Equal(t, runID, input.Run.ID.ID)
+						assert.Equal(t, test.expectInvoiceTotals.Total, input.FiatAmount.InexactFloat64())
+					})
+
+					settledCallback = newCountedLedgerTransactionCallback[flatfee.OnPaymentSettledInput]()
+					s.FlatFeeTestHandler.onPaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, input flatfee.OnPaymentSettledInput) {
+						assert.Equal(t, chargeID.ID, input.Charge.ID)
+						assert.Equal(t, runID, input.Run.ID.ID)
+						assert.Equal(t, test.expectInvoiceTotals.Total, input.FiatAmount.InexactFloat64())
+					})
+				}
+
+				var err error
+				invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+				s.Require().NoError(err)
+				s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+			})
+
+			s.Run("reload persisted charge and invoice", func() {
+				charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+				s.Equal(flatfee.StatusFinal, charge.Status)
+				s.Require().NotNil(charge.Realizations.CurrentRun)
+
+				run := charge.Realizations.CurrentRun
+				s.Equal(runID, run.ID.ID)
+				s.True(run.Immutable)
+				s.RequireTotals(test.expectRunTotals, run.Totals)
+				s.Equal(!test.expectPaymentSettled, run.NoFiatTransactionRequired)
+
+				if test.expectPaymentSettled {
+					s.Equal(1, customCurrencyOverageAccruedCalls)
+					s.Require().NotNil(authorizedCallback)
+					s.Equal(1, authorizedCallback.nrInvocations)
+					s.Require().NotNil(settledCallback)
+					s.Equal(1, settledCallback.nrInvocations)
+
+					s.Require().NotNil(run.AccruedUsage)
+					s.Equal(servicePeriod, run.AccruedUsage.ServicePeriod)
+					s.Equal(accruedTransactionGroupID, run.AccruedUsage.LedgerTransaction.TransactionGroupID)
+					s.RequireTotals(test.expectInvoiceTotals, run.AccruedUsage.Totals)
+					s.Require().NotNil(run.Payment)
+					s.Equal(payment.StatusSettled, run.Payment.Status)
+					s.Equal(test.expectInvoiceTotals.Total, run.Payment.FiatAmount.InexactFloat64())
+					s.Require().NotNil(run.Payment.Authorized)
+					s.Equal(authorizedCallback.id, run.Payment.Authorized.TransactionGroupID)
+					s.Require().NotNil(run.Payment.Settled)
+					s.Equal(settledCallback.id, run.Payment.Settled.TransactionGroupID)
+				} else {
+					s.Zero(customCurrencyOverageAccruedCalls)
+					s.Nil(run.AccruedUsage)
+					s.Nil(run.Payment)
+				}
+
+				activeInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+					Invoice: invoice.GetInvoiceID(),
+					Expand:  billing.StandardInvoiceExpandAll,
+				})
+				s.Require().NoError(err)
+				s.Equal(currencyx.FiatCode(USD), activeInvoice.Currency)
+				s.RequireTotals(test.expectInvoiceTotals, activeInvoice.Totals)
+
+				invoiceWithDeletedLines, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+					Invoice: invoice.GetInvoiceID(),
+					Expand: billing.StandardInvoiceExpandAll.With(
+						billing.StandardInvoiceExpandDeletedLines,
+					),
+				})
+				s.Require().NoError(err)
+				s.Require().Len(invoiceWithDeletedLines.Lines.OrEmpty(), 1)
+				line := invoiceWithDeletedLines.Lines.OrEmpty()[0]
+				s.Equal(lineID, line.ID)
+				s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+					line:               line,
+					expectTokenOverage: test.expectRunTotals.Total,
+					expectCostBasis:    0.5,
+					expectFiatTotals:   test.expectInvoiceTotals,
+				})
+				s.Equal(overageName, line.Name)
+
+				if !test.skipDeletionCheck {
+					s.Require().Len(activeInvoice.Lines.OrEmpty(), 1)
+					s.Nil(line.DeletedAt)
+				}
+
+				// TODO: assert that billing deletes zero-valued custom-currency
+				// overage lines once overage deletion is implemented.
+			})
+		})
+	}
+}
+
+func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAndAPILineMutationRejection() {
+	s.enableFlatFeeCustomCurrenciesWithMockLineage()
+
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-managed-lines")
+
+	s.FlatFeeTestHandler.Reset()
+	defer s.FlatFeeTestHandler.Reset()
+	clock.UnFreeze()
+	defer clock.UnFreeze()
+
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	customer := s.CreateTestCustomer(ns, "customer-c1")
+	_ = s.ProvisionBillingProfile(
+		ctx,
+		ns,
+		customInvoicing.App.GetID(),
+		billingtest.WithManualApproval(),
+	)
+
+	customCurrency := s.createTestCustomCurrency(ctx, ns)
+	fiatCurrency, err := currencyx.NewFiatCurrency(USD)
+	s.Require().NoError(err)
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2025-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	const (
+		chargeName  = "flat-fee-custom-currency"
+		overageName = chargeName + " (overage)"
+	)
+
+	clock.FreezeTime(createAt)
+
+	allocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+	s.FlatFeeTestHandler.onAllocateCredits = allocationCallback.Handler(
+		s.T(),
+		func(flatfee.OnAllocateCreditsInput, ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+			return nil
+		},
+	)
+
+	costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+		FiatCurrency: fiatCurrency,
+		Rate:         alpacadecimal.NewFromFloat(0.5),
+	})
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			charges.NewChargeIntent(flatfee.Intent{
+				Intent: meta.Intent{
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-managed-lines"),
+					CustomerID:        customer.ID,
+					Currency:          customCurrency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaults.InvoicingTaxCodeID,
+					},
+				},
+				IntentMutableFields: flatfee.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              chargeName,
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+					},
+					InvoiceAt:             servicePeriod.To,
+					PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+					AmountBeforeProration: alpacadecimal.NewFromInt(10),
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				CostBasis:      &costBasisIntent,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(created, 1)
+
+	flatFeeCharge, err := created[0].AsFlatFeeCharge()
+	s.Require().NoError(err)
+	chargeID := flatFeeCharge.GetChargeID()
+
+	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces: []string{ns},
+		Customers:  []string{customer.ID},
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(gatheringInvoices.Items, 1)
+	gatheringInvoice := gatheringInvoices.Items[0]
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+	originalGatheringLine, err := gatheringInvoice.Lines.OrEmpty()[0].Clone()
+	s.Require().NoError(err)
+
+	s.Run("preview keeps the zero USD placeholder without realizing the charge", func() {
+		// given:
+		// - a custom-currency charge is represented by a zero-USD gathering placeholder
+		// when:
+		// - billing calculates the gathering invoice preview with live data
+		// then:
+		// - the placeholder remains unrated and no run or credit allocation is created
+		s.assertGatheringPreview(assertGatheringPreviewInput{
+			Namespace:             ns,
+			CustomerID:            customer.ID,
+			ExpectedInvoiceTotals: billingtest.ExpectedTotals{},
+			ExpectedLineTotals:    billingtest.ExpectedTotals{},
+			ExpectedDetailedLines: 0,
+			AssertLine: func(previewLine *billing.StandardLine) {
+				s.Equal(chargeID.ID, lo.FromPtr(previewLine.ChargeID))
+				s.Equal(overageName, previewLine.Name)
+				s.Equal(currencyx.FiatCode(USD), previewLine.Currency)
+				reason, ok := previewLine.Annotations.GetString(billing.AnnotationKeyReason)
+				s.True(ok)
+				s.Equal(billing.AnnotationValueReasonOveragePlaceholder, reason)
+				s.Empty(previewLine.RateCardDiscounts)
+				s.Empty(previewLine.Discounts)
+				s.Empty(previewLine.CreditsApplied)
+				s.Require().NotNil(previewLine.UsageBased)
+				s.Require().NotNil(previewLine.UsageBased.Price)
+				flatPrice, err := previewLine.UsageBased.Price.AsFlat()
+				s.Require().NoError(err)
+				s.True(flatPrice.Amount.IsZero())
+			},
+		})
+
+		charge := mustGetFlatFeeChargeWithExpands(&s.BaseSuite, chargeID, meta.Expands{meta.ExpandRealizations})
+		s.Equal(flatfee.StatusCreated, charge.Status)
+		s.Nil(charge.Realizations.CurrentRun)
+		s.Empty(charge.Realizations.PriorRuns)
+		s.Zero(allocationCallback.nrInvocations)
+	})
+
+	for _, test := range []struct {
+		name   string
+		mutate func(*billing.GatheringLine)
+	}{
+		{
+			name: "update",
+			mutate: func(line *billing.GatheringLine) {
+				line.Name = "manually updated"
+			},
+		},
+		{
+			name: "delete",
+			mutate: func(line *billing.GatheringLine) {
+				line.DeletedAt = lo.ToPtr(clock.Now())
+			},
+		},
+	} {
+		s.Run("reject gathering line "+test.name, func() {
+			// given:
+			// - the custom-currency charge still has only its gathering placeholder
+			// when:
+			// - an API-originated update attempts to mutate that managed line
+			// then:
+			// - billing rejects the edit without changing the line or realizing the charge
+			_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+				Invoice:      gatheringInvoice.GetInvoiceID(),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				EditFn: func(invoice *billing.GatheringInvoice) error {
+					lines := invoice.Lines.OrEmpty()
+					s.Require().Len(lines, 1)
+					test.mutate(&lines[0])
+					return nil
+				},
+				IncludeDeletedLines: true,
+			})
+			s.ErrorIs(err, billing.ErrCannotUpdateChargeManagedLine)
+
+			reloadedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+				Invoice: gatheringInvoice.GetInvoiceID(),
+				Expand: billing.GatheringInvoiceExpands{
+					billing.GatheringInvoiceExpandLines,
+					billing.GatheringInvoiceExpandDeletedLines,
+				},
+			})
+			s.Require().NoError(err)
+			s.Require().Len(reloadedInvoice.Lines.OrEmpty(), 1)
+			reloadedLine := reloadedInvoice.Lines.OrEmpty()[0]
+			s.Equal(originalGatheringLine.ID, reloadedLine.ID)
+			s.Equal(originalGatheringLine.Name, reloadedLine.Name)
+			s.Equal(originalGatheringLine.ServicePeriod, reloadedLine.ServicePeriod)
+			s.Equal(originalGatheringLine.InvoiceAt, reloadedLine.InvoiceAt)
+			s.Equal(originalGatheringLine.Price, reloadedLine.Price)
+			s.Nil(reloadedLine.DeletedAt)
+
+			charge := mustGetFlatFeeChargeWithExpands(&s.BaseSuite, chargeID, meta.Expands{meta.ExpandRealizations})
+			s.Equal(flatfee.StatusCreated, charge.Status)
+			s.Nil(charge.Realizations.CurrentRun)
+			s.Empty(charge.Realizations.PriorRuns)
+			s.Zero(allocationCallback.nrInvocations)
+		})
+	}
+
+	var (
+		draftInvoice billing.StandardInvoice
+		runID        flatfee.RealizationRunID
+	)
+
+	s.Run("collect the placeholder into a mutable standard line", func() {
+		// given:
+		// - the gathering placeholder and charge are unchanged by rejected API edits
+		// when:
+		// - billing collects the line into a draft invoice
+		// then:
+		// - the charge has one mutable run and one five-dollar overage line
+		clock.FreezeTime(servicePeriod.To)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customer.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		draftInvoice = invoices[0]
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, draftInvoice.Status)
+		s.Require().Len(draftInvoice.Lines.OrEmpty(), 1)
+		s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+			line:               draftInvoice.Lines.OrEmpty()[0],
+			expectTokenOverage: 10,
+			expectCostBasis:    0.5,
+			expectFiatTotals: billingtest.ExpectedTotals{
+				Amount: 5,
+				Total:  5,
+			},
+		})
+
+		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		runID = charge.Realizations.CurrentRun.ID
+		s.False(charge.Realizations.CurrentRun.Immutable)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 10, Total: 10}, charge.Realizations.CurrentRun.Totals)
+		s.Equal(1, allocationCallback.nrInvocations)
+	})
+
+	originalStandardLine, err := draftInvoice.Lines.OrEmpty()[0].Clone()
+	s.Require().NoError(err)
+
+	for _, test := range []struct {
+		name   string
+		mutate func(*billing.StandardLine)
+	}{
+		{
+			name: "update",
+			mutate: func(line *billing.StandardLine) {
+				line.Name = "manually updated"
+			},
+		},
+		{
+			name: "delete",
+			mutate: func(line *billing.StandardLine) {
+				line.DeletedAt = lo.ToPtr(clock.Now())
+			},
+		},
+	} {
+		s.Run("reject standard line "+test.name, func() {
+			// given:
+			// - the custom-currency charge is attached to a mutable draft standard line
+			// when:
+			// - an API-originated update attempts to mutate that managed line
+			// then:
+			// - billing rejects the edit without changing the line or current run
+			_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+				Invoice:      draftInvoice.GetInvoiceID(),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				EditFn: func(invoice *billing.StandardInvoice) error {
+					lines := invoice.Lines.OrEmpty()
+					s.Require().Len(lines, 1)
+					test.mutate(lines[0])
+					return nil
+				},
+				IncludeDeletedLines: true,
+			})
+			s.ErrorIs(err, billing.ErrCannotUpdateChargeManagedLine)
+
+			reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+				Invoice: draftInvoice.GetInvoiceID(),
+				Expand: billing.StandardInvoiceExpandAll.With(
+					billing.StandardInvoiceExpandDeletedLines,
+				),
+			})
+			s.Require().NoError(err)
+			s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, reloadedInvoice.Status)
+			s.Require().Len(reloadedInvoice.Lines.OrEmpty(), 1)
+			reloadedLine := reloadedInvoice.Lines.OrEmpty()[0]
+			s.Equal(originalStandardLine.ID, reloadedLine.ID)
+			s.Equal(originalStandardLine.Name, reloadedLine.Name)
+			s.Equal(originalStandardLine.Period, reloadedLine.Period)
+			s.Equal(originalStandardLine.InvoiceAt, reloadedLine.InvoiceAt)
+			s.Equal(originalStandardLine.Totals, reloadedLine.Totals)
+			s.Nil(reloadedLine.DeletedAt)
+
+			charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+			s.Require().NotNil(charge.Realizations.CurrentRun)
+			s.Equal(runID, charge.Realizations.CurrentRun.ID)
+			s.False(charge.Realizations.CurrentRun.Immutable)
+			s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+			s.Nil(charge.Realizations.CurrentRun.Payment)
+			s.RequireTotals(billingtest.ExpectedTotals{Amount: 10, Total: 10}, charge.Realizations.CurrentRun.Totals)
+			s.Equal(1, allocationCallback.nrInvocations)
+		})
+	}
+}
+
+func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResultPersistsNoUsageOrPayment() {
+	s.enableFlatFeeCustomCurrenciesWithMockLineage()
+
+	tests := []struct {
+		name               string
+		accrualResult      flatfee.OnCustomCurrencyOverageAccruedResult
+		expectIssueMessage string
+	}{
+		{
+			name: "mismatched fiat total",
+			accrualResult: flatfee.OnCustomCurrencyOverageAccruedResult{
+				TransactionGroup: ledgertransaction.GroupReference{
+					TransactionGroupID: ulid.Make().String(),
+				},
+				TotalFiatAmount: alpacadecimal.NewFromInt(6),
+			},
+			expectIssueMessage: "custom currency overage booked fiat amount does not match line total",
+		},
+		{
+			name: "missing transaction group",
+			accrualResult: flatfee.OnCustomCurrencyOverageAccruedResult{
+				TotalFiatAmount: alpacadecimal.NewFromInt(5),
+			},
+			expectIssueMessage: "transaction group ID is required",
+		},
+	}
+
+	for _, test := range tests {
+		s.Run(test.name, func() {
+			// given:
+			// - a custom-currency overage is ready for invoice accrual
+			// - the mocked ledger returns an invalid accrual result
+			// when:
+			// - billing approves the invoice through the normal service lifecycle
+			// then:
+			// - invoice issuing becomes retryable without persisting accrued usage or payment
+			ctx := s.T().Context()
+			ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-invalid-accrual")
+
+			s.FlatFeeTestHandler.Reset()
+			defer s.FlatFeeTestHandler.Reset()
+			clock.UnFreeze()
+			defer clock.UnFreeze()
+
+			defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+			sandboxApp := s.InstallSandboxApp(s.T(), ns)
+			customer := s.CreateTestCustomer(ns, "customer-c1")
+			_ = s.ProvisionBillingProfile(
+				ctx,
+				ns,
+				sandboxApp.GetID(),
+				billingtest.WithManualApproval(),
+			)
+
+			customCurrency := s.createTestCustomCurrency(ctx, ns)
+			fiatCurrency, err := currencyx.NewFiatCurrency(USD)
+			s.Require().NoError(err)
+
+			createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
+			servicePeriod := timeutil.ClosedPeriod{
+				From: datetime.MustParseTimeInLocation(s.T(), "2025-01-01T00:00:00Z", time.UTC).AsTime(),
+				To:   datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime(),
+			}
+			clock.FreezeTime(createAt)
+
+			allocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+			s.FlatFeeTestHandler.onAllocateCredits = allocationCallback.Handler(
+				s.T(),
+				func(flatfee.OnAllocateCreditsInput, ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+					return nil
+				},
+			)
+
+			costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+				FiatCurrency: fiatCurrency,
+				Rate:         alpacadecimal.NewFromFloat(0.5),
+			})
+			created, err := s.Charges.Create(ctx, charges.CreateInput{
+				Namespace: ns,
+				Intents: []charges.ChargeIntent{
+					charges.NewChargeIntent(flatfee.Intent{
+						Intent: meta.Intent{
+							ManagedBy:         billing.SubscriptionManagedLine,
+							UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-invalid-accrual"),
+							CustomerID:        customer.ID,
+							Currency:          customCurrency,
+							TaxConfig: productcatalog.TaxCodeConfig{
+								TaxCodeID: defaults.InvoicingTaxCodeID,
+							},
+						},
+						IntentMutableFields: flatfee.IntentMutableFields{
+							IntentMutableFields: meta.IntentMutableFields{
+								Name:              "flat-fee-custom-currency",
+								ServicePeriod:     servicePeriod,
+								FullServicePeriod: servicePeriod,
+								BillingPeriod:     servicePeriod,
+							},
+							InvoiceAt:             servicePeriod.To,
+							PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+							AmountBeforeProration: alpacadecimal.NewFromInt(10),
+						},
+						SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+						CostBasis:      &costBasisIntent,
+					}),
+				},
+			})
+			s.Require().NoError(err)
+			s.Require().Len(created, 1)
+
+			flatFeeCharge, err := created[0].AsFlatFeeCharge()
+			s.Require().NoError(err)
+			chargeID := flatFeeCharge.GetChargeID()
+
+			clock.FreezeTime(servicePeriod.To)
+			invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+				Customer: customer.GetID(),
+				AsOf:     lo.ToPtr(servicePeriod.To),
+			})
+			s.Require().NoError(err)
+			s.Require().Len(invoices, 1)
+			invoice := invoices[0]
+			s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+
+			chargeBeforeApproval := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+			s.Require().NotNil(chargeBeforeApproval.Realizations.CurrentRun)
+			runID := chargeBeforeApproval.Realizations.CurrentRun.ID
+			s.False(chargeBeforeApproval.Realizations.CurrentRun.Immutable)
+			s.Nil(chargeBeforeApproval.Realizations.CurrentRun.AccruedUsage)
+			s.Nil(chargeBeforeApproval.Realizations.CurrentRun.Payment)
+			s.Equal(1, allocationCallback.nrInvocations)
+
+			accrualCalls := 0
+			s.FlatFeeTestHandler.onCustomCurrencyOverageAccrued = func(_ context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
+				accrualCalls++
+				s.Equal(chargeID.ID, input.Charge.ID)
+				s.Equal(runID, input.Run.ID)
+				return test.accrualResult, nil
+			}
+
+			authorizedCallback := newCountedLedgerTransactionCallback[flatfee.OnPaymentAuthorizedInput]()
+			s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T())
+			settledCallback := newCountedLedgerTransactionCallback[flatfee.OnPaymentSettledInput]()
+			s.FlatFeeTestHandler.onPaymentSettled = settledCallback.Handler(s.T())
+
+			invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+			s.Require().NoError(err)
+			s.Equal(billing.StandardInvoiceStatusIssuingChargeBookingFailed, invoice.Status)
+			s.True(invoice.StatusDetails.Failed)
+			s.Require().NotNil(invoice.StatusDetails.AvailableActions.Retry)
+			s.Require().NotEmpty(invoice.ValidationIssues)
+			s.Equal(billing.ValidationIssueSeverityCritical, invoice.ValidationIssues[0].Severity)
+			s.Contains(invoice.ValidationIssues[0].Message, test.expectIssueMessage)
+
+			persistedCharge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+			s.Equal(flatfee.StatusActiveRealizationProcessing, persistedCharge.Status)
+			s.Require().NotNil(persistedCharge.Realizations.CurrentRun)
+			s.Equal(runID, persistedCharge.Realizations.CurrentRun.ID)
+			s.False(persistedCharge.Realizations.CurrentRun.Immutable)
+			s.Nil(persistedCharge.Realizations.CurrentRun.AccruedUsage)
+			s.Nil(persistedCharge.Realizations.CurrentRun.Payment)
+			s.Equal(1, accrualCalls)
+			s.Zero(authorizedCallback.nrInvocations)
+			s.Zero(settledCallback.nrInvocations)
+
+			s.Run("retry succeeds after the ledger recovers", func() {
+				// given:
+				// - invoice issuing failed without persisting charge-side state
+				// - the ledger now returns a valid fiat booking result
+				// when:
+				// - billing retries the failed invoice action
+				// then:
+				// - the same run persists accrued usage and reaches settled payment
+				accruedTransactionGroupID := ulid.Make().String()
+				s.FlatFeeTestHandler.onCustomCurrencyOverageAccrued = func(_ context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
+					accrualCalls++
+					s.Equal(chargeID.ID, input.Charge.ID)
+					s.Equal(runID, input.Run.ID)
+
+					return flatfee.OnCustomCurrencyOverageAccruedResult{
+						TransactionGroup: ledgertransaction.GroupReference{
+							TransactionGroupID: accruedTransactionGroupID,
+						},
+						TotalFiatAmount: alpacadecimal.NewFromInt(5),
+					}, nil
+				}
+
+				invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+				s.Require().NoError(err)
+				s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+
+				persistedCharge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+				s.Equal(flatfee.StatusFinal, persistedCharge.Status)
+				s.Require().NotNil(persistedCharge.Realizations.CurrentRun)
+				s.Equal(runID, persistedCharge.Realizations.CurrentRun.ID)
+				s.True(persistedCharge.Realizations.CurrentRun.Immutable)
+				s.Require().NotNil(persistedCharge.Realizations.CurrentRun.AccruedUsage)
+				s.Equal(accruedTransactionGroupID, persistedCharge.Realizations.CurrentRun.AccruedUsage.LedgerTransaction.TransactionGroupID)
+				s.RequireTotals(
+					billingtest.ExpectedTotals{Amount: 5, Total: 5},
+					persistedCharge.Realizations.CurrentRun.AccruedUsage.Totals,
+				)
+				s.Require().NotNil(persistedCharge.Realizations.CurrentRun.Payment)
+				s.Equal(payment.StatusSettled, persistedCharge.Realizations.CurrentRun.Payment.Status)
+				s.Equal(float64(5), persistedCharge.Realizations.CurrentRun.Payment.FiatAmount.InexactFloat64())
+				s.Require().NotNil(persistedCharge.Realizations.CurrentRun.Payment.Authorized)
+				s.Equal(authorizedCallback.id, persistedCharge.Realizations.CurrentRun.Payment.Authorized.TransactionGroupID)
+				s.Require().NotNil(persistedCharge.Realizations.CurrentRun.Payment.Settled)
+				s.Equal(settledCallback.id, persistedCharge.Realizations.CurrentRun.Payment.Settled.TransactionGroupID)
+				s.Equal(2, accrualCalls)
+				s.Equal(1, authorizedCallback.nrInvocations)
+				s.Equal(1, settledCallback.nrInvocations)
+			})
+		})
+	}
+}
+
+func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceShrinkExtendMutableLine() {
+	s.enableFlatFeeCustomCurrenciesWithMockLineage()
+
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-custom-currency-shrink-extend")
+
+	s.FlatFeeTestHandler.Reset()
+	defer s.FlatFeeTestHandler.Reset()
+	clock.UnFreeze()
+	defer clock.UnFreeze()
+
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	customer := s.CreateTestCustomer(ns, "customer-c1")
+	_ = s.ProvisionBillingProfile(
+		ctx,
+		ns,
+		customInvoicing.App.GetID(),
+		billingtest.WithManualApproval(),
+	)
+
+	customCurrency := s.createTestCustomCurrency(ctx, ns)
+	fiatCurrency, err := currencyx.NewFiatCurrency(USD)
+	s.Require().NoError(err)
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2025-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	shrunkServicePeriodTo := datetime.MustParseTimeInLocation(s.T(), "2025-01-16T00:00:00Z", time.UTC).AsTime()
+	zeroFiatServicePeriodTo := datetime.MustParseTimeInLocation(s.T(), "2025-01-01T00:02:00Z", time.UTC).AsTime()
+	clock.FreezeTime(createAt)
+
+	var allocationTargets []float64
+	allocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+	s.FlatFeeTestHandler.onAllocateCredits = allocationCallback.Handler(
+		s.T(),
+		func(flatfee.OnAllocateCreditsInput, ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+			return nil
+		},
+		func(t *testing.T, input flatfee.OnAllocateCreditsInput) {
+			allocationTargets = append(allocationTargets, input.PreTaxAmountToAllocate.InexactFloat64())
+		},
+	)
+
+	costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+		FiatCurrency: fiatCurrency,
+		Rate:         alpacadecimal.NewFromFloat(0.5),
+	})
+	created, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			charges.NewChargeIntent(flatfee.Intent{
+				Intent: meta.Intent{
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: lo.ToPtr("flat-fee-custom-currency-shrink-extend"),
+					CustomerID:        customer.ID,
+					Currency:          customCurrency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaults.InvoicingTaxCodeID,
+					},
+				},
+				IntentMutableFields: flatfee.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "flat-fee-custom-currency",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+					},
+					InvoiceAt:   servicePeriod.To,
+					PaymentTerm: productcatalog.InArrearsPaymentTerm,
+					ProRating: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+					AmountBeforeProration: alpacadecimal.NewFromInt(31),
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				CostBasis:      &costBasisIntent,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(created, 1)
+
+	flatFeeCharge, err := created[0].AsFlatFeeCharge()
+	s.Require().NoError(err)
+	chargeID := flatFeeCharge.GetChargeID()
+
+	var (
+		invoice billing.StandardInvoice
+		lineID  billing.LineID
+		runID   flatfee.RealizationRunID
+	)
+
+	s.Run("create the mutable custom-currency realization", func() {
+		// given:
+		// - a prorated 31 TOKENS flat fee uses a 0.5 USD cost basis
+		// when:
+		// - billing collects its placeholder into a draft invoice
+		// then:
+		// - the mutable run remains in TOKENS while the standard line is 15.50 USD
+		clock.FreezeTime(servicePeriod.To)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customer.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.To),
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		invoice = invoices[0]
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 15.5, Total: 15.5}, invoice.Totals)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+
+		line := invoice.Lines.OrEmpty()[0]
+		lineID = line.GetLineID()
+		s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+			line:               line,
+			expectTokenOverage: 31,
+			expectCostBasis:    0.5,
+			expectFiatTotals: billingtest.ExpectedTotals{
+				Amount: 15.5,
+				Total:  15.5,
+			},
+		})
+
+		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+		s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		runID = charge.Realizations.CurrentRun.ID
+		s.Require().NotNil(charge.Realizations.CurrentRun.LineID)
+		s.Equal(lineID.ID, *charge.Realizations.CurrentRun.LineID)
+		s.Equal(servicePeriod, charge.Realizations.CurrentRun.ServicePeriod)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 31, Total: 31}, charge.Realizations.CurrentRun.Totals)
+		s.False(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
+		s.False(charge.Realizations.CurrentRun.Immutable)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.Equal([]float64{31}, allocationTargets)
+		s.Equal(1, allocationCallback.nrInvocations)
+	})
+
+	s.Run("shrink the mutable realization", func() {
+		// given:
+		// - the draft line and realization run are still mutable
+		// when:
+		// - the charge is shrunk to January 16
+		// then:
+		// - the same run and standard line are rerated to 15 TOKENS and 7.50 USD
+		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
+			NewServicePeriodTo:     shrunkServicePeriodTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     shrunkServicePeriodTo,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.Require().NoError(err)
+		s.Require().NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: customer.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				chargeID.ID: patch,
+			},
+		}))
+
+		reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 7.5, Total: 7.5}, reloadedInvoice.Totals)
+		s.Require().Len(reloadedInvoice.Lines.OrEmpty(), 1)
+		line := reloadedInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(line)
+		s.Nil(line.DeletedAt)
+		s.Equal(servicePeriod.From, line.Period.From)
+		s.Equal(shrunkServicePeriodTo, line.Period.To)
+		s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+			line:               line,
+			expectTokenOverage: 15,
+			expectCostBasis:    0.5,
+			expectFiatTotals: billingtest.ExpectedTotals{
+				Amount: 7.5,
+				Total:  7.5,
+			},
+		})
+
+		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+		s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+		s.Equal(float64(15), charge.State.AmountAfterProration.InexactFloat64())
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(runID, charge.Realizations.CurrentRun.ID)
+		s.Require().NotNil(charge.Realizations.CurrentRun.LineID)
+		s.Equal(lineID.ID, *charge.Realizations.CurrentRun.LineID)
+		s.Equal(shrunkServicePeriodTo, charge.Realizations.CurrentRun.ServicePeriod.To)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 15, Total: 15}, charge.Realizations.CurrentRun.Totals)
+		s.False(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
+		s.False(charge.Realizations.CurrentRun.Immutable)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID))
+		s.Equal([]float64{31, 15}, allocationTargets)
+		s.Equal(2, allocationCallback.nrInvocations)
+	})
+
+	s.Run("shrink the mutable realization to an overage that rounds to zero fiat", func() {
+		// given:
+		// - the mutable run and standard line have a positive fiat overage
+		// when:
+		// - the charge is shrunk to a positive TOKENS amount that rounds to zero USD
+		// then:
+		// - the same run and line remain, and the run records that no fiat transaction is required
+		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
+			NewServicePeriodTo:     zeroFiatServicePeriodTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     zeroFiatServicePeriodTo,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.Require().NoError(err)
+		s.Require().NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: customer.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				chargeID.ID: patch,
+			},
+		}))
+
+		reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.RequireTotals(billingtest.ExpectedTotals{}, reloadedInvoice.Totals)
+		s.Require().Len(reloadedInvoice.Lines.OrEmpty(), 1)
+		line := reloadedInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(line)
+		s.Nil(line.DeletedAt)
+		s.Equal(servicePeriod.From, line.Period.From)
+		s.Equal(zeroFiatServicePeriodTo, line.Period.To)
+		s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+			line:               line,
+			expectTokenOverage: 0.001,
+			expectCostBasis:    0.5,
+			expectFiatTotals:   billingtest.ExpectedTotals{},
+		})
+
+		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+		s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+		s.Equal(float64(0.001), charge.State.AmountAfterProration.InexactFloat64())
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(runID, charge.Realizations.CurrentRun.ID)
+		s.Require().NotNil(charge.Realizations.CurrentRun.LineID)
+		s.Equal(lineID.ID, *charge.Realizations.CurrentRun.LineID)
+		s.Equal(zeroFiatServicePeriodTo, charge.Realizations.CurrentRun.ServicePeriod.To)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001}, charge.Realizations.CurrentRun.Totals)
+		s.True(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
+		s.False(charge.Realizations.CurrentRun.Immutable)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID))
+		s.Equal([]float64{31, 15, 0.001}, allocationTargets)
+		s.Equal(3, allocationCallback.nrInvocations)
+	})
+
+	s.Run("extend the mutable realization to the full period", func() {
+		// given:
+		// - the mutable run and standard line represent a positive TOKENS overage that rounds to zero USD
+		// when:
+		// - the charge is extended back to its full period
+		// then:
+		// - the same run and line return to 31 TOKENS and 15.50 USD
+		patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+			ChangeSource:           billing.ChangeSourceSystem,
+			NewServicePeriodTo:     servicePeriod.To,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     servicePeriod.To,
+			NewInvoiceAt:           servicePeriod.To,
+		})
+		s.Require().NoError(err)
+		s.Require().NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: customer.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				chargeID.ID: patch,
+			},
+		}))
+
+		reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 15.5, Total: 15.5}, reloadedInvoice.Totals)
+		s.Require().Len(reloadedInvoice.Lines.OrEmpty(), 1)
+		line := reloadedInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(line)
+		s.Nil(line.DeletedAt)
+		s.Equal(servicePeriod, line.Period)
+		s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+			line:               line,
+			expectTokenOverage: 31,
+			expectCostBasis:    0.5,
+			expectFiatTotals: billingtest.ExpectedTotals{
+				Amount: 15.5,
+				Total:  15.5,
+			},
+		})
+
+		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+		s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+		s.Equal(float64(31), charge.State.AmountAfterProration.InexactFloat64())
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(runID, charge.Realizations.CurrentRun.ID)
+		s.Require().NotNil(charge.Realizations.CurrentRun.LineID)
+		s.Equal(lineID.ID, *charge.Realizations.CurrentRun.LineID)
+		s.Equal(servicePeriod, charge.Realizations.CurrentRun.ServicePeriod)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 31, Total: 31}, charge.Realizations.CurrentRun.Totals)
+		s.False(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
+		s.False(charge.Realizations.CurrentRun.Immutable)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID))
+		s.Equal([]float64{31, 15, 0.001, 31}, allocationTargets)
+		s.Equal(4, allocationCallback.nrInvocations)
+	})
 }
 
 func (s *InvoicableChargesTestSuite) TestUsageBasedGatheringPreviewPopulatesTotalsWithoutRealizationRun() {
@@ -203,6 +1461,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedGatheringPreviewPopulatesTota
 			Amount: 30,
 			Total:  30,
 		},
+		ExpectedDetailedLines: 1,
 		AssertLine: func(previewLine *billing.StandardLine) {
 			s.Require().NotNil(previewLine.UsageBased)
 			s.Require().NotNil(previewLine.UsageBased.MeteredQuantity)
@@ -627,7 +1886,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		// Use non-fatal assertions inside handler callbacks so failures are reported
 		// on the callback's testing context without aborting the parent test flow.
 		s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, input flatfee.OnPaymentAuthorizedInput) {
-			assert.True(t, input.Amount.IsPositive())
+			assert.True(t, input.FiatAmount.IsPositive())
 			assert.NotNil(t, input.Charge.Realizations.CurrentRun)
 			assert.NotNil(t, input.Charge.Realizations.CurrentRun.AccruedUsage)
 			assert.Nil(t, input.Charge.Realizations.CurrentRun.Payment)
@@ -674,7 +1933,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		// Use non-fatal assertions inside handler callbacks so failures are reported
 		// on the callback's testing context without aborting the parent test flow.
 		s.FlatFeeTestHandler.onPaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, input flatfee.OnPaymentAuthorizedInput) {
-			assert.True(t, input.Amount.IsPositive())
+			assert.True(t, input.FiatAmount.IsPositive())
 			assert.NotNil(t, input.Charge.Realizations.CurrentRun)
 			assert.Nil(t, input.Charge.Realizations.CurrentRun.Payment)
 			assert.NotNil(t, input.Charge.Realizations.CurrentRun.AccruedUsage)
@@ -685,7 +1944,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		// Use non-fatal assertions inside handler callbacks so failures are reported
 		// on the callback's testing context without aborting the parent test flow.
 		s.FlatFeeTestHandler.onPaymentSettled = settledCallback.Handler(s.T(), func(t *testing.T, input flatfee.OnPaymentSettledInput) {
-			assert.True(t, input.Amount.IsPositive())
+			assert.True(t, input.FiatAmount.IsPositive())
 			assert.NotNil(t, input.Charge.Realizations.CurrentRun)
 			assert.NotNil(t, input.Charge.Realizations.CurrentRun.Payment)
 			assert.NotNil(t, input.Charge.Realizations.CurrentRun.Payment.Authorized)
@@ -3459,6 +4718,47 @@ func (s *InvoicableChargesTestSuite) mustGetFlatFeeChargeByIDWithDetailedLines(c
 	s.NoError(err)
 
 	return flatFeeCharge
+}
+
+func (s *InvoicableChargesTestSuite) enableFlatFeeCustomCurrenciesWithMockLineage() {
+	s.T().Helper()
+
+	// TODO: use the real lineage service once it supports custom currencies.
+	lineageMock := &mockLineageService{Service: s.LineageService}
+	lineageMock.On("CreateInitialLineages", mock.Anything, mock.Anything).
+		Return(nil).
+		Maybe()
+	lineageMock.On("PersistCorrectionLineageSegments", mock.Anything, mock.Anything).
+		Return(nil).
+		Maybe()
+	lineageMock.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).
+		Return(nil).
+		Maybe()
+
+	customCurrencyFlatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
+		Adapter:       s.FlatFeeAdapter,
+		Handler:       s.FlatFeeTestHandler,
+		Lineage:       lineageMock,
+		MetaAdapter:   s.MetaAdapter,
+		Locker:        s.Locker,
+		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:    s.CurrencyService,
+	})
+	s.Require().NoError(err)
+
+	customCurrencyEnabler, ok := customCurrencyFlatFeeService.(customCurrencyEnabler)
+	s.Require().True(ok)
+	s.Require().NoError(customCurrencyEnabler.SetEnableCustomCurrency(s.T(), true))
+
+	originalFlatFeeService := s.Charges.flatFeeService
+	s.Charges.flatFeeService = customCurrencyFlatFeeService
+	s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeFlatFee))
+	s.Require().NoError(s.BillingService.RegisterLineEngine(customCurrencyFlatFeeService.GetLineEngine()))
+	s.T().Cleanup(func() {
+		s.Charges.flatFeeService = originalFlatFeeService
+		s.Require().NoError(s.BillingService.DeregisterLineEngine(billing.LineEngineTypeChargeFlatFee))
+		s.Require().NoError(s.BillingService.RegisterLineEngine(originalFlatFeeService.GetLineEngine()))
+	})
 }
 
 func mustGetFlatFeeChargeWithExpands(s *BaseSuite, chargeID meta.ChargeID, expands meta.Expands) flatfee.Charge {

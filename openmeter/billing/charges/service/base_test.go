@@ -269,6 +269,41 @@ func (s *BaseSuite) createTestCustomCurrency(ctx context.Context, namespace stri
 	return currency
 }
 
+type requireCustomCurrencyOverageLineInput struct {
+	line               *billing.StandardLine
+	expectTokenOverage float64
+	expectCostBasis    float64
+	expectFiatTotals   billingtest.ExpectedTotals
+}
+
+func (s *BaseSuite) requireCustomCurrencyOverageLine(in requireCustomCurrencyOverageLineInput) {
+	s.T().Helper()
+
+	s.Equal(currencyx.FiatCode(USD), in.line.Currency)
+	switch reason := in.line.Annotations[billing.AnnotationKeyReason].(type) {
+	case string:
+		s.Equal(billing.AnnotationValueReasonOverage, reason)
+	case *string:
+		s.Require().NotNil(reason)
+		s.Equal(billing.AnnotationValueReasonOverage, *reason)
+	default:
+		s.Fail("overage reason annotation has an unexpected type")
+	}
+
+	s.Require().NotNil(in.line.UsageBased)
+	s.Require().NotNil(in.line.UsageBased.Price)
+	flatPrice, err := in.line.UsageBased.Price.AsFlat()
+	s.Require().NoError(err)
+	s.Equal(in.expectFiatTotals.Amount, flatPrice.Amount.InexactFloat64())
+
+	s.Require().Len(in.line.DetailedLines, 1)
+	detailedLine := in.line.DetailedLines[0]
+	s.Equal(in.expectTokenOverage, detailedLine.Quantity.InexactFloat64())
+	s.Equal(in.expectCostBasis, detailedLine.PerUnitAmount.InexactFloat64())
+	s.RequireTotals(in.expectFiatTotals, detailedLine.Totals)
+	s.RequireTotals(in.expectFiatTotals, in.line.Totals)
+}
+
 type createMockChargeIntentInput struct {
 	customer            customer.CustomerID
 	currency            currencyx.Code

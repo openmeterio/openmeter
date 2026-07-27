@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type CreditThenInvoiceStateMachine struct {
@@ -329,7 +328,6 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 
 	return s.reconcileInvoicingState(ctx, reconcileInvoicingStateInput{
 		Op:                      meta.PatchTypeLineManualEdit,
-		Period:                  s.Charge.Intent.GetEffectiveServicePeriod(),
 		Intent:                  s.Charge.Intent,
 		OldAmountAfterProration: oldAmountAfterProration,
 		NewAmountAfterProration: amountAfterProration,
@@ -372,7 +370,6 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 
 	return reconcileInvoicingStateInput{
 		Op:                      patch.Op(),
-		Period:                  intent.GetEffectiveServicePeriod(),
 		Intent:                  intent,
 		OldAmountAfterProration: s.Charge.State.AmountAfterProration,
 		NewAmountAfterProration: amountAfterProration,
@@ -562,7 +559,6 @@ func (s *CreditThenInvoiceStateMachine) AreAllPaymentsSettled() bool {
 
 type reconcileInvoicingStateInput struct {
 	Op                      meta.PatchType
-	Period                  timeutil.ClosedPeriod
 	Intent                  flatfee.OverridableIntent
 	OldAmountAfterProration alpacadecimal.Decimal
 	NewAmountAfterProration alpacadecimal.Decimal
@@ -699,17 +695,16 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 
 		line.ID = *currentRun.LineID
 
-		// The invoice updater rebuilt the mutable standard line from the new
-		// charge intent, but the charge realization run still describes the old
-		// line amount and credit allocations. Reconcile them before handing the
-		// updated line back to billing.
-		result, err := s.Realizations.ReconcileStandardLineToIntent(ctx, flatfeerealizations.ReconcileStandardLineToIntentInput{
+		// The mutable run still describes the previous effective intent.
+		// Rerate and reconcile it first, then project the resulting charge state
+		// onto the billing-owned line identity.
+		result, err := s.Realizations.ReconcileRunToIntent(ctx, flatfeerealizations.ReconcileRunToIntentInput{
 			Charge:     s.Charge,
 			Run:        *currentRun,
 			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), s.Charge.Intent.GetEffectiveServicePeriod()),
 		})
 		if err != nil {
-			return fmt.Errorf("reconcile standard line to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)
+			return fmt.Errorf("reconcile run to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)
 		}
 
 		s.Charge.Realizations.CurrentRun = &result.Run

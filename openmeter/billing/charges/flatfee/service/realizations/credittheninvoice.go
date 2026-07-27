@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -143,11 +144,15 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 		}
 
 		runTotals := detailedLines.SumTotals().RoundToPrecision(currency)
+		noFiatTransactionRequired, err := noFiatTransactionRequiredForRun(in.Charge, runTotals)
+		if err != nil {
+			return StartCreditThenInvoiceRunResult{}, err
+		}
 
 		runBase, err = s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
 			ID:                        runBase.ID,
 			Totals:                    mo.Some(runTotals),
-			NoFiatTransactionRequired: mo.Some(runTotals.Total.IsZero()),
+			NoFiatTransactionRequired: mo.Some(noFiatTransactionRequired),
 		})
 		if err != nil {
 			return StartCreditThenInvoiceRunResult{}, fmt.Errorf("updating run totals for run[%s]: %w", runBase.ID.ID, err)
@@ -160,7 +165,7 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 	})
 }
 
-type ReconcileStandardLineToIntentInput struct {
+type ReconcileRunToIntentInput struct {
 	Charge flatfee.Charge
 	Run    flatfee.RealizationRun
 	// AllocateAt is used as the ledger timestamp when reconciliation needs to
@@ -168,7 +173,7 @@ type ReconcileStandardLineToIntentInput struct {
 	AllocateAt time.Time
 }
 
-func (i ReconcileStandardLineToIntentInput) Validate() error {
+func (i ReconcileRunToIntentInput) Validate() error {
 	var errs []error
 
 	if err := i.Charge.Validate(); err != nil {
@@ -194,28 +199,28 @@ func (i ReconcileStandardLineToIntentInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type ReconcileStandardLineToIntentResult struct {
+type ReconcileRunToIntentResult struct {
 	Run flatfee.RealizationRun
 }
 
-// ReconcileStandardLineToIntent rerates a mutable credit_then_invoice run from
+// ReconcileRunToIntent rerates a mutable credit_then_invoice run from
 // the effective charge intent and reconciles its credit allocations.
-func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in ReconcileStandardLineToIntentInput) (ReconcileStandardLineToIntentResult, error) {
+func (s *Service) ReconcileRunToIntent(ctx context.Context, in ReconcileRunToIntentInput) (ReconcileRunToIntentResult, error) {
 	if err := in.Validate(); err != nil {
-		return ReconcileStandardLineToIntentResult{}, err
+		return ReconcileRunToIntentResult{}, err
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (ReconcileStandardLineToIntentResult, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (ReconcileRunToIntentResult, error) {
 		currency := in.Charge.Intent.GetCurrency()
 
 		rateableIntent, err := in.Charge.GetRateableIntent()
 		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("getting rateable intent: %w", err)
+			return ReconcileRunToIntentResult{}, fmt.Errorf("getting rateable intent: %w", err)
 		}
 
 		ratingResult, err := s.Rate(rateableIntent)
 		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("rating flat fee: %w", err)
+			return ReconcileRunToIntentResult{}, fmt.Errorf("rating flat fee: %w", err)
 		}
 
 		run := in.Run
@@ -230,14 +235,14 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 			CurrencyCalculator: currency,
 		})
 		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("reconcile credits for run %s: %w", run.ID.ID, err)
+			return ReconcileRunToIntentResult{}, fmt.Errorf("reconcile credits for run %s: %w", run.ID.ID, err)
 		}
 
 		run.CreditRealizations = append(run.CreditRealizations, reconcileResult.Realizations...)
 
 		allocated := currency.RoundToPrecision(run.CreditRealizations.Sum())
 		if allocated.GreaterThan(creditAllocationTarget) {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf(
+			return ReconcileRunToIntentResult{}, fmt.Errorf(
 				"credit allocations exceed rated total [charge_id=%s total=%s allocated=%s]",
 				in.Charge.ID,
 				creditAllocationTarget.String(),
@@ -247,34 +252,58 @@ func (s *Service) ReconcileStandardLineToIntent(ctx context.Context, in Reconcil
 
 		creditsApplied, err := run.CreditRealizations.AsCreditsApplied()
 		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("mapping credit realizations to credits applied: %w", err)
+			return ReconcileRunToIntentResult{}, fmt.Errorf("mapping credit realizations to credits applied: %w", err)
 		}
 
 		detailedLines, err := ratingResult.DetailedLines.WithCreditsApplied(creditsApplied, currency)
 		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("applying credits to detailed lines: %w", err)
+			return ReconcileRunToIntentResult{}, fmt.Errorf("applying credits to detailed lines: %w", err)
 		}
 
 		if err := s.adapter.UpsertDetailedLines(ctx, run.ID, detailedLines); err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("persisting detailed lines for run[%s]: %w", run.ID.ID, err)
+			return ReconcileRunToIntentResult{}, fmt.Errorf("persisting detailed lines for run[%s]: %w", run.ID.ID, err)
 		}
 
 		runTotals := detailedLines.SumTotals().RoundToPrecision(currency)
+		noFiatTransactionRequired, err := noFiatTransactionRequiredForRun(in.Charge, runTotals)
+		if err != nil {
+			return ReconcileRunToIntentResult{}, err
+		}
 
 		runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
 			ID:                        run.ID,
 			ServicePeriod:             mo.Some(rateableIntent.ServicePeriod),
 			AmountAfterProration:      mo.Some(rateableIntent.AmountAfterProration),
 			Totals:                    mo.Some(runTotals),
-			NoFiatTransactionRequired: mo.Some(runTotals.Total.IsZero()),
+			NoFiatTransactionRequired: mo.Some(noFiatTransactionRequired),
 		})
 		if err != nil {
-			return ReconcileStandardLineToIntentResult{}, fmt.Errorf("updating run totals for run[%s]: %w", run.ID.ID, err)
+			return ReconcileRunToIntentResult{}, fmt.Errorf("updating run totals for run[%s]: %w", run.ID.ID, err)
 		}
 
 		run.RealizationRunBase = runBase
 		run.DetailedLines = mo.Some(detailedLines)
 
-		return ReconcileStandardLineToIntentResult{Run: run}, nil
+		return ReconcileRunToIntentResult{Run: run}, nil
 	})
+}
+
+// noFiatTransactionRequiredForRun derives the persisted transaction requirement
+// from the invoice denomination. A positive custom-currency overage can still
+// require no fiat transaction when cost-basis conversion rounds it to zero.
+func noFiatTransactionRequiredForRun(charge flatfee.Charge, runTotals totals.Totals) (bool, error) {
+	if runTotals.Total.IsZero() {
+		return true, nil
+	}
+
+	if !charge.Intent.GetCurrency().IsCustom() {
+		return false, nil
+	}
+
+	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(runTotals)
+	if err != nil {
+		return false, fmt.Errorf("converting custom currency overage to fiat: %w", err)
+	}
+
+	return fiatOverage.Amount.IsZero(), nil
 }

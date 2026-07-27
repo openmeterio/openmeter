@@ -164,6 +164,15 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 	}, nil
 }
 
+func (h *flatFeeHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
+	if err := input.Validate(); err != nil {
+		return flatfee.OnCustomCurrencyOverageAccruedResult{}, err
+	}
+
+	// TODO[implement]: Book the fiat overage in the customer's outstanding account.
+	return flatfee.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
+}
+
 func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
 	intent := input.Charge.Intent
 
@@ -195,13 +204,10 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	if input.Amount.IsZero() {
-		return ledgertransaction.GroupReference{}, nil
-	}
-
 	intent := input.Charge.Intent
 
 	if intent.GetCurrency().IsCustom() {
+		// TODO[implement]: FiatAmount contains the amount paid in the fiat currency.
 		return ledgertransaction.GroupReference{}, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
@@ -220,7 +226,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:            input.EventAt,
-			Amount:        input.Amount,
+			Amount:        input.FiatAmount,
 			Currency:      intent.GetCurrency().GetCode(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
@@ -255,13 +261,10 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	if !input.Amount.IsPositive() {
-		return ledgertransaction.GroupReference{}, nil
-	}
-
 	intent := input.Charge.Intent
 
 	if intent.GetCurrency().IsCustom() {
+		// TODO[implement]: FiatAmount contains the amount paid in the fiat currency.
 		return ledgertransaction.GroupReference{}, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
@@ -280,7 +283,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:            input.EventAt,
-			Amount:        input.Amount,
+			Amount:        input.FiatAmount,
 			Currency:      intent.GetCurrency().GetCode(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
