@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebasedrundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -53,9 +55,17 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge usagebased.Char
 			return usagebased.Charge{}, err
 		}
 
-		detailedLinesPresentByRunID := make(map[string]bool, len(dbRuns))
+		type detailedLinesMetadata struct {
+			Present                  bool
+			IncludeCreditAllocations bool
+		}
+
+		detailedLinesMetadataByRunID := make(map[string]detailedLinesMetadata, len(dbRuns))
 		for _, dbRun := range dbRuns {
-			detailedLinesPresentByRunID[dbRun.ID] = dbRun.DetailedLinesPresent
+			detailedLinesMetadataByRunID[dbRun.ID] = detailedLinesMetadata{
+				Present:                  dbRun.DetailedLinesPresent,
+				IncludeCreditAllocations: dbRun.DetailedLinesIncludeCreditAllocations,
+			}
 		}
 
 		linesByRunID := make(map[string]usagebased.DetailedLines, len(charge.Realizations))
@@ -72,49 +82,75 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge usagebased.Char
 			lines := linesByRunID[run.ID.ID]
 			slices.SortStableFunc(lines, stddetailedline.Compare[usagebased.DetailedLine])
 
-			detailedLinesPresent, found := detailedLinesPresentByRunID[run.ID.ID]
+			metadata, found := detailedLinesMetadataByRunID[run.ID.ID]
 			if !found {
 				charge.Realizations[idx].DetailedLines = mo.None[usagebased.DetailedLines]()
 				continue
 			}
 
+			charge.Realizations[idx].DetailedLinesIncludeCreditAllocations = metadata.IncludeCreditAllocations
+
 			// Safety measure: only mark detailed lines as expanded when the persisted
 			// run records that detailed lines were written at least once. Treating
 			// unknown detailed lines as an empty set can make
 			// late-event rating overcharge.
-			if detailedLinesPresent {
-				charge.Realizations[idx].DetailedLines = mo.Some(lines)
-			} else {
+			if !metadata.Present {
 				charge.Realizations[idx].DetailedLines = mo.None[usagebased.DetailedLines]()
+				continue
 			}
+
+			// Previously credit then invoice would not store credit allocations, but due to custom currency support
+			// and consistency's sake, we should now start storing them.
+			//
+			// We are applying the credit allocations to the detailed lines dynamically here, once all data has been
+			// migrated we can get rid of this code.
+			if charge.Intent.GetSettlementMode() == productcatalog.CreditThenInvoiceSettlementMode &&
+				!metadata.IncludeCreditAllocations {
+				creditsApplied, err := run.CreditsAllocated.AsCreditsApplied()
+				if err != nil {
+					return usagebased.Charge{}, fmt.Errorf(
+						"mapping legacy run credit allocations to detailed lines [run_id=%s]: %w",
+						run.ID.ID,
+						err,
+					)
+				}
+
+				lines, err = lines.WithCreditsApplied(creditsApplied, charge.Intent.GetCurrency())
+				if err != nil {
+					return usagebased.Charge{}, fmt.Errorf(
+						"applying legacy run credit allocations to detailed lines [run_id=%s]: %w",
+						run.ID.ID,
+						err,
+					)
+				}
+
+				charge.Realizations[idx].DetailedLinesIncludeCreditAllocations = true
+			}
+
+			charge.Realizations[idx].DetailedLines = mo.Some(lines)
 		}
 
 		return charge, nil
 	})
 }
 
-func (a *adapter) UpsertRunDetailedLines(ctx context.Context, chargeID chargesmeta.ChargeID, runID usagebased.RealizationRunID, lines usagebased.DetailedLines) error {
-	if err := chargeID.Validate(); err != nil {
-		return err
-	}
-
-	if err := runID.Validate(); err != nil {
-		return err
-	}
-
-	if err := lines.Validate(); err != nil {
+func (a *adapter) UpsertRunDetailedLines(
+	ctx context.Context,
+	input usagebased.UpsertRunDetailedLinesInput,
+) error {
+	if err := input.Validate(); err != nil {
 		return err
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		createBuilders := make([]*entdb.ChargeUsageBasedRunDetailedLineCreate, 0, len(lines))
+		createBuilders := make([]*entdb.ChargeUsageBasedRunDetailedLineCreate, 0, len(input.DetailedLines))
 
-		for _, line := range lines {
+		for _, line := range input.DetailedLines {
 			lineToPersist := line.Clone()
-			lineToPersist.Namespace = runID.Namespace
+			lineToPersist.Namespace = input.RunID.Namespace
 			lineToPersist.DeletedAt = nil
 
-			create, err := buildDetailedLineCreate(tx.db, chargeID, runID, lineToPersist)
+			create, err := buildDetailedLineCreate(tx.db, input.ChargeID, input.RunID, lineToPersist)
 			if err != nil {
 				return err
 			}
@@ -125,14 +161,14 @@ func (a *adapter) UpsertRunDetailedLines(ctx context.Context, chargeID chargesme
 		now := clock.Now().In(time.UTC)
 		deleteQuery := tx.db.ChargeUsageBasedRunDetailedLine.Update().
 			Where(
-				dbchargeusagebasedrundetailedline.NamespaceEQ(runID.Namespace),
-				dbchargeusagebasedrundetailedline.ChargeIDEQ(chargeID.ID),
-				dbchargeusagebasedrundetailedline.RunIDEQ(runID.ID),
+				dbchargeusagebasedrundetailedline.NamespaceEQ(input.RunID.Namespace),
+				dbchargeusagebasedrundetailedline.ChargeIDEQ(input.ChargeID.ID),
+				dbchargeusagebasedrundetailedline.RunIDEQ(input.RunID.ID),
 				dbchargeusagebasedrundetailedline.DeletedAtIsNil(),
 			).
 			SetDeletedAt(now)
 
-		childRefsToKeep := lo.FilterMap(lines, func(line usagebased.DetailedLine, _ int) (string, bool) {
+		childRefsToKeep := lo.FilterMap(input.DetailedLines, func(line usagebased.DetailedLine, _ int) (string, bool) {
 			if line.ChildUniqueReferenceID == "" {
 				return "", false
 			}
@@ -151,11 +187,12 @@ func (a *adapter) UpsertRunDetailedLines(ctx context.Context, chargeID chargesme
 
 		if _, err := tx.db.ChargeUsageBasedRuns.Update().
 			Where(
-				dbchargeusagebasedruns.NamespaceEQ(runID.Namespace),
-				dbchargeusagebasedruns.ChargeIDEQ(chargeID.ID),
-				dbchargeusagebasedruns.ID(runID.ID),
+				dbchargeusagebasedruns.NamespaceEQ(input.RunID.Namespace),
+				dbchargeusagebasedruns.ChargeIDEQ(input.ChargeID.ID),
+				dbchargeusagebasedruns.ID(input.RunID.ID),
 			).
 			SetDetailedLinesPresent(true).
+			SetDetailedLinesIncludeCreditAllocations(input.DetailedLinesIncludeCreditAllocations).
 			Save(ctx); err != nil {
 			return err
 		}

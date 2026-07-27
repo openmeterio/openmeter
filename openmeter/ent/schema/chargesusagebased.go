@@ -359,6 +359,9 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 
 		field.Bool("detailed_lines_present"),
 
+		field.Bool("detailed_lines_include_credit_allocations").
+			Default(false),
+
 		field.String("line_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",

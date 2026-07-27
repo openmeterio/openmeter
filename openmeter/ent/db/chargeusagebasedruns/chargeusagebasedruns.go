@@ -54,6 +54,8 @@ const (
 	FieldServicePeriodTo = "service_period_to"
 	// FieldDetailedLinesPresent holds the string denoting the detailed_lines_present field in the database.
 	FieldDetailedLinesPresent = "detailed_lines_present"
+	// FieldDetailedLinesIncludeCreditAllocations holds the string denoting the detailed_lines_include_credit_allocations field in the database.
+	FieldDetailedLinesIncludeCreditAllocations = "detailed_lines_include_credit_allocations"
 	// FieldLineID holds the string denoting the line_id field in the database.
 	FieldLineID = "line_id"
 	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
@@ -169,6 +171,7 @@ var Columns = []string{
 	FieldStoredAtLt,
 	FieldServicePeriodTo,
 	FieldDetailedLinesPresent,
+	FieldDetailedLinesIncludeCreditAllocations,
 	FieldLineID,
 	FieldInvoiceID,
 	FieldMeteredQuantity,
@@ -196,6 +199,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
 	FeatureIDValidator func(string) error
+	// DefaultDetailedLinesIncludeCreditAllocations holds the default value on creation for the "detailed_lines_include_credit_allocations" field.
+	DefaultDetailedLinesIncludeCreditAllocations bool
 	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
 	LineIDValidator func(string) error
 	// InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
@@ -325,6 +330,11 @@ func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 // ByDetailedLinesPresent orders the results by the detailed_lines_present field.
 func ByDetailedLinesPresent(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDetailedLinesPresent, opts...).ToFunc()
+}
+
+// ByDetailedLinesIncludeCreditAllocations orders the results by the detailed_lines_include_credit_allocations field.
+func ByDetailedLinesIncludeCreditAllocations(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDetailedLinesIncludeCreditAllocations, opts...).ToFunc()
 }
 
 // ByLineID orders the results by the line_id field.

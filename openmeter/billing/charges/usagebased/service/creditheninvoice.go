@@ -869,10 +869,26 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	currentTotals.CreditsTotal = s.CurrencyCalculator.RoundToPrecision(currentRun.CreditsAllocated.Sum())
 	currentTotals.Total = s.CurrencyCalculator.RoundToPrecision(currentTotals.Total.Sub(currentTotals.CreditsTotal))
 
-	if err := s.Adapter.UpsertRunDetailedLines(ctx, s.Charge.GetChargeID(), currentRun.ID, ratingResult.DetailedLines); err != nil {
+	creditsApplied, err := currentRun.CreditsAllocated.AsCreditsApplied()
+	if err != nil {
+		return fmt.Errorf("map credit realizations to detailed line credits: %w", err)
+	}
+
+	detailedLines, err := ratingResult.DetailedLines.WithCreditsApplied(creditsApplied, s.CurrencyCalculator)
+	if err != nil {
+		return fmt.Errorf("apply credit allocations to run detailed lines: %w", err)
+	}
+
+	if err := s.Adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID:                              s.Charge.GetChargeID(),
+		RunID:                                 currentRun.ID,
+		DetailedLines:                         detailedLines,
+		DetailedLinesIncludeCreditAllocations: true,
+	}); err != nil {
 		return fmt.Errorf("upsert run detailed lines: %w", err)
 	}
-	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
+	currentRun.DetailedLines = mo.Some(detailedLines)
+	currentRun.DetailedLinesIncludeCreditAllocations = true
 
 	noFiatTransactionRequired := currentTotals.Total.IsZero()
 	if s.Charge.Intent.GetCurrency().IsCustom() {

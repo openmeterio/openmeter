@@ -363,7 +363,11 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	currentTotals.CreditsTotal = currentTotals.CreditsTotal.Add(targetCreditsTotal)
 	currentTotals.Total = alpacadecimal.Zero
 
-	if err := s.Adapter.UpsertRunDetailedLines(ctx, s.Charge.GetChargeID(), currentRun.ID, ratingResult.DetailedLines); err != nil {
+	if err := s.Adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID:      s.Charge.GetChargeID(),
+		RunID:         currentRun.ID,
+		DetailedLines: ratingResult.DetailedLines,
+	}); err != nil {
 		return fmt.Errorf("upsert run detailed lines: %w", err)
 	}
 	currentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)

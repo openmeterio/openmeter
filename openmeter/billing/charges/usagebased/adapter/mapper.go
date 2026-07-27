@@ -160,16 +160,17 @@ func fromDBRunBase(dbRun *entdb.ChargeUsageBasedRuns) usagebased.RealizationRunB
 		},
 		ManagedModel: entutils.MapTimeMixinFromDB(dbRun),
 
-		FeatureID:                 dbRun.FeatureID,
-		LineID:                    dbRun.LineID,
-		InvoiceID:                 dbRun.InvoiceID,
-		Type:                      dbRun.Type,
-		InitialType:               dbRun.InitialType,
-		StoredAtLT:                dbRun.StoredAtLt.UTC(),
-		ServicePeriodTo:           dbRun.ServicePeriodTo.UTC(),
-		MeteredQuantity:           dbRun.MeteredQuantity,
-		Totals:                    totals.FromDB(dbRun),
-		NoFiatTransactionRequired: dbRun.NoFiatTransactionRequired,
+		FeatureID:                             dbRun.FeatureID,
+		LineID:                                dbRun.LineID,
+		InvoiceID:                             dbRun.InvoiceID,
+		Type:                                  dbRun.Type,
+		InitialType:                           dbRun.InitialType,
+		StoredAtLT:                            dbRun.StoredAtLt.UTC(),
+		ServicePeriodTo:                       dbRun.ServicePeriodTo.UTC(),
+		MeteredQuantity:                       dbRun.MeteredQuantity,
+		Totals:                                totals.FromDB(dbRun),
+		NoFiatTransactionRequired:             dbRun.NoFiatTransactionRequired,
+		DetailedLinesIncludeCreditAllocations: dbRun.DetailedLinesIncludeCreditAllocations,
 	}
 }
 
