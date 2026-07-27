@@ -1097,6 +1097,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		To:   datetime.MustParseTimeInLocation(s.T(), "2025-02-01T00:00:00Z", time.UTC).AsTime(),
 	}
 	shrunkServicePeriodTo := datetime.MustParseTimeInLocation(s.T(), "2025-01-16T00:00:00Z", time.UTC).AsTime()
+	zeroFiatServicePeriodTo := datetime.MustParseTimeInLocation(s.T(), "2025-01-01T00:02:00Z", time.UTC).AsTime()
 	clock.FreezeTime(createAt)
 
 	var allocationTargets []float64
@@ -1200,6 +1201,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		s.Equal(lineID.ID, *charge.Realizations.CurrentRun.LineID)
 		s.Equal(servicePeriod, charge.Realizations.CurrentRun.ServicePeriod)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 31, Total: 31}, charge.Realizations.CurrentRun.Totals)
+		s.False(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
 		s.False(charge.Realizations.CurrentRun.Immutable)
 		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
 		s.Nil(charge.Realizations.CurrentRun.Payment)
@@ -1260,6 +1262,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		s.Equal(lineID.ID, *charge.Realizations.CurrentRun.LineID)
 		s.Equal(shrunkServicePeriodTo, charge.Realizations.CurrentRun.ServicePeriod.To)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 15, Total: 15}, charge.Realizations.CurrentRun.Totals)
+		s.False(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
 		s.False(charge.Realizations.CurrentRun.Immutable)
 		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
 		s.Nil(charge.Realizations.CurrentRun.Payment)
@@ -1268,9 +1271,68 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		s.Equal(2, allocationCallback.nrInvocations)
 	})
 
+	s.Run("shrink the mutable realization to an overage that rounds to zero fiat", func() {
+		// given:
+		// - the mutable run and standard line have a positive fiat overage
+		// when:
+		// - the charge is shrunk to a positive TOKENS amount that rounds to zero USD
+		// then:
+		// - the same run and line remain, and the run records that no fiat transaction is required
+		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			ChangeSource:           billing.ChangeSourceSystem,
+			NewServicePeriodTo:     zeroFiatServicePeriodTo,
+			NewFullServicePeriodTo: servicePeriod.To,
+			NewBillingPeriodTo:     zeroFiatServicePeriodTo,
+			NewInvoiceAt:           servicePeriod.From,
+		})
+		s.Require().NoError(err)
+		s.Require().NoError(s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+			CustomerID: customer.GetID(),
+			PatchesByChargeID: map[string]charges.Patch{
+				chargeID.ID: patch,
+			},
+		}))
+
+		reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.RequireTotals(billingtest.ExpectedTotals{}, reloadedInvoice.Totals)
+		s.Require().Len(reloadedInvoice.Lines.OrEmpty(), 1)
+		line := reloadedInvoice.Lines.GetByID(lineID.ID)
+		s.Require().NotNil(line)
+		s.Nil(line.DeletedAt)
+		s.Equal(servicePeriod.From, line.Period.From)
+		s.Equal(zeroFiatServicePeriodTo, line.Period.To)
+		s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+			line:               line,
+			expectTokenOverage: 0.001,
+			expectCostBasis:    0.5,
+			expectFiatTotals:   billingtest.ExpectedTotals{},
+		})
+
+		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
+		s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+		s.Equal(float64(0.001), charge.State.AmountAfterProration.InexactFloat64())
+		s.Require().NotNil(charge.Realizations.CurrentRun)
+		s.Equal(runID, charge.Realizations.CurrentRun.ID)
+		s.Require().NotNil(charge.Realizations.CurrentRun.LineID)
+		s.Equal(lineID.ID, *charge.Realizations.CurrentRun.LineID)
+		s.Equal(zeroFiatServicePeriodTo, charge.Realizations.CurrentRun.ServicePeriod.To)
+		s.RequireTotals(billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001}, charge.Realizations.CurrentRun.Totals)
+		s.True(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
+		s.False(charge.Realizations.CurrentRun.Immutable)
+		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
+		s.Nil(charge.Realizations.CurrentRun.Payment)
+		s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID))
+		s.Equal([]float64{31, 15, 0.001}, allocationTargets)
+		s.Equal(3, allocationCallback.nrInvocations)
+	})
+
 	s.Run("extend the mutable realization to the full period", func() {
 		// given:
-		// - the mutable run and standard line represent the shrunk service period
+		// - the mutable run and standard line represent a positive TOKENS overage that rounds to zero USD
 		// when:
 		// - the charge is extended back to its full period
 		// then:
@@ -1320,12 +1382,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		s.Equal(lineID.ID, *charge.Realizations.CurrentRun.LineID)
 		s.Equal(servicePeriod, charge.Realizations.CurrentRun.ServicePeriod)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 31, Total: 31}, charge.Realizations.CurrentRun.Totals)
+		s.False(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
 		s.False(charge.Realizations.CurrentRun.Immutable)
 		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
 		s.Nil(charge.Realizations.CurrentRun.Payment)
 		s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID))
-		s.Equal([]float64{31, 15, 31}, allocationTargets)
-		s.Equal(3, allocationCallback.nrInvocations)
+		s.Equal([]float64{31, 15, 0.001, 31}, allocationTargets)
+		s.Equal(4, allocationCallback.nrInvocations)
 	})
 }
 

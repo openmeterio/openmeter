@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -143,14 +144,9 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 		}
 
 		runTotals := detailedLines.SumTotals().RoundToPrecision(currency)
-		noFiatTransactionRequired := runTotals.Total.IsZero()
-		if !noFiatTransactionRequired && currency.IsCustom() {
-			fiatOverage, err := in.Charge.ConvertCustomCurrencyOverageToFiat(runTotals)
-			if err != nil {
-				return StartCreditThenInvoiceRunResult{}, fmt.Errorf("converting custom currency overage to fiat: %w", err)
-			}
-
-			noFiatTransactionRequired = fiatOverage.Amount.IsZero()
+		noFiatTransactionRequired, err := noFiatTransactionRequiredForRun(in.Charge, runTotals)
+		if err != nil {
+			return StartCreditThenInvoiceRunResult{}, err
 		}
 
 		runBase, err = s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
@@ -269,13 +265,17 @@ func (s *Service) ReconcileRunToIntent(ctx context.Context, in ReconcileRunToInt
 		}
 
 		runTotals := detailedLines.SumTotals().RoundToPrecision(currency)
+		noFiatTransactionRequired, err := noFiatTransactionRequiredForRun(in.Charge, runTotals)
+		if err != nil {
+			return ReconcileRunToIntentResult{}, err
+		}
 
 		runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
 			ID:                        run.ID,
 			ServicePeriod:             mo.Some(rateableIntent.ServicePeriod),
 			AmountAfterProration:      mo.Some(rateableIntent.AmountAfterProration),
 			Totals:                    mo.Some(runTotals),
-			NoFiatTransactionRequired: mo.Some(runTotals.Total.IsZero()),
+			NoFiatTransactionRequired: mo.Some(noFiatTransactionRequired),
 		})
 		if err != nil {
 			return ReconcileRunToIntentResult{}, fmt.Errorf("updating run totals for run[%s]: %w", run.ID.ID, err)
@@ -286,4 +286,24 @@ func (s *Service) ReconcileRunToIntent(ctx context.Context, in ReconcileRunToInt
 
 		return ReconcileRunToIntentResult{Run: run}, nil
 	})
+}
+
+// noFiatTransactionRequiredForRun derives the persisted transaction requirement
+// from the invoice denomination. A positive custom-currency overage can still
+// require no fiat transaction when cost-basis conversion rounds it to zero.
+func noFiatTransactionRequiredForRun(charge flatfee.Charge, runTotals totals.Totals) (bool, error) {
+	if runTotals.Total.IsZero() {
+		return true, nil
+	}
+
+	if !charge.Intent.GetCurrency().IsCustom() {
+		return false, nil
+	}
+
+	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(runTotals)
+	if err != nil {
+		return false, fmt.Errorf("converting custom currency overage to fiat: %w", err)
+	}
+
+	return fiatOverage.Amount.IsZero(), nil
 }
