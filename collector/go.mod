@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter/collector
 
-go 1.26.4
+go 1.26.5
 
 replace github.com/openmeterio/openmeter => ../
 
@@ -13,7 +13,7 @@ require (
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/common v0.70.1
 	github.com/redpanda-data/benthos/v4 v4.76.0
-	github.com/redpanda-data/connect/public/bundle/free/v4 v4.99.0
+	github.com/redpanda-data/connect/public/bundle/free/v4 v4.101.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.53.0
 	github.com/urfave/cli/v2 v2.27.7
@@ -365,7 +365,7 @@ require (
 	github.com/redpanda-data/common-go/authz v0.2.1-0.20260319205134-242ab3c168b8 // indirect
 	github.com/redpanda-data/common-go/license v0.0.0-20260318014216-2bbd72bde0a0 // indirect
 	github.com/redpanda-data/common-go/redpanda-otel-exporter v0.4.0 // indirect
-	github.com/redpanda-data/connect/v4 v4.99.0 // indirect
+	github.com/redpanda-data/connect/v4 v4.101.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rickb777/period v1.0.30 // indirect
 	github.com/rickb777/plural/v2 v2.1.0 // indirect
