@@ -82,14 +82,18 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 		}
 
 		previewResult, err := e.service.realizations.BuildCreditThenInvoiceGatheringPreviewRun(flatfeerealizations.BuildCreditThenInvoiceGatheringPreviewRunInput{
-			Charge: charge,
-			Line:   *stdLine,
+			Charge:    charge,
+			LineID:    stdLine.ID,
+			InvoiceID: stdLine.InvoiceID,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("building gathering preview run for line[%s]: %w", stdLine.ID, err)
 		}
 
-		if err := populateFlatFeeStandardLineFromRun(stdLine, previewResult.Run); err != nil {
+		if err := populateFlatFeeStandardLineFromRun(stdLine, populateFlatFeeStandardLineFromRunInput{
+			Charge: charge,
+			Run:    previewResult.Run,
+		}); err != nil {
 			return nil, fmt.Errorf("populating gathering preview line[%s] from run: %w", stdLine.ID, err)
 		}
 
@@ -132,7 +136,10 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return nil, fmt.Errorf("flat fee charge[%s]: current run is required for line[%s]", charge.ID, stdLine.ID)
 		}
 
-		if err := populateFlatFeeStandardLineFromRun(stdLine, *charge.Realizations.CurrentRun); err != nil {
+		if err := populateFlatFeeStandardLineFromRun(stdLine, populateFlatFeeStandardLineFromRunInput{
+			Charge: charge,
+			Run:    *charge.Realizations.CurrentRun,
+		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
 

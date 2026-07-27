@@ -135,10 +135,11 @@ type RealizationRunBase struct {
 	Type        RealizationRunType `json:"type"`
 	InitialType RealizationRunType `json:"initialType"`
 
-	ServicePeriod             timeutil.ClosedPeriod `json:"servicePeriod"`
-	AmountAfterProration      alpacadecimal.Decimal `json:"amountAfterProration"`
-	Totals                    totals.Totals         `json:"totals"`
-	NoFiatTransactionRequired bool                  `json:"noFiatTransactionRequired"`
+	ServicePeriod        timeutil.ClosedPeriod `json:"servicePeriod"`
+	AmountAfterProration alpacadecimal.Decimal `json:"amountAfterProration"`
+	// Totals includes credit allocations and excludes taxes.
+	Totals                    totals.Totals `json:"totals"`
+	NoFiatTransactionRequired bool          `json:"noFiatTransactionRequired"`
 	// Immutable means the backing invoice line can no longer be updated in place.
 	// When true, deleting this run requires issuing a credit note instead of mutating the invoice line.
 	Immutable bool `json:"immutable"`
@@ -210,7 +211,8 @@ type RealizationRun struct {
 	CreditRealizations creditrealization.Realizations `json:"creditRealizations"`
 	AccruedUsage       *invoicedusage.AccruedUsage    `json:"accruedUsage"`
 	Payment            *payment.Invoiced              `json:"payment"`
-	DetailedLines      mo.Option[DetailedLines]       `json:"detailedLines,omitzero"`
+	// DetailedLines include discounts; credits are applied for credit_then_invoice but not for credit_only.
+	DetailedLines mo.Option[DetailedLines] `json:"detailedLines,omitzero"`
 }
 
 func (r RealizationRun) Validate() error {

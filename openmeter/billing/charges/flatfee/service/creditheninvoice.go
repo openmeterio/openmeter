@@ -447,9 +447,9 @@ func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, in
 	}
 
 	result, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
-		Charge:  s.Charge,
-		Line:    *input.Line,
-		Invoice: input.Invoice,
+		Charge:    s.Charge,
+		LineID:    input.Line.ID,
+		InvoiceID: input.Invoice.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("start credit-then-invoice run: %w", err)
@@ -486,9 +486,8 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 	}
 
 	gatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
-		Charge:        s.Charge,
-		ServicePeriod: s.Charge.Intent.GetEffectiveServicePeriod(),
-		InvoiceAt:     s.Charge.Intent.GetEffectiveInvoiceAt(),
+		Charge:    s.Charge,
+		InvoiceAt: s.Charge.Intent.GetEffectiveInvoiceAt(),
 	})
 	if err != nil {
 		return fmt.Errorf("creating flat-fee attach target line: %w", err)
@@ -502,9 +501,9 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 	line.ID = input.Line.ID
 
 	result, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
-		Charge:  s.Charge,
-		Line:    *line,
-		Invoice: input.Invoice,
+		Charge:    s.Charge,
+		LineID:    line.ID,
+		InvoiceID: input.Invoice.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("start attached credit-then-invoice run: %w", err)
@@ -512,7 +511,10 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 
 	s.Charge.Realizations.CurrentRun = &result.Run
 
-	if err := populateFlatFeeStandardLineFromRun(line, result.Run); err != nil {
+	if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
+		Charge: s.Charge,
+		Run:    result.Run,
+	}); err != nil {
 		return fmt.Errorf("mapping attached flat-fee run to standard line[%s]: %w", line.ID, err)
 	}
 
@@ -615,9 +617,8 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
 
 	updatedGatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
-		Charge:        s.Charge,
-		ServicePeriod: input.Period,
-		InvoiceAt:     s.Charge.Intent.GetEffectiveInvoiceAt(),
+		Charge:    s.Charge,
+		InvoiceAt: s.Charge.Intent.GetEffectiveInvoiceAt(),
 	})
 	if err != nil {
 		return fmt.Errorf("creating gathering line for %s period: %w", input.Op, err)
@@ -705,15 +706,19 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		result, err := s.Realizations.ReconcileStandardLineToIntent(ctx, flatfeerealizations.ReconcileStandardLineToIntentInput{
 			Charge:     s.Charge,
 			Run:        *currentRun,
-			Line:       *line,
-			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), currentRun.ServicePeriod),
+			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), s.Charge.Intent.GetEffectiveServicePeriod()),
 		})
 		if err != nil {
 			return fmt.Errorf("reconcile standard line to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)
 		}
 
 		s.Charge.Realizations.CurrentRun = &result.Run
-		line = &result.Line
+		if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
+			Charge: s.Charge,
+			Run:    result.Run,
+		}); err != nil {
+			return fmt.Errorf("mapping reconciled flat-fee run to standard line[%s]: %w", line.ID, err)
+		}
 
 		genericLine, err := line.AsInvoiceLine().AsGenericLine()
 		if err != nil {

@@ -13,9 +13,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+// ErrCreditsNotConsumedFully indicates that the detailed lines cannot absorb
+// all supplied credit allocations.
+var ErrCreditsNotConsumedFully = errors.New("credits not consumed fully")
 
 type Category string
 
@@ -157,4 +162,90 @@ func Compare[T Comparable](a, b T) int {
 		return c
 	}
 	return cmp.Compare(a.GetID(), b.GetID())
+}
+
+type Bases []Base
+
+func (l Bases) Clone() Bases {
+	out := make(Bases, len(l))
+	for idx, line := range l {
+		out[idx] = line.Clone()
+	}
+
+	return out
+}
+
+func (l Bases) SumTotals() totals.Totals {
+	out := totals.Totals{}
+	for _, line := range l {
+		out = out.Add(line.Totals)
+	}
+
+	return out
+}
+
+// WithReversedCredits returns cloned detailed-line bases with credit applications
+// removed and totals recalculated as if no credits had been applied.
+func (l Bases) WithReversedCredits() Bases {
+	out := l.Clone()
+	for idx := range out {
+		out[idx].CreditsApplied = nil
+		out[idx].Totals.CreditsTotal = alpacadecimal.Zero
+		out[idx].Totals.Total = out[idx].Totals.CalculateTotal()
+	}
+
+	return out
+}
+
+func (l Bases) WithCreditsApplied(
+	creditsApplied creditsapplied.CreditsApplied,
+	currency currencyx.Currency,
+) (Bases, error) {
+	if currency == nil {
+		return nil, errors.New("currency is required")
+	}
+
+	detailedLines := l.WithReversedCredits()
+
+	for _, creditToApply := range creditsApplied {
+		creditValueRemaining := currency.RoundToPrecision(creditToApply.Amount)
+
+		for idx := range detailedLines {
+			if creditValueRemaining.IsZero() {
+				break
+			}
+
+			totalAmount := currency.RoundToPrecision(detailedLines[idx].Totals.Total)
+			if !totalAmount.IsPositive() {
+				continue
+			}
+
+			amountToApply := creditValueRemaining
+			if totalAmount.LessThan(creditValueRemaining) {
+				amountToApply = totalAmount
+			}
+			detailedLines[idx].CreditsApplied = append(detailedLines[idx].CreditsApplied, creditToApply.CloneWithAmount(amountToApply))
+			detailedLines[idx].Totals.CreditsTotal = currency.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(amountToApply))
+			detailedLines[idx].Totals.Total = currency.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(amountToApply))
+			creditValueRemaining = currency.RoundToPrecision(creditValueRemaining.Sub(amountToApply))
+		}
+
+		if creditValueRemaining.IsPositive() {
+			return nil, ErrCreditsNotConsumedFully
+		}
+	}
+
+	return detailedLines, nil
+}
+
+func (l Bases) Validate() error {
+	var errs []error
+
+	for idx, line := range l {
+		if err := line.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("[%d]: %w", idx, err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

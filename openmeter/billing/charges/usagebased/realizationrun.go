@@ -208,9 +208,10 @@ type RealizationRunBase struct {
 	// ServicePeriodTo is the end of the service period for the realization run.
 	ServicePeriodTo time.Time `json:"servicePeriodTo"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
-	MeteredQuantity           alpacadecimal.Decimal `json:"meteredQuantity"`
-	Totals                    totals.Totals         `json:"totals"`
-	NoFiatTransactionRequired bool                  `json:"noFiatTransactionRequired"`
+	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
+	// Totals includes credit allocations and excludes taxes.
+	Totals                    totals.Totals `json:"totals"`
+	NoFiatTransactionRequired bool          `json:"noFiatTransactionRequired"`
 }
 
 func (r RealizationRunBase) Normalized() RealizationRunBase {
@@ -281,7 +282,8 @@ type RealizationRun struct {
 	CreditsAllocated creditrealization.Realizations `json:"creditsAllocated"`
 	InvoiceUsage     *invoicedusage.AccruedUsage    `json:"invoicedUsage"`
 	Payment          *payment.Invoiced              `json:"payment"`
-	DetailedLines    mo.Option[DetailedLines]       `json:"detailedLines,omitzero"`
+	// DetailedLines contains rated details before credit allocations and taxes.
+	DetailedLines mo.Option[DetailedLines] `json:"detailedLines,omitzero"`
 }
 
 func (r RealizationRun) Validate() error {

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -112,6 +111,22 @@ func (l DetailedLines) Clone() DetailedLines {
 	})
 }
 
+func (l DetailedLines) mapBase(fn func(stddetailedline.Bases) (stddetailedline.Bases, error)) (DetailedLines, error) {
+	out := l.Clone()
+	bases, err := fn(lo.Map(out, func(line DetailedLine, _ int) stddetailedline.Base {
+		return line.Base
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	for idx := range out {
+		out[idx].Base = bases[idx]
+	}
+
+	return out, nil
+}
+
 func (l DetailedLines) SumTotals() totals.Totals {
 	return totals.Sum(lo.Map(l, func(line DetailedLine, _ int) totals.Totals {
 		return line.Totals
@@ -121,14 +136,12 @@ func (l DetailedLines) SumTotals() totals.Totals {
 // WithReversedCredits returns cloned detailed lines with credit applications
 // removed and totals recalculated as if no credits had been applied.
 func (l DetailedLines) WithReversedCredits() DetailedLines {
-	return l.Map(func(line DetailedLine) DetailedLine {
-		line = line.Clone()
-		line.CreditsApplied = nil
-		line.Totals.CreditsTotal = alpacadecimal.Zero
-		line.Totals.Total = line.Totals.CalculateTotal()
-
-		return line
+	// Error is ignored here, because only mapBase's callback can return an error.
+	out, _ := l.mapBase(func(bases stddetailedline.Bases) (stddetailedline.Bases, error) {
+		return bases.WithReversedCredits(), nil
 	})
+
+	return out
 }
 
 func (l DetailedLines) WithCreditsApplied(
@@ -139,41 +152,18 @@ func (l DetailedLines) WithCreditsApplied(
 		return nil, fmt.Errorf("currency is required")
 	}
 
-	detailedLines := l.WithReversedCredits()
-
-	for _, creditToApply := range creditsApplied {
-		creditValueRemaining := currency.RoundToPrecision(creditToApply.Amount)
-
-		for idx := range detailedLines {
-			if creditValueRemaining.IsZero() {
-				break
-			}
-
-			totalAmount := currency.RoundToPrecision(detailedLines[idx].Totals.Total)
-			if !totalAmount.IsPositive() {
-				continue
-			}
-
-			if totalAmount.LessThanOrEqual(creditValueRemaining) {
-				creditValueRemaining = currency.RoundToPrecision(creditValueRemaining.Sub(totalAmount))
-				detailedLines[idx].CreditsApplied = append(detailedLines[idx].CreditsApplied, creditToApply.CloneWithAmount(totalAmount))
-				detailedLines[idx].Totals.CreditsTotal = currency.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(totalAmount))
-				detailedLines[idx].Totals.Total = currency.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(totalAmount))
-			} else {
-				detailedLines[idx].CreditsApplied = append(detailedLines[idx].CreditsApplied, creditToApply.CloneWithAmount(creditValueRemaining))
-				detailedLines[idx].Totals.CreditsTotal = currency.RoundToPrecision(detailedLines[idx].Totals.CreditsTotal.Add(creditValueRemaining))
-				detailedLines[idx].Totals.Total = currency.RoundToPrecision(detailedLines[idx].Totals.Total.Sub(creditValueRemaining))
-				creditValueRemaining = alpacadecimal.Zero
-				break
-			}
-		}
-
-		if creditValueRemaining.IsPositive() {
+	out, err := l.mapBase(func(bases stddetailedline.Bases) (stddetailedline.Bases, error) {
+		return bases.WithCreditsApplied(creditsApplied, currency)
+	})
+	if err != nil {
+		if errors.Is(err, stddetailedline.ErrCreditsNotConsumedFully) {
 			return nil, ErrInvoiceLineCreditsNotConsumedFully
 		}
+
+		return nil, err
 	}
 
-	return detailedLines, nil
+	return out, nil
 }
 
 func (l DetailedLines) Validate() error {

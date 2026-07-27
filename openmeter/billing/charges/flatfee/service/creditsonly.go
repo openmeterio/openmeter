@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
@@ -92,17 +90,17 @@ func (s *CreditsOnlyStateMachine) AdvanceAfterBookedAt(ctx context.Context) erro
 func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	currency := s.Charge.Intent.GetCurrency()
 
-	amount := currency.RoundToPrecision(s.Charge.State.AmountAfterProration)
-
-	if amount.IsNegative() {
-		return fmt.Errorf("charge total is negative [charge_id=%s, amount=%s]", s.Charge.ID, amount.String())
+	ratingResult, err := s.rateEffectiveIntent()
+	if err != nil {
+		return err
 	}
+	s.Charge.State.AmountAfterProration = ratingResult.Intent.AmountAfterProration
 
 	if s.Charge.Realizations.CurrentRun == nil {
 		runBase, err := s.Adapter.CreateCurrentRun(ctx, flatfee.CreateCurrentRunInput{
 			Charge:                    s.Charge.ChargeBase,
-			ServicePeriod:             s.Charge.Intent.GetEffectiveServicePeriod(),
-			AmountAfterProration:      amount,
+			ServicePeriod:             ratingResult.Intent.ServicePeriod,
+			AmountAfterProration:      ratingResult.Intent.AmountAfterProration,
 			NoFiatTransactionRequired: true, // We are in credits-only mode
 		})
 		if err != nil {
@@ -111,24 +109,45 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 
 		s.Charge.Realizations.CurrentRun = &flatfee.RealizationRun{
 			RealizationRunBase: runBase,
+			DetailedLines:      mo.Some(ratingResult.DetailedLines),
+		}
+
+		if err := s.Adapter.UpsertDetailedLines(ctx, runBase.ID, ratingResult.DetailedLines); err != nil {
+			return fmt.Errorf("persist credit-only detailed lines: %w", err)
 		}
 	}
 
 	if s.Charge.Realizations.CurrentRun != nil && len(s.Charge.Realizations.CurrentRun.CreditRealizations) > 0 {
-		return s.reconcileCurrentRunCredits(ctx, amount)
+		return s.reconcileCurrentRunCredits(ctx, ratingResult)
 	}
 
 	result, err := s.Realizations.AllocateCreditsOnly(ctx, flatfeerealizations.AllocateCreditsOnlyInput{
 		Charge:             s.Charge,
-		Amount:             amount,
+		Totals:             ratingResult.Totals,
 		CurrencyCalculator: currency,
 	})
 	if err != nil {
 		return fmt.Errorf("allocate credits: %w", err)
 	}
 
-	s.Charge.Realizations.CurrentRun.CreditRealizations = append(s.Charge.Realizations.CurrentRun.CreditRealizations, result.Realizations...)
+	s.Charge.Realizations.CurrentRun.RealizationRunBase = result.RunBase
+	s.Charge.Realizations.CurrentRun.DetailedLines = mo.Some(ratingResult.DetailedLines)
+	s.Charge.Realizations.CurrentRun.CreditRealizations = append(s.Charge.Realizations.CurrentRun.CreditRealizations, result.CreditRealizations...)
 	return nil
+}
+
+func (s *CreditsOnlyStateMachine) rateEffectiveIntent() (flatfeerealizations.RateResult, error) {
+	rateableIntent, err := s.Charge.GetRateableIntent()
+	if err != nil {
+		return flatfeerealizations.RateResult{}, fmt.Errorf("getting rateable intent: %w", err)
+	}
+
+	ratingResult, err := s.Realizations.Rate(rateableIntent)
+	if err != nil {
+		return flatfeerealizations.RateResult{}, fmt.Errorf("rating flat fee: %w", err)
+	}
+
+	return ratingResult, nil
 }
 
 func (s *CreditsOnlyStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
@@ -170,20 +189,20 @@ func (s *CreditsOnlyStateMachine) applyPeriodPatch(ctx context.Context, patch pe
 
 	s.Charge.Intent = intent
 
-	amountAfterProration, err := intent.CalculateAmountAfterProration()
+	ratingResult, err := s.rateEffectiveIntent()
 	if err != nil {
-		return fmt.Errorf("calculating amount after proration: %w", err)
+		return err
 	}
-	s.Charge.State.AmountAfterProration = amountAfterProration
+	s.Charge.State.AmountAfterProration = ratingResult.Intent.AmountAfterProration
 
 	if s.Charge.Realizations.CurrentRun == nil {
 		return nil
 	}
 
-	return s.reconcileCurrentRunCredits(ctx, amountAfterProration)
+	return s.reconcileCurrentRunCredits(ctx, ratingResult)
 }
 
-func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context, amount alpacadecimal.Decimal) error {
+func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context, ratingResult flatfeerealizations.RateResult) error {
 	currentRun := s.Charge.Realizations.CurrentRun
 	if currentRun == nil {
 		return nil
@@ -191,8 +210,8 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context
 
 	currency := s.Charge.Intent.GetCurrency()
 
-	amount = currency.RoundToPrecision(amount)
-	servicePeriod := s.Charge.Intent.GetEffectiveServicePeriod()
+	creditAllocationTarget := currency.RoundToPrecision(ratingResult.Totals.Total)
+	servicePeriod := ratingResult.Intent.ServicePeriod
 	run := *currentRun
 	run.ServicePeriod = servicePeriod
 
@@ -200,7 +219,7 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context
 		Charge:             s.Charge,
 		Run:                run,
 		AllocateAt:         flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), servicePeriod),
-		TargetAmount:       amount,
+		TargetAmount:       creditAllocationTarget,
 		CurrencyCalculator: currency,
 	})
 	if err != nil {
@@ -209,15 +228,31 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context
 
 	run.CreditRealizations = append(run.CreditRealizations, reconcileResult.Realizations...)
 
+	// Given ReconcileCredits is both used for credits only and credit-then-invoice modes,
+	// we need to ensure that the allocated credits match the rated total.
+	allocated := currency.RoundToPrecision(run.CreditRealizations.Sum())
+	if !allocated.Equal(creditAllocationTarget) {
+		return fmt.Errorf(
+			"credit allocations do not match rated total [charge_id=%s total=%s allocated=%s]",
+			s.Charge.ID,
+			creditAllocationTarget.String(),
+			allocated.String(),
+		)
+	}
+
+	if err := s.Adapter.UpsertDetailedLines(ctx, run.ID, ratingResult.DetailedLines); err != nil {
+		return fmt.Errorf("persist credit-only detailed lines: %w", err)
+	}
+
+	runTotals := ratingResult.Totals
+	runTotals.CreditsTotal = currency.RoundToPrecision(runTotals.CreditsTotal.Add(allocated))
+	runTotals.Total = currency.RoundToPrecision(runTotals.Total.Sub(allocated))
+
 	runBase, err := s.Adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-		ID:                   run.ID,
-		ServicePeriod:        mo.Some(servicePeriod),
-		AmountAfterProration: mo.Some(amount),
-		Totals: mo.Some(totals.Totals{
-			Amount:       amount,
-			CreditsTotal: amount,
-			Total:        alpacadecimal.Zero,
-		}),
+		ID:                        run.ID,
+		ServicePeriod:             mo.Some(servicePeriod),
+		AmountAfterProration:      mo.Some(ratingResult.Intent.AmountAfterProration),
+		Totals:                    mo.Some(runTotals),
 		NoFiatTransactionRequired: mo.Some(true),
 	})
 	if err != nil {
@@ -225,6 +260,7 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context
 	}
 
 	run.RealizationRunBase = runBase
+	run.DetailedLines = mo.Some(ratingResult.DetailedLines)
 	s.Charge.Realizations.CurrentRun = &run
 	return nil
 }

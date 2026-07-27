@@ -17,7 +17,7 @@ import (
 
 type AllocateCreditsOnlyInput struct {
 	Charge             flatfee.Charge
-	Amount             alpacadecimal.Decimal
+	Totals             totals.Totals
 	CurrencyCalculator currencyx.Currency
 }
 
@@ -26,26 +26,25 @@ func (i AllocateCreditsOnlyInput) Validate() error {
 		return fmt.Errorf("charge: %w", err)
 	}
 
-	if i.Amount.IsNegative() {
-		return fmt.Errorf("amount cannot be negative")
+	if err := i.Totals.Validate(); err != nil {
+		return fmt.Errorf("totals: %w", err)
 	}
 
 	if i.CurrencyCalculator == nil {
 		return fmt.Errorf("currency calculator is required")
 	}
 
-	if i.CurrencyCalculator != nil {
-		if err := i.CurrencyCalculator.Validate(); err != nil {
-			return fmt.Errorf("currency calculator: %w", err)
-		}
+	if err := i.CurrencyCalculator.Validate(); err != nil {
+		return fmt.Errorf("currency calculator: %w", err)
 	}
 
 	return nil
 }
 
 type AllocateCreditsOnlyResult struct {
-	Allocated    alpacadecimal.Decimal
-	Realizations creditrealization.Realizations
+	Allocated          alpacadecimal.Decimal
+	CreditRealizations creditrealization.Realizations
+	RunBase            flatfee.RealizationRunBase
 }
 
 func (s *Service) AllocateCreditsOnly(ctx context.Context, in AllocateCreditsOnlyInput) (AllocateCreditsOnlyResult, error) {
@@ -53,70 +52,67 @@ func (s *Service) AllocateCreditsOnly(ctx context.Context, in AllocateCreditsOnl
 		return AllocateCreditsOnlyResult{}, err
 	}
 
-	in.Amount = in.CurrencyCalculator.RoundToPrecision(in.Amount)
-
-	if in.Amount.IsZero() {
-		return AllocateCreditsOnlyResult{}, nil
-	}
+	amountToAllocate := in.CurrencyCalculator.RoundToPrecision(in.Totals.Total)
 
 	servicePeriod := in.Charge.Intent.GetEffectiveServicePeriod()
-	input := flatfee.OnAllocateCreditsInput{
-		Charge:                 in.Charge,
-		ServicePeriod:          servicePeriod,
-		BookedAt:               flatfee.UsageBookedAt(in.Charge.Intent.GetEffectivePaymentTerm(), servicePeriod),
-		PreTaxAmountToAllocate: in.Amount,
-	}
-	if err := input.Validate(); err != nil {
-		return AllocateCreditsOnlyResult{}, fmt.Errorf("validate input: %w", err)
-	}
+	var creditAllocations creditrealization.CreateAllocationInputs
+	if !amountToAllocate.IsZero() {
+		input := flatfee.OnAllocateCreditsInput{
+			Charge:                 in.Charge,
+			ServicePeriod:          servicePeriod,
+			BookedAt:               flatfee.UsageBookedAt(in.Charge.Intent.GetEffectivePaymentTerm(), servicePeriod),
+			PreTaxAmountToAllocate: amountToAllocate,
+		}
+		if err := input.Validate(); err != nil {
+			return AllocateCreditsOnlyResult{}, fmt.Errorf("validate input: %w", err)
+		}
 
-	creditAllocations, err := s.handler.OnAllocateCredits(ctx, input)
-	if err != nil {
-		return AllocateCreditsOnlyResult{}, fmt.Errorf("allocate credits: %w", err)
+		var err error
+		creditAllocations, err = s.handler.OnAllocateCredits(ctx, input)
+		if err != nil {
+			return AllocateCreditsOnlyResult{}, fmt.Errorf("allocate credits: %w", err)
+		}
 	}
 
 	allocated := in.CurrencyCalculator.RoundToPrecision(creditAllocations.Sum())
-	if !allocated.Equal(in.Amount) {
+	if !allocated.Equal(amountToAllocate) {
 		return AllocateCreditsOnlyResult{}, models.NewGenericValidationError(
 			fmt.Errorf("credit allocations do not match total [charge_id=%s, total=%s, allocations_sum=%s]",
-				in.Charge.ID, in.Amount.String(), allocated.String()),
+				in.Charge.ID, amountToAllocate.String(), allocated.String()),
 		)
 	}
 
-	result := AllocateCreditsOnlyResult{
-		Allocated: allocated,
+	if in.Charge.Realizations.CurrentRun == nil {
+		return AllocateCreditsOnlyResult{}, fmt.Errorf("current run is required")
 	}
 
-	if len(creditAllocations) > 0 {
-		if in.Charge.Realizations.CurrentRun == nil {
-			return AllocateCreditsOnlyResult{}, fmt.Errorf("current run is required")
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (AllocateCreditsOnlyResult, error) {
+		var realizations creditrealization.Realizations
+		if len(creditAllocations) > 0 {
+			var err error
+			realizations, err = s.createCreditAllocations(ctx, in.Charge, in.Charge.Realizations.CurrentRun.ID, creditAllocations.AsCreateInputs())
+			if err != nil {
+				return AllocateCreditsOnlyResult{}, fmt.Errorf("create credit allocations: %w", err)
+			}
 		}
 
-		realizations, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditrealization.Realizations, error) {
-			realizations, err := s.createCreditAllocations(ctx, in.Charge, in.Charge.Realizations.CurrentRun.ID, creditAllocations.AsCreateInputs())
-			if err != nil {
-				return nil, fmt.Errorf("create credit allocations: %w", err)
-			}
+		runTotals := in.Totals
+		runTotals.CreditsTotal = in.CurrencyCalculator.RoundToPrecision(runTotals.CreditsTotal.Add(allocated))
+		runTotals.Total = in.CurrencyCalculator.RoundToPrecision(runTotals.Total.Sub(allocated))
 
-			if _, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
-				ID: in.Charge.Realizations.CurrentRun.ID,
-				Totals: mo.Some(totals.Totals{
-					Amount:       allocated,
-					CreditsTotal: allocated,
-					Total:        alpacadecimal.Zero,
-				}),
-			}); err != nil {
-				return nil, fmt.Errorf("update credit-only run totals: %w", err)
-			}
-
-			return realizations, nil
+		runBase, err := s.adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+			ID:                        in.Charge.Realizations.CurrentRun.ID,
+			Totals:                    mo.Some(runTotals),
+			NoFiatTransactionRequired: mo.Some(true),
 		})
 		if err != nil {
-			return AllocateCreditsOnlyResult{}, err
+			return AllocateCreditsOnlyResult{}, fmt.Errorf("update credit-only run totals: %w", err)
 		}
 
-		result.Realizations = realizations
-	}
-
-	return result, nil
+		return AllocateCreditsOnlyResult{
+			Allocated:          allocated,
+			CreditRealizations: realizations,
+			RunBase:            runBase,
+		}, nil
+	})
 }
