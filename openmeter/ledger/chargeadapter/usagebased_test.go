@@ -419,9 +419,10 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		defer clock.UnFreeze()
 
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge:  charge,
-			Run:     env.newRunWithInvoiceUsage("line-1", total),
-			EventAt: env.Now(),
+			Charge:     charge,
+			Run:        env.newRunWithInvoiceUsage("line-1", total),
+			EventAt:    env.Now(),
+			FiatAmount: total,
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
@@ -440,15 +441,16 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		}
 	})
 
-	t.Run("zero invoice usage is a no-op", func(t *testing.T) {
+	t.Run("zero fiat amount is rejected", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:     env.newRunWithInvoiceUsage("line-1", alpacadecimal.Zero),
-			EventAt: env.Now(),
+			Charge:     env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:        env.newRunWithInvoiceUsage("line-1", alpacadecimal.Zero),
+			EventAt:    env.Now(),
+			FiatAmount: alpacadecimal.Zero,
 		})
-		require.NoError(t, err)
+		require.ErrorContains(t, err, "fiat amount must be positive")
 		require.Empty(t, ref.TransactionGroupID)
 	})
 
@@ -456,9 +458,10 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:     env.newRunWithInvoiceUsage("line-1", alpacadecimal.NewFromInt(10)),
-			EventAt: time.Time{},
+			Charge:     env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:        env.newRunWithInvoiceUsage("line-1", alpacadecimal.NewFromInt(10)),
+			EventAt:    time.Time{},
+			FiatAmount: alpacadecimal.NewFromInt(10),
 		})
 		require.ErrorContains(t, err, "event at is required")
 		require.Empty(t, ref.TransactionGroupID)
@@ -484,9 +487,10 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 			intent.InvoiceAt = env.Now().Add(-24 * time.Hour)
 		})
 		_, err = env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge:  authorizedCharge,
-			Run:     env.newRunWithInvoiceUsage("line-1", total),
-			EventAt: env.Now(),
+			Charge:     authorizedCharge,
+			Run:        env.newRunWithInvoiceUsage("line-1", total),
+			EventAt:    env.Now(),
+			FiatAmount: total,
 		})
 		require.NoError(t, err)
 
@@ -499,9 +503,10 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		defer clock.UnFreeze()
 
 		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
-			Charge:  settledCharge,
-			Run:     env.newRunWithAuthorizedPayment("line-1", total),
-			EventAt: eventTime,
+			Charge:     settledCharge,
+			Run:        env.newRunWithAuthorizedPayment("line-1", total),
+			EventAt:    eventTime,
+			FiatAmount: total,
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
@@ -516,15 +521,16 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		}
 	})
 
-	t.Run("zero invoice usage is a no-op", func(t *testing.T) {
+	t.Run("zero fiat amount is rejected", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
-			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:     env.newRunWithAuthorizedPaymentAndInvoiceUsage("line-1", alpacadecimal.NewFromInt(1), alpacadecimal.Zero),
-			EventAt: env.Now(),
+			Charge:     env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:        env.newRunWithAuthorizedPaymentAndInvoiceUsage("line-1", alpacadecimal.NewFromInt(1), alpacadecimal.Zero),
+			EventAt:    env.Now(),
+			FiatAmount: alpacadecimal.Zero,
 		})
-		require.NoError(t, err)
+		require.ErrorContains(t, err, "fiat amount must be positive")
 		require.Empty(t, ref.TransactionGroupID)
 	})
 
@@ -532,9 +538,10 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
-			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:     env.newRunWithAuthorizedPayment("line-1", alpacadecimal.NewFromInt(10)),
-			EventAt: time.Time{},
+			Charge:     env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:        env.newRunWithAuthorizedPayment("line-1", alpacadecimal.NewFromInt(10)),
+			EventAt:    time.Time{},
+			FiatAmount: alpacadecimal.NewFromInt(10),
 		})
 		require.ErrorContains(t, err, "event at is required")
 		require.Empty(t, ref.TransactionGroupID)

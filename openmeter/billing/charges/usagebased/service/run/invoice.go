@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 )
 
@@ -78,21 +79,49 @@ func (s *Service) BookAccruedInvoiceUsage(ctx context.Context, in BookAccruedInv
 		}, nil
 	}
 
-	input := usagebased.OnInvoiceUsageAccruedInput{
-		Charge:        in.Charge,
-		Run:           in.Run,
-		ServicePeriod: in.Line.Period,
-		BookedAt:      in.Line.Period.To,
-		Amount:        in.Line.Totals.Total,
-	}
+	var ledgerTransactionRef ledgertransaction.GroupReference
+	if in.Charge.Intent.GetCurrency().IsCustom() {
+		input := usagebased.OnCustomCurrencyOverageAccruedInput{
+			Charge: in.Charge,
+			Run:    in.Run,
+		}
+		if err := input.Validate(); err != nil {
+			return BookAccruedInvoiceUsageResult{}, fmt.Errorf("validate on custom currency overage accrued input: %w", err)
+		}
 
-	if err := input.Validate(); err != nil {
-		return BookAccruedInvoiceUsageResult{}, fmt.Errorf("validate on invoice usage accrued input: %w", err)
-	}
+		result, err := s.handler.OnCustomCurrencyOverageAccrued(ctx, input)
+		if err != nil {
+			return BookAccruedInvoiceUsageResult{}, fmt.Errorf("on usage-based custom currency overage accrued: %w", err)
+		}
+		if err := result.Validate(); err != nil {
+			return BookAccruedInvoiceUsageResult{}, fmt.Errorf("validate on custom currency overage accrued result: %w", err)
+		}
+		if !result.TotalFiatAmount.Equal(in.Line.Totals.Total) {
+			return BookAccruedInvoiceUsageResult{}, fmt.Errorf(
+				"custom currency overage booked fiat amount does not match line total: %s != %s",
+				result.TotalFiatAmount,
+				in.Line.Totals.Total,
+			)
+		}
 
-	ledgerTransactionRef, err := s.handler.OnInvoiceUsageAccrued(ctx, input)
-	if err != nil {
-		return BookAccruedInvoiceUsageResult{}, fmt.Errorf("on usage-based invoice usage accrued: %w", err)
+		ledgerTransactionRef = result.TransactionGroup
+	} else {
+		input := usagebased.OnInvoiceUsageAccruedInput{
+			Charge:        in.Charge,
+			Run:           in.Run,
+			ServicePeriod: in.Line.Period,
+			BookedAt:      in.Line.Period.To,
+			Amount:        in.Line.Totals.Total,
+		}
+		if err := input.Validate(); err != nil {
+			return BookAccruedInvoiceUsageResult{}, fmt.Errorf("validate on invoice usage accrued input: %w", err)
+		}
+
+		var err error
+		ledgerTransactionRef, err = s.handler.OnInvoiceUsageAccrued(ctx, input)
+		if err != nil {
+			return BookAccruedInvoiceUsageResult{}, fmt.Errorf("on usage-based invoice usage accrued: %w", err)
+		}
 	}
 
 	if ledgerTransactionRef.TransactionGroupID == "" {

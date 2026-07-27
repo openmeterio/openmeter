@@ -194,6 +194,9 @@ func TestGatheringInvoiceCollectionAt(t *testing.T) {
 }
 
 func TestStandardInvoiceCollectionAt(t *testing.T) {
+	flatFeeLineWithOverride := newFlatFeeStandardLine(t, "2025-06-20T12:00:00Z")
+	flatFeeLineWithOverride.OverrideCollectionPeriodEnd = lo.ToPtr(mustTime(t, "2025-06-20T12:05:00Z"))
+
 	tests := []struct {
 		name    string
 		invoice billing.StandardInvoice
@@ -219,6 +222,15 @@ func TestStandardInvoiceCollectionAt(t *testing.T) {
 				newStandardLine(t, "2025-06-15T12:00:00Z"),
 			),
 			want: mustTime(t, "2025-06-15T13:00:00Z"),
+		},
+		{
+			name: "uses an explicit collection period end for a flat fee line",
+			invoice: newStandardInvoice(
+				mustTime(t, "2025-06-10T00:00:00Z"),
+				datetime.MustParseDuration(t, "PT1H"),
+				flatFeeLineWithOverride,
+			),
+			want: mustTime(t, "2025-06-20T12:05:00Z"),
 		},
 		{
 			name: "ignores deleted lines when resolving latest invoice at",

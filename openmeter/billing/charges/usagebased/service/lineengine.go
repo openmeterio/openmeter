@@ -153,8 +153,8 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 		}
 
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
-			Run:  previewResult.Run,
-			Runs: previewResult.Runs,
+			Charge: charge,
+			Run:    previewResult.Run,
 		}); err != nil {
 			return nil, fmt.Errorf("populating gathering preview line[%s] from run: %w", stdLine.ID, err)
 		}
@@ -254,8 +254,8 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		}
 
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
-			Run:  currentRun,
-			Runs: charge.Realizations,
+			Charge: charge,
+			Run:    currentRun,
 		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
@@ -308,8 +308,8 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 		}
 
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
-			Run:  currentRun,
-			Runs: charge.Realizations,
+			Charge: charge,
+			Run:    currentRun,
 		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
@@ -515,8 +515,8 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, standardInvoi
 	standardLine.ManagedBy = billing.ManuallyManagedLine
 
 	if err := populateStandardLineFromRun(&standardLine, populateStandardLineFromRunInput{
-		Run:  currentRun,
-		Runs: charge.Realizations,
+		Charge: charge,
+		Run:    currentRun,
 	}); err != nil {
 		return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 	}

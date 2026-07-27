@@ -60,7 +60,8 @@ func (s *Service) BookInvoicedPaymentAuthorized(ctx context.Context, in BookInvo
 		return BookInvoicedPaymentAuthorizedResult{}, err
 	}
 
-	if in.Run.NoFiatTransactionRequired {
+	fiatAmount := in.Line.Totals.Total
+	if in.Run.NoFiatTransactionRequired || fiatAmount.IsZero() {
 		return BookInvoicedPaymentAuthorizedResult{
 			Run: in.Run,
 		}, nil
@@ -68,9 +69,10 @@ func (s *Service) BookInvoicedPaymentAuthorized(ctx context.Context, in BookInvo
 
 	eventAt := clock.Now()
 	input := usagebased.OnPaymentAuthorizedInput{
-		Charge:  in.Charge,
-		Run:     in.Run,
-		EventAt: eventAt,
+		Charge:     in.Charge,
+		Run:        in.Run,
+		EventAt:    eventAt,
+		FiatAmount: fiatAmount,
 	}
 	if err := input.Validate(); err != nil {
 		return BookInvoicedPaymentAuthorizedResult{}, fmt.Errorf("validate on payment authorized input: %w", err)
@@ -87,7 +89,7 @@ func (s *Service) BookInvoicedPaymentAuthorized(ctx context.Context, in BookInvo
 		InvoiceID: in.Invoice.ID,
 		Base: payment.Base{
 			ServicePeriod: in.Line.Period,
-			FiatAmount:    in.Line.Totals.Total,
+			FiatAmount:    fiatAmount,
 			Authorized: &ledgertransaction.TimedGroupReference{
 				GroupReference: ledgertransaction.GroupReference{
 					TransactionGroupID: ledgerTransactionRef.TransactionGroupID,
@@ -170,7 +172,8 @@ func (s *Service) SettleInvoicedPayment(ctx context.Context, in SettleInvoicedPa
 		return SettleInvoicedPaymentResult{}, err
 	}
 
-	if in.Run.NoFiatTransactionRequired {
+	fiatAmount := in.Line.Totals.Total
+	if in.Run.NoFiatTransactionRequired || fiatAmount.IsZero() {
 		return SettleInvoicedPaymentResult{
 			Run: in.Run,
 		}, nil
@@ -178,9 +181,10 @@ func (s *Service) SettleInvoicedPayment(ctx context.Context, in SettleInvoicedPa
 
 	eventAt := clock.Now()
 	input := usagebased.OnPaymentSettledInput{
-		Charge:  in.Charge,
-		Run:     in.Run,
-		EventAt: eventAt,
+		Charge:     in.Charge,
+		Run:        in.Run,
+		EventAt:    eventAt,
+		FiatAmount: fiatAmount,
 	}
 	if err := input.Validate(); err != nil {
 		return SettleInvoicedPaymentResult{}, fmt.Errorf("validate on payment settled input: %w", err)

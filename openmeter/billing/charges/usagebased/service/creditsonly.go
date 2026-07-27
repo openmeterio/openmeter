@@ -307,15 +307,13 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{
-		Charge:                    s.Charge,
-		CustomerOverride:          s.CustomerOverride,
-		FeatureMeter:              s.FeatureMeter,
-		Type:                      usagebased.RealizationRunTypeFinalRealization,
-		StoredAtLT:                storedAtLT,
-		ServicePeriodTo:           meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To),
-		CreditAllocation:          usagebasedrun.CreditAllocationExact,
-		CurrencyCalculator:        s.CurrencyCalculator,
-		NoFiatTransactionRequired: true,
+		Charge:             s.Charge,
+		CustomerOverride:   s.CustomerOverride,
+		FeatureMeter:       s.FeatureMeter,
+		Type:               usagebased.RealizationRunTypeFinalRealization,
+		StoredAtLT:         storedAtLT,
+		ServicePeriodTo:    meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To),
+		CurrencyCalculator: s.CurrencyCalculator,
 	})
 	if err != nil {
 		return err
