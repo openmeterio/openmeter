@@ -33,10 +33,6 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 		now := clock.Now().UTC()
 		// Let's create all the flat fee charges in bulk
 		intentsWithStatus, err := slicesx.MapWithErr(input.Intents, func(intent flatfee.Intent) (flatfee.IntentWithInitialStatus, error) {
-			if intent.Currency.IsCustom() && !s.enableCustomCurrency.Load() {
-				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("creating flat fee charge with custom currency %q: %w", intent.Currency.GetCode(), meta.ErrCustomCurrencyNotSupported)
-			}
-
 			chargeIntent := intent.Normalized()
 
 			var resolvedCostBasis *costbasis.State

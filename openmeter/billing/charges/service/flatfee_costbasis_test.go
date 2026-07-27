@@ -34,41 +34,11 @@ func (s *FlatFeeCostBasisCreateSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 }
 
-func (s *FlatFeeCostBasisCreateSuite) TearDownTest() {
-	s.setCustomCurrencyEnabled(false)
-	s.BaseSuite.TearDownTest()
-}
-
-func (s *FlatFeeCostBasisCreateSuite) TestCustomCurrencyCreditOnlyIsDisabledByDefault() {
-	// given:
-	// - a valid custom-currency credit-only flat fee
-	// - the test-only custom-currency switch left at its default value
-	// when:
-	// - the charge is created
-	// then:
-	// - creation is rejected before the charge is persisted
-	ctx := s.T().Context()
-	namespace := s.GetUniqueNamespace("flat-fee-cost-basis-disabled")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
-	customer := s.CreateTestCustomer(namespace, "flat-fee-cost-basis-disabled")
-	currency := s.createTestCustomCurrency(ctx, namespace)
-
-	_, err := s.Charges.flatFeeService.Create(ctx, flatfee.CreateInput{
-		Namespace: namespace,
-		Intents: []flatfee.Intent{
-			s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "disabled", productcatalog.CreditOnlySettlementMode, nil),
-		},
-		FeatureMeters: feature.FeatureMeterCollection{},
-	})
-	s.Require().ErrorIs(err, meta.ErrCustomCurrencyNotSupported)
-	s.Require().Equal(0, s.countCostBases(namespace))
-}
-
 func (s *FlatFeeCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCostBasesInInputOrder() {
 	// given:
 	// - manual, pinned, and dynamic cost-basis intents in one custom-currency batch
 	// when:
-	// - custom-currency creation is enabled, the flat fees are created, and each is reloaded through the charge service
+	// - the flat fees are created and each is reloaded through the charge service
 	// then:
 	// - each charge references its own persisted cost basis and its intent and resolved state survive the normal read path
 	ctx := s.T().Context()
@@ -101,7 +71,6 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCo
 		FiatCurrency: fiatCurrency,
 	})
 
-	s.setCustomCurrencyEnabled(true)
 	created, err := s.Charges.flatFeeService.Create(ctx, flatfee.CreateInput{
 		Namespace: namespace,
 		Intents: []flatfee.Intent{
@@ -185,7 +154,6 @@ func (s *FlatFeeCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetrySafe
 	dynamicIntent := costbasis.NewIntent(costbasis.DynamicIntent{
 		FiatCurrency: s.newFiatCurrency("USD"),
 	})
-	s.setCustomCurrencyEnabled(true)
 	created, err := s.Charges.flatFeeService.Create(ctx, flatfee.CreateInput{
 		Namespace: namespace,
 		Intents: []flatfee.Intent{
@@ -315,7 +283,6 @@ func (s *FlatFeeCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeBeco
 	dynamicIntent := costbasis.NewIntent(costbasis.DynamicIntent{
 		FiatCurrency: s.newFiatCurrency("USD"),
 	})
-	s.setCustomCurrencyEnabled(true)
 	clock.FreezeTime(activationAt)
 	created, err := s.Charges.flatFeeService.Create(ctx, flatfee.CreateInput{
 		Namespace: namespace,
@@ -391,7 +358,6 @@ func (s *FlatFeeCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAndFia
 		{name: "fiat currency", costBasisID: eurCostBasis.ID, errorText: "currency cost basis fiat currency mismatch"},
 	}
 
-	s.setCustomCurrencyEnabled(true)
 	for _, test := range tests {
 		s.Run(test.name, func() {
 			// given:
@@ -435,7 +401,6 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreateRollsBackCostBasesWhenChargeCrea
 		Rate:         alpacadecimal.NewFromInt(2),
 	})
 
-	s.setCustomCurrencyEnabled(true)
 	_, err := s.Charges.flatFeeService.Create(ctx, flatfee.CreateInput{
 		Namespace: namespace,
 		Intents: []flatfee.Intent{
@@ -454,8 +419,6 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeRefe
 	defaults := s.ProvisionDefaultTaxCodes(ctx, namespace)
 	customer := s.CreateTestCustomer(namespace, "flat-fee-without-cost-basis")
 	currency := s.createTestCustomCurrency(ctx, namespace)
-	s.setCustomCurrencyEnabled(true)
-
 	created, err := s.Charges.flatFeeService.Create(ctx, flatfee.CreateInput{
 		Namespace: namespace,
 		Intents: []flatfee.Intent{
@@ -473,13 +436,6 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreateWithoutCostBasisLeavesChargeRefe
 	s.Require().NoError(err)
 	s.Require().Nil(chargeEntity.CostBasisID)
 	s.Require().Equal(0, s.countCostBases(namespace))
-}
-
-func (s *FlatFeeCostBasisCreateSuite) setCustomCurrencyEnabled(enabled bool) {
-	s.T().Helper()
-	enabler, ok := s.Charges.flatFeeService.(customCurrencyEnabler)
-	s.Require().True(ok)
-	s.Require().NoError(enabler.SetEnableCustomCurrency(s.T(), enabled))
 }
 
 func (s *FlatFeeCostBasisCreateSuite) countCostBases(namespace string) int {
