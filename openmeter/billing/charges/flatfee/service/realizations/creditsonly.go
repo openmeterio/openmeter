@@ -2,6 +2,7 @@ package realizations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -22,23 +23,23 @@ type AllocateCreditsOnlyInput struct {
 }
 
 func (i AllocateCreditsOnlyInput) Validate() error {
+	var errs []error
+
 	if err := i.Charge.Validate(); err != nil {
-		return fmt.Errorf("charge: %w", err)
+		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
 	if err := i.Totals.Validate(); err != nil {
-		return fmt.Errorf("totals: %w", err)
+		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
 
 	if i.CurrencyCalculator == nil {
-		return fmt.Errorf("currency calculator is required")
+		errs = append(errs, errors.New("currency calculator is required"))
+	} else if err := i.CurrencyCalculator.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
 	}
 
-	if err := i.CurrencyCalculator.Validate(); err != nil {
-		return fmt.Errorf("currency calculator: %w", err)
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type AllocateCreditsOnlyResult struct {
