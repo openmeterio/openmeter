@@ -8,7 +8,6 @@ import { beforeEach, describe, it } from 'node:test'
 import { sortQueryTypeRule } from '../lib/rules/sort-query-type.js'
 
 const preamble = `
-  import "@typespec/http";
   using TypeSpec.Http;
 
   namespace Common {

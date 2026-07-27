@@ -24,8 +24,6 @@ async function compileResource(
   })
   const runner = await createTestRunner(host)
   await runner.compile(`
-    import "@typespec/http";
-    import "@typespec/openapi";
     using TypeSpec.Http;
     using TypeSpec.OpenAPI;
     ${code}

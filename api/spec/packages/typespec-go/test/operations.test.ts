@@ -25,8 +25,6 @@ async function compileProgram(code: string): Promise<Program> {
   })
   const runner = await createTestRunner(host)
   await runner.compile(`
-    import "@typespec/http";
-    import "@typespec/openapi";
     using TypeSpec.Http;
     using TypeSpec.OpenAPI;
     ${code}
@@ -449,7 +447,6 @@ describe('operation HTTP IR', () => {
     const host = await createTestHost({ libraries: [HttpTestLibrary] })
     const runner = await createTestRunner(host)
     await runner.compile(`
-      import "@typespec/http";
       using TypeSpec.Http;
 
       namespace Customers.Credits.Grants {

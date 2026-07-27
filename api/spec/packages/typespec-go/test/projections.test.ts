@@ -40,8 +40,6 @@ async function planFixture(code: string): Promise<PlannedProgram> {
   })
   const runner = await createTestRunner(host)
   await runner.compile(`
-    import "@typespec/http";
-    import "@typespec/openapi";
     using TypeSpec.Http;
     using TypeSpec.OpenAPI;
     ${code}
@@ -363,8 +361,6 @@ describe('anonymous model promotion', () => {
     })
     const runner = await createTestRunner(host)
     await runner.compile(`
-      import "@typespec/http";
-      import "@typespec/openapi";
       using TypeSpec.Http;
       using TypeSpec.OpenAPI;
 
