@@ -1,3 +1,33 @@
+diff --git a/dist/src/testing/index.d.ts.map b/dist/src/testing/index.d.ts.map
+index d1f409deca52ce59e6e158af683be286e00e1af7..0d5783390f376ad308c18a2b78009cd441c66213 100644
+--- a/dist/src/testing/index.d.ts.map
++++ b/dist/src/testing/index.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../src/testing/index.ts"],"names":[],"mappings":"AACA,OAAO,EAAqB,mBAAmB,EAAE,MAAM,4BAA4B,CAAC;AAGpF,+EAA+E;AAC/E,eAAO,MAAM,qBAAqB,EAAE,mBAGlC,CAAC"}
+\ No newline at end of file
++{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../src/testing/index.ts"],"names":[],"mappings":"AACA,OAAO,EAAqB,mBAAmB,EAAE,MAAM,4BAA4B,CAAC;AAGpF,+EAA+E;AAE/E,eAAO,MAAM,qBAAqB,EAAE,mBAGlC,CAAC"}
+\ No newline at end of file
+diff --git a/dist/src/testing/index.js b/dist/src/testing/index.js
+index ac274b7ced8dbac384330fb034e708e0412105c9..8f62b576655cc973602580b9342bb64ccdaa4cb5 100644
+--- a/dist/src/testing/index.js
++++ b/dist/src/testing/index.js
+@@ -3,6 +3,7 @@ import { createTestLibrary } from "@typespec/compiler/testing";
+ import { fileURLToPath } from "url";
+ 
+ /** @deprecated Use `createTester` from `@typespec/compiler/testing` instead */
++// eslint-disable-next-line @typescript-eslint/no-deprecated
+ export const HttpClientTestLibrary = createTestLibrary({
+   name: "@typespec/http-client",
+   packageRoot: resolvePath(fileURLToPath(import.meta.url), "../../../../")
+diff --git a/dist/src/testing/index.js.map b/dist/src/testing/index.js.map
+index ab398f2191673a5bed26d14ec853907c82df743f..efe7e9ecdb10affdf2b3dc47f0af1a1f8e177712 100644
+--- a/dist/src/testing/index.js.map
++++ b/dist/src/testing/index.js.map
+@@ -1 +1 @@
+-{"version":3,"names":["resolvePath","createTestLibrary","fileURLToPath","HttpClientTestLibrary","name","packageRoot","import","meta","url"],"sources":["../../../src/testing/index.ts"],"sourcesContent":[null],"mappings":"AAAA,SAASA,WAAW,QAAQ,oBAAoB;AAChD,SAASC,iBAAiB,QAA6B,4BAA4B;AACnF,SAASC,aAAa,QAAQ,KAAK;;AAEnC;AACA,OAAO,MAAMC,qBAA0C,GAAGF,iBAAiB,CAAC;EAC1EG,IAAI,EAAE,uBAAuB;EAC7BC,WAAW,EAAEL,WAAW,CAACE,aAAa,CAACI,MAAM,CAACC,IAAI,CAACC,GAAG,CAAC,EAAE,cAAc;AACzE,CAAC,CAAC","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":["resolvePath","createTestLibrary","fileURLToPath","HttpClientTestLibrary","name","packageRoot","import","meta","url"],"sources":["../../../src/testing/index.ts"],"sourcesContent":[null],"mappings":"AAAA,SAASA,WAAW,QAAQ,oBAAoB;AAChD,SAASC,iBAAiB,QAA6B,4BAA4B;AACnF,SAASC,aAAa,QAAQ,KAAK;;AAEnC;AACA;AACA,OAAO,MAAMC,qBAA0C,GAAGF,iBAAiB,CAAC;EAC1EG,IAAI,EAAE,uBAAuB;EAC7BC,WAAW,EAAEL,WAAW,CAACE,aAAa,CAACI,MAAM,CAACC,IAAI,CAACC,GAAG,CAAC,EAAE,cAAc;AACzE,CAAC,CAAC","ignoreList":[]}
+\ No newline at end of file
 diff --git a/dist/src/utils/type-collector.d.ts.map b/dist/src/utils/type-collector.d.ts.map
 index 244265f9be4e73652dbce2257d7ba5c47b1bbf28..4bac9b13de80f5e6aba8b6a2abebaf6d2ccd7139 100644
 --- a/dist/src/utils/type-collector.d.ts.map
@@ -35,48 +65,33 @@ index 81b58883816062a33e71ad71258b2617dd78ea7b..9efb557e0c4282daf7f2963ed92bc1ea
 +{"version":3,"names":["navigateType","collectDataTypes","$","type","dataTypes","model","httpPart","is","partType","unpack","name","add","union","enum","enum_","modelProperty","property","kind","scalar","includeTemplateDeclaration","visitDerivedTypes"],"sources":["../../../src/utils/type-collector.ts"],"sourcesContent":[null],"mappings":"AAAA,SAAsBA,YAAY,QAA6B,oBAAoB;AAGnF,OAAO,SAASC,gBAAgBA,CAC9BC,CAAU,EACVC,IAAU,EACVC,SAA6C,EAC7C;EACAJ,YAAY,CACVG,IAAI,EACJ;IACEE,KAAKA,CAACA,KAAK,EAAE;MACX,IAAIH,CAAC,CAACI,QAAQ,CAACC,EAAE,CAACF,KAAK,CAAC,EAAE;QACxB,MAAMG,QAAQ,GAAGN,CAAC,CAACI,QAAQ,CAACG,MAAM,CAACJ,KAAK,CAAC;QACzC;QACA;QACAJ,gBAAgB,CAACC,CAAC,EAAEM,QAAQ,EAAEJ,SAAS,CAAC;QACxC;MACF;MAEA,IAAI,CAACC,KAAK,CAACK,IAAI,EAAE;QACf;MACF;MAEAN,SAAS,CAACO,GAAG,CAACN,KAAK,CAAC;IACtB,CAAC;IACDO,KAAKA,CAACA,KAAK,EAAE;MACX,IAAI,CAACA,KAAK,CAACF,IAAI,EAAE;QACf;MACF;MAEAN,SAAS,CAACO,GAAG,CAACC,KAAK,CAAC;IACtB,CAAC;IACDC,IAAIA,CAACC,KAAK,EAAE;MACV,IAAI,CAACA,KAAK,CAACJ,IAAI,EAAE;QACf;MACF;MAEAN,SAAS,CAACO,GAAG,CAACG,KAAK,CAAC;IACtB,CAAC;IACDC,aAAaA,CAACC,QAAQ,EAAE;MACtB;MACA;MACA,IAAIA,QAAQ,CAACb,IAAI,CAACc,IAAI,KAAK,YAAY,IAAID,QAAQ,CAACb,IAAI,CAACU,IAAI,CAACH,IAAI,EAAE;QAClEN,SAAS,CAACO,GAAG,CAACK,QAAQ,CAACb,IAAI,CAACU,IAAI,CAAC;MACnC;IACF,CAAC;IACDK,MAAMA,CAACA,MAAM,EAAE;MACb,IAAI,CAACA,MAAM,CAACR,IAAI,EAAE;QAChB;MACF;MAEAN,SAAS,CAACO,GAAG,CAACO,MAAM,CAAC;IACvB;EACF,CAAC,EACD;IAAEC,0BAA0B,EAAE,KAAK;IAAEC,iBAAiB,EAAE;EAAK,CAC/D,CAAC;AACH","ignoreList":[]}
 \ No newline at end of file
 diff --git a/package.json b/package.json
-index a06b69a61da54cb114ddee0b29a852b7c0c92051..96c300edb9e9d539b4c4f95a022055ef56ac665b 100644
+index d44172cd6245d1befce231716aadda239fb79ef1..605d406846240db3175a72c684866c919bd6f349 100644
 --- a/package.json
 +++ b/package.json
-@@ -23,24 +23,24 @@
-     }
-   },
-   "peerDependencies": {
--    "@alloy-js/core": "^0.22.0",
--    "@alloy-js/typescript": "^0.22.0",
--    "@typespec/compiler": "^1.10.0",
-+    "@alloy-js/core": "^0.23.0",
-+    "@alloy-js/typescript": "^0.23.0",
-+    "@typespec/compiler": "^1.11.0",
-     "@typespec/emitter-framework": "^0.17.0",
--    "@typespec/http": "^1.10.0"
-+    "@typespec/http": "^1.11.0"
-   },
-   "devDependencies": {
--    "@alloy-js/cli": "^0.22.0",
--    "@alloy-js/core": "^0.22.0",
--    "@alloy-js/rollup-plugin": "^0.1.0",
--    "@alloy-js/typescript": "^0.22.0",
--    "@types/node": "~25.3.0",
--    "typescript": "~5.9.3",
--    "vitest": "^4.0.18",
--    "@typespec/compiler": "^1.10.0",
--    "@typespec/http": "^1.10.0",
-+    "@alloy-js/cli": "^0.23.0",
-+    "@alloy-js/core": "^0.23.0",
-+    "@alloy-js/rollup-plugin": "^0.1.1",
-+    "@alloy-js/typescript": "^0.23.0",
-+    "@types/node": "^25.5.2",
-+    "typescript": "~6.0.2",
-+    "vitest": "^4.1.3",
-     "@typespec/emitter-framework": "^0.17.0",
--    "@typespec/library-linter": "^0.80.0",
-+    "@typespec/compiler": "^1.11.0",
-+    "@typespec/http": "^1.11.0",
-+    "@typespec/library-linter": "^0.81.0",
-     "@typespec/tspd": "^0.74.1"
+@@ -39,9 +39,9 @@
+     "vitest": "^4.1.3",
+     "@typespec/compiler": "^1.14.0",
+     "@typespec/http": "^1.14.0",
+-    "@typespec/tspd": "^0.76.0",
+     "@typespec/emitter-framework": "^0.19.0",
+-    "@typespec/library-linter": "^0.84.0"
++    "@typespec/library-linter": "^0.84.0",
++    "@typespec/tspd": "^0.76.0"
    },
    "scripts": {
+     "build": "npm run gen-extern-signature && alloy build && npm run lint-typespec-library",
+diff --git a/src/testing/index.ts b/src/testing/index.ts
+index 8cdea7d5c7a3370a61f39a5972366e7fb92f4831..ed803d56dc968d93e74b483e5d084342629213ce 100644
+--- a/src/testing/index.ts
++++ b/src/testing/index.ts
+@@ -3,6 +3,7 @@ import { createTestLibrary, TypeSpecTestLibrary } from "@typespec/compiler/testi
+ import { fileURLToPath } from "url";
+ 
+ /** @deprecated Use `createTester` from `@typespec/compiler/testing` instead */
++// eslint-disable-next-line @typescript-eslint/no-deprecated
+ export const HttpClientTestLibrary: TypeSpecTestLibrary = createTestLibrary({
+   name: "@typespec/http-client",
+   packageRoot: resolvePath(fileURLToPath(import.meta.url), "../../../../"),
 diff --git a/src/utils/type-collector.ts b/src/utils/type-collector.ts
 index f693e6c1043d9b37316f341368f9df30714c089b..12452faf1fd161bdbfab789ad5480a1879714715 100644
 --- a/src/utils/type-collector.ts
@@ -95,18 +110,3 @@ index f693e6c1043d9b37316f341368f9df30714c089b..12452faf1fd161bdbfab789ad5480a18
        scalar(scalar) {
          if (!scalar.name) {
            return;
-diff --git a/vitest.config.ts b/vitest.config.ts
-index 0221876ef0e75367b4efbf0e7e2d55286f6052ad..842fa3f8d4abedb46f236ca9bf325dfd55acc958 100644
---- a/vitest.config.ts
-+++ b/vitest.config.ts
-@@ -9,10 +9,6 @@ export default mergeConfig(
-       include: ["test/**/*.test.ts"],
-       passWithNoTests: true,
-     },
--    esbuild: {
--      jsx: "preserve",
--      sourcemap: "both",
--    },
-     plugins: [alloyPlugin()],
-   }),
- );

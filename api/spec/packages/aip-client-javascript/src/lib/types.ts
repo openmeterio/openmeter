@@ -8,8 +8,7 @@ export type RequestOptions = Pick<
 >
 
 export type Result<T, E = Error> =
-  | { ok: true; value: T; error?: never }
-  | { ok: false; value?: never; error: E }
+  { ok: true; value: T; error?: never } | { ok: false; value?: never; error: E }
 
 export function ok<T>(value: T): Result<T, never> {
   return { ok: true, value }

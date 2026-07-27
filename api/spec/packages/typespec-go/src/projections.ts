@@ -969,7 +969,7 @@ export function computeStructuralAliases(
             : 0,
       )
 
-  for (let changed = true; changed; ) {
+  for (let changed = true; changed;) {
     changed = false
     for (const { type, declaration } of sortedEntries()) {
       if (aliases.has(declaration.name)) {

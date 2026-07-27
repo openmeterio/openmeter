@@ -18,17 +18,17 @@
     "check": "pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
-    "@alloy-js/core": "0.23.1",
-    "@alloy-js/go": "0.3.0",
-    "@typespec/compiler": "1.11.0",
-    "@typespec/emitter-framework": "0.17.0",
-    "@typespec/http": "1.11.0",
-    "@typespec/openapi": "1.11.0"
+    "@alloy-js/core": "0.24.1",
+    "@alloy-js/go": "0.3.1",
+    "@typespec/compiler": "1.14.0",
+    "@typespec/emitter-framework": "0.19.0",
+    "@typespec/http": "1.14.0",
+    "@typespec/openapi": "1.14.0"
   },
   "devDependencies": {
-    "@alloy-js/cli": "0.23.0",
-    "@types/node": "25.9.2",
-    "typescript": "6.0.3",
-    "vitest": "4.1.8"
+    "@alloy-js/cli": "0.24.0",
+    "@types/node": "26.1.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
   }
 }

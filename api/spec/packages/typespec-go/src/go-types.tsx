@@ -107,11 +107,7 @@ export interface GoField {
 }
 
 export type GoQueryScalarKind =
-  | 'string'
-  | 'boolean'
-  | 'integer'
-  | 'float'
-  | 'dateTime'
+  'string' | 'boolean' | 'integer' | 'float' | 'dateTime'
 
 export type GoQueryFilterKind =
   | 'string'

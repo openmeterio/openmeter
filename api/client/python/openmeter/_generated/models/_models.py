@@ -24,10 +24,10 @@ from ._enums import (
 )
 
 if TYPE_CHECKING:
-    from .. import _types, models as _models
+    from .. import _unions, models as _models
 
 
-class Addon(_Model):
+class Addon(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Add-on allows extending subscriptions with compatible plans with additional ratecards.
 
     :ivar id: ID. Required.
@@ -101,7 +101,7 @@ class Addon(_Model):
     """Effective end date."""
     status: Union[str, "_models.AddonStatus"] = rest_field(visibility=["read"])
     """Status. Required. Known values are: \"draft\", \"active\", and \"archived\"."""
-    rate_cards: list["_types.RateCard"] = rest_field(name="rateCards", visibility=["read", "create", "update"])
+    rate_cards: list["_unions.RateCard"] = rest_field(name="rateCards", visibility=["read", "create", "update"])
     """Rate cards. Required."""
     validation_errors: list["_models.ValidationError"] = rest_field(name="validationErrors", visibility=["read"])
     """Validation errors. Required."""
@@ -114,7 +114,7 @@ class Addon(_Model):
         key: str,
         instance_type: Union[str, "_models.AddonInstanceType"],
         currency: str,
-        rate_cards: list["_types.RateCard"],
+        rate_cards: list["_unions.RateCard"],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
     ) -> None: ...
@@ -130,7 +130,7 @@ class Addon(_Model):
         super().__init__(*args, **kwargs)
 
 
-class AddonCreate(_Model):
+class AddonCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource create operation model.
 
     :ivar name: Display name. Required.
@@ -164,7 +164,7 @@ class AddonCreate(_Model):
     """InstanceType. Required. Known values are: \"single\" and \"multiple\"."""
     currency: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Currency. Required."""
-    rate_cards: list["_types.RateCard"] = rest_field(
+    rate_cards: list["_unions.RateCard"] = rest_field(
         name="rateCards", visibility=["read", "create", "update", "delete", "query"]
     )
     """Rate cards. Required."""
@@ -177,7 +177,7 @@ class AddonCreate(_Model):
         key: str,
         instance_type: Union[str, "_models.AddonInstanceType"],
         currency: str,
-        rate_cards: list["_types.RateCard"],
+        rate_cards: list["_unions.RateCard"],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
     ) -> None: ...
@@ -193,7 +193,7 @@ class AddonCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class AddonReplaceUpdate(_Model):
+class AddonReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource update operation model.
 
     :ivar name: Display name. Required.
@@ -219,7 +219,7 @@ class AddonReplaceUpdate(_Model):
         name="instanceType", visibility=["read", "create", "update"]
     )
     """InstanceType. Required. Known values are: \"single\" and \"multiple\"."""
-    rate_cards: list["_types.RateCard"] = rest_field(name="rateCards", visibility=["read", "create", "update"])
+    rate_cards: list["_unions.RateCard"] = rest_field(name="rateCards", visibility=["read", "create", "update"])
     """Rate cards. Required."""
 
     @overload
@@ -228,7 +228,7 @@ class AddonReplaceUpdate(_Model):
         *,
         name: str,
         instance_type: Union[str, "_models.AddonInstanceType"],
-        rate_cards: list["_types.RateCard"],
+        rate_cards: list["_unions.RateCard"],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
     ) -> None: ...
@@ -244,7 +244,7 @@ class AddonReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Address(_Model):
+class Address(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Address.
 
     :ivar country: Country code in `ISO 3166-1 <https://www.iso.org/iso-3166-country-codes.html>`_
@@ -307,7 +307,7 @@ class Address(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Alignment(_Model):
+class Alignment(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Alignment configuration for a plan or subscription.
 
     :ivar billables_must_align: Whether all Billable items and RateCards must align. Alignment
@@ -343,7 +343,7 @@ class Annotations(_Model):
     """Set of key-value pairs managed by the system. Cannot be modified by user."""
 
 
-class AppCapability(_Model):
+class AppCapability(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """App capability.
 
     Capabilities only exist in config so they don't extend the Resource model.
@@ -392,7 +392,7 @@ class AppCapability(_Model):
         super().__init__(*args, **kwargs)
 
 
-class AppPaginatedResponse(_Model):
+class AppPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -412,7 +412,7 @@ class AppPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.App"] = rest_field(
+    items_property: list["_unions.App"] = rest_field(
         name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
@@ -424,7 +424,7 @@ class AppPaginatedResponse(_Model):
         total_count: int,
         page: int,
         page_size: int,
-        items_property: list["_types.App"],
+        items_property: list["_unions.App"],
     ) -> None: ...
 
     @overload
@@ -438,7 +438,7 @@ class AppPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class AppReference(_Model):
+class AppReference(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """App reference
 
     Can be used as a short reference to an app if the full app object is not needed.
@@ -468,7 +468,7 @@ class AppReference(_Model):
         super().__init__(*args, **kwargs)
 
 
-class UnexpectedProblemResponse(_Model):
+class UnexpectedProblemResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A Problem Details object (RFC 7807). Additional properties specific to the problem type may be
     present.
 
@@ -525,7 +525,9 @@ class UnexpectedProblemResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BadRequestProblemResponse(UnexpectedProblemResponse):
+class BadRequestProblemResponse(
+    UnexpectedProblemResponse
+):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The server cannot or will not process the request due to something that is perceived to be a
     client error (e.g., malformed request syntax, invalid request message framing, or deceptive
     request routing).
@@ -570,7 +572,7 @@ class BadRequestProblemResponse(UnexpectedProblemResponse):
         super().__init__(*args, **kwargs)
 
 
-class BalanceHistoryWindow(_Model):
+class BalanceHistoryWindow(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The balance history window.
 
     :ivar period: Required.
@@ -631,14 +633,14 @@ class BillingCustomerProfile(_Model):
     """The name and contact information for the supplier this billing profile represents. Required."""
     workflow: "_models.BillingWorkflow" = rest_field(visibility=["read"])
     """The billing workflow settings for this profile. Required."""
-    apps: "_types.BillingProfileAppsOrReference" = rest_field(visibility=["read"])
+    apps: "_unions.BillingProfileAppsOrReference" = rest_field(visibility=["read"])
     """The applications used by this billing profile.
      
      Expand settings govern if this includes the whole app object or just the ID references.
      Required. Is either a BillingProfileApps type or a BillingProfileAppReferences type."""
 
 
-class BillingDiscountPercentage(_Model):
+class BillingDiscountPercentage(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A percentage discount.
 
     :ivar percentage: Percentage. Required.
@@ -685,7 +687,7 @@ class BillingDiscountPercentage(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingDiscounts(_Model):
+class BillingDiscounts(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A discount by type.
 
     :ivar percentage: The percentage discount.
@@ -722,7 +724,7 @@ class BillingDiscounts(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingDiscountUsage(_Model):
+class BillingDiscountUsage(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A usage discount.
 
     :ivar quantity: Usage. Required.
@@ -769,7 +771,7 @@ class BillingDiscountUsage(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingInvoiceCustomerExtendedDetails(_Model):
+class BillingInvoiceCustomerExtendedDetails(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to extend the
     billing party details for invoices.
 
@@ -831,7 +833,7 @@ class BillingInvoiceCustomerExtendedDetails(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingParty(_Model):
+class BillingParty(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Party represents a person or business entity.
 
     :ivar id: Unique identifier for the party (if available).
@@ -882,7 +884,7 @@ class BillingParty(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingPartyReplaceUpdate(_Model):
+class BillingPartyReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource update operation model.
 
     :ivar key: Key.
@@ -929,7 +931,7 @@ class BillingPartyReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingPartyTaxIdentity(_Model):
+class BillingPartyTaxIdentity(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Identity stores the details required to identify an entity for tax purposes in a specific
     country.
 
@@ -958,7 +960,7 @@ class BillingPartyTaxIdentity(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingProfile(_Model):
+class BillingProfile(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """BillingProfile represents a billing profile.
 
     :ivar id: ID. Required.
@@ -1008,7 +1010,7 @@ class BillingProfile(_Model):
     """The name and contact information for the supplier this billing profile represents. Required."""
     workflow: "_models.BillingWorkflow" = rest_field(visibility=["read"])
     """The billing workflow settings for this profile. Required."""
-    apps: "_types.BillingProfileAppsOrReference" = rest_field(visibility=["read"])
+    apps: "_unions.BillingProfileAppsOrReference" = rest_field(visibility=["read"])
     """The applications used by this billing profile.
      
      Expand settings govern if this includes the whole app object or just the ID references.
@@ -1075,18 +1077,18 @@ class BillingProfileApps(_Model):
      ~openmeter._generated.models.SandboxApp or ~openmeter._generated.models.CustomInvoicingApp
     """
 
-    tax: "_types.App" = rest_field(visibility=["read"])
+    tax: "_unions.App" = rest_field(visibility=["read"])
     """The tax app used for this workflow. Required. Is one of the following types: StripeApp,
      SandboxApp, CustomInvoicingApp"""
-    invoicing: "_types.App" = rest_field(visibility=["read"])
+    invoicing: "_unions.App" = rest_field(visibility=["read"])
     """The invoicing app used for this workflow. Required. Is one of the following types: StripeApp,
      SandboxApp, CustomInvoicingApp"""
-    payment: "_types.App" = rest_field(visibility=["read"])
+    payment: "_unions.App" = rest_field(visibility=["read"])
     """The payment app used for this workflow. Required. Is one of the following types: StripeApp,
      SandboxApp, CustomInvoicingApp"""
 
 
-class BillingProfileAppsCreate(_Model):
+class BillingProfileAppsCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """BillingProfileAppsCreate represents the input for creating a billing profile's apps.
 
     :ivar tax: The tax app used for this workflow. Required.
@@ -1124,7 +1126,7 @@ class BillingProfileAppsCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingProfileCreate(_Model):
+class BillingProfileCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """BillingProfileCreate represents the input for creating a billing profile.
 
     :ivar name: Display name. Required.
@@ -1183,7 +1185,7 @@ class BillingProfileCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingProfileCustomerOverride(_Model):
+class BillingProfileCustomerOverride(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Customer override values.
 
     :ivar created_at: Creation Time. Required.
@@ -1230,7 +1232,7 @@ class BillingProfileCustomerOverride(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingProfileCustomerOverrideCreate(_Model):
+class BillingProfileCustomerOverrideCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Payload for creating a new or updating an existing customer override.
 
     :ivar billing_profile_id: The billing profile this override is associated with.
@@ -1264,7 +1266,9 @@ class BillingProfileCustomerOverrideCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingProfileCustomerOverrideWithDetails(_Model):  # pylint: disable=name-too-long
+class BillingProfileCustomerOverrideWithDetails(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Customer specific workflow overrides.
 
     :ivar customer_override: The customer override values.
@@ -1324,7 +1328,9 @@ class BillingProfileCustomerOverrideWithDetails(_Model):  # pylint: disable=name
         super().__init__(*args, **kwargs)
 
 
-class BillingProfileCustomerOverrideWithDetailsPaginatedResponse(_Model):  # pylint: disable=name-too-long
+class BillingProfileCustomerOverrideWithDetailsPaginatedResponse(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -1370,7 +1376,7 @@ class BillingProfileCustomerOverrideWithDetailsPaginatedResponse(_Model):  # pyl
         super().__init__(*args, **kwargs)
 
 
-class BillingProfilePaginatedResponse(_Model):
+class BillingProfilePaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -1415,7 +1421,7 @@ class BillingProfilePaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingProfileReplaceUpdateWithWorkflow(_Model):
+class BillingProfileReplaceUpdateWithWorkflow(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """BillingProfileReplaceUpdate represents the input for updating a billing profile
 
     The apps field cannot be updated directly, if an app change is desired a new
@@ -1472,7 +1478,7 @@ class BillingProfileReplaceUpdateWithWorkflow(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingWorkflow(_Model):
+class BillingWorkflow(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """BillingWorkflow represents the settings for a billing workflow.
 
     :ivar collection: The collection settings for this workflow.
@@ -1519,7 +1525,9 @@ class BillingWorkflow(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingWorkflowCollectionAlignmentAnchored(_Model):  # pylint: disable=name-too-long
+class BillingWorkflowCollectionAlignmentAnchored(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending
     line items into an invoice.
 
@@ -1556,7 +1564,9 @@ class BillingWorkflowCollectionAlignmentAnchored(_Model):  # pylint: disable=nam
         super().__init__(*args, **kwargs)
 
 
-class BillingWorkflowCollectionAlignmentSubscription(_Model):  # pylint: disable=name-too-long
+class BillingWorkflowCollectionAlignmentSubscription(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the
     pending line items into an invoice.
 
@@ -1586,7 +1596,7 @@ class BillingWorkflowCollectionAlignmentSubscription(_Model):  # pylint: disable
         super().__init__(*args, **kwargs)
 
 
-class BillingWorkflowCollectionSettings(_Model):
+class BillingWorkflowCollectionSettings(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Workflow collection specifies how to collect the pending line items for an invoice.
 
     :ivar alignment: The alignment for collecting the pending line items into an invoice. Is either
@@ -1602,7 +1612,7 @@ class BillingWorkflowCollectionSettings(_Model):
     :vartype interval: str
     """
 
-    alignment: Optional["_types.BillingWorkflowCollectionAlignment"] = rest_field(
+    alignment: Optional["_unions.BillingWorkflowCollectionAlignment"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
     """The alignment for collecting the pending line items into an invoice. Is either a
@@ -1618,7 +1628,7 @@ class BillingWorkflowCollectionSettings(_Model):
     def __init__(
         self,
         *,
-        alignment: Optional["_types.BillingWorkflowCollectionAlignment"] = None,
+        alignment: Optional["_unions.BillingWorkflowCollectionAlignment"] = None,
         interval: Optional[str] = None,
     ) -> None: ...
 
@@ -1633,7 +1643,7 @@ class BillingWorkflowCollectionSettings(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingWorkflowCreate(_Model):
+class BillingWorkflowCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource create operation model.
 
     :ivar collection: The collection settings for this workflow.
@@ -1684,7 +1694,7 @@ class BillingWorkflowCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingWorkflowInvoicingSettings(_Model):
+class BillingWorkflowInvoicingSettings(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Workflow invoice settings.
 
     :ivar auto_advance: Whether to automatically issue the invoice after the draftPeriod has
@@ -1759,7 +1769,7 @@ class BillingWorkflowInvoicingSettings(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingWorkflowPaymentSettings(_Model):
+class BillingWorkflowPaymentSettings(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Workflow payment settings.
 
     :ivar collection_method: The payment method for the invoice. Known values are:
@@ -1791,7 +1801,7 @@ class BillingWorkflowPaymentSettings(_Model):
         super().__init__(*args, **kwargs)
 
 
-class BillingWorkflowTaxSettings(_Model):
+class BillingWorkflowTaxSettings(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Workflow tax settings.
 
     :ivar enabled: Enable automatic tax calculation when tax is supported by the app. For example,
@@ -1831,7 +1841,7 @@ class BillingWorkflowTaxSettings(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CancelRequest(_Model):
+class CancelRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """CancelRequest.
 
     :ivar timing: If not provided the subscription is canceled immediately. Is either a Union[str,
@@ -1839,7 +1849,7 @@ class CancelRequest(_Model):
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
     """
 
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+    timing: Optional["_unions.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
     """If not provided the subscription is canceled immediately. Is either a Union[str,
@@ -1849,7 +1859,7 @@ class CancelRequest(_Model):
     def __init__(
         self,
         *,
-        timing: Optional["_types.SubscriptionTiming"] = None,
+        timing: Optional["_unions.SubscriptionTiming"] = None,
     ) -> None: ...
 
     @overload
@@ -1863,7 +1873,9 @@ class CancelRequest(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CheckoutSessionCustomTextAfterSubmitParams(_Model):  # pylint: disable=name-too-long
+class CheckoutSessionCustomTextAfterSubmitParams(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Stripe CheckoutSession.custom_text.
 
     :ivar after_submit: Custom text that should be displayed after the payment confirmation button.
@@ -1918,7 +1930,9 @@ class CheckoutSessionCustomTextAfterSubmitParams(_Model):  # pylint: disable=nam
         super().__init__(*args, **kwargs)
 
 
-class CheckoutSessionCustomTextParamsAfterSubmit(_Model):  # pylint: disable=name-too-long
+class CheckoutSessionCustomTextParamsAfterSubmit(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """CheckoutSessionCustomTextParamsAfterSubmit.
 
     :ivar message:
@@ -1945,7 +1959,9 @@ class CheckoutSessionCustomTextParamsAfterSubmit(_Model):  # pylint: disable=nam
         super().__init__(*args, **kwargs)
 
 
-class CheckoutSessionCustomTextParamsShippingAddress(_Model):  # pylint: disable=name-too-long
+class CheckoutSessionCustomTextParamsShippingAddress(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """CheckoutSessionCustomTextParamsShippingAddress.
 
     :ivar message:
@@ -1972,7 +1988,7 @@ class CheckoutSessionCustomTextParamsShippingAddress(_Model):  # pylint: disable
         super().__init__(*args, **kwargs)
 
 
-class CheckoutSessionCustomTextParamsSubmit(_Model):
+class CheckoutSessionCustomTextParamsSubmit(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """CheckoutSessionCustomTextParamsSubmit.
 
     :ivar message:
@@ -1999,7 +2015,9 @@ class CheckoutSessionCustomTextParamsSubmit(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CheckoutSessionCustomTextParamsTermsOfServiceAcceptance(_Model):  # pylint: disable=name-too-long
+class CheckoutSessionCustomTextParamsTermsOfServiceAcceptance(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """CheckoutSessionCustomTextParamsTermsOfServiceAcceptance.
 
     :ivar message:
@@ -2026,7 +2044,7 @@ class CheckoutSessionCustomTextParamsTermsOfServiceAcceptance(_Model):  # pylint
         super().__init__(*args, **kwargs)
 
 
-class ClientAppStartResponse(_Model):
+class ClientAppStartResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Response from the client app (OpenMeter backend) to start the OAuth2 flow.
 
     :ivar url: The URL to start the OAuth2 authorization code grant flow. Required.
@@ -2054,7 +2072,7 @@ class ClientAppStartResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class ConflictProblemResponse(UnexpectedProblemResponse):
+class ConflictProblemResponse(UnexpectedProblemResponse):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The request could not be completed due to a conflict with the current state of the target
     resource.
 
@@ -2098,7 +2116,7 @@ class ConflictProblemResponse(UnexpectedProblemResponse):
         super().__init__(*args, **kwargs)
 
 
-class CreateCheckoutSessionTaxIdCollection(_Model):
+class CreateCheckoutSessionTaxIdCollection(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create Stripe checkout session tax ID collection.
 
     :ivar enabled: Enable tax ID collection during checkout. Defaults to false. Required.
@@ -2135,7 +2153,9 @@ class CreateCheckoutSessionTaxIdCollection(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CreateStripeCheckoutSessionConsentCollection(_Model):  # pylint: disable=name-too-long
+class CreateStripeCheckoutSessionConsentCollection(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Configure fields for the Checkout Session to gather active consent from customers.
 
     :ivar payment_method_reuse_agreement: Determines the position and visibility of the payment
@@ -2202,7 +2222,9 @@ class CreateStripeCheckoutSessionConsentCollection(_Model):  # pylint: disable=n
         super().__init__(*args, **kwargs)
 
 
-class CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement(_Model):  # pylint: disable=name-too-long
+class CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Create Stripe checkout session payment method reuse agreement.
 
     :ivar position: Known values are: "auto" and "hidden".
@@ -2235,7 +2257,9 @@ class CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement(_M
         super().__init__(*args, **kwargs)
 
 
-class CreateStripeCheckoutSessionCustomerUpdate(_Model):  # pylint: disable=name-too-long
+class CreateStripeCheckoutSessionCustomerUpdate(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Controls what fields on Customer can be updated by the Checkout Session.
 
     :ivar address: Describes whether Checkout saves the billing address onto customer.address. To
@@ -2289,7 +2313,7 @@ class CreateStripeCheckoutSessionCustomerUpdate(_Model):  # pylint: disable=name
         super().__init__(*args, **kwargs)
 
 
-class CreateStripeCheckoutSessionRequest(_Model):
+class CreateStripeCheckoutSessionRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create Stripe checkout session request.
 
     :ivar app_id: If not provided, the default Stripe app is used if any.
@@ -2345,7 +2369,9 @@ class CreateStripeCheckoutSessionRequest(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name-too-long
+class CreateStripeCheckoutSessionRequestOptions(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Create Stripe checkout session options See
     `https://docs.stripe.com/api/checkout/sessions/create
     <https://docs.stripe.com/api/checkout/sessions/create>`_.
@@ -2516,7 +2542,7 @@ class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name
         super().__init__(*args, **kwargs)
 
 
-class CreateStripeCheckoutSessionResult(_Model):
+class CreateStripeCheckoutSessionResult(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create Stripe Checkout Session response.
 
     :ivar customer_id: The OpenMeter customer ID. Required.
@@ -2645,7 +2671,7 @@ class CreateStripeCheckoutSessionResult(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CreateStripeCustomerPortalSessionParams(_Model):
+class CreateStripeCustomerPortalSessionParams(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Stripe customer portal request params.
 
     :ivar configuration_id: Configuration.
@@ -2705,7 +2731,9 @@ class InvoiceGenericDocumentRef(_Model):
     """Additional details about the document."""
 
 
-class CreditNoteOriginalInvoiceRef(InvoiceGenericDocumentRef):
+class CreditNoteOriginalInvoiceRef(
+    InvoiceGenericDocumentRef
+):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """CreditNoteOriginalInvoiceRef is used to reference the original invoice that a credit note is
     based on.
 
@@ -2752,7 +2780,7 @@ class CreditNoteOriginalInvoiceRef(InvoiceGenericDocumentRef):
         super().__init__(*args, **kwargs)
 
 
-class Currency(_Model):
+class Currency(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Currency describes a currency supported by OpenMeter.
 
     :ivar code: The currency ISO code. Required.
@@ -2795,7 +2823,7 @@ class Currency(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Customer(_Model):
+class Customer(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A customer object.
 
     :ivar id: ID. Required.
@@ -2905,7 +2933,7 @@ class CustomerAccess(_Model):
      entitlement value + the entitlement ID. Required."""
 
 
-class CustomerAppDataPaginatedResponse(_Model):
+class CustomerAppDataPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -2926,7 +2954,7 @@ class CustomerAppDataPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.CustomerAppData"] = rest_field(
+    items_property: list["_unions.CustomerAppData"] = rest_field(
         name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
@@ -2938,7 +2966,7 @@ class CustomerAppDataPaginatedResponse(_Model):
         total_count: int,
         page: int,
         page_size: int,
-        items_property: list["_types.CustomerAppData"],
+        items_property: list["_unions.CustomerAppData"],
     ) -> None: ...
 
     @overload
@@ -2952,7 +2980,7 @@ class CustomerAppDataPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomerCreate(_Model):
+class CustomerCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource create operation model.
 
     :ivar name: Display name. Required.
@@ -3021,7 +3049,7 @@ class CustomerCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomerId(_Model):
+class CustomerId(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create Stripe checkout session with customer ID.
 
     :ivar id: Required.
@@ -3049,7 +3077,7 @@ class CustomerId(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomerKey(_Model):
+class CustomerKey(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create Stripe checkout session with customer key.
 
     :ivar key: Required.
@@ -3077,7 +3105,7 @@ class CustomerKey(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomerPaginatedResponse(_Model):
+class CustomerPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -3122,7 +3150,7 @@ class CustomerPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomerReplaceUpdate(_Model):
+class CustomerReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource update operation model.
 
     :ivar name: Display name. Required.
@@ -3191,7 +3219,7 @@ class CustomerReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomerUsageAttribution(_Model):
+class CustomerUsageAttribution(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Mapping to attribute metered usage to the customer. One customer can have zero or more
     subjects, but one subject can only belong to one customer.
 
@@ -3220,7 +3248,7 @@ class CustomerUsageAttribution(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingApp(_Model):
+class CustomInvoicingApp(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Custom Invoicing app can be used for interface with any invoicing or payment system.
 
     This app provides ways to manipulate invoices and payments, however the integration
@@ -3317,7 +3345,7 @@ class CustomInvoicingApp(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingAppReplaceUpdate(_Model):
+class CustomInvoicingAppReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource update operation model.
 
     :ivar name: Display name. Required.
@@ -3386,7 +3414,7 @@ class CustomInvoicingAppReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingCustomerAppData(_Model):
+class CustomInvoicingCustomerAppData(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Custom Invoicing Customer App Data.
 
     :ivar app: The installed custom invoicing app this data belongs to.
@@ -3428,7 +3456,7 @@ class CustomInvoicingCustomerAppData(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingDraftSynchronizedRequest(_Model):
+class CustomInvoicingDraftSynchronizedRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Information to finalize the draft details of an invoice.
 
     :ivar invoicing: The result of the synchronization.
@@ -3458,7 +3486,7 @@ class CustomInvoicingDraftSynchronizedRequest(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingFinalizedInvoicingRequest(_Model):
+class CustomInvoicingFinalizedInvoicingRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Information to finalize the invoicing details of an invoice.
 
     :ivar invoice_number: If set the invoice's number will be set to this value.
@@ -3495,7 +3523,7 @@ class CustomInvoicingFinalizedInvoicingRequest(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingFinalizedPaymentRequest(_Model):
+class CustomInvoicingFinalizedPaymentRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Information to finalize the payment details of an invoice.
 
     :ivar external_id: If set the invoice's payment external ID will be set to this value.
@@ -3525,7 +3553,7 @@ class CustomInvoicingFinalizedPaymentRequest(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingFinalizedRequest(_Model):
+class CustomInvoicingFinalizedRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Information to finalize the invoice.
 
     If invoicing.invoiceNumber is not set, then a new invoice number will be generated (INV-
@@ -3565,7 +3593,9 @@ class CustomInvoicingFinalizedRequest(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingLineDiscountExternalIdMapping(_Model):  # pylint: disable=name-too-long
+class CustomInvoicingLineDiscountExternalIdMapping(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Mapping between line discounts and external IDs.
 
     :ivar line_discount_id: The line discount ID. Required.
@@ -3600,7 +3630,7 @@ class CustomInvoicingLineDiscountExternalIdMapping(_Model):  # pylint: disable=n
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingLineExternalIdMapping(_Model):
+class CustomInvoicingLineExternalIdMapping(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Mapping between lines and external IDs.
 
     :ivar line_id: The line ID. Required.
@@ -3633,7 +3663,7 @@ class CustomInvoicingLineExternalIdMapping(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingSyncResult(_Model):
+class CustomInvoicingSyncResult(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Information to synchronize the invoice.
 
     Can be used to store external app's IDs on the invoice or lines.
@@ -3701,7 +3731,7 @@ class CustomInvoicingSyncResult(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingTaxConfig(_Model):
+class CustomInvoicingTaxConfig(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Custom invoicing tax config.
 
     :ivar code: Tax code. Required.
@@ -3729,7 +3759,9 @@ class CustomInvoicingTaxConfig(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomInvoicingUpdatePaymentStatusRequest(_Model):  # pylint: disable=name-too-long
+class CustomInvoicingUpdatePaymentStatusRequest(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Update payment status request.
 
     Can be used to manipulate invoice's payment status (when custominvoicing app is being used).
@@ -3764,7 +3796,7 @@ class CustomInvoicingUpdatePaymentStatusRequest(_Model):  # pylint: disable=name
         super().__init__(*args, **kwargs)
 
 
-class OmitPropertiesResourceCreateModel(_Model):
+class OmitPropertiesResourceCreateModel(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The template for omitting properties.
 
     :ivar name: Display name. Required.
@@ -3837,7 +3869,7 @@ class OmitPropertiesResourceCreateModel(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomPlanInput(OmitPropertiesResourceCreateModel):
+class CustomPlanInput(OmitPropertiesResourceCreateModel):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Plan input for custom subscription creation (without key and version).
 
     :ivar name: Display name. Required.
@@ -3887,7 +3919,7 @@ class CustomPlanInput(OmitPropertiesResourceCreateModel):
         super().__init__(*args, **kwargs)
 
 
-class CustomSubscriptionChange(_Model):
+class CustomSubscriptionChange(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Change a custom subscription.
 
     :ivar timing: Timing configuration for the change, when the change should take effect. For
@@ -3903,7 +3935,7 @@ class CustomSubscriptionChange(_Model):
     :vartype custom_plan: ~openmeter._generated.models.CustomPlanInput
     """
 
-    timing: "_types.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    timing: "_unions.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Timing configuration for the change, when the change should take effect. For changing a
      subscription, the accepted values depend on the subscription configuration. Required. Is either
      a Union[str, \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime type."""
@@ -3922,7 +3954,7 @@ class CustomSubscriptionChange(_Model):
     def __init__(
         self,
         *,
-        timing: "_types.SubscriptionTiming",
+        timing: "_unions.SubscriptionTiming",
         custom_plan: "_models.CustomPlanInput",
         billing_anchor: Optional[datetime.datetime] = None,
     ) -> None: ...
@@ -3938,7 +3970,7 @@ class CustomSubscriptionChange(_Model):
         super().__init__(*args, **kwargs)
 
 
-class CustomSubscriptionCreate(_Model):
+class CustomSubscriptionCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create custom.
 
     :ivar custom_plan: The custom plan description which defines the Subscription. Required.
@@ -3962,7 +3994,7 @@ class CustomSubscriptionCreate(_Model):
         name="customPlan", visibility=["read", "create", "update", "delete", "query"]
     )
     """The custom plan description which defines the Subscription. Required."""
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+    timing: Optional["_unions.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
     """Timing configuration for the change, when the change should take effect. The default is
@@ -3988,7 +4020,7 @@ class CustomSubscriptionCreate(_Model):
         self,
         *,
         custom_plan: "_models.CustomPlanInput",
-        timing: Optional["_types.SubscriptionTiming"] = None,
+        timing: Optional["_unions.SubscriptionTiming"] = None,
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
@@ -4005,7 +4037,7 @@ class CustomSubscriptionCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class DiscountPercentage(_Model):
+class DiscountPercentage(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Percentage discount.
 
     :ivar percentage: Percentage. Required.
@@ -4033,7 +4065,7 @@ class DiscountPercentage(_Model):
         super().__init__(*args, **kwargs)
 
 
-class DiscountReasonMaximumSpend(_Model):
+class DiscountReasonMaximumSpend(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The reason for the discount is a maximum spend.
 
     :ivar type: Required. MAXIMUM_SPEND.
@@ -4063,7 +4095,7 @@ class DiscountReasonMaximumSpend(_Model):
         super().__init__(*args, **kwargs)
 
 
-class DiscountReasonRatecardPercentage(_Model):
+class DiscountReasonRatecardPercentage(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The reason for the discount is a ratecard percentage.
 
     :ivar type: Required. RATECARD_PERCENTAGE.
@@ -4117,7 +4149,7 @@ class DiscountReasonRatecardPercentage(_Model):
         super().__init__(*args, **kwargs)
 
 
-class DiscountReasonRatecardUsage(_Model):
+class DiscountReasonRatecardUsage(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The reason for the discount is a ratecard usage.
 
     :ivar type: Required. RATECARD_USAGE.
@@ -4171,7 +4203,7 @@ class DiscountReasonRatecardUsage(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Discounts(_Model):
+class Discounts(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Discount by type on a price.
 
     :ivar percentage: The percentage discount.
@@ -4206,7 +4238,7 @@ class Discounts(_Model):
         super().__init__(*args, **kwargs)
 
 
-class DiscountUsage(_Model):
+class DiscountUsage(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Usage discount.
 
     Usage discount means that the first N items are free. From billing perspective
@@ -4238,7 +4270,7 @@ class DiscountUsage(_Model):
         super().__init__(*args, **kwargs)
 
 
-class DynamicPriceWithCommitments(_Model):
+class DynamicPriceWithCommitments(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Dynamic price with spend commitments.
 
     :ivar type: The type of the price. Required. DYNAMIC.
@@ -4281,7 +4313,7 @@ class DynamicPriceWithCommitments(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EditSubscriptionAddItem(_Model):
+class EditSubscriptionAddItem(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Add a new item to a phase.
 
     :ivar op: Required. ADD_ITEM.
@@ -4297,7 +4329,7 @@ class EditSubscriptionAddItem(_Model):
     """Required. ADD_ITEM."""
     phase_key: str = rest_field(name="phaseKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
-    rate_card: "_types.RateCard" = rest_field(
+    rate_card: "_unions.RateCard" = rest_field(
         name="rateCard", visibility=["read", "create", "update", "delete", "query"]
     )
     """Required. Is either a RateCardFlatFee type or a RateCardUsageBased type."""
@@ -4308,7 +4340,7 @@ class EditSubscriptionAddItem(_Model):
         *,
         op: Literal[EditOp.ADD_ITEM],
         phase_key: str,
-        rate_card: "_types.RateCard",
+        rate_card: "_unions.RateCard",
     ) -> None: ...
 
     @overload
@@ -4322,7 +4354,7 @@ class EditSubscriptionAddItem(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EditSubscriptionAddPhase(_Model):
+class EditSubscriptionAddPhase(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Add a new phase.
 
     :ivar op: Required. ADD_PHASE.
@@ -4355,7 +4387,7 @@ class EditSubscriptionAddPhase(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EditSubscriptionRemoveItem(_Model):
+class EditSubscriptionRemoveItem(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Remove an item from a phase.
 
     :ivar op: Required. REMOVE_ITEM.
@@ -4393,7 +4425,7 @@ class EditSubscriptionRemoveItem(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EditSubscriptionRemovePhase(_Model):
+class EditSubscriptionRemovePhase(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Remove a phase.
 
     :ivar op: Required. REMOVE_PHASE.
@@ -4433,7 +4465,7 @@ class EditSubscriptionRemovePhase(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EditSubscriptionStretchPhase(_Model):
+class EditSubscriptionStretchPhase(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Stretch a phase.
 
     :ivar op: Required. STRETCH_PHASE.
@@ -4473,7 +4505,7 @@ class EditSubscriptionStretchPhase(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EditSubscriptionUnscheduleEdit(_Model):
+class EditSubscriptionUnscheduleEdit(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Unschedules any edits from the current phase.
 
     :ivar op: Required. UNSCHEDULE_EDIT.
@@ -4501,7 +4533,7 @@ class EditSubscriptionUnscheduleEdit(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementBoolean(_Model):
+class EntitlementBoolean(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Entitlement template of a boolean entitlement.
 
     :ivar type: Required. BOOLEAN.
@@ -4599,7 +4631,7 @@ class EntitlementBoolean(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementBooleanCreateInputs(_Model):
+class EntitlementBooleanCreateInputs(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create inputs for boolean entitlement.
 
     :ivar feature_key: The feature the subject is entitled to use. Either featureKey or featureId
@@ -4653,7 +4685,7 @@ class EntitlementBooleanCreateInputs(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementBooleanV2(_Model):
+class EntitlementBooleanV2(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Entitlement template of a boolean entitlement.
 
     :ivar type: Required. BOOLEAN.
@@ -4756,7 +4788,7 @@ class EntitlementBooleanV2(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementGrant(_Model):
+class EntitlementGrant(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The grant.
 
     :ivar created_at: Creation Time. Required.
@@ -4896,7 +4928,7 @@ class EntitlementGrant(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementGrantCreateInput(_Model):
+class EntitlementGrantCreateInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The grant creation input.
 
     :ivar amount: The amount to grant. Should be a positive number. Required.
@@ -4991,7 +5023,7 @@ class EntitlementGrantCreateInput(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementGrantCreateInputV2(_Model):
+class EntitlementGrantCreateInputV2(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The grant creation input.
 
     :ivar amount: The amount to grant. Should be a positive number. Required.
@@ -5098,7 +5130,7 @@ class EntitlementGrantCreateInputV2(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementGrantV2(_Model):
+class EntitlementGrantV2(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The grant.
 
     :ivar created_at: Creation Time. Required.
@@ -5243,7 +5275,7 @@ class EntitlementGrantV2(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementMetered(_Model):
+class EntitlementMetered(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Metered entitlements are useful for many different use cases, from setting up usage based
     access to implementing complex credit systems. Access is determined based on feature usage
     using a balance calculation (the "usage allowance" provided by the issued grants is "burnt
@@ -5385,7 +5417,7 @@ class EntitlementMetered(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementMeteredCreateInputs(_Model):
+class EntitlementMeteredCreateInputs(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create inpurs for metered entitlement.
 
     :ivar feature_key: The feature the subject is entitled to use. Either featureKey or featureId
@@ -5441,7 +5473,7 @@ class EntitlementMeteredCreateInputs(_Model):
         name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
     )
     """The usage period associated with the entitlement. Required."""
-    measure_usage_from: Optional["_types.MeasureUsageFrom"] = rest_field(
+    measure_usage_from: Optional["_unions.MeasureUsageFrom"] = rest_field(
         name="measureUsageFrom", visibility=["read", "create", "update", "delete", "query"]
     )
     """Defines the time from which usage is measured. If not specified on creation, defaults to
@@ -5471,7 +5503,7 @@ class EntitlementMeteredCreateInputs(_Model):
         metadata: Optional["_models.Metadata"] = None,
         is_soft_limit: Optional[bool] = None,
         is_unlimited: Optional[bool] = None,
-        measure_usage_from: Optional["_types.MeasureUsageFrom"] = None,
+        measure_usage_from: Optional["_unions.MeasureUsageFrom"] = None,
         issue_after_reset: Optional[float] = None,
         issue_after_reset_priority: Optional[int] = None,
         preserve_overage_at_reset: Optional[bool] = None,
@@ -5488,7 +5520,7 @@ class EntitlementMeteredCreateInputs(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementMeteredV2(_Model):
+class EntitlementMeteredV2(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Metered entitlements are useful for many different use cases, from setting up usage based
     access to implementing complex credit systems. Access is determined based on feature usage
     using a balance calculation (the "usage allowance" provided by the issued grants is "burnt
@@ -5631,7 +5663,7 @@ class EntitlementMeteredV2(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementMeteredV2CreateInputs(_Model):
+class EntitlementMeteredV2CreateInputs(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create inputs for metered entitlement.
 
     :ivar feature_key: The feature the subject is entitled to use. Either featureKey or featureId
@@ -5683,7 +5715,7 @@ class EntitlementMeteredV2CreateInputs(_Model):
         name="usagePeriod", visibility=["read", "create", "update", "delete", "query"]
     )
     """The usage period associated with the entitlement. Required."""
-    measure_usage_from: Optional["_types.MeasureUsageFrom"] = rest_field(
+    measure_usage_from: Optional["_unions.MeasureUsageFrom"] = rest_field(
         name="measureUsageFrom", visibility=["read", "create", "update", "delete", "query"]
     )
     """Defines the time from which usage is measured. If not specified on creation, defaults to
@@ -5718,7 +5750,7 @@ class EntitlementMeteredV2CreateInputs(_Model):
         feature_id: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         is_soft_limit: Optional[bool] = None,
-        measure_usage_from: Optional["_types.MeasureUsageFrom"] = None,
+        measure_usage_from: Optional["_unions.MeasureUsageFrom"] = None,
         preserve_overage_at_reset: Optional[bool] = None,
         issue_after_reset: Optional[float] = None,
         issue_after_reset_priority: Optional[int] = None,
@@ -5737,7 +5769,7 @@ class EntitlementMeteredV2CreateInputs(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementPaginatedResponse(_Model):
+class EntitlementPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -5758,7 +5790,7 @@ class EntitlementPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.Entitlement"] = rest_field(
+    items_property: list["_unions.Entitlement"] = rest_field(
         name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
@@ -5770,7 +5802,7 @@ class EntitlementPaginatedResponse(_Model):
         total_count: int,
         page: int,
         page_size: int,
-        items_property: list["_types.Entitlement"],
+        items_property: list["_unions.Entitlement"],
     ) -> None: ...
 
     @overload
@@ -5784,7 +5816,7 @@ class EntitlementPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementStatic(_Model):
+class EntitlementStatic(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A static entitlement.
 
     :ivar type: Required. STATIC.
@@ -5891,7 +5923,7 @@ class EntitlementStatic(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementStaticCreateInputs(_Model):
+class EntitlementStaticCreateInputs(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create inputs for static entitlement.
 
     :ivar feature_key: The feature the subject is entitled to use. Either featureKey or featureId
@@ -5954,7 +5986,7 @@ class EntitlementStaticCreateInputs(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementStaticV2(_Model):
+class EntitlementStaticV2(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A static entitlement.
 
     :ivar type: Required. STATIC.
@@ -6066,7 +6098,7 @@ class EntitlementStaticV2(_Model):
         super().__init__(*args, **kwargs)
 
 
-class EntitlementV2PaginatedResponse(_Model):
+class EntitlementV2PaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -6087,7 +6119,7 @@ class EntitlementV2PaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.EntitlementV2"] = rest_field(
+    items_property: list["_unions.EntitlementV2"] = rest_field(
         name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
@@ -6099,7 +6131,7 @@ class EntitlementV2PaginatedResponse(_Model):
         total_count: int,
         page: int,
         page_size: int,
-        items_property: list["_types.EntitlementV2"],
+        items_property: list["_unions.EntitlementV2"],
     ) -> None: ...
 
     @overload
@@ -6228,7 +6260,7 @@ class ErrorExtension(_Model):
     """The human readable description of the error. Required."""
 
 
-class Event(_Model):
+class Event(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """CloudEvents Specification JSON Schema
 
     Optional properties are nullable according to the CloudEvents specification:
@@ -6331,7 +6363,7 @@ class EventDeliveryAttemptResponse(_Model):
     """URL."""
 
 
-class ExpirationPeriod(_Model):
+class ExpirationPeriod(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The grant expiration definition.
 
     :ivar duration: The unit of time for the expiration period. Required. Known values are: "HOUR",
@@ -6368,7 +6400,7 @@ class ExpirationPeriod(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Feature(_Model):
+class Feature(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Represents a feature that can be enabled or disabled for a plan. Used both for product catalog
     and entitlements.
 
@@ -6424,7 +6456,7 @@ class Feature(_Model):
         name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
     )
     """Advanced meter group by filters."""
-    unit_cost: Optional["_types.FeatureUnitCost"] = rest_field(
+    unit_cost: Optional["_unions.FeatureUnitCost"] = rest_field(
         name="unitCost", visibility=["read", "create", "update", "delete", "query"]
     )
     """Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost type."""
@@ -6441,7 +6473,7 @@ class Feature(_Model):
         meter_slug: Optional[str] = None,
         meter_group_by_filters: Optional[dict[str, str]] = None,
         advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = None,
-        unit_cost: Optional["_types.FeatureUnitCost"] = None,
+        unit_cost: Optional["_unions.FeatureUnitCost"] = None,
     ) -> None: ...
 
     @overload
@@ -6455,7 +6487,7 @@ class Feature(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FeatureCreateInputs(_Model):
+class FeatureCreateInputs(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Represents a feature that can be enabled or disabled for a plan. Used both for product catalog
     and entitlements.
 
@@ -6493,7 +6525,7 @@ class FeatureCreateInputs(_Model):
         name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
     )
     """Advanced meter group by filters."""
-    unit_cost: Optional["_types.FeatureUnitCost"] = rest_field(
+    unit_cost: Optional["_unions.FeatureUnitCost"] = rest_field(
         name="unitCost", visibility=["read", "create", "update", "delete", "query"]
     )
     """Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost type."""
@@ -6508,7 +6540,7 @@ class FeatureCreateInputs(_Model):
         meter_slug: Optional[str] = None,
         meter_group_by_filters: Optional[dict[str, str]] = None,
         advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = None,
-        unit_cost: Optional["_types.FeatureUnitCost"] = None,
+        unit_cost: Optional["_unions.FeatureUnitCost"] = None,
     ) -> None: ...
 
     @overload
@@ -6522,7 +6554,7 @@ class FeatureCreateInputs(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FeatureLLMUnitCost(_Model):
+class FeatureLLMUnitCost(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """LLM cost lookup configuration. Maps meter group-by dimensions to LLM cost database fields.
 
     :ivar type: Required. LLM.
@@ -6590,7 +6622,7 @@ class FeatureLLMUnitCost(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FeatureLLMUnitCostPricing(_Model):
+class FeatureLLMUnitCostPricing(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resolved per-token pricing from the LLM cost database.
 
     :ivar input_per_token: Input per token. Required.
@@ -6646,7 +6678,7 @@ class FeatureLLMUnitCostPricing(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FeatureManualUnitCost(_Model):
+class FeatureManualUnitCost(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A fixed per-unit cost amount.
 
     :ivar type: Required. MANUAL.
@@ -6679,7 +6711,7 @@ class FeatureManualUnitCost(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FeatureMeta(_Model):
+class FeatureMeta(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Limited representation of a feature resource which includes only its unique identifiers (id,
     key).
 
@@ -6713,7 +6745,7 @@ class FeatureMeta(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FeaturePaginatedResponse(_Model):
+class FeaturePaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -6758,7 +6790,7 @@ class FeaturePaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FilterIDExact(_Model):
+class FilterIDExact(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A filter for a ID (ULID) field allowing only equality or inclusion.
 
     :ivar in_property: The field must be in the provided list of values.
@@ -6788,7 +6820,7 @@ class FilterIDExact(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FilterString(_Model):
+class FilterString(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A filter for a string field.
 
     :ivar eq: The field must be equal to the provided value.
@@ -6887,7 +6919,7 @@ class FilterString(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FilterTime(_Model):
+class FilterTime(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A filter for a time field.
 
     :ivar gt: The field must be greater than the provided value.
@@ -6952,7 +6984,7 @@ class FilterTime(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FlatPrice(_Model):
+class FlatPrice(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Flat price.
 
     :ivar type: The type of the price. Required. FLAT.
@@ -6985,7 +7017,7 @@ class FlatPrice(_Model):
         super().__init__(*args, **kwargs)
 
 
-class FlatPriceWithPaymentTerm(_Model):
+class FlatPriceWithPaymentTerm(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Flat price with payment term.
 
     :ivar type: The type of the price. Required. FLAT.
@@ -7027,7 +7059,9 @@ class FlatPriceWithPaymentTerm(_Model):
         super().__init__(*args, **kwargs)
 
 
-class ForbiddenProblemResponse(UnexpectedProblemResponse):
+class ForbiddenProblemResponse(
+    UnexpectedProblemResponse
+):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The server understood the request but refuses to authorize it.
 
     :ivar type: Type contains a URI that identifies the problem type. Required.
@@ -7070,7 +7104,7 @@ class ForbiddenProblemResponse(UnexpectedProblemResponse):
         super().__init__(*args, **kwargs)
 
 
-class GrantBurnDownHistorySegment(_Model):
+class GrantBurnDownHistorySegment(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A segment of the grant burn down history.
 
     A given segment represents the usage of a grant between events that changed either the grant
@@ -7134,7 +7168,7 @@ class GrantBurnDownHistorySegment(_Model):
         super().__init__(*args, **kwargs)
 
 
-class GrantPaginatedResponse(_Model):
+class GrantPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -7179,7 +7213,7 @@ class GrantPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class GrantUsageRecord(_Model):
+class GrantUsageRecord(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Usage Record.
 
     :ivar grant_id: The id of the grant. Required.
@@ -7212,7 +7246,7 @@ class GrantUsageRecord(_Model):
         super().__init__(*args, **kwargs)
 
 
-class GrantV2PaginatedResponse(_Model):
+class GrantV2PaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -7268,7 +7302,7 @@ class IDResource(_Model):
     """ID. Required."""
 
 
-class IngestedEvent(_Model):
+class IngestedEvent(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """An ingested event with optional validation error.
 
     :ivar event: The original event ingested. Required.
@@ -7324,7 +7358,7 @@ class IngestedEvent(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InstallWithApiKeyRequest(_Model):
+class InstallWithApiKeyRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InstallWithApiKeyRequest.
 
     :ivar name: Name of the application to install.
@@ -7371,7 +7405,9 @@ class InstallWithApiKeyRequest(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InternalServerErrorProblemResponse(UnexpectedProblemResponse):
+class InternalServerErrorProblemResponse(
+    UnexpectedProblemResponse
+):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The server encountered an unexpected condition that prevented it from fulfilling the request.
 
     :ivar type: Type contains a URI that identifies the problem type. Required.
@@ -7414,7 +7450,7 @@ class InternalServerErrorProblemResponse(UnexpectedProblemResponse):
         super().__init__(*args, **kwargs)
 
 
-class Invoice(_Model):
+class Invoice(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Invoice represents an invoice in the system.
 
     :ivar id: ID. Required.
@@ -7548,7 +7584,7 @@ class Invoice(_Model):
     """Currency for all invoice line items.
      
      Multi currency invoices are not supported yet. Required."""
-    preceding: Optional[list["_types.InvoiceDocumentRef"]] = rest_field(visibility=["read"])
+    preceding: Optional[list["_unions.InvoiceDocumentRef"]] = rest_field(visibility=["read"])
     """Key information regarding previous invoices and potentially details as to why they were
      corrected."""
     totals: "_models.InvoiceTotals" = rest_field(visibility=["read"])
@@ -7718,7 +7754,7 @@ class InvoiceAvailableActions(_Model):
     """Invoice a gathering invoice."""
 
 
-class InvoiceDetailedLine(_Model):
+class InvoiceDetailedLine(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceDetailedLine represents a line item that is sold to the customer as a manually added
     fee.
 
@@ -7891,7 +7927,7 @@ class InvoiceDetailedLine(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoiceDetailedLineRateCard(_Model):
+class InvoiceDetailedLineRateCard(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceDetailedLineRateCard represents the rate card (intent) for a flat fee line.
 
     :ivar tax_config: Tax config.
@@ -7938,7 +7974,7 @@ class InvoiceDetailedLineRateCard(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoiceLine(_Model):
+class InvoiceLine(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage.
 
     :ivar name: Display name. Required.
@@ -8091,7 +8127,7 @@ class InvoiceLine(_Model):
     """Subscription are the references to the subscritpions that this line is related to."""
     type: Literal[InvoiceLineTypes.USAGE_BASED] = rest_field(visibility=["read"])
     """Type of the line. Required. USAGE_BASED."""
-    price: Optional["_types.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
+    price: Optional["_unions.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
     """Price of the usage-based item being sold. Is one of the following types:
      FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
      DynamicPriceWithCommitments, PackagePriceWithCommitments"""
@@ -8141,7 +8177,7 @@ class InvoiceLine(_Model):
         metadata: Optional["_models.Metadata"] = None,
         invoice: Optional["_models.InvoiceReference"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
-        price: Optional["_types.RateCardUsageBasedPrice"] = None,
+        price: Optional["_unions.RateCardUsageBasedPrice"] = None,
         feature_key: Optional[str] = None,
         rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = None,
     ) -> None: ...
@@ -8190,7 +8226,7 @@ class InvoiceLineAmountDiscount(_Model):
     """Deletion Time."""
     id: str = rest_field(visibility=["read"])
     """ID of the charge or discount. Required."""
-    reason: "_types.BillingDiscountReason" = rest_field(visibility=["read"])
+    reason: "_unions.BillingDiscountReason" = rest_field(visibility=["read"])
     """Reason code. Required. Is one of the following types: DiscountReasonMaximumSpend,
      DiscountReasonRatecardPercentage, DiscountReasonRatecardUsage"""
     description: Optional[str] = rest_field(visibility=["read"])
@@ -8233,7 +8269,7 @@ class InvoiceLineCreditAllocation(_Model):
     """Text description as to why the credit was allocated."""
 
 
-class InvoiceLineDiscounts(_Model):
+class InvoiceLineDiscounts(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceLineDiscounts represents the discounts applied to the invoice line by type.
 
     :ivar amount: Amount based discounts applied to the line.
@@ -8280,7 +8316,7 @@ class InvoiceLineDiscounts(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoiceLineReplaceUpdate(_Model):
+class InvoiceLineReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceLineReplaceUpdate represents the update model for an UBP invoice line.
 
     This type makes ID optional to allow for creating new lines as part of the update.
@@ -8333,7 +8369,7 @@ class InvoiceLineReplaceUpdate(_Model):
         name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339"
     )
     """The time this line item should be invoiced. Required."""
-    price: Optional["_types.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
+    price: Optional["_unions.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
     """Price of the usage-based item being sold. Is one of the following types:
      FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
      DynamicPriceWithCommitments, PackagePriceWithCommitments"""
@@ -8358,7 +8394,7 @@ class InvoiceLineReplaceUpdate(_Model):
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
-        price: Optional["_types.RateCardUsageBasedPrice"] = None,
+        price: Optional["_unions.RateCardUsageBasedPrice"] = None,
         feature_key: Optional[str] = None,
         rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = None,
         id: Optional[str] = None,  # pylint: disable=redefined-builtin
@@ -8481,7 +8517,7 @@ class InvoiceLineUsageDiscount(_Model):
     """Deletion Time."""
     id: str = rest_field(visibility=["read"])
     """ID of the charge or discount. Required."""
-    reason: "_types.BillingDiscountReason" = rest_field(visibility=["read"])
+    reason: "_unions.BillingDiscountReason" = rest_field(visibility=["read"])
     """Reason code. Required. Is one of the following types: DiscountReasonMaximumSpend,
      DiscountReasonRatecardPercentage, DiscountReasonRatecardUsage"""
     description: Optional[str] = rest_field(visibility=["read"])
@@ -8494,7 +8530,7 @@ class InvoiceLineUsageDiscount(_Model):
     """Usage quantity in the unit of the underlying meter."""
 
 
-class InvoicePaginatedResponse(_Model):
+class InvoicePaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -8539,7 +8575,7 @@ class InvoicePaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoicePaymentTerms(_Model):
+class InvoicePaymentTerms(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Payment contains details as to how the invoice should be paid.
 
     :ivar terms: The terms of payment for the invoice. Is either a PaymentTermInstant type or a
@@ -8548,7 +8584,7 @@ class InvoicePaymentTerms(_Model):
      ~openmeter._generated.models.PaymentTermDueDate
     """
 
-    terms: Optional["_types.PaymentTerms"] = rest_field(visibility=["read", "create", "update"])
+    terms: Optional["_unions.PaymentTerms"] = rest_field(visibility=["read", "create", "update"])
     """The terms of payment for the invoice. Is either a PaymentTermInstant type or a
      PaymentTermDueDate type."""
 
@@ -8556,7 +8592,7 @@ class InvoicePaymentTerms(_Model):
     def __init__(
         self,
         *,
-        terms: Optional["_types.PaymentTerms"] = None,
+        terms: Optional["_unions.PaymentTerms"] = None,
     ) -> None: ...
 
     @overload
@@ -8570,7 +8606,7 @@ class InvoicePaymentTerms(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoicePendingLineCreate(_Model):
+class InvoicePendingLineCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoicePendingLineCreate represents the create model for an invoice line that is sold to the
     customer based on usage.
 
@@ -8620,7 +8656,7 @@ class InvoicePendingLineCreate(_Model):
         name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339"
     )
     """The time this line item should be invoiced. Required."""
-    price: Optional["_types.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
+    price: Optional["_unions.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
     """Price of the usage-based item being sold. Is one of the following types:
      FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
      DynamicPriceWithCommitments, PackagePriceWithCommitments"""
@@ -8643,7 +8679,7 @@ class InvoicePendingLineCreate(_Model):
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
-        price: Optional["_types.RateCardUsageBasedPrice"] = None,
+        price: Optional["_unions.RateCardUsageBasedPrice"] = None,
         feature_key: Optional[str] = None,
         rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = None,
     ) -> None: ...
@@ -8659,7 +8695,7 @@ class InvoicePendingLineCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoicePendingLineCreateInput(_Model):
+class InvoicePendingLineCreateInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoicePendingLineCreate represents the create model for a pending invoice line.
 
     :ivar currency: The currency of the lines to be created. Required.
@@ -8711,7 +8747,7 @@ class InvoicePendingLineCreateResponse(_Model):
     """Whether the invoice was newly created. Required."""
 
 
-class InvoicePendingLinesActionFiltersInput(_Model):
+class InvoicePendingLinesActionFiltersInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoicePendingLinesActionFiltersInput specifies which lines to include in the invoice.
 
     :ivar line_ids: The pending line items to include in the invoice, if not provided:
@@ -8753,7 +8789,7 @@ class InvoicePendingLinesActionFiltersInput(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoicePendingLinesActionInput(_Model):
+class InvoicePendingLinesActionInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """BillingInvoiceActionInput is the input for creating an invoice.
 
     Invoice creation is always based on already pending line items created by the
@@ -8825,7 +8861,7 @@ class InvoiceReference(_Model):
     """The number of the invoice."""
 
 
-class InvoiceReplaceUpdate(_Model):
+class InvoiceReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceReplaceUpdate represents the update model for an invoice.
 
     :ivar description: Description.
@@ -8878,7 +8914,7 @@ class InvoiceReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoiceSimulationInput(_Model):
+class InvoiceSimulationInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceSimulationInput is the input for simulating an invoice.
 
     :ivar number: The number of the invoice.
@@ -8920,7 +8956,7 @@ class InvoiceSimulationInput(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoiceSimulationLine(_Model):
+class InvoiceSimulationLine(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceSimulationLine represents a usage-based line item that can be input to the simulation
     endpoint.
 
@@ -8979,7 +9015,7 @@ class InvoiceSimulationLine(_Model):
         name="invoiceAt", visibility=["read", "create", "update"], format="rfc3339"
     )
     """The time this line item should be invoiced. Required."""
-    price: Optional["_types.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
+    price: Optional["_unions.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
     """Price of the usage-based item being sold. Is one of the following types:
      FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
      DynamicPriceWithCommitments, PackagePriceWithCommitments"""
@@ -9011,7 +9047,7 @@ class InvoiceSimulationLine(_Model):
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
-        price: Optional["_types.RateCardUsageBasedPrice"] = None,
+        price: Optional["_unions.RateCardUsageBasedPrice"] = None,
         feature_key: Optional[str] = None,
         rate_card: Optional["_models.InvoiceUsageBasedRateCard"] = None,
         pre_line_period_quantity: Optional[str] = None,
@@ -9029,7 +9065,7 @@ class InvoiceSimulationLine(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoiceStatusDetails(_Model):
+class InvoiceStatusDetails(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceStatusDetails represents the details of the invoice status.
 
     API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
@@ -9116,7 +9152,7 @@ class InvoiceTotals(_Model):
     """The total amount value of the line after taxes, discounts and commitments. Required."""
 
 
-class InvoiceUsageBasedRateCard(_Model):
+class InvoiceUsageBasedRateCard(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
 
     :ivar feature_key: Feature key.
@@ -9139,7 +9175,7 @@ class InvoiceUsageBasedRateCard(_Model):
     """Feature key."""
     tax_config: Optional["_models.TaxConfig"] = rest_field(name="taxConfig", visibility=["read", "create", "update"])
     """Tax config."""
-    price: "_types.RateCardUsageBasedPrice" = rest_field(visibility=["read", "create", "update"])
+    price: "_unions.RateCardUsageBasedPrice" = rest_field(visibility=["read", "create", "update"])
     """The price of the rate card. When null, the feature or service is free. Required. Is one of the
      following types: FlatPriceWithPaymentTerm, UnitPriceWithCommitments,
      TieredPriceWithCommitments, DynamicPriceWithCommitments, PackagePriceWithCommitments"""
@@ -9150,7 +9186,7 @@ class InvoiceUsageBasedRateCard(_Model):
     def __init__(
         self,
         *,
-        price: "_types.RateCardUsageBasedPrice",
+        price: "_unions.RateCardUsageBasedPrice",
         feature_key: Optional[str] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
         discounts: Optional["_models.BillingDiscounts"] = None,
@@ -9167,7 +9203,9 @@ class InvoiceUsageBasedRateCard(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=name-too-long
+class InvoiceWorkflowInvoicingSettingsReplaceUpdate(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing
     settings of an invoice workflow.
 
@@ -9238,7 +9276,7 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
         super().__init__(*args, **kwargs)
 
 
-class InvoiceWorkflowReplaceUpdate(_Model):
+class InvoiceWorkflowReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceWorkflowReplaceUpdate represents the update model for an invoice workflow.
 
     Fields that are immutable a re removed from the model. This is based on
@@ -9271,7 +9309,7 @@ class InvoiceWorkflowReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoiceWorkflowSettings(_Model):
+class InvoiceWorkflowSettings(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceWorkflowSettings represents the workflow settings used by the invoice.
 
     This is a clone of the billing profile's workflow settings at the time of invoice creation
@@ -9291,7 +9329,7 @@ class InvoiceWorkflowSettings(_Model):
     :vartype workflow: ~openmeter._generated.models.BillingWorkflow
     """
 
-    apps: Optional["_types.BillingProfileAppsOrReference"] = rest_field(visibility=["read"])
+    apps: Optional["_unions.BillingProfileAppsOrReference"] = rest_field(visibility=["read"])
     """The apps that will be used to orchestrate the invoice's workflow. Is either a
      BillingProfileApps type or a BillingProfileAppReferences type."""
     source_billing_profile_id: str = rest_field(name="sourceBillingProfileId", visibility=["read"])
@@ -9320,7 +9358,7 @@ class InvoiceWorkflowSettings(_Model):
         super().__init__(*args, **kwargs)
 
 
-class InvoiceWorkflowSettingsReplaceUpdate(_Model):
+class InvoiceWorkflowSettingsReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Mutable workflow settings for an invoice.
 
     Other fields on the invoice's workflow are not mutable, they serve as a history of the
@@ -9357,7 +9395,7 @@ class InvoiceWorkflowSettingsReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class IssueAfterReset(_Model):
+class IssueAfterReset(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Issue after reset.
 
     :ivar amount: Initial grant amount. Required.
@@ -9390,7 +9428,7 @@ class IssueAfterReset(_Model):
         super().__init__(*args, **kwargs)
 
 
-class ListRequestFilter(_Model):
+class ListRequestFilter(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """ListRequestFilter.
 
     :ivar id:
@@ -9445,7 +9483,7 @@ class ListRequestFilter(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MarketplaceInstallRequestPayload(_Model):
+class MarketplaceInstallRequestPayload(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Marketplace install request payload.
 
     :ivar name: Name of the application to install.
@@ -9487,7 +9525,7 @@ class MarketplaceInstallRequestPayload(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MarketplaceInstallResponse(_Model):
+class MarketplaceInstallResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Marketplace install response.
 
     :ivar app: Required. Is one of the following types: StripeApp, SandboxApp, CustomInvoicingApp
@@ -9497,7 +9535,7 @@ class MarketplaceInstallResponse(_Model):
     :vartype default_for_capability_types: list[str or ~openmeter.models.AppCapabilityType]
     """
 
-    app: "_types.App" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    app: "_unions.App" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required. Is one of the following types: StripeApp, SandboxApp, CustomInvoicingApp"""
     default_for_capability_types: list[Union[str, "_models.AppCapabilityType"]] = rest_field(
         name="defaultForCapabilityTypes", visibility=["read", "create", "update", "delete", "query"]
@@ -9508,7 +9546,7 @@ class MarketplaceInstallResponse(_Model):
     def __init__(
         self,
         *,
-        app: "_types.App",
+        app: "_unions.App",
         default_for_capability_types: list[Union[str, "_models.AppCapabilityType"]],
     ) -> None: ...
 
@@ -9523,7 +9561,7 @@ class MarketplaceInstallResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MarketplaceListing(_Model):
+class MarketplaceListing(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A marketplace listing.
     Represent an available app in the app marketplace that can be installed to the organization.
 
@@ -9581,7 +9619,7 @@ class MarketplaceListing(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MarketplaceListingPaginatedResponse(_Model):
+class MarketplaceListingPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -9630,7 +9668,7 @@ class Metadata(_Model):
     """Set of key-value pairs. Metadata can be used to store additional information about a resource."""
 
 
-class Meter(_Model):
+class Meter(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A meter is a configuration that defines how to match and aggregate events.
 
     :ivar id: ID. Required.
@@ -9743,7 +9781,7 @@ class Meter(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MeterCreate(_Model):
+class MeterCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A meter create model.
 
     :ivar description: Description.
@@ -9842,7 +9880,7 @@ class MeterCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MeterQueryRequest(_Model):
+class MeterQueryRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A meter query request.
 
     :ivar client_id: Client ID Useful to track progress of a query.
@@ -9951,7 +9989,7 @@ class MeterQueryRequest(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MeterQueryResult(_Model):
+class MeterQueryResult(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The result of a meter query.
 
     :ivar from_property: The start of the period the usage is queried from. If not specified, the
@@ -10006,7 +10044,7 @@ class MeterQueryResult(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MeterQueryRow(_Model):
+class MeterQueryRow(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A row in the result of a meter query.
 
     :ivar value: The aggregated value. Required.
@@ -10067,7 +10105,7 @@ class MeterQueryRow(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MeterUpdate(_Model):
+class MeterUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A meter update model.
 
     Only the properties that can be updated are included.
@@ -10117,7 +10155,7 @@ class MeterUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class MigrateRequest(_Model):
+class MigrateRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """MigrateRequest.
 
     :ivar timing: Timing configuration for the migration, when the migration should take effect. If
@@ -10136,7 +10174,7 @@ class MigrateRequest(_Model):
     :vartype billing_anchor: ~datetime.datetime
     """
 
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+    timing: Optional["_unions.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
     """Timing configuration for the migration, when the migration should take effect. If not supported
@@ -10163,7 +10201,7 @@ class MigrateRequest(_Model):
     def __init__(
         self,
         *,
-        timing: Optional["_types.SubscriptionTiming"] = None,
+        timing: Optional["_unions.SubscriptionTiming"] = None,
         target_version: Optional[int] = None,
         starting_phase: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
@@ -10180,7 +10218,7 @@ class MigrateRequest(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotFoundProblemResponse(UnexpectedProblemResponse):
+class NotFoundProblemResponse(UnexpectedProblemResponse):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The origin server did not find a current representation for the target resource or is not
     willing to disclose that one exists.
 
@@ -10224,7 +10262,7 @@ class NotFoundProblemResponse(UnexpectedProblemResponse):
         super().__init__(*args, **kwargs)
 
 
-class NotificationChannelMeta(_Model):
+class NotificationChannelMeta(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Metadata only fields of a notification channel.
 
     :ivar id: Channel Unique Identifier. Required.
@@ -10256,7 +10294,7 @@ class NotificationChannelMeta(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationChannelPaginatedResponse(_Model):
+class NotificationChannelPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -10275,7 +10313,7 @@ class NotificationChannelPaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.NotificationChannel"] = rest_field(
+    items_property: list["_unions.NotificationChannel"] = rest_field(
         name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
@@ -10287,7 +10325,7 @@ class NotificationChannelPaginatedResponse(_Model):
         total_count: int,
         page: int,
         page_size: int,
-        items_property: list["_types.NotificationChannel"],
+        items_property: list["_unions.NotificationChannel"],
     ) -> None: ...
 
     @overload
@@ -10301,7 +10339,7 @@ class NotificationChannelPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationChannelWebhook(_Model):
+class NotificationChannelWebhook(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Notification channel with webhook type.
 
     :ivar created_at: Creation Time. Required.
@@ -10379,7 +10417,7 @@ class NotificationChannelWebhook(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationChannelWebhookCreateRequest(_Model):
+class NotificationChannelWebhookCreateRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Request with input parameters for creating new notification channel with webhook type.
 
     :ivar type: Channel Type. Required. WEBHOOK.
@@ -10481,7 +10519,7 @@ class NotificationEvent(_Model):
      \"entitlements.reset\", \"invoice.created\", and \"invoice.updated\"."""
     created_at: datetime.datetime = rest_field(name="createdAt", visibility=["read"], format="rfc3339")
     """Creation Time. Required."""
-    rule: "_types.NotificationRule" = rest_field(visibility=["read"])
+    rule: "_unions.NotificationRule" = rest_field(visibility=["read"])
     """The nnotification rule which generated this event. Required. Is one of the following types:
      NotificationRuleBalanceThreshold, NotificationRuleEntitlementReset,
      NotificationRuleInvoiceCreated, NotificationRuleInvoiceUpdated"""
@@ -10489,7 +10527,7 @@ class NotificationEvent(_Model):
         name="deliveryStatus", visibility=["read"]
     )
     """Delivery Status. Required."""
-    payload: "_types.NotificationEventPayload" = rest_field(visibility=["read"])
+    payload: "_unions.NotificationEventPayload" = rest_field(visibility=["read"])
     """Timestamp when the notification event was created in RFC 3339 format. Required. Is one of the
      following types: NotificationEventResetPayload, NotificationEventBalanceThresholdPayload,
      NotificationEventInvoiceCreatedPayload, NotificationEventInvoiceUpdatedPayload"""
@@ -10682,7 +10720,7 @@ class NotificationEventInvoiceUpdatedPayload(_Model):
     """Payload Data. Required."""
 
 
-class NotificationEventPaginatedResponse(_Model):
+class NotificationEventPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -10727,7 +10765,7 @@ class NotificationEventPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationEventResendRequest(_Model):
+class NotificationEventResendRequest(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A notification event that will be re-sent.
 
     :ivar channels: Channels.
@@ -10778,7 +10816,7 @@ class NotificationEventResetPayload(_Model):
     """Payload Data. Required."""
 
 
-class NotificationRuleBalanceThreshold(_Model):
+class NotificationRuleBalanceThreshold(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Notification rule with entitlements.balance.threshold type.
 
     :ivar created_at: Creation Time. Required.
@@ -10860,7 +10898,9 @@ class NotificationRuleBalanceThreshold(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationRuleBalanceThresholdCreateRequest(_Model):  # pylint: disable=name-too-long
+class NotificationRuleBalanceThresholdCreateRequest(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Request with input parameters for creating new notification rule with
     entitlements.balance.threshold type.
 
@@ -10923,7 +10963,7 @@ class NotificationRuleBalanceThresholdCreateRequest(_Model):  # pylint: disable=
         super().__init__(*args, **kwargs)
 
 
-class NotificationRuleBalanceThresholdValue(_Model):
+class NotificationRuleBalanceThresholdValue(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Threshold value with multiple supported types.
 
     :ivar value: Threshold Value. Required.
@@ -10960,7 +11000,7 @@ class NotificationRuleBalanceThresholdValue(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationRuleEntitlementReset(_Model):
+class NotificationRuleEntitlementReset(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Notification rule with entitlements.reset type.
 
     :ivar created_at: Creation Time. Required.
@@ -11033,7 +11073,9 @@ class NotificationRuleEntitlementReset(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationRuleEntitlementResetCreateRequest(_Model):  # pylint: disable=name-too-long
+class NotificationRuleEntitlementResetCreateRequest(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Request with input parameters for creating new notification rule with entitlements.reset type.
 
     :ivar type: Rule Type. Required. ENTITLEMENTS_RESET.
@@ -11088,7 +11130,7 @@ class NotificationRuleEntitlementResetCreateRequest(_Model):  # pylint: disable=
         super().__init__(*args, **kwargs)
 
 
-class NotificationRuleInvoiceCreated(_Model):
+class NotificationRuleInvoiceCreated(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Notification rule with invoice.created type.
 
     :ivar created_at: Creation Time. Required.
@@ -11156,7 +11198,9 @@ class NotificationRuleInvoiceCreated(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationRuleInvoiceCreatedCreateRequest(_Model):  # pylint: disable=name-too-long
+class NotificationRuleInvoiceCreatedCreateRequest(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Request with input parameters for creating new notification rule with invoice.created type.
 
     :ivar type: Rule Type. Required. INVOICE_CREATED.
@@ -11206,7 +11250,7 @@ class NotificationRuleInvoiceCreatedCreateRequest(_Model):  # pylint: disable=na
         super().__init__(*args, **kwargs)
 
 
-class NotificationRuleInvoiceUpdated(_Model):
+class NotificationRuleInvoiceUpdated(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Notification rule with invoice.updated type.
 
     :ivar created_at: Creation Time. Required.
@@ -11274,7 +11318,9 @@ class NotificationRuleInvoiceUpdated(_Model):
         super().__init__(*args, **kwargs)
 
 
-class NotificationRuleInvoiceUpdatedCreateRequest(_Model):  # pylint: disable=name-too-long
+class NotificationRuleInvoiceUpdatedCreateRequest(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """Request with input parameters for creating new notification rule with invoice.updated  type.
 
     :ivar type: Rule Type. Required. INVOICE_UPDATED.
@@ -11324,7 +11370,7 @@ class NotificationRuleInvoiceUpdatedCreateRequest(_Model):  # pylint: disable=na
         super().__init__(*args, **kwargs)
 
 
-class NotificationRulePaginatedResponse(_Model):
+class NotificationRulePaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -11346,7 +11392,7 @@ class NotificationRulePaginatedResponse(_Model):
     """The page index. Required."""
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
-    items_property: list["_types.NotificationRule"] = rest_field(
+    items_property: list["_unions.NotificationRule"] = rest_field(
         name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
@@ -11358,7 +11404,7 @@ class NotificationRulePaginatedResponse(_Model):
         total_count: int,
         page: int,
         page_size: int,
-        items_property: list["_types.NotificationRule"],
+        items_property: list["_unions.NotificationRule"],
     ) -> None: ...
 
     @overload
@@ -11372,7 +11418,7 @@ class NotificationRulePaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PackagePriceWithCommitments(_Model):
+class PackagePriceWithCommitments(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Package price with spend commitments.
 
     :ivar type: The type of the price. Required. PACKAGE.
@@ -11447,7 +11493,7 @@ class PaymentDueDate(_Model):
     """If different from the parent document's base currency."""
 
 
-class PaymentTermDueDate(_Model):
+class PaymentTermDueDate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """PaymentTermDueDate defines the terms for payment on a specific date.
 
     :ivar type: Type of terms to be applied. Required. Due on a specific date.
@@ -11487,7 +11533,7 @@ class PaymentTermDueDate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PaymentTermInstant(_Model):
+class PaymentTermInstant(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """PaymentTermInstant defines the terms for payment on receipt of invoice.
 
     :ivar type: Type of terms to be applied. Required. On receipt of invoice.
@@ -11523,7 +11569,7 @@ class PaymentTermInstant(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Period(_Model):
+class Period(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A period with a start and end time.
 
     :ivar from_property: Period start time. Required.
@@ -11558,7 +11604,7 @@ class Period(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Plan(_Model):
+class Plan(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Plans provide a template for subscriptions.
 
     :ivar id: ID. Required.
@@ -11675,7 +11721,7 @@ class Plan(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanAddon(_Model):
+class PlanAddon(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The PlanAddon describes the association between a plan and add-on.
 
     :ivar created_at: Creation Time. Required.
@@ -11737,7 +11783,7 @@ class PlanAddon(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanAddonCreate(_Model):
+class PlanAddonCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A plan add-on assignment create request.
 
     :ivar metadata: Metadata.
@@ -11782,7 +11828,7 @@ class PlanAddonCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanAddonPaginatedResponse(_Model):
+class PlanAddonPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -11827,7 +11873,7 @@ class PlanAddonPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanAddonReplaceUpdate(_Model):
+class PlanAddonReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource update operation model.
 
     :ivar metadata: Metadata.
@@ -11865,7 +11911,7 @@ class PlanAddonReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanCreate(_Model):
+class PlanCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource create operation model.
 
     :ivar name: Display name. Required.
@@ -11945,7 +11991,7 @@ class PlanCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanPhase(_Model):
+class PlanPhase(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription
     progresses.
 
@@ -11974,7 +12020,7 @@ class PlanPhase(_Model):
     """Metadata."""
     duration: datetime.timedelta = rest_field(visibility=["read", "create", "update"])
     """Duration. Required."""
-    rate_cards: list["_types.RateCard"] = rest_field(name="rateCards", visibility=["read", "create", "update"])
+    rate_cards: list["_unions.RateCard"] = rest_field(name="rateCards", visibility=["read", "create", "update"])
     """Rate cards. Required."""
 
     @overload
@@ -11984,7 +12030,7 @@ class PlanPhase(_Model):
         key: str,
         name: str,
         duration: datetime.timedelta,
-        rate_cards: list["_types.RateCard"],
+        rate_cards: list["_unions.RateCard"],
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
     ) -> None: ...
@@ -12000,7 +12046,7 @@ class PlanPhase(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanReference(_Model):
+class PlanReference(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """References an exact plan.
 
     :ivar id: The plan ID. Required.
@@ -12038,7 +12084,7 @@ class PlanReference(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanReferenceInput(_Model):
+class PlanReferenceInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """References an exact plan defaulting to the current active version.
 
     :ivar key: The plan key. Required.
@@ -12071,7 +12117,7 @@ class PlanReferenceInput(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanReplaceUpdate(_Model):
+class PlanReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource update operation model.
 
     :ivar name: Display name. Required.
@@ -12139,7 +12185,7 @@ class PlanReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanSubscriptionChange(_Model):
+class PlanSubscriptionChange(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Change subscription based on plan.
 
     :ivar timing: Timing configuration for the change, when the change should take effect. For
@@ -12169,7 +12215,7 @@ class PlanSubscriptionChange(_Model):
     :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
     """
 
-    timing: "_types.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    timing: "_unions.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Timing configuration for the change, when the change should take effect. For changing a
      subscription, the accepted values depend on the subscription configuration. Required. Is either
      a Union[str, \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime type."""
@@ -12204,7 +12250,7 @@ class PlanSubscriptionChange(_Model):
     def __init__(
         self,
         *,
-        timing: "_types.SubscriptionTiming",
+        timing: "_unions.SubscriptionTiming",
         plan: "_models.PlanReferenceInput",
         alignment: Optional["_models.Alignment"] = None,
         metadata: Optional["_models.Metadata"] = None,
@@ -12226,7 +12272,7 @@ class PlanSubscriptionChange(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PlanSubscriptionCreate(_Model):
+class PlanSubscriptionCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Create from plan.
 
     :ivar alignment: What alignment settings the subscription should have.
@@ -12280,7 +12326,7 @@ class PlanSubscriptionCreate(_Model):
     )
     """The settlement mode of the subscription. Known values are: \"credit_then_invoice\" and
      \"credit_only\"."""
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+    timing: Optional["_unions.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
     """Timing configuration for the change, when the change should take effect. The default is
@@ -12312,7 +12358,7 @@ class PlanSubscriptionCreate(_Model):
         name: Optional[str] = None,
         description: Optional[str] = None,
         settlement_mode: Optional[Union[str, "_models.BillingSettlementMode"]] = None,
-        timing: Optional["_types.SubscriptionTiming"] = None,
+        timing: Optional["_unions.SubscriptionTiming"] = None,
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
@@ -12329,7 +12375,7 @@ class PlanSubscriptionCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PortalToken(_Model):
+class PortalToken(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A consumer portal token.
 
     Validator doesn't obey required for readOnly properties
@@ -12384,7 +12430,9 @@ class PortalToken(_Model):
         super().__init__(*args, **kwargs)
 
 
-class PreconditionFailedProblemResponse(UnexpectedProblemResponse):
+class PreconditionFailedProblemResponse(
+    UnexpectedProblemResponse
+):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """One or more conditions given in the request header fields evaluated to false when tested on the
     server.
 
@@ -12428,7 +12476,7 @@ class PreconditionFailedProblemResponse(UnexpectedProblemResponse):
         super().__init__(*args, **kwargs)
 
 
-class PriceTier(_Model):
+class PriceTier(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A price tier. At least one price component is required in each tier.
 
     :ivar up_to_amount: Up to quantity.
@@ -12466,7 +12514,7 @@ class PriceTier(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Progress(_Model):
+class Progress(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Progress describes a progress of a task.
 
     :ivar success: Success is the number of items that succeeded. Required.
@@ -12511,7 +12559,7 @@ class Progress(_Model):
         super().__init__(*args, **kwargs)
 
 
-class ProRatingConfig(_Model):
+class ProRatingConfig(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Configuration for pro-rating behavior.
 
     :ivar enabled: Enable pro-rating. Required.
@@ -12544,7 +12592,7 @@ class ProRatingConfig(_Model):
         super().__init__(*args, **kwargs)
 
 
-class RateCardBooleanEntitlement(_Model):
+class RateCardBooleanEntitlement(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Entitlement template of a boolean entitlement.
 
     :ivar metadata: Additional metadata for the feature.
@@ -12577,7 +12625,7 @@ class RateCardBooleanEntitlement(_Model):
         super().__init__(*args, **kwargs)
 
 
-class RateCardFlatFee(_Model):
+class RateCardFlatFee(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A flat fee rate card defines a one-time purchase or a recurring fee.
 
     :ivar type: RateCard type. Required. FLAT_FEE.
@@ -12620,7 +12668,7 @@ class RateCardFlatFee(_Model):
     """Metadata."""
     feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update"])
     """Feature key."""
-    entitlement_template: Optional["_types.RateCardEntitlement"] = rest_field(
+    entitlement_template: Optional["_unions.RateCardEntitlement"] = rest_field(
         name="entitlementTemplate", visibility=["read", "create", "update"]
     )
     """The entitlement of the rate card. Only available when featureKey is set. Is one of the
@@ -12647,7 +12695,7 @@ class RateCardFlatFee(_Model):
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         feature_key: Optional[str] = None,
-        entitlement_template: Optional["_types.RateCardEntitlement"] = None,
+        entitlement_template: Optional["_unions.RateCardEntitlement"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
         discounts: Optional["_models.Discounts"] = None,
     ) -> None: ...
@@ -12663,7 +12711,7 @@ class RateCardFlatFee(_Model):
         super().__init__(*args, **kwargs)
 
 
-class RateCardMeteredEntitlement(_Model):
+class RateCardMeteredEntitlement(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The entitlement template with a metered entitlement.
 
     :ivar metadata: Additional metadata for the feature.
@@ -12729,7 +12777,7 @@ class RateCardMeteredEntitlement(_Model):
         super().__init__(*args, **kwargs)
 
 
-class RateCardStaticEntitlement(_Model):
+class RateCardStaticEntitlement(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Entitlement template of a static entitlement.
 
     :ivar metadata: Additional metadata for the feature.
@@ -12771,7 +12819,7 @@ class RateCardStaticEntitlement(_Model):
         super().__init__(*args, **kwargs)
 
 
-class RateCardUsageBased(_Model):
+class RateCardUsageBased(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A usage-based rate card defines a price based on usage.
 
     :ivar type: RateCard type. Required. USAGE_BASED.
@@ -12820,7 +12868,7 @@ class RateCardUsageBased(_Model):
     """Metadata."""
     feature_key: Optional[str] = rest_field(name="featureKey", visibility=["read", "create", "update"])
     """Feature key."""
-    entitlement_template: Optional["_types.RateCardEntitlement"] = rest_field(
+    entitlement_template: Optional["_unions.RateCardEntitlement"] = rest_field(
         name="entitlementTemplate", visibility=["read", "create", "update"]
     )
     """The entitlement of the rate card. Only available when featureKey is set. Is one of the
@@ -12830,7 +12878,7 @@ class RateCardUsageBased(_Model):
     """Tax config."""
     billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read", "create", "update"])
     """Billing cadence. Required."""
-    price: "_types.RateCardUsageBasedPrice" = rest_field(visibility=["read", "create", "update"])
+    price: "_unions.RateCardUsageBasedPrice" = rest_field(visibility=["read", "create", "update"])
     """The price of the rate card. When null, the feature or service is free. Required. Is one of the
      following types: FlatPriceWithPaymentTerm, UnitPriceWithCommitments,
      TieredPriceWithCommitments, DynamicPriceWithCommitments, PackagePriceWithCommitments"""
@@ -12845,11 +12893,11 @@ class RateCardUsageBased(_Model):
         key: str,
         name: str,
         billing_cadence: datetime.timedelta,
-        price: "_types.RateCardUsageBasedPrice",
+        price: "_unions.RateCardUsageBasedPrice",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         feature_key: Optional[str] = None,
-        entitlement_template: Optional["_types.RateCardEntitlement"] = None,
+        entitlement_template: Optional["_unions.RateCardEntitlement"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
         discounts: Optional["_models.Discounts"] = None,
     ) -> None: ...
@@ -12865,7 +12913,7 @@ class RateCardUsageBased(_Model):
         super().__init__(*args, **kwargs)
 
 
-class RecurringPeriod(_Model):
+class RecurringPeriod(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Recurring period with an interval and an anchor.
 
     :ivar interval: Interval. Required. Is either a str type or a Union[str,
@@ -12877,7 +12925,7 @@ class RecurringPeriod(_Model):
     :vartype interval_iso: ~datetime.timedelta
     """
 
-    interval: "_types.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    interval: "_unions.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Interval. Required. Is either a str type or a Union[str,
      \"_models.RecurringPeriodIntervalEnum\"] type."""
     anchor: datetime.datetime = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
@@ -12891,7 +12939,7 @@ class RecurringPeriod(_Model):
     def __init__(
         self,
         *,
-        interval: "_types.RecurringPeriodInterval",
+        interval: "_unions.RecurringPeriodInterval",
         anchor: datetime.datetime,
         interval_iso: datetime.timedelta,
     ) -> None: ...
@@ -12907,7 +12955,7 @@ class RecurringPeriod(_Model):
         super().__init__(*args, **kwargs)
 
 
-class RecurringPeriodCreateInput(_Model):
+class RecurringPeriodCreateInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Recurring period with an interval and an anchor.
 
     :ivar interval: Interval. Required. Is either a str type or a Union[str,
@@ -12917,7 +12965,7 @@ class RecurringPeriodCreateInput(_Model):
     :vartype anchor: ~datetime.datetime
     """
 
-    interval: "_types.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    interval: "_unions.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Interval. Required. Is either a str type or a Union[str,
      \"_models.RecurringPeriodIntervalEnum\"] type."""
     anchor: Optional[datetime.datetime] = rest_field(
@@ -12929,7 +12977,7 @@ class RecurringPeriodCreateInput(_Model):
     def __init__(
         self,
         *,
-        interval: "_types.RecurringPeriodInterval",
+        interval: "_unions.RecurringPeriodInterval",
         anchor: Optional[datetime.datetime] = None,
     ) -> None: ...
 
@@ -12944,7 +12992,7 @@ class RecurringPeriodCreateInput(_Model):
         super().__init__(*args, **kwargs)
 
 
-class RecurringPeriodV2(_Model):
+class RecurringPeriodV2(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Recurring period with an interval and an anchor.
 
     :ivar interval: Interval. Required. Is either a str type or a Union[str,
@@ -12954,7 +13002,7 @@ class RecurringPeriodV2(_Model):
     :vartype anchor: ~datetime.datetime
     """
 
-    interval: "_types.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    interval: "_unions.RecurringPeriodInterval" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Interval. Required. Is either a str type or a Union[str,
      \"_models.RecurringPeriodIntervalEnum\"] type."""
     anchor: datetime.datetime = rest_field(visibility=["read", "create", "update", "delete", "query"], format="rfc3339")
@@ -12964,7 +13012,7 @@ class RecurringPeriodV2(_Model):
     def __init__(
         self,
         *,
-        interval: "_types.RecurringPeriodInterval",
+        interval: "_unions.RecurringPeriodInterval",
         anchor: datetime.datetime,
     ) -> None: ...
 
@@ -12979,7 +13027,7 @@ class RecurringPeriodV2(_Model):
         super().__init__(*args, **kwargs)
 
 
-class ResetEntitlementUsageInput(_Model):
+class ResetEntitlementUsageInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Reset parameters.
 
     :ivar effective_at: The time at which the reset takes effect, defaults to now. The reset cannot
@@ -13041,7 +13089,7 @@ class ResetEntitlementUsageInput(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SandboxApp(_Model):
+class SandboxApp(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Sandbox app can be used for testing OpenMeter features.
 
     The app is not creating anything in external systems, thus it is safe to use for
@@ -13112,7 +13160,7 @@ class SandboxApp(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SandboxAppReplaceUpdate(_Model):
+class SandboxAppReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource update operation model.
 
     :ivar name: Display name. Required.
@@ -13155,7 +13203,7 @@ class SandboxAppReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SandboxCustomerAppData(_Model):
+class SandboxCustomerAppData(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Sandbox Customer App Data.
 
     :ivar app: The installed sandbox app this data belongs to.
@@ -13192,7 +13240,9 @@ class SandboxCustomerAppData(_Model):
         super().__init__(*args, **kwargs)
 
 
-class ServiceUnavailableProblemResponse(UnexpectedProblemResponse):
+class ServiceUnavailableProblemResponse(
+    UnexpectedProblemResponse
+):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The server is currently unable to handle the request due to a temporary overload or scheduled
     maintenance, which will likely be alleviated after some delay.
 
@@ -13236,7 +13286,7 @@ class ServiceUnavailableProblemResponse(UnexpectedProblemResponse):
         super().__init__(*args, **kwargs)
 
 
-class StripeAPIKeyInput(_Model):
+class StripeAPIKeyInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The Stripe API key input. Used to authenticate with the Stripe API.
 
     :ivar secret_api_key: Required.
@@ -13264,7 +13314,7 @@ class StripeAPIKeyInput(_Model):
         super().__init__(*args, **kwargs)
 
 
-class StripeApp(_Model):
+class StripeApp(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A installed Stripe app object.
 
     :ivar id: ID. Required.
@@ -13350,7 +13400,7 @@ class StripeApp(_Model):
         super().__init__(*args, **kwargs)
 
 
-class StripeAppReplaceUpdate(_Model):
+class StripeAppReplaceUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource update operation model.
 
     :ivar name: Display name. Required.
@@ -13398,7 +13448,7 @@ class StripeAppReplaceUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class StripeCustomerAppData(_Model):
+class StripeCustomerAppData(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Stripe Customer App Data.
 
     :ivar id: App ID.
@@ -13449,7 +13499,7 @@ class StripeCustomerAppData(_Model):
         super().__init__(*args, **kwargs)
 
 
-class StripeCustomerAppDataBase(_Model):
+class StripeCustomerAppDataBase(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Stripe Customer App Data Base.
 
     :ivar stripe_customer_id: The Stripe customer ID. Required.
@@ -13486,7 +13536,7 @@ class StripeCustomerAppDataBase(_Model):
         super().__init__(*args, **kwargs)
 
 
-class StripeCustomerPortalSession(_Model):
+class StripeCustomerPortalSession(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Stripe customer portal session.
 
     See: `https://docs.stripe.com/api/customer_portal/sessions/object
@@ -13618,7 +13668,7 @@ class StripeCustomerPortalSession(_Model):
         super().__init__(*args, **kwargs)
 
 
-class StripeTaxConfig(_Model):
+class StripeTaxConfig(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The tax config for Stripe.
 
     :ivar code: Tax code. Required.
@@ -13646,7 +13696,7 @@ class StripeTaxConfig(_Model):
         super().__init__(*args, **kwargs)
 
 
-class StripeWebhookEvent(_Model):
+class StripeWebhookEvent(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Stripe webhook event.
 
     :ivar id: The event ID. Required.
@@ -13694,7 +13744,7 @@ class StripeWebhookEvent(_Model):
         super().__init__(*args, **kwargs)
 
 
-class StripeWebhookEventData(_Model):
+class StripeWebhookEventData(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """StripeWebhookEventData.
 
     :ivar object: Required.
@@ -13722,7 +13772,7 @@ class StripeWebhookEventData(_Model):
         super().__init__(*args, **kwargs)
 
 
-class StripeWebhookResponse(_Model):
+class StripeWebhookResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Stripe webhook response.
 
     :ivar namespace_id: Required.
@@ -13765,7 +13815,7 @@ class StripeWebhookResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Subject(_Model):
+class Subject(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A subject is a unique identifier for a usage attribution by its key.
     Subjects only exist in the concept of metering.
     Subjects are optional to create and work as an enrichment for the subject key like displayName,
@@ -13853,7 +13903,7 @@ class Subject(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubjectUpsert(_Model):
+class SubjectUpsert(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A subject is a unique identifier for a user or entity.
 
     ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
@@ -13919,7 +13969,7 @@ class SubjectUpsert(_Model):
         super().__init__(*args, **kwargs)
 
 
-class Subscription(_Model):
+class Subscription(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Subscription is an exact subscription instance.
 
     :ivar id: ID. Required.
@@ -14036,7 +14086,7 @@ class Subscription(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionAddon(_Model):
+class SubscriptionAddon(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A subscription add-on, represents concrete instances of an add-on for a given subscription.
 
     :ivar id: ID. Required.
@@ -14098,7 +14148,7 @@ class SubscriptionAddon(_Model):
     """QuantityAt. Required."""
     quantity: int = rest_field(visibility=["read", "create", "update"])
     """Quantity. Required."""
-    timing: "_types.SubscriptionTiming" = rest_field(visibility=["create", "update"])
+    timing: "_unions.SubscriptionTiming" = rest_field(visibility=["create", "update"])
     """Timing. Required. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
      datetime.datetime type."""
     timeline: list["_models.SubscriptionAddonTimelineSegment"] = rest_field(visibility=["read"])
@@ -14115,7 +14165,7 @@ class SubscriptionAddon(_Model):
         name: str,
         addon: "_models.SubscriptionAddonAddon",
         quantity: int,
-        timing: "_types.SubscriptionTiming",
+        timing: "_unions.SubscriptionTiming",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
     ) -> None: ...
@@ -14131,7 +14181,7 @@ class SubscriptionAddon(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionAddonAddon(_Model):
+class SubscriptionAddonAddon(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """SubscriptionAddonAddon.
 
     :ivar id: ID. Required.
@@ -14171,7 +14221,7 @@ class SubscriptionAddonAddon(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionAddonCreate(_Model):
+class SubscriptionAddonCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A subscription add-on create body.
 
     :ivar name: Display name. Required.
@@ -14197,7 +14247,7 @@ class SubscriptionAddonCreate(_Model):
     """Metadata."""
     quantity: int = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Quantity. Required."""
-    timing: "_types.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    timing: "_unions.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Timing. Required. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
      datetime.datetime type."""
     addon: "_models.SubscriptionAddonCreateAddon" = rest_field(
@@ -14211,7 +14261,7 @@ class SubscriptionAddonCreate(_Model):
         *,
         name: str,
         quantity: int,
-        timing: "_types.SubscriptionTiming",
+        timing: "_unions.SubscriptionTiming",
         addon: "_models.SubscriptionAddonCreateAddon",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
@@ -14228,7 +14278,7 @@ class SubscriptionAddonCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionAddonCreateAddon(_Model):
+class SubscriptionAddonCreateAddon(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """SubscriptionAddonCreateAddon.
 
     :ivar id: The ID of the add-on. Required.
@@ -14256,7 +14306,7 @@ class SubscriptionAddonCreateAddon(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionAddonRateCard(_Model):
+class SubscriptionAddonRateCard(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A rate card for a subscription add-on.
 
     :ivar rate_card: Rate card. Required. Is either a RateCardFlatFee type or a RateCardUsageBased
@@ -14267,7 +14317,7 @@ class SubscriptionAddonRateCard(_Model):
     :vartype affected_subscription_item_ids: list[str]
     """
 
-    rate_card: "_types.RateCard" = rest_field(
+    rate_card: "_unions.RateCard" = rest_field(
         name="rateCard", visibility=["read", "create", "update", "delete", "query"]
     )
     """Rate card. Required. Is either a RateCardFlatFee type or a RateCardUsageBased type."""
@@ -14278,7 +14328,7 @@ class SubscriptionAddonRateCard(_Model):
     def __init__(
         self,
         *,
-        rate_card: "_types.RateCard",
+        rate_card: "_unions.RateCard",
     ) -> None: ...
 
     @overload
@@ -14292,7 +14342,7 @@ class SubscriptionAddonRateCard(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionAddonTimelineSegment(_Model):
+class SubscriptionAddonTimelineSegment(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """A subscription add-on event.
 
     :ivar active_from: The cadence start of the resource. Required.
@@ -14333,7 +14383,7 @@ class SubscriptionAddonTimelineSegment(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionAddonUpdate(_Model):
+class SubscriptionAddonUpdate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Resource create or update operation model.
 
     :ivar name: Display name.
@@ -14357,7 +14407,7 @@ class SubscriptionAddonUpdate(_Model):
     """Metadata."""
     quantity: Optional[int] = rest_field(visibility=["read", "create", "update"])
     """Quantity."""
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(visibility=["create", "update"])
+    timing: Optional["_unions.SubscriptionTiming"] = rest_field(visibility=["create", "update"])
     """Timing. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime
      type."""
 
@@ -14369,7 +14419,7 @@ class SubscriptionAddonUpdate(_Model):
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         quantity: Optional[int] = None,
-        timing: Optional["_types.SubscriptionTiming"] = None,
+        timing: Optional["_unions.SubscriptionTiming"] = None,
     ) -> None: ...
 
     @overload
@@ -14383,7 +14433,7 @@ class SubscriptionAddonUpdate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionAlignment(_Model):
+class SubscriptionAlignment(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Alignment details enriched with the current billing period.
 
     :ivar billables_must_align: Whether all Billable items and RateCards must align. Alignment
@@ -14423,7 +14473,7 @@ class SubscriptionAlignment(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionBadRequestErrorResponse(_Model):
+class SubscriptionBadRequestErrorResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The server cannot or will not process the request due to something that is perceived to be a
     client error (e.g., malformed request syntax, invalid request message framing, or deceptive
     request routing). Variants with ErrorExtensions specific to subscriptions.
@@ -14456,7 +14506,7 @@ class SubscriptionBadRequestErrorResponse(_Model):
     """A human-readable explanation specific to this occurrence of the problem. Required."""
     instance: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """A URI reference that identifies the specific occurrence of the problem. Required."""
-    extensions: Optional["_types.SubscriptionErrorExtensions"] = rest_field(
+    extensions: Optional["_unions.SubscriptionErrorExtensions"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
     """Additional properties specific to the problem type may be present. Is one of the following
@@ -14471,7 +14521,7 @@ class SubscriptionBadRequestErrorResponse(_Model):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-        extensions: Optional["_types.SubscriptionErrorExtensions"] = None,
+        extensions: Optional["_unions.SubscriptionErrorExtensions"] = None,
     ) -> None: ...
 
     @overload
@@ -14485,7 +14535,9 @@ class SubscriptionBadRequestErrorResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionBadRequestErrorResponseExtensions(_Model):  # pylint: disable=name-too-long
+class SubscriptionBadRequestErrorResponseExtensions(
+    _Model
+):  # pylint: disable=name-too-long,docstring-keyword-should-match-keyword-only
     """SubscriptionBadRequestErrorResponseExtensions.
 
     :ivar validation_errors: Required.
@@ -14515,7 +14567,7 @@ class SubscriptionBadRequestErrorResponseExtensions(_Model):  # pylint: disable=
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionChangeResponseBody(_Model):
+class SubscriptionChangeResponseBody(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Response body for subscription change.
 
     :ivar current: Current subscription. Required.
@@ -14548,7 +14600,7 @@ class SubscriptionChangeResponseBody(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionConflictErrorResponse(_Model):
+class SubscriptionConflictErrorResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The request could not be completed due to a conflict with the current state of the target
     resource. Variants with ErrorExtensions specific to subscriptions.
 
@@ -14580,7 +14632,7 @@ class SubscriptionConflictErrorResponse(_Model):
     """A human-readable explanation specific to this occurrence of the problem. Required."""
     instance: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """A URI reference that identifies the specific occurrence of the problem. Required."""
-    extensions: Optional["_types.SubscriptionErrorExtensions"] = rest_field(
+    extensions: Optional["_unions.SubscriptionErrorExtensions"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
     """Additional properties specific to the problem type may be present. Is one of the following
@@ -14595,7 +14647,7 @@ class SubscriptionConflictErrorResponse(_Model):
         detail: str,
         instance: str,
         status: Optional[int] = None,
-        extensions: Optional["_types.SubscriptionErrorExtensions"] = None,
+        extensions: Optional["_unions.SubscriptionErrorExtensions"] = None,
     ) -> None: ...
 
     @overload
@@ -14609,7 +14661,7 @@ class SubscriptionConflictErrorResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionEdit(_Model):
+class SubscriptionEdit(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Subscription edit input.
 
     :ivar customizations: Batch processing commands for manipulating running subscriptions. The key
@@ -14626,12 +14678,12 @@ class SubscriptionEdit(_Model):
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
     """
 
-    customizations: list["_types.SubscriptionEditOperation"] = rest_field(
+    customizations: list["_unions.SubscriptionEditOperation"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
     """Batch processing commands for manipulating running subscriptions. The key format is
      ``/phases/{phaseKey}`` or ``/phases/{phaseKey}/items/{itemKey}``. Required."""
-    timing: Optional["_types.SubscriptionTiming"] = rest_field(
+    timing: Optional["_unions.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
     """Whether the billing period should be restarted.Timing configuration to allow for the changes to
@@ -14642,8 +14694,8 @@ class SubscriptionEdit(_Model):
     def __init__(
         self,
         *,
-        customizations: list["_types.SubscriptionEditOperation"],
-        timing: Optional["_types.SubscriptionTiming"] = None,
+        customizations: list["_unions.SubscriptionEditOperation"],
+        timing: Optional["_unions.SubscriptionTiming"] = None,
     ) -> None: ...
 
     @overload
@@ -14657,7 +14709,7 @@ class SubscriptionEdit(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionExpanded(_Model):
+class SubscriptionExpanded(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Expanded subscription.
 
     :ivar id: ID. Required.
@@ -14783,7 +14835,7 @@ class SubscriptionExpanded(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionItem(_Model):
+class SubscriptionItem(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The actual contents of the Subscription, what the user gets, what they pay, etc...
 
     :ivar id: ID. Required.
@@ -14888,7 +14940,7 @@ class SubscriptionItem(_Model):
         name="billingCadence", visibility=["read", "create", "update", "delete", "query"]
     )
     """Billing cadence. Required."""
-    price: "_types.RateCardUsageBasedPrice" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    price: "_unions.RateCardUsageBasedPrice" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Price. Required. Is one of the following types: FlatPriceWithPaymentTerm,
      UnitPriceWithCommitments, TieredPriceWithCommitments, DynamicPriceWithCommitments,
      PackagePriceWithCommitments"""
@@ -14909,7 +14961,7 @@ class SubscriptionItem(_Model):
         active_from: datetime.datetime,
         key: str,
         billing_cadence: datetime.timedelta,
-        price: "_types.RateCardUsageBasedPrice",
+        price: "_unions.RateCardUsageBasedPrice",
         description: Optional[str] = None,
         metadata: Optional["_models.Metadata"] = None,
         active_to: Optional[datetime.datetime] = None,
@@ -14930,7 +14982,7 @@ class SubscriptionItem(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionItemIncluded(_Model):
+class SubscriptionItemIncluded(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Included contents like Entitlement, or the Feature.
 
     :ivar feature: The feature the customer is entitled to use. Required.
@@ -14944,7 +14996,9 @@ class SubscriptionItemIncluded(_Model):
 
     feature: "_models.Feature" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The feature the customer is entitled to use. Required."""
-    entitlement: Optional["_types.Entitlement"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    entitlement: Optional["_unions.Entitlement"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
     """The entitlement of the Subscription Item. Is one of the following types: EntitlementMetered,
      EntitlementStatic, EntitlementBoolean"""
 
@@ -14953,7 +15007,7 @@ class SubscriptionItemIncluded(_Model):
         self,
         *,
         feature: "_models.Feature",
-        entitlement: Optional["_types.Entitlement"] = None,
+        entitlement: Optional["_unions.Entitlement"] = None,
     ) -> None: ...
 
     @overload
@@ -14967,7 +15021,7 @@ class SubscriptionItemIncluded(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionPaginatedResponse(_Model):
+class SubscriptionPaginatedResponse(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Paginated response.
 
     :ivar total_count: The total number of items. Required.
@@ -15012,7 +15066,7 @@ class SubscriptionPaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionPhaseCreate(_Model):
+class SubscriptionPhaseCreate(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Subscription phase create input.
 
     :ivar start_after: Start after. Required.
@@ -15067,7 +15121,7 @@ class SubscriptionPhaseCreate(_Model):
         super().__init__(*args, **kwargs)
 
 
-class SubscriptionPhaseExpanded(_Model):
+class SubscriptionPhaseExpanded(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Expanded subscription phase.
 
     :ivar id: ID. Required.
@@ -15173,7 +15227,7 @@ class SubscriptionPhaseExpanded(_Model):
         super().__init__(*args, **kwargs)
 
 
-class TaxConfig(_Model):
+class TaxConfig(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Set of provider specific tax configs.
 
     :ivar behavior: Tax behavior. Known values are: "inclusive" and "exclusive".
@@ -15222,7 +15276,7 @@ class TaxConfig(_Model):
         super().__init__(*args, **kwargs)
 
 
-class TieredPriceWithCommitments(_Model):
+class TieredPriceWithCommitments(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Tiered price with spend commitments.
 
     :ivar type: The type of the price.
@@ -15274,7 +15328,9 @@ class TieredPriceWithCommitments(_Model):
         super().__init__(*args, **kwargs)
 
 
-class UnauthorizedProblemResponse(UnexpectedProblemResponse):
+class UnauthorizedProblemResponse(
+    UnexpectedProblemResponse
+):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The request has not been applied because it lacks valid authentication credentials for the
     target resource.
 
@@ -15318,7 +15374,7 @@ class UnauthorizedProblemResponse(UnexpectedProblemResponse):
         super().__init__(*args, **kwargs)
 
 
-class UnitPrice(_Model):
+class UnitPrice(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Unit price.
 
     :ivar type: The type of the price. Required. UNIT.
@@ -15351,7 +15407,7 @@ class UnitPrice(_Model):
         super().__init__(*args, **kwargs)
 
 
-class UnitPriceWithCommitments(_Model):
+class UnitPriceWithCommitments(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Unit price with spend commitments.
 
     :ivar type: The type of the price. Required. UNIT.
@@ -15467,7 +15523,7 @@ class ValidationIssue(_Model):
     """Additional context for the issue."""
 
 
-class VoidInvoiceAction(_Model):
+class VoidInvoiceAction(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """InvoiceVoidAction describes how to handle the voided line items.
 
     :ivar percentage: How much of the total line items to be voided? (e.g. 100% means all charges
@@ -15482,7 +15538,7 @@ class VoidInvoiceAction(_Model):
     percentage: float = rest_field(visibility=["create"])
     """How much of the total line items to be voided? (e.g. 100% means all charges are voided).
      Required."""
-    action: "_types.VoidInvoiceLineAction" = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    action: "_unions.VoidInvoiceLineAction" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The action to take on the line items. Required. Is either a VoidInvoiceLineDiscardAction type
      or a VoidInvoiceLinePendingAction type."""
 
@@ -15491,7 +15547,7 @@ class VoidInvoiceAction(_Model):
         self,
         *,
         percentage: float,
-        action: "_types.VoidInvoiceLineAction",
+        action: "_unions.VoidInvoiceLineAction",
     ) -> None: ...
 
     @overload
@@ -15505,7 +15561,7 @@ class VoidInvoiceAction(_Model):
         super().__init__(*args, **kwargs)
 
 
-class VoidInvoiceActionInput(_Model):
+class VoidInvoiceActionInput(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """Request to void an invoice.
 
     :ivar action: The action to take on the voided line items. Required.
@@ -15547,7 +15603,7 @@ class VoidInvoiceActionInput(_Model):
         super().__init__(*args, **kwargs)
 
 
-class VoidInvoiceActionLineOverride(_Model):
+class VoidInvoiceActionLineOverride(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """VoidInvoiceLineOverride describes how to handle a specific line item in the invoice when
     voiding.
 
@@ -15581,7 +15637,7 @@ class VoidInvoiceActionLineOverride(_Model):
         super().__init__(*args, **kwargs)
 
 
-class VoidInvoiceLineDiscardAction(_Model):
+class VoidInvoiceLineDiscardAction(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """VoidInvoiceLineDiscardAction describes how to handle the voidied line item in the invoice.
 
     :ivar type: The action to take on the line item. Required. The line items will never be charged
@@ -15612,7 +15668,7 @@ class VoidInvoiceLineDiscardAction(_Model):
         super().__init__(*args, **kwargs)
 
 
-class VoidInvoiceLinePendingAction(_Model):
+class VoidInvoiceLinePendingAction(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """VoidInvoiceLinePendingAction describes how to handle the voidied line item in the invoice.
 
     :ivar type: The action to take on the line item. Required. Queue the line items into the
@@ -15656,7 +15712,7 @@ class VoidInvoiceLinePendingAction(_Model):
         super().__init__(*args, **kwargs)
 
 
-class WindowedBalanceHistory(_Model):
+class WindowedBalanceHistory(_Model):  # pylint: disable=docstring-keyword-should-match-keyword-only
     """The windowed balance history.
 
     :ivar windowed_history: The windowed balance history.

@@ -1698,9 +1698,10 @@ export interface CreateCreditGrantPurchase {
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-   * is $50.00. The value must be greater than 0. If the cost basis is 0, use
-   * `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 and credit amount is
+   * $100.00, the total charge
+   * is $50.00. The value must be greater than 0. If the
+   * cost basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */
@@ -1751,9 +1752,10 @@ export interface CreditGrantPurchase {
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-   * is $50.00. The value must be greater than 0. If the cost basis is 0, use
-   * `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 and credit amount is
+   * $100.00, the total charge
+   * is $50.00. The value must be greater than 0. If the
+   * cost basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */
@@ -5442,13 +5444,7 @@ export type StringFieldFilter =
 
 /** The aggregation type to use for the meter. */
 export type MeterAggregation =
-  | 'sum'
-  | 'count'
-  | 'unique_count'
-  | 'avg'
-  | 'min'
-  | 'max'
-  | 'latest'
+  'sum' | 'count' | 'unique_count' | 'avg' | 'min' | 'max' | 'latest'
 
 /**
  * The granularity of the time grouping. Time durations are specified in ISO 8601
@@ -5461,8 +5457,7 @@ export type MeterQueryGranularity = 'PT1M' | 'PT1H' | 'P1D' | 'P1M'
  * optional; provide exactly one to specify the comparison.
  */
 export type StringFieldFilterExact =
-  | string
-  | { eq?: string; oeq?: string[]; neq?: string }
+  string | { eq?: string; oeq?: string[]; neq?: string }
 
 /** The payment term of a flat price. */
 export type PricePaymentTerm = 'in_advance' | 'in_arrears'
@@ -5478,16 +5473,14 @@ export type CreateCurrencyCode = string
  * optional; provide exactly one to specify the comparison.
  */
 export type UlidFieldFilter =
-  | string
-  | { eq?: string; oeq?: string[]; neq?: string }
+  string | { eq?: string; oeq?: string[]; neq?: string }
 
 /**
  * Filters on the given datetime (RFC-3339) field value. All properties are
  * optional; provide exactly one to specify the comparison.
  */
 export type DateTimeFieldFilter =
-  | Date
-  | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
+  Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
 
 /**
  * Subscription edit timing defined when the changes should take effect. If the
@@ -5498,9 +5491,7 @@ export type SubscriptionEditTiming = 'immediate' | 'next_billing_cycle' | Date
 
 /** Request to install an app from the catalog. */
 export type InstallAppRequest =
-  | InstallAppStripeWithApiKey
-  | InstallAppSandbox
-  | InstallAppExternalInvoicing
+  InstallAppStripeWithApiKey | InstallAppSandbox | InstallAppExternalInvoicing
 
 /** Payment settings for a billing workflow. */
 export type WorkflowPaymentSettings =
@@ -5552,16 +5543,11 @@ export type Currency = CurrencyFiat | CurrencyCustom
  * arrears items).
  */
 export type WorkflowCollectionAlignment =
-  | WorkflowCollectionAlignmentSubscription
-  | WorkflowCollectionAlignmentAnchored
+  WorkflowCollectionAlignmentSubscription | WorkflowCollectionAlignmentAnchored
 
 /** Price. */
 export type Price =
-  | PriceFree
-  | PriceFlat
-  | PriceUnit
-  | PriceGraduated
-  | PriceVolume
+  PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
 
 /** Price. */
 export type UpdatePrice =
@@ -5576,8 +5562,7 @@ export type App = AppStripe | AppSandbox | AppExternalInvoicing
 
 /** Customer charge. */
 export type CreateChargeRequest =
-  | CreateChargeFlatFeeRequest
-  | CreateChargeUsageBasedRequest
+  CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequest
 
 /** Customer charge. */
 export type Charge = ChargeFlatFee | ChargeUsageBased
@@ -5813,9 +5798,10 @@ export interface CreateCreditGrantPurchaseInput {
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-   * is $50.00. The value must be greater than 0. If the cost basis is 0, use
-   * `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 and credit amount is
+   * $100.00, the total charge
+   * is $50.00. The value must be greater than 0. If the
+   * cost basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */
@@ -5858,9 +5844,10 @@ export interface CreditGrantPurchaseInput {
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-   * is $50.00. The value must be greater than 0. If the cost basis is 0, use
-   * `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 and credit amount is
+   * $100.00, the total charge
+   * is $50.00. The value must be greater than 0. If the
+   * cost basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */
