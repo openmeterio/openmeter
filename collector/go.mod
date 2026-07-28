@@ -6,7 +6,7 @@ replace github.com/openmeterio/openmeter => ../
 
 require (
 	github.com/go-co-op/gocron/v2 v2.22.0
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/openmeterio/openmeter v0.0.0
