@@ -23,7 +23,7 @@ require (
 	cloud.google.com/go v0.123.0 // indirect
 	entgo.io/ent v0.14.6 // indirect
 	github.com/ThreeDotsLabs/watermill v1.5.2 // indirect
-	github.com/XSAM/otelsql v0.42.0 // indirect
+	github.com/XSAM/otelsql v0.43.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/alpacahq/alpacadecimal v0.0.9 // indirect
