@@ -30,7 +30,8 @@ patch-oapi-templates: ## Patch oapi-codegen chi-middleware template with custom 
 		if [ -z "$$OAPI_MOD_DIR" ]; then echo "error: could not locate oapi-codegen/v2 module dir"; exit 1; fi && \
 		cp "$$OAPI_MOD_DIR/pkg/codegen/templates/chi/chi-middleware.tmpl" api/v3/templates/chi-middleware.tmpl && \
 		chmod u+w api/v3/templates/chi-middleware.tmpl && \
-		patch -p1 -d api/v3/templates < api/v3/templates/chi-middleware.tmpl.patch
+		patch -p1 -d api/v3/templates < api/v3/templates/chi-middleware.tmpl.patch && \
+		rm -f api/v3/templates/chi-middleware.tmpl.orig api/v3/templates/chi-middleware.tmpl.rej
 
 .PHONY: update-openapi
 update-openapi: patch-oapi-templates ## Update OpenAPI spec
