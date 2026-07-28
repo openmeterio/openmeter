@@ -1035,9 +1035,10 @@ type CreateCreditGrantPurchase struct {
 	Currency string `json:"currency"`
 	// Cost basis per credit unit used to calculate the purchase amount.
 	//
-	// If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total
-	// charge is $50.00. The value must be greater than 0. If the cost basis is
-	// 0, use `funding_method=none` instead.
+	// If `per_unit_cost_basis` is 0.50 and credit amount is
+	// $100.00, the total
+	// charge is $50.00. The value must be greater than 0. If the
+	// cost basis is 0, use `funding_method=none` instead.
 	//
 	// Defaults to 1.0.
 	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
@@ -1290,9 +1291,10 @@ type CreditGrantPurchase struct {
 	Currency string `json:"currency"`
 	// Cost basis per credit unit used to calculate the purchase amount.
 	//
-	// If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total
-	// charge is $50.00. The value must be greater than 0. If the cost basis is
-	// 0, use `funding_method=none` instead.
+	// If `per_unit_cost_basis` is 0.50 and credit amount is
+	// $100.00, the total
+	// charge is $50.00. The value must be greater than 0. If the
+	// cost basis is 0, use `funding_method=none` instead.
 	//
 	// Defaults to 1.0.
 	PerUnitCostBasis *Numeric `json:"per_unit_cost_basis,omitempty"`
