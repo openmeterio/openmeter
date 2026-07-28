@@ -26,23 +26,32 @@ func TestValidatePlanWithCurrencies(t *testing.T) {
 	defer clock.UnFreeze()
 
 	tests := []struct {
-		name      string
-		costBasis []currencies.CostBasis
-		expected  error
+		name           string
+		settlementMode productcatalog.SettlementMode
+		costBasis      []currencies.CostBasis
+		expected       error
 	}{
 		{
-			name: "matching cost basis",
+			name:           "credit then invoice with matching cost basis",
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			costBasis: []currencies.CostBasis{{
 				CostBasis: currencyx.CostBasis{FiatCode: usd},
 			}},
 		},
 		{
-			name:      "missing cost basis",
-			costBasis: []currencies.CostBasis{},
-			expected:  productcatalog.ErrCurrencyCostBasisNotFound,
+			name:           "credit then invoice with missing cost basis",
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			costBasis:      []currencies.CostBasis{},
+			expected:       productcatalog.ErrCurrencyCostBasisNotFound,
 		},
 		{
-			name: "scheduled cost basis",
+			name:           "credit only with missing cost basis",
+			settlementMode: productcatalog.CreditOnlySettlementMode,
+			costBasis:      []currencies.CostBasis{},
+		},
+		{
+			name:           "credit then invoice with scheduled cost basis",
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			costBasis: []currencies.CostBasis{{
 				CostBasis: currencyx.CostBasis{
 					FiatCode:      usd,
@@ -52,7 +61,18 @@ func TestValidatePlanWithCurrencies(t *testing.T) {
 			expected: productcatalog.ErrCurrencyCostBasisNotFound,
 		},
 		{
-			name: "active and scheduled cost basis",
+			name:           "credit only with scheduled cost basis",
+			settlementMode: productcatalog.CreditOnlySettlementMode,
+			costBasis: []currencies.CostBasis{{
+				CostBasis: currencyx.CostBasis{
+					FiatCode:      usd,
+					EffectiveFrom: now.Add(time.Hour),
+				},
+			}},
+		},
+		{
+			name:           "credit then invoice with active and scheduled cost basis",
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			costBasis: []currencies.CostBasis{
 				{
 					CostBasis: currencyx.CostBasis{
@@ -78,7 +98,10 @@ func TestValidatePlanWithCurrencies(t *testing.T) {
 			customCurrency := mustManagedPlanCustomCurrency(t, "currency-id", custom)
 			customCurrency.CostBasis = &tt.costBasis
 			plan := productcatalog.Plan{
-				PlanMeta: productcatalog.PlanMeta{Currency: mustPlanFiatCurrencyReference(t, usd)},
+				PlanMeta: productcatalog.PlanMeta{
+					Currency:       mustPlanFiatCurrencyReference(t, usd),
+					SettlementMode: tt.settlementMode,
+				},
 				Phases: []productcatalog.Phase{{
 					PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
 					RateCards: productcatalog.RateCards{
@@ -92,7 +115,7 @@ func TestValidatePlanWithCurrencies(t *testing.T) {
 			err := productcatalog.ValidatePlanWithCurrencies()(plan)
 
 			// then:
-			// - the loaded custom currency must have a USD cost-basis pair
+			// - only credit-then-invoice plans require an active USD cost-basis pair
 			if tt.expected == nil {
 				require.NoError(t, err)
 				return
@@ -114,13 +137,19 @@ func TestValidatePlanWithCurrenciesRequiresResolvedReferences(t *testing.T) {
 		{
 			name: "plan currency",
 			plan: productcatalog.Plan{
-				PlanMeta: productcatalog.PlanMeta{Currency: currencies.NewCurrencyReference(custom)},
+				PlanMeta: productcatalog.PlanMeta{
+					Currency:       currencies.NewCurrencyReference(custom),
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+				},
 			},
 		},
 		{
 			name: "rate card currency",
 			plan: productcatalog.Plan{
-				PlanMeta: productcatalog.PlanMeta{Currency: mustPlanFiatCurrencyReference(t, usd)},
+				PlanMeta: productcatalog.PlanMeta{
+					Currency:       mustPlanFiatCurrencyReference(t, usd),
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+				},
 				Phases: []productcatalog.Phase{{
 					RateCards: productcatalog.RateCards{
 						newPlanCurrencyTestRateCard("ratecard", currencies.NewCurrencyReference(custom)),

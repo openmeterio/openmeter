@@ -806,10 +806,7 @@ func TestValidatePlanPhaseAndAddonRateCardCurrenciesRequiresDefaults(t *testing.
 	assert.ErrorIs(t, err, ErrCurrencyInvalid)
 }
 
-func TestValidatePlanAddonWithCurrenciesUsesResolvedCurrencyReference(t *testing.T) {
-	// given:
-	// - two managed custom currency resources reuse the same code
-	// - only the older resource has a cost-basis pair with USD
+func TestValidatePlanAddonWithCurrenciesUsesPlanSettlementMode(t *testing.T) {
 	usd := currencyx.Code(currency.USD)
 	oldCredits := mustManagedCustomCurrency(t, "old-credits-id", "CREDITS")
 	oldCredits.CostBasis = &[]currencies.CostBasis{{
@@ -818,24 +815,57 @@ func TestValidatePlanAddonWithCurrenciesUsesResolvedCurrencyReference(t *testing
 	newCredits := mustManagedCustomCurrency(t, "new-credits-id", "CREDITS")
 	newCredits.CostBasis = &[]currencies.CostBasis{}
 
-	planAddon := PlanAddon{
-		Plan: Plan{
-			PlanMeta: PlanMeta{Currency: mustFiatCurrencyReference(t, usd)},
-		},
-		Addon: Addon{
-			AddonMeta: AddonMeta{Currency: mustFiatCurrencyReference(t, usd)},
-			RateCards: RateCards{
-				newCurrencyTestRateCard("old", oldCredits.Reference()),
-				newCurrencyTestRateCard("new", newCredits.Reference()),
-			},
+	addon := Addon{
+		AddonMeta: AddonMeta{Currency: mustFiatCurrencyReference(t, usd)},
+		RateCards: RateCards{
+			newCurrencyTestRateCard("old", oldCredits.Reference()),
+			newCurrencyTestRateCard("new", newCredits.Reference()),
 		},
 	}
 
-	// when:
-	// - assignment cost-basis validation checks both priced add-on rate cards
-	err := ValidatePlanAddonWithCurrencies()(planAddon)
+	tests := []struct {
+		name           string
+		settlementMode SettlementMode
+		expected       error
+	}{
+		{
+			name:           "credit then invoice",
+			settlementMode: CreditThenInvoiceSettlementMode,
+			expected:       ErrCurrencyCostBasisNotFound,
+		},
+		{
+			name:           "credit only",
+			settlementMode: CreditOnlySettlementMode,
+		},
+	}
 
-	// then:
-	// - each managed identity is checked independently despite the shared code
-	assert.ErrorIs(t, err, ErrCurrencyCostBasisNotFound)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - an add-on has two resolved custom currencies sharing a code
+			// - only one managed currency has an active USD cost basis
+			planAddon := PlanAddon{
+				Plan: Plan{
+					PlanMeta: PlanMeta{
+						Currency:       mustFiatCurrencyReference(t, usd),
+						SettlementMode: tt.settlementMode,
+					},
+				},
+				Addon: addon,
+			}
+
+			// when:
+			// - the assignment validates currencies using the plan settlement mode
+			err := ValidatePlanAddonWithCurrencies()(planAddon)
+
+			// then:
+			// - only credit-then-invoice requires every custom override to have an active cost basis
+			if tt.expected == nil {
+				assert.NoError(t, err)
+				return
+			}
+
+			assert.ErrorIs(t, err, tt.expected)
+		})
+	}
 }

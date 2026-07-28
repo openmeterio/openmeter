@@ -37,6 +37,97 @@ func TestValidateCurrencyLifecycle(t *testing.T) {
 	})
 }
 
+func TestValidateCurrencyWithOverrideCostBasisPolicy(t *testing.T) {
+	usd := mustFiatCurrencyReference(t, "USD")
+	eur := mustFiatCurrencyReference(t, "EUR")
+
+	credits := mustManagedCustomCurrency(t, "credits-id", "CREDITS")
+	credits.CostBasis = &[]currencies.CostBasis{}
+	creditsReference := credits.Reference()
+
+	tokens := mustManagedCustomCurrency(t, "tokens-id", "TOKENS")
+	tokens.CostBasis = &[]currencies.CostBasis{}
+	tokensReference := tokens.Reference()
+
+	unresolved := currencies.NewCurrencyReference("UNRESOLVED")
+
+	tests := []struct {
+		name             string
+		reference        currencies.CurrencyReference
+		override         currencies.CurrencyReference
+		validationOption ValidationOption
+		expected         error
+		errorContains    string
+	}{
+		{
+			name:             "credit only accepts custom override without cost basis",
+			reference:        usd,
+			override:         creditsReference,
+			validationOption: ValidationOptionCostBasisRequiredFalse,
+		},
+		{
+			name:             "credit then invoice rejects custom override without cost basis",
+			reference:        usd,
+			override:         creditsReference,
+			validationOption: ValidationOptionCostBasisRequiredTrue,
+			expected:         ErrCurrencyCostBasisNotFound,
+		},
+		{
+			name:             "unknown option remains strict",
+			reference:        usd,
+			override:         creditsReference,
+			validationOption: ValidationOption("unknown"),
+			expected:         ErrCurrencyCostBasisNotFound,
+		},
+		{
+			name:             "credit only still rejects fiat override",
+			reference:        usd,
+			override:         eur,
+			validationOption: ValidationOptionCostBasisRequiredFalse,
+			errorContains:    "fiat currency cannot be overridden",
+		},
+		{
+			name:             "credit only still rejects custom default override",
+			reference:        creditsReference,
+			override:         tokensReference,
+			validationOption: ValidationOptionCostBasisRequiredFalse,
+			expected:         ErrCurrencyInvalid,
+			errorContains:    "custom currency cannot be overridden",
+		},
+		{
+			name:             "credit only still rejects unresolved override",
+			reference:        usd,
+			override:         unresolved,
+			validationOption: ValidationOptionCostBasisRequiredFalse,
+			errorContains:    "is not resolved",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - resolved containing and override currency references unless the scenario tests resolution
+			// when:
+			// - override validation runs with or without cost-basis enforcement
+			err := ValidateCurrencyWithOverride(tt.reference, tt.validationOption)(&tt.override)
+
+			// then:
+			// - only the active cost-basis rule depends on the policy
+			if tt.expected == nil && tt.errorContains == "" {
+				require.NoError(t, err)
+				return
+			}
+
+			if tt.expected != nil {
+				require.ErrorIs(t, err, tt.expected)
+			}
+			if tt.errorContains != "" {
+				require.ErrorContains(t, err, tt.errorContains)
+			}
+		})
+	}
+}
+
 func TestRateCardCurrencyRequiresPrice(t *testing.T) {
 	custom := currencyx.Code("CREDITS")
 

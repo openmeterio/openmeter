@@ -229,8 +229,8 @@ func ValidatePlanCurrencyCodes() models.ValidatorFunc[Plan] {
 }
 
 // ValidatePlanWithCurrencies validates managed currency references and ensures
-// custom rate card currencies under a fiat plan have a matching cost basis
-// effective at validation time.
+// custom rate card currencies under a fiat credit-then-invoice plan have a
+// matching cost basis effective at validation time.
 func ValidatePlanWithCurrencies() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		var errs []error
@@ -242,7 +242,11 @@ func ValidatePlanWithCurrencies() models.ValidatorFunc[Plan] {
 			)
 		}
 
-		validateCurrencyOverride := ValidateCurrencyWithOverride(p.Currency)
+		validationOption := ValidationOptionCostBasisRequiredTrue
+		if p.SettlementMode == CreditOnlySettlementMode {
+			validationOption = ValidationOptionCostBasisRequiredFalse
+		}
+		validateCurrencyOverride := ValidateCurrencyWithOverride(p.Currency, validationOption)
 		for _, phase := range p.Phases {
 			for _, rateCard := range phase.RateCards {
 				if err := validateCurrencyOverride(rateCard.AsMeta().Currency); err != nil {

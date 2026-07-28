@@ -219,8 +219,9 @@ func ValidatePlanPhaseAndAddonRateCardCurrencies(planCurrency currencies.Currenc
 }
 
 // ValidatePlanAddonWithCurrencies validates the managed currencies introduced
-// by an add-on against the plan's invoice fiat. Structural compatibility is
-// handled by PlanAddon.Validate.
+// by an add-on against the plan's invoice fiat. Credit-then-invoice plans also
+// require an active matching cost basis. Structural compatibility is handled
+// by PlanAddon.Validate.
 func ValidatePlanAddonWithCurrencies() models.ValidatorFunc[PlanAddon] {
 	return func(pa PlanAddon) error {
 		planCurrencyFieldSelector := models.NewFieldSelectorGroup(
@@ -231,7 +232,11 @@ func ValidatePlanAddonWithCurrencies() models.ValidatorFunc[PlanAddon] {
 			return models.ErrorWithFieldPrefix(planCurrencyFieldSelector, err)
 		}
 
-		validateCurrencyOverride := ValidateCurrencyWithOverride(pa.Plan.Currency)
+		validationOption := ValidationOptionCostBasisRequiredTrue
+		if pa.Plan.SettlementMode == CreditOnlySettlementMode {
+			validationOption = ValidationOptionCostBasisRequiredFalse
+		}
+		validateCurrencyOverride := ValidateCurrencyWithOverride(pa.Plan.Currency, validationOption)
 
 		var errs []error
 

@@ -315,9 +315,8 @@ func ValidateAddonRateCardCurrencies() models.ValidatorFunc[Addon] {
 }
 
 // ValidateAddonWithCurrencies validates managed currency references and
-// ensures custom rate card currencies under a fiat add-on have a configured
-// cost-basis pair. Plan-specific compatibility is validated when the add-on is
-// assigned to a plan.
+// settlement-mode-independent currency rules. Cost-basis compatibility is
+// validated when the add-on is assigned to a plan.
 func ValidateAddonWithCurrencies() models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
 		var errs []error
@@ -329,7 +328,7 @@ func ValidateAddonWithCurrencies() models.ValidatorFunc[Addon] {
 			)
 		}
 
-		validateCurrencyOverride := ValidateCurrencyWithOverride(a.Currency)
+		validateCurrencyOverride := ValidateCurrencyWithOverride(a.Currency, ValidationOptionCostBasisRequiredFalse)
 		for _, rateCard := range a.RateCards {
 			if err := validateCurrencyOverride(rateCard.AsMeta().Currency); err != nil {
 				fieldSelector := models.NewFieldSelectorGroup(

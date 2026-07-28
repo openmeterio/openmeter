@@ -9,6 +9,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// ValidationOption configures settlement-dependent currency validation rules.
+type ValidationOption string
+
+const (
+	ValidationOptionCostBasisRequiredTrue  ValidationOption = "cost_basis_required_true"
+	ValidationOptionCostBasisRequiredFalse ValidationOption = "cost_basis_required_false"
+)
+
 // ValidateCurrency requires the runtime state needed by currency-aware
 // validators to be resolved while preserving intrinsic reference validation.
 func ValidateCurrency() models.ValidatorFunc[currencies.CurrencyReference] {
@@ -28,7 +36,13 @@ func ValidateCurrency() models.ValidatorFunc[currencies.CurrencyReference] {
 	}
 }
 
-func ValidateCurrencyWithOverride(reference currencies.CurrencyReference) models.ValidatorFunc[*currencies.CurrencyReference] {
+// ValidateCurrencyWithOverride returns a validator for an optional rate-card
+// currency override. ValidationOptionCostBasisRequiredTrue requires a custom
+// override under a fiat currency to have an active matching cost basis, while
+// ValidationOptionCostBasisRequiredFalse skips only that requirement for
+// credit-only settlement. All reference, lifecycle, and currency compatibility
+// rules are enforced with either option.
+func ValidateCurrencyWithOverride(reference currencies.CurrencyReference, option ValidationOption) models.ValidatorFunc[*currencies.CurrencyReference] {
 	at := clock.Now()
 
 	return func(override *currencies.CurrencyReference) error {
@@ -53,6 +67,10 @@ func ValidateCurrencyWithOverride(reference currencies.CurrencyReference) models
 			}
 
 			if override.IsCustom() {
+				if option == ValidationOptionCostBasisRequiredFalse {
+					return nil
+				}
+
 				oc, _ := override.CustomCurrency()
 
 				if oc.CostBasis == nil {

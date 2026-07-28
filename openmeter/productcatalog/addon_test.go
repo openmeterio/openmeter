@@ -128,10 +128,10 @@ func TestValidateAddonWithCurrenciesRequiresResolvedReferences(t *testing.T) {
 	}
 }
 
-func TestValidateAddonWithCurrenciesUsesResolvedCurrency(t *testing.T) {
+func TestValidateAddonWithCurrenciesDoesNotRequireCostBasis(t *testing.T) {
 	// given:
-	// - two managed custom currency resources reuse the same code
-	// - only the older resource has a cost-basis pair with USD
+	// - a standalone add-on has resolved custom-currency rate cards
+	// - one currency has an active USD cost basis and the other has none
 	usd := currencyx.Code(currency.USD)
 	oldCredits := mustManagedCustomCurrency(t, "old-credits-id", "CREDITS")
 	oldCredits.CostBasis = &[]currencies.CostBasis{{
@@ -149,10 +149,10 @@ func TestValidateAddonWithCurrenciesUsesResolvedCurrency(t *testing.T) {
 	}
 
 	// when:
-	// - add-on cost-basis validation checks both priced rate cards
+	// - settlement-mode-independent add-on currency validation runs
 	err := ValidateAddonWithCurrencies()(addon)
 
 	// then:
-	// - each managed identity is checked independently despite the shared code
-	require.ErrorIs(t, err, ErrCurrencyCostBasisNotFound)
+	// - cost-basis compatibility is deferred until the add-on is assigned to a plan
+	require.NoError(t, err)
 }
