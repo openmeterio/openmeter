@@ -28,10 +28,10 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 	runner{
 		stops: stops{
 			{
-				// Populate the last schema where all product-catalog currencies were stored as codes.
-				// Before: 20260723030215_add_rate_card_currency.up.sql
-				// After: 20260723030938_add_product_catalog_currency_references.up.sql
-				version:   20260723030215,
+				// Populate the last schema before product-catalog currency references were added.
+				// Before: 20260727095118_usage_based_run_detailed_lines_credit_allocations.up.sql
+				// After: 20260728083834_product_catalog_currency_constraints.up.sql
+				version:   20260727095118,
 				direction: directionUp,
 				action: func(t *testing.T, db *sql.DB) {
 					_, err := db.Exec(`
@@ -76,18 +76,16 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 							key,
 							type,
 							price,
-							currency,
 							phase_id
 						)
 						VALUES
-							($1, $2, NOW(), NOW(), 'Inherited plan rate card', 'plan_inherited', 'FLAT_FEE', '{"type": "flat", "amount": "10", "paymentTerm": "in_advance"}'::jsonb, NULL, $3),
-							($1, $4, NOW(), NOW(), 'Overridden plan rate card', 'plan_override', 'FLAT_FEE', '{"type": "flat", "amount": "20", "paymentTerm": "in_advance"}'::jsonb, $5, $3)
+							($1, $2, NOW(), NOW(), 'Inherited plan rate card', 'plan_inherited', 'FLAT_FEE', '{"type": "flat", "amount": "10", "paymentTerm": "in_advance"}'::jsonb, $3),
+							($1, $4, NOW(), NOW(), 'Second plan rate card', 'plan_second', 'FLAT_FEE', '{"type": "flat", "amount": "20", "paymentTerm": "in_advance"}'::jsonb, $3)
 					`,
 						namespace,
 						planInheritedRateCardID.String(),
 						planPhaseID.String(),
 						planOverrideRateCardID.String(),
-						legacyOverrideCurrency,
 					)
 					require.NoError(t, err)
 
@@ -116,18 +114,16 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 							key,
 							type,
 							price,
-							currency,
 							addon_id
 						)
 						VALUES
-							($1, $2, NOW(), NOW(), 'Inherited add-on rate card', 'addon_inherited', 'FLAT_FEE', '{"type": "flat", "amount": "30", "paymentTerm": "in_advance"}'::jsonb, NULL, $3),
-							($1, $4, NOW(), NOW(), 'Overridden add-on rate card', 'addon_override', 'FLAT_FEE', '{"type": "flat", "amount": "40", "paymentTerm": "in_advance"}'::jsonb, $5, $3)
+							($1, $2, NOW(), NOW(), 'Inherited add-on rate card', 'addon_inherited', 'FLAT_FEE', '{"type": "flat", "amount": "30", "paymentTerm": "in_advance"}'::jsonb, $3),
+							($1, $4, NOW(), NOW(), 'Second add-on rate card', 'addon_second', 'FLAT_FEE', '{"type": "flat", "amount": "40", "paymentTerm": "in_advance"}'::jsonb, $3)
 					`,
 						namespace,
 						addonInheritedRateCardID.String(),
 						addonID.String(),
 						addonOverrideRateCardID.String(),
-						legacyOverrideCurrency,
 					)
 					require.NoError(t, err)
 				},
@@ -135,7 +131,7 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 			{
 				// Legacy fiat codes remain code-backed, while nil rate-card codes continue
 				// to represent inheritance after managed custom-currency references are added.
-				version:   20260723030938,
+				version:   20260728083834,
 				direction: directionUp,
 				action: func(t *testing.T, db *sql.DB) {
 					var (
@@ -162,8 +158,7 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 
 					err = db.QueryRow(`SELECT currency, custom_currency_id FROM plan_rate_cards WHERE id = $1`, planOverrideRateCardID.String()).Scan(&fiatCode, &customCurrencyID)
 					require.NoError(t, err)
-					require.Equal(t, legacyOverrideCurrency, fiatCode.String)
-					require.True(t, fiatCode.Valid)
+					require.False(t, fiatCode.Valid)
 					require.False(t, customCurrencyID.Valid)
 
 					err = db.QueryRow(`SELECT currency, custom_currency_id FROM addon_rate_cards WHERE id = $1`, addonInheritedRateCardID.String()).Scan(&fiatCode, &customCurrencyID)
@@ -173,8 +168,7 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 
 					err = db.QueryRow(`SELECT currency, custom_currency_id FROM addon_rate_cards WHERE id = $1`, addonOverrideRateCardID.String()).Scan(&fiatCode, &customCurrencyID)
 					require.NoError(t, err)
-					require.Equal(t, legacyOverrideCurrency, fiatCode.String)
-					require.True(t, fiatCode.Valid)
+					require.False(t, fiatCode.Valid)
 					require.False(t, customCurrencyID.Valid)
 
 					var constraintCount int
@@ -192,6 +186,12 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 					`).Scan(&constraintCount)
 					require.NoError(t, err)
 					require.Equal(t, 6, constraintCount)
+
+					_, err = db.Exec(`UPDATE plan_rate_cards SET currency = $1 WHERE id = $2`, legacyOverrideCurrency, planOverrideRateCardID.String())
+					require.NoError(t, err)
+
+					_, err = db.Exec(`UPDATE addon_rate_cards SET currency = $1 WHERE id = $2`, legacyOverrideCurrency, addonOverrideRateCardID.String())
+					require.NoError(t, err)
 
 					_, err = db.Exec(`
 						INSERT INTO custom_currencies (namespace, id, created_at, updated_at, code, name, symbol)
@@ -213,9 +213,9 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 				},
 			},
 			{
-				// Rolling back migrated legacy fiat rows restores the old code-only schema
-				// without changing their top-level or explicit override values.
-				version:   20260723030215,
+				// Rolling back restores top-level fiat values and removes the
+				// rate-card currency-reference columns introduced by this migration.
+				version:   20260727095118,
 				direction: directionDown,
 				action: func(t *testing.T, db *sql.DB) {
 					var currency string
@@ -228,14 +228,6 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, legacyAddonCurrency, currency)
 
-					err = db.QueryRow(`SELECT currency FROM plan_rate_cards WHERE id = $1`, planOverrideRateCardID.String()).Scan(&currency)
-					require.NoError(t, err)
-					require.Equal(t, legacyOverrideCurrency, currency)
-
-					err = db.QueryRow(`SELECT currency FROM addon_rate_cards WHERE id = $1`, addonOverrideRateCardID.String()).Scan(&currency)
-					require.NoError(t, err)
-					require.Equal(t, legacyOverrideCurrency, currency)
-
 					var customCurrencyColumns int
 					err = db.QueryRow(`
 						SELECT COUNT(*)
@@ -246,6 +238,17 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 					`).Scan(&customCurrencyColumns)
 					require.NoError(t, err)
 					require.Zero(t, customCurrencyColumns)
+
+					var rateCardCurrencyColumns int
+					err = db.QueryRow(`
+						SELECT COUNT(*)
+						FROM information_schema.columns
+						WHERE table_schema = current_schema()
+						  AND table_name IN ('plan_rate_cards', 'addon_rate_cards')
+						  AND column_name = 'currency'
+					`).Scan(&rateCardCurrencyColumns)
+					require.NoError(t, err)
+					require.Zero(t, rateCardCurrencyColumns)
 				},
 			},
 		},
