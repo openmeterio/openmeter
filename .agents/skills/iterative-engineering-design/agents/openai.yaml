@@ -1,0 +1,4 @@
+interface:
+  display_name: "Iterative Engineering Design"
+  short_description: "Design complex changes through shared models"
+  default_prompt: "Use $iterative-engineering-design to develop and validate a shared model before implementing this complex change."

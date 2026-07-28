@@ -1,0 +1,19 @@
+[mcp_servers.codegraph]
+command = "nix"
+args = ["run", ".#codegraph", "--", "serve", "--mcp"]
+required = false
+startup_timeout_sec = 30
+default_tools_approval_mode = "auto"
+enabled_tools = [
+  "codegraph_explore",
+  "codegraph_node",
+  "codegraph_search",
+  "codegraph_callers",
+  "codegraph_callees",
+  "codegraph_impact",
+]
+
+[mcp_servers.codegraph.env]
+CODEGRAPH_MCP_TOOLS = "explore,node,search,callers,callees,impact"
+CODEGRAPH_TELEMETRY = "0"
+CODEGRAPH_NO_UPDATE_CHECK = "1"

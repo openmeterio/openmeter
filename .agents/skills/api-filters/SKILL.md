@@ -1,8 +1,6 @@
 ---
 name: api-filters
 description: Add, modify, or convert AIP-style query-parameter filters on v3 list endpoints. Use when adding filterable fields to a list API, wiring filter parsing into a handler, converting API filters into pkg/filter predicates, or debugging filter parsing/validation behavior.
-user-invocable: false
-argument-hint: "[resource or list endpoint to add filters to]"
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 ---
 

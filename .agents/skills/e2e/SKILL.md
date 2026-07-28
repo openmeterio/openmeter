@@ -1,8 +1,6 @@
 ---
 name: e2e
 description: Write end-to-end tests for OpenMeter against a live server. Use when adding tests under e2e/ that exercise API endpoints over HTTP (v1 generated SDK or v3 SDK).
-user-invocable: true
-argument-hint: "[feature or scenario to test]"
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 ---
 
@@ -10,9 +8,15 @@ allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 
 You are helping the user write OpenMeter end-to-end tests that run against a live HTTP server with real dependencies (Postgres, Kafka, ClickHouse, Svix).
 
-This is the black-box layer. Unlike the `/test` skill (which covers in-process unit/integration/service tests using `testutils.TestEnv` + `testutils.InitPostgresDB`), e2e tests hit the wire format: JSON in, JSON out, status codes, problem+json error bodies. Use this skill when the value of the test comes from exercising the HTTP contract, the OpenAPI binder, or cross-service behavior.
+This is the black-box layer. Unlike the in-process unit/integration/service
+tests described in `docs/development/testing.md`, e2e tests hit the wire format:
+JSON in, JSON out, status codes, problem+json error bodies. Use this skill when
+the value of the test comes from exercising the HTTP contract, the OpenAPI
+binder, or cross-service behavior.
 
-General test style from `AGENTS.md` and the `/test` skill still applies. Keep this skill as e2e-specific guidance, not a parallel set of test conventions.
+General test style from `AGENTS.md` and `docs/development/testing.md` still
+applies. Keep this skill as e2e-specific guidance, not a parallel set of test
+conventions.
 
 ## Two styles, same package
 

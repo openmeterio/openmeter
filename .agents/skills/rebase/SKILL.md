@@ -1,8 +1,6 @@
 ---
 name: rebase
 description: Rebase an OpenMeter branch onto another branch and handle repo-specific gotchas like sequential migrations, atlas.sum conflicts, Ent regeneration, and targeted verification.
-user-invocable: true
-argument-hint: "[target branch or rebase situation]"
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 ---
 

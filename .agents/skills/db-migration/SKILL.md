@@ -1,8 +1,6 @@
 ---
 name: db-migration
 description: Create or update database schema and generate migrations. Use when modifying ent schema, adding database fields/tables, or generating migration files.
-user-invocable: true
-argument-hint: "[description of schema change]"
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 ---
 
@@ -75,16 +73,16 @@ Present a summary of the migration to the user.
 
 From `pkg/framework/entutils/mixins.go`:
 
-| Mixin | Fields | Notes |
-|-------|--------|-------|
-| `entutils.IDMixin{}` | `id` char(26) ULID | Auto-generated, unique, immutable |
-| `entutils.NamespaceMixin{}` | `namespace` string | Immutable, indexed |
-| `entutils.TimeMixin{}` | `created_at`, `updated_at`, `deleted_at` (nillable) | Provides soft delete support |
-| `entutils.MetadataMixin{}` | `metadata` JSONB `map[string]string` | Optional |
-| `entutils.ResourceMixin{}` | ID + Namespace + Metadata + Time + `name` + `description` | Composite of above mixins |
-| `entutils.UniqueResourceMixin{}` | Resource + `key` | Adds unique index on `(namespace, key, deleted_at)` |
-| `entutils.KeyMixin{}` | `key` string | Immutable, not empty |
-| `entutils.CadencedMixin{}` | `active_from`, `active_to` (nillable) | For time-bounded entities |
+| Mixin                            | Fields                                                    | Notes                                               |
+| -------------------------------- | --------------------------------------------------------- | --------------------------------------------------- |
+| `entutils.IDMixin{}`             | `id` char(26) ULID                                        | Auto-generated, unique, immutable                   |
+| `entutils.NamespaceMixin{}`      | `namespace` string                                        | Immutable, indexed                                  |
+| `entutils.TimeMixin{}`           | `created_at`, `updated_at`, `deleted_at` (nillable)       | Provides soft delete support                        |
+| `entutils.MetadataMixin{}`       | `metadata` JSONB `map[string]string`                      | Optional                                            |
+| `entutils.ResourceMixin{}`       | ID + Namespace + Metadata + Time + `name` + `description` | Composite of above mixins                           |
+| `entutils.UniqueResourceMixin{}` | Resource + `key`                                          | Adds unique index on `(namespace, key, deleted_at)` |
+| `entutils.KeyMixin{}`            | `key` string                                              | Immutable, not empty                                |
+| `entutils.CadencedMixin{}`       | `active_from`, `active_to` (nillable)                     | For time-bounded entities                           |
 
 Usage in schema:
 
@@ -135,4 +133,5 @@ Migrations use golang-migrate format. Each migration has:
 - Never edit files in `openmeter/ent/db/` manually
 - Never edit migration files in `tools/migrate/migrations` manually
 - Run `make generate` before `atlas migrate diff` so the ent code is up to date
+- Drop incidental `go.sum` changes produced by generation unless the task intentionally changes dependencies
 - If compilation errors occur after schema changes, fix the schema first, then re-run `make generate`

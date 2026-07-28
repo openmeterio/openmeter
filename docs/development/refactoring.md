@@ -1,18 +1,12 @@
----
-name: refactoring
-description: Refactor existing packages toward the standard service/adapter pattern. Use when restructuring a domain package, splitting a monolithic package, or removing anti-patterns.
-user-invocable: true
-argument-hint: "[package to refactor or description of refactoring]"
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
----
-
 # Package Refactoring
 
-You are helping the user refactor existing `openmeter/` packages toward the standard service/adapter pattern described in the `/service` skill.
+Use this workflow when refactoring an existing `openmeter/` package toward the
+standard service/adapter pattern.
 
 ## Target Pattern
 
-See the `/service` skill for the full target pattern. In summary, every feature package should have:
+See [Service Package Development](service-patterns.md) for the full target
+pattern. In summary, a conventional feature package has:
 
 ```text
 openmeter/<domain>/
@@ -37,38 +31,6 @@ Key rules:
 - Service = business rules + orchestration
 - Adapter = pure data access
 - No deep nesting, no connectors, no global state
-
-## Packages Needing Refactoring
-
-### High Priority
-
-Complex domain packages with non-standard structure:
-
-| Package | Issues |
-|---------|--------|
-| `subscription` | 30+ files in root, logic spread across root (apply, billing, context, locks, patch), specialized subdirs (addon/, entitlement/, hooks/, patch/) |
-| `productcatalog` | 20+ files in root, multiple entity types mixed together (addon, plan, feature, discount, entitlement), inconsistent subdir naming (driver/ vs adapter/) |
-| `billing` | 20+ files in root (invoice, customer, discount, app), complex domain mixed into single package |
-| `app` | Heavy root (app, appbase, customer, marketplace, webhook, registry, input), multiple impl subdirs (stripe/, sandbox/, custominvoicing/) |
-| `credit` | Domain split across balance/, grant/, engine/ subdirs with connector pattern in root |
-| `entitlement` | Has adapter/service but also boolean/, metered/, static/, snapshot/, balanceworker/, hooks/ — uses connector pattern |
-| `notification` | Has adapter/service but also consumer/, eventhandler/, internal/ — non-standard extensions |
-
-### Medium Priority
-
-Partially compliant or minor structural issues:
-
-| Package | Issues |
-|---------|--------|
-| `ingest` | Non-standard adapter naming (ingestadapter/), mixed patterns (kafkaingest/, inmemory in root) |
-| `streaming` | Uses connector pattern, clickhouse/ impl dir, no service/adapter split |
-| `sink` | No service/adapter pattern, utility-focused with flushhandler/, models/ |
-
-### Low Priority / Not Applicable
-
-These are infrastructure, utility, or minimal packages where the pattern may not apply:
-
-`ent`, `watermill`, `dedupe`, `server`, `namespace`, `registry`, `event`, `apiconverter`, `testutils`, `debug`, `session`, `info`
 
 ## Refactoring Workflow
 
@@ -96,5 +58,6 @@ When refactoring a package toward the standard pattern:
 
 - **Incremental refactoring**: For large packages, consider refactoring in phases rather than all at once. Extract one entity or one layer at a time.
 - **Preserve behavior**: Refactoring should not change any behavior. Run tests frequently during the process.
-- **Check consumers**: Before moving types, check what other packages import them. Use `grep` to find all import paths.
+- **Check consumers**: Before moving types, use CodeGraph to inspect callers and
+  impact. Fall back to source search when the graph is inconclusive.
 - **Wire regeneration**: After changing constructors or interfaces, always run `make generate` to update `wire_gen.go` files.
