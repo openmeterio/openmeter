@@ -281,7 +281,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Get the OpenAPI spec
-	swagger, err := api.GetSwagger()
+	swagger, err := api.GetSpec()
 	if err != nil {
 		slog.Error("failed to get swagger", "error", err)
 		return nil, err
