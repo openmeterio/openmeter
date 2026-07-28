@@ -244,18 +244,18 @@ func (u *AddonRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *
 	return u.SetPrice(*value)
 }
 
-func (u *AddonRateCardUpdate) SetOrClearFiatCurrencyCode(value *string) *AddonRateCardUpdate {
+func (u *AddonRateCardUpdate) SetOrClearCurrencyCode(value *string) *AddonRateCardUpdate {
 	if value == nil {
-		return u.ClearFiatCurrencyCode()
+		return u.ClearCurrencyCode()
 	}
-	return u.SetFiatCurrencyCode(*value)
+	return u.SetCurrencyCode(*value)
 }
 
-func (u *AddonRateCardUpdateOne) SetOrClearFiatCurrencyCode(value *string) *AddonRateCardUpdateOne {
+func (u *AddonRateCardUpdateOne) SetOrClearCurrencyCode(value *string) *AddonRateCardUpdateOne {
 	if value == nil {
-		return u.ClearFiatCurrencyCode()
+		return u.ClearCurrencyCode()
 	}
-	return u.SetFiatCurrencyCode(*value)
+	return u.SetCurrencyCode(*value)
 }
 
 func (u *AddonRateCardUpdate) SetOrClearCustomCurrencyID(value *string) *AddonRateCardUpdate {
@@ -5704,18 +5704,18 @@ func (u *PlanRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *P
 	return u.SetPrice(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearFiatCurrencyCode(value *string) *PlanRateCardUpdate {
+func (u *PlanRateCardUpdate) SetOrClearCurrencyCode(value *string) *PlanRateCardUpdate {
 	if value == nil {
-		return u.ClearFiatCurrencyCode()
+		return u.ClearCurrencyCode()
 	}
-	return u.SetFiatCurrencyCode(*value)
+	return u.SetCurrencyCode(*value)
 }
 
-func (u *PlanRateCardUpdateOne) SetOrClearFiatCurrencyCode(value *string) *PlanRateCardUpdateOne {
+func (u *PlanRateCardUpdateOne) SetOrClearCurrencyCode(value *string) *PlanRateCardUpdateOne {
 	if value == nil {
-		return u.ClearFiatCurrencyCode()
+		return u.ClearCurrencyCode()
 	}
-	return u.SetFiatCurrencyCode(*value)
+	return u.SetCurrencyCode(*value)
 }
 
 func (u *PlanRateCardUpdate) SetOrClearCustomCurrencyID(value *string) *PlanRateCardUpdate {

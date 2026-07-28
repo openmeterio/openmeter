@@ -30,7 +30,7 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 			{
 				// Populate the last schema before product-catalog currency references were added.
 				// Before: 20260727095118_usage_based_run_detailed_lines_credit_allocations.up.sql
-				// After: 20260728083834_product_catalog_currency_constraints.up.sql
+				// After: 20260728103546_product_catalog_currency_constraints.up.sql
 				version:   20260727095118,
 				direction: directionUp,
 				action: func(t *testing.T, db *sql.DB) {
@@ -131,7 +131,7 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 			{
 				// Legacy fiat codes remain code-backed, while nil rate-card codes continue
 				// to represent inheritance after managed custom-currency references are added.
-				version:   20260728083834,
+				version:   20260728103546,
 				direction: directionUp,
 				action: func(t *testing.T, db *sql.DB) {
 					var (
@@ -177,15 +177,19 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 						FROM pg_constraint
 						WHERE conname IN (
 							'plan_currency_reference',
+							'plan_currency_code_length',
 							'addon_currency_reference',
+							'addon_currency_code_length',
 							'plan_rate_card_currency_reference',
 							'plan_rate_card_currency_has_price',
+							'plan_rate_card_currency_code_length',
 							'addon_rate_card_currency_reference',
-							'addon_rate_card_currency_has_price'
+							'addon_rate_card_currency_has_price',
+							'addon_rate_card_currency_code_length'
 						)
 					`).Scan(&constraintCount)
 					require.NoError(t, err)
-					require.Equal(t, 6, constraintCount)
+					require.Equal(t, 10, constraintCount)
 
 					_, err = db.Exec(`UPDATE plan_rate_cards SET currency = $1 WHERE id = $2`, legacyOverrideCurrency, planOverrideRateCardID.String())
 					require.NoError(t, err)
@@ -205,11 +209,32 @@ func TestProductCatalogCurrencyReferencesMigration(t *testing.T) {
 					_, err = db.Exec(`UPDATE plans SET custom_currency_id = $1 WHERE id = $2`, customCurrencyResourceID.String(), planID.String())
 					require.Error(t, err, "a top-level currency cannot be both fiat and custom")
 
+					_, err = db.Exec(`UPDATE plans SET currency = 'CREDITS' WHERE id = $1`, planID.String())
+					require.Error(t, err, "a custom top-level currency requires its managed resource identity")
+
+					_, err = db.Exec(`UPDATE plans SET currency = 'CREDITS', custom_currency_id = $1 WHERE id = $2`, customCurrencyResourceID.String(), planID.String())
+					require.NoError(t, err)
+
+					_, err = db.Exec(`UPDATE plans SET currency = $1, custom_currency_id = NULL WHERE id = $2`, legacyPlanCurrency, planID.String())
+					require.NoError(t, err)
+
 					_, err = db.Exec(`UPDATE plan_rate_cards SET custom_currency_id = $1 WHERE id = $2`, customCurrencyResourceID.String(), planOverrideRateCardID.String())
 					require.Error(t, err, "a rate-card override cannot be both fiat and custom")
 
+					_, err = db.Exec(`UPDATE plan_rate_cards SET currency = 'CREDITS', custom_currency_id = $1 WHERE id = $2`, customCurrencyResourceID.String(), planOverrideRateCardID.String())
+					require.NoError(t, err)
+
+					_, err = db.Exec(`UPDATE plan_rate_cards SET currency = NULL WHERE id = $1`, planOverrideRateCardID.String())
+					require.Error(t, err, "a custom currency ID cannot exist without a currency code")
+
+					_, err = db.Exec(`UPDATE plan_rate_cards SET currency = $1, custom_currency_id = NULL WHERE id = $2`, legacyOverrideCurrency, planOverrideRateCardID.String())
+					require.NoError(t, err)
+
 					_, err = db.Exec(`UPDATE plan_rate_cards SET currency = $1, price = NULL WHERE id = $2`, legacyPlanCurrency, planInheritedRateCardID.String())
 					require.Error(t, err, "an unpriced rate card must not gain a currency override")
+
+					_, err = db.Exec(`UPDATE addon_rate_cards SET currency = 'TOO_LONG_CUSTOM_CURRENCY_CODE', custom_currency_id = $1 WHERE id = $2`, customCurrencyResourceID.String(), addonOverrideRateCardID.String())
+					require.Error(t, err, "currency codes longer than 24 characters must be rejected")
 				},
 			},
 			{

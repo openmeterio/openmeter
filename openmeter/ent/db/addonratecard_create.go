@@ -190,16 +190,16 @@ func (_c *AddonRateCardCreate) SetPrice(v *productcatalog.Price) *AddonRateCardC
 	return _c
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_c *AddonRateCardCreate) SetFiatCurrencyCode(v string) *AddonRateCardCreate {
-	_c.mutation.SetFiatCurrencyCode(v)
+// SetCurrencyCode sets the "currency_code" field.
+func (_c *AddonRateCardCreate) SetCurrencyCode(v string) *AddonRateCardCreate {
+	_c.mutation.SetCurrencyCode(v)
 	return _c
 }
 
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_c *AddonRateCardCreate) SetNillableFiatCurrencyCode(v *string) *AddonRateCardCreate {
+// SetNillableCurrencyCode sets the "currency_code" field if the given value is not nil.
+func (_c *AddonRateCardCreate) SetNillableCurrencyCode(v *string) *AddonRateCardCreate {
 	if v != nil {
-		_c.SetFiatCurrencyCode(*v)
+		_c.SetCurrencyCode(*v)
 	}
 	return _c
 }
@@ -402,9 +402,9 @@ func (_c *AddonRateCardCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
-		if err := addonratecard.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.fiat_currency_code": %w`, err)}
+	if v, ok := _c.mutation.CurrencyCode(); ok {
+		if err := addonratecard.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.currency_code": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.CustomCurrencyID(); ok {
@@ -544,9 +544,9 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 		_spec.SetField(addonratecard.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(addonratecard.FieldFiatCurrencyCode, field.TypeString, value)
-		_node.FiatCurrencyCode = &value
+	if value, ok := _c.mutation.CurrencyCode(); ok {
+		_spec.SetField(addonratecard.FieldCurrencyCode, field.TypeString, value)
+		_node.CurrencyCode = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
@@ -888,21 +888,21 @@ func (u *AddonRateCardUpsert) ClearPrice() *AddonRateCardUpsert {
 	return u
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (u *AddonRateCardUpsert) SetFiatCurrencyCode(v string) *AddonRateCardUpsert {
-	u.Set(addonratecard.FieldFiatCurrencyCode, v)
+// SetCurrencyCode sets the "currency_code" field.
+func (u *AddonRateCardUpsert) SetCurrencyCode(v string) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldCurrencyCode, v)
 	return u
 }
 
-// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
-func (u *AddonRateCardUpsert) UpdateFiatCurrencyCode() *AddonRateCardUpsert {
-	u.SetExcluded(addonratecard.FieldFiatCurrencyCode)
+// UpdateCurrencyCode sets the "currency_code" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateCurrencyCode() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldCurrencyCode)
 	return u
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (u *AddonRateCardUpsert) ClearFiatCurrencyCode() *AddonRateCardUpsert {
-	u.SetNull(addonratecard.FieldFiatCurrencyCode)
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (u *AddonRateCardUpsert) ClearCurrencyCode() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldCurrencyCode)
 	return u
 }
 
@@ -1288,24 +1288,24 @@ func (u *AddonRateCardUpsertOne) ClearPrice() *AddonRateCardUpsertOne {
 	})
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (u *AddonRateCardUpsertOne) SetFiatCurrencyCode(v string) *AddonRateCardUpsertOne {
+// SetCurrencyCode sets the "currency_code" field.
+func (u *AddonRateCardUpsertOne) SetCurrencyCode(v string) *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
-		s.SetFiatCurrencyCode(v)
+		s.SetCurrencyCode(v)
 	})
 }
 
-// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
-func (u *AddonRateCardUpsertOne) UpdateFiatCurrencyCode() *AddonRateCardUpsertOne {
+// UpdateCurrencyCode sets the "currency_code" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateCurrencyCode() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
-		s.UpdateFiatCurrencyCode()
+		s.UpdateCurrencyCode()
 	})
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (u *AddonRateCardUpsertOne) ClearFiatCurrencyCode() *AddonRateCardUpsertOne {
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (u *AddonRateCardUpsertOne) ClearCurrencyCode() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
-		s.ClearFiatCurrencyCode()
+		s.ClearCurrencyCode()
 	})
 }
 
@@ -1875,24 +1875,24 @@ func (u *AddonRateCardUpsertBulk) ClearPrice() *AddonRateCardUpsertBulk {
 	})
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (u *AddonRateCardUpsertBulk) SetFiatCurrencyCode(v string) *AddonRateCardUpsertBulk {
+// SetCurrencyCode sets the "currency_code" field.
+func (u *AddonRateCardUpsertBulk) SetCurrencyCode(v string) *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
-		s.SetFiatCurrencyCode(v)
+		s.SetCurrencyCode(v)
 	})
 }
 
-// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
-func (u *AddonRateCardUpsertBulk) UpdateFiatCurrencyCode() *AddonRateCardUpsertBulk {
+// UpdateCurrencyCode sets the "currency_code" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateCurrencyCode() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
-		s.UpdateFiatCurrencyCode()
+		s.UpdateCurrencyCode()
 	})
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (u *AddonRateCardUpsertBulk) ClearFiatCurrencyCode() *AddonRateCardUpsertBulk {
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (u *AddonRateCardUpsertBulk) ClearCurrencyCode() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
-		s.ClearFiatCurrencyCode()
+		s.ClearCurrencyCode()
 	})
 }
 

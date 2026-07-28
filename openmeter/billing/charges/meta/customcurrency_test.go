@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestConvertCustomCurrencyOverageToFiat(t *testing.T) {
@@ -34,6 +35,10 @@ func TestConvertCustomCurrencyOverageToFiat(t *testing.T) {
 	}
 	validInput := ConvertCustomCurrencyOverageToFiatInput{
 		Currency: currencies.Currency{
+			NamespacedID: models.NamespacedID{
+				Namespace: "namespace",
+				ID:        "custom-currency-id",
+			},
 			Currency: customCurrency,
 		},
 		CostBasisIntent:   &costBasisIntent,

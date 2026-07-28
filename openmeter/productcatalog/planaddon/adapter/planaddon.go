@@ -4,17 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	addondb "github.com/openmeterio/openmeter/openmeter/ent/db/addon"
-	customcurrencydb "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	plandb "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	planaddondb "github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -28,11 +25,6 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 		}
 
 		query := a.db.PlanAddon.Query()
-
-		currencyCodes := make([]currencyx.Code, 0, len(params.Currencies))
-		for _, code := range params.Currencies {
-			currencyCodes = append(currencyCodes, currencyx.Code(code))
-		}
 
 		if len(params.Namespaces) > 0 {
 			query = query.Where(planaddondb.NamespaceIn(params.Namespaces...))
@@ -66,10 +58,7 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 		}
 
 		if len(params.Currencies) > 0 {
-			planOrFilters = append(planOrFilters, plandb.Or(
-				plandb.FiatCurrencyCodeIn(params.Currencies...),
-				plandb.HasCustomCurrencyWith(customcurrencydb.CodeIn(currencyCodes...)),
-			))
+			planOrFilters = append(planOrFilters, plandb.CurrencyCodeIn(params.Currencies...))
 		}
 
 		if len(planOrFilters) > 0 {
@@ -101,10 +90,7 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 		}
 
 		if len(params.Currencies) > 0 {
-			addonOrFilters = append(addonOrFilters, addondb.Or(
-				addondb.FiatCurrencyCodeIn(params.Currencies...),
-				addondb.HasCustomCurrencyWith(customcurrencydb.CodeIn(currencyCodes...)),
-			))
+			addonOrFilters = append(addonOrFilters, addondb.CurrencyCodeIn(params.Currencies...))
 		}
 
 		if len(addonOrFilters) > 0 {
@@ -227,25 +213,17 @@ func (a *adapter) CreatePlanAddon(ctx context.Context, params planaddon.CreatePl
 }
 
 var PlanEagerLoadPhasesWithRateCardsWithFeaturesFn = func(pq *entdb.PlanQuery) {
-	pq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 	pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) {
 		ppq.WithRatecards(func(prq *entdb.PlanRateCardQuery) {
 			prq.WithFeatures()
-			prq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 		})
 	})
 }
 
 var AddonEagerLoadRateCardsWithFeaturesFn = func(aq *entdb.AddonQuery) {
-	aq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 	aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
 		arq.WithFeatures()
-		arq.WithCustomCurrency(eagerLoadCustomCurrencyWithCostBasis)
 	})
-}
-
-var eagerLoadCustomCurrencyWithCostBasis = func(q *entdb.CustomCurrencyQuery) {
-	currencyadapter.WithActiveAndScheduledCostBasis(q, clock.Now())
 }
 
 func (a *adapter) DeletePlanAddon(ctx context.Context, params planaddon.DeletePlanAddonInput) error {

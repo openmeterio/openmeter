@@ -190,16 +190,16 @@ func (_c *PlanRateCardCreate) SetPrice(v *productcatalog.Price) *PlanRateCardCre
 	return _c
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_c *PlanRateCardCreate) SetFiatCurrencyCode(v string) *PlanRateCardCreate {
-	_c.mutation.SetFiatCurrencyCode(v)
+// SetCurrencyCode sets the "currency_code" field.
+func (_c *PlanRateCardCreate) SetCurrencyCode(v string) *PlanRateCardCreate {
+	_c.mutation.SetCurrencyCode(v)
 	return _c
 }
 
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_c *PlanRateCardCreate) SetNillableFiatCurrencyCode(v *string) *PlanRateCardCreate {
+// SetNillableCurrencyCode sets the "currency_code" field if the given value is not nil.
+func (_c *PlanRateCardCreate) SetNillableCurrencyCode(v *string) *PlanRateCardCreate {
 	if v != nil {
-		_c.SetFiatCurrencyCode(*v)
+		_c.SetCurrencyCode(*v)
 	}
 	return _c
 }
@@ -402,9 +402,9 @@ func (_c *PlanRateCardCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
-		if err := planratecard.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.fiat_currency_code": %w`, err)}
+	if v, ok := _c.mutation.CurrencyCode(); ok {
+		if err := planratecard.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.currency_code": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.CustomCurrencyID(); ok {
@@ -544,9 +544,9 @@ func (_c *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec,
 		_spec.SetField(planratecard.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(planratecard.FieldFiatCurrencyCode, field.TypeString, value)
-		_node.FiatCurrencyCode = &value
+	if value, ok := _c.mutation.CurrencyCode(); ok {
+		_spec.SetField(planratecard.FieldCurrencyCode, field.TypeString, value)
+		_node.CurrencyCode = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)
@@ -888,21 +888,21 @@ func (u *PlanRateCardUpsert) ClearPrice() *PlanRateCardUpsert {
 	return u
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (u *PlanRateCardUpsert) SetFiatCurrencyCode(v string) *PlanRateCardUpsert {
-	u.Set(planratecard.FieldFiatCurrencyCode, v)
+// SetCurrencyCode sets the "currency_code" field.
+func (u *PlanRateCardUpsert) SetCurrencyCode(v string) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldCurrencyCode, v)
 	return u
 }
 
-// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
-func (u *PlanRateCardUpsert) UpdateFiatCurrencyCode() *PlanRateCardUpsert {
-	u.SetExcluded(planratecard.FieldFiatCurrencyCode)
+// UpdateCurrencyCode sets the "currency_code" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateCurrencyCode() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldCurrencyCode)
 	return u
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (u *PlanRateCardUpsert) ClearFiatCurrencyCode() *PlanRateCardUpsert {
-	u.SetNull(planratecard.FieldFiatCurrencyCode)
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (u *PlanRateCardUpsert) ClearCurrencyCode() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldCurrencyCode)
 	return u
 }
 
@@ -1288,24 +1288,24 @@ func (u *PlanRateCardUpsertOne) ClearPrice() *PlanRateCardUpsertOne {
 	})
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (u *PlanRateCardUpsertOne) SetFiatCurrencyCode(v string) *PlanRateCardUpsertOne {
+// SetCurrencyCode sets the "currency_code" field.
+func (u *PlanRateCardUpsertOne) SetCurrencyCode(v string) *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.SetFiatCurrencyCode(v)
+		s.SetCurrencyCode(v)
 	})
 }
 
-// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
-func (u *PlanRateCardUpsertOne) UpdateFiatCurrencyCode() *PlanRateCardUpsertOne {
+// UpdateCurrencyCode sets the "currency_code" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateCurrencyCode() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.UpdateFiatCurrencyCode()
+		s.UpdateCurrencyCode()
 	})
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (u *PlanRateCardUpsertOne) ClearFiatCurrencyCode() *PlanRateCardUpsertOne {
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (u *PlanRateCardUpsertOne) ClearCurrencyCode() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.ClearFiatCurrencyCode()
+		s.ClearCurrencyCode()
 	})
 }
 
@@ -1875,24 +1875,24 @@ func (u *PlanRateCardUpsertBulk) ClearPrice() *PlanRateCardUpsertBulk {
 	})
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (u *PlanRateCardUpsertBulk) SetFiatCurrencyCode(v string) *PlanRateCardUpsertBulk {
+// SetCurrencyCode sets the "currency_code" field.
+func (u *PlanRateCardUpsertBulk) SetCurrencyCode(v string) *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.SetFiatCurrencyCode(v)
+		s.SetCurrencyCode(v)
 	})
 }
 
-// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
-func (u *PlanRateCardUpsertBulk) UpdateFiatCurrencyCode() *PlanRateCardUpsertBulk {
+// UpdateCurrencyCode sets the "currency_code" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateCurrencyCode() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.UpdateFiatCurrencyCode()
+		s.UpdateCurrencyCode()
 	})
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (u *PlanRateCardUpsertBulk) ClearFiatCurrencyCode() *PlanRateCardUpsertBulk {
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (u *PlanRateCardUpsertBulk) ClearCurrencyCode() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
-		s.ClearFiatCurrencyCode()
+		s.ClearCurrencyCode()
 	})
 }
 

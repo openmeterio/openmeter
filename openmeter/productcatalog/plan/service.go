@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -457,7 +458,8 @@ func preservePlanRateCardCurrencyIdentities(persisted, updated []productcatalog.
 
 // ExpandFields defines which fields to expand when returning the Plan.
 type ExpandFields struct {
-	PlanAddons bool `json:"addons,omitempty"`
+	PlanAddons     bool                              `json:"addons,omitempty"`
+	CustomCurrency *currencies.CurrencyExpandOptions `json:"customCurrency,omitempty"`
 }
 
 type GetPlanInput struct {

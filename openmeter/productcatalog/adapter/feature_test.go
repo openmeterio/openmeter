@@ -869,7 +869,7 @@ func TestArchiveFeature(t *testing.T) {
 			SetName("default").
 			SetKey("default").
 			SetVersion(1).
-			SetFiatCurrencyCode(currency.USD.String()).
+			SetCurrencyCode(currency.USD.String()).
 			SetEffectiveFrom(time.Now()).
 			SetNamespace(testFeature.Namespace).
 			SetBillingCadence("P1M").

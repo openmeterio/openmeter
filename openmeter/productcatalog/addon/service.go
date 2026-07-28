@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -405,7 +406,8 @@ func preserveAddonRateCardCurrencyIdentities(persisted, updated productcatalog.R
 }
 
 type ExpandFields struct {
-	PlanAddons bool `json:"plans,omitempty"`
+	PlanAddons     bool                              `json:"plans,omitempty"`
+	CustomCurrency *currencies.CurrencyExpandOptions `json:"customCurrency,omitempty"`
 }
 
 type GetAddonInput struct {

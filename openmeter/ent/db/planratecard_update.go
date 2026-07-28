@@ -223,23 +223,23 @@ func (_u *PlanRateCardUpdate) ClearPrice() *PlanRateCardUpdate {
 	return _u
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_u *PlanRateCardUpdate) SetFiatCurrencyCode(v string) *PlanRateCardUpdate {
-	_u.mutation.SetFiatCurrencyCode(v)
+// SetCurrencyCode sets the "currency_code" field.
+func (_u *PlanRateCardUpdate) SetCurrencyCode(v string) *PlanRateCardUpdate {
+	_u.mutation.SetCurrencyCode(v)
 	return _u
 }
 
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_u *PlanRateCardUpdate) SetNillableFiatCurrencyCode(v *string) *PlanRateCardUpdate {
+// SetNillableCurrencyCode sets the "currency_code" field if the given value is not nil.
+func (_u *PlanRateCardUpdate) SetNillableCurrencyCode(v *string) *PlanRateCardUpdate {
 	if v != nil {
-		_u.SetFiatCurrencyCode(*v)
+		_u.SetCurrencyCode(*v)
 	}
 	return _u
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (_u *PlanRateCardUpdate) ClearFiatCurrencyCode() *PlanRateCardUpdate {
-	_u.mutation.ClearFiatCurrencyCode()
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (_u *PlanRateCardUpdate) ClearCurrencyCode() *PlanRateCardUpdate {
+	_u.mutation.ClearCurrencyCode()
 	return _u
 }
 
@@ -442,9 +442,9 @@ func (_u *PlanRateCardUpdate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.FiatCurrencyCode(); ok {
-		if err := planratecard.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.fiat_currency_code": %w`, err)}
+	if v, ok := _u.mutation.CurrencyCode(); ok {
+		if err := planratecard.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.currency_code": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.CustomCurrencyID(); ok {
@@ -557,11 +557,11 @@ func (_u *PlanRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(planratecard.FieldPrice, field.TypeString)
 	}
-	if value, ok := _u.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(planratecard.FieldFiatCurrencyCode, field.TypeString, value)
+	if value, ok := _u.mutation.CurrencyCode(); ok {
+		_spec.SetField(planratecard.FieldCurrencyCode, field.TypeString, value)
 	}
-	if _u.mutation.FiatCurrencyCodeCleared() {
-		_spec.ClearField(planratecard.FieldFiatCurrencyCode, field.TypeString)
+	if _u.mutation.CurrencyCodeCleared() {
+		_spec.ClearField(planratecard.FieldCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)
@@ -907,23 +907,23 @@ func (_u *PlanRateCardUpdateOne) ClearPrice() *PlanRateCardUpdateOne {
 	return _u
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_u *PlanRateCardUpdateOne) SetFiatCurrencyCode(v string) *PlanRateCardUpdateOne {
-	_u.mutation.SetFiatCurrencyCode(v)
+// SetCurrencyCode sets the "currency_code" field.
+func (_u *PlanRateCardUpdateOne) SetCurrencyCode(v string) *PlanRateCardUpdateOne {
+	_u.mutation.SetCurrencyCode(v)
 	return _u
 }
 
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_u *PlanRateCardUpdateOne) SetNillableFiatCurrencyCode(v *string) *PlanRateCardUpdateOne {
+// SetNillableCurrencyCode sets the "currency_code" field if the given value is not nil.
+func (_u *PlanRateCardUpdateOne) SetNillableCurrencyCode(v *string) *PlanRateCardUpdateOne {
 	if v != nil {
-		_u.SetFiatCurrencyCode(*v)
+		_u.SetCurrencyCode(*v)
 	}
 	return _u
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (_u *PlanRateCardUpdateOne) ClearFiatCurrencyCode() *PlanRateCardUpdateOne {
-	_u.mutation.ClearFiatCurrencyCode()
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (_u *PlanRateCardUpdateOne) ClearCurrencyCode() *PlanRateCardUpdateOne {
+	_u.mutation.ClearCurrencyCode()
 	return _u
 }
 
@@ -1139,9 +1139,9 @@ func (_u *PlanRateCardUpdateOne) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.FiatCurrencyCode(); ok {
-		if err := planratecard.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.fiat_currency_code": %w`, err)}
+	if v, ok := _u.mutation.CurrencyCode(); ok {
+		if err := planratecard.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.currency_code": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.CustomCurrencyID(); ok {
@@ -1271,11 +1271,11 @@ func (_u *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCa
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(planratecard.FieldPrice, field.TypeString)
 	}
-	if value, ok := _u.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(planratecard.FieldFiatCurrencyCode, field.TypeString, value)
+	if value, ok := _u.mutation.CurrencyCode(); ok {
+		_spec.SetField(planratecard.FieldCurrencyCode, field.TypeString, value)
 	}
-	if _u.mutation.FiatCurrencyCodeCleared() {
-		_spec.ClearField(planratecard.FieldFiatCurrencyCode, field.TypeString)
+	if _u.mutation.CurrencyCodeCleared() {
+		_spec.ClearField(planratecard.FieldCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := planratecard.ValueScanner.Discounts.Value(value)

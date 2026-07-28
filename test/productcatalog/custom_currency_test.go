@@ -262,7 +262,4 @@ func (e *testEnv) requireManagedCurrencyID(t *testing.T, expectedID string, refe
 	require.NotNil(t, reference)
 	require.NotNil(t, reference.CustomCurrencyID)
 	require.Equal(t, expectedID, *reference.CustomCurrencyID)
-	resolved, ok := reference.CustomCurrency()
-	require.True(t, ok, "custom currency reference must retain its resolved resource")
-	require.Equal(t, expectedID, resolved.ID)
 }

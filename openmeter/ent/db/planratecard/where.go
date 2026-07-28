@@ -118,9 +118,9 @@ func BillingCadence(v datetime.ISODurationString) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldEQ(FieldBillingCadence, vc))
 }
 
-// FiatCurrencyCode applies equality check predicate on the "fiat_currency_code" field. It's identical to FiatCurrencyCodeEQ.
-func FiatCurrencyCode(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldEQ(FieldFiatCurrencyCode, v))
+// CurrencyCode applies equality check predicate on the "currency_code" field. It's identical to CurrencyCodeEQ.
+func CurrencyCode(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldEQ(FieldCurrencyCode, v))
 }
 
 // CustomCurrencyID applies equality check predicate on the "custom_currency_id" field. It's identical to CustomCurrencyIDEQ.
@@ -892,79 +892,79 @@ func PriceNotNil() predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldNotNull(FieldPrice))
 }
 
-// FiatCurrencyCodeEQ applies the EQ predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeEQ(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldEQ(FieldFiatCurrencyCode, v))
+// CurrencyCodeEQ applies the EQ predicate on the "currency_code" field.
+func CurrencyCodeEQ(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldEQ(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeNEQ applies the NEQ predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeNEQ(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldNEQ(FieldFiatCurrencyCode, v))
+// CurrencyCodeNEQ applies the NEQ predicate on the "currency_code" field.
+func CurrencyCodeNEQ(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNEQ(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeIn applies the In predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeIn(vs ...string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldIn(FieldFiatCurrencyCode, vs...))
+// CurrencyCodeIn applies the In predicate on the "currency_code" field.
+func CurrencyCodeIn(vs ...string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIn(FieldCurrencyCode, vs...))
 }
 
-// FiatCurrencyCodeNotIn applies the NotIn predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeNotIn(vs ...string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldNotIn(FieldFiatCurrencyCode, vs...))
+// CurrencyCodeNotIn applies the NotIn predicate on the "currency_code" field.
+func CurrencyCodeNotIn(vs ...string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotIn(FieldCurrencyCode, vs...))
 }
 
-// FiatCurrencyCodeGT applies the GT predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeGT(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldGT(FieldFiatCurrencyCode, v))
+// CurrencyCodeGT applies the GT predicate on the "currency_code" field.
+func CurrencyCodeGT(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldGT(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeGTE applies the GTE predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeGTE(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldGTE(FieldFiatCurrencyCode, v))
+// CurrencyCodeGTE applies the GTE predicate on the "currency_code" field.
+func CurrencyCodeGTE(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldGTE(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeLT applies the LT predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeLT(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldLT(FieldFiatCurrencyCode, v))
+// CurrencyCodeLT applies the LT predicate on the "currency_code" field.
+func CurrencyCodeLT(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldLT(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeLTE applies the LTE predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeLTE(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldLTE(FieldFiatCurrencyCode, v))
+// CurrencyCodeLTE applies the LTE predicate on the "currency_code" field.
+func CurrencyCodeLTE(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldLTE(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeContains applies the Contains predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeContains(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldContains(FieldFiatCurrencyCode, v))
+// CurrencyCodeContains applies the Contains predicate on the "currency_code" field.
+func CurrencyCodeContains(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldContains(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeHasPrefix applies the HasPrefix predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeHasPrefix(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldHasPrefix(FieldFiatCurrencyCode, v))
+// CurrencyCodeHasPrefix applies the HasPrefix predicate on the "currency_code" field.
+func CurrencyCodeHasPrefix(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldHasPrefix(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeHasSuffix applies the HasSuffix predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeHasSuffix(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldHasSuffix(FieldFiatCurrencyCode, v))
+// CurrencyCodeHasSuffix applies the HasSuffix predicate on the "currency_code" field.
+func CurrencyCodeHasSuffix(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldHasSuffix(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeIsNil applies the IsNil predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeIsNil() predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldIsNull(FieldFiatCurrencyCode))
+// CurrencyCodeIsNil applies the IsNil predicate on the "currency_code" field.
+func CurrencyCodeIsNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIsNull(FieldCurrencyCode))
 }
 
-// FiatCurrencyCodeNotNil applies the NotNil predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeNotNil() predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldNotNull(FieldFiatCurrencyCode))
+// CurrencyCodeNotNil applies the NotNil predicate on the "currency_code" field.
+func CurrencyCodeNotNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotNull(FieldCurrencyCode))
 }
 
-// FiatCurrencyCodeEqualFold applies the EqualFold predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeEqualFold(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldEqualFold(FieldFiatCurrencyCode, v))
+// CurrencyCodeEqualFold applies the EqualFold predicate on the "currency_code" field.
+func CurrencyCodeEqualFold(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldEqualFold(FieldCurrencyCode, v))
 }
 
-// FiatCurrencyCodeContainsFold applies the ContainsFold predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeContainsFold(v string) predicate.PlanRateCard {
-	return predicate.PlanRateCard(sql.FieldContainsFold(FieldFiatCurrencyCode, v))
+// CurrencyCodeContainsFold applies the ContainsFold predicate on the "currency_code" field.
+func CurrencyCodeContainsFold(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldContainsFold(FieldCurrencyCode, v))
 }
 
 // CustomCurrencyIDEQ applies the EQ predicate on the "custom_currency_id" field.

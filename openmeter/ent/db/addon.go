@@ -39,8 +39,8 @@ type Addon struct {
 	Key string `json:"key,omitempty"`
 	// Version holds the value of the "version" field.
 	Version int `json:"version,omitempty"`
-	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
-	FiatCurrencyCode *string `json:"fiat_currency_code,omitempty"`
+	// The code of the fiat or custom currency.
+	CurrencyCode string `json:"currency_code,omitempty"`
 	// CustomCurrencyID holds the value of the "custom_currency_id" field.
 	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// InstanceType holds the value of the "instance_type" field.
@@ -119,7 +119,7 @@ func (*Addon) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case addon.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case addon.FieldID, addon.FieldNamespace, addon.FieldName, addon.FieldDescription, addon.FieldKey, addon.FieldFiatCurrencyCode, addon.FieldCustomCurrencyID, addon.FieldInstanceType:
+		case addon.FieldID, addon.FieldNamespace, addon.FieldName, addon.FieldDescription, addon.FieldKey, addon.FieldCurrencyCode, addon.FieldCustomCurrencyID, addon.FieldInstanceType:
 			values[i] = new(sql.NullString)
 		case addon.FieldCreatedAt, addon.FieldUpdatedAt, addon.FieldDeletedAt, addon.FieldEffectiveFrom, addon.FieldEffectiveTo:
 			values[i] = new(sql.NullTime)
@@ -204,12 +204,11 @@ func (_m *Addon) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Version = int(value.Int64)
 			}
-		case addon.FieldFiatCurrencyCode:
+		case addon.FieldCurrencyCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
+				return fmt.Errorf("unexpected type %T for field currency_code", values[i])
 			} else if value.Valid {
-				_m.FiatCurrencyCode = new(string)
-				*_m.FiatCurrencyCode = value.String
+				_m.CurrencyCode = value.String
 			}
 		case addon.FieldCustomCurrencyID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -331,10 +330,8 @@ func (_m *Addon) String() string {
 	builder.WriteString("version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Version))
 	builder.WriteString(", ")
-	if v := _m.FiatCurrencyCode; v != nil {
-		builder.WriteString("fiat_currency_code=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("currency_code=")
+	builder.WriteString(_m.CurrencyCode)
 	builder.WriteString(", ")
 	if v := _m.CustomCurrencyID; v != nil {
 		builder.WriteString("custom_currency_id=")

@@ -8,6 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
@@ -340,6 +341,11 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 				Namespace: params.Namespace,
 				ID:        params.ID,
 			},
+			Expand: addon.ExpandFields{
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get add-on: %w", err)
@@ -454,6 +460,11 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
+			},
+			Expand: addon.ExpandFields{
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
 			},
 		})
 		if err != nil {

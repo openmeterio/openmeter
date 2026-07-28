@@ -240,7 +240,7 @@ type AddonMutation struct {
 	key                        *string
 	version                    *int
 	addversion                 *int
-	fiat_currency_code         *string
+	currency_code              *string
 	instance_type              *productcatalog.AddonInstanceType
 	effective_from             *time.Time
 	effective_to               *time.Time
@@ -749,53 +749,40 @@ func (m *AddonMutation) ResetVersion() {
 	m.addversion = nil
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (m *AddonMutation) SetFiatCurrencyCode(s string) {
-	m.fiat_currency_code = &s
+// SetCurrencyCode sets the "currency_code" field.
+func (m *AddonMutation) SetCurrencyCode(s string) {
+	m.currency_code = &s
 }
 
-// FiatCurrencyCode returns the value of the "fiat_currency_code" field in the mutation.
-func (m *AddonMutation) FiatCurrencyCode() (r string, exists bool) {
-	v := m.fiat_currency_code
+// CurrencyCode returns the value of the "currency_code" field in the mutation.
+func (m *AddonMutation) CurrencyCode() (r string, exists bool) {
+	v := m.currency_code
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldFiatCurrencyCode returns the old "fiat_currency_code" field's value of the Addon entity.
+// OldCurrencyCode returns the old "currency_code" field's value of the Addon entity.
 // If the Addon object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AddonMutation) OldFiatCurrencyCode(ctx context.Context) (v *string, err error) {
+func (m *AddonMutation) OldCurrencyCode(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFiatCurrencyCode is only allowed on UpdateOne operations")
+		return v, errors.New("OldCurrencyCode is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFiatCurrencyCode requires an ID field in the mutation")
+		return v, errors.New("OldCurrencyCode requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFiatCurrencyCode: %w", err)
+		return v, fmt.Errorf("querying old value for OldCurrencyCode: %w", err)
 	}
-	return oldValue.FiatCurrencyCode, nil
+	return oldValue.CurrencyCode, nil
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (m *AddonMutation) ClearFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	m.clearedFields[addon.FieldFiatCurrencyCode] = struct{}{}
-}
-
-// FiatCurrencyCodeCleared returns if the "fiat_currency_code" field was cleared in this mutation.
-func (m *AddonMutation) FiatCurrencyCodeCleared() bool {
-	_, ok := m.clearedFields[addon.FieldFiatCurrencyCode]
-	return ok
-}
-
-// ResetFiatCurrencyCode resets all changes to the "fiat_currency_code" field.
-func (m *AddonMutation) ResetFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	delete(m.clearedFields, addon.FieldFiatCurrencyCode)
+// ResetCurrencyCode resets all changes to the "currency_code" field.
+func (m *AddonMutation) ResetCurrencyCode() {
+	m.currency_code = nil
 }
 
 // SetCustomCurrencyID sets the "custom_currency_id" field.
@@ -1281,8 +1268,8 @@ func (m *AddonMutation) Fields() []string {
 	if m.version != nil {
 		fields = append(fields, addon.FieldVersion)
 	}
-	if m.fiat_currency_code != nil {
-		fields = append(fields, addon.FieldFiatCurrencyCode)
+	if m.currency_code != nil {
+		fields = append(fields, addon.FieldCurrencyCode)
 	}
 	if m.custom_currency != nil {
 		fields = append(fields, addon.FieldCustomCurrencyID)
@@ -1325,8 +1312,8 @@ func (m *AddonMutation) Field(name string) (ent.Value, bool) {
 		return m.Key()
 	case addon.FieldVersion:
 		return m.Version()
-	case addon.FieldFiatCurrencyCode:
-		return m.FiatCurrencyCode()
+	case addon.FieldCurrencyCode:
+		return m.CurrencyCode()
 	case addon.FieldCustomCurrencyID:
 		return m.CustomCurrencyID()
 	case addon.FieldInstanceType:
@@ -1364,8 +1351,8 @@ func (m *AddonMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldKey(ctx)
 	case addon.FieldVersion:
 		return m.OldVersion(ctx)
-	case addon.FieldFiatCurrencyCode:
-		return m.OldFiatCurrencyCode(ctx)
+	case addon.FieldCurrencyCode:
+		return m.OldCurrencyCode(ctx)
 	case addon.FieldCustomCurrencyID:
 		return m.OldCustomCurrencyID(ctx)
 	case addon.FieldInstanceType:
@@ -1448,12 +1435,12 @@ func (m *AddonMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetVersion(v)
 		return nil
-	case addon.FieldFiatCurrencyCode:
+	case addon.FieldCurrencyCode:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetFiatCurrencyCode(v)
+		m.SetCurrencyCode(v)
 		return nil
 	case addon.FieldCustomCurrencyID:
 		v, ok := value.(string)
@@ -1544,9 +1531,6 @@ func (m *AddonMutation) ClearedFields() []string {
 	if m.FieldCleared(addon.FieldDescription) {
 		fields = append(fields, addon.FieldDescription)
 	}
-	if m.FieldCleared(addon.FieldFiatCurrencyCode) {
-		fields = append(fields, addon.FieldFiatCurrencyCode)
-	}
 	if m.FieldCleared(addon.FieldCustomCurrencyID) {
 		fields = append(fields, addon.FieldCustomCurrencyID)
 	}
@@ -1581,9 +1565,6 @@ func (m *AddonMutation) ClearField(name string) error {
 		return nil
 	case addon.FieldDescription:
 		m.ClearDescription()
-		return nil
-	case addon.FieldFiatCurrencyCode:
-		m.ClearFiatCurrencyCode()
 		return nil
 	case addon.FieldCustomCurrencyID:
 		m.ClearCustomCurrencyID()
@@ -1632,8 +1613,8 @@ func (m *AddonMutation) ResetField(name string) error {
 	case addon.FieldVersion:
 		m.ResetVersion()
 		return nil
-	case addon.FieldFiatCurrencyCode:
-		m.ResetFiatCurrencyCode()
+	case addon.FieldCurrencyCode:
+		m.ResetCurrencyCode()
 		return nil
 	case addon.FieldCustomCurrencyID:
 		m.ResetCustomCurrencyID()
@@ -1829,7 +1810,7 @@ type AddonRateCardMutation struct {
 	tax_config             **productcatalog.TaxConfig
 	billing_cadence        *datetime.ISODurationString
 	price                  **productcatalog.Price
-	fiat_currency_code     *string
+	currency_code          *string
 	discounts              **productcatalog.Discounts
 	unit_config            **unitconfig.UnitConfig
 	clearedFields          map[string]struct{}
@@ -2656,53 +2637,53 @@ func (m *AddonRateCardMutation) ResetPrice() {
 	delete(m.clearedFields, addonratecard.FieldPrice)
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (m *AddonRateCardMutation) SetFiatCurrencyCode(s string) {
-	m.fiat_currency_code = &s
+// SetCurrencyCode sets the "currency_code" field.
+func (m *AddonRateCardMutation) SetCurrencyCode(s string) {
+	m.currency_code = &s
 }
 
-// FiatCurrencyCode returns the value of the "fiat_currency_code" field in the mutation.
-func (m *AddonRateCardMutation) FiatCurrencyCode() (r string, exists bool) {
-	v := m.fiat_currency_code
+// CurrencyCode returns the value of the "currency_code" field in the mutation.
+func (m *AddonRateCardMutation) CurrencyCode() (r string, exists bool) {
+	v := m.currency_code
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldFiatCurrencyCode returns the old "fiat_currency_code" field's value of the AddonRateCard entity.
+// OldCurrencyCode returns the old "currency_code" field's value of the AddonRateCard entity.
 // If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AddonRateCardMutation) OldFiatCurrencyCode(ctx context.Context) (v *string, err error) {
+func (m *AddonRateCardMutation) OldCurrencyCode(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFiatCurrencyCode is only allowed on UpdateOne operations")
+		return v, errors.New("OldCurrencyCode is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFiatCurrencyCode requires an ID field in the mutation")
+		return v, errors.New("OldCurrencyCode requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFiatCurrencyCode: %w", err)
+		return v, fmt.Errorf("querying old value for OldCurrencyCode: %w", err)
 	}
-	return oldValue.FiatCurrencyCode, nil
+	return oldValue.CurrencyCode, nil
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (m *AddonRateCardMutation) ClearFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	m.clearedFields[addonratecard.FieldFiatCurrencyCode] = struct{}{}
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (m *AddonRateCardMutation) ClearCurrencyCode() {
+	m.currency_code = nil
+	m.clearedFields[addonratecard.FieldCurrencyCode] = struct{}{}
 }
 
-// FiatCurrencyCodeCleared returns if the "fiat_currency_code" field was cleared in this mutation.
-func (m *AddonRateCardMutation) FiatCurrencyCodeCleared() bool {
-	_, ok := m.clearedFields[addonratecard.FieldFiatCurrencyCode]
+// CurrencyCodeCleared returns if the "currency_code" field was cleared in this mutation.
+func (m *AddonRateCardMutation) CurrencyCodeCleared() bool {
+	_, ok := m.clearedFields[addonratecard.FieldCurrencyCode]
 	return ok
 }
 
-// ResetFiatCurrencyCode resets all changes to the "fiat_currency_code" field.
-func (m *AddonRateCardMutation) ResetFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	delete(m.clearedFields, addonratecard.FieldFiatCurrencyCode)
+// ResetCurrencyCode resets all changes to the "currency_code" field.
+func (m *AddonRateCardMutation) ResetCurrencyCode() {
+	m.currency_code = nil
+	delete(m.clearedFields, addonratecard.FieldCurrencyCode)
 }
 
 // SetCustomCurrencyID sets the "custom_currency_id" field.
@@ -3141,8 +3122,8 @@ func (m *AddonRateCardMutation) Fields() []string {
 	if m.price != nil {
 		fields = append(fields, addonratecard.FieldPrice)
 	}
-	if m.fiat_currency_code != nil {
-		fields = append(fields, addonratecard.FieldFiatCurrencyCode)
+	if m.currency_code != nil {
+		fields = append(fields, addonratecard.FieldCurrencyCode)
 	}
 	if m.custom_currency != nil {
 		fields = append(fields, addonratecard.FieldCustomCurrencyID)
@@ -3199,8 +3180,8 @@ func (m *AddonRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case addonratecard.FieldPrice:
 		return m.Price()
-	case addonratecard.FieldFiatCurrencyCode:
-		return m.FiatCurrencyCode()
+	case addonratecard.FieldCurrencyCode:
+		return m.CurrencyCode()
 	case addonratecard.FieldCustomCurrencyID:
 		return m.CustomCurrencyID()
 	case addonratecard.FieldDiscounts:
@@ -3252,8 +3233,8 @@ func (m *AddonRateCardMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldBillingCadence(ctx)
 	case addonratecard.FieldPrice:
 		return m.OldPrice(ctx)
-	case addonratecard.FieldFiatCurrencyCode:
-		return m.OldFiatCurrencyCode(ctx)
+	case addonratecard.FieldCurrencyCode:
+		return m.OldCurrencyCode(ctx)
 	case addonratecard.FieldCustomCurrencyID:
 		return m.OldCustomCurrencyID(ctx)
 	case addonratecard.FieldDiscounts:
@@ -3385,12 +3366,12 @@ func (m *AddonRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPrice(v)
 		return nil
-	case addonratecard.FieldFiatCurrencyCode:
+	case addonratecard.FieldCurrencyCode:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetFiatCurrencyCode(v)
+		m.SetCurrencyCode(v)
 		return nil
 	case addonratecard.FieldCustomCurrencyID:
 		v, ok := value.(string)
@@ -3487,8 +3468,8 @@ func (m *AddonRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(addonratecard.FieldPrice) {
 		fields = append(fields, addonratecard.FieldPrice)
 	}
-	if m.FieldCleared(addonratecard.FieldFiatCurrencyCode) {
-		fields = append(fields, addonratecard.FieldFiatCurrencyCode)
+	if m.FieldCleared(addonratecard.FieldCurrencyCode) {
+		fields = append(fields, addonratecard.FieldCurrencyCode)
 	}
 	if m.FieldCleared(addonratecard.FieldCustomCurrencyID) {
 		fields = append(fields, addonratecard.FieldCustomCurrencyID)
@@ -3546,8 +3527,8 @@ func (m *AddonRateCardMutation) ClearField(name string) error {
 	case addonratecard.FieldPrice:
 		m.ClearPrice()
 		return nil
-	case addonratecard.FieldFiatCurrencyCode:
-		m.ClearFiatCurrencyCode()
+	case addonratecard.FieldCurrencyCode:
+		m.ClearCurrencyCode()
 		return nil
 	case addonratecard.FieldCustomCurrencyID:
 		m.ClearCustomCurrencyID()
@@ -3617,8 +3598,8 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 	case addonratecard.FieldPrice:
 		m.ResetPrice()
 		return nil
-	case addonratecard.FieldFiatCurrencyCode:
-		m.ResetFiatCurrencyCode()
+	case addonratecard.FieldCurrencyCode:
+		m.ResetCurrencyCode()
 		return nil
 	case addonratecard.FieldCustomCurrencyID:
 		m.ResetCustomCurrencyID()
@@ -107309,7 +107290,7 @@ type PlanMutation struct {
 	key                    *string
 	version                *int
 	addversion             *int
-	fiat_currency_code     *string
+	currency_code          *string
 	billing_cadence        *datetime.ISODurationString
 	pro_rating_config      *productcatalog.ProRatingConfig
 	effective_from         *time.Time
@@ -107819,53 +107800,40 @@ func (m *PlanMutation) ResetVersion() {
 	m.addversion = nil
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (m *PlanMutation) SetFiatCurrencyCode(s string) {
-	m.fiat_currency_code = &s
+// SetCurrencyCode sets the "currency_code" field.
+func (m *PlanMutation) SetCurrencyCode(s string) {
+	m.currency_code = &s
 }
 
-// FiatCurrencyCode returns the value of the "fiat_currency_code" field in the mutation.
-func (m *PlanMutation) FiatCurrencyCode() (r string, exists bool) {
-	v := m.fiat_currency_code
+// CurrencyCode returns the value of the "currency_code" field in the mutation.
+func (m *PlanMutation) CurrencyCode() (r string, exists bool) {
+	v := m.currency_code
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldFiatCurrencyCode returns the old "fiat_currency_code" field's value of the Plan entity.
+// OldCurrencyCode returns the old "currency_code" field's value of the Plan entity.
 // If the Plan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanMutation) OldFiatCurrencyCode(ctx context.Context) (v *string, err error) {
+func (m *PlanMutation) OldCurrencyCode(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFiatCurrencyCode is only allowed on UpdateOne operations")
+		return v, errors.New("OldCurrencyCode is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFiatCurrencyCode requires an ID field in the mutation")
+		return v, errors.New("OldCurrencyCode requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFiatCurrencyCode: %w", err)
+		return v, fmt.Errorf("querying old value for OldCurrencyCode: %w", err)
 	}
-	return oldValue.FiatCurrencyCode, nil
+	return oldValue.CurrencyCode, nil
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (m *PlanMutation) ClearFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	m.clearedFields[plan.FieldFiatCurrencyCode] = struct{}{}
-}
-
-// FiatCurrencyCodeCleared returns if the "fiat_currency_code" field was cleared in this mutation.
-func (m *PlanMutation) FiatCurrencyCodeCleared() bool {
-	_, ok := m.clearedFields[plan.FieldFiatCurrencyCode]
-	return ok
-}
-
-// ResetFiatCurrencyCode resets all changes to the "fiat_currency_code" field.
-func (m *PlanMutation) ResetFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	delete(m.clearedFields, plan.FieldFiatCurrencyCode)
+// ResetCurrencyCode resets all changes to the "currency_code" field.
+func (m *PlanMutation) ResetCurrencyCode() {
+	m.currency_code = nil
 }
 
 // SetCustomCurrencyID sets the "custom_currency_id" field.
@@ -108374,8 +108342,8 @@ func (m *PlanMutation) Fields() []string {
 	if m.version != nil {
 		fields = append(fields, plan.FieldVersion)
 	}
-	if m.fiat_currency_code != nil {
-		fields = append(fields, plan.FieldFiatCurrencyCode)
+	if m.currency_code != nil {
+		fields = append(fields, plan.FieldCurrencyCode)
 	}
 	if m.custom_currency != nil {
 		fields = append(fields, plan.FieldCustomCurrencyID)
@@ -108421,8 +108389,8 @@ func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 		return m.Key()
 	case plan.FieldVersion:
 		return m.Version()
-	case plan.FieldFiatCurrencyCode:
-		return m.FiatCurrencyCode()
+	case plan.FieldCurrencyCode:
+		return m.CurrencyCode()
 	case plan.FieldCustomCurrencyID:
 		return m.CustomCurrencyID()
 	case plan.FieldBillingCadence:
@@ -108462,8 +108430,8 @@ func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldKey(ctx)
 	case plan.FieldVersion:
 		return m.OldVersion(ctx)
-	case plan.FieldFiatCurrencyCode:
-		return m.OldFiatCurrencyCode(ctx)
+	case plan.FieldCurrencyCode:
+		return m.OldCurrencyCode(ctx)
 	case plan.FieldCustomCurrencyID:
 		return m.OldCustomCurrencyID(ctx)
 	case plan.FieldBillingCadence:
@@ -108548,12 +108516,12 @@ func (m *PlanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetVersion(v)
 		return nil
-	case plan.FieldFiatCurrencyCode:
+	case plan.FieldCurrencyCode:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetFiatCurrencyCode(v)
+		m.SetCurrencyCode(v)
 		return nil
 	case plan.FieldCustomCurrencyID:
 		v, ok := value.(string)
@@ -108651,9 +108619,6 @@ func (m *PlanMutation) ClearedFields() []string {
 	if m.FieldCleared(plan.FieldDescription) {
 		fields = append(fields, plan.FieldDescription)
 	}
-	if m.FieldCleared(plan.FieldFiatCurrencyCode) {
-		fields = append(fields, plan.FieldFiatCurrencyCode)
-	}
 	if m.FieldCleared(plan.FieldCustomCurrencyID) {
 		fields = append(fields, plan.FieldCustomCurrencyID)
 	}
@@ -108685,9 +108650,6 @@ func (m *PlanMutation) ClearField(name string) error {
 		return nil
 	case plan.FieldDescription:
 		m.ClearDescription()
-		return nil
-	case plan.FieldFiatCurrencyCode:
-		m.ClearFiatCurrencyCode()
 		return nil
 	case plan.FieldCustomCurrencyID:
 		m.ClearCustomCurrencyID()
@@ -108733,8 +108695,8 @@ func (m *PlanMutation) ResetField(name string) error {
 	case plan.FieldVersion:
 		m.ResetVersion()
 		return nil
-	case plan.FieldFiatCurrencyCode:
-		m.ResetFiatCurrencyCode()
+	case plan.FieldCurrencyCode:
+		m.ResetCurrencyCode()
 		return nil
 	case plan.FieldCustomCurrencyID:
 		m.ResetCustomCurrencyID()
@@ -111093,7 +111055,7 @@ type PlanRateCardMutation struct {
 	tax_config             **productcatalog.TaxConfig
 	billing_cadence        *datetime.ISODurationString
 	price                  **productcatalog.Price
-	fiat_currency_code     *string
+	currency_code          *string
 	discounts              **productcatalog.Discounts
 	unit_config            **unitconfig.UnitConfig
 	clearedFields          map[string]struct{}
@@ -111920,53 +111882,53 @@ func (m *PlanRateCardMutation) ResetPrice() {
 	delete(m.clearedFields, planratecard.FieldPrice)
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (m *PlanRateCardMutation) SetFiatCurrencyCode(s string) {
-	m.fiat_currency_code = &s
+// SetCurrencyCode sets the "currency_code" field.
+func (m *PlanRateCardMutation) SetCurrencyCode(s string) {
+	m.currency_code = &s
 }
 
-// FiatCurrencyCode returns the value of the "fiat_currency_code" field in the mutation.
-func (m *PlanRateCardMutation) FiatCurrencyCode() (r string, exists bool) {
-	v := m.fiat_currency_code
+// CurrencyCode returns the value of the "currency_code" field in the mutation.
+func (m *PlanRateCardMutation) CurrencyCode() (r string, exists bool) {
+	v := m.currency_code
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldFiatCurrencyCode returns the old "fiat_currency_code" field's value of the PlanRateCard entity.
+// OldCurrencyCode returns the old "currency_code" field's value of the PlanRateCard entity.
 // If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanRateCardMutation) OldFiatCurrencyCode(ctx context.Context) (v *string, err error) {
+func (m *PlanRateCardMutation) OldCurrencyCode(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFiatCurrencyCode is only allowed on UpdateOne operations")
+		return v, errors.New("OldCurrencyCode is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFiatCurrencyCode requires an ID field in the mutation")
+		return v, errors.New("OldCurrencyCode requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFiatCurrencyCode: %w", err)
+		return v, fmt.Errorf("querying old value for OldCurrencyCode: %w", err)
 	}
-	return oldValue.FiatCurrencyCode, nil
+	return oldValue.CurrencyCode, nil
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (m *PlanRateCardMutation) ClearFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	m.clearedFields[planratecard.FieldFiatCurrencyCode] = struct{}{}
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (m *PlanRateCardMutation) ClearCurrencyCode() {
+	m.currency_code = nil
+	m.clearedFields[planratecard.FieldCurrencyCode] = struct{}{}
 }
 
-// FiatCurrencyCodeCleared returns if the "fiat_currency_code" field was cleared in this mutation.
-func (m *PlanRateCardMutation) FiatCurrencyCodeCleared() bool {
-	_, ok := m.clearedFields[planratecard.FieldFiatCurrencyCode]
+// CurrencyCodeCleared returns if the "currency_code" field was cleared in this mutation.
+func (m *PlanRateCardMutation) CurrencyCodeCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldCurrencyCode]
 	return ok
 }
 
-// ResetFiatCurrencyCode resets all changes to the "fiat_currency_code" field.
-func (m *PlanRateCardMutation) ResetFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	delete(m.clearedFields, planratecard.FieldFiatCurrencyCode)
+// ResetCurrencyCode resets all changes to the "currency_code" field.
+func (m *PlanRateCardMutation) ResetCurrencyCode() {
+	m.currency_code = nil
+	delete(m.clearedFields, planratecard.FieldCurrencyCode)
 }
 
 // SetCustomCurrencyID sets the "custom_currency_id" field.
@@ -112405,8 +112367,8 @@ func (m *PlanRateCardMutation) Fields() []string {
 	if m.price != nil {
 		fields = append(fields, planratecard.FieldPrice)
 	}
-	if m.fiat_currency_code != nil {
-		fields = append(fields, planratecard.FieldFiatCurrencyCode)
+	if m.currency_code != nil {
+		fields = append(fields, planratecard.FieldCurrencyCode)
 	}
 	if m.custom_currency != nil {
 		fields = append(fields, planratecard.FieldCustomCurrencyID)
@@ -112463,8 +112425,8 @@ func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case planratecard.FieldPrice:
 		return m.Price()
-	case planratecard.FieldFiatCurrencyCode:
-		return m.FiatCurrencyCode()
+	case planratecard.FieldCurrencyCode:
+		return m.CurrencyCode()
 	case planratecard.FieldCustomCurrencyID:
 		return m.CustomCurrencyID()
 	case planratecard.FieldDiscounts:
@@ -112516,8 +112478,8 @@ func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldBillingCadence(ctx)
 	case planratecard.FieldPrice:
 		return m.OldPrice(ctx)
-	case planratecard.FieldFiatCurrencyCode:
-		return m.OldFiatCurrencyCode(ctx)
+	case planratecard.FieldCurrencyCode:
+		return m.OldCurrencyCode(ctx)
 	case planratecard.FieldCustomCurrencyID:
 		return m.OldCustomCurrencyID(ctx)
 	case planratecard.FieldDiscounts:
@@ -112649,12 +112611,12 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPrice(v)
 		return nil
-	case planratecard.FieldFiatCurrencyCode:
+	case planratecard.FieldCurrencyCode:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetFiatCurrencyCode(v)
+		m.SetCurrencyCode(v)
 		return nil
 	case planratecard.FieldCustomCurrencyID:
 		v, ok := value.(string)
@@ -112751,8 +112713,8 @@ func (m *PlanRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(planratecard.FieldPrice) {
 		fields = append(fields, planratecard.FieldPrice)
 	}
-	if m.FieldCleared(planratecard.FieldFiatCurrencyCode) {
-		fields = append(fields, planratecard.FieldFiatCurrencyCode)
+	if m.FieldCleared(planratecard.FieldCurrencyCode) {
+		fields = append(fields, planratecard.FieldCurrencyCode)
 	}
 	if m.FieldCleared(planratecard.FieldCustomCurrencyID) {
 		fields = append(fields, planratecard.FieldCustomCurrencyID)
@@ -112810,8 +112772,8 @@ func (m *PlanRateCardMutation) ClearField(name string) error {
 	case planratecard.FieldPrice:
 		m.ClearPrice()
 		return nil
-	case planratecard.FieldFiatCurrencyCode:
-		m.ClearFiatCurrencyCode()
+	case planratecard.FieldCurrencyCode:
+		m.ClearCurrencyCode()
 		return nil
 	case planratecard.FieldCustomCurrencyID:
 		m.ClearCustomCurrencyID()
@@ -112881,8 +112843,8 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 	case planratecard.FieldPrice:
 		m.ResetPrice()
 		return nil
-	case planratecard.FieldFiatCurrencyCode:
-		m.ResetFiatCurrencyCode()
+	case planratecard.FieldCurrencyCode:
+		m.ResetCurrencyCode()
 		return nil
 	case planratecard.FieldCustomCurrencyID:
 		m.ResetCustomCurrencyID()

@@ -21,7 +21,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
 		{Name: "version", Type: field.TypeInt},
-		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "currency", Type: field.TypeString, Size: 24},
 		{Name: "instance_type", Type: field.TypeEnum, Enums: []string{"single", "multiple"}, Default: "single"},
 		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
 		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
@@ -105,7 +105,7 @@ var (
 		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 24},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -5003,7 +5003,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "key", Type: field.TypeString},
 		{Name: "version", Type: field.TypeInt},
-		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "currency", Type: field.TypeString, Size: 24},
 		{Name: "billing_cadence", Type: field.TypeString},
 		{Name: "pro_rating_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "effective_from", Type: field.TypeTime, Nullable: true},
@@ -5214,7 +5214,7 @@ var (
 		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 24},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -5978,7 +5978,8 @@ func init() {
 	AddonsTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
 	AddonsTable.Annotation = &entsql.Annotation{}
 	AddonsTable.Annotation.Checks = map[string]string{
-		"addon_currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
+		"addon_currency_code_length": "char_length(currency) BETWEEN 3 AND 24",
+		"addon_currency_reference":   "(char_length(currency) = 3 AND custom_currency_id IS NULL) OR (char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
 	}
 	AddonRateCardsTable.ForeignKeys[0].RefTable = AddonsTable
 	AddonRateCardsTable.ForeignKeys[1].RefTable = CustomCurrenciesTable
@@ -5986,8 +5987,9 @@ func init() {
 	AddonRateCardsTable.ForeignKeys[3].RefTable = TaxCodesTable
 	AddonRateCardsTable.Annotation = &entsql.Annotation{}
 	AddonRateCardsTable.Annotation.Checks = map[string]string{
-		"addon_rate_card_currency_has_price": "price IS NOT NULL OR (currency IS NULL AND custom_currency_id IS NULL)",
-		"addon_rate_card_currency_reference": "currency IS NULL OR custom_currency_id IS NULL",
+		"addon_rate_card_currency_code_length": "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
+		"addon_rate_card_currency_has_price":   "price IS NOT NULL OR currency IS NULL",
+		"addon_rate_card_currency_reference":   "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
 	}
 	AppCustomInvoicingsTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomInvoicingCustomersTable.ForeignKeys[0].RefTable = AppCustomInvoicingsTable
@@ -6200,7 +6202,8 @@ func init() {
 	PlansTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
 	PlansTable.Annotation = &entsql.Annotation{}
 	PlansTable.Annotation.Checks = map[string]string{
-		"plan_currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
+		"plan_currency_code_length": "char_length(currency) BETWEEN 3 AND 24",
+		"plan_currency_reference":   "(char_length(currency) = 3 AND custom_currency_id IS NULL) OR (char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
 	}
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable
 	PlanAddonsTable.ForeignKeys[1].RefTable = PlansTable
@@ -6211,8 +6214,9 @@ func init() {
 	PlanRateCardsTable.ForeignKeys[3].RefTable = TaxCodesTable
 	PlanRateCardsTable.Annotation = &entsql.Annotation{}
 	PlanRateCardsTable.Annotation.Checks = map[string]string{
-		"plan_rate_card_currency_has_price": "price IS NOT NULL OR (currency IS NULL AND custom_currency_id IS NULL)",
-		"plan_rate_card_currency_reference": "currency IS NULL OR custom_currency_id IS NULL",
+		"plan_rate_card_currency_code_length": "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
+		"plan_rate_card_currency_has_price":   "price IS NOT NULL OR currency IS NULL",
+		"plan_rate_card_currency_reference":   "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
 	}
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
 	SubscriptionsTable.ForeignKeys[1].RefTable = PlansTable

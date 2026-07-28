@@ -54,13 +54,14 @@ func (RateCard) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
-		field.String("fiat_currency_code").
+		field.String("currency_code").
 			StorageKey("currency").
 			NotEmpty().
 			MinLen(3).
-			MaxLen(3).
+			MaxLen(24).
 			Optional().
-			Nillable(),
+			Nillable().
+			Comment("The code of the fiat or custom currency."),
 		field.String("custom_currency_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",

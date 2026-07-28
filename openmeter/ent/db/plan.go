@@ -39,8 +39,8 @@ type Plan struct {
 	Key string `json:"key,omitempty"`
 	// Version holds the value of the "version" field.
 	Version int `json:"version,omitempty"`
-	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
-	FiatCurrencyCode *string `json:"fiat_currency_code,omitempty"`
+	// The code of the fiat or custom currency.
+	CurrencyCode string `json:"currency_code,omitempty"`
 	// CustomCurrencyID holds the value of the "custom_currency_id" field.
 	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// The default billing cadence for subscriptions using this plan.
@@ -121,7 +121,7 @@ func (*Plan) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case plan.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case plan.FieldID, plan.FieldNamespace, plan.FieldName, plan.FieldDescription, plan.FieldKey, plan.FieldFiatCurrencyCode, plan.FieldCustomCurrencyID, plan.FieldBillingCadence, plan.FieldSettlementMode:
+		case plan.FieldID, plan.FieldNamespace, plan.FieldName, plan.FieldDescription, plan.FieldKey, plan.FieldCurrencyCode, plan.FieldCustomCurrencyID, plan.FieldBillingCadence, plan.FieldSettlementMode:
 			values[i] = new(sql.NullString)
 		case plan.FieldCreatedAt, plan.FieldUpdatedAt, plan.FieldDeletedAt, plan.FieldEffectiveFrom, plan.FieldEffectiveTo:
 			values[i] = new(sql.NullTime)
@@ -206,12 +206,11 @@ func (_m *Plan) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Version = int(value.Int64)
 			}
-		case plan.FieldFiatCurrencyCode:
+		case plan.FieldCurrencyCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
+				return fmt.Errorf("unexpected type %T for field currency_code", values[i])
 			} else if value.Valid {
-				_m.FiatCurrencyCode = new(string)
-				*_m.FiatCurrencyCode = value.String
+				_m.CurrencyCode = value.String
 			}
 		case plan.FieldCustomCurrencyID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -339,10 +338,8 @@ func (_m *Plan) String() string {
 	builder.WriteString("version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Version))
 	builder.WriteString(", ")
-	if v := _m.FiatCurrencyCode; v != nil {
-		builder.WriteString("fiat_currency_code=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("currency_code=")
+	builder.WriteString(_m.CurrencyCode)
 	builder.WriteString(", ")
 	if v := _m.CustomCurrencyID; v != nil {
 		builder.WriteString("custom_currency_id=")

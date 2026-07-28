@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	planratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -249,9 +250,24 @@ func TestPostgresAdapter(t *testing.T) {
 			require.NoError(t, err)
 
 			fetchedCurrency := fetched.Phases[0].RateCards[0].AsMeta().Currency
+			require.NotNil(t, fetchedCurrency)
 			require.Equal(t, custom.GetCode(), fetchedCurrency.GetCode())
-			require.True(t, fetchedCurrency.IsResolved())
-			managedCurrency, ok := fetchedCurrency.CustomCurrency()
+			require.Equal(t, custom.ID, *fetchedCurrency.CustomCurrencyID)
+			require.False(t, fetchedCurrency.IsResolved())
+
+			expanded, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+				Expand: plan.ExpandFields{
+					CustomCurrency: &currencies.CurrencyExpandOptions{
+						CostBasis: true,
+					},
+				},
+			})
+			require.NoError(t, err)
+			expandedCurrency := expanded.Phases[0].RateCards[0].AsMeta().Currency
+			require.NotNil(t, expandedCurrency)
+			require.True(t, expandedCurrency.IsResolved())
+			managedCurrency, ok := expandedCurrency.CustomCurrency()
 			require.True(t, ok)
 			require.Equal(t, custom.ID, managedCurrency.ID)
 			require.NotNil(t, managedCurrency.CostBasis)
@@ -260,7 +276,8 @@ func TestPostgresAdapter(t *testing.T) {
 				Where(planratecarddb.Namespace(namespace), planratecarddb.Key("credits")).
 				Only(t.Context())
 			require.NoError(t, err)
-			require.Nil(t, rateCardRow.FiatCurrencyCode)
+			require.NotNil(t, rateCardRow.CurrencyCode)
+			require.Equal(t, custom.GetCode().String(), *rateCardRow.CurrencyCode)
 			require.NotNil(t, rateCardRow.CustomCurrencyID)
 			require.Equal(t, custom.ID, *rateCardRow.CustomCurrencyID)
 		})
@@ -292,15 +309,41 @@ func TestPostgresAdapter(t *testing.T) {
 				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
 			})
 			require.NoError(t, err)
-			require.True(t, fetched.Currency.IsResolved())
-			managedCurrency, ok := fetched.Currency.CustomCurrency()
+			require.Equal(t, custom.GetCode(), fetched.Currency.Code)
+			require.Equal(t, custom.ID, *fetched.Currency.CustomCurrencyID)
+			require.False(t, fetched.Currency.IsResolved())
+
+			expandedCurrencyOnly, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+				Expand: plan.ExpandFields{
+					CustomCurrency: &currencies.CurrencyExpandOptions{},
+				},
+			})
+			require.NoError(t, err)
+			require.False(t, expandedCurrencyOnly.Currency.IsResolved())
+			managedWithoutCostBasis, ok := expandedCurrencyOnly.Currency.CustomCurrency()
+			require.True(t, ok)
+			require.Equal(t, custom.ID, managedWithoutCostBasis.ID)
+			require.Nil(t, managedWithoutCostBasis.CostBasis)
+
+			expanded, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+				Expand: plan.ExpandFields{
+					CustomCurrency: &currencies.CurrencyExpandOptions{
+						CostBasis: true,
+					},
+				},
+			})
+			require.NoError(t, err)
+			require.True(t, expanded.Currency.IsResolved())
+			managedCurrency, ok := expanded.Currency.CustomCurrency()
 			require.True(t, ok)
 			require.Equal(t, custom.ID, managedCurrency.ID)
 			require.NotNil(t, managedCurrency.CostBasis)
 
 			planRow, err := env.Client.Plan.Get(t.Context(), created.ID)
 			require.NoError(t, err)
-			require.Nil(t, planRow.FiatCurrencyCode)
+			require.Equal(t, custom.GetCode().String(), planRow.CurrencyCode)
 			require.NotNil(t, planRow.CustomCurrencyID)
 			require.Equal(t, custom.ID, *planRow.CustomCurrencyID)
 
@@ -311,6 +354,7 @@ func TestPostgresAdapter(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, listed.Items, 1)
 			require.Equal(t, created.ID, listed.Items[0].ID)
+			require.False(t, listed.Items[0].Currency.IsResolved())
 
 			err = env.Client.CustomCurrency.UpdateOneID(custom.ID).
 				SetDeletedAt(time.Now().UTC()).
@@ -322,6 +366,11 @@ func TestPostgresAdapter(t *testing.T) {
 
 			fetched, err = env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
 				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+				Expand: plan.ExpandFields{
+					CustomCurrency: &currencies.CurrencyExpandOptions{
+						CostBasis: true,
+					},
+				},
 			})
 			require.NoError(t, err)
 			managedCurrency, ok = fetched.Currency.CustomCurrency()

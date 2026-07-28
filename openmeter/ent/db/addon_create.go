@@ -115,17 +115,9 @@ func (_c *AddonCreate) SetVersion(v int) *AddonCreate {
 	return _c
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_c *AddonCreate) SetFiatCurrencyCode(v string) *AddonCreate {
-	_c.mutation.SetFiatCurrencyCode(v)
-	return _c
-}
-
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_c *AddonCreate) SetNillableFiatCurrencyCode(v *string) *AddonCreate {
-	if v != nil {
-		_c.SetFiatCurrencyCode(*v)
-	}
+// SetCurrencyCode sets the "currency_code" field.
+func (_c *AddonCreate) SetCurrencyCode(v string) *AddonCreate {
+	_c.mutation.SetCurrencyCode(v)
 	return _c
 }
 
@@ -343,9 +335,12 @@ func (_c *AddonCreate) check() error {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Addon.version": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
-		if err := addon.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "Addon.fiat_currency_code": %w`, err)}
+	if _, ok := _c.mutation.CurrencyCode(); !ok {
+		return &ValidationError{Name: "currency_code", err: errors.New(`db: missing required field "Addon.currency_code"`)}
+	}
+	if v, ok := _c.mutation.CurrencyCode(); ok {
+		if err := addon.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "Addon.currency_code": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.CustomCurrencyID(); ok {
@@ -436,9 +431,9 @@ func (_c *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec, error) {
 		_spec.SetField(addon.FieldVersion, field.TypeInt, value)
 		_node.Version = value
 	}
-	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(addon.FieldFiatCurrencyCode, field.TypeString, value)
-		_node.FiatCurrencyCode = &value
+	if value, ok := _c.mutation.CurrencyCode(); ok {
+		_spec.SetField(addon.FieldCurrencyCode, field.TypeString, value)
+		_node.CurrencyCode = value
 	}
 	if value, ok := _c.mutation.InstanceType(); ok {
 		_spec.SetField(addon.FieldInstanceType, field.TypeEnum, value)
@@ -765,8 +760,8 @@ func (u *AddonUpsertOne) UpdateNewValues() *AddonUpsertOne {
 		if _, exists := u.create.mutation.Key(); exists {
 			s.SetIgnore(addon.FieldKey)
 		}
-		if _, exists := u.create.mutation.FiatCurrencyCode(); exists {
-			s.SetIgnore(addon.FieldFiatCurrencyCode)
+		if _, exists := u.create.mutation.CurrencyCode(); exists {
+			s.SetIgnore(addon.FieldCurrencyCode)
 		}
 		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
 			s.SetIgnore(addon.FieldCustomCurrencyID)
@@ -1186,8 +1181,8 @@ func (u *AddonUpsertBulk) UpdateNewValues() *AddonUpsertBulk {
 			if _, exists := b.mutation.Key(); exists {
 				s.SetIgnore(addon.FieldKey)
 			}
-			if _, exists := b.mutation.FiatCurrencyCode(); exists {
-				s.SetIgnore(addon.FieldFiatCurrencyCode)
+			if _, exists := b.mutation.CurrencyCode(); exists {
+				s.SetIgnore(addon.FieldCurrencyCode)
 			}
 			if _, exists := b.mutation.CustomCurrencyID(); exists {
 				s.SetIgnore(addon.FieldCustomCurrencyID)

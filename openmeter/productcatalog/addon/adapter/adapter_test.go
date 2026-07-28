@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	addonratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
@@ -527,7 +528,8 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 	// when:
 	// - both add-ons are persisted and loaded through the repository
 	// then:
-	// - DB rows keep the managed ID while domain objects expose the hydrated identity
+	// - DB rows keep both code and managed ID, default reads remain unresolved,
+	//   and explicit expansion hydrates the custom currency with cost-basis history
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
 
@@ -557,15 +559,43 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 		NamespacedID: models.NamespacedID{Namespace: namespace, ID: customDefault.ID},
 	})
 	require.NoError(t, err)
-	require.True(t, fetchedDefault.Currency.IsResolved())
-	managedDefault, ok := fetchedDefault.Currency.CustomCurrency()
+	require.Equal(t, custom.GetCode(), fetchedDefault.Currency.Code)
+	require.Equal(t, custom.ID, *fetchedDefault.Currency.CustomCurrencyID)
+	require.False(t, fetchedDefault.Currency.IsResolved())
+	_, ok := fetchedDefault.Currency.CustomCurrency()
+	require.False(t, ok)
+
+	expandedCurrencyOnly, err := env.AddonRepository.GetAddon(t.Context(), addon.GetAddonInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: customDefault.ID},
+		Expand: addon.ExpandFields{
+			CustomCurrency: &currencies.CurrencyExpandOptions{},
+		},
+	})
+	require.NoError(t, err)
+	require.False(t, expandedCurrencyOnly.Currency.IsResolved())
+	managedWithoutCostBasis, ok := expandedCurrencyOnly.Currency.CustomCurrency()
+	require.True(t, ok)
+	require.Equal(t, custom.ID, managedWithoutCostBasis.ID)
+	require.Nil(t, managedWithoutCostBasis.CostBasis)
+
+	expandedDefault, err := env.AddonRepository.GetAddon(t.Context(), addon.GetAddonInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: customDefault.ID},
+		Expand: addon.ExpandFields{
+			CustomCurrency: &currencies.CurrencyExpandOptions{
+				CostBasis: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, expandedDefault.Currency.IsResolved())
+	managedDefault, ok := expandedDefault.Currency.CustomCurrency()
 	require.True(t, ok)
 	require.Equal(t, custom.ID, managedDefault.ID)
 	require.NotNil(t, managedDefault.CostBasis)
 
 	addonRow, err := env.Client.Addon.Get(t.Context(), customDefault.ID)
 	require.NoError(t, err)
-	require.Nil(t, addonRow.FiatCurrencyCode)
+	require.Equal(t, custom.GetCode().String(), addonRow.CurrencyCode)
 	require.NotNil(t, addonRow.CustomCurrencyID)
 	require.Equal(t, custom.ID, *addonRow.CustomCurrencyID)
 
@@ -577,6 +607,7 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, listed.Items, 1)
 	require.Equal(t, customDefault.ID, listed.Items[0].ID)
+	require.False(t, listed.Items[0].Currency.IsResolved())
 
 	customOverrideInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
 		RateCardMeta: productcatalog.RateCardMeta{
@@ -597,8 +628,24 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, fetchedOverride.RateCards, 1)
 	rateCardCurrency := fetchedOverride.RateCards[0].AsMeta().Currency
-	require.True(t, rateCardCurrency.IsResolved())
-	managedOverride, ok := rateCardCurrency.CustomCurrency()
+	require.NotNil(t, rateCardCurrency)
+	require.Equal(t, custom.GetCode(), rateCardCurrency.Code)
+	require.Equal(t, custom.ID, *rateCardCurrency.CustomCurrencyID)
+	require.False(t, rateCardCurrency.IsResolved())
+
+	expandedOverride, err := env.AddonRepository.GetAddon(t.Context(), addon.GetAddonInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: customOverride.ID},
+		Expand: addon.ExpandFields{
+			CustomCurrency: &currencies.CurrencyExpandOptions{
+				CostBasis: true,
+			},
+		},
+	})
+	require.NoError(t, err)
+	expandedRateCardCurrency := expandedOverride.RateCards[0].AsMeta().Currency
+	require.NotNil(t, expandedRateCardCurrency)
+	require.True(t, expandedRateCardCurrency.IsResolved())
+	managedOverride, ok := expandedRateCardCurrency.CustomCurrency()
 	require.True(t, ok)
 	require.Equal(t, custom.ID, managedOverride.ID)
 	require.NotNil(t, managedOverride.CostBasis)
@@ -607,7 +654,8 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 		Where(addonratecarddb.Namespace(namespace), addonratecarddb.Key("custom-override")).
 		Only(t.Context())
 	require.NoError(t, err)
-	require.Nil(t, rateCardRow.FiatCurrencyCode)
+	require.NotNil(t, rateCardRow.CurrencyCode)
+	require.Equal(t, custom.GetCode().String(), *rateCardRow.CurrencyCode)
 	require.NotNil(t, rateCardRow.CustomCurrencyID)
 	require.Equal(t, custom.ID, *rateCardRow.CustomCurrencyID)
 

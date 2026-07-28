@@ -223,23 +223,23 @@ func (_u *AddonRateCardUpdate) ClearPrice() *AddonRateCardUpdate {
 	return _u
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_u *AddonRateCardUpdate) SetFiatCurrencyCode(v string) *AddonRateCardUpdate {
-	_u.mutation.SetFiatCurrencyCode(v)
+// SetCurrencyCode sets the "currency_code" field.
+func (_u *AddonRateCardUpdate) SetCurrencyCode(v string) *AddonRateCardUpdate {
+	_u.mutation.SetCurrencyCode(v)
 	return _u
 }
 
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_u *AddonRateCardUpdate) SetNillableFiatCurrencyCode(v *string) *AddonRateCardUpdate {
+// SetNillableCurrencyCode sets the "currency_code" field if the given value is not nil.
+func (_u *AddonRateCardUpdate) SetNillableCurrencyCode(v *string) *AddonRateCardUpdate {
 	if v != nil {
-		_u.SetFiatCurrencyCode(*v)
+		_u.SetCurrencyCode(*v)
 	}
 	return _u
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (_u *AddonRateCardUpdate) ClearFiatCurrencyCode() *AddonRateCardUpdate {
-	_u.mutation.ClearFiatCurrencyCode()
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (_u *AddonRateCardUpdate) ClearCurrencyCode() *AddonRateCardUpdate {
+	_u.mutation.ClearCurrencyCode()
 	return _u
 }
 
@@ -442,9 +442,9 @@ func (_u *AddonRateCardUpdate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.FiatCurrencyCode(); ok {
-		if err := addonratecard.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.fiat_currency_code": %w`, err)}
+	if v, ok := _u.mutation.CurrencyCode(); ok {
+		if err := addonratecard.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.currency_code": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.CustomCurrencyID(); ok {
@@ -557,11 +557,11 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(addonratecard.FieldPrice, field.TypeString)
 	}
-	if value, ok := _u.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(addonratecard.FieldFiatCurrencyCode, field.TypeString, value)
+	if value, ok := _u.mutation.CurrencyCode(); ok {
+		_spec.SetField(addonratecard.FieldCurrencyCode, field.TypeString, value)
 	}
-	if _u.mutation.FiatCurrencyCodeCleared() {
-		_spec.ClearField(addonratecard.FieldFiatCurrencyCode, field.TypeString)
+	if _u.mutation.CurrencyCodeCleared() {
+		_spec.ClearField(addonratecard.FieldCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
@@ -907,23 +907,23 @@ func (_u *AddonRateCardUpdateOne) ClearPrice() *AddonRateCardUpdateOne {
 	return _u
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_u *AddonRateCardUpdateOne) SetFiatCurrencyCode(v string) *AddonRateCardUpdateOne {
-	_u.mutation.SetFiatCurrencyCode(v)
+// SetCurrencyCode sets the "currency_code" field.
+func (_u *AddonRateCardUpdateOne) SetCurrencyCode(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetCurrencyCode(v)
 	return _u
 }
 
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_u *AddonRateCardUpdateOne) SetNillableFiatCurrencyCode(v *string) *AddonRateCardUpdateOne {
+// SetNillableCurrencyCode sets the "currency_code" field if the given value is not nil.
+func (_u *AddonRateCardUpdateOne) SetNillableCurrencyCode(v *string) *AddonRateCardUpdateOne {
 	if v != nil {
-		_u.SetFiatCurrencyCode(*v)
+		_u.SetCurrencyCode(*v)
 	}
 	return _u
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (_u *AddonRateCardUpdateOne) ClearFiatCurrencyCode() *AddonRateCardUpdateOne {
-	_u.mutation.ClearFiatCurrencyCode()
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (_u *AddonRateCardUpdateOne) ClearCurrencyCode() *AddonRateCardUpdateOne {
+	_u.mutation.ClearCurrencyCode()
 	return _u
 }
 
@@ -1139,9 +1139,9 @@ func (_u *AddonRateCardUpdateOne) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.FiatCurrencyCode(); ok {
-		if err := addonratecard.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.fiat_currency_code": %w`, err)}
+	if v, ok := _u.mutation.CurrencyCode(); ok {
+		if err := addonratecard.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.currency_code": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.CustomCurrencyID(); ok {
@@ -1271,11 +1271,11 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(addonratecard.FieldPrice, field.TypeString)
 	}
-	if value, ok := _u.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(addonratecard.FieldFiatCurrencyCode, field.TypeString, value)
+	if value, ok := _u.mutation.CurrencyCode(); ok {
+		_spec.SetField(addonratecard.FieldCurrencyCode, field.TypeString, value)
 	}
-	if _u.mutation.FiatCurrencyCodeCleared() {
-		_spec.ClearField(addonratecard.FieldFiatCurrencyCode, field.TypeString)
+	if _u.mutation.CurrencyCodeCleared() {
+		_spec.ClearField(addonratecard.FieldCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)

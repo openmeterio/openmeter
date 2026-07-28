@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
@@ -294,6 +295,11 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 				Namespace: params.Namespace,
 				ID:        params.ID,
 			},
+			Expand: plan.ExpandFields{
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
@@ -429,6 +435,9 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			},
 			Expand: plan.ExpandFields{
 				PlanAddons: true, // This is needed for plan add-on validation
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
 			},
 		})
 		if err != nil {

@@ -57,8 +57,8 @@ type PlanRateCard struct {
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
-	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
-	FiatCurrencyCode *string `json:"fiat_currency_code,omitempty"`
+	// The code of the fiat or custom currency.
+	CurrencyCode *string `json:"currency_code,omitempty"`
 	// CustomCurrencyID holds the value of the "custom_currency_id" field.
 	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// Discounts holds the value of the "discounts" field.
@@ -141,7 +141,7 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case planratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldTaxCodeID, planratecard.FieldTaxBehavior, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldFiatCurrencyCode, planratecard.FieldCustomCurrencyID, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
+		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldTaxCodeID, planratecard.FieldTaxBehavior, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldCurrencyCode, planratecard.FieldCustomCurrencyID, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case planratecard.FieldCreatedAt, planratecard.FieldUpdatedAt, planratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -280,12 +280,12 @@ func (_m *PlanRateCard) assignValues(columns []string, values []any) error {
 			} else {
 				_m.Price = value
 			}
-		case planratecard.FieldFiatCurrencyCode:
+		case planratecard.FieldCurrencyCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
+				return fmt.Errorf("unexpected type %T for field currency_code", values[i])
 			} else if value.Valid {
-				_m.FiatCurrencyCode = new(string)
-				*_m.FiatCurrencyCode = value.String
+				_m.CurrencyCode = new(string)
+				*_m.CurrencyCode = value.String
 			}
 		case planratecard.FieldCustomCurrencyID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -441,8 +441,8 @@ func (_m *PlanRateCard) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.FiatCurrencyCode; v != nil {
-		builder.WriteString("fiat_currency_code=")
+	if v := _m.CurrencyCode; v != nil {
+		builder.WriteString("currency_code=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

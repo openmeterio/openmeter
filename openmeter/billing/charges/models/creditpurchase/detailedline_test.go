@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -34,11 +35,17 @@ func TestNewDetailedLine(t *testing.T) {
 	fiatOverage := fiatCurrency.RoundToPrecision(roundedCustomCurrencyAmount.Mul(costBasis))
 
 	line, err := NewDetailedLine(NewDetailedLineInput{
-		Namespace:            "namespace",
-		InvoiceID:            "invoice-id",
-		Name:                 "usage (overage)",
-		ServicePeriod:        servicePeriod,
-		CustomCurrency:       currencies.Currency{Currency: customCurrency},
+		Namespace:     "namespace",
+		InvoiceID:     "invoice-id",
+		Name:          "usage (overage)",
+		ServicePeriod: servicePeriod,
+		CustomCurrency: currencies.Currency{
+			NamespacedID: models.NamespacedID{
+				Namespace: "namespace",
+				ID:        "custom-currency-id",
+			},
+			Currency: customCurrency,
+		},
 		CustomCurrencyAmount: customCurrencyAmount,
 		ResolvedCostBasis: &costbasis.State{
 			CostBasis:  costBasis,
@@ -75,10 +82,16 @@ func TestNewDetailedLineRequiresName(t *testing.T) {
 	}
 
 	_, err = NewDetailedLine(NewDetailedLineInput{
-		Namespace:            "namespace",
-		InvoiceID:            "invoice-id",
-		ServicePeriod:        servicePeriod,
-		CustomCurrency:       currencies.Currency{Currency: customCurrency},
+		Namespace:     "namespace",
+		InvoiceID:     "invoice-id",
+		ServicePeriod: servicePeriod,
+		CustomCurrency: currencies.Currency{
+			NamespacedID: models.NamespacedID{
+				Namespace: "namespace",
+				ID:        "custom-currency-id",
+			},
+			Currency: customCurrency,
+		},
 		CustomCurrencyAmount: alpacadecimal.NewFromInt(3),
 		ResolvedCostBasis: &costbasis.State{
 			CostBasis:  alpacadecimal.NewFromInt(2),
@@ -107,11 +120,17 @@ func TestNewDetailedLineRejectsInconsistentFiatAmount(t *testing.T) {
 	}
 
 	_, err = NewDetailedLine(NewDetailedLineInput{
-		Namespace:            "namespace",
-		InvoiceID:            "invoice-id",
-		Name:                 "usage (overage)",
-		ServicePeriod:        servicePeriod,
-		CustomCurrency:       currencies.Currency{Currency: customCurrency},
+		Namespace:     "namespace",
+		InvoiceID:     "invoice-id",
+		Name:          "usage (overage)",
+		ServicePeriod: servicePeriod,
+		CustomCurrency: currencies.Currency{
+			NamespacedID: models.NamespacedID{
+				Namespace: "namespace",
+				ID:        "custom-currency-id",
+			},
+			Currency: customCurrency,
+		},
 		CustomCurrencyAmount: alpacadecimal.NewFromInt(3),
 		ResolvedCostBasis: &costbasis.State{
 			CostBasis:  alpacadecimal.NewFromInt(2),

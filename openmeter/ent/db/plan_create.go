@@ -115,17 +115,9 @@ func (_c *PlanCreate) SetVersion(v int) *PlanCreate {
 	return _c
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_c *PlanCreate) SetFiatCurrencyCode(v string) *PlanCreate {
-	_c.mutation.SetFiatCurrencyCode(v)
-	return _c
-}
-
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_c *PlanCreate) SetNillableFiatCurrencyCode(v *string) *PlanCreate {
-	if v != nil {
-		_c.SetFiatCurrencyCode(*v)
-	}
+// SetCurrencyCode sets the "currency_code" field.
+func (_c *PlanCreate) SetCurrencyCode(v string) *PlanCreate {
+	_c.mutation.SetCurrencyCode(v)
 	return _c
 }
 
@@ -361,9 +353,12 @@ func (_c *PlanCreate) check() error {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Plan.version": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
-		if err := plan.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "Plan.fiat_currency_code": %w`, err)}
+	if _, ok := _c.mutation.CurrencyCode(); !ok {
+		return &ValidationError{Name: "currency_code", err: errors.New(`db: missing required field "Plan.currency_code"`)}
+	}
+	if v, ok := _c.mutation.CurrencyCode(); ok {
+		if err := plan.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "Plan.currency_code": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.CustomCurrencyID(); ok {
@@ -465,9 +460,9 @@ func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec, error) {
 		_spec.SetField(plan.FieldVersion, field.TypeInt, value)
 		_node.Version = value
 	}
-	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(plan.FieldFiatCurrencyCode, field.TypeString, value)
-		_node.FiatCurrencyCode = &value
+	if value, ok := _c.mutation.CurrencyCode(); ok {
+		_spec.SetField(plan.FieldCurrencyCode, field.TypeString, value)
+		_node.CurrencyCode = value
 	}
 	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(plan.FieldBillingCadence, field.TypeString, value)
@@ -804,8 +799,8 @@ func (u *PlanUpsertOne) UpdateNewValues() *PlanUpsertOne {
 		if _, exists := u.create.mutation.Key(); exists {
 			s.SetIgnore(plan.FieldKey)
 		}
-		if _, exists := u.create.mutation.FiatCurrencyCode(); exists {
-			s.SetIgnore(plan.FieldFiatCurrencyCode)
+		if _, exists := u.create.mutation.CurrencyCode(); exists {
+			s.SetIgnore(plan.FieldCurrencyCode)
 		}
 		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
 			s.SetIgnore(plan.FieldCustomCurrencyID)
@@ -1232,8 +1227,8 @@ func (u *PlanUpsertBulk) UpdateNewValues() *PlanUpsertBulk {
 			if _, exists := b.mutation.Key(); exists {
 				s.SetIgnore(plan.FieldKey)
 			}
-			if _, exists := b.mutation.FiatCurrencyCode(); exists {
-				s.SetIgnore(plan.FieldFiatCurrencyCode)
+			if _, exists := b.mutation.CurrencyCode(); exists {
+				s.SetIgnore(plan.FieldCurrencyCode)
 			}
 			if _, exists := b.mutation.CustomCurrencyID(); exists {
 				s.SetIgnore(plan.FieldCustomCurrencyID)
