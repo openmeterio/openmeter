@@ -117,6 +117,10 @@ func (r CurrencyReference) WithCurrency(currency *Currency) (CurrencyReference, 
 		return CurrencyReference{}, errors.New("currency is required")
 	}
 
+	if r.IsFiat() {
+		return CurrencyReference{}, errors.New("fiat currency cannot have a custom currency")
+	}
+
 	if r.Code != currency.GetCode() {
 		return CurrencyReference{}, fmt.Errorf("code mismatch between reference and currency [reference.code=%s resolved.code=%s]", r.Code, currency.GetCode())
 	}
