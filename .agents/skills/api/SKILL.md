@@ -1,8 +1,6 @@
 ---
 name: api
 description: Add or modify API endpoints using TypeSpec. Use when adding new API routes, modifying request/response types, or changing the OpenAPI spec.
-user-invocable: true
-argument-hint: "[description of API change]"
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 ---
 
@@ -365,4 +363,5 @@ For filtering specifically, `rules/aip-160-filtering.md` covers the **TypeSpec s
 - Never edit generated files manually (`api/openapi.yaml`, `api/client/`, `api/*.gen.go`)
 - Run `make gen-api` to generate Go types
 - Follow existing TypeSpec patterns and conventions from other AIP domains
-- When implementing the service layer, use the `/service` skill for service/adapter patterns
+- When implementing the service layer, follow
+  `docs/development/service-patterns.md`

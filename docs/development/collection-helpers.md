@@ -1,14 +1,9 @@
----
-name: samber-lo
-description: Use when writing or refactoring Go collection/pointer helper code in OpenMeter, especially when choosing between standard library slices/maps helpers and github.com/samber/lo for cloning, copying, equality, sorting, pointer literals, slice-to-map transforms, map keys/values, mapping, filtering, grouping, uniqueness, set-like conversions, and map entry transformations.
-user-invocable: true
-argument-hint: "[collection transformation or lo helper question]"
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob
----
+# Collection Helpers
 
-# samber/lo
-
-Use standard library collection helpers first when they express the operation directly, and use `github.com/samber/lo` for small, local collection transformations when it makes the intent clearer than a hand-written loop. OpenMeter pins `github.com/samber/lo v1.53.0` in `go.mod`.
+Use standard library collection helpers first when they express the operation
+directly, and use `github.com/samber/lo` for small, local collection
+transformations when it makes the intent clearer than a hand-written loop. See
+`go.mod` for the currently pinned version.
 
 ## Imports
 

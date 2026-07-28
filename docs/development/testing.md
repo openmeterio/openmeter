@@ -1,22 +1,14 @@
----
-name: test
-description: Write tests for OpenMeter services following project conventions. Use when creating unit tests, integration tests, or service tests.
-user-invocable: true
-argument-hint: "[description of what to test]"
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
----
-
 # Testing
 
-You are helping the user write tests for OpenMeter following established conventions.
+Use these conventions for in-process unit, integration, and service tests.
 
 ## Test Types & File Locations
 
-| Type | Purpose | Location | DB Required |
-|------|---------|----------|-------------|
-| Unit tests | Validation, pure functions | `openmeter/<domain>/<domain>_test.go` | No |
-| Integration tests | Adapter against real Postgres | `openmeter/<domain>/adapter/*_test.go` | Yes |
-| Service tests | Full stack via TestEnv | `openmeter/<domain>/service/*_test.go` | Yes |
+| Type              | Purpose                       | Location                               | DB Required |
+| ----------------- | ----------------------------- | -------------------------------------- | ----------- |
+| Unit tests        | Validation, pure functions    | `openmeter/<domain>/<domain>_test.go`  | No          |
+| Integration tests | Adapter against real Postgres | `openmeter/<domain>/adapter/*_test.go` | Yes         |
+| Service tests     | Full stack via TestEnv        | `openmeter/<domain>/service/*_test.go` | Yes         |
 
 ## Running Tests
 
@@ -48,16 +40,16 @@ psql 'postgres://pgtdbuser:pgtdbpass@127.0.0.1:5432/testdb_tpl_...?sslmode=disab
 
 From `openmeter/testutils/`:
 
-| Utility | Usage |
-|---------|-------|
-| `testutils.InitPostgresDB(t)` | Provisions fresh Postgres DB per test; skips if `POSTGRES_HOST` not set |
-| `testutils.NewDiscardLogger(t)` | Silent logger for tests |
-| `testutils.NewLogger(t)` | Default slog logger for tests |
+| Utility                         | Usage                                                                   |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `testutils.InitPostgresDB(t)`   | Provisions fresh Postgres DB per test; skips if `POSTGRES_HOST` not set |
+| `testutils.NewDiscardLogger(t)` | Silent logger for tests                                                 |
+| `testutils.NewLogger(t)`        | Default slog logger for tests                                           |
 
 From `openmeter/watermill/eventbus/`:
 
-| Utility | Usage |
-|---------|-------|
+| Utility               | Usage                          |
+| --------------------- | ------------------------------ |
 | `eventbus.NewMock(t)` | Mock event publisher for tests |
 
 ## TestEnv Pattern
@@ -273,6 +265,7 @@ func TestSuite(t *testing.T) {
 ```
 
 Key conventions:
+
 - Embed `*require.Assertions` for convenient assertion methods
 - Use `SetupSuite`/`TearDownSuite` for one-time setup (DB, env)
 - Use `SetupTest`/`TearDownTest` for per-test setup if needed
@@ -286,3 +279,9 @@ Key conventions:
 - Use `testutils.NewTestULID(t)` or `testutils.NewTestNamespace(t)` for random test identifiers
 - Each test gets its own namespace to avoid cross-test interference
 - Integration tests are automatically skipped when `POSTGRES_HOST` is not set (via `testutils.InitPostgresDB`)
+
+For usage-based billing lifecycle tests, drive behavior through
+`charges.Service.Create`, `AdvanceCharges`, and `ApplyPatches` instead of lower
+level charge adapters. Model late-arriving or newly visible usage with
+`MockStreamingConnector` events and explicit `StoredAt` values (or
+`SetSimpleEvents`) so finalization exercises the real stored-at cutoff.

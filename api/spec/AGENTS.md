@@ -30,6 +30,9 @@ directly, then run `make -C api/spec generate`.
   `packages/aip/tspconfig.yaml` points here). Everything it contains is
   regenerable — never hand-edit it. A single `generate` emits the complete SDK
   (schemas, runtime, per-namespace surface, barrel) plus the conformance tests.
+  Generation does not delete obsolete outputs: when an operation disappears,
+  remove its stale generated files from git and delete any ignored
+  `*.assert.ts` companions left in collaborators' checkouts.
 - `typespec-go` is a TypeSpec **emitter** built on `@alloy-js/go` +
   `@typespec/emitter-framework`. It emits the Go SDK into `api/v3/client`, which
   is also fully regenerable generated output.

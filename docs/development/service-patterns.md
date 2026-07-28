@@ -1,14 +1,6 @@
----
-name: service
-description: Create or modify a service package following OpenMeter conventions. Use when building new domain packages or modifying existing service/adapter layers.
-user-invocable: true
-argument-hint: "[description of service to create or modify]"
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
----
-
 # Service Package Development
 
-You are helping the user create or modify a service package in OpenMeter following established conventions.
+Use these conventions when creating or modifying an OpenMeter service package.
 
 ## Package Structure
 
@@ -392,11 +384,13 @@ Events follow this structure:
 
 ## Database Schema
 
-When the service requires database tables, use the `/db-migration` skill for creating ent schemas and generating migrations.
+When the service requires database tables, follow the `db-migration` skill for
+creating Ent schemas and generating migrations.
 
 ## API Handlers
 
-When implementing API handlers for the service, use the `/api` skill for handler implementation patterns, wiring into the server, and type conversion.
+When implementing API handlers for the service, follow the `api` skill for
+handler implementation patterns, wiring into the server, and type conversion.
 
 ## Dependency Injection Wiring
 
@@ -487,13 +481,13 @@ If the service is needed in other entry points (e.g., `cmd/billing-worker`, `cmd
 3. Define the `Service` interface in `service.go` with input types and their `Validate()` methods
 4. Define the `Adapter` interface in `adapter.go`
 5. Implement the service layer in `service/service.go`
-6. Create the ent schema if needed (use `/db-migration` skill)
+6. Create the Ent schema if needed (follow the `db-migration` skill)
 7. Implement the adapter layer in `adapter/adapter.go`, `adapter/<operation>.go`, `adapter/mapping.go`
 8. Add `errors.go` only if custom errors are needed
 9. Add `event.go` if the service modifies entities
 10. Wire it up: create `app/common/<domain>.go` and register in `cmd/<micro_service>/wire.go`
 11. Run `make generate` to regenerate Wire bindings
-12. Implement API handlers (use `/api` skill)
+12. Implement API handlers (follow the `api` skill)
 
 ### Modifying an existing service
 

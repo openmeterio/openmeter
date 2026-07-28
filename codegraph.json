@@ -1,0 +1,13 @@
+{
+  "exclude": [
+    "openmeter/ent/db/",
+    "pkg/framework/entutils/testutils/ent1/db/",
+    "pkg/framework/entutils/testutils/ent2/db/",
+    "api/client/go/",
+    "api/client/javascript/",
+    "api/v3/client/",
+    "api/spec/packages/aip-client-javascript/src/",
+    "**/*.gen.go",
+    "**/*_gen.go"
+  ]
+}
