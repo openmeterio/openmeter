@@ -9,12 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-func TestAddonSerializationUsesCurrencyCodes(t *testing.T) {
+func TestAddonSerializationPreservesRateCardCurrencyReference(t *testing.T) {
 	// given:
 	// - an add-on and rate card backed by a managed custom currency
 	managedCurrencyValue := currencytestutils.NewManagedCurrency(t, "test", "currency-resource-id", "CREDITS")
@@ -43,20 +44,20 @@ func TestAddonSerializationUsesCurrencyCodes(t *testing.T) {
 	require.NoError(t, err)
 
 	// then:
-	// - only stable currency codes are serialized, and decoding restores code-only references
+	// - the add-on default uses its code serializer while the managed rate-card reference is preserved
 	var serialized struct {
 		Currency  currencyx.Code `json:"currency"`
 		RateCards []struct {
 			RateCard struct {
-				Currency currencyx.Code `json:"currency"`
+				Currency currencies.CurrencyReference `json:"currency"`
 			} `json:"RateCard"`
 		} `json:"rateCards"`
 	}
 	require.NoError(t, json.Unmarshal(data, &serialized))
 	assert.Equal(t, currencyx.Code("CREDITS"), serialized.Currency)
 	require.Len(t, serialized.RateCards, 1)
-	assert.Equal(t, currencyx.Code("CREDITS"), serialized.RateCards[0].RateCard.Currency)
-	assert.NotContains(t, string(data), managedCurrency.ID)
+	assert.Equal(t, currencyx.Code("CREDITS"), serialized.RateCards[0].RateCard.Currency.Code)
+	assert.Equal(t, lo.ToPtr(managedCurrency.ID), serialized.RateCards[0].RateCard.Currency.CustomCurrencyID)
 
 	var decoded Addon
 	require.NoError(t, json.Unmarshal(data, &decoded))
@@ -66,5 +67,6 @@ func TestAddonSerializationUsesCurrencyCodes(t *testing.T) {
 	decodedRateCardCurrency := decoded.RateCards[0].AsMeta().Currency
 	require.NotNil(t, decodedRateCardCurrency)
 	assert.Equal(t, currencyx.Code("CREDITS"), decodedRateCardCurrency.Code)
+	assert.Equal(t, lo.ToPtr(managedCurrency.ID), decodedRateCardCurrency.CustomCurrencyID)
 	assert.False(t, decodedRateCardCurrency.IsResolved())
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -149,7 +150,7 @@ func TestRateCard_JSON(t *testing.T) {
 	}
 }
 
-func TestRateCardJSONUsesCurrencyCode(t *testing.T) {
+func TestRateCardJSONPreservesCurrencyReference(t *testing.T) {
 	// given:
 	// - a managed plan rate card backed by a managed custom currency
 	managedCurrencyValue := currencytestutils.NewManagedCurrency(t, "test", "currency-resource-id", "CREDITS")
@@ -171,21 +172,23 @@ func TestRateCardJSONUsesCurrencyCode(t *testing.T) {
 	require.NoError(t, err)
 
 	// then:
-	// - the managed identity is represented by its code and restored as a code identity
+	// - persisted reference fields are serialized and runtime-resolved state is omitted
 	var serialized struct {
 		RateCard struct {
-			Currency currencyx.Code `json:"currency"`
+			Currency currencies.CurrencyReference `json:"currency"`
 		} `json:"RateCard"`
 	}
 	require.NoError(t, json.Unmarshal(data, &serialized))
-	assert.Equal(t, currencyx.Code("CREDITS"), serialized.RateCard.Currency)
-	assert.NotContains(t, string(data), managedCurrency.ID)
+	assert.Equal(t, currencyx.Code("CREDITS"), serialized.RateCard.Currency.Code)
+	assert.Equal(t, lo.ToPtr(managedCurrency.ID), serialized.RateCard.Currency.CustomCurrencyID)
 
 	var decoded RateCard
 	require.NoError(t, json.Unmarshal(data, &decoded))
-	require.NotNil(t, decoded.AsMeta().Currency)
-	assert.Equal(t, currencyx.Code("CREDITS"), decoded.AsMeta().Currency.Code)
-	assert.False(t, decoded.AsMeta().Currency.IsResolved())
+	decodedCurrency := decoded.AsMeta().Currency
+	require.NotNil(t, decodedCurrency)
+	assert.Equal(t, currencyx.Code("CREDITS"), decodedCurrency.Code)
+	assert.Equal(t, lo.ToPtr(managedCurrency.ID), decodedCurrency.CustomCurrencyID)
+	assert.False(t, decodedCurrency.IsResolved())
 }
 
 func TestFlatFeeRateCard(t *testing.T) {

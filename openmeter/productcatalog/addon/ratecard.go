@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -101,20 +99,15 @@ func (r *RateCard) Validate() error {
 }
 
 func (r *RateCard) MarshalJSON() ([]byte, error) {
-	rateCard, err := marshalRateCardForJSON(r.RateCard)
-	if err != nil {
-		return nil, err
-	}
-
 	serde := struct {
 		productcatalog.RateCardSerde
-		RateCard json.RawMessage `json:"RateCard"`
+		productcatalog.RateCard
 		RateCardManagedFields
 	}{
 		RateCardSerde: productcatalog.RateCardSerde{
 			Type: r.Type(),
 		},
-		RateCard:              rateCard,
+		RateCard:              r.RateCard,
 		RateCardManagedFields: r.RateCardManagedFields,
 	}
 
@@ -122,108 +115,36 @@ func (r *RateCard) MarshalJSON() ([]byte, error) {
 }
 
 func (r *RateCard) UnmarshalJSON(b []byte) error {
-	var serialized struct {
-		productcatalog.RateCardSerde
-		RateCard json.RawMessage `json:"RateCard"`
-		RateCardManagedFields
-	}
-	err := json.Unmarshal(b, &serialized)
+	var s productcatalog.RateCardSerde
+	err := json.Unmarshal(b, &s)
 	if err != nil {
 		return fmt.Errorf("failed to JSON deserialize RateCard type: %w", err)
 	}
 
-	var rateCard productcatalog.RateCard
-	switch serialized.Type {
+	serde := struct {
+		productcatalog.RateCard
+		RateCardManagedFields
+	}{
+		RateCardManagedFields: r.RateCardManagedFields,
+		RateCard:              r.RateCard,
+	}
+
+	switch s.Type {
 	case productcatalog.FlatFeeRateCardType:
-		rateCard = &productcatalog.FlatFeeRateCard{}
+		serde.RateCard = &productcatalog.FlatFeeRateCard{}
 	case productcatalog.UsageBasedRateCardType:
-		rateCard = &productcatalog.UsageBasedRateCard{}
+		serde.RateCard = &productcatalog.UsageBasedRateCard{}
 	default:
-		return fmt.Errorf("invalid RateCard type: %s", serialized.Type)
+		return fmt.Errorf("invalid RateCard type: %s", s.Type)
 	}
 
-	var currencyData struct {
-		Currency *currencyx.Code `json:"currency,omitempty"`
-	}
-	if err = json.Unmarshal(serialized.RateCard, &currencyData); err != nil {
-		return fmt.Errorf("failed to JSON deserialize RateCard currency: %w", err)
-	}
-
-	rateCardData, err := rateCardJSONWithoutCurrency(serialized.RateCard)
+	err = json.Unmarshal(b, &serde)
 	if err != nil {
-		return fmt.Errorf("failed to JSON deserialize RateCard: %w", err)
-	}
-	if err = json.Unmarshal(rateCardData, rateCard); err != nil {
-		return fmt.Errorf("failed to JSON deserialize RateCard: %w", err)
+		return fmt.Errorf("failed to JSON deserialize UsageBasedRateCard: %w", err)
 	}
 
-	if currencyData.Currency != nil {
-		reference := currencies.NewCurrencyReference(*currencyData.Currency)
-		if err = setRateCardCurrencyReference(rateCard, &reference); err != nil {
-			return fmt.Errorf("failed to set RateCard currency: %w", err)
-		}
-	}
-
-	r.RateCardManagedFields = serialized.RateCardManagedFields
-	r.RateCard = rateCard
-
-	return nil
-}
-
-func marshalRateCardForJSON(rateCard productcatalog.RateCard) (json.RawMessage, error) {
-	currency := rateCard.AsMeta().Currency
-	rateCardWithoutCurrency := rateCard.Clone()
-	if err := setRateCardCurrencyReference(rateCardWithoutCurrency, nil); err != nil {
-		return nil, fmt.Errorf("failed to prepare RateCard for JSON serialization: %w", err)
-	}
-
-	data, err := json.Marshal(rateCardWithoutCurrency)
-	if err != nil {
-		return nil, fmt.Errorf("failed to JSON serialize RateCard: %w", err)
-	}
-
-	var fields map[string]json.RawMessage
-	if err = json.Unmarshal(data, &fields); err != nil {
-		return nil, fmt.Errorf("failed to rewrite RateCard currency: %w", err)
-	}
-
-	if currency != nil {
-		fields["currency"], err = json.Marshal(currency.GetCode())
-		if err != nil {
-			return nil, fmt.Errorf("failed to JSON serialize RateCard currency: %w", err)
-		}
-	} else {
-		delete(fields, "currency")
-	}
-
-	data, err = json.Marshal(fields)
-	if err != nil {
-		return nil, fmt.Errorf("failed to JSON serialize RateCard: %w", err)
-	}
-
-	return data, nil
-}
-
-func rateCardJSONWithoutCurrency(data json.RawMessage) (json.RawMessage, error) {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(data, &fields); err != nil {
-		return nil, err
-	}
-
-	delete(fields, "currency")
-
-	return json.Marshal(fields)
-}
-
-func setRateCardCurrencyReference(rateCard productcatalog.RateCard, reference *currencies.CurrencyReference) error {
-	switch rateCard := rateCard.(type) {
-	case *productcatalog.FlatFeeRateCard:
-		rateCard.Currency = reference
-	case *productcatalog.UsageBasedRateCard:
-		rateCard.Currency = reference
-	default:
-		return fmt.Errorf("unsupported RateCard type: %T", rateCard)
-	}
+	r.RateCardManagedFields = serde.RateCardManagedFields
+	r.RateCard = serde.RateCard
 
 	return nil
 }
