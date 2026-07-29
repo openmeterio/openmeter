@@ -365,6 +365,9 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		}
 
 		currencyCandidate := pp
+		if params.SettlementMode != nil {
+			currencyCandidate.SettlementMode = *params.SettlementMode
+		}
 		if params.Phases != nil {
 			currencyCandidate.Phases = *params.Phases
 		}

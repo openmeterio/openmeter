@@ -924,6 +924,136 @@ func TestPlanCustomCurrencyIntegration(t *testing.T) {
 	require.Equal(t, customCurrency, storedRateCard.EffectiveCurrency(stored.Currency).GetCode())
 }
 
+func TestUpdatePlanValidatesCurrenciesUsingUpdatedSettlementMode(t *testing.T) {
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	t.Run("credit then invoice to credit only skips cost basis validation", func(t *testing.T) {
+		// given:
+		// - a USD credit-then-invoice plan and a custom currency without a USD cost basis
+		namespace := pctestutils.NewTestNamespace(t)
+		custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(
+			namespace,
+			"CREDITS",
+			"Credits",
+			"cr",
+		))
+		require.NoError(t, err)
+
+		created, err := env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(
+			t,
+			namespace,
+			pctestutils.WithPlanKey("invoice-to-credit-only"),
+		))
+		require.NoError(t, err)
+
+		creditOnly := productcatalog.CreditOnlySettlementMode
+		month := datetime.MustParseDuration(t, "P1M")
+		phases := []productcatalog.Phase{{
+			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+			RateCards: productcatalog.RateCards{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:      "credits",
+						Name:     "Credits",
+						Currency: lo.ToPtr(currencies.NewCurrencyReference(custom.GetCode())),
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      decimal.NewFromInt(25),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: &month,
+				},
+			},
+		}}
+
+		// when:
+		// - the update changes the settlement mode and introduces the custom override together
+		updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+			NamespacedID:   created.NamespacedID,
+			SettlementMode: &creditOnly,
+			Phases:         &phases,
+		})
+
+		// then:
+		// - currency validation uses credit_only and the update succeeds without a cost basis
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, updated.SettlementMode)
+		require.Len(t, updated.Phases, 1)
+		require.Len(t, updated.Phases[0].RateCards, 1)
+		override := updated.Phases[0].RateCards[0].AsMeta().Currency
+		require.NotNil(t, override)
+		assert.Equal(t, custom.GetCode(), override.GetCode())
+	})
+
+	t.Run("credit only to credit then invoice requires cost basis", func(t *testing.T) {
+		// given:
+		// - a USD credit-only plan with a custom override that has no USD cost basis
+		namespace := pctestutils.NewTestNamespace(t)
+		custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(
+			namespace,
+			"CREDITS",
+			"Credits",
+			"cr",
+		))
+		require.NoError(t, err)
+
+		month := datetime.MustParseDuration(t, "P1M")
+		created, err := env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(
+			t,
+			namespace,
+			pctestutils.WithPlanKey("credit-only-to-invoice"),
+			func(t *testing.T, plan *productcatalog.Plan) {
+				t.Helper()
+
+				plan.SettlementMode = productcatalog.CreditOnlySettlementMode
+				plan.Phases = []productcatalog.Phase{{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:      "credits",
+								Name:     "Credits",
+								Currency: lo.ToPtr(currencies.NewCurrencyReference(custom.GetCode())),
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      decimal.NewFromInt(25),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: &month,
+						},
+					},
+				}}
+			},
+		))
+		require.NoError(t, err)
+
+		creditThenInvoice := productcatalog.CreditThenInvoiceSettlementMode
+
+		// when:
+		// - only the settlement mode is changed to credit_then_invoice
+		_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+			NamespacedID:   created.NamespacedID,
+			SettlementMode: &creditThenInvoice,
+		})
+
+		// then:
+		// - the existing custom override is checked under invoice semantics and nothing is persisted
+		issues, conversionErr := models.AsValidationIssues(err)
+		require.NoError(t, conversionErr)
+		require.Contains(t, lo.Map(issues, func(issue models.ValidationIssue, _ int) models.ErrorCode {
+			return issue.Code()
+		}), productcatalog.ErrCodeCurrencyCostBasisNotFound)
+
+		stored, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{
+			NamespacedID: created.NamespacedID,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, stored.SettlementMode)
+	})
+}
+
 func TestListPlansFilters(t *testing.T) {
 	monthPeriod := datetime.MustParseDuration(t, "P1M")
 
