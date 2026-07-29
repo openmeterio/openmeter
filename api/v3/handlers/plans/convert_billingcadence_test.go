@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,12 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/api/v3/apierrors"
 )
-
-func jsonReader(body string) io.Reader {
-	return strings.NewReader(body)
-}
 
 func usageBasedPrice(t *testing.T, priceType string) string {
 	t.Helper()
@@ -80,7 +74,7 @@ func TestCreatePlanUsageBasedRateCardMissingBillingCadence(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			r := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/plans",
-				jsonReader(body))
+				strings.NewReader(body))
 			r.Header.Set("Content-Type", "application/json")
 
 			newTestHandler().CreatePlan().ServeHTTP(w, r)
@@ -98,7 +92,7 @@ func TestUpdatePlanUsageBasedRateCardMissingBillingCadence(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequestWithContext(t.Context(), http.MethodPut, "/plans/01ARZ3NDEKTSV4RRFFQ69G5FAV",
-		jsonReader(body))
+		strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 
 	newTestHandler().UpdatePlan().With("01ARZ3NDEKTSV4RRFFQ69G5FAV").ServeHTTP(w, r)
@@ -132,29 +126,4 @@ func TestBillingCadenceErrorSurvivesWrapping(t *testing.T) {
 	var cadenceErr ErrRateCardBillingCadenceRequired
 	require.True(t, errors.As(err, &cadenceErr))
 	assert.Equal(t, "sessions", cadenceErr.Key)
-}
-
-// Errors that are not conversion failures must pass through untouched so they
-// keep their own status mapping.
-func TestUnrelatedErrorsArePassedThrough(t *testing.T) {
-	sentinel := errors.New("some other failure")
-	assert.Equal(t, sentinel, asBadRequestIfConversionError(t.Context(), sentinel))
-	assert.NoError(t, asBadRequestIfConversionError(t.Context(), nil))
-}
-
-// The encoder must recognise the mapped error; if it declines, nothing writes a
-// response and the request surfaces as a bare 500.
-func TestEncoderHandlesMappedError(t *testing.T) {
-	mapped := asBadRequestIfConversionError(t.Context(),
-		fmt.Errorf("failed to convert phase: %w",
-			fmt.Errorf("failed to convert rate card %q: %w", "sessions",
-				ErrRateCardBillingCadenceRequired{Key: "sessions"})))
-
-	w := httptest.NewRecorder()
-	r := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/plans", nil)
-
-	handled := apierrors.GenericErrorEncoder()(t.Context(), mapped, w, r)
-
-	require.True(t, handled, "encoder must handle the error, otherwise it becomes a bare 500")
-	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

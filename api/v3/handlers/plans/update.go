@@ -2,6 +2,7 @@ package plans
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -47,7 +48,18 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 
 			req, err := FromAPIUpsertPlanRequest(ns, planID, body)
 			if err != nil {
-				return UpdatePlanRequest{}, asBadRequestIfConversionError(ctx, err)
+				var cadenceErr ErrRateCardBillingCadenceRequired
+				if errors.As(err, &cadenceErr) {
+					return UpdatePlanRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						apierrors.InvalidParameter{
+							Field:  "phases[].rate_cards[].billing_cadence",
+							Reason: cadenceErr.Error(),
+							Source: apierrors.InvalidParamSourceBody,
+						},
+					})
+				}
+
+				return UpdatePlanRequest{}, err
 			}
 
 			req.IgnoreNonCriticalIssues = true

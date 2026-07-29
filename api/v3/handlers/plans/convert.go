@@ -681,10 +681,14 @@ func FromAPIBillingPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, erro
 	return phase, nil
 }
 
-// ErrRateCardBillingCadenceRequired is returned when a usage-based rate card
-// omits billing_cadence. It is a distinct type so the create and update
-// handlers can map it to a 400 with the offending field, instead of letting a
-// bare error fall through the error encoder as an unhandled 500.
+// ErrRateCardBillingCadenceRequired reports a usage-based rate card that omits
+// billing_cadence, which is required for unit, graduated and volume prices but
+// optional for flat and free ones.
+//
+// It is a distinct type because the create and update handlers must answer with
+// a 400: the v3 error encoder only recognises apierrors types, the not-found
+// errors and validation issues carrying a status attribute, so an untyped error
+// here reaches the client as a bodyless 500.
 type ErrRateCardBillingCadenceRequired struct {
 	Key string
 }
