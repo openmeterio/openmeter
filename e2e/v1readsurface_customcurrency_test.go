@@ -22,12 +22,11 @@ func TestV1AuthoringRejectsCustomDefaultCurrencies(t *testing.T) {
 	v1 := initClient(t)
 
 	custom := createCustomCurrency(t, v3, uniqueCustomCurrencyCode("v1"), "USD")
-	customCode := api.CurrencyCode(custom.Code)
 
 	t.Run("plan", func(t *testing.T) {
 		// given:
 		// - otherwise identical v1 plan inputs using a custom currency and USD
-		customInput := validV1PlanCreate(t, "v1_custom_currency_plan", customCode)
+		customInput := validV1PlanCreate(t, "v1_custom_currency_plan", custom.Code)
 		fiatInput := validV1PlanCreate(t, "v1_fiat_currency_plan", "USD")
 
 		// when:
@@ -48,7 +47,7 @@ func TestV1AuthoringRejectsCustomDefaultCurrencies(t *testing.T) {
 	t.Run("addon", func(t *testing.T) {
 		// given:
 		// - otherwise identical v1 add-on inputs using a custom currency and USD
-		customInput := validV1AddonCreate(t, "v1_custom_currency_addon", customCode)
+		customInput := validV1AddonCreate(t, "v1_custom_currency_addon", custom.Code)
 		fiatInput := validV1AddonCreate(t, "v1_fiat_currency_addon", "USD")
 
 		// when:
@@ -84,7 +83,7 @@ func TestV1AuthoringRejectsCustomDefaultCurrencies(t *testing.T) {
 		require.NoError(t, customInput.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
 			Timing:     timing,
 			CustomerId: lo.ToPtr(customer.Id),
-			CustomPlan: validV1CustomPlanInput(t, "v1_custom_currency_subscription", customCode),
+			CustomPlan: validV1CustomPlanInput(t, "v1_custom_currency_subscription", custom.Code),
 		}))
 		fiatInput := api.SubscriptionCreate{}
 		require.NoError(t, fiatInput.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
