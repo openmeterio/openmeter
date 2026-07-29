@@ -52,15 +52,15 @@ func (h *handler) ListPlans() ListPlansHandler {
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
-				Namespaces:               []string{ns},
-				IDs:                      lo.FromPtr(params.Id),
-				Keys:                     lo.FromPtr(params.Key),
-				KeyVersions:              lo.FromPtr(params.KeyVersion),
-				IncludeDeleted:           lo.FromPtr(params.IncludeDeleted),
-				Currencies:               lo.FromPtr(params.Currency),
-				Status:                   statusFilter,
-				ExcludeUnitConfig:        true,
-				ExcludeCurrencyOverrides: true,
+				Namespaces:                       []string{ns},
+				IDs:                              lo.FromPtr(params.Id),
+				Keys:                             lo.FromPtr(params.Key),
+				KeyVersions:                      lo.FromPtr(params.KeyVersion),
+				IncludeDeleted:                   lo.FromPtr(params.IncludeDeleted),
+				Currencies:                       lo.FromPtr(params.Currency),
+				Status:                           statusFilter,
+				ExcludeUnitConfig:                true,
+				ExcludeUnrepresentableCurrencies: true,
 			}
 
 			return req, nil
@@ -185,7 +185,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 
 			req.IgnoreNonCriticalIssues = true
 			req.RejectUnitConfig = true
-			req.RejectCurrencyOverrides = true
+			req.RejectUnrepresentableCurrencies = true
 
 			return req, nil
 		},
@@ -298,6 +298,9 @@ func (h *handler) GetPlan() GetPlanHandler {
 			if p.HasUnitConfig() {
 				return GetPlanResponse{}, productcatalog.ErrUnitConfigNotRepresentable
 			}
+			if p.Currency.IsCustom() {
+				return GetPlanResponse{}, productcatalog.ErrCurrencyNotRepresentable
+			}
 			if p.HasCurrencyOverrides() {
 				return GetPlanResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
@@ -337,8 +340,8 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 				EffectivePeriod: productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(clock.Now()),
 				},
-				RejectUnitConfig:        true,
-				RejectCurrencyOverrides: true,
+				RejectUnitConfig:                true,
+				RejectUnrepresentableCurrencies: true,
 			}
 
 			return req, nil
@@ -381,9 +384,9 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 					Namespace: ns,
 					ID:        planID,
 				},
-				EffectiveTo:             clock.Now(),
-				RejectUnitConfig:        true,
-				RejectCurrencyOverrides: true,
+				EffectiveTo:                     clock.Now(),
+				RejectUnitConfig:                true,
+				RejectUnrepresentableCurrencies: true,
 			}
 
 			return req, nil
@@ -429,10 +432,10 @@ func (h *handler) NextPlan() NextPlanHandler {
 					Namespace: ns,
 					ID:        idOrKey.ID,
 				},
-				Key:                     idOrKey.Key,
-				Version:                 0,
-				RejectUnitConfig:        true,
-				RejectCurrencyOverrides: true,
+				Key:                             idOrKey.Key,
+				Version:                         0,
+				RejectUnitConfig:                true,
+				RejectUnrepresentableCurrencies: true,
 			}
 
 			return req, nil

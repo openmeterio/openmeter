@@ -108,10 +108,11 @@ func AsCreatePlanRequest(a api.PlanCreate, namespace string) (CreatePlanRequest,
 		},
 	}
 
-	req.Currency = currencies.NewCurrencyReference(currencyx.Code(a.Currency))
-	if err = req.Currency.Validate(); err != nil {
+	currencyCode := currencyx.FiatCode(a.Currency)
+	if err = currencyCode.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
+	req.Currency = currencies.NewCurrencyReference(currencyx.Code(currencyCode))
 
 	req.PlanMeta.BillingCadence, err = datetime.ISODurationString(a.BillingCadence).Parse()
 	if err != nil {

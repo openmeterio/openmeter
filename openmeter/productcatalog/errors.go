@@ -478,6 +478,15 @@ var ErrRateCardCurrencyNotRepresentable = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeCurrencyNotRepresentable models.ErrorCode = "currency_not_representable"
+
+var ErrCurrencyNotRepresentable = models.NewValidationIssue(
+	ErrCodeCurrencyNotRepresentable,
+	"this resource uses a custom currency and is only available via the v3 API",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeRateCardUsageBasedPriceWithFeatureAndNoMeter models.ErrorCode = "usage_based_price_with_feature_and_no_meter"
 
 var ErrRateCardUsageBasedPriceWithFeatureAndNoMeter = models.NewValidationIssue(

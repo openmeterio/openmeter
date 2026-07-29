@@ -354,8 +354,13 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 		if params.RejectUnitConfig && add.AsProductCatalogAddon().HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
-		if params.RejectCurrencyOverrides && add.AsProductCatalogAddon().HasCurrencyOverrides() {
-			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+		if params.RejectUnrepresentableCurrencies {
+			if add.Currency.IsCustom() {
+				return nil, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if add.AsProductCatalogAddon().HasCurrencyOverrides() {
+				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
 		}
 
 		// Run validations prior updating add-on.
@@ -477,8 +482,13 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 		if params.RejectUnitConfig && add.AsProductCatalogAddon().HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
-		if params.RejectCurrencyOverrides && add.AsProductCatalogAddon().HasCurrencyOverrides() {
-			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+		if params.RejectUnrepresentableCurrencies {
+			if add.Currency.IsCustom() {
+				return nil, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if add.AsProductCatalogAddon().HasCurrencyOverrides() {
+				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
 		}
 
 		pa := add.AsProductCatalogAddon()
@@ -535,9 +545,9 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 						Namespace: activeAddon.Namespace,
 						ID:        activeAddon.ID,
 					},
-					EffectiveTo:             lo.FromPtr(params.EffectiveFrom),
-					RejectUnitConfig:        params.RejectUnitConfig,
-					RejectCurrencyOverrides: params.RejectCurrencyOverrides,
+					EffectiveTo:                     lo.FromPtr(params.EffectiveFrom),
+					RejectUnitConfig:                params.RejectUnitConfig,
+					RejectUnrepresentableCurrencies: params.RejectUnrepresentableCurrencies,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("failed to archive add-on with active status: %w", err)
@@ -611,8 +621,13 @@ func (s service) ArchiveAddon(ctx context.Context, params addon.ArchiveAddonInpu
 		if params.RejectUnitConfig && add.AsProductCatalogAddon().HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
-		if params.RejectCurrencyOverrides && add.AsProductCatalogAddon().HasCurrencyOverrides() {
-			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+		if params.RejectUnrepresentableCurrencies {
+			if add.Currency.IsCustom() {
+				return nil, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if add.AsProductCatalogAddon().HasCurrencyOverrides() {
+				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
 		}
 
 		// Run validations prior archiving add-on.
@@ -738,8 +753,13 @@ func (s service) NextAddon(ctx context.Context, params addon.NextAddonInput) (*a
 			)
 		}
 
-		if params.RejectCurrencyOverrides && sourceAddon.AsProductCatalogAddon().HasCurrencyOverrides() {
-			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+		if params.RejectUnrepresentableCurrencies {
+			if sourceAddon.Currency.IsCustom() {
+				return nil, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if sourceAddon.AsProductCatalogAddon().HasCurrencyOverrides() {
+				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
 		}
 
 		nextAddon, err := s.adapter.CreateAddon(ctx, addon.CreateAddonInput{

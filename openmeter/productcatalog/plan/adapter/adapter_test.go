@@ -668,7 +668,7 @@ func TestListPlansExcludeUnitConfig(t *testing.T) {
 	})
 }
 
-func TestListPlansExcludeCurrencyOverrides(t *testing.T) {
+func TestListPlansExcludeUnrepresentableCurrencies(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
 
@@ -687,27 +687,32 @@ func TestListPlansExcludeCurrencyOverrides(t *testing.T) {
 	_, err = env.PlanRepository.CreatePlan(t.Context(), withOverride)
 	require.NoError(t, err, "creating plan with rate-card currency override must not fail")
 
-	t.Run("included when ExcludeCurrencyOverrides is false", func(t *testing.T) {
+	withCustomDefault := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("with-custom-default"))
+	withCustomDefault.Currency = custom.Reference()
+	_, err = env.PlanRepository.CreatePlan(t.Context(), withCustomDefault)
+	require.NoError(t, err, "creating plan with custom default currency must not fail")
+
+	t.Run("included when ExcludeUnrepresentableCurrencies is false", func(t *testing.T) {
 		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
 			Namespaces: []string{namespace},
 		})
 		require.NoError(t, err, "listing plans must not fail")
 
 		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
-		require.ElementsMatch(t, []string{"plain", "with-override"}, keys)
-		require.Equal(t, 2, list.TotalCount, "TotalCount must count both plans")
+		require.ElementsMatch(t, []string{"plain", "with-override", "with-custom-default"}, keys)
+		require.Equal(t, 3, list.TotalCount, "TotalCount must count all plans")
 	})
 
-	t.Run("excluded when ExcludeCurrencyOverrides is true, TotalCount stays consistent", func(t *testing.T) {
+	t.Run("excluded when ExcludeUnrepresentableCurrencies is true, TotalCount stays consistent", func(t *testing.T) {
 		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-			Namespaces:               []string{namespace},
-			ExcludeCurrencyOverrides: true,
+			Namespaces:                       []string{namespace},
+			ExcludeUnrepresentableCurrencies: true,
 		})
 		require.NoError(t, err, "listing plans must not fail")
 
 		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
 		require.ElementsMatch(t, []string{"plain"}, keys)
-		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude the plan with currency overrides")
+		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude plans with unrepresentable currencies")
 	})
 }
 

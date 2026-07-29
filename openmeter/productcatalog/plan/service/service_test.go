@@ -1237,7 +1237,7 @@ func TestUpdatePlanRateCardCurrencyResolutionPreservesManagedIdentity(t *testing
 	require.Equal(t, newCredits.ID, resolvedCredits.ID)
 }
 
-func TestUpdatePlanInputRejectsPersistedUnrepresentableRateCardFields(t *testing.T) {
+func TestUpdatePlanInputRejectsPersistedUnrepresentableFields(t *testing.T) {
 	month := datetime.MustParseDuration(t, "P1M")
 
 	newRateCard := func() *productcatalog.UsageBasedRateCard {
@@ -1257,15 +1257,15 @@ func TestUpdatePlanInputRejectsPersistedUnrepresentableRateCardFields(t *testing
 	}
 
 	tests := []struct {
-		name                    string
-		configurePersisted      func(*productcatalog.RateCardMeta)
-		rejectUnitConfig        bool
-		rejectCurrencyOverrides bool
-		expected                error
+		name                            string
+		configurePersisted              func(*productcatalog.Plan, *productcatalog.RateCardMeta)
+		rejectUnitConfig                bool
+		rejectUnrepresentableCurrencies bool
+		expected                        error
 	}{
 		{
 			name: "unit config",
-			configurePersisted: func(meta *productcatalog.RateCardMeta) {
+			configurePersisted: func(_ *productcatalog.Plan, meta *productcatalog.RateCardMeta) {
 				meta.UnitConfig = &productcatalog.UnitConfig{
 					Operation:        productcatalog.UnitConfigOperationDivide,
 					ConversionFactor: decimal.NewFromInt(1000),
@@ -1276,11 +1276,19 @@ func TestUpdatePlanInputRejectsPersistedUnrepresentableRateCardFields(t *testing
 		},
 		{
 			name: "currency override",
-			configurePersisted: func(meta *productcatalog.RateCardMeta) {
+			configurePersisted: func(_ *productcatalog.Plan, meta *productcatalog.RateCardMeta) {
 				meta.Currency = lo.ToPtr(currencies.NewCurrencyReference(currencyx.Code("CREDITS")))
 			},
-			rejectCurrencyOverrides: true,
-			expected:                productcatalog.ErrRateCardCurrencyNotRepresentable,
+			rejectUnrepresentableCurrencies: true,
+			expected:                        productcatalog.ErrRateCardCurrencyNotRepresentable,
+		},
+		{
+			name: "custom default currency",
+			configurePersisted: func(plan *productcatalog.Plan, _ *productcatalog.RateCardMeta) {
+				plan.Currency = currencies.NewCurrencyReference(currencyx.Code("CREDITS"))
+			},
+			rejectUnrepresentableCurrencies: true,
+			expected:                        productcatalog.ErrCurrencyNotRepresentable,
 		},
 	}
 
@@ -1294,7 +1302,6 @@ func TestUpdatePlanInputRejectsPersistedUnrepresentableRateCardFields(t *testing
 			// then:
 			// - validation rejects the operation before the replacement can strip it
 			persistedRateCard := newRateCard()
-			tt.configurePersisted(&persistedRateCard.RateCardMeta)
 			persisted := productcatalog.Plan{
 				PlanMeta: productcatalog.PlanMeta{
 					Key:            "plan",
@@ -1307,14 +1314,15 @@ func TestUpdatePlanInputRejectsPersistedUnrepresentableRateCardFields(t *testing
 					RateCards: productcatalog.RateCards{persistedRateCard},
 				}},
 			}
+			tt.configurePersisted(&persisted, &persistedRateCard.RateCardMeta)
 			replacement := []productcatalog.Phase{{
 				PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
 				RateCards: productcatalog.RateCards{newRateCard()},
 			}}
 			input := plan.UpdatePlanInput{
-				Phases:                  &replacement,
-				RejectUnitConfig:        tt.rejectUnitConfig,
-				RejectCurrencyOverrides: tt.rejectCurrencyOverrides,
+				Phases:                          &replacement,
+				RejectUnitConfig:                tt.rejectUnitConfig,
+				RejectUnrepresentableCurrencies: tt.rejectUnrepresentableCurrencies,
 			}
 
 			err := input.ValidateWithPlan(persisted)

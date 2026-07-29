@@ -522,6 +522,74 @@ func TestListAddonsExcludeUnitConfig(t *testing.T) {
 	})
 }
 
+func TestListAddonsExcludeUnrepresentableCurrencies(t *testing.T) {
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(
+		namespace,
+		"TOKEN",
+		"Tokens",
+		"tok",
+	))
+	require.NoError(t, err, "creating managed custom currency must not fail")
+
+	plainInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{Key: "plain", Name: "Plain"},
+	})
+	plainInput.Key = "plain"
+	_, err = env.AddonRepository.CreateAddon(t.Context(), plainInput)
+	require.NoError(t, err, "creating plain add-on must not fail")
+
+	overrideInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:      "with-override",
+			Name:     "With override",
+			Currency: lo.ToPtr(custom.Reference()),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      decimal.NewFromInt(1),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+	})
+	overrideInput.Key = "with-override"
+	_, err = env.AddonRepository.CreateAddon(t.Context(), overrideInput)
+	require.NoError(t, err, "creating add-on with rate-card currency override must not fail")
+
+	customDefaultInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{Key: "with-custom-default", Name: "With custom default"},
+	})
+	customDefaultInput.Key = "with-custom-default"
+	customDefaultInput.Currency = custom.Reference()
+	_, err = env.AddonRepository.CreateAddon(t.Context(), customDefaultInput)
+	require.NoError(t, err, "creating add-on with custom default currency must not fail")
+
+	t.Run("included when ExcludeUnrepresentableCurrencies is false", func(t *testing.T) {
+		list, err := env.AddonRepository.ListAddons(t.Context(), addon.ListAddonsInput{
+			Namespaces: []string{namespace},
+		})
+		require.NoError(t, err, "listing add-ons must not fail")
+
+		keys := lo.Map(list.Items, func(a addon.Addon, _ int) string { return a.Key })
+		require.ElementsMatch(t, []string{"plain", "with-override", "with-custom-default"}, keys)
+		require.Equal(t, 3, list.TotalCount, "TotalCount must count all add-ons")
+	})
+
+	t.Run("excluded when ExcludeUnrepresentableCurrencies is true, TotalCount stays consistent", func(t *testing.T) {
+		list, err := env.AddonRepository.ListAddons(t.Context(), addon.ListAddonsInput{
+			Namespaces:                       []string{namespace},
+			ExcludeUnrepresentableCurrencies: true,
+		})
+		require.NoError(t, err, "listing add-ons must not fail")
+
+		keys := lo.Map(list.Items, func(a addon.Addon, _ int) string { return a.Key })
+		require.ElementsMatch(t, []string{"plain"}, keys)
+		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude add-ons with unrepresentable currencies")
+	})
+}
+
 func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 	// given:
 	// - one managed custom currency used both as an add-on default and as a rate-card override

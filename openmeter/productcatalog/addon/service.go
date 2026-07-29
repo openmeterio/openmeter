@@ -100,8 +100,9 @@ type ListAddonsInput struct {
 	// ExcludeUnitConfig omits add-ons carrying a unit_config conversion on any of their rate cards.
 	ExcludeUnitConfig bool
 
-	// ExcludeCurrencyOverrides omits add-ons carrying an explicit currency on any rate card.
-	ExcludeCurrencyOverrides bool
+	// ExcludeUnrepresentableCurrencies omits add-ons whose default currency or rate-card
+	// currency overrides cannot be represented by the v1 API.
+	ExcludeUnrepresentableCurrencies bool
 }
 
 func (i ListAddonsInput) Validate() error {
@@ -221,9 +222,9 @@ type UpdateAddonInput struct {
 	// drop the conversion. v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
 
-	// RejectCurrencyOverrides makes mutation validation reject an add-on that carries an explicit
-	// currency on any rate card. The v1 API cannot represent these overrides.
-	RejectCurrencyOverrides bool
+	// RejectUnrepresentableCurrencies makes mutation validation reject an add-on whose
+	// default currency or rate-card currency overrides cannot be represented by the v1 API.
+	RejectUnrepresentableCurrencies bool
 
 	inputOptions
 }
@@ -315,8 +316,13 @@ func (i UpdateAddonInput) ValidateWithAddon(a productcatalog.Addon) error {
 	if i.RejectUnitConfig && a.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
-	if i.RejectCurrencyOverrides && a.HasCurrencyOverrides() {
-		return productcatalog.ErrRateCardCurrencyNotRepresentable
+	if i.RejectUnrepresentableCurrencies {
+		if a.Currency.IsCustom() {
+			return productcatalog.ErrCurrencyNotRepresentable
+		}
+		if a.HasCurrencyOverrides() {
+			return productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
 	}
 
 	issues, err := models.AsValidationIssues(a.Validate())
@@ -469,9 +475,9 @@ type PublishAddonInput struct {
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
 
-	// RejectCurrencyOverrides rejects the operation when the target add-on carries an explicit
-	// currency on any rate card. The v1 API cannot represent these overrides.
-	RejectCurrencyOverrides bool
+	// RejectUnrepresentableCurrencies rejects the operation when the target add-on uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i PublishAddonInput) Validate() error {
@@ -525,9 +531,9 @@ type ArchiveAddonInput struct {
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
 
-	// RejectCurrencyOverrides rejects the operation when the target add-on carries an explicit
-	// currency on any rate card. The v1 API cannot represent these overrides.
-	RejectCurrencyOverrides bool
+	// RejectUnrepresentableCurrencies rejects the operation when the target add-on uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i ArchiveAddonInput) Validate() error {
@@ -565,9 +571,9 @@ type NextAddonInput struct {
 	// If not set the latest version is assumed.
 	Version int `json:"version,omitempty"`
 
-	// RejectCurrencyOverrides rejects the operation when the source add-on carries an explicit
-	// currency on any rate card. The v1 API cannot represent these overrides.
-	RejectCurrencyOverrides bool
+	// RejectUnrepresentableCurrencies rejects the operation when the source add-on uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i NextAddonInput) Validate() error {

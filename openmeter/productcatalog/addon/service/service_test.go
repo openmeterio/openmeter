@@ -31,6 +31,52 @@ import (
 
 var MonthPeriod = datetime.ISODurationFromDuration(30 * 24 * time.Hour)
 
+func TestUpdateAddonInputRejectsPersistedUnrepresentableCurrencies(t *testing.T) {
+	tests := []struct {
+		name      string
+		configure func(*productcatalog.Addon)
+		expected  error
+	}{
+		{
+			name: "custom default currency",
+			configure: func(addon *productcatalog.Addon) {
+				addon.Currency = currencies.NewCurrencyReference("CREDITS")
+			},
+			expected: productcatalog.ErrCurrencyNotRepresentable,
+		},
+		{
+			name: "currency override",
+			configure: func(addon *productcatalog.Addon) {
+				addon.RateCards[0].(*productcatalog.FlatFeeRateCard).Currency = lo.ToPtr(
+					currencies.NewCurrencyReference("CREDITS"),
+				)
+			},
+			expected: productcatalog.ErrRateCardCurrencyNotRepresentable,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - a persisted add-on carrying currency configuration the caller cannot represent
+			persisted := pctestutils.NewTestAddon(t, "test", &productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{Key: "flat", Name: "Flat"},
+			}).Addon
+			tt.configure(&persisted)
+
+			// when:
+			// - a v1-compatible update is validated against the persisted add-on
+			err := (addon.UpdateAddonInput{
+				RejectUnrepresentableCurrencies: true,
+			}).ValidateWithAddon(persisted)
+
+			// then:
+			// - validation rejects the operation before it can rewrite the add-on
+			require.ErrorIs(t, err, tt.expected)
+		})
+	}
+}
+
 func TestAddonService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

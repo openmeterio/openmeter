@@ -111,8 +111,9 @@ type ListPlansInput struct {
 	// ExcludeUnitConfig omits plans carrying a unit_config conversion on any of their rate cards. (v1 can't represent it)
 	ExcludeUnitConfig bool
 
-	// ExcludeCurrencyOverrides omits plans carrying an explicit currency on any rate card. (v1 can't represent it)
-	ExcludeCurrencyOverrides bool
+	// ExcludeUnrepresentableCurrencies omits plans whose default currency or rate-card
+	// currency overrides cannot be represented by the v1 API.
+	ExcludeUnrepresentableCurrencies bool
 }
 
 func (i ListPlansInput) Validate() error {
@@ -224,8 +225,9 @@ type UpdatePlanInput struct {
 	// RejectUnitConfig makes mutation validation reject a plan that carries a unit_config conversion on any rate card.
 	RejectUnitConfig bool
 
-	// RejectCurrencyOverrides makes mutation validation reject a plan that carries an explicit currency on any rate card.
-	RejectCurrencyOverrides bool
+	// RejectUnrepresentableCurrencies makes mutation validation reject a plan whose
+	// default currency or rate-card currency overrides cannot be represented by the v1 API.
+	RejectUnrepresentableCurrencies bool
 
 	inputOptions
 }
@@ -335,8 +337,13 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 	if i.RejectUnitConfig && p.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
-	if i.RejectCurrencyOverrides && p.HasCurrencyOverrides() {
-		return productcatalog.ErrRateCardCurrencyNotRepresentable
+	if i.RejectUnrepresentableCurrencies {
+		if p.Currency.IsCustom() {
+			return productcatalog.ErrCurrencyNotRepresentable
+		}
+		if p.HasCurrencyOverrides() {
+			return productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
 	}
 
 	p = i.applyTo(p)
@@ -344,8 +351,13 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 	if i.RejectUnitConfig && p.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
-	if i.RejectCurrencyOverrides && p.HasCurrencyOverrides() {
-		return productcatalog.ErrRateCardCurrencyNotRepresentable
+	if i.RejectUnrepresentableCurrencies {
+		if p.Currency.IsCustom() {
+			return productcatalog.ErrCurrencyNotRepresentable
+		}
+		if p.HasCurrencyOverrides() {
+			return productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
 	}
 
 	var errs []error
@@ -521,9 +533,9 @@ type PublishPlanInput struct {
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
 
-	// RejectCurrencyOverrides rejects the operation when the target plan carries an explicit
-	// rate-card currency. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
-	RejectCurrencyOverrides bool
+	// RejectUnrepresentableCurrencies rejects the operation when the target plan uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i PublishPlanInput) Validate() error {
@@ -577,9 +589,9 @@ type ArchivePlanInput struct {
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
 
-	// RejectCurrencyOverrides rejects the operation when the target plan carries an explicit
-	// rate-card currency. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
-	RejectCurrencyOverrides bool
+	// RejectUnrepresentableCurrencies rejects the operation when the target plan uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i ArchivePlanInput) Validate() error {
@@ -620,9 +632,9 @@ type NextPlanInput struct {
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
 
-	// RejectCurrencyOverrides rejects the operation when the source plan carries an explicit
-	// rate-card currency. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
-	RejectCurrencyOverrides bool
+	// RejectUnrepresentableCurrencies rejects the operation when the source plan uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i NextPlanInput) Validate() error {

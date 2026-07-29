@@ -80,15 +80,19 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			)))
 		}
 
-		if params.ExcludeCurrencyOverrides {
-			// The v1 API cannot represent rate-card currency overrides. Apply the filter before
-			// pagination so TotalCount and the returned page describe the same resource set.
-			query = query.Where(plandb.Not(plandb.HasPhasesWith(
-				phasedb.HasRatecardsWith(
-					ratecarddb.CurrencyCodeNotNil(),
-					ratecarddb.DeletedAtIsNil(),
-				),
-			)))
+		if params.ExcludeUnrepresentableCurrencies {
+			// The v1 API can represent only fiat defaults without rate-card currency overrides.
+			// Apply both filters before pagination so TotalCount and the returned page describe
+			// the same resource set.
+			query = query.Where(
+				plandb.CustomCurrencyIDIsNil(),
+				plandb.Not(plandb.HasPhasesWith(
+					phasedb.HasRatecardsWith(
+						ratecarddb.CurrencyCodeNotNil(),
+						ratecarddb.DeletedAtIsNil(),
+					),
+				)),
+			)
 		}
 
 		if !params.IncludeDeleted {
