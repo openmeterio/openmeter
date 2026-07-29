@@ -168,6 +168,68 @@ func TestValidatePlanWithCurrenciesRequiresResolvedReferences(t *testing.T) {
 	}
 }
 
+func TestValidatePlanWithCurrenciesReturnsSpecificOverrideErrors(t *testing.T) {
+	usd := mustPlanFiatCurrencyReference(t, currencyx.Code(currency.USD))
+	eur := mustPlanFiatCurrencyReference(t, currencyx.Code(currency.EUR))
+	credits := mustManagedPlanCustomCurrency(t, "credits-id", "CREDITS")
+	credits.CostBasis = &[]currencies.CostBasis{}
+	tokens := mustManagedPlanCustomCurrency(t, "tokens-id", "TOKENS")
+	tokens.CostBasis = &[]currencies.CostBasis{}
+
+	tests := []struct {
+		name      string
+		reference currencies.CurrencyReference
+		override  currencies.CurrencyReference
+		expected  error
+	}{
+		{
+			name:      "custom default rejects override",
+			reference: credits.Reference(),
+			override:  tokens.Reference(),
+			expected:  productcatalog.ErrRateCardCurrencyOverrideNotAllowed,
+		},
+		{
+			name:      "fiat default rejects redundant override",
+			reference: usd,
+			override:  usd,
+			expected:  productcatalog.ErrRateCardCurrencyOverrideRedundant,
+		},
+		{
+			name:      "fiat default rejects second fiat",
+			reference: usd,
+			override:  eur,
+			expected:  productcatalog.ErrPlanMultipleFiatCurrencies,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - a credit-only plan with resolved default and override currencies
+			plan := productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Currency:       tt.reference,
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+				},
+				Phases: []productcatalog.Phase{{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+					RateCards: productcatalog.RateCards{
+						newPlanCurrencyTestRateCard("ratecard", tt.override),
+					},
+				}},
+			}
+
+			// when:
+			// - runtime currency validation checks the override relationship
+			err := productcatalog.ValidatePlanWithCurrencies()(plan)
+
+			// then:
+			// - the canonical product-catalog validation issue is preserved
+			require.ErrorIs(t, err, tt.expected)
+		})
+	}
+}
+
 func TestValidatePlanWithCurrenciesUsesResolvedCurrencyReference(t *testing.T) {
 	// given:
 	// - two managed custom currency resources reuse the same code

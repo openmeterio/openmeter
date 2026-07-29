@@ -60,10 +60,14 @@ func ValidateCurrencyWithOverride(reference currencies.CurrencyReference, option
 
 		switch reference.Code.Type() {
 		case currencyx.CurrencyTypeCustom:
-			return fmt.Errorf("custom currency cannot be overridden: %w", ErrCurrencyInvalid)
+			return fmt.Errorf("custom currency cannot be overridden: %w", ErrRateCardCurrencyOverrideNotAllowed)
 		case currencyx.CurrencyTypeFiat:
+			if override.Equal(reference) {
+				return fmt.Errorf("currency override matches the default currency: %w", ErrRateCardCurrencyOverrideRedundant)
+			}
+
 			if override.IsFiat() {
-				return fmt.Errorf("fiat currency cannot be overridden with another")
+				return fmt.Errorf("fiat currency cannot be overridden with another fiat currency: %w", ErrPlanMultipleFiatCurrencies)
 			}
 
 			if override.IsCustom() {

@@ -184,13 +184,24 @@ func TestV3CustomCurrencyProductCatalogValidation(t *testing.T) {
 		body.RateCards = []v3sdk.RateCardInput{rateCard}
 
 		// when:
-		// - the add-on is created
-		_, err := c.Addons.Create(t.Context(), body)
+		// - the invalid add-on draft is created
+		addon, err := c.Addons.Create(t.Context(), body)
 
 		// then:
-		// - custom defaults cannot be overridden
+		// - the draft surfaces the specific override issue
+		// - publishing is blocked by the same issue
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, addon)
+
+		var codes []string
+		for _, validationError := range addon.ValidationErrors {
+			codes = append(codes, validationError.Code)
+		}
+		assert.Contains(t, codes, "rate_card_currency_override_not_allowed")
+
+		_, err = c.Addons.Publish(t.Context(), addon.ID)
 		problem := requireProblem(t, err, http.StatusBadRequest)
-		assertValidationCode(t, problem, "currency_invalid")
+		assertValidationCode(t, problem, "rate_card_currency_override_not_allowed")
 	})
 
 	t.Run("plan and addon reject different custom default currencies", func(t *testing.T) {

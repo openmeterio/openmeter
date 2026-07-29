@@ -156,3 +156,59 @@ func TestValidateAddonWithCurrenciesDoesNotRequireCostBasis(t *testing.T) {
 	// - cost-basis compatibility is deferred until the add-on is assigned to a plan
 	require.NoError(t, err)
 }
+
+func TestValidateAddonWithCurrenciesReturnsSpecificOverrideErrors(t *testing.T) {
+	usd := mustFiatCurrencyReference(t, currencyx.Code(currency.USD))
+	eur := mustFiatCurrencyReference(t, currencyx.Code(currency.EUR))
+	credits := mustManagedCustomCurrency(t, "credits-id", "CREDITS")
+	credits.CostBasis = &[]currencies.CostBasis{}
+	tokens := mustManagedCustomCurrency(t, "tokens-id", "TOKENS")
+	tokens.CostBasis = &[]currencies.CostBasis{}
+
+	tests := []struct {
+		name      string
+		reference currencies.CurrencyReference
+		override  currencies.CurrencyReference
+		expected  error
+	}{
+		{
+			name:      "custom default rejects override",
+			reference: credits.Reference(),
+			override:  tokens.Reference(),
+			expected:  ErrRateCardCurrencyOverrideNotAllowed,
+		},
+		{
+			name:      "fiat default rejects redundant override",
+			reference: usd,
+			override:  usd,
+			expected:  ErrRateCardCurrencyOverrideRedundant,
+		},
+		{
+			name:      "fiat default rejects second fiat",
+			reference: usd,
+			override:  eur,
+			expected:  ErrPlanMultipleFiatCurrencies,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - an add-on with resolved default and override currencies
+			addon := Addon{
+				AddonMeta: AddonMeta{Currency: tt.reference},
+				RateCards: RateCards{
+					newCurrencyTestRateCard("ratecard", tt.override),
+				},
+			}
+
+			// when:
+			// - runtime currency validation checks the override relationship
+			err := ValidateAddonWithCurrencies()(addon)
+
+			// then:
+			// - the canonical product-catalog validation issue is preserved
+			require.ErrorIs(t, err, tt.expected)
+		})
+	}
+}

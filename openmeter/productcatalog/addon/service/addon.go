@@ -426,10 +426,7 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 }
 
 func validateAddonCurrencies(addon productcatalog.Addon, ignoreNonCriticalIssues bool) error {
-	err := addon.ValidateWith(
-		productcatalog.ValidateAddonRateCardCurrencies(),
-		productcatalog.ValidateAddonWithCurrencies(),
-	)
+	err := addon.ValidateWith(productcatalog.ValidateAddonWithCurrencies())
 	issues, conversionErr := models.AsValidationIssues(err)
 	if conversionErr != nil {
 		return err
