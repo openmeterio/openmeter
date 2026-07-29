@@ -53,6 +53,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 					return UpdatePlanRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						apierrors.InvalidParameter{
 							Field:  "phases[].rate_cards[].billing_cadence",
+							Rule:   "required",
 							Reason: cadenceErr.Error(),
 							Source: apierrors.InvalidParamSourceBody,
 						},

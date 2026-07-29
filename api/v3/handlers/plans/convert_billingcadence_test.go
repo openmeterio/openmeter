@@ -63,6 +63,35 @@ func newTestHandler() Handler {
 	)
 }
 
+// requireBillingCadenceProblem asserts the full structured contract of the
+// rejection, not just the status: callers rely on the field path and rule to
+// tell a missing cadence apart from any other 400 on this endpoint.
+func requireBillingCadenceProblem(t *testing.T, w *httptest.ResponseRecorder) {
+	t.Helper()
+
+	require.Equal(t, http.StatusBadRequest, w.Code, "body: %s", w.Body.String())
+
+	var problem struct {
+		Status            int `json:"status"`
+		InvalidParameters []struct {
+			Field  string `json:"field"`
+			Rule   string `json:"rule"`
+			Reason string `json:"reason"`
+			Source string `json:"source"`
+		} `json:"invalid_parameters"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &problem))
+
+	assert.Equal(t, http.StatusBadRequest, problem.Status)
+	require.Len(t, problem.InvalidParameters, 1)
+
+	param := problem.InvalidParameters[0]
+	assert.Equal(t, "phases[].rate_cards[].billing_cadence", param.Field)
+	assert.Equal(t, "required", param.Rule)
+	assert.Equal(t, "body", param.Source)
+	assert.Contains(t, param.Reason, "billing cadence is required")
+}
+
 // A usage-based rate card without billing_cadence must be rejected with a 400.
 // Before this was fixed the conversion error was returned unwrapped, the v3
 // error encoder did not recognise it, and the request fell through as a bare
@@ -70,8 +99,10 @@ func newTestHandler() Handler {
 func TestCreatePlanUsageBasedRateCardMissingBillingCadence(t *testing.T) {
 	for _, priceType := range []string{"unit", "graduated", "volume"} {
 		t.Run(priceType, func(t *testing.T) {
+			// given a plan whose only rate card is usage-priced and has no cadence
 			body := planBody(t, usageBasedPrice(t, priceType))
 
+			// when the create handler decodes it
 			w := httptest.NewRecorder()
 			r := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/plans",
 				strings.NewReader(body))
@@ -79,8 +110,8 @@ func TestCreatePlanUsageBasedRateCardMissingBillingCadence(t *testing.T) {
 
 			newTestHandler().CreatePlan().ServeHTTP(w, r)
 
-			assert.Equal(t, http.StatusBadRequest, w.Code, "body: %s", w.Body.String())
-			assert.Contains(t, w.Body.String(), "billing_cadence")
+			// then the client is told which field is missing, not handed a 500
+			requireBillingCadenceProblem(t, w)
 		})
 	}
 }
@@ -97,8 +128,7 @@ func TestUpdatePlanUsageBasedRateCardMissingBillingCadence(t *testing.T) {
 
 	newTestHandler().UpdatePlan().With("01ARZ3NDEKTSV4RRFFQ69G5FAV").ServeHTTP(w, r)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code, "body: %s", w.Body.String())
-	assert.Contains(t, w.Body.String(), "billing_cadence")
+	requireBillingCadenceProblem(t, w)
 }
 
 // Flat and free prices carry no rate-card cadence requirement, so conversion

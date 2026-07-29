@@ -52,6 +52,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 					return CreatePlanRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						apierrors.InvalidParameter{
 							Field:  "phases[].rate_cards[].billing_cadence",
+							Rule:   "required",
 							Reason: cadenceErr.Error(),
 							Source: apierrors.InvalidParamSourceBody,
 						},
