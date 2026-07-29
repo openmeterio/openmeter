@@ -204,6 +204,45 @@ func TestPlanSerializationErrors(t *testing.T) {
 			wantErr:  true,
 			errMatch: "invalid billing cadence for rate card \"rate-card-1\"",
 		},
+		{
+			name: "missing billing cadence on usage based rate card",
+			json: `{
+				"namespace": "test",
+				"id": "plan-1",
+				"name": "Test Plan",
+				"phases": [{
+					"key": "phase-1",
+					"name": "Test Phase",
+					"rateCards": [{
+						"type": "usage_based",
+						"key": "rate-card-1",
+						"name": "Test Rate Card",
+						"featureKey": "tokens",
+						"price": {"type": "unit", "amount": "0.001"}
+					}]
+				}]
+			}`,
+			wantErr:  true,
+			errMatch: "missing billing cadence for rate card \"rate-card-1\"",
+		},
+		{
+			name: "missing billing cadence on flat fee rate card is allowed",
+			json: `{
+				"namespace": "test",
+				"id": "plan-1",
+				"name": "Test Plan",
+				"phases": [{
+					"key": "phase-1",
+					"name": "Test Phase",
+					"rateCards": [{
+						"type": "flat_fee",
+						"key": "rate-card-1",
+						"name": "Test Rate Card"
+					}]
+				}]
+			}`,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {

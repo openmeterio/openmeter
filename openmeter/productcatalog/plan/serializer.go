@@ -199,13 +199,18 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 
 			case productcatalog.UsageBasedRateCardType:
 				urc := &productcatalog.UsageBasedRateCard{RateCardMeta: meta}
-				if rcData.BillingCadence != nil {
-					period, err := datetime.ISODurationString(*rcData.BillingCadence).Parse()
-					if err != nil {
-						return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcData.Key, err)
-					}
-					urc.BillingCadence = period
+				// Unlike flat fee rate cards, billing cadence is required for
+				// usage based ones. Without this check a missing field would
+				// silently leave the zero value (P0D) in place.
+				if rcData.BillingCadence == nil {
+					return fmt.Errorf("missing billing cadence for rate card %q: required for usage based rate cards", rcData.Key)
 				}
+
+				period, err := datetime.ISODurationString(*rcData.BillingCadence).Parse()
+				if err != nil {
+					return fmt.Errorf("invalid billing cadence for rate card %q: %w", rcData.Key, err)
+				}
+				urc.BillingCadence = period
 				rc = urc
 
 			default:
