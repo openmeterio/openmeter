@@ -1,6 +1,7 @@
 package unitconfig
 
 import (
+	"math"
 	"testing"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -231,6 +232,26 @@ func TestUnitConfigValidate(t *testing.T) {
 			ConversionFactor: decimal.NewFromInt(1000),
 			Rounding:         UnitConfigRoundingModeNone,
 			Precision:        -1,
+		}
+		require.NoError(t, c.Validate())
+	})
+
+	t.Run("precision above int32 max is rejected when rounding is active", func(t *testing.T) {
+		c := &UnitConfig{
+			Operation:        UnitConfigOperationDivide,
+			ConversionFactor: decimal.NewFromInt(1000),
+			Rounding:         UnitConfigRoundingModeCeiling,
+			Precision:        math.MaxInt32 + 1,
+		}
+		require.Error(t, c.Validate())
+	})
+
+	t.Run("precision above int32 max is ignored when rounding is none", func(t *testing.T) {
+		c := &UnitConfig{
+			Operation:        UnitConfigOperationDivide,
+			ConversionFactor: decimal.NewFromInt(1000),
+			Rounding:         UnitConfigRoundingModeNone,
+			Precision:        math.MaxInt32 + 1,
 		}
 		require.NoError(t, c.Validate())
 	})

@@ -12,6 +12,7 @@ package unitconfig
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -127,10 +128,14 @@ func (c *UnitConfig) Validate() error {
 		errs = append(errs, fmt.Errorf("rounding: %w", err))
 	}
 
-	// Precision is ignored when no rounding is applied, so only enforce it when
-	// rounding is active.
-	if !c.Rounding.IsNone() && c.Precision < 0 {
-		errs = append(errs, errors.New("precision must not be negative"))
+	if !c.Rounding.IsNone() {
+		if c.Precision < 0 {
+			errs = append(errs, errors.New("precision must not be negative"))
+		}
+
+		if c.Precision > math.MaxInt32 {
+			errs = append(errs, fmt.Errorf("precision %d overflows int32", c.Precision))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -206,6 +211,8 @@ func (c *UnitConfig) Apply(raw decimal.Decimal) (converted, invoiced decimal.Dec
 
 	invoiced = converted
 
+	// Precision fits in int32: Validate rejects Precision > math.MaxInt32 when rounding is active, and Apply requires callers to validate first.
+	// A broken caller should not silently drop rounding on a billing quantity so we don't clamp here.
 	places := int32(c.Precision)
 
 	switch c.Rounding {
