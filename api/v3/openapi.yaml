@@ -847,6 +847,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/BillingCurrencyExpand'
+          explode: false
           style: form
       responses:
         '200':
@@ -1395,6 +1396,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/BillingChargesExpand'
+          explode: false
           style: form
       responses:
         '200':

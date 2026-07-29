@@ -60,7 +60,7 @@ interface CurrenciesOperations {
      *
      * To include the currently-active cost basis add: expand=cost_basis
      */
-    @query(#{ name: "expand", explode: true })
+    @query(#{ explode: false })
     expand?: CurrenciesExpand[],
   ): Shared.PagePaginatedResponse<Currency> | Common.ErrorResponses;
 }

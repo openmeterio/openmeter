@@ -77,7 +77,7 @@ namespace Charges {
        *
        * - `real_time_usage`: Expand the charge's real-time usage.
        */
-      @query(#{ name: "expand", explode: true })
+      @query(#{ explode: false })
       expand?: ChargesExpand[],
     ):
       | Shared.PagePaginatedResponse<Charge>
