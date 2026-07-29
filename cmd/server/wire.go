@@ -99,6 +99,7 @@ type Application struct {
 	StreamingConnector               streaming.Connector
 	TaxCodeNamespaceHandler          *taxcode.NamespaceHandler
 	TaxCodeService                   taxcode.Service
+	TaxCodePlanHook                  common.TaxCodePlanHook
 	TelemetryServer                  common.TelemetryServer
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
@@ -148,6 +149,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Server,
 		common.TaxCode,
 		common.TaxCodeNamespaceHandler,
+		common.NewTaxCodePlanServiceHook,
 		common.Subscription,
 		common.Lockr,
 		common.Secret,

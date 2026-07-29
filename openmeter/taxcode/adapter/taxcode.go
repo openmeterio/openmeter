@@ -110,11 +110,10 @@ func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
 		query := a.db.TaxCode.Query().
-			Where(taxcodedb.Namespace(input.Namespace)).
-			Where(taxcodedb.ID(input.ID))
-		if !input.IncludeDeleted {
-			query = query.Where(taxcodedb.DeletedAtIsNil())
-		}
+			Where(
+				taxcodedb.Namespace(input.Namespace),
+				taxcodedb.ID(input.ID),
+			)
 
 		entity, err := query.Only(ctx)
 		if err != nil {

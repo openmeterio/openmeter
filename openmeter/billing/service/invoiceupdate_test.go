@@ -1000,6 +1000,8 @@ func (s *invoiceUpdateTaxCodeService) UpsertOrganizationDefaultTaxCodes(context.
 	return taxcode.OrganizationDefaultTaxCodes{}, errors.New("UpsertOrganizationDefaultTaxCodes is not supported in this test")
 }
 
+func (s *invoiceUpdateTaxCodeService) RegisterHooks(...models.ServiceHook[taxcode.TaxCode]) {}
+
 type preallocatingInvoiceLineAdapter struct {
 	billing.Adapter
 }
