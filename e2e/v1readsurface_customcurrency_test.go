@@ -12,7 +12,10 @@ import (
 	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
-const currencyNotRepresentableCode = "currency_not_representable"
+const (
+	currencyNotRepresentableCode         = "currency_not_representable"
+	rateCardCurrencyNotRepresentableCode = "rate_card_currency_not_representable"
+)
 
 func TestV1AuthoringRejectsCustomDefaultCurrencies(t *testing.T) {
 	v3 := newV3Client(t)
@@ -105,21 +108,62 @@ func TestV1AuthoringRejectsCustomDefaultCurrencies(t *testing.T) {
 	})
 }
 
-func TestV1ReadAndMutationBoundaryRejectsCustomDefaultCurrencies(t *testing.T) {
+func TestV1ReadAndMutationBoundaryRejectsUnrepresentableCurrencies(t *testing.T) {
+	tests := []struct {
+		name         string
+		keyPrefix    string
+		expectedCode string
+		configure    func(*v3sdk.CreatePlanRequest, *v3sdk.CreateAddonRequest, v3sdk.BillingCurrencyCode)
+	}{
+		{
+			name:         "custom default currency",
+			keyPrefix:    "default",
+			expectedCode: currencyNotRepresentableCode,
+			configure: func(plan *v3sdk.CreatePlanRequest, addon *v3sdk.CreateAddonRequest, customCode v3sdk.BillingCurrencyCode) {
+				plan.Currency = customCode
+				addon.Currency = customCode
+			},
+		},
+		{
+			name:         "custom rate-card override",
+			keyPrefix:    "override",
+			expectedCode: rateCardCurrencyNotRepresentableCode,
+			configure: func(plan *v3sdk.CreatePlanRequest, addon *v3sdk.CreateAddonRequest, customCode v3sdk.BillingCurrencyCode) {
+				plan.Phases[0].RateCards[0].Currency = &customCode
+				addon.RateCards[0].Currency = &customCode
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testV1ReadAndMutationCurrencyBoundary(t, tt.keyPrefix, tt.expectedCode, tt.configure)
+		})
+	}
+}
+
+func testV1ReadAndMutationCurrencyBoundary(
+	t *testing.T,
+	keyPrefix string,
+	expectedCode string,
+	configure func(*v3sdk.CreatePlanRequest, *v3sdk.CreateAddonRequest, v3sdk.BillingCurrencyCode),
+) {
+	t.Helper()
+
 	v3 := newV3Client(t)
 	v1 := initClient(t)
 
 	custom := createCustomCurrency(t, v3, uniqueCustomCurrencyCode("v1read"), "USD")
 	customCode := v3sdk.BillingCurrencyCode(custom.Code)
 
-	customPlanInput := validPlanRequest("v1_hidden_custom_currency_plan")
-	customPlanInput.Currency = customCode
+	customPlanInput := validPlanRequest("v1_hidden_" + keyPrefix + "_currency_plan")
+	customAddonInput := validAddonRequest("v1_hidden_" + keyPrefix + "_currency_addon")
+	configure(&customPlanInput, &customAddonInput, customCode)
+
 	customPlan, err := v3.Plans.Create(t.Context(), customPlanInput)
 	v3.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, customPlan)
 
-	customAddonInput := validAddonRequest("v1_hidden_custom_currency_addon")
-	customAddonInput.Currency = customCode
 	customAddon, err := v3.Addons.Create(t.Context(), customAddonInput)
 	v3.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, customAddon)
@@ -151,16 +195,16 @@ func TestV1ReadAndMutationBoundaryRejectsCustomDefaultCurrencies(t *testing.T) {
 	v3.requireStatus(http.StatusOK, err)
 	require.NotNil(t, plainAddon)
 
-	runRequired(t, "v1 plan-addon endpoints reject custom defaults", func(t *testing.T) {
+	runRequired(t, "v1 plan-addon endpoints reject unrepresentable currencies", func(t *testing.T) {
 		getResponse, err := v1.GetPlanAddonWithResponse(t.Context(), customPlan.ID, customAddon.ID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, getResponse.StatusCode(), "body: %s", string(getResponse.Body))
-		assert.Contains(t, string(getResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(getResponse.Body), expectedCode)
 
 		listResponse, err := v1.ListPlanAddonsWithResponse(t.Context(), customPlan.ID, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, listResponse.StatusCode(), "body: %s", string(listResponse.Body))
-		assert.Contains(t, string(listResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(listResponse.Body), expectedCode)
 
 		updateResponse, err := v1.UpdatePlanAddonWithResponse(
 			t.Context(),
@@ -170,7 +214,7 @@ func TestV1ReadAndMutationBoundaryRejectsCustomDefaultCurrencies(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, updateResponse.StatusCode(), "body: %s", string(updateResponse.Body))
-		assert.Contains(t, string(updateResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(updateResponse.Body), expectedCode)
 
 		createResponse, err := v1.CreatePlanAddonWithResponse(t.Context(), customPlan.ID, api.PlanAddonCreate{
 			AddonId:       plainAddon.ID,
@@ -178,7 +222,7 @@ func TestV1ReadAndMutationBoundaryRejectsCustomDefaultCurrencies(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, createResponse.StatusCode(), "body: %s", string(createResponse.Body))
-		assert.Contains(t, string(createResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(createResponse.Body), expectedCode)
 
 		page, err := v3.PlanAddons.List(t.Context(), customPlan.ID, v3sdk.PlanAddonListParams{})
 		v3.requireStatus(http.StatusOK, err)
@@ -190,11 +234,11 @@ func TestV1ReadAndMutationBoundaryRejectsCustomDefaultCurrencies(t *testing.T) {
 	v3.requireStatus(http.StatusOK, err)
 	require.NotNil(t, customPlan)
 
-	runRequired(t, "v1 GET rejects custom defaults but retains fiat resources", func(t *testing.T) {
+	runRequired(t, "v1 GET rejects unrepresentable currencies but retains fiat resources", func(t *testing.T) {
 		customPlanResponse, err := v1.GetPlanWithResponse(t.Context(), customPlan.ID, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, customPlanResponse.StatusCode(), "body: %s", string(customPlanResponse.Body))
-		assert.Contains(t, string(customPlanResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(customPlanResponse.Body), expectedCode)
 
 		plainPlanResponse, err := v1.GetPlanWithResponse(t.Context(), plainPlan.ID, nil)
 		require.NoError(t, err)
@@ -204,7 +248,7 @@ func TestV1ReadAndMutationBoundaryRejectsCustomDefaultCurrencies(t *testing.T) {
 		customAddonResponse, err := v1.GetAddonWithResponse(t.Context(), customAddon.ID, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, customAddonResponse.StatusCode(), "body: %s", string(customAddonResponse.Body))
-		assert.Contains(t, string(customAddonResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(customAddonResponse.Body), expectedCode)
 
 		plainAddonResponse, err := v1.GetAddonWithResponse(t.Context(), plainAddon.ID, nil)
 		require.NoError(t, err)
@@ -212,7 +256,7 @@ func TestV1ReadAndMutationBoundaryRejectsCustomDefaultCurrencies(t *testing.T) {
 		require.NotNil(t, plainAddonResponse.JSON200)
 	})
 
-	runRequired(t, "v1 LIST excludes custom defaults with exact totals", func(t *testing.T) {
+	runRequired(t, "v1 LIST excludes unrepresentable currencies with exact totals", func(t *testing.T) {
 		planResponse, err := v1.ListPlansWithResponse(t.Context(), &api.ListPlansParams{
 			Key:      &[]string{customPlan.Key, plainPlan.Key},
 			PageSize: lo.ToPtr(api.PaginationPageSize(1000)),
@@ -238,36 +282,46 @@ func TestV1ReadAndMutationBoundaryRejectsCustomDefaultCurrencies(t *testing.T) {
 		assert.Equal(t, 1, addonResponse.JSON200.TotalCount)
 	})
 
-	runRequired(t, "v1 lifecycle mutations reject custom defaults without side effects", func(t *testing.T) {
+	runRequired(t, "v1 lifecycle mutations reject unrepresentable currencies without side effects", func(t *testing.T) {
 		archivePlanResponse, err := v1.ArchivePlanWithResponse(t.Context(), customPlan.ID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, archivePlanResponse.StatusCode(), "body: %s", string(archivePlanResponse.Body))
-		assert.Contains(t, string(archivePlanResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(archivePlanResponse.Body), expectedCode)
 
 		publishPlanResponse, err := v1.PublishPlanWithResponse(t.Context(), customPlan.ID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, publishPlanResponse.StatusCode(), "body: %s", string(publishPlanResponse.Body))
-		assert.Contains(t, string(publishPlanResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(publishPlanResponse.Body), expectedCode)
 
 		nextPlanResponse, err := v1.NextPlanWithResponse(t.Context(), customPlan.ID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, nextPlanResponse.StatusCode(), "body: %s", string(nextPlanResponse.Body))
-		assert.Contains(t, string(nextPlanResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(nextPlanResponse.Body), expectedCode)
 
 		archiveAddonResponse, err := v1.ArchiveAddonWithResponse(t.Context(), customAddon.ID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, archiveAddonResponse.StatusCode(), "body: %s", string(archiveAddonResponse.Body))
-		assert.Contains(t, string(archiveAddonResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(archiveAddonResponse.Body), expectedCode)
 
 		publishAddonResponse, err := v1.PublishAddonWithResponse(t.Context(), customAddon.ID)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, publishAddonResponse.StatusCode(), "body: %s", string(publishAddonResponse.Body))
-		assert.Contains(t, string(publishAddonResponse.Body), currencyNotRepresentableCode)
+		assert.Contains(t, string(publishAddonResponse.Body), expectedCode)
 
 		planAfter, err := v3.Plans.Get(t.Context(), customPlan.ID)
 		v3.requireStatus(http.StatusOK, err)
 		require.NotNil(t, planAfter)
 		assert.Equal(t, v3sdk.PlanStatusActive, planAfter.Status)
+
+		planVersions, err := v3.Plans.List(t.Context(), v3sdk.PlanListParams{
+			Page: &v3sdk.PageParams{Size: lo.ToPtr(1000)},
+			Filter: &v3sdk.PlanFilter{
+				Key: &v3sdk.StringFilter{Eq: lo.ToPtr(customPlan.Key)},
+			},
+		})
+		v3.requireStatus(http.StatusOK, err)
+		require.NotNil(t, planVersions)
+		assert.Equal(t, 1, planVersions.Meta.Page.Total, "rejected v1 next must not create a plan version")
 
 		addonAfter, err := v3.Addons.Get(t.Context(), customAddon.ID)
 		v3.requireStatus(http.StatusOK, err)
