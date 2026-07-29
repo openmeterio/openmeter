@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	currenciescurrencyresolver "github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
@@ -56,6 +57,7 @@ type SubscriptionDependencies struct {
 	ItemRepo                 subscription.SubscriptionItemRepository
 	CustomerAdapter          *testCustomerRepo
 	CustomerService          customer.Service
+	CurrencyService          currencies.Service
 	SubjectService           subject.Service
 	FeatureConnector         *testFeatureConnector
 	ExampleMeterID           string
@@ -295,6 +297,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		WorkflowService:          workflowSvc,
 		CustomerAdapter:          customerAdapter,
 		CustomerService:          customerService,
+		CurrencyService:          currencyService,
 		SubjectService:           subjectService,
 		FeatureConnector:         NewTestFeatureConnector(entitlementRegistry.Feature),
 		ExampleMeterID:           meterID,

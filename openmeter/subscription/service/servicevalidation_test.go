@@ -63,12 +63,12 @@ func TestValidateSubscriptionUsesFiatOnly(t *testing.T) {
 		{
 			name:     "custom subscription currency",
 			spec:     newSpec(customCurrency, nil),
-			expected: errCustomCurrencySubscriptionsNotSupported,
+			expected: subscription.ErrCustomCurrencySubscriptionsNotSupported,
 		},
 		{
 			name:     "fiat subscription with custom item currency",
 			spec:     newSpec(currencyx.Code("USD"), &customCurrencyReference),
-			expected: errCustomCurrencySubscriptionsNotSupported,
+			expected: subscription.ErrCustomCurrencySubscriptionsNotSupported,
 		},
 	}
 

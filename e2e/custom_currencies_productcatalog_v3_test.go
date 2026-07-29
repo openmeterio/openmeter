@@ -204,6 +204,64 @@ func TestV3CustomCurrencyProductCatalogValidation(t *testing.T) {
 		assertValidationCode(t, problem, "rate_card_currency_override_not_allowed")
 	})
 
+	t.Run("custom addon default cannot be attached to fiat subscription", func(t *testing.T) {
+		// given:
+		// - a valid USD plan and an assigned add-on whose priced rate card inherits
+		//   a managed custom currency with an active USD cost basis
+		c := newV3Client(t)
+		custom := createCustomCurrency(t, c, uniqueCustomCurrencyCode("sai"), "USD")
+		customCode := v3sdk.BillingCurrencyCode(custom.Code)
+
+		addonBody := validAddonRequest("custom_currency_subscription_addon")
+		addonBody.Currency = customCode
+		addonBody.RateCards = []v3sdk.RateCardInput{validFlatRateCard("inherited_custom_currency")}
+
+		resources := createCustomCurrencyCatalogResources(t, c, customCurrencyCatalogLifecycleInput{
+			Plan:  validPlanRequest("custom_currency_subscription_addon_plan"),
+			Addon: addonBody,
+		})
+
+		customerKey := uniqueKey("custom_currency_subscription_addon_customer")
+		customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:      customerKey,
+			Name:     "Custom Currency Subscription Add-on Customer",
+			Currency: lo.ToPtr("USD"),
+			UsageAttribution: &v3sdk.CustomerUsageAttribution{
+				SubjectKeys: []string{customerKey},
+			},
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, customer)
+
+		subscription, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
+			Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
+			Plan:     v3sdk.SubscriptionChangePlan{ID: &resources.Plan.ID},
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, subscription)
+
+		// when:
+		// - the custom-priced add-on is attached to the fiat subscription
+		timing := lo.Must(v3sdk.SubscriptionEditTimingFromEnum(v3sdk.SubscriptionEditTimingEnumImmediate))
+		_, err = c.Subscriptions.CreateAddon(t.Context(), subscription.ID, v3sdk.CreateSubscriptionAddonRequest{
+			Addon:    v3sdk.AddonReference{ID: resources.Addon.ID},
+			Quantity: 1,
+			Timing:   timing,
+		})
+
+		// then:
+		// - the temporary subscription boundary rejects it before persistence
+		problem := requireProblem(t, err, http.StatusBadRequest)
+		assertProblemDetail(t, problem, "custom currencies are not yet supported on subscriptions")
+
+		page, err := c.Subscriptions.ListAddons(t.Context(), subscription.ID, v3sdk.SubscriptionAddonListParams{
+			Page: &v3sdk.PageParams{Size: lo.ToPtr(100)},
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, page)
+		assert.Empty(t, page.Data)
+	})
+
 	t.Run("plan and addon reject different custom default currencies", func(t *testing.T) {
 		// given:
 		// - a custom-currency plan and a published add-on using a different custom default

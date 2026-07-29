@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -12,8 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-var errCustomCurrencySubscriptionsNotSupported = errors.New("custom currencies are not yet supported on subscriptions")
 
 func (s *service) validateCreate(ctx context.Context, cust customer.Customer, spec subscription.SubscriptionSpec) error {
 	// Let's make sure the method was called properly
@@ -99,7 +96,7 @@ func validateSubscriptionUsesFiatOnly(spec subscription.SubscriptionSpec) error 
 	if spec.Currency != "" && spec.Currency.IsCustom() {
 		return models.NewGenericValidationError(fmt.Errorf(
 			"%w: subscription currency is %q",
-			errCustomCurrencySubscriptionsNotSupported,
+			subscription.ErrCustomCurrencySubscriptionsNotSupported,
 			spec.Currency,
 		))
 	}
@@ -122,7 +119,7 @@ func validateSubscriptionUsesFiatOnly(spec subscription.SubscriptionSpec) error 
 
 				return models.NewGenericValidationError(fmt.Errorf(
 					"%w: item %q in phase %q uses %q",
-					errCustomCurrencySubscriptionsNotSupported,
+					subscription.ErrCustomCurrencySubscriptionsNotSupported,
 					itemKey,
 					phaseKey,
 					meta.Currency.GetCode(),
