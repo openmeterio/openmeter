@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -19,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -580,7 +580,6 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)
 
@@ -611,7 +610,7 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 		a, err := env.Addon.CreateAddon(ctx, input)
 		require.NoError(t, err)
 
-		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		tcEntity := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 			Key:  "stripe_txcd_99000002",
 			Name: "txcd_99000002",
 			AppMappings: taxcode.TaxCodeAppMappings{
@@ -668,7 +667,7 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 		a, err := env.Addon.CreateAddon(ctx, input)
 		require.NoError(t, err)
 
-		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		tcEntity := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 			Key:  "stripe_txcd_99000010",
 			Name: "txcd_99000010",
 			AppMappings: taxcode.TaxCodeAppMappings{
@@ -760,7 +759,6 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)
 
@@ -840,7 +838,7 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 
 		phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
 
-		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		tcEntity := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 			Key:  "stripe_txcd_99000020",
 			Name: "txcd_99000020",
 			AppMappings: taxcode.TaxCodeAppMappings{
@@ -896,4 +894,226 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 		require.NotNil(t, tc.TaxCodeID, "TaxCodeID must be backfilled from TaxCode entity")
 		assert.Equal(t, tcEntity.ID, *tc.TaxCodeID)
 	})
+}
+
+func TestAddonPublishRejectsDeletedTaxCode(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	// given:
+	// - a meter and a feature are provisioned
+	// - a tax code is created and then deleted, leaving a dangling reference
+	// - a draft add-on has a rate card referencing that (now-deleted) tax code
+
+	err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+	require.NoError(t, err)
+
+	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page: pagination.Page{
+			PageSize:   1000,
+			PageNumber: 1,
+		},
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, result.Items)
+
+	feat, err := env.Feature.CreateFeature(ctx, pctestutils.NewTestFeatureFromMeter(t, &result.Items[0]))
+	require.NoError(t, err)
+
+	// Provision organization-default tax codes so DeleteTaxCode can proceed past the org-defaults check.
+	env.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
+
+	// Create a tax code with a Stripe app mapping so it resolves at create time.
+	tcEntity, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "stripe_txcd_40000001",
+		Name:      "txcd_40000001",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000001"},
+		},
+	})
+	require.NoError(t, err)
+
+	taxCodeID := tcEntity.ID
+
+	// Create a DRAFT add-on with a rate card referencing the tax code.
+	input := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(feat, &productcatalog.TaxConfig{
+		TaxCodeID: lo.ToPtr(taxCodeID),
+	}))
+	input.Key = "publish-deleted-taxcode"
+	input.Name = "Publish Deleted TaxCode"
+
+	a, err := env.Addon.CreateAddon(ctx, input)
+	require.NoError(t, err)
+
+	// Delete the tax code — the add-on-reference delete hook is NOT registered in pctestutils,
+	// so this succeeds and leaves a dangling reference (intended for this test).
+	err = env.TaxCode.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: taxCodeID},
+	})
+	require.NoError(t, err)
+
+	// when: publishing the add-on
+	publishAt := time.Now().Truncate(time.Microsecond)
+	_, err = env.Addon.PublishAddon(ctx, addon.PublishAddonInput{
+		NamespacedID: a.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: &publishAt,
+			EffectiveTo:   nil,
+		},
+	})
+
+	// then: publish fails with a rate-card tax-code-not-found validation issue
+	require.Error(t, err)
+
+	var vi models.ValidationIssue
+	require.True(t, errors.As(err, &vi), "expected ValidationIssue wrapping ErrCodeRateCardTaxCodeNotFound, got %T: %v", err, err)
+	require.Equal(t, productcatalog.ErrCodeRateCardTaxCodeNotFound, vi.Code())
+}
+
+// TestCreateAddonRejectsDeletedTaxCode verifies that CreateAddon rejects a rate card whose
+// TaxConfig.TaxCodeID references a tax code that is already soft-deleted at creation time.
+// taxcode.Service.GetTaxCode intentionally returns soft-deleted rows by ID (so existing
+// references keep resolving for reads), so resolveTaxCodes must independently reject a fresh
+// reference to a deleted tax code via TaxCode.IsDeleted() rather than relying on GetTaxCode
+// to fail lookup.
+func TestCreateAddonRejectsDeletedTaxCode(t *testing.T) {
+	ctx := t.Context()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	// given:
+	// - a meter and a feature are provisioned
+	// - a tax code is created and then soft-deleted before any add-on references it
+
+	err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+	require.NoError(t, err)
+
+	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page: pagination.Page{
+			PageSize:   1000,
+			PageNumber: 1,
+		},
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, result.Items)
+
+	feat, err := env.Feature.CreateFeature(ctx, pctestutils.NewTestFeatureFromMeter(t, &result.Items[0]))
+	require.NoError(t, err)
+
+	// Provision organization-default tax codes so DeleteTaxCode can proceed past the org-defaults check.
+	env.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
+
+	tcEntity, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "stripe_txcd_40000002",
+		Name:      "txcd_40000002",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000002"},
+		},
+	})
+	require.NoError(t, err)
+
+	err = env.TaxCode.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: tcEntity.ID},
+	})
+	require.NoError(t, err)
+
+	// when: creating an add-on whose rate card references the already-deleted tax code
+	input := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(feat, &productcatalog.TaxConfig{
+		TaxCodeID: lo.ToPtr(tcEntity.ID),
+	}))
+	input.Key = "create-deleted-taxcode"
+	input.Name = "Create Deleted TaxCode"
+
+	_, err = env.Addon.CreateAddon(ctx, input)
+
+	// then: creation is rejected with a generic validation error
+	require.Error(t, err)
+	assert.True(t, models.IsGenericValidationError(err), "expected validation error for deleted taxCodeId, got: %v", err)
+}
+
+// TestUpdateAddonRejectsDeletedTaxCode verifies that UpdateAddon rejects a rate card whose
+// TaxConfig.TaxCodeID references a tax code that has since been soft-deleted. The add-on is
+// created without a tax reference, then updated to reference the deleted tax code; the same
+// resolveTaxCodes guard used by CreateAddon runs on every rate-card update.
+func TestUpdateAddonRejectsDeletedTaxCode(t *testing.T) {
+	ctx := t.Context()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	// given:
+	// - a meter and a feature are provisioned
+	// - a draft add-on exists with no tax reference on its rate card
+	// - a tax code is created and then soft-deleted
+
+	err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+	require.NoError(t, err)
+
+	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page: pagination.Page{
+			PageSize:   1000,
+			PageNumber: 1,
+		},
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, result.Items)
+
+	feat, err := env.Feature.CreateFeature(ctx, pctestutils.NewTestFeatureFromMeter(t, &result.Items[0]))
+	require.NoError(t, err)
+
+	// Provision organization-default tax codes so DeleteTaxCode can proceed past the org-defaults check.
+	env.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
+
+	input := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(feat, nil))
+	input.Key = "update-deleted-taxcode"
+	input.Name = "Update Deleted TaxCode"
+
+	a, err := env.Addon.CreateAddon(ctx, input)
+	require.NoError(t, err)
+
+	tcEntity, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "stripe_txcd_40000003",
+		Name:      "txcd_40000003",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000003"},
+		},
+	})
+	require.NoError(t, err)
+
+	err = env.TaxCode.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: tcEntity.ID},
+	})
+	require.NoError(t, err)
+
+	// when: updating the add-on's rate card to reference the deleted tax code
+	updatedRateCards := productcatalog.RateCards{
+		newTestAddonFlatRateCard(feat, &productcatalog.TaxConfig{
+			TaxCodeID: lo.ToPtr(tcEntity.ID),
+		}),
+	}
+
+	_, err = env.Addon.UpdateAddon(ctx, addon.UpdateAddonInput{
+		NamespacedID: a.NamespacedID,
+		RateCards:    &updatedRateCards,
+	})
+
+	// then: update is rejected with a generic validation error
+	require.Error(t, err)
+	assert.True(t, models.IsGenericValidationError(err), "expected validation error for deleted taxCodeId, got: %v", err)
 }

@@ -163,22 +163,22 @@ func IsTaxCodeOrphanedKeyError(err error) bool {
 	return errors.Is(err, ErrTaxCodeOrphanedKey)
 }
 
-const ErrCodeTaxCodeReferencedByPlan models.ErrorCode = "tax_code_referenced_by_plan"
+const ErrCodeTaxCodeReferencedByRateCard models.ErrorCode = "tax_code_referenced_by_rate_card"
 
-var ErrTaxCodeReferencedByPlan = models.NewValidationIssue(
-	ErrCodeTaxCodeReferencedByPlan,
-	"tax code cannot be deleted as it is referenced by one or more plans",
+var ErrTaxCodeReferencedByRateCard = models.NewValidationIssue(
+	ErrCodeTaxCodeReferencedByRateCard,
+	"tax code cannot be deleted as it is referenced by a rate card",
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
 )
 
-func NewTaxCodeReferencedByPlanError(taxCodeID string, planIDs []string) error {
-	return ErrTaxCodeReferencedByPlan.
+func NewTaxCodeReferencedByRateCardError(taxCodeID string, rateCardKey string) error {
+	return ErrTaxCodeReferencedByRateCard.
 		WithAttr("id", taxCodeID).
-		WithAttr("plan_ids", planIDs)
+		WithAttr("rate_card_key", rateCardKey)
 }
 
-func IsTaxCodeReferencedByPlanError(err error) bool {
+func IsTaxCodeReferencedByRateCardError(err error) bool {
 	var vi models.ValidationIssue
-	return errors.As(err, &vi) && vi.Code() == ErrCodeTaxCodeReferencedByPlan
+	return errors.As(err, &vi) && vi.Code() == ErrCodeTaxCodeReferencedByRateCard
 }

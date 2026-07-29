@@ -119,7 +119,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillC
 func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPurchasesSanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-lifecycle-two-charges-two-purchases")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -379,7 +379,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 // the later correction has already been applied.
 func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfillCorrection(ctx context.Context, namespacePrefix string) usageBasedPartialBackfillLifecycleState {
 	ns := s.GetUniqueNamespace(namespacePrefix)
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)

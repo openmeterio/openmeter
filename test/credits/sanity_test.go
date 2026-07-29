@@ -979,7 +979,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageIgnoresNonExpiringSourceOnUsageS
 func (s *SanitySuite) TestFeatureRestrictedCreditCollectionCorrectionThenCollectionSanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-feature-credit-correction-collection")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1484,7 +1484,7 @@ func (s *SanitySuite) assertBreakageRowsByExpiry(ctx context.Context, namespace 
 func (s *SanitySuite) setupExpiringCreditBreakage(namespaceSuffix string, opts ...expiringCreditBreakageSetupOption) expiringCreditBreakageSetup {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace(namespaceSuffix)
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1687,7 +1687,7 @@ func (s *SanitySuite) assertBreakageBalancesAt(input breakageBalanceAssertionInp
 func (s *SanitySuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace(namespaceSuffix)
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -1713,7 +1713,7 @@ func (s *SanitySuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffix str
 func (s *SanitySuite) setupClosedPeriodUsageBasedCreditOnlyCollection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace(namespaceSuffix)
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -1941,7 +1941,7 @@ func (s *SanitySuite) assertFundedRecognizedCreditOnlyDeleted(namespace string, 
 func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfillSanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-delete-partial-backfill")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -2115,7 +2115,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAdvanceBackfillSanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-delete-mixed-feature-backfill")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -2334,7 +2334,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-test")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -2787,7 +2787,7 @@ func (s *SanitySuite) setupMeteredFeatures(ctx context.Context, ns string, input
 func (s *SanitySuite) TestCreditPurchasePersistsPriority() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-creditpurchase-persists-priority")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -2827,7 +2827,7 @@ func (s *SanitySuite) TestCreditPurchasePersistsPriority() {
 func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-payment-lifecycle")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3122,7 +3122,7 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-sanity-test-credit-only")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
@@ -3548,7 +3548,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("credit-purchase-multi-taxcode-advance")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3748,7 +3748,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFeatureBuckets() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("credit-purchase-legacy-feature-advance")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -3902,7 +3902,7 @@ func (s *SanitySuite) markLedgerEntriesLegacyBySpendChargeID(ctx context.Context
 func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("flatfee-credit-taxconfig-earnings")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -4022,7 +4022,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsToEarnings() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("flatfee-invoice-taxconfig-earnings")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -4122,7 +4122,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsToEarnings() {
 func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("usage-credit-taxconfig-earnings")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -4259,7 +4259,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsToEarnings() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("usage-invoice-taxconfig-earnings")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -4439,7 +4439,7 @@ func (s *SanitySuite) mustEarningsBalanceForTaxConfig(namespace string, code cur
 func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("taxcode-earnings-flow")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")

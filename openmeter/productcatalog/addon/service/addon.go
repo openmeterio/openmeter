@@ -44,9 +44,14 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 			continue
 		}
 
-		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCode, namespace, meta.TaxConfig); err != nil {
+		resolved, err := productcatalog.ResolveTaxConfig(ctx, s.taxCode, productcatalog.ResolveTaxConfigInput{
+			Namespace: namespace,
+			Cfg:       meta.TaxConfig,
+		})
+		if err != nil {
 			return err
 		}
+		meta.TaxConfig = resolved
 
 		var rcNew productcatalog.RateCard
 
@@ -427,6 +432,16 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 		// Validate plan with features
 		err = pa.ValidateWith(
 			productcatalog.ValidateAddonWithFeatures(ctx, s.featureResolver.WithNamespace(params.Namespace)),
+		)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("invalid add-on [id=%s key=%s version=%d]: %w",
+				add.ID, add.Key, add.Version, err),
+			)
+		}
+
+		// Validate add-on with tax codes
+		err = pa.ValidateWith(
+			productcatalog.ValidateAddonWithTaxCodes(ctx, s.taxCodeResolver.WithNamespace(params.Namespace)),
 		)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("invalid add-on [id=%s key=%s version=%d]: %w",

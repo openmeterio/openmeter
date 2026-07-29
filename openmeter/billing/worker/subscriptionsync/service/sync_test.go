@@ -3917,7 +3917,10 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 
 	lines := gatheringInvoice.Lines.OrEmpty()
 	for _, line := range lines {
-		s.Equal(taxConfig, line.TaxConfig)
+		s.Require().NotNil(line.TaxConfig)
+		s.Equal(taxConfig.Behavior, line.TaxConfig.Behavior)
+		s.Equal(taxConfig.Stripe, line.TaxConfig.Stripe)
+		s.NotNil(line.TaxConfig.TaxCodeID)
 	}
 
 	// Given we edit the subscription the tax config is carried over to the lines
@@ -3948,7 +3951,10 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 
 	lines = gatheringInvoice.Lines.OrEmpty()
 	for _, line := range lines {
-		s.Equal(taxConfig, line.TaxConfig)
+		s.Require().NotNil(line.TaxConfig)
+		s.Equal(taxConfig.Behavior, line.TaxConfig.Behavior)
+		s.Equal(taxConfig.Stripe, line.TaxConfig.Stripe)
+		s.NotNil(line.TaxConfig.TaxCodeID)
 	}
 }
 

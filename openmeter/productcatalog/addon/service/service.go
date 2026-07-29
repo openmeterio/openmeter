@@ -17,6 +17,7 @@ type Config struct {
 	Publisher eventbus.Publisher
 
 	FeatureResolver productcatalog.FeatureResolver
+	TaxCodeResolver productcatalog.TaxCodeResolver
 }
 
 func New(config Config) (addon.Service, error) {
@@ -26,6 +27,10 @@ func New(config Config) (addon.Service, error) {
 
 	if config.FeatureResolver == nil {
 		return nil, errors.New("feature resolver is required")
+	}
+
+	if config.TaxCodeResolver == nil {
+		return nil, errors.New("tax code resolver is required")
 	}
 
 	if config.TaxCode == nil {
@@ -47,6 +52,7 @@ func New(config Config) (addon.Service, error) {
 		publisher: config.Publisher,
 
 		featureResolver: config.FeatureResolver,
+		taxCodeResolver: config.TaxCodeResolver,
 	}, nil
 }
 
@@ -59,4 +65,5 @@ type service struct {
 	publisher eventbus.Publisher
 
 	featureResolver productcatalog.FeatureResolver
+	taxCodeResolver productcatalog.TaxCodeResolver
 }

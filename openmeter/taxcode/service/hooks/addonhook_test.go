@@ -15,15 +15,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestPlanHookPreDelete(t *testing.T) {
+func TestAddonHookPreDelete(t *testing.T) {
 	// Setup real services backed by Postgres.
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
 
-	// Register the plan hook on the real taxcode service.
-	planHook, err := hooks.NewPlanHook(hooks.PlanHookConfig{PlanService: env.Plan})
+	// Register the addon hook on the real taxcode service.
+	addonHook, err := hooks.NewAddonHook(hooks.AddonHookConfig{AddonService: env.Addon})
 	require.NoError(t, err)
-	env.TaxCode.RegisterHooks(planHook)
+	env.TaxCode.RegisterHooks(addonHook)
 
 	ns := pctestutils.NewTestNamespace(t)
 
@@ -31,45 +31,36 @@ func TestPlanHookPreDelete(t *testing.T) {
 	// the org-defaults check and reach the pre-delete hook.
 	env.TaxCodeEnv.ProvisionDefaultTaxCodes(t, ns)
 
-	t.Run("blocks deletion when a plan references the tax code", func(t *testing.T) {
-		// given: a tax code that a plan will reference
+	t.Run("blocks deletion when an add-on references the tax code", func(t *testing.T) {
+		// given: a tax code that an add-on will reference
 		referenced, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
 			Namespace: ns,
-			Key:       "referenced",
+			Key:       "addon-referenced",
 			Name:      "Referenced Tax Code",
 			AppMappings: taxcode.TaxCodeAppMappings{
-				{AppType: app.AppTypeStripe, TaxCode: "txcd_20000001"},
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_20000003"},
 			},
 		})
 		require.NoError(t, err)
 
-		// given: a plan whose rate card references the tax code
-		planInput := pctestutils.NewTestPlan(t, ns,
-			pctestutils.WithPlanKey("plan-with-taxcode"),
-			pctestutils.WithPlanPhases(productcatalog.Phase{
-				PhaseMeta: productcatalog.PhaseMeta{
-					Key:  "default",
-					Name: "Default",
-				},
-				RateCards: []productcatalog.RateCard{
-					&productcatalog.FlatFeeRateCard{
-						RateCardMeta: productcatalog.RateCardMeta{
-							Key:  "rc-1",
-							Name: "RC 1",
-							TaxConfig: &productcatalog.TaxConfig{
-								TaxCodeID: lo.ToPtr(referenced.ID),
-							},
-							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-								Amount:      decimal.NewFromInt(0),
-								PaymentTerm: productcatalog.InArrearsPaymentTerm,
-							}),
-						},
-						BillingCadence: &pctestutils.MonthPeriod,
+		// given: an add-on whose rate card references the tax code
+		addonInput := pctestutils.NewTestAddon(t, ns,
+			&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "rc-1",
+					Name: "RC 1",
+					TaxConfig: &productcatalog.TaxConfig{
+						TaxCodeID: lo.ToPtr(referenced.ID),
 					},
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      decimal.NewFromInt(0),
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
+					}),
 				},
-			}),
+			},
 		)
-		_, err = env.Plan.CreatePlan(t.Context(), planInput)
+		addonInput.Key = "addon-with-taxcode"
+		_, err = env.Addon.CreateAddon(t.Context(), addonInput)
 		require.NoError(t, err)
 
 		// when: attempting to delete the referenced tax code
@@ -83,14 +74,14 @@ func TestPlanHookPreDelete(t *testing.T) {
 			"expected TaxCodeReferencedByRateCard error, got: %v", err)
 	})
 
-	t.Run("allows deletion when no plan references the tax code", func(t *testing.T) {
-		// given: a tax code that no plan references
+	t.Run("allows deletion when no add-on references the tax code", func(t *testing.T) {
+		// given: a tax code that no add-on references
 		unreferenced, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
 			Namespace: ns,
-			Key:       "unreferenced",
+			Key:       "addon-unreferenced",
 			Name:      "Unreferenced Tax Code",
 			AppMappings: taxcode.TaxCodeAppMappings{
-				{AppType: app.AppTypeStripe, TaxCode: "txcd_20000002"},
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_20000004"},
 			},
 		})
 		require.NoError(t, err)

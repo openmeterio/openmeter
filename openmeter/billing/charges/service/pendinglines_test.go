@@ -19,7 +19,7 @@ import (
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeBackedGatheringLines() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-create-pending-lines")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateTestCustomer(ns, "test-subject")
@@ -138,7 +138,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreatedChargesOnFailure() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-create-pending-lines-rollback")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
@@ -244,7 +244,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsNonManu
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackPartialChargeLineResults() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-create-pending-lines-partial-rollback")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateTestCustomer(ns, "test-subject")

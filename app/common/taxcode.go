@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
@@ -60,6 +61,28 @@ func NewTaxCodePlanServiceHook(
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tax code plan hook: %w", err)
+	}
+
+	taxCodeService.RegisterHooks(h)
+
+	return h, nil
+}
+
+// TaxCodeAddonHook prevents deleting tax codes that are still referenced by add-ons.
+type TaxCodeAddonHook taxcodehooks.AddonHook
+
+// NewTaxCodeAddonServiceHook builds the add-on-reference hook and registers it
+// on the tax code service. It depends on both the add-on and tax code services so wire constructs
+// it only after both exist, avoiding a construction cycle (add-on already depends on tax code).
+func NewTaxCodeAddonServiceHook(
+	addonService addon.Service,
+	taxCodeService taxcode.Service,
+) (TaxCodeAddonHook, error) {
+	h, err := taxcodehooks.NewAddonHook(taxcodehooks.AddonHookConfig{
+		AddonService: addonService,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tax code add-on hook: %w", err)
 	}
 
 	taxCodeService.RegisterHooks(h)

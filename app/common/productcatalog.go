@@ -118,6 +118,7 @@ func NewAddonService(
 	logger *slog.Logger,
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (addon.Service, error) {
@@ -132,6 +133,7 @@ func NewAddonService(
 	return addonservice.New(addonservice.Config{
 		Adapter:         adapter,
 		FeatureResolver: featureResolver,
+		TaxCodeResolver: taxCodeResolver,
 		TaxCode:         taxCodeService,
 		Logger:          logger.With("subsystem", "productcatalog.addon"),
 		Publisher:       publisher,
