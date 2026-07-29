@@ -681,6 +681,18 @@ func FromAPIBillingPlanPhase(p api.BillingPlanPhase) (productcatalog.Phase, erro
 	return phase, nil
 }
 
+// ErrRateCardBillingCadenceRequired is returned when a usage-based rate card
+// omits billing_cadence. It is a distinct type so the create and update
+// handlers can map it to a 400 with the offending field, instead of letting a
+// bare error fall through the error encoder as an unhandled 500.
+type ErrRateCardBillingCadenceRequired struct {
+	Key string
+}
+
+func (e ErrRateCardBillingCadenceRequired) Error() string {
+	return fmt.Sprintf("billing cadence is required for usage-based rate card %q", e.Key)
+}
+
 func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, error) {
 	priceType, err := rc.Price.Discriminator()
 	if err != nil {
@@ -770,7 +782,7 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 
 	case "unit", "graduated", "volume":
 		if billingCadence == nil {
-			return nil, fmt.Errorf("billing cadence is required for usage-based rate card %q", rc.Key)
+			return nil, ErrRateCardBillingCadenceRequired{Key: rc.Key}
 		}
 
 		bc := *billingCadence

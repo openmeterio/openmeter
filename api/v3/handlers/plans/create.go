@@ -46,7 +46,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 
 			req, err := FromAPICreatePlanRequest(ns, body)
 			if err != nil {
-				return CreatePlanRequest{}, err
+				return CreatePlanRequest{}, asBadRequestIfConversionError(ctx, err)
 			}
 
 			req.IgnoreNonCriticalIssues = true

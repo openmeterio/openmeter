@@ -47,7 +47,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 
 			req, err := FromAPIUpsertPlanRequest(ns, planID, body)
 			if err != nil {
-				return UpdatePlanRequest{}, err
+				return UpdatePlanRequest{}, asBadRequestIfConversionError(ctx, err)
 			}
 
 			req.IgnoreNonCriticalIssues = true
