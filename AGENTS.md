@@ -98,8 +98,11 @@ See [Testing](docs/development/testing.md) for harness patterns and examples.
   [type conversions](docs/development/type-conversions.md), and
   [collection helpers](docs/development/collection-helpers.md).
 
-For changing domain behavior, inspect current code and tests rather than relying
-on broad subsystem summaries.
+For changes or reviews that affect domain behavior, use the
+[`domain-docs`](.agents/skills/domain-docs/SKILL.md) skill after establishing
+the scope to locate the relevant package documentation. Treat domain docs as
+intended semantics and code and tests as current behavior; investigate
+discrepancies instead of automatically preferring either.
 
 ## CodeGraph and complex work
 
