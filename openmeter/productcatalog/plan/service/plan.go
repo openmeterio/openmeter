@@ -326,10 +326,6 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		// therefore the EffectivePeriod attribute must be zeroed before updating the Plan.
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
-		if err = params.PreserveRateCardCurrencyIdentities(pp); err != nil {
-			return nil, fmt.Errorf("failed to preserve plan ratecard currency identities: %w", err)
-		}
-
 		if params.Phases != nil && len(*params.Phases) > 0 {
 			for idx := range *params.Phases {
 				phaseFieldSelector := models.NewFieldSelectorGroup(

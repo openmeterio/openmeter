@@ -370,10 +370,6 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 			return nil, err
 		}
 
-		if err = params.PreserveRateCardCurrencyIdentities(add.AsProductCatalogAddon()); err != nil {
-			return nil, fmt.Errorf("failed to preserve add-on ratecard currency identities: %w", err)
-		}
-
 		if params.RateCards != nil && len(*params.RateCards) > 0 {
 			if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, params.RateCards); err != nil {
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)

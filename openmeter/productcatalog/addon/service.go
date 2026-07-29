@@ -365,52 +365,6 @@ func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
 	return a
 }
 
-// PreserveRateCardCurrencyIdentities retains managed custom-currency IDs for
-// unchanged rate cards before code-only update input is resolved.
-func (i *UpdateAddonInput) PreserveRateCardCurrencyIdentities(a productcatalog.Addon) error {
-	if i.RateCards == nil {
-		return nil
-	}
-
-	return preserveAddonRateCardCurrencyIdentities(a.RateCards, *i.RateCards)
-}
-
-// preserveAddonRateCardCurrencyIdentities repairs code-only update input before
-// resolution. Add-on updates recreate every rate card when RateCards is
-// supplied, so an unchanged custom currency would otherwise be resolved again
-// and the recreated rate card could be retargeted to a reused currency code.
-func preserveAddonRateCardCurrencyIdentities(persisted, updated productcatalog.RateCards) error {
-	persistedRateCards := make(map[string]productcatalog.RateCard, len(persisted))
-	for _, rateCard := range persisted {
-		persistedRateCards[rateCard.Key()] = rateCard
-	}
-
-	for _, rateCard := range updated {
-		persistedRateCard, ok := persistedRateCards[rateCard.Key()]
-		if !ok {
-			continue
-		}
-
-		persistedCurrency := persistedRateCard.AsMeta().Currency
-		updatedCurrency := rateCard.AsMeta().Currency
-		if persistedCurrency == nil || !persistedCurrency.IsCustom() || persistedCurrency.CustomCurrencyID == nil {
-			continue
-		}
-		if updatedCurrency == nil || persistedCurrency.Code != updatedCurrency.Code {
-			continue
-		}
-
-		if err := rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-			meta.Currency = persistedCurrency
-			return meta, nil
-		}); err != nil {
-			return fmt.Errorf("preserving rate card currency identity [ratecard.key=%s]: %w", rateCard.Key(), err)
-		}
-	}
-
-	return nil
-}
-
 type ExpandFields struct {
 	PlanAddons     bool                              `json:"plans,omitempty"`
 	CustomCurrency *currencies.CurrencyExpandOptions `json:"customCurrency,omitempty"`

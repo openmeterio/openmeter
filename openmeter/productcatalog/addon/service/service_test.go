@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -659,25 +658,33 @@ func TestAddonService_List(t *testing.T) {
 	}
 }
 
-func TestUpdateAddonRateCardCurrencyResolutionPreservesManagedIdentity(t *testing.T) {
+func TestUpdateAddonRateCardCurrencyResolutionUsesLatestActiveIdentity(t *testing.T) {
 	// given:
-	// - a persisted add-on rate card linked to an older managed CREDITS resource
-	// - code-only update data that keeps one key/code and changes another key's code
-	// when:
-	// - update currencies are resolved after CREDITS has been recreated
-	// then:
-	// - the unchanged key/code keeps the persisted identity while the changed
-	//   currency resolves to its active managed identity
-	namespace := "test-namespace"
-	oldCredits := currencytestutils.NewManagedCurrency(t, namespace, "old-credits-id", "CREDITS")
-	newCredits := currencytestutils.NewManagedCurrency(t, namespace, "new-credits-id", "CREDITS")
-	points := currencytestutils.NewManagedCurrency(t, namespace, "points-id", "POINTS")
+	// - a draft add-on rate card linked to a managed CREDITS resource
+	// - the currency is archived and replaced by another active currency with the same code
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
 
-	newRateCard := func(key string, reference currencies.CurrencyReference) productcatalog.RateCard {
+	namespace := pctestutils.NewTestNamespace(t)
+	oldCredits, err := env.Currency.CreateCurrency(
+		t.Context(),
+		currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"),
+	)
+	require.NoError(t, err)
+
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: oldCredits.ID,
+		FiatCode:   currencyx.Code("USD"),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
+	newRateCard := func() productcatalog.RateCard {
 		return &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
-			Key:      key,
-			Name:     key,
-			Currency: lo.ToPtr(reference),
+			Key:      "credits",
+			Name:     "Credits",
+			Currency: lo.ToPtr(currencies.NewCurrencyReference(oldCredits.GetCode())),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      decimal.NewFromInt(1),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -685,36 +692,49 @@ func TestUpdateAddonRateCardCurrencyResolutionPreservesManagedIdentity(t *testin
 		}}
 	}
 
-	persisted := productcatalog.Addon{
-		AddonMeta: productcatalog.AddonMeta{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
-		RateCards: productcatalog.RateCards{
-			newRateCard("unchanged", oldCredits.Reference()),
-			newRateCard("changed", oldCredits.Reference()),
-		},
-	}
-	updatedRateCards := productcatalog.RateCards{
-		newRateCard("unchanged", currencies.NewCurrencyReference("CREDITS")),
-		newRateCard("changed", currencies.NewCurrencyReference("POINTS")),
-	}
-	resolver := &pctestutils.CurrencyResolverStub{Resolved: map[currencyx.Code]*currencies.Currency{
-		"CREDITS": &newCredits,
-		"POINTS":  &points,
-	}}
-	input := addon.UpdateAddonInput{
-		NamespacedID: models.NamespacedID{Namespace: namespace, ID: "addon-id"},
+	created, err := env.Addon.CreateAddon(
+		t.Context(),
+		pctestutils.NewTestAddon(t, namespace, newRateCard()),
+	)
+	require.NoError(t, err)
+	createdCurrency := created.AsProductCatalogAddon().RateCards[0].AsMeta().Currency
+	require.NotNil(t, createdCurrency)
+	require.NotNil(t, createdCurrency.CustomCurrencyID)
+	require.Equal(t, oldCredits.ID, *createdCurrency.CustomCurrencyID)
+
+	_, err = env.Client.CustomCurrency.UpdateOneID(oldCredits.ID).
+		SetDeletedAt(time.Now().UTC()).
+		Save(t.Context())
+	require.NoError(t, err)
+
+	newCredits, err := env.Currency.CreateCurrency(
+		t.Context(),
+		currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"),
+	)
+	require.NoError(t, err)
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: newCredits.ID,
+		FiatCode:   currencyx.Code("USD"),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
+	updatedRateCards := productcatalog.RateCards{newRateCard()}
+
+	// when:
+	// - the code-only rate card is submitted as a full draft-add-on update
+	updated, err := env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
+		NamespacedID: created.NamespacedID,
 		RateCards:    &updatedRateCards,
-	}
+	})
 
-	err := input.PreserveRateCardCurrencyIdentities(persisted)
+	// then:
+	// - the code resolves to the currently active managed currency
 	require.NoError(t, err)
-	err = currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver.WithNamespace(namespace), &updatedRateCards)
-	require.NoError(t, err)
-
-	preserved, ok := updatedRateCards[0].AsMeta().Currency.CustomCurrency()
-	require.True(t, ok)
-	require.Equal(t, oldCredits.ID, preserved.ID)
-
-	resolvedPoints, ok := updatedRateCards[1].AsMeta().Currency.CustomCurrency()
-	require.True(t, ok)
-	require.Equal(t, points.ID, resolvedPoints.ID)
+	require.Len(t, updated.RateCards, 1)
+	updatedCurrency := updated.AsProductCatalogAddon().RateCards[0].AsMeta().Currency
+	require.NotNil(t, updatedCurrency)
+	require.NotNil(t, updatedCurrency.CustomCurrencyID)
+	require.Equal(t, newCredits.ID, *updatedCurrency.CustomCurrencyID)
 }

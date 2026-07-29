@@ -410,64 +410,6 @@ func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 	return p
 }
 
-// PreserveRateCardCurrencyIdentities retains managed custom-currency IDs for
-// unchanged rate cards before code-only update input is resolved.
-func (i *UpdatePlanInput) PreserveRateCardCurrencyIdentities(p productcatalog.Plan) error {
-	if i.Phases == nil {
-		return nil
-	}
-
-	return preservePlanRateCardCurrencyIdentities(p.Phases, *i.Phases)
-}
-
-// preservePlanRateCardCurrencyIdentities repairs code-only update input before
-// resolution. Plan updates recreate every phase and rate card when Phases is
-// supplied, so an unchanged custom currency would otherwise be resolved again
-// and the recreated rate card could be retargeted to a reused currency code.
-func preservePlanRateCardCurrencyIdentities(persisted, updated []productcatalog.Phase) error {
-	persistedPhases := make(map[string]productcatalog.Phase, len(persisted))
-	for _, phase := range persisted {
-		persistedPhases[phase.Key] = phase
-	}
-
-	for _, phase := range updated {
-		persistedPhase, ok := persistedPhases[phase.Key]
-		if !ok {
-			continue
-		}
-
-		persistedRateCards := make(map[string]productcatalog.RateCard, len(persistedPhase.RateCards))
-		for _, rateCard := range persistedPhase.RateCards {
-			persistedRateCards[rateCard.Key()] = rateCard
-		}
-
-		for _, rateCard := range phase.RateCards {
-			persistedRateCard, ok := persistedRateCards[rateCard.Key()]
-			if !ok {
-				continue
-			}
-
-			persistedCurrency := persistedRateCard.AsMeta().Currency
-			updatedCurrency := rateCard.AsMeta().Currency
-			if persistedCurrency == nil || !persistedCurrency.IsCustom() || persistedCurrency.CustomCurrencyID == nil {
-				continue
-			}
-			if updatedCurrency == nil || persistedCurrency.Code != updatedCurrency.Code {
-				continue
-			}
-
-			if err := rateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-				meta.Currency = persistedCurrency
-				return meta, nil
-			}); err != nil {
-				return fmt.Errorf("preserving rate card currency identity [phase.key=%s ratecard.key=%s]: %w", phase.Key, rateCard.Key(), err)
-			}
-		}
-	}
-
-	return nil
-}
-
 // ExpandFields defines which fields to expand when returning the Plan.
 type ExpandFields struct {
 	PlanAddons     bool                              `json:"addons,omitempty"`

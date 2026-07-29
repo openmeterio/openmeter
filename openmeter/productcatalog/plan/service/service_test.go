@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
@@ -1291,80 +1290,98 @@ func TestListPlansFilters(t *testing.T) {
 	}
 }
 
-func TestUpdatePlanRateCardCurrencyResolutionPreservesManagedIdentity(t *testing.T) {
+func TestUpdatePlanRateCardCurrencyResolutionUsesLatestActiveIdentity(t *testing.T) {
 	// given:
-	// - a persisted rate card linked to an older managed CREDITS resource
-	// - code-only update data where one rate card keeps its phase/key/code and
-	//   another uses the same key in a different phase
-	// when:
-	// - update currencies are resolved after CREDITS has been recreated
-	// then:
-	// - only the same phase/key/code keeps the persisted identity
-	// - the other phase and newly introduced currency resolve to active identities
-	namespace := "test-namespace"
-	oldCredits := currencytestutils.NewManagedCurrency(t, namespace, "old-credits-id", "CREDITS")
-	newCredits := currencytestutils.NewManagedCurrency(t, namespace, "new-credits-id", "CREDITS")
-	points := currencytestutils.NewManagedCurrency(t, namespace, "points-id", "POINTS")
+	// - a draft plan rate card linked to a managed CREDITS resource
+	// - the currency is archived and replaced by another active currency with the same code
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
 
-	newRateCard := func(key string, reference currencies.CurrencyReference) productcatalog.RateCard {
-		return &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
-			Key:      key,
-			Name:     key,
-			Currency: lo.ToPtr(reference),
-			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      decimal.NewFromInt(1),
-				PaymentTerm: productcatalog.InAdvancePaymentTerm,
-			}),
-		}}
-	}
-
-	persisted := productcatalog.Plan{
-		PlanMeta: productcatalog.PlanMeta{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
-		Phases: []productcatalog.Phase{{
-			PhaseMeta: productcatalog.PhaseMeta{Key: "existing"},
-			RateCards: productcatalog.RateCards{newRateCard("shared", oldCredits.Reference())},
-		}},
-	}
-	updatedPhases := []productcatalog.Phase{
-		{
-			PhaseMeta: productcatalog.PhaseMeta{Key: "existing"},
-			RateCards: productcatalog.RateCards{
-				newRateCard("shared", currencies.NewCurrencyReference("CREDITS")),
-				newRateCard("new", currencies.NewCurrencyReference("POINTS")),
-			},
-		},
-		{
-			PhaseMeta: productcatalog.PhaseMeta{Key: "different"},
-			RateCards: productcatalog.RateCards{newRateCard("shared", currencies.NewCurrencyReference("CREDITS"))},
-		},
-	}
-	resolver := &pctestutils.CurrencyResolverStub{Resolved: map[currencyx.Code]*currencies.Currency{
-		"CREDITS": &newCredits,
-		"POINTS":  &points,
-	}}
-	input := plan.UpdatePlanInput{
-		NamespacedID: models.NamespacedID{Namespace: namespace, ID: "plan-id"},
-		Phases:       &updatedPhases,
-	}
-
-	err := input.PreserveRateCardCurrencyIdentities(persisted)
+	namespace := pctestutils.NewTestNamespace(t)
+	oldCredits, err := env.Currency.CreateCurrency(
+		t.Context(),
+		currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"),
+	)
 	require.NoError(t, err)
-	for idx := range updatedPhases {
-		err = currencyresolver.ResolveCurrenciesForRateCards(t.Context(), resolver.WithNamespace(namespace), &updatedPhases[idx].RateCards)
-		require.NoError(t, err)
+
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: oldCredits.ID,
+		FiatCode:   currencyx.Code(currency.USD),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
+	month := datetime.MustParseDuration(t, "P1M")
+	newRateCard := func() productcatalog.RateCard {
+		return &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:      "credits",
+				Name:     "Credits",
+				Currency: lo.ToPtr(currencies.NewCurrencyReference(oldCredits.GetCode())),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      decimal.NewFromInt(1),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+			BillingCadence: &month,
+		}
 	}
 
-	preserved, ok := updatedPhases[0].RateCards[0].AsMeta().Currency.CustomCurrency()
-	require.True(t, ok)
-	require.Equal(t, oldCredits.ID, preserved.ID)
+	created, err := env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(
+		t,
+		namespace,
+		pctestutils.WithPlanKey("latest-active-currency"),
+		pctestutils.WithPlanPhases(productcatalog.Phase{
+			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+			RateCards: productcatalog.RateCards{newRateCard()},
+		}),
+	))
+	require.NoError(t, err)
+	createdCurrency := created.Phases[0].RateCards[0].AsMeta().Currency
+	require.NotNil(t, createdCurrency)
+	require.NotNil(t, createdCurrency.CustomCurrencyID)
+	require.Equal(t, oldCredits.ID, *createdCurrency.CustomCurrencyID)
 
-	resolvedPoints, ok := updatedPhases[0].RateCards[1].AsMeta().Currency.CustomCurrency()
-	require.True(t, ok)
-	require.Equal(t, points.ID, resolvedPoints.ID)
+	_, err = env.Client.CustomCurrency.UpdateOneID(oldCredits.ID).
+		SetDeletedAt(clock.Now()).
+		Save(t.Context())
+	require.NoError(t, err)
 
-	resolvedCredits, ok := updatedPhases[1].RateCards[0].AsMeta().Currency.CustomCurrency()
-	require.True(t, ok)
-	require.Equal(t, newCredits.ID, resolvedCredits.ID)
+	newCredits, err := env.Currency.CreateCurrency(
+		t.Context(),
+		currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"),
+	)
+	require.NoError(t, err)
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: newCredits.ID,
+		FiatCode:   currencyx.Code(currency.USD),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
+	updatedPhases := []productcatalog.Phase{{
+		PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+		RateCards: productcatalog.RateCards{newRateCard()},
+	}}
+
+	// when:
+	// - the code-only rate card is submitted as a full draft-plan update
+	updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+		NamespacedID: created.NamespacedID,
+		Phases:       &updatedPhases,
+	})
+
+	// then:
+	// - the code resolves to the currently active managed currency
+	require.NoError(t, err)
+	require.Len(t, updated.Phases, 1)
+	require.Len(t, updated.Phases[0].RateCards, 1)
+	updatedCurrency := updated.Phases[0].RateCards[0].AsMeta().Currency
+	require.NotNil(t, updatedCurrency)
+	require.NotNil(t, updatedCurrency.CustomCurrencyID)
+	require.Equal(t, newCredits.ID, *updatedCurrency.CustomCurrencyID)
 }
 
 func TestUpdatePlanInputRejectsPersistedUnrepresentableFields(t *testing.T) {
