@@ -8,6 +8,7 @@ import (
 	"iter"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type CustomersChargesService struct {
@@ -46,8 +47,12 @@ func (p ChargeListParams) values() url.Values {
 		addStringExactFilter(q, "filter[status]", p.Filter.Status)
 	}
 
-	for _, value := range p.Expand {
-		q.Add("expand", string(value))
+	if len(p.Expand) > 0 {
+		expandValues := make([]string, 0, len(p.Expand))
+		for _, value := range p.Expand {
+			expandValues = append(expandValues, string(value))
+		}
+		q.Set("expand", strings.Join(expandValues, ","))
 	}
 
 	return q

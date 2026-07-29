@@ -74,3 +74,47 @@ func TestListCurrenciesFilterByType(t *testing.T) {
 		})
 	}
 }
+
+func TestListCurrenciesExpandCostBasis(t *testing.T) {
+	testCases := []struct {
+		name              string
+		expand            *[]v3.BillingCurrencyExpand
+		expectedCostBasis bool
+	}{
+		{
+			name:              "cost_basis requested",
+			expand:            &[]v3.BillingCurrencyExpand{v3.BillingCurrencyExpandCostBasis},
+			expectedCostBasis: true,
+		},
+		{
+			name:              "expand omitted",
+			expand:            nil,
+			expectedCostBasis: false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			// given:
+			// - a list request with an optional cost_basis expand
+			service := &listCurrenciesService{}
+			handler := New(func(context.Context) (string, error) {
+				return "test", nil
+			}, service, false)
+
+			request := httptest.NewRequest(http.MethodGet, "/api/v3/currencies", nil)
+			response := httptest.NewRecorder()
+
+			// when:
+			// - the v3 list handler decodes the generated API parameters
+			handler.ListCurrencies().With(v3.ListCurrenciesParams{
+				Expand: testCase.expand,
+			}).ServeHTTP(response, request)
+
+			// then:
+			// - the decoded expand parameter toggles the domain cost basis flag
+			require.Equal(t, http.StatusOK, response.Code)
+			assert.Equal(t, testCase.expectedCostBasis, service.input.CostBasis)
+		})
+	}
+}

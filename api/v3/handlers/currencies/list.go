@@ -3,6 +3,7 @@ package currencies
 import (
 	"context"
 	"net/http"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -83,6 +84,10 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 					})
 				}
 				req.Code = code
+			}
+
+			if params.Expand != nil && slices.Contains(*params.Expand, v3.BillingCurrencyExpandCostBasis) {
+				req.CostBasis = true
 			}
 
 			return req, nil

@@ -836,6 +836,19 @@ paths:
           schema:
             $ref: '#/components/schemas/ListCurrenciesParamsFilter'
           style: deepObject
+        - name: expand
+          in: query
+          required: false
+          description: |-
+            Expand the currencies returned in the response.
+
+            To include the currently-active cost basis add: expand=cost_basis
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingCurrencyExpand'
+          explode: false
+          style: form
       responses:
         '200':
           description: Page paginated response.
@@ -1383,6 +1396,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/BillingChargesExpand'
+          explode: false
           style: form
       responses:
         '200':
@@ -5890,6 +5904,17 @@ components:
           readOnly: true
       additionalProperties: false
       description: Describes custom currency.
+    BillingCurrencyExpand:
+      type: string
+      enum:
+        - cost_basis
+      description: |-
+        Expands for currencies.
+
+        Values:
+
+        - `cost_basis`: The currency's currently-active cost basis.
+      title: Currency expands
     BillingCurrencyFiat:
       type: object
       required:

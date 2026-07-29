@@ -8,6 +8,7 @@ import (
 	"iter"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type CurrenciesService struct {
@@ -23,6 +24,7 @@ type CurrencyListParams struct {
 	Page   *PageParams
 	Sort   *Sort
 	Filter *CurrencyFilter
+	Expand []CurrencyExpand
 }
 
 func (p CurrencyListParams) values() url.Values {
@@ -37,6 +39,14 @@ func (p CurrencyListParams) values() url.Values {
 			q.Set("filter[type]", string(*p.Filter.Type))
 		}
 		addStringFilter(q, "filter[code]", p.Filter.Code)
+	}
+
+	if len(p.Expand) > 0 {
+		expandValues := make([]string, 0, len(p.Expand))
+		for _, value := range p.Expand {
+			expandValues = append(expandValues, string(value))
+		}
+		q.Set("expand", strings.Join(expandValues, ","))
 	}
 
 	return q

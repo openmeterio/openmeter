@@ -34,6 +34,12 @@ export interface ListCurrenciesQuery {
    * To filter currencies by type add the following query param: filter[type]=custom
    */
   filter?: ListCurrenciesParamsFilter
+  /**
+   * Expand the currencies returned in the response.
+   *
+   * To include the currently-active cost basis add: expand=cost_basis
+   */
+  expand?: 'cost_basis'[]
 }
 
 export type ListCurrenciesRequest = AcceptDateStrings<ListCurrenciesQuery>

@@ -1014,6 +1014,13 @@ export const currencyType = z
     'Currency type for custom currencies. It should be a unique code but not conflicting with any existing standard currency codes.',
   )
 
+export const currencyExpand = z
+  .enum(['cost_basis'])
+
+  .describe(
+    "Expands for currencies. Values: - `cost_basis`: The currency's currently-active cost basis.",
+  )
+
 export const currencyCodeCustom = z
   .string()
   .min(4)
@@ -6532,6 +6539,13 @@ export const listCurrenciesQueryParams = z.object({
     .describe('Determines which page of the collection to retrieve.'),
   sort: sortQuery.optional(),
   filter: listCurrenciesParamsFilter.optional(),
+  expand: z
+    .array(currencyExpand)
+    .optional()
+
+    .describe(
+      'Expand the currencies returned in the response. To include the currently-active cost basis add: expand=cost_basis',
+    ),
 })
 
 export const listCurrenciesResponse = z.object({
@@ -7870,6 +7884,13 @@ export const currencyTypeWire = z
 
   .describe(
     'Currency type for custom currencies. It should be a unique code but not conflicting with any existing standard currency codes.',
+  )
+
+export const currencyExpandWire = z
+  .enum(['cost_basis'])
+
+  .describe(
+    "Expands for currencies. Values: - `cost_basis`: The currency's currently-active cost basis.",
   )
 
 export const currencyCodeCustomWire = z
@@ -13428,6 +13449,13 @@ export const listCurrenciesQueryParamsWire = z.object({
       'Sort currencies returned in the response. Supported sort attributes are: - `code` (default) - `name` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
     ),
   filter: listCurrenciesParamsFilterWire.optional(),
+  expand: z
+    .array(currencyExpandWire)
+    .optional()
+
+    .describe(
+      'Expand the currencies returned in the response. To include the currently-active cost basis add: expand=cost_basis',
+    ),
 })
 
 export const listCurrenciesResponseWire = z.strictObject({
