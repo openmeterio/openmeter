@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 const (
@@ -66,7 +67,7 @@ var (
 	// ValueScanner of all BillingInvoiceUsageBasedLineConfig fields.
 	ValueScanner struct {
 		Price      field.TypeValueScanner[*productcatalog.Price]
-		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
+		UnitConfig field.TypeValueScanner[*unitconfig.UnitConfig]
 	}
 )
 

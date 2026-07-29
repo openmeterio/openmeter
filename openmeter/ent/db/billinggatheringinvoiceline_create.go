@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -173,7 +174,7 @@ func (_c *BillingGatheringInvoiceLineCreate) SetPrice(v *productcatalog.Price) *
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_c *BillingGatheringInvoiceLineCreate) SetUnitConfig(v *productcatalog.UnitConfig) *BillingGatheringInvoiceLineCreate {
+func (_c *BillingGatheringInvoiceLineCreate) SetUnitConfig(v *unitconfig.UnitConfig) *BillingGatheringInvoiceLineCreate {
 	_c.mutation.SetUnitConfig(v)
 	return _c
 }
@@ -1057,7 +1058,7 @@ func (u *BillingGatheringInvoiceLineUpsert) UpdatePrice() *BillingGatheringInvoi
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *BillingGatheringInvoiceLineUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpsert {
+func (u *BillingGatheringInvoiceLineUpsert) SetUnitConfig(v *unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpsert {
 	u.Set(billinggatheringinvoiceline.FieldUnitConfig, v)
 	return u
 }
@@ -1588,7 +1589,7 @@ func (u *BillingGatheringInvoiceLineUpsertOne) UpdatePrice() *BillingGatheringIn
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *BillingGatheringInvoiceLineUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpsertOne {
+func (u *BillingGatheringInvoiceLineUpsertOne) SetUnitConfig(v *unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingGatheringInvoiceLineUpsert) {
 		s.SetUnitConfig(v)
 	})
@@ -2333,7 +2334,7 @@ func (u *BillingGatheringInvoiceLineUpsertBulk) UpdatePrice() *BillingGatheringI
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *BillingGatheringInvoiceLineUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *BillingGatheringInvoiceLineUpsertBulk {
+func (u *BillingGatheringInvoiceLineUpsertBulk) SetUnitConfig(v *unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingGatheringInvoiceLineUpsert) {
 		s.SetUnitConfig(v)
 	})

@@ -55,6 +55,17 @@ type AppStripeCustomer func(*sql.Selector)
 // BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)
 
+// BalanceSnapshotOrErr calls the predicate only if the error is not nit.
+func BalanceSnapshotOrErr(p BalanceSnapshot, err error) BalanceSnapshot {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // BillingCustomerLock is the predicate function for billingcustomerlock builders.
 type BillingCustomerLock func(*sql.Selector)
 

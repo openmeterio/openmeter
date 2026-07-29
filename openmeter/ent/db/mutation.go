@@ -119,6 +119,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -1691,7 +1692,7 @@ type AddonRateCardMutation struct {
 	billing_cadence      *datetime.ISODurationString
 	price                **productcatalog.Price
 	discounts            **productcatalog.Discounts
-	unit_config          **productcatalog.UnitConfig
+	unit_config          **unitconfig.UnitConfig
 	clearedFields        map[string]struct{}
 	addon                *string
 	clearedaddon         bool
@@ -2564,12 +2565,12 @@ func (m *AddonRateCardMutation) ResetDiscounts() {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (m *AddonRateCardMutation) SetUnitConfig(pc *productcatalog.UnitConfig) {
-	m.unit_config = &pc
+func (m *AddonRateCardMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
 }
 
 // UnitConfig returns the value of the "unit_config" field in the mutation.
-func (m *AddonRateCardMutation) UnitConfig() (r *productcatalog.UnitConfig, exists bool) {
+func (m *AddonRateCardMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
 	v := m.unit_config
 	if v == nil {
 		return
@@ -2580,7 +2581,7 @@ func (m *AddonRateCardMutation) UnitConfig() (r *productcatalog.UnitConfig, exis
 // OldUnitConfig returns the old "unit_config" field's value of the AddonRateCard entity.
 // If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AddonRateCardMutation) OldUnitConfig(ctx context.Context) (v *productcatalog.UnitConfig, err error) {
+func (m *AddonRateCardMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
 	}
@@ -3112,7 +3113,7 @@ func (m *AddonRateCardMutation) SetField(name string, value ent.Value) error {
 		m.SetDiscounts(v)
 		return nil
 	case addonratecard.FieldUnitConfig:
-		v, ok := value.(*productcatalog.UnitConfig)
+		v, ok := value.(*unitconfig.UnitConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -9016,6 +9017,7 @@ type BalanceSnapshotMutation struct {
 	overage            *float64
 	addoverage         *float64
 	at                 *time.Time
+	unit_config        **unitconfig.UnitConfig
 	clearedFields      map[string]struct{}
 	entitlement        *string
 	clearedentitlement bool
@@ -9548,6 +9550,55 @@ func (m *BalanceSnapshotMutation) ResetAt() {
 	m.at = nil
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (m *BalanceSnapshotMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
+}
+
+// UnitConfig returns the value of the "unit_config" field in the mutation.
+func (m *BalanceSnapshotMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
+	v := m.unit_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitConfig returns the old "unit_config" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitConfig: %w", err)
+	}
+	return oldValue.UnitConfig, nil
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (m *BalanceSnapshotMutation) ClearUnitConfig() {
+	m.unit_config = nil
+	m.clearedFields[balancesnapshot.FieldUnitConfig] = struct{}{}
+}
+
+// UnitConfigCleared returns if the "unit_config" field was cleared in this mutation.
+func (m *BalanceSnapshotMutation) UnitConfigCleared() bool {
+	_, ok := m.clearedFields[balancesnapshot.FieldUnitConfig]
+	return ok
+}
+
+// ResetUnitConfig resets all changes to the "unit_config" field.
+func (m *BalanceSnapshotMutation) ResetUnitConfig() {
+	m.unit_config = nil
+	delete(m.clearedFields, balancesnapshot.FieldUnitConfig)
+}
+
 // SetEntitlementID sets the "entitlement" edge to the Entitlement entity by id.
 func (m *BalanceSnapshotMutation) SetEntitlementID(id string) {
 	m.entitlement = &id
@@ -9622,7 +9673,7 @@ func (m *BalanceSnapshotMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BalanceSnapshotMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.namespace != nil {
 		fields = append(fields, balancesnapshot.FieldNamespace)
 	}
@@ -9653,6 +9704,9 @@ func (m *BalanceSnapshotMutation) Fields() []string {
 	if m.at != nil {
 		fields = append(fields, balancesnapshot.FieldAt)
 	}
+	if m.unit_config != nil {
+		fields = append(fields, balancesnapshot.FieldUnitConfig)
+	}
 	return fields
 }
 
@@ -9681,6 +9735,8 @@ func (m *BalanceSnapshotMutation) Field(name string) (ent.Value, bool) {
 		return m.Overage()
 	case balancesnapshot.FieldAt:
 		return m.At()
+	case balancesnapshot.FieldUnitConfig:
+		return m.UnitConfig()
 	}
 	return nil, false
 }
@@ -9710,6 +9766,8 @@ func (m *BalanceSnapshotMutation) OldField(ctx context.Context, name string) (en
 		return m.OldOverage(ctx)
 	case balancesnapshot.FieldAt:
 		return m.OldAt(ctx)
+	case balancesnapshot.FieldUnitConfig:
+		return m.OldUnitConfig(ctx)
 	}
 	return nil, fmt.Errorf("unknown BalanceSnapshot field %s", name)
 }
@@ -9789,6 +9847,13 @@ func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAt(v)
 		return nil
+	case balancesnapshot.FieldUnitConfig:
+		v, ok := value.(*unitconfig.UnitConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitConfig(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BalanceSnapshot field %s", name)
 }
@@ -9852,6 +9917,9 @@ func (m *BalanceSnapshotMutation) ClearedFields() []string {
 	if m.FieldCleared(balancesnapshot.FieldUsage) {
 		fields = append(fields, balancesnapshot.FieldUsage)
 	}
+	if m.FieldCleared(balancesnapshot.FieldUnitConfig) {
+		fields = append(fields, balancesnapshot.FieldUnitConfig)
+	}
 	return fields
 }
 
@@ -9871,6 +9939,9 @@ func (m *BalanceSnapshotMutation) ClearField(name string) error {
 		return nil
 	case balancesnapshot.FieldUsage:
 		m.ClearUsage()
+		return nil
+	case balancesnapshot.FieldUnitConfig:
+		m.ClearUnitConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown BalanceSnapshot nullable field %s", name)
@@ -9909,6 +9980,9 @@ func (m *BalanceSnapshotMutation) ResetField(name string) error {
 		return nil
 	case balancesnapshot.FieldAt:
 		m.ResetAt()
+		return nil
+	case balancesnapshot.FieldUnitConfig:
+		m.ResetUnitConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown BalanceSnapshot field %s", name)
@@ -11987,7 +12061,7 @@ type BillingGatheringInvoiceLineMutation struct {
 	price_type                       *productcatalog.PriceType
 	feature_key                      *string
 	price                            **productcatalog.Price
-	unit_config                      **productcatalog.UnitConfig
+	unit_config                      **unitconfig.UnitConfig
 	ratecard_discounts               **billing.Discounts
 	child_unique_reference_id        *string
 	subscription_billing_period_from *time.Time
@@ -12739,12 +12813,12 @@ func (m *BillingGatheringInvoiceLineMutation) ResetPrice() {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (m *BillingGatheringInvoiceLineMutation) SetUnitConfig(pc *productcatalog.UnitConfig) {
-	m.unit_config = &pc
+func (m *BillingGatheringInvoiceLineMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
 }
 
 // UnitConfig returns the value of the "unit_config" field in the mutation.
-func (m *BillingGatheringInvoiceLineMutation) UnitConfig() (r *productcatalog.UnitConfig, exists bool) {
+func (m *BillingGatheringInvoiceLineMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
 	v := m.unit_config
 	if v == nil {
 		return
@@ -12755,7 +12829,7 @@ func (m *BillingGatheringInvoiceLineMutation) UnitConfig() (r *productcatalog.Un
 // OldUnitConfig returns the old "unit_config" field's value of the BillingGatheringInvoiceLine entity.
 // If the BillingGatheringInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingGatheringInvoiceLineMutation) OldUnitConfig(ctx context.Context) (v *productcatalog.UnitConfig, err error) {
+func (m *BillingGatheringInvoiceLineMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
 	}
@@ -14056,7 +14130,7 @@ func (m *BillingGatheringInvoiceLineMutation) SetField(name string, value ent.Va
 		m.SetPrice(v)
 		return nil
 	case billinggatheringinvoiceline.FieldUnitConfig:
-		v, ok := value.(*productcatalog.UnitConfig)
+		v, ok := value.(*unitconfig.UnitConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -28481,7 +28555,7 @@ type BillingInvoiceUsageBasedLineConfigMutation struct {
 	pre_line_period_quantity         *alpacadecimal.Decimal
 	metered_pre_line_period_quantity *alpacadecimal.Decimal
 	metered_quantity                 *alpacadecimal.Decimal
-	unit_config                      **productcatalog.UnitConfig
+	unit_config                      **unitconfig.UnitConfig
 	clearedFields                    map[string]struct{}
 	done                             bool
 	oldValue                         func(context.Context) (*BillingInvoiceUsageBasedLineConfig, error)
@@ -28897,12 +28971,12 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetMeteredQuantity() {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) SetUnitConfig(pc *productcatalog.UnitConfig) {
-	m.unit_config = &pc
+func (m *BillingInvoiceUsageBasedLineConfigMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
 }
 
 // UnitConfig returns the value of the "unit_config" field in the mutation.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) UnitConfig() (r *productcatalog.UnitConfig, exists bool) {
+func (m *BillingInvoiceUsageBasedLineConfigMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
 	v := m.unit_config
 	if v == nil {
 		return
@@ -28913,7 +28987,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) UnitConfig() (r *productcat
 // OldUnitConfig returns the old "unit_config" field's value of the BillingInvoiceUsageBasedLineConfig entity.
 // If the BillingInvoiceUsageBasedLineConfig object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceUsageBasedLineConfigMutation) OldUnitConfig(ctx context.Context) (v *productcatalog.UnitConfig, err error) {
+func (m *BillingInvoiceUsageBasedLineConfigMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
 	}
@@ -29112,7 +29186,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) SetField(name string, value
 		m.SetMeteredQuantity(v)
 		return nil
 	case billinginvoiceusagebasedlineconfig.FieldUnitConfig:
-		v, ok := value.(*productcatalog.UnitConfig)
+		v, ok := value.(*unitconfig.UnitConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -61487,7 +61561,7 @@ type ChargeUsageBasedMutation struct {
 	feature_key               *string
 	rating_engine             *usagebased.RatingEngine
 	price                     **productcatalog.Price
-	unit_config               **productcatalog.UnitConfig
+	unit_config               **unitconfig.UnitConfig
 	status_detailed           *usagebased.Status
 	clearedFields             map[string]struct{}
 	runs                      map[string]struct{}
@@ -63034,12 +63108,12 @@ func (m *ChargeUsageBasedMutation) ResetPrice() {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (m *ChargeUsageBasedMutation) SetUnitConfig(pc *productcatalog.UnitConfig) {
-	m.unit_config = &pc
+func (m *ChargeUsageBasedMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
 }
 
 // UnitConfig returns the value of the "unit_config" field in the mutation.
-func (m *ChargeUsageBasedMutation) UnitConfig() (r *productcatalog.UnitConfig, exists bool) {
+func (m *ChargeUsageBasedMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
 	v := m.unit_config
 	if v == nil {
 		return
@@ -63050,7 +63124,7 @@ func (m *ChargeUsageBasedMutation) UnitConfig() (r *productcatalog.UnitConfig, e
 // OldUnitConfig returns the old "unit_config" field's value of the ChargeUsageBased entity.
 // If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldUnitConfig(ctx context.Context) (v *productcatalog.UnitConfig, err error) {
+func (m *ChargeUsageBasedMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
 	}
@@ -64224,7 +64298,7 @@ func (m *ChargeUsageBasedMutation) SetField(name string, value ent.Value) error 
 		m.SetPrice(v)
 		return nil
 	case chargeusagebased.FieldUnitConfig:
-		v, ok := value.(*productcatalog.UnitConfig)
+		v, ok := value.(*unitconfig.UnitConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -66068,7 +66142,7 @@ type ChargeUsageBasedOverrideMutation struct {
 	feature_key              *string
 	price                    **productcatalog.Price
 	discounts                **billing.Discounts
-	unit_config              **productcatalog.UnitConfig
+	unit_config              **unitconfig.UnitConfig
 	clearedFields            map[string]struct{}
 	usage_based              *string
 	clearedusage_based       bool
@@ -66910,12 +66984,12 @@ func (m *ChargeUsageBasedOverrideMutation) ResetDiscounts() {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (m *ChargeUsageBasedOverrideMutation) SetUnitConfig(pc *productcatalog.UnitConfig) {
-	m.unit_config = &pc
+func (m *ChargeUsageBasedOverrideMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
 }
 
 // UnitConfig returns the value of the "unit_config" field in the mutation.
-func (m *ChargeUsageBasedOverrideMutation) UnitConfig() (r *productcatalog.UnitConfig, exists bool) {
+func (m *ChargeUsageBasedOverrideMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
 	v := m.unit_config
 	if v == nil {
 		return
@@ -66926,7 +67000,7 @@ func (m *ChargeUsageBasedOverrideMutation) UnitConfig() (r *productcatalog.UnitC
 // OldUnitConfig returns the old "unit_config" field's value of the ChargeUsageBasedOverride entity.
 // If the ChargeUsageBasedOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedOverrideMutation) OldUnitConfig(ctx context.Context) (v *productcatalog.UnitConfig, err error) {
+func (m *ChargeUsageBasedOverrideMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
 	}
@@ -67346,7 +67420,7 @@ func (m *ChargeUsageBasedOverrideMutation) SetField(name string, value ent.Value
 		m.SetDiscounts(v)
 		return nil
 	case chargeusagebasedoverride.FieldUnitConfig:
-		v, ok := value.(*productcatalog.UnitConfig)
+		v, ok := value.(*unitconfig.UnitConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -82815,6 +82889,7 @@ type EntitlementMutation struct {
 	is_soft_limit                 *bool
 	preserve_overage_at_reset     *bool
 	_config                       *string
+	unit_config                   **unitconfig.UnitConfig
 	usage_period_interval         *datetime.ISODurationString
 	usage_period_anchor           *time.Time
 	current_usage_period_start    *time.Time
@@ -83730,6 +83805,55 @@ func (m *EntitlementMutation) ResetConfig() {
 	delete(m.clearedFields, entitlement.FieldConfig)
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (m *EntitlementMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
+}
+
+// UnitConfig returns the value of the "unit_config" field in the mutation.
+func (m *EntitlementMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
+	v := m.unit_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitConfig returns the old "unit_config" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitConfig: %w", err)
+	}
+	return oldValue.UnitConfig, nil
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (m *EntitlementMutation) ClearUnitConfig() {
+	m.unit_config = nil
+	m.clearedFields[entitlement.FieldUnitConfig] = struct{}{}
+}
+
+// UnitConfigCleared returns if the "unit_config" field was cleared in this mutation.
+func (m *EntitlementMutation) UnitConfigCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldUnitConfig]
+	return ok
+}
+
+// ResetUnitConfig resets all changes to the "unit_config" field.
+func (m *EntitlementMutation) ResetUnitConfig() {
+	m.unit_config = nil
+	delete(m.clearedFields, entitlement.FieldUnitConfig)
+}
+
 // SetUsagePeriodInterval sets the "usage_period_interval" field.
 func (m *EntitlementMutation) SetUsagePeriodInterval(dds datetime.ISODurationString) {
 	m.usage_period_interval = &dds
@@ -84279,7 +84403,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 23)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -84330,6 +84454,9 @@ func (m *EntitlementMutation) Fields() []string {
 	}
 	if m._config != nil {
 		fields = append(fields, entitlement.FieldConfig)
+	}
+	if m.unit_config != nil {
+		fields = append(fields, entitlement.FieldUnitConfig)
 	}
 	if m.usage_period_interval != nil {
 		fields = append(fields, entitlement.FieldUsagePeriodInterval)
@@ -84388,6 +84515,8 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.PreserveOverageAtReset()
 	case entitlement.FieldConfig:
 		return m.Config()
+	case entitlement.FieldUnitConfig:
+		return m.UnitConfig()
 	case entitlement.FieldUsagePeriodInterval:
 		return m.UsagePeriodInterval()
 	case entitlement.FieldUsagePeriodAnchor:
@@ -84441,6 +84570,8 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldPreserveOverageAtReset(ctx)
 	case entitlement.FieldConfig:
 		return m.OldConfig(ctx)
+	case entitlement.FieldUnitConfig:
+		return m.OldUnitConfig(ctx)
 	case entitlement.FieldUsagePeriodInterval:
 		return m.OldUsagePeriodInterval(ctx)
 	case entitlement.FieldUsagePeriodAnchor:
@@ -84579,6 +84710,13 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetConfig(v)
 		return nil
+	case entitlement.FieldUnitConfig:
+		v, ok := value.(*unitconfig.UnitConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitConfig(v)
+		return nil
 	case entitlement.FieldUsagePeriodInterval:
 		v, ok := value.(datetime.ISODurationString)
 		if !ok {
@@ -84701,6 +84839,9 @@ func (m *EntitlementMutation) ClearedFields() []string {
 	if m.FieldCleared(entitlement.FieldConfig) {
 		fields = append(fields, entitlement.FieldConfig)
 	}
+	if m.FieldCleared(entitlement.FieldUnitConfig) {
+		fields = append(fields, entitlement.FieldUnitConfig)
+	}
 	if m.FieldCleared(entitlement.FieldUsagePeriodInterval) {
 		fields = append(fields, entitlement.FieldUsagePeriodInterval)
 	}
@@ -84759,6 +84900,9 @@ func (m *EntitlementMutation) ClearField(name string) error {
 		return nil
 	case entitlement.FieldConfig:
 		m.ClearConfig()
+		return nil
+	case entitlement.FieldUnitConfig:
+		m.ClearUnitConfig()
 		return nil
 	case entitlement.FieldUsagePeriodInterval:
 		m.ClearUsagePeriodInterval()
@@ -84833,6 +84977,9 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldConfig:
 		m.ResetConfig()
+		return nil
+	case entitlement.FieldUnitConfig:
+		m.ResetUnitConfig()
 		return nil
 	case entitlement.FieldUsagePeriodInterval:
 		m.ResetUsagePeriodInterval()
@@ -110147,7 +110294,7 @@ type PlanRateCardMutation struct {
 	billing_cadence      *datetime.ISODurationString
 	price                **productcatalog.Price
 	discounts            **productcatalog.Discounts
-	unit_config          **productcatalog.UnitConfig
+	unit_config          **unitconfig.UnitConfig
 	clearedFields        map[string]struct{}
 	phase                *string
 	clearedphase         bool
@@ -111020,12 +111167,12 @@ func (m *PlanRateCardMutation) ResetDiscounts() {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (m *PlanRateCardMutation) SetUnitConfig(pc *productcatalog.UnitConfig) {
-	m.unit_config = &pc
+func (m *PlanRateCardMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
 }
 
 // UnitConfig returns the value of the "unit_config" field in the mutation.
-func (m *PlanRateCardMutation) UnitConfig() (r *productcatalog.UnitConfig, exists bool) {
+func (m *PlanRateCardMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
 	v := m.unit_config
 	if v == nil {
 		return
@@ -111036,7 +111183,7 @@ func (m *PlanRateCardMutation) UnitConfig() (r *productcatalog.UnitConfig, exist
 // OldUnitConfig returns the old "unit_config" field's value of the PlanRateCard entity.
 // If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanRateCardMutation) OldUnitConfig(ctx context.Context) (v *productcatalog.UnitConfig, err error) {
+func (m *PlanRateCardMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
 	}
@@ -111568,7 +111715,7 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		m.SetDiscounts(v)
 		return nil
 	case planratecard.FieldUnitConfig:
-		v, ok := value.(*productcatalog.UnitConfig)
+		v, ok := value.(*unitconfig.UnitConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -117120,7 +117267,7 @@ type SubscriptionItemMutation struct {
 	billing_cadence                              *datetime.ISODurationString
 	price                                        **productcatalog.Price
 	discounts                                    **productcatalog.Discounts
-	unit_config                                  **productcatalog.UnitConfig
+	unit_config                                  **unitconfig.UnitConfig
 	clearedFields                                map[string]struct{}
 	phase                                        *string
 	clearedphase                                 bool
@@ -118341,12 +118488,12 @@ func (m *SubscriptionItemMutation) ResetDiscounts() {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (m *SubscriptionItemMutation) SetUnitConfig(pc *productcatalog.UnitConfig) {
-	m.unit_config = &pc
+func (m *SubscriptionItemMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
 }
 
 // UnitConfig returns the value of the "unit_config" field in the mutation.
-func (m *SubscriptionItemMutation) UnitConfig() (r *productcatalog.UnitConfig, exists bool) {
+func (m *SubscriptionItemMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
 	v := m.unit_config
 	if v == nil {
 		return
@@ -118357,7 +118504,7 @@ func (m *SubscriptionItemMutation) UnitConfig() (r *productcatalog.UnitConfig, e
 // OldUnitConfig returns the old "unit_config" field's value of the SubscriptionItem entity.
 // If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionItemMutation) OldUnitConfig(ctx context.Context) (v *productcatalog.UnitConfig, err error) {
+func (m *SubscriptionItemMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
 	}
@@ -119199,7 +119346,7 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 		m.SetDiscounts(v)
 		return nil
 	case subscriptionitem.FieldUnitConfig:
-		v, ok := value.(*productcatalog.UnitConfig)
+		v, ok := value.(*unitconfig.UnitConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

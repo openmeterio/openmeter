@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -217,7 +218,7 @@ var (
 		TaxConfig           field.TypeValueScanner[*productcatalog.TaxConfig]
 		Price               field.TypeValueScanner[*productcatalog.Price]
 		Discounts           field.TypeValueScanner[*productcatalog.Discounts]
-		UnitConfig          field.TypeValueScanner[*productcatalog.UnitConfig]
+		UnitConfig          field.TypeValueScanner[*unitconfig.UnitConfig]
 	}
 )
 

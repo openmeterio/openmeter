@@ -436,6 +436,9 @@ func (_u *EntitlementUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if _u.mutation.ConfigCleared() {
 		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
 	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(entitlement.FieldUnitConfig, field.TypeString)
+	}
 	if _u.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeString)
 	}
@@ -1099,6 +1102,9 @@ func (_u *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlement
 	}
 	if _u.mutation.ConfigCleared() {
 		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(entitlement.FieldUnitConfig, field.TypeString)
 	}
 	if _u.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeString)

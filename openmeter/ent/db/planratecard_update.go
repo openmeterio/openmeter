@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -234,7 +235,7 @@ func (_u *PlanRateCardUpdate) ClearDiscounts() *PlanRateCardUpdate {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *PlanRateCardUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpdate {
+func (_u *PlanRateCardUpdate) SetUnitConfig(v *unitconfig.UnitConfig) *PlanRateCardUpdate {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }
@@ -822,7 +823,7 @@ func (_u *PlanRateCardUpdateOne) ClearDiscounts() *PlanRateCardUpdateOne {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *PlanRateCardUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *PlanRateCardUpdateOne {
+func (_u *PlanRateCardUpdateOne) SetUnitConfig(v *unitconfig.UnitConfig) *PlanRateCardUpdateOne {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }

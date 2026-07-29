@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -90,6 +91,7 @@ type CreateEntitlementRepoInputs struct {
 	IssueAfterResetPriority *uint8                 `json:"issueAfterResetPriority,omitempty"`
 	IsSoftLimit             *bool                  `json:"isSoftLimit,omitempty"`
 	Config                  *string                `json:"config,omitempty"`
+	UnitConfig              *unitconfig.UnitConfig `json:"unitConfig,omitempty"`
 	UsagePeriod             *UsagePeriodInput      `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod      *timeutil.ClosedPeriod `json:"currentUsagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`
