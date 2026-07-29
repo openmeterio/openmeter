@@ -68,6 +68,7 @@ func TestV3SubscriptionAddonAttach(t *testing.T) {
 	sub, err := c.Subscriptions.Create(t.Context(), subBody)
 	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, sub)
+	require.Equal(t, v3sdk.SubscriptionStatusActive, sub.Status)
 	subscriptionID := sub.ID
 
 	// --- Test: attach addon ---
