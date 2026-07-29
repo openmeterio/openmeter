@@ -109,7 +109,8 @@ on broad subsystem summaries.
 - Treat graph relationships as navigation hints. Current source and tests are
   authoritative; fall back to normal source navigation when CodeGraph is
   unavailable or inconclusive.
-- For ambiguous, design-heavy, or cross-cutting work, use the
+- When planning or implementing ambiguous, design-heavy, or cross-cutting
+  engineering changes, use the
   [`iterative-engineering-design`](.agents/skills/iterative-engineering-design/SKILL.md)
   skill.
 
