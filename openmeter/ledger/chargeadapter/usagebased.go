@@ -269,7 +269,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		Annotations:       chargeAnnotationsForUsageBasedCharge(input.Charge),
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: input.BookedAt,
-		Currency:          intent.GetCurrency().GetCode(),
+		Currency:          intent.GetCurrency().Reference(),
 		CustomCurrency:    customCurrencyIdentity(intent.GetCurrency()),
 		FeatureKey:        intent.GetFeatureKey(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),

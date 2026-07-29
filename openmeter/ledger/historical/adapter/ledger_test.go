@@ -1,9 +1,7 @@
 package adapter
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +11,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
@@ -54,60 +53,6 @@ func TestRepo_CreateTransactionGroup(t *testing.T) {
 		Only(ctx)
 	require.NoError(t, err)
 	require.Equal(t, annotations, entity.Annotations)
-}
-
-func TestRepo_TransactionGroupIdempotencyPersistence(t *testing.T) {
-	// given:
-	// - a namespace-scoped key and canonical financial fingerprint
-	// when:
-	// - the group is stored, reloaded by key, and inserted again
-	// then:
-	// - the fields round-trip and only the duplicate namespace/key is rejected
-	env := NewTestEnv(t)
-	t.Cleanup(func() {
-		env.Close(t)
-	})
-
-	ctx := t.Context()
-	namespace := testNamespace()
-	key := "adapter:key"
-	fingerprint := "v1:" + strings.Repeat("a", 64)
-	created, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
-		Namespace:        namespace,
-		IdempotencyKey:   &key,
-		InputFingerprint: &fingerprint,
-	})
-	require.NoError(t, err)
-
-	loaded, err := env.repo.GetTransactionGroupByIdempotencyKey(ctx, namespace, key)
-	require.NoError(t, err)
-	require.NotNil(t, loaded)
-	require.Equal(t, created.ID, loaded.ID().ID)
-
-	entity, err := env.client.LedgerTransactionGroup.Query().
-		Where(
-			ledgertransactiongroupdb.Namespace(namespace),
-			ledgertransactiongroupdb.IdempotencyKey(key),
-		).
-		Only(ctx)
-	require.NoError(t, err)
-	require.Equal(t, &key, entity.IdempotencyKey)
-	require.Equal(t, &fingerprint, entity.InputFingerprint)
-
-	_, err = env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
-		Namespace:        namespace,
-		IdempotencyKey:   &key,
-		InputFingerprint: &fingerprint,
-	})
-	require.Error(t, err)
-	require.True(t, errors.Is(err, ledgerhistorical.ErrTransactionGroupIdempotencyKeyAlreadyExists))
-
-	_, err = env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
-		Namespace:        "other-" + namespace,
-		IdempotencyKey:   &key,
-		InputFingerprint: &fingerprint,
-	})
-	require.NoError(t, err)
 }
 
 func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
@@ -1088,7 +1033,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	sumUSD, err := env.repo.SumEntries(ctx, ledger.Query{
 		Namespace: namespace,
 		Filters: ledger.Filters{
-			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1101,7 +1046,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CreditPriority: &creditPriority,
 			},
 		},
@@ -1116,7 +1061,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			TransactionID: &txID,
-			Route:         ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route:         ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1129,7 +1074,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			BookedAtPeriod: &timeutil.OpenPeriod{From: &from},
-			Route:          ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route:          ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1141,7 +1086,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:  currencyx.Code("USD"),
+				Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CostBasis: mo.Some(lo.ToPtr(mustDecimal(t, "0.70"))),
 			},
 		},
@@ -1153,7 +1098,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			After: lo.ToPtr(txLate.Cursor()),
-			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1163,7 +1108,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			After: lo.ToPtr(txCostBasis.Cursor()),
-			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1173,7 +1118,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			After: lo.ToPtr(txEarly.Cursor()),
-			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1206,7 +1151,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				Features: mo.Some([]string{"api-calls", "storage"}),
 			},
 		},
@@ -1218,7 +1163,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				Features: mo.Some([]string{"api-calls"}),
 			},
 		},
@@ -1264,7 +1209,7 @@ func TestRepo_SumEntries_MatchFeature(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:     currencyx.Code("USD"),
+				Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 				MatchFeature: "feature-a",
 			},
 		},
@@ -1276,7 +1221,7 @@ func TestRepo_SumEntries_MatchFeature(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:     currencyx.Code("USD"),
+				Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 				MatchFeature: "feature-b",
 			},
 		},
@@ -1288,7 +1233,7 @@ func TestRepo_SumEntries_MatchFeature(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:     currencyx.Code("USD"),
+				Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 				MatchFeature: "feature-c",
 			},
 		},
@@ -1310,7 +1255,7 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 					From: &bookedFrom,
 				},
 				Route: ledger.RouteFilter{
-					Currency:       currencyx.Code("USD"),
+					Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 					CostBasis:      mo.Some(lo.ToPtr(mustDecimal(t, "0.70"))),
 					CreditPriority: lo.ToPtr(7),
 				},
@@ -1338,7 +1283,7 @@ func TestSumEntriesQuery_SQLMatchFeature(t *testing.T) {
 			Namespace: "ns-test",
 			Filters: ledger.Filters{
 				Route: ledger.RouteFilter{
-					Currency:     currencyx.Code("USD"),
+					Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 					MatchFeature: "api-calls",
 				},
 			},

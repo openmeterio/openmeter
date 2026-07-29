@@ -98258,7 +98258,7 @@ type LedgerSubAccountRouteMutation struct {
 	routing_key_version              *ledger.RoutingKeyVersion
 	routing_key                      *string
 	currency                         *string
-	exchange_source_currency         *currencyx.Code
+	cost_basis_currency              *currencyx.Code
 	custom_currency_id               *string
 	custom_currency_precision        *uint32
 	addcustom_currency_precision     *int32
@@ -98687,53 +98687,53 @@ func (m *LedgerSubAccountRouteMutation) ResetCurrency() {
 	m.currency = nil
 }
 
-// SetExchangeSourceCurrency sets the "exchange_source_currency" field.
-func (m *LedgerSubAccountRouteMutation) SetExchangeSourceCurrency(c currencyx.Code) {
-	m.exchange_source_currency = &c
+// SetCostBasisCurrency sets the "cost_basis_currency" field.
+func (m *LedgerSubAccountRouteMutation) SetCostBasisCurrency(c currencyx.Code) {
+	m.cost_basis_currency = &c
 }
 
-// ExchangeSourceCurrency returns the value of the "exchange_source_currency" field in the mutation.
-func (m *LedgerSubAccountRouteMutation) ExchangeSourceCurrency() (r currencyx.Code, exists bool) {
-	v := m.exchange_source_currency
+// CostBasisCurrency returns the value of the "cost_basis_currency" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) CostBasisCurrency() (r currencyx.Code, exists bool) {
+	v := m.cost_basis_currency
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldExchangeSourceCurrency returns the old "exchange_source_currency" field's value of the LedgerSubAccountRoute entity.
+// OldCostBasisCurrency returns the old "cost_basis_currency" field's value of the LedgerSubAccountRoute entity.
 // If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountRouteMutation) OldExchangeSourceCurrency(ctx context.Context) (v *currencyx.Code, err error) {
+func (m *LedgerSubAccountRouteMutation) OldCostBasisCurrency(ctx context.Context) (v *currencyx.Code, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldExchangeSourceCurrency is only allowed on UpdateOne operations")
+		return v, errors.New("OldCostBasisCurrency is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldExchangeSourceCurrency requires an ID field in the mutation")
+		return v, errors.New("OldCostBasisCurrency requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldExchangeSourceCurrency: %w", err)
+		return v, fmt.Errorf("querying old value for OldCostBasisCurrency: %w", err)
 	}
-	return oldValue.ExchangeSourceCurrency, nil
+	return oldValue.CostBasisCurrency, nil
 }
 
-// ClearExchangeSourceCurrency clears the value of the "exchange_source_currency" field.
-func (m *LedgerSubAccountRouteMutation) ClearExchangeSourceCurrency() {
-	m.exchange_source_currency = nil
-	m.clearedFields[ledgersubaccountroute.FieldExchangeSourceCurrency] = struct{}{}
+// ClearCostBasisCurrency clears the value of the "cost_basis_currency" field.
+func (m *LedgerSubAccountRouteMutation) ClearCostBasisCurrency() {
+	m.cost_basis_currency = nil
+	m.clearedFields[ledgersubaccountroute.FieldCostBasisCurrency] = struct{}{}
 }
 
-// ExchangeSourceCurrencyCleared returns if the "exchange_source_currency" field was cleared in this mutation.
-func (m *LedgerSubAccountRouteMutation) ExchangeSourceCurrencyCleared() bool {
-	_, ok := m.clearedFields[ledgersubaccountroute.FieldExchangeSourceCurrency]
+// CostBasisCurrencyCleared returns if the "cost_basis_currency" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) CostBasisCurrencyCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldCostBasisCurrency]
 	return ok
 }
 
-// ResetExchangeSourceCurrency resets all changes to the "exchange_source_currency" field.
-func (m *LedgerSubAccountRouteMutation) ResetExchangeSourceCurrency() {
-	m.exchange_source_currency = nil
-	delete(m.clearedFields, ledgersubaccountroute.FieldExchangeSourceCurrency)
+// ResetCostBasisCurrency resets all changes to the "cost_basis_currency" field.
+func (m *LedgerSubAccountRouteMutation) ResetCostBasisCurrency() {
+	m.cost_basis_currency = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldCostBasisCurrency)
 }
 
 // SetCustomCurrencyID sets the "custom_currency_id" field.
@@ -99380,8 +99380,8 @@ func (m *LedgerSubAccountRouteMutation) Fields() []string {
 	if m.currency != nil {
 		fields = append(fields, ledgersubaccountroute.FieldCurrency)
 	}
-	if m.exchange_source_currency != nil {
-		fields = append(fields, ledgersubaccountroute.FieldExchangeSourceCurrency)
+	if m.cost_basis_currency != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCostBasisCurrency)
 	}
 	if m.custom_currency_id != nil {
 		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyID)
@@ -99434,8 +99434,8 @@ func (m *LedgerSubAccountRouteMutation) Field(name string) (ent.Value, bool) {
 		return m.RoutingKey()
 	case ledgersubaccountroute.FieldCurrency:
 		return m.Currency()
-	case ledgersubaccountroute.FieldExchangeSourceCurrency:
-		return m.ExchangeSourceCurrency()
+	case ledgersubaccountroute.FieldCostBasisCurrency:
+		return m.CostBasisCurrency()
 	case ledgersubaccountroute.FieldCustomCurrencyID:
 		return m.CustomCurrencyID()
 	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
@@ -99479,8 +99479,8 @@ func (m *LedgerSubAccountRouteMutation) OldField(ctx context.Context, name strin
 		return m.OldRoutingKey(ctx)
 	case ledgersubaccountroute.FieldCurrency:
 		return m.OldCurrency(ctx)
-	case ledgersubaccountroute.FieldExchangeSourceCurrency:
-		return m.OldExchangeSourceCurrency(ctx)
+	case ledgersubaccountroute.FieldCostBasisCurrency:
+		return m.OldCostBasisCurrency(ctx)
 	case ledgersubaccountroute.FieldCustomCurrencyID:
 		return m.OldCustomCurrencyID(ctx)
 	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
@@ -99564,12 +99564,12 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetCurrency(v)
 		return nil
-	case ledgersubaccountroute.FieldExchangeSourceCurrency:
+	case ledgersubaccountroute.FieldCostBasisCurrency:
 		v, ok := value.(currencyx.Code)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetExchangeSourceCurrency(v)
+		m.SetCostBasisCurrency(v)
 		return nil
 	case ledgersubaccountroute.FieldCustomCurrencyID:
 		v, ok := value.(string)
@@ -99706,8 +99706,8 @@ func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgersubaccountroute.FieldDeletedAt) {
 		fields = append(fields, ledgersubaccountroute.FieldDeletedAt)
 	}
-	if m.FieldCleared(ledgersubaccountroute.FieldExchangeSourceCurrency) {
-		fields = append(fields, ledgersubaccountroute.FieldExchangeSourceCurrency)
+	if m.FieldCleared(ledgersubaccountroute.FieldCostBasisCurrency) {
+		fields = append(fields, ledgersubaccountroute.FieldCostBasisCurrency)
 	}
 	if m.FieldCleared(ledgersubaccountroute.FieldCustomCurrencyID) {
 		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyID)
@@ -99753,8 +99753,8 @@ func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
 	case ledgersubaccountroute.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
-	case ledgersubaccountroute.FieldExchangeSourceCurrency:
-		m.ClearExchangeSourceCurrency()
+	case ledgersubaccountroute.FieldCostBasisCurrency:
+		m.ClearCostBasisCurrency()
 		return nil
 	case ledgersubaccountroute.FieldCustomCurrencyID:
 		m.ClearCustomCurrencyID()
@@ -99815,8 +99815,8 @@ func (m *LedgerSubAccountRouteMutation) ResetField(name string) error {
 	case ledgersubaccountroute.FieldCurrency:
 		m.ResetCurrency()
 		return nil
-	case ledgersubaccountroute.FieldExchangeSourceCurrency:
-		m.ResetExchangeSourceCurrency()
+	case ledgersubaccountroute.FieldCostBasisCurrency:
+		m.ResetCostBasisCurrency()
 		return nil
 	case ledgersubaccountroute.FieldCustomCurrencyID:
 		m.ResetCustomCurrencyID()
@@ -100964,9 +100964,6 @@ type LedgerTransactionGroupMutation struct {
 	created_at                     *time.Time
 	updated_at                     *time.Time
 	deleted_at                     *time.Time
-	idempotency_scope              *string
-	idempotency_key                *string
-	input_fingerprint              *string
 	clearedFields                  map[string]struct{}
 	transactions                   map[string]struct{}
 	removedtransactions            map[string]struct{}
@@ -101292,153 +101289,6 @@ func (m *LedgerTransactionGroupMutation) ResetDeletedAt() {
 	delete(m.clearedFields, ledgertransactiongroup.FieldDeletedAt)
 }
 
-// SetIdempotencyScope sets the "idempotency_scope" field.
-func (m *LedgerTransactionGroupMutation) SetIdempotencyScope(s string) {
-	m.idempotency_scope = &s
-}
-
-// IdempotencyScope returns the value of the "idempotency_scope" field in the mutation.
-func (m *LedgerTransactionGroupMutation) IdempotencyScope() (r string, exists bool) {
-	v := m.idempotency_scope
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIdempotencyScope returns the old "idempotency_scope" field's value of the LedgerTransactionGroup entity.
-// If the LedgerTransactionGroup object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerTransactionGroupMutation) OldIdempotencyScope(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIdempotencyScope is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIdempotencyScope requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIdempotencyScope: %w", err)
-	}
-	return oldValue.IdempotencyScope, nil
-}
-
-// ClearIdempotencyScope clears the value of the "idempotency_scope" field.
-func (m *LedgerTransactionGroupMutation) ClearIdempotencyScope() {
-	m.idempotency_scope = nil
-	m.clearedFields[ledgertransactiongroup.FieldIdempotencyScope] = struct{}{}
-}
-
-// IdempotencyScopeCleared returns if the "idempotency_scope" field was cleared in this mutation.
-func (m *LedgerTransactionGroupMutation) IdempotencyScopeCleared() bool {
-	_, ok := m.clearedFields[ledgertransactiongroup.FieldIdempotencyScope]
-	return ok
-}
-
-// ResetIdempotencyScope resets all changes to the "idempotency_scope" field.
-func (m *LedgerTransactionGroupMutation) ResetIdempotencyScope() {
-	m.idempotency_scope = nil
-	delete(m.clearedFields, ledgertransactiongroup.FieldIdempotencyScope)
-}
-
-// SetIdempotencyKey sets the "idempotency_key" field.
-func (m *LedgerTransactionGroupMutation) SetIdempotencyKey(s string) {
-	m.idempotency_key = &s
-}
-
-// IdempotencyKey returns the value of the "idempotency_key" field in the mutation.
-func (m *LedgerTransactionGroupMutation) IdempotencyKey() (r string, exists bool) {
-	v := m.idempotency_key
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldIdempotencyKey returns the old "idempotency_key" field's value of the LedgerTransactionGroup entity.
-// If the LedgerTransactionGroup object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerTransactionGroupMutation) OldIdempotencyKey(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldIdempotencyKey is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldIdempotencyKey requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldIdempotencyKey: %w", err)
-	}
-	return oldValue.IdempotencyKey, nil
-}
-
-// ClearIdempotencyKey clears the value of the "idempotency_key" field.
-func (m *LedgerTransactionGroupMutation) ClearIdempotencyKey() {
-	m.idempotency_key = nil
-	m.clearedFields[ledgertransactiongroup.FieldIdempotencyKey] = struct{}{}
-}
-
-// IdempotencyKeyCleared returns if the "idempotency_key" field was cleared in this mutation.
-func (m *LedgerTransactionGroupMutation) IdempotencyKeyCleared() bool {
-	_, ok := m.clearedFields[ledgertransactiongroup.FieldIdempotencyKey]
-	return ok
-}
-
-// ResetIdempotencyKey resets all changes to the "idempotency_key" field.
-func (m *LedgerTransactionGroupMutation) ResetIdempotencyKey() {
-	m.idempotency_key = nil
-	delete(m.clearedFields, ledgertransactiongroup.FieldIdempotencyKey)
-}
-
-// SetInputFingerprint sets the "input_fingerprint" field.
-func (m *LedgerTransactionGroupMutation) SetInputFingerprint(s string) {
-	m.input_fingerprint = &s
-}
-
-// InputFingerprint returns the value of the "input_fingerprint" field in the mutation.
-func (m *LedgerTransactionGroupMutation) InputFingerprint() (r string, exists bool) {
-	v := m.input_fingerprint
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldInputFingerprint returns the old "input_fingerprint" field's value of the LedgerTransactionGroup entity.
-// If the LedgerTransactionGroup object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerTransactionGroupMutation) OldInputFingerprint(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldInputFingerprint is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldInputFingerprint requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldInputFingerprint: %w", err)
-	}
-	return oldValue.InputFingerprint, nil
-}
-
-// ClearInputFingerprint clears the value of the "input_fingerprint" field.
-func (m *LedgerTransactionGroupMutation) ClearInputFingerprint() {
-	m.input_fingerprint = nil
-	m.clearedFields[ledgertransactiongroup.FieldInputFingerprint] = struct{}{}
-}
-
-// InputFingerprintCleared returns if the "input_fingerprint" field was cleared in this mutation.
-func (m *LedgerTransactionGroupMutation) InputFingerprintCleared() bool {
-	_, ok := m.clearedFields[ledgertransactiongroup.FieldInputFingerprint]
-	return ok
-}
-
-// ResetInputFingerprint resets all changes to the "input_fingerprint" field.
-func (m *LedgerTransactionGroupMutation) ResetInputFingerprint() {
-	m.input_fingerprint = nil
-	delete(m.clearedFields, ledgertransactiongroup.FieldInputFingerprint)
-}
-
 // AddTransactionIDs adds the "transactions" edge to the LedgerTransaction entity by ids.
 func (m *LedgerTransactionGroupMutation) AddTransactionIDs(ids ...string) {
 	if m.transactions == nil {
@@ -101635,7 +101485,7 @@ func (m *LedgerTransactionGroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerTransactionGroupMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 5)
 	if m.namespace != nil {
 		fields = append(fields, ledgertransactiongroup.FieldNamespace)
 	}
@@ -101650,15 +101500,6 @@ func (m *LedgerTransactionGroupMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, ledgertransactiongroup.FieldDeletedAt)
-	}
-	if m.idempotency_scope != nil {
-		fields = append(fields, ledgertransactiongroup.FieldIdempotencyScope)
-	}
-	if m.idempotency_key != nil {
-		fields = append(fields, ledgertransactiongroup.FieldIdempotencyKey)
-	}
-	if m.input_fingerprint != nil {
-		fields = append(fields, ledgertransactiongroup.FieldInputFingerprint)
 	}
 	return fields
 }
@@ -101678,12 +101519,6 @@ func (m *LedgerTransactionGroupMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case ledgertransactiongroup.FieldDeletedAt:
 		return m.DeletedAt()
-	case ledgertransactiongroup.FieldIdempotencyScope:
-		return m.IdempotencyScope()
-	case ledgertransactiongroup.FieldIdempotencyKey:
-		return m.IdempotencyKey()
-	case ledgertransactiongroup.FieldInputFingerprint:
-		return m.InputFingerprint()
 	}
 	return nil, false
 }
@@ -101703,12 +101538,6 @@ func (m *LedgerTransactionGroupMutation) OldField(ctx context.Context, name stri
 		return m.OldUpdatedAt(ctx)
 	case ledgertransactiongroup.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case ledgertransactiongroup.FieldIdempotencyScope:
-		return m.OldIdempotencyScope(ctx)
-	case ledgertransactiongroup.FieldIdempotencyKey:
-		return m.OldIdempotencyKey(ctx)
-	case ledgertransactiongroup.FieldInputFingerprint:
-		return m.OldInputFingerprint(ctx)
 	}
 	return nil, fmt.Errorf("unknown LedgerTransactionGroup field %s", name)
 }
@@ -101753,27 +101582,6 @@ func (m *LedgerTransactionGroupMutation) SetField(name string, value ent.Value) 
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case ledgertransactiongroup.FieldIdempotencyScope:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIdempotencyScope(v)
-		return nil
-	case ledgertransactiongroup.FieldIdempotencyKey:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetIdempotencyKey(v)
-		return nil
-	case ledgertransactiongroup.FieldInputFingerprint:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetInputFingerprint(v)
-		return nil
 	}
 	return fmt.Errorf("unknown LedgerTransactionGroup field %s", name)
 }
@@ -101810,15 +101618,6 @@ func (m *LedgerTransactionGroupMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgertransactiongroup.FieldDeletedAt) {
 		fields = append(fields, ledgertransactiongroup.FieldDeletedAt)
 	}
-	if m.FieldCleared(ledgertransactiongroup.FieldIdempotencyScope) {
-		fields = append(fields, ledgertransactiongroup.FieldIdempotencyScope)
-	}
-	if m.FieldCleared(ledgertransactiongroup.FieldIdempotencyKey) {
-		fields = append(fields, ledgertransactiongroup.FieldIdempotencyKey)
-	}
-	if m.FieldCleared(ledgertransactiongroup.FieldInputFingerprint) {
-		fields = append(fields, ledgertransactiongroup.FieldInputFingerprint)
-	}
 	return fields
 }
 
@@ -101838,15 +101637,6 @@ func (m *LedgerTransactionGroupMutation) ClearField(name string) error {
 		return nil
 	case ledgertransactiongroup.FieldDeletedAt:
 		m.ClearDeletedAt()
-		return nil
-	case ledgertransactiongroup.FieldIdempotencyScope:
-		m.ClearIdempotencyScope()
-		return nil
-	case ledgertransactiongroup.FieldIdempotencyKey:
-		m.ClearIdempotencyKey()
-		return nil
-	case ledgertransactiongroup.FieldInputFingerprint:
-		m.ClearInputFingerprint()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerTransactionGroup nullable field %s", name)
@@ -101870,15 +101660,6 @@ func (m *LedgerTransactionGroupMutation) ResetField(name string) error {
 		return nil
 	case ledgertransactiongroup.FieldDeletedAt:
 		m.ResetDeletedAt()
-		return nil
-	case ledgertransactiongroup.FieldIdempotencyScope:
-		m.ResetIdempotencyScope()
-		return nil
-	case ledgertransactiongroup.FieldIdempotencyKey:
-		m.ResetIdempotencyKey()
-		return nil
-	case ledgertransactiongroup.FieldInputFingerprint:
-		m.ResetInputFingerprint()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerTransactionGroup field %s", name)

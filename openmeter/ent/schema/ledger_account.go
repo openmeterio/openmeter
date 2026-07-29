@@ -120,7 +120,7 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 		field.String("routing_key").Immutable(),
 		// Literal routing values (denormalized from routing_key for query filtering; not FKs).
 		field.String("currency").Immutable(),
-		field.String("exchange_source_currency").
+		field.String("cost_basis_currency").
 			GoType(currencyx.Code("")).
 			Optional().
 			Nillable().

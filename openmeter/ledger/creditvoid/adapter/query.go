@@ -13,7 +13,7 @@ import (
 )
 
 func voidRecordRoutePredicate(route ledger.RouteFilter) predicate.LedgerCreditVoidRecord {
-	if route.Currency == "" && route.Features.IsAbsent() && route.MatchFeature == "" {
+	if route.Currency.Code == "" && route.Features.IsAbsent() && route.MatchFeature == "" {
 		return nil
 	}
 
@@ -61,8 +61,11 @@ func (q voidRecordRouteQuery) selector() *sql.Selector {
 func (q voidRecordRouteQuery) selectorPredicates(routeColumn func(string) string, routeTableAlias string) []*sql.Predicate {
 	predicates := make([]*sql.Predicate, 0, 3)
 
-	if q.Route.Currency != "" {
-		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(q.Route.Currency)))
+	if q.Route.Currency.Code != "" {
+		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(q.Route.Currency.Code)))
+	}
+	if q.Route.Currency.CustomCurrencyID != nil {
+		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCustomCurrencyID), *q.Route.Currency.CustomCurrencyID))
 	}
 
 	if q.Route.Features.IsPresent() {

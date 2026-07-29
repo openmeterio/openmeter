@@ -8,6 +8,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -62,14 +63,14 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 		{
 			name: "currency matches",
 			filter: ledger.ImpactFilter{
-				Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+				Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 			},
 			want: true,
 		},
 		{
 			name: "currency mismatch",
 			filter: ledger.ImpactFilter{
-				Route: ledger.RouteFilter{Currency: currencyx.Code("EUR")},
+				Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))},
 			},
 		},
 		{
@@ -180,7 +181,7 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 			filter: ledger.ImpactFilter{
 				AccountType: ledger.AccountTypeCustomerFBO,
 				Route: ledger.RouteFilter{
-					Currency:       currencyx.Code("USD"),
+					Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 					TaxCode:        mo.Some(&taxCode),
 					TaxBehavior:    mo.Some(&taxBehavior),
 					Features:       mo.Some([]string{"feature-b", "feature-a"}),
@@ -320,7 +321,7 @@ func TestTransactionImpact(t *testing.T) {
 			filter: ledger.ImpactFilter{
 				AccountType: ledger.AccountTypeCustomerFBO,
 				Route: ledger.RouteFilter{
-					Currency: currencyx.Code("USD"),
+					Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				},
 			},
 			want: alpacadecimal.NewFromInt(7),

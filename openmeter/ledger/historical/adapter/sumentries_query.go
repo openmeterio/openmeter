@@ -137,15 +137,18 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 	}
 
 	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 8)
-	if normalizedRoute.Currency != "" {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(normalizedRoute.Currency)))
+	if normalizedRoute.Currency.Code != "" {
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(normalizedRoute.Currency.Code)))
 	}
-	if normalizedRoute.ExchangeSourceCurrency.IsPresent() {
-		exchangeSourceCurrency, _ := normalizedRoute.ExchangeSourceCurrency.Get()
-		if exchangeSourceCurrency != nil {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.ExchangeSourceCurrency(*exchangeSourceCurrency))
+	if normalizedRoute.Currency.CustomCurrencyID != nil {
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.CustomCurrencyID(*normalizedRoute.Currency.CustomCurrencyID))
+	}
+	if normalizedRoute.CostBasisCurrency.IsPresent() {
+		costBasisCurrency, _ := normalizedRoute.CostBasisCurrency.Get()
+		if costBasisCurrency != nil {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisCurrency(*costBasisCurrency))
 		} else {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.ExchangeSourceCurrencyIsNil())
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisCurrencyIsNil())
 		}
 	}
 	if normalizedRoute.CreditPriority != nil {

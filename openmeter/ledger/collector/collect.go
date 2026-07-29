@@ -104,8 +104,23 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return resolvedCollectedInputs{}, fmt.Errorf("amount: %w", err)
 	}
 
-	if err := ledger.ValidateCurrency(input.Currency); err != nil {
+	if err := input.Currency.Validate(); err != nil {
 		return resolvedCollectedInputs{}, fmt.Errorf("currency: %w", err)
+	}
+	if err := ledger.ValidateCustomCurrency(input.Currency.Code, input.CustomCurrency); err != nil {
+		return resolvedCollectedInputs{}, fmt.Errorf("custom currency: %w", err)
+	}
+	if input.Currency.IsCustom() {
+		if input.Currency.CustomCurrencyID == nil {
+			return resolvedCollectedInputs{}, fmt.Errorf("currency: custom currency id is required")
+		}
+		if *input.Currency.CustomCurrencyID != input.CustomCurrency.ID {
+			return resolvedCollectedInputs{}, fmt.Errorf(
+				"currency: custom currency id %q does not match ledger route identity %q",
+				*input.Currency.CustomCurrencyID,
+				input.CustomCurrency.ID,
+			)
+		}
 	}
 
 	selections, err := c.collectCustomerFBOSelections(ctx, c.customerID(input), input.Currency, input.FeatureKey, amount, input.SourceBalanceAsOf)
@@ -198,7 +213,7 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 		transactions.IssueCustomerReceivableTemplate{
 			At:             input.BookedAt,
 			Amount:         amount,
-			Currency:       input.Currency,
+			Currency:       input.Currency.Code,
 			CustomCurrency: input.CustomCurrency,
 			Features:       features,
 			SpendChargeID:  &input.ChargeID,
@@ -206,7 +221,7 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:             input.BookedAt,
 			Amount:         amount,
-			Currency:       input.Currency,
+			Currency:       input.Currency.Code,
 			CustomCurrency: input.CustomCurrency,
 			TaxCode:        input.TaxCode,
 			TaxBehavior:    input.TaxBehavior,

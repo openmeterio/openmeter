@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgeraccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	ledgersubaccountroutedb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
@@ -159,7 +160,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Route: ledger.RouteFilter{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference("USD"),
 				CreditPriority: lo.ToPtr(7),
 			},
 		})
@@ -173,7 +174,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Route: ledger.RouteFilter{
-				Currency:  currencyx.Code("USD"),
+				Currency:  currencies.NewCurrencyReference("USD"),
 				CostBasis: mo.Some(lo.ToPtr(mustDecimal(t, "0.70"))),
 			},
 		})
@@ -189,7 +190,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Route: ledger.RouteFilter{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference("USD"),
 				TransactionAuthorizationStatus: &authorizedStatus,
 			},
 		})

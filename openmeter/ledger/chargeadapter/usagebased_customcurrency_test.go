@@ -175,7 +175,7 @@ func (e *usageBasedHandlerTestEnv) newCustomCurrencyCreditsOnlyCharge(t *testing
 // open receivable in the same posting. The receivable side (and its later
 // fiat conversion/settlement) is irrelevant to credit_only collection, which
 // only reads FBO/accrued balances, so it is left open here.
-func (e *usageBasedHandlerTestEnv) fundCustomFBO(t *testing.T, currency currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity, exchangeSourceCurrency *currencyx.Code, costBasis alpacadecimal.Decimal, amount alpacadecimal.Decimal) {
+func (e *usageBasedHandlerTestEnv) fundCustomFBO(t *testing.T, currency currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity, costBasisCurrency *currencyx.Code, costBasis alpacadecimal.Decimal, amount alpacadecimal.Decimal) {
 	t.Helper()
 
 	inputs, err := transactions.ResolveTransactions(
@@ -190,12 +190,12 @@ func (e *usageBasedHandlerTestEnv) fundCustomFBO(t *testing.T, currency currency
 			Namespace:  e.Namespace,
 		},
 		transactions.IssueCustomerReceivableTemplate{
-			At:                     e.Now(),
-			Amount:                 amount,
-			Currency:               currency,
-			CustomCurrency:         customCurrency,
-			ExchangeSourceCurrency: exchangeSourceCurrency,
-			CostBasis:              &costBasis,
+			At:                e.Now(),
+			Amount:            amount,
+			Currency:          currency,
+			CustomCurrency:    customCurrency,
+			CostBasisCurrency: costBasisCurrency,
+			CostBasis:         &costBasis,
 		},
 	)
 	require.NoError(t, err)
@@ -204,30 +204,30 @@ func (e *usageBasedHandlerTestEnv) fundCustomFBO(t *testing.T, currency currency
 	require.NoError(t, err)
 }
 
-func (e *usageBasedHandlerTestEnv) customFBOSubAccountForUsageBased(t *testing.T, currency currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity, exchangeSourceCurrency *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
+func (e *usageBasedHandlerTestEnv) customFBOSubAccountForUsageBased(t *testing.T, currency currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity, costBasisCurrency *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:               currency,
-		CustomCurrency:         customCurrency,
-		ExchangeSourceCurrency: exchangeSourceCurrency,
-		CostBasis:              &costBasis,
-		CreditPriority:         ledger.DefaultCustomerFBOPriority,
+		Currency:          currency,
+		CustomCurrency:    customCurrency,
+		CostBasisCurrency: costBasisCurrency,
+		CostBasis:         &costBasis,
+		CreditPriority:    ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)
 
 	return subAccount
 }
 
-func (e *usageBasedHandlerTestEnv) customAccruedSubAccountForUsageBased(t *testing.T, currency currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity, exchangeSourceCurrency *currencyx.Code, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+func (e *usageBasedHandlerTestEnv) customAccruedSubAccountForUsageBased(t *testing.T, currency currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity, costBasisCurrency *currencyx.Code, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:               currency,
-		CustomCurrency:         customCurrency,
-		ExchangeSourceCurrency: exchangeSourceCurrency,
-		TaxCode:                lo.ToPtr(testChargeTaxCodeID),
-		CostBasis:              costBasis,
+		Currency:          currency,
+		CustomCurrency:    customCurrency,
+		CostBasisCurrency: costBasisCurrency,
+		TaxCode:           lo.ToPtr(testChargeTaxCodeID),
+		CostBasis:         costBasis,
 	})
 	require.NoError(t, err)
 

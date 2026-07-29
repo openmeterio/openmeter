@@ -10,6 +10,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -44,8 +45,8 @@ type SubAccount interface {
 
 // RouteFilter is the set of route fields that can be used to filter sub-accounts and query balances.
 type RouteFilter struct {
-	Currency               currencyx.Code
-	ExchangeSourceCurrency mo.Option[*currencyx.Code]
+	Currency          currencies.CurrencyReference
+	CostBasisCurrency mo.Option[*currencyx.Code]
 
 	// Non-currency fields are retained for near-future expansion.
 	TaxCode     mo.Option[*string]
@@ -167,10 +168,7 @@ type TransactionGroupInput interface {
 	Namespace() string
 	Transactions() []TransactionInput
 	Annotations() models.Annotations
-	IdempotencyKey() *string
 }
-
-const TransactionGroupIdempotencyKeyMaxLength = 256
 
 // TransactionGroup represents a group of transactions written to the ledger at the same time
 type TransactionGroup interface {

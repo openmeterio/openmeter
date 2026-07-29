@@ -10253,7 +10253,7 @@ func (s *CreditThenInvoiceTestSuite) mustCustomerFBOBalance(customerID customer.
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency:       code,
+		Currency:       currencies.NewCurrencyReference(code),
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(ledger.DefaultCustomerFBOPriority),
 	}, ledger.BalanceQuery{})
@@ -10269,7 +10269,7 @@ func (s *CreditThenInvoiceTestSuite) mustCustomerReceivableBalance(customerID cu
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:                       code,
+		Currency:                       currencies.NewCurrencyReference(code),
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
 	}, ledger.BalanceQuery{})
@@ -10285,7 +10285,7 @@ func (s *CreditThenInvoiceTestSuite) mustCustomerAccruedBalance(customerID custo
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
@@ -10300,7 +10300,7 @@ func (s *CreditThenInvoiceTestSuite) mustWashBalance(namespace string, code curr
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.WashAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
@@ -10315,7 +10315,7 @@ func (s *CreditThenInvoiceTestSuite) mustEarningsBalance(namespace string, code 
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
-		Currency: code,
+		Currency: currencies.NewCurrencyReference(code),
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 

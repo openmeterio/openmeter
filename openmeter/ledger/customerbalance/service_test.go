@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -144,12 +145,12 @@ func TestGetBalanceServiceInputRoutes(t *testing.T) {
 	}
 
 	bookedRoute := input.bookedRoute()
-	require.Equal(t, currencyx.Code("USD"), bookedRoute.Currency)
+	require.Equal(t, currencies.NewCurrencyReference("USD"), bookedRoute.Currency)
 	require.Equal(t, "feature-a", bookedRoute.MatchFeature)
 	require.True(t, bookedRoute.CostBasis.IsAbsent())
 
 	advanceRoute := input.advanceRoute()
-	require.Equal(t, currencyx.Code("USD"), advanceRoute.Currency)
+	require.Equal(t, currencies.NewCurrencyReference("USD"), advanceRoute.Currency)
 	require.Equal(t, "feature-a", advanceRoute.MatchFeature)
 	require.True(t, advanceRoute.CostBasis.IsPresent())
 	costBasis, _ := advanceRoute.CostBasis.Get()
@@ -608,7 +609,7 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 
 	now := clock.Now()
 	exactFeatureABalance, err := env.Deps.HistoricalLedger.GetAccountBalance(t.Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency: env.Currency,
+		Currency: currencies.NewCurrencyReference(env.Currency),
 		Features: mo.Some([]string{"feature-a"}),
 	}, ledger.BalanceQuery{AsOf: &now})
 	require.NoError(t, err)

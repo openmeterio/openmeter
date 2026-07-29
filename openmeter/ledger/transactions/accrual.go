@@ -10,6 +10,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -19,7 +20,7 @@ import (
 // into the customer's accrued account.
 type TransferCustomerFBOToAccruedTemplate struct {
 	At          time.Time
-	Currency    currencyx.Code
+	Currency    currencies.CurrencyReference
 	TaxCode     *string
 	TaxBehavior *ledger.TaxBehavior
 	Sources     []PostingAmount
@@ -30,7 +31,7 @@ func (t TransferCustomerFBOToAccruedTemplate) Validate() error {
 		return fmt.Errorf("at is required")
 	}
 
-	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+	if err := t.Currency.Validate(); err != nil {
 		return fmt.Errorf("currency: %w", err)
 	}
 
@@ -49,8 +50,13 @@ func (t TransferCustomerFBOToAccruedTemplate) Validate() error {
 			return fmt.Errorf("sources[%d]: account type must be customer_fbo", i)
 		}
 
-		if source.Address.Route().Route().Currency != t.Currency {
-			return fmt.Errorf("sources[%d]: currency must be %s", i, t.Currency)
+		if !source.Address.Route().Route().CurrencyReference().Equal(t.Currency) {
+			return fmt.Errorf(
+				"sources[%d]: currency must be %s, got %s",
+				i,
+				t.Currency,
+				source.Address.Route().Route().CurrencyReference(),
+			)
 		}
 
 		if err := ledger.ValidateTransactionAmount(source.Amount); err != nil {
@@ -110,9 +116,10 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 	route := address.Route().Route()
 
 	return routePairingKey{
-		currency:               route.Currency,
-		exchangeSourceCurrency: string(lo.FromPtrOr(route.ExchangeSourceCurrency, currencyx.Code(""))),
-		costBasis:              costBasisKey(route.CostBasis),
+		currency:          route.Currency,
+		customCurrencyID:  customCurrencyIDKey(route.CustomCurrency),
+		costBasisCurrency: string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
+		costBasis:         costBasisKey(route.CostBasis),
 	}
 }
 
@@ -197,12 +204,12 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 		current := accruedSubAccByKey[key]
 		if current.Address == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-				Currency:               t.Currency,
-				CustomCurrency:         source.Address.Route().Route().CustomCurrency,
-				ExchangeSourceCurrency: source.Address.Route().Route().ExchangeSourceCurrency,
-				TaxCode:                t.TaxCode,
-				TaxBehavior:            t.TaxBehavior,
-				CostBasis:              source.Address.Route().Route().CostBasis,
+				Currency:          t.Currency.Code,
+				CustomCurrency:    source.Address.Route().Route().CustomCurrency,
+				CostBasisCurrency: source.Address.Route().Route().CostBasisCurrency,
+				TaxCode:           t.TaxCode,
+				TaxBehavior:       t.TaxBehavior,
+				CostBasis:         source.Address.Route().Route().CostBasis,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
@@ -542,11 +549,11 @@ type TranslateCustomerAccruedCostBasisTemplate struct {
 	TaxBehavior    *ledger.TaxBehavior
 	FromCostBasis  *alpacadecimal.Decimal
 	ToCostBasis    *alpacadecimal.Decimal
-	// ExchangeSourceCurrency is the fiat currency the ToCostBasis leg was priced
+	// CostBasisCurrency is the fiat currency the ToCostBasis leg was priced
 	// against. Nil when FromCostBasis is also nil (cost basis still unknown).
-	ExchangeSourceCurrency *currencyx.Code
-	SourceChargeID         *string
-	SpendChargeID          *string
+	CostBasisCurrency *currencyx.Code
+	SourceChargeID    *string
+	SpendChargeID     *string
 }
 
 func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
@@ -576,8 +583,8 @@ func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
 		return fmt.Errorf("to cost basis: %w", err)
 	}
 
-	if err := ledger.ValidateExchangeSourceCurrency(t.Currency, t.ExchangeSourceCurrency, t.ToCostBasis); err != nil {
-		return fmt.Errorf("exchange source currency: %w", err)
+	if err := ledger.ValidateCostBasisCurrency(t.Currency, t.CostBasisCurrency, t.ToCostBasis); err != nil {
+		return fmt.Errorf("cost basis currency: %w", err)
 	}
 
 	if t.TaxBehavior != nil {
@@ -677,12 +684,12 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 	}
 
 	toAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:               t.Currency,
-		CustomCurrency:         t.CustomCurrency,
-		ExchangeSourceCurrency: t.ExchangeSourceCurrency,
-		TaxCode:                t.TaxCode,
-		TaxBehavior:            t.TaxBehavior,
-		CostBasis:              t.ToCostBasis,
+		Currency:          t.Currency,
+		CustomCurrency:    t.CustomCurrency,
+		CostBasisCurrency: t.CostBasisCurrency,
+		TaxCode:           t.TaxCode,
+		TaxBehavior:       t.TaxBehavior,
+		CostBasis:         t.ToCostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get target accrued sub-account: %w", err)

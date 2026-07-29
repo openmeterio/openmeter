@@ -81,10 +81,9 @@ func (a *AnyTransactionInput) AsGroupInput(namespace string, annotations models.
 }
 
 type AnyTransactionGroupInput struct {
-	NamespaceValue      string
-	TransactionsValues  []*AnyTransactionInput
-	AnnotationsValue    models.Annotations
-	IdempotencyKeyValue *string
+	NamespaceValue     string
+	TransactionsValues []*AnyTransactionInput
+	AnnotationsValue   models.Annotations
 }
 
 var _ ledger.TransactionGroupInput = (*AnyTransactionGroupInput)(nil)
@@ -101,8 +100,4 @@ func (a *AnyTransactionGroupInput) Transactions() []ledger.TransactionInput {
 
 func (a *AnyTransactionGroupInput) Annotations() models.Annotations {
 	return a.AnnotationsValue
-}
-
-func (a *AnyTransactionGroupInput) IdempotencyKey() *string {
-	return a.IdempotencyKeyValue
 }

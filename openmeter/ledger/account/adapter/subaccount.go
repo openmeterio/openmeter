@@ -86,7 +86,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetRoutingKeyVersion(routeKey.Version()).
 		SetRoutingKey(routeKey.Value()).
 		SetCurrency(string(normalizedRoute.Currency)).
-		SetNillableExchangeSourceCurrency(normalizedRoute.ExchangeSourceCurrency).
+		SetNillableCostBasisCurrency(normalizedRoute.CostBasisCurrency).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
 		SetFeatures(pq.StringArray(normalizedRoute.Features)).
@@ -165,15 +165,18 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 		}
 
 		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 8)
-		if normalizedRoute.Currency != "" {
-			routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(normalizedRoute.Currency)))
+		if normalizedRoute.Currency.Code != "" {
+			routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(normalizedRoute.Currency.Code)))
 		}
-		if normalizedRoute.ExchangeSourceCurrency.IsPresent() {
-			exchangeSourceCurrency, _ := normalizedRoute.ExchangeSourceCurrency.Get()
-			if exchangeSourceCurrency != nil {
-				routePredicates = append(routePredicates, dbledgersubaccountroute.ExchangeSourceCurrency(*exchangeSourceCurrency))
+		if normalizedRoute.Currency.CustomCurrencyID != nil {
+			routePredicates = append(routePredicates, dbledgersubaccountroute.CustomCurrencyID(*normalizedRoute.Currency.CustomCurrencyID))
+		}
+		if normalizedRoute.CostBasisCurrency.IsPresent() {
+			costBasisCurrency, _ := normalizedRoute.CostBasisCurrency.Get()
+			if costBasisCurrency != nil {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisCurrency(*costBasisCurrency))
 			} else {
-				routePredicates = append(routePredicates, dbledgersubaccountroute.ExchangeSourceCurrencyIsNil())
+				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisCurrencyIsNil())
 			}
 		}
 		if normalizedRoute.CreditPriority != nil {
@@ -285,7 +288,7 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 		Route: ledger.Route{
 			Currency:                       currencyx.Code(dbRoute.Currency),
 			CustomCurrency:                 customCurrency,
-			ExchangeSourceCurrency:         dbRoute.ExchangeSourceCurrency,
+			CostBasisCurrency:              dbRoute.CostBasisCurrency,
 			TaxCode:                        dbRoute.TaxCode,
 			TaxBehavior:                    dbRoute.TaxBehavior,
 			Features:                       []string(dbRoute.Features),

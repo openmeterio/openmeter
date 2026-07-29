@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -122,7 +123,7 @@ func TestGetAccountBalance(t *testing.T) {
 	var querier ledger.BalanceQuerier
 
 	balance, err := querier.GetAccountBalance(t.Context(), acc, ledger.RouteFilter{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 	}, ledger.BalanceQuery{})
 	require.NoError(t, err)
 	require.NotNil(t, balance)

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -190,14 +191,14 @@ func (i GetBalanceCurrenciesInput) pendingGrantAsOf() time.Time {
 
 func (i GetBalanceServiceInput) bookedRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = i.Currency
+	route.Currency = currencies.NewCurrencyReference(i.Currency)
 
 	return route
 }
 
 func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = i.Currency
+	route.Currency = currencies.NewCurrencyReference(i.Currency)
 	route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
 
 	return route

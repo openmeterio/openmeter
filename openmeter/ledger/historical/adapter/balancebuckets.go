@@ -28,7 +28,7 @@ type balanceBucketRow struct {
 	CustomCurrencyID               stdsql.NullString
 	CustomCurrencyPrecision        stdsql.NullInt64
 	CustomCurrencyVersion          stdsql.NullInt64
-	ExchangeSourceCurrency         stdsql.NullString
+	CostBasisCurrency              stdsql.NullString
 	TaxCode                        stdsql.NullString
 	TaxBehavior                    stdsql.NullString
 	Features                       pq.StringArray
@@ -85,7 +85,7 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.CustomCurrencyID,
 		&r.CustomCurrencyPrecision,
 		&r.CustomCurrencyVersion,
-		&r.ExchangeSourceCurrency,
+		&r.CostBasisCurrency,
 		&r.TaxCode,
 		&r.TaxBehavior,
 		&r.Features,
@@ -130,7 +130,7 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 		Route: ledger.Route{
 			Currency:                       currencyx.Code(r.Currency),
 			CustomCurrency:                 customCurrency,
-			ExchangeSourceCurrency:         nullableCurrencyCode(r.ExchangeSourceCurrency),
+			CostBasisCurrency:              nullableCurrencyCode(r.CostBasisCurrency),
 			TaxCode:                        nullableStringValue(r.TaxCode),
 			TaxBehavior:                    nullableTaxBehavior(r.TaxBehavior),
 			Features:                       []string(r.Features),

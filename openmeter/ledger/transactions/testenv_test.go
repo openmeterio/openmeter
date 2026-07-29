@@ -1,11 +1,14 @@
 package transactions
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -15,7 +18,9 @@ import (
 // a fixture managed identity, so route/routing-key resolution stays
 // consistent across the many test helpers that resolve the same code.
 func testCustomCurrencyIdentity(code currencyx.Code) *ledger.CustomCurrencyIdentity {
-	return &ledger.CustomCurrencyIdentity{ID: "test-custom-currency-" + string(code), Precision: 2}
+	id := fmt.Sprintf("%x", sha256.Sum256([]byte(code)))[:26]
+
+	return &ledger.CustomCurrencyIdentity{ID: id, Precision: 2}
 }
 
 // testCustomCurrencyIdentityIfCustom returns testCustomCurrencyIdentity(code)
@@ -26,6 +31,15 @@ func testCustomCurrencyIdentityIfCustom(code currencyx.Code) *ledger.CustomCurre
 	}
 
 	return testCustomCurrencyIdentity(code)
+}
+
+func testCurrencyReference(code currencyx.Code) currencies.CurrencyReference {
+	reference := currencies.NewCurrencyReference(code)
+	if customCurrency := testCustomCurrencyIdentityIfCustom(code); customCurrency != nil {
+		reference.CustomCurrencyID = &customCurrency.ID
+	}
+
+	return reference
 }
 
 type transactionsTestEnv struct {

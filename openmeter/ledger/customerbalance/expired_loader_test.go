@@ -718,7 +718,7 @@ func (e *testEnv) bookFBOUsage(t *testing.T, at time.Time, address ledger.Postin
 		},
 		transactions.TransferCustomerFBOToAccruedTemplate{
 			At:       at,
-			Currency: e.Currency,
+			Currency: e.CurrencyReference(),
 			Sources: []transactions.PostingAmount{
 				{
 					Address: address,

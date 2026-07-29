@@ -24,12 +24,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldIdempotencyScope holds the string denoting the idempotency_scope field in the database.
-	FieldIdempotencyScope = "idempotency_scope"
-	// FieldIdempotencyKey holds the string denoting the idempotency_key field in the database.
-	FieldIdempotencyKey = "idempotency_key"
-	// FieldInputFingerprint holds the string denoting the input_fingerprint field in the database.
-	FieldInputFingerprint = "input_fingerprint"
 	// EdgeTransactions holds the string denoting the transactions edge name in mutations.
 	EdgeTransactions = "transactions"
 	// EdgeSourceBreakageRecords holds the string denoting the source_breakage_records edge name in mutations.
@@ -69,9 +63,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldIdempotencyScope,
-	FieldIdempotencyKey,
-	FieldInputFingerprint,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -93,10 +84,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
-	IdempotencyKeyValidator func(string) error
-	// InputFingerprintValidator is a validator for the "input_fingerprint" field. It is called by the builders before save.
-	InputFingerprintValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -127,21 +114,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
-}
-
-// ByIdempotencyScope orders the results by the idempotency_scope field.
-func ByIdempotencyScope(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIdempotencyScope, opts...).ToFunc()
-}
-
-// ByIdempotencyKey orders the results by the idempotency_key field.
-func ByIdempotencyKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIdempotencyKey, opts...).ToFunc()
-}
-
-// ByInputFingerprint orders the results by the input_fingerprint field.
-func ByInputFingerprint(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInputFingerprint, opts...).ToFunc()
 }
 
 // ByTransactionsCount orders the results by transactions count.

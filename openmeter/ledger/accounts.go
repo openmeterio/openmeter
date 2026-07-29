@@ -28,12 +28,12 @@ type CustomerFBOAccount interface {
 // CustomerFBORouteParams are routing parameters specific to customer FBO sub-accounts.
 // CreditPriority is required (non-pointer) — the type system enforces its presence.
 type CustomerFBORouteParams struct {
-	Currency               currencyx.Code
-	CustomCurrency         *CustomCurrencyIdentity
-	ExchangeSourceCurrency *currencyx.Code
-	CreditPriority         int
-	Features               []string
-	CostBasis              *alpacadecimal.Decimal
+	Currency          currencyx.Code
+	CustomCurrency    *CustomCurrencyIdentity
+	CostBasisCurrency *currencyx.Code
+	CreditPriority    int
+	Features          []string
+	CostBasis         *alpacadecimal.Decimal
 }
 
 func (p CustomerFBORouteParams) Validate() error {
@@ -50,12 +50,12 @@ func (p CustomerFBORouteParams) Validate() error {
 
 func (p CustomerFBORouteParams) Route() Route {
 	return Route{
-		Currency:               p.Currency,
-		CustomCurrency:         p.CustomCurrency,
-		ExchangeSourceCurrency: p.ExchangeSourceCurrency,
-		Features:               p.Features,
-		CostBasis:              p.CostBasis,
-		CreditPriority:         &p.CreditPriority,
+		Currency:          p.Currency,
+		CustomCurrency:    p.CustomCurrency,
+		CostBasisCurrency: p.CostBasisCurrency,
+		Features:          p.Features,
+		CostBasis:         p.CostBasis,
+		CreditPriority:    &p.CreditPriority,
 	}
 }
 
@@ -73,7 +73,7 @@ type CustomerReceivableAccount interface {
 type CustomerReceivableRouteParams struct {
 	Currency                       currencyx.Code
 	CustomCurrency                 *CustomCurrencyIdentity
-	ExchangeSourceCurrency         *currencyx.Code
+	CostBasisCurrency              *currencyx.Code
 	TaxCode                        *string
 	Features                       []string
 	CostBasis                      *alpacadecimal.Decimal
@@ -92,7 +92,7 @@ func (p CustomerReceivableRouteParams) Route() Route {
 	return Route{
 		Currency:                       p.Currency,
 		CustomCurrency:                 p.CustomCurrency,
-		ExchangeSourceCurrency:         p.ExchangeSourceCurrency,
+		CostBasisCurrency:              p.CostBasisCurrency,
 		TaxCode:                        p.TaxCode,
 		Features:                       p.Features,
 		CostBasis:                      p.CostBasis,
@@ -110,12 +110,12 @@ type CustomerAccruedAccount interface {
 
 // CustomerAccruedRouteParams are routing parameters specific to customer accrued sub-accounts.
 type CustomerAccruedRouteParams struct {
-	Currency               currencyx.Code
-	CustomCurrency         *CustomCurrencyIdentity
-	ExchangeSourceCurrency *currencyx.Code
-	TaxCode                *string
-	TaxBehavior            *TaxBehavior
-	CostBasis              *alpacadecimal.Decimal
+	Currency          currencyx.Code
+	CustomCurrency    *CustomCurrencyIdentity
+	CostBasisCurrency *currencyx.Code
+	TaxCode           *string
+	TaxBehavior       *TaxBehavior
+	CostBasis         *alpacadecimal.Decimal
 }
 
 func (p CustomerAccruedRouteParams) Validate() error {
@@ -124,12 +124,12 @@ func (p CustomerAccruedRouteParams) Validate() error {
 
 func (p CustomerAccruedRouteParams) Route() Route {
 	return Route{
-		Currency:               p.Currency,
-		CustomCurrency:         p.CustomCurrency,
-		ExchangeSourceCurrency: p.ExchangeSourceCurrency,
-		TaxCode:                p.TaxCode,
-		TaxBehavior:            p.TaxBehavior,
-		CostBasis:              p.CostBasis,
+		Currency:          p.Currency,
+		CustomCurrency:    p.CustomCurrency,
+		CostBasisCurrency: p.CostBasisCurrency,
+		TaxCode:           p.TaxCode,
+		TaxBehavior:       p.TaxBehavior,
+		CostBasis:         p.CostBasis,
 	}
 }
 
@@ -145,12 +145,12 @@ type BusinessAccount interface {
 }
 
 type BusinessRouteParams struct {
-	Currency               currencyx.Code
-	CustomCurrency         *CustomCurrencyIdentity
-	ExchangeSourceCurrency *currencyx.Code
-	TaxCode                *string
-	TaxBehavior            *TaxBehavior
-	CostBasis              *alpacadecimal.Decimal
+	Currency          currencyx.Code
+	CustomCurrency    *CustomCurrencyIdentity
+	CostBasisCurrency *currencyx.Code
+	TaxCode           *string
+	TaxBehavior       *TaxBehavior
+	CostBasis         *alpacadecimal.Decimal
 }
 
 func (p BusinessRouteParams) Validate() error {
@@ -159,11 +159,11 @@ func (p BusinessRouteParams) Validate() error {
 
 func (p BusinessRouteParams) Route() Route {
 	return Route{
-		Currency:               p.Currency,
-		CustomCurrency:         p.CustomCurrency,
-		ExchangeSourceCurrency: p.ExchangeSourceCurrency,
-		TaxCode:                p.TaxCode,
-		TaxBehavior:            p.TaxBehavior,
-		CostBasis:              p.CostBasis,
+		Currency:          p.Currency,
+		CustomCurrency:    p.CustomCurrency,
+		CostBasisCurrency: p.CostBasisCurrency,
+		TaxCode:           p.TaxCode,
+		TaxBehavior:       p.TaxBehavior,
+		CostBasis:         p.CostBasis,
 	}
 }

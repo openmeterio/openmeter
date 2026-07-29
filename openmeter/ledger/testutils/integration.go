@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -43,7 +45,19 @@ func (e *IntegrationEnv) CustomCurrencyForRoute(currency currencyx.Code) *ledger
 		return nil
 	}
 
-	return &ledger.CustomCurrencyIdentity{ID: "test-custom-currency-" + string(currency), Precision: 4}
+	id := fmt.Sprintf("%x", sha256.Sum256([]byte(currency)))[:26]
+
+	return &ledger.CustomCurrencyIdentity{ID: id, Precision: 4}
+}
+
+func (e *IntegrationEnv) CurrencyReference() currencies.CurrencyReference {
+	reference := currencies.NewCurrencyReference(e.Currency)
+	if customCurrency := e.CustomCurrencyForRoute(e.Currency); customCurrency != nil {
+		id := customCurrency.ID
+		reference.CustomCurrencyID = &id
+	}
+
+	return reference
 }
 
 func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {

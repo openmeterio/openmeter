@@ -11,6 +11,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
@@ -71,7 +72,7 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		Filters: ledger.Filters{
 			AccountID: &accountID,
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID},
@@ -88,7 +89,7 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		Filters: ledger.Filters{
 			AccountID: &accountID,
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
@@ -104,7 +105,7 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		Filters: ledger.Filters{
 			AccountID: &accountID,
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			},
 		},
 		GroupBy: []string{
@@ -147,7 +148,7 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	})
 }
 
-func TestRepo_GetBalanceBuckets_HydratesExchangeSourceCurrency(t *testing.T) {
+func TestRepo_GetBalanceBuckets_HydratesCostBasisCurrency(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
@@ -166,17 +167,17 @@ func TestRepo_GetBalanceBuckets_HydratesExchangeSourceCurrency(t *testing.T) {
 	customCurrency := currencyx.Code("ACME")
 	customCurrencyIdentity := &ledger.CustomCurrencyIdentity{ID: "test-custom-currency-acme", Precision: 2}
 	fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
-		Currency:               customCurrency,
-		CustomCurrency:         customCurrencyIdentity,
-		ExchangeSourceCurrency: &sourceCurrency,
-		CostBasis:              &costBasis,
-		CreditPriority:         lo.ToPtr(1),
+		Currency:          customCurrency,
+		CustomCurrency:    customCurrencyIdentity,
+		CostBasisCurrency: &sourceCurrency,
+		CostBasis:         &costBasis,
+		CreditPriority:    lo.ToPtr(1),
 	})
 	counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeBrokerage, ledger.Route{
-		Currency:               customCurrency,
-		CustomCurrency:         customCurrencyIdentity,
-		ExchangeSourceCurrency: &sourceCurrency,
-		CostBasis:              &costBasis,
+		Currency:          customCurrency,
+		CustomCurrency:    customCurrencyIdentity,
+		CostBasisCurrency: &sourceCurrency,
+		CostBasis:         &costBasis,
 	})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
@@ -198,8 +199,8 @@ func TestRepo_GetBalanceBuckets_HydratesExchangeSourceCurrency(t *testing.T) {
 		Filters: ledger.Filters{
 			AccountID: &accountID,
 			Route: ledger.RouteFilter{
-				Currency:               customCurrency,
-				ExchangeSourceCurrency: mo.Some(&sourceCurrency),
+				Currency:          currencies.NewCurrencyReference(customCurrency),
+				CostBasisCurrency: mo.Some(&sourceCurrency),
 			},
 		},
 	})
@@ -208,7 +209,7 @@ func TestRepo_GetBalanceBuckets_HydratesExchangeSourceCurrency(t *testing.T) {
 
 	route := buckets[0].Address.Route().Route()
 	require.Equal(t, customCurrency, route.Currency)
-	require.Equal(t, &sourceCurrency, route.ExchangeSourceCurrency)
+	require.Equal(t, &sourceCurrency, route.CostBasisCurrency)
 	require.NotNil(t, route.CostBasis)
 	require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
 }
@@ -293,7 +294,7 @@ func TestRepo_GetBalanceBuckets_DistinctManagedCurrenciesSameCodeDoNotMerge(t *t
 		Filters: ledger.Filters{
 			AccountID: &acc.ID.ID,
 			Route: ledger.RouteFilter{
-				Currency: customCurrency,
+				Currency: currencies.NewCurrencyReference(customCurrency),
 			},
 		},
 	})

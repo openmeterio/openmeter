@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -61,7 +62,7 @@ func collectFromAttributableCustomerAccrued(
 		Filters: ledger.Filters{
 			AccountID: &accruedAccountID,
 			Route: ledger.RouteFilter{
-				Currency: currency,
+				Currency: currencies.NewCurrencyReference(currency),
 			},
 		},
 		GroupBy: []string{

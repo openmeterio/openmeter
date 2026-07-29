@@ -101,16 +101,16 @@ func (_c *LedgerSubAccountRouteCreate) SetCurrency(v string) *LedgerSubAccountRo
 	return _c
 }
 
-// SetExchangeSourceCurrency sets the "exchange_source_currency" field.
-func (_c *LedgerSubAccountRouteCreate) SetExchangeSourceCurrency(v currencyx.Code) *LedgerSubAccountRouteCreate {
-	_c.mutation.SetExchangeSourceCurrency(v)
+// SetCostBasisCurrency sets the "cost_basis_currency" field.
+func (_c *LedgerSubAccountRouteCreate) SetCostBasisCurrency(v currencyx.Code) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetCostBasisCurrency(v)
 	return _c
 }
 
-// SetNillableExchangeSourceCurrency sets the "exchange_source_currency" field if the given value is not nil.
-func (_c *LedgerSubAccountRouteCreate) SetNillableExchangeSourceCurrency(v *currencyx.Code) *LedgerSubAccountRouteCreate {
+// SetNillableCostBasisCurrency sets the "cost_basis_currency" field if the given value is not nil.
+func (_c *LedgerSubAccountRouteCreate) SetNillableCostBasisCurrency(v *currencyx.Code) *LedgerSubAccountRouteCreate {
 	if v != nil {
-		_c.SetExchangeSourceCurrency(*v)
+		_c.SetCostBasisCurrency(*v)
 	}
 	return _c
 }
@@ -349,9 +349,9 @@ func (_c *LedgerSubAccountRouteCreate) check() error {
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "LedgerSubAccountRoute.currency"`)}
 	}
-	if v, ok := _c.mutation.ExchangeSourceCurrency(); ok {
+	if v, ok := _c.mutation.CostBasisCurrency(); ok {
 		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "exchange_source_currency", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.exchange_source_currency": %w`, err)}
+			return &ValidationError{Name: "cost_basis_currency", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.cost_basis_currency": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
@@ -431,9 +431,9 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 		_spec.SetField(ledgersubaccountroute.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
 	}
-	if value, ok := _c.mutation.ExchangeSourceCurrency(); ok {
-		_spec.SetField(ledgersubaccountroute.FieldExchangeSourceCurrency, field.TypeString, value)
-		_node.ExchangeSourceCurrency = &value
+	if value, ok := _c.mutation.CostBasisCurrency(); ok {
+		_spec.SetField(ledgersubaccountroute.FieldCostBasisCurrency, field.TypeString, value)
+		_node.CostBasisCurrency = &value
 	}
 	if value, ok := _c.mutation.CustomCurrencyID(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldCustomCurrencyID, field.TypeString, value)
@@ -621,8 +621,8 @@ func (u *LedgerSubAccountRouteUpsertOne) UpdateNewValues() *LedgerSubAccountRout
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldCurrency)
 		}
-		if _, exists := u.create.mutation.ExchangeSourceCurrency(); exists {
-			s.SetIgnore(ledgersubaccountroute.FieldExchangeSourceCurrency)
+		if _, exists := u.create.mutation.CostBasisCurrency(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldCostBasisCurrency)
 		}
 		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldCustomCurrencyID)
@@ -918,8 +918,8 @@ func (u *LedgerSubAccountRouteUpsertBulk) UpdateNewValues() *LedgerSubAccountRou
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldCurrency)
 			}
-			if _, exists := b.mutation.ExchangeSourceCurrency(); exists {
-				s.SetIgnore(ledgersubaccountroute.FieldExchangeSourceCurrency)
+			if _, exists := b.mutation.CostBasisCurrency(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldCostBasisCurrency)
 			}
 			if _, exists := b.mutation.CustomCurrencyID(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldCustomCurrencyID)

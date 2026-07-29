@@ -10,11 +10,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -67,7 +67,7 @@ type CollectToAccruedInput struct {
 	Annotations       models.Annotations
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
-	Currency          currencyx.Code
+	Currency          currencies.CurrencyReference
 	CustomCurrency    *ledger.CustomCurrencyIdentity
 	FeatureKey        string
 	SettlementMode    productcatalog.SettlementMode

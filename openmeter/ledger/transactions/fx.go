@@ -27,6 +27,7 @@ type ConvertCurrencyTemplate struct {
 	// TargetCustomCurrency is the managed identity of TargetCurrency, which is
 	// always a custom currency (see Validate).
 	TargetCustomCurrency *ledger.CustomCurrencyIdentity
+	Features             []string
 }
 
 func (t ConvertCurrencyTemplate) Validate() error {
@@ -72,7 +73,7 @@ func (t ConvertCurrencyTemplate) Validate() error {
 	}
 
 	if sourceAmountErr == nil && targetAmountErr == nil && costBasisErr == nil && sourceCurrencyDefinition != nil {
-		expectedSourceAmount := t.TargetAmount.Mul(t.CostBasis).Round(int32(sourceCurrencyDefinition.Subunits))
+		expectedSourceAmount := t.TargetAmount.Mul(t.CostBasis).RoundBank(int32(sourceCurrencyDefinition.Subunits))
 		if !t.SourceAmount.Equal(expectedSourceAmount) {
 			errs = append(errs, fmt.Errorf(
 				"source amount: expected %s from target amount multiplied by cost basis, got %s",
@@ -115,9 +116,9 @@ func (t ConvertCurrencyTemplate) correct(scope CorrectionInput) ([]ledger.Transa
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsPositive():
 			targetReceivable = entry.PostingAddress()
 			originalTargetAmount = originalTargetAmount.Add(entry.Amount())
-		case entry.PostingAddress().AccountType() == ledger.AccountTypeBrokerage && entry.Amount().IsPositive() && route.ExchangeSourceCurrency == nil:
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeBrokerage && entry.Amount().IsPositive() && route.CostBasisCurrency == nil:
 			brokerageSource = entry.PostingAddress()
-		case entry.PostingAddress().AccountType() == ledger.AccountTypeBrokerage && entry.Amount().IsNegative() && route.ExchangeSourceCurrency != nil:
+		case entry.PostingAddress().AccountType() == ledger.AccountTypeBrokerage && entry.Amount().IsNegative() && route.CostBasisCurrency != nil:
 			brokerageTarget = entry.PostingAddress()
 		}
 	}
@@ -190,6 +191,7 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	sourceAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.SourceCurrency,
 		CostBasis:                      &costBasis,
+		Features:                       t.Features,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
@@ -199,8 +201,9 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	targetAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.TargetCurrency,
 		CustomCurrency:                 t.TargetCustomCurrency,
-		ExchangeSourceCurrency:         lo.ToPtr(t.SourceCurrency),
+		CostBasisCurrency:              lo.ToPtr(t.SourceCurrency),
 		CostBasis:                      &costBasis,
+		Features:                       t.Features,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
@@ -221,10 +224,10 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	}
 
 	brokerageTarget, err := businessAccounts.BrokerageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency:               t.TargetCurrency,
-		CustomCurrency:         t.TargetCustomCurrency,
-		ExchangeSourceCurrency: lo.ToPtr(t.SourceCurrency),
-		CostBasis:              &costBasis,
+		Currency:          t.TargetCurrency,
+		CustomCurrency:    t.TargetCustomCurrency,
+		CostBasisCurrency: lo.ToPtr(t.SourceCurrency),
+		CostBasis:         &costBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get brokerage target sub-account: %w", err)

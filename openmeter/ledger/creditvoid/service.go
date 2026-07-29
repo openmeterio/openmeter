@@ -11,6 +11,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -250,7 +251,7 @@ func (s *service) planVoid(ctx context.Context, input VoidCreditPurchaseInput) (
 			SourceChargeID: mo.Some(&input.ChargeID),
 			AsOf:           &voidedAt,
 			Route: ledger.RouteFilter{
-				Currency: input.Currency,
+				Currency: currencies.NewCurrencyReference(input.Currency),
 			},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID},

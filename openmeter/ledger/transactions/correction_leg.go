@@ -13,26 +13,36 @@ import (
 // routePairingKey pairs source and counterpart sub-accounts during accrual and
 // earnings correction.
 type routePairingKey struct {
-	currency               currencyx.Code
-	exchangeSourceCurrency string
-	taxCode                string
-	taxBehavior            string
-	costBasis              string
-	sourceChargeID         string
-	spendChargeID          string
+	currency          currencyx.Code
+	customCurrencyID  string
+	costBasisCurrency string
+	taxCode           string
+	taxBehavior       string
+	costBasis         string
+	sourceChargeID    string
+	spendChargeID     string
 }
 
 func (k routePairingKey) String() string {
 	return fmt.Sprintf(
-		"currency=%s,exchange_source_currency=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
+		"currency=%s,custom_currency_id=%s,cost_basis_currency=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
 		k.currency,
-		k.exchangeSourceCurrency,
+		k.customCurrencyID,
+		k.costBasisCurrency,
 		k.taxCode,
 		k.taxBehavior,
 		k.costBasis,
 		k.sourceChargeID,
 		k.spendChargeID,
 	)
+}
+
+func customCurrencyIDKey(identity *ledger.CustomCurrencyIdentity) string {
+	if identity == nil {
+		return "null"
+	}
+
+	return identity.ID
 }
 
 type correctionLeg struct {

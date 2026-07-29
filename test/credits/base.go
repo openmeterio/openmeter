@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -345,7 +346,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.C
 	}
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency:       code,
+		Currency:       currencies.NewCurrencyReference(code),
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(priority),
 	}, query)
@@ -365,7 +366,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityForFeatures(customerID cus
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency:       code,
+		Currency:       currencies.NewCurrencyReference(code),
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(priority),
 		Features:       features,
@@ -385,7 +386,7 @@ func (s *BaseSuite) MustCustomerReceivableBalance(customerID customer.CustomerID
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:                       code,
+		Currency:                       currencies.NewCurrencyReference(code),
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
 	}, ledger.BalanceQuery{})
@@ -404,7 +405,7 @@ func (s *BaseSuite) MustCustomerReceivableBalanceForFeatures(customerID customer
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:                       code,
+		Currency:                       currencies.NewCurrencyReference(code),
 		CostBasis:                      costBasis,
 		Features:                       features,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
@@ -423,7 +424,7 @@ func (s *BaseSuite) MustCustomerReceivableBalanceForTaxCode(customerID customer.
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:                       code,
+		Currency:                       currencies.NewCurrencyReference(code),
 		CostBasis:                      costBasis,
 		TaxCode:                        taxCode,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
@@ -441,7 +442,7 @@ func (s *BaseSuite) MustCustomerAccruedBalanceForTaxCode(customerID customer.Cus
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 		TaxCode:   taxCode,
 	}, ledger.BalanceQuery{})
@@ -459,7 +460,7 @@ func (s *BaseSuite) MustCustomerAccruedBalanceForTaxConfig(customerID customer.C
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
-		Currency:    code,
+		Currency:    currencies.NewCurrencyReference(code),
 		CostBasis:   costBasis,
 		TaxCode:     taxCode,
 		TaxBehavior: taxBehavior,
@@ -479,7 +480,7 @@ func (s *BaseSuite) MustCustomerAccruedBalance(customerID customer.CustomerID, c
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
@@ -497,7 +498,7 @@ func (s *BaseSuite) MustWashBalance(namespace string, code currencyx.Code, costB
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.WashAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
@@ -519,7 +520,7 @@ func (s *BaseSuite) MustEarningsBalanceForCostBasis(namespace string, code curre
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
@@ -534,7 +535,7 @@ func (s *BaseSuite) MustBreakageBalanceAsOf(namespace string, code currencyx.Cod
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.BreakageAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{AsOf: &asOf})
 	s.NoError(err)
@@ -550,7 +551,7 @@ func (s *BaseSuite) MustEarningsBalanceForTaxCode(namespace string, code currenc
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 		TaxCode:   taxCode,
 	}, ledger.BalanceQuery{})

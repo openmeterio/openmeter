@@ -30,8 +30,8 @@ const (
 	FieldRoutingKey = "routing_key"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
-	// FieldExchangeSourceCurrency holds the string denoting the exchange_source_currency field in the database.
-	FieldExchangeSourceCurrency = "exchange_source_currency"
+	// FieldCostBasisCurrency holds the string denoting the cost_basis_currency field in the database.
+	FieldCostBasisCurrency = "cost_basis_currency"
 	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
 	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldCustomCurrencyPrecision holds the string denoting the custom_currency_precision field in the database.
@@ -83,7 +83,7 @@ var Columns = []string{
 	FieldRoutingKeyVersion,
 	FieldRoutingKey,
 	FieldCurrency,
-	FieldExchangeSourceCurrency,
+	FieldCostBasisCurrency,
 	FieldCustomCurrencyID,
 	FieldCustomCurrencyPrecision,
 	FieldCustomCurrencyVersion,
@@ -166,9 +166,9 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
-// ByExchangeSourceCurrency orders the results by the exchange_source_currency field.
-func ByExchangeSourceCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldExchangeSourceCurrency, opts...).ToFunc()
+// ByCostBasisCurrency orders the results by the cost_basis_currency field.
+func ByCostBasisCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostBasisCurrency, opts...).ToFunc()
 }
 
 // ByCustomCurrencyID orders the results by the custom_currency_id field.

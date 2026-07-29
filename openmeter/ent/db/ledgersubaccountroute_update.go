@@ -161,8 +161,8 @@ func (_u *LedgerSubAccountRouteUpdate) sqlSave(ctx context.Context) (_node int, 
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldDeletedAt, field.TypeTime)
 	}
-	if _u.mutation.ExchangeSourceCurrencyCleared() {
-		_spec.ClearField(ledgersubaccountroute.FieldExchangeSourceCurrency, field.TypeString)
+	if _u.mutation.CostBasisCurrencyCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldCostBasisCurrency, field.TypeString)
 	}
 	if _u.mutation.CustomCurrencyIDCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldCustomCurrencyID, field.TypeString)
@@ -418,8 +418,8 @@ func (_u *LedgerSubAccountRouteUpdateOne) sqlSave(ctx context.Context) (_node *L
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldDeletedAt, field.TypeTime)
 	}
-	if _u.mutation.ExchangeSourceCurrencyCleared() {
-		_spec.ClearField(ledgersubaccountroute.FieldExchangeSourceCurrency, field.TypeString)
+	if _u.mutation.CostBasisCurrencyCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldCostBasisCurrency, field.TypeString)
 	}
 	if _u.mutation.CustomCurrencyIDCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldCustomCurrencyID, field.TypeString)

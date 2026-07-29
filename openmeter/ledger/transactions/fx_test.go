@@ -59,9 +59,9 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 			require.Nil(t, entry.SourceChargeID())
 			require.Nil(t, entry.SpendChargeID())
 			if route.Currency == currencyx.Code("USD") {
-				require.Nil(t, route.ExchangeSourceCurrency)
+				require.Nil(t, route.CostBasisCurrency)
 			} else {
-				require.Equal(t, currencyx.Code("USD"), *route.ExchangeSourceCurrency)
+				require.Equal(t, currencyx.Code("USD"), *route.CostBasisCurrency)
 			}
 
 			totals[route.Currency] = totals[route.Currency].Add(entry.Amount())
@@ -196,6 +196,19 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("uses bankers rounding for amount consistency", func(t *testing.T) {
+		err := (ConvertCurrencyTemplate{
+			At:                   time.Now(),
+			SourceAmount:         alpacadecimal.NewFromInt(1),
+			TargetAmount:         alpacadecimal.NewFromInt(1),
+			CostBasis:            alpacadecimal.NewFromFloat(1.005),
+			SourceCurrency:       currencyx.Code("USD"),
+			TargetCurrency:       currencyx.Code("ACME"),
+			TargetCustomCurrency: testCustomCurrencyIdentity(currencyx.Code("ACME")),
+		}).Validate()
+		require.NoError(t, err)
+	})
+
 	t.Run("collects all validation failures", func(t *testing.T) {
 		err := (ConvertCurrencyTemplate{
 			SourceAmount:   alpacadecimal.NewFromInt(-1),
@@ -259,8 +272,8 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 			for _, entry := range transaction.Entries() {
 				route := entry.PostingAddress().Route().Route()
 				require.Equal(t, customCurrency, route.Currency)
-				require.NotNil(t, route.ExchangeSourceCurrency)
-				require.Equal(t, currencyx.Code("USD"), *route.ExchangeSourceCurrency)
+				require.NotNil(t, route.CostBasisCurrency)
+				require.Equal(t, currencyx.Code("USD"), *route.CostBasisCurrency)
 				require.NotNil(t, route.CostBasis)
 				require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
 			}
@@ -291,36 +304,29 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 		require.Equal(t, float64(-25), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.WashAccount, currencyx.Code("USD"), nil, &costBasis)).InexactFloat64())
 	})
 
-	t.Run("exact replay does not double the funding lifecycle", func(t *testing.T) {
+	t.Run("identical groups are booked independently", func(t *testing.T) {
 		// given:
-		// - one keyed USD to ACME funding and partial-spend group
+		// - two identical funding requests
 		// when:
-		// - the complete five-transaction group is replayed
+		// - both are committed
 		// then:
-		// - every fiat/custom balance and persisted row count remains unchanged
+		// - the ledger records both groups and applies both balance impacts
 		env := newTransactionsTestEnv(t)
 		costBasis := alpacadecimal.NewFromFloat(0.25)
 		inputs := fundingLifecycleInputs(t, env, costBasis, alpacadecimal.NewFromInt(40))
-		group := WithIdempotencyKey(
-			"funding:usd-acme",
-			GroupInputs(env.Namespace, nil, inputs...),
-		)
+		group := GroupInputs(env.Namespace, nil, inputs...)
 
 		first, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), group)
 		require.NoError(t, err)
-		countsAfterFirstCommit := queryLedgerRowCounts(t, env)
-
 		second, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), group)
 		require.NoError(t, err)
 
-		require.Equal(t, first.ID(), second.ID())
-		require.Equal(t, countsAfterFirstCommit, queryLedgerRowCounts(t, env))
-		require.Equal(t, 1, countsAfterFirstCommit.Groups)
-		require.Equal(t, len(inputs), countsAfterFirstCommit.Transactions)
-		require.Equal(t, float64(60), env.SumBalance(t, customerFBOSubAccount(t, env, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
-		require.Equal(t, float64(40), env.SumBalance(t, customerAccruedSubAccount(t, env, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
-		require.Equal(t, float64(-100), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
-		require.Equal(t, float64(25), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, currencyx.Code("USD"), nil, &costBasis)).InexactFloat64())
+		require.NotEqual(t, first.ID(), second.ID())
+		require.Equal(t, float64(120), env.SumBalance(t, customerFBOSubAccount(t, env, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
+		require.Equal(t, float64(80), env.SumBalance(t, customerAccruedSubAccount(t, env, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
+		require.Equal(t, float64(-200), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, currencyx.Code("ACME"), lo.ToPtr(currencyx.Code("USD")), &costBasis)).InexactFloat64())
+		require.Equal(t, float64(50), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.BrokerageAccount, currencyx.Code("USD"), nil, &costBasis)).InexactFloat64())
+		require.Equal(t, float64(-50), env.SumBalance(t, businessSubAccount(t, env.BusinessAccounts.WashAccount, currencyx.Code("USD"), nil, &costBasis)).InexactFloat64())
 	})
 
 	t.Run("source fiat remains a durable custom route dimension", func(t *testing.T) {
@@ -338,12 +344,12 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 		inputs := env.resolve(
 			t,
 			IssueCustomerReceivableTemplate{
-				At:                     env.Now(),
-				Amount:                 alpacadecimal.NewFromInt(100),
-				Currency:               customCurrency,
-				CustomCurrency:         testCustomCurrencyIdentity(customCurrency),
-				ExchangeSourceCurrency: &usd,
-				CostBasis:              &costBasis,
+				At:                env.Now(),
+				Amount:            alpacadecimal.NewFromInt(100),
+				Currency:          customCurrency,
+				CustomCurrency:    testCustomCurrencyIdentity(customCurrency),
+				CostBasisCurrency: &usd,
+				CostBasis:         &costBasis,
 			},
 			ConvertCurrencyTemplate{
 				At:                   env.Now(),
@@ -355,12 +361,12 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 				TargetCustomCurrency: testCustomCurrencyIdentity(customCurrency),
 			},
 			IssueCustomerReceivableTemplate{
-				At:                     env.Now(),
-				Amount:                 alpacadecimal.NewFromInt(100),
-				Currency:               customCurrency,
-				CustomCurrency:         testCustomCurrencyIdentity(customCurrency),
-				ExchangeSourceCurrency: &eur,
-				CostBasis:              &costBasis,
+				At:                env.Now(),
+				Amount:            alpacadecimal.NewFromInt(100),
+				Currency:          customCurrency,
+				CustomCurrency:    testCustomCurrencyIdentity(customCurrency),
+				CostBasisCurrency: &eur,
+				CostBasis:         &costBasis,
 			},
 			ConvertCurrencyTemplate{
 				At:                   env.Now(),
@@ -375,10 +381,7 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 
 		_, err := env.Deps.HistoricalLedger.CommitGroup(
 			t.Context(),
-			WithIdempotencyKey(
-				"funding:two-sources",
-				GroupInputs(env.Namespace, nil, inputs...),
-			),
+			GroupInputs(env.Namespace, nil, inputs...),
 		)
 		require.NoError(t, err)
 
@@ -395,7 +398,7 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 				Limit:     10,
 				Currency:  &customCurrency,
 				Route: ledger.RouteFilter{
-					ExchangeSourceCurrency: mo.Some(&source),
+					CostBasisCurrency: mo.Some(&source),
 				},
 			})
 			require.NoError(t, err)
@@ -404,8 +407,8 @@ func TestFiatToCustomFundingLifecycle(t *testing.T) {
 				for _, entry := range transaction.Entries() {
 					route := entry.PostingAddress().Route().Route()
 					require.Equal(t, customCurrency, route.Currency)
-					require.NotNil(t, route.ExchangeSourceCurrency)
-					require.Equal(t, source, *route.ExchangeSourceCurrency)
+					require.NotNil(t, route.CostBasisCurrency)
+					require.Equal(t, source, *route.CostBasisCurrency)
 				}
 			}
 		}
@@ -422,18 +425,18 @@ func fundingLifecycleInputs(
 
 	customCurrency := currencyx.Code("ACME")
 	fiatCurrency := currencyx.Code("USD")
-	exchangeSourceCurrency := lo.ToPtr(fiatCurrency)
-	fbo := customerFBOSubAccount(t, env, customCurrency, exchangeSourceCurrency, &costBasis)
+	costBasisCurrency := lo.ToPtr(fiatCurrency)
+	fbo := customerFBOSubAccount(t, env, customCurrency, costBasisCurrency, &costBasis)
 
 	return env.resolve(
 		t,
 		IssueCustomerReceivableTemplate{
-			At:                     env.Now(),
-			Amount:                 alpacadecimal.NewFromInt(100),
-			Currency:               customCurrency,
-			CustomCurrency:         testCustomCurrencyIdentity(customCurrency),
-			ExchangeSourceCurrency: exchangeSourceCurrency,
-			CostBasis:              &costBasis,
+			At:                env.Now(),
+			Amount:            alpacadecimal.NewFromInt(100),
+			Currency:          customCurrency,
+			CustomCurrency:    testCustomCurrencyIdentity(customCurrency),
+			CostBasisCurrency: costBasisCurrency,
+			CostBasis:         &costBasis,
 		},
 		ConvertCurrencyTemplate{
 			At:                   env.Now(),
@@ -458,7 +461,7 @@ func fundingLifecycleInputs(
 		},
 		TransferCustomerFBOToAccruedTemplate{
 			At:       env.Now(),
-			Currency: customCurrency,
+			Currency: testCurrencyReference(customCurrency),
 			Sources: []PostingAmount{
 				{
 					Address: fbo.Address(),
@@ -608,17 +611,17 @@ func customerFBOSubAccount(
 	t *testing.T,
 	env *transactionsTestEnv,
 	currency currencyx.Code,
-	exchangeSourceCurrency *currencyx.Code,
+	costBasisCurrency *currencyx.Code,
 	costBasis *alpacadecimal.Decimal,
 ) ledger.SubAccount {
 	t.Helper()
 
 	subAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:               currency,
-		CustomCurrency:         testCustomCurrencyIdentityIfCustom(currency),
-		ExchangeSourceCurrency: exchangeSourceCurrency,
-		CreditPriority:         ledger.DefaultCustomerFBOPriority,
-		CostBasis:              costBasis,
+		Currency:          currency,
+		CustomCurrency:    testCustomCurrencyIdentityIfCustom(currency),
+		CostBasisCurrency: costBasisCurrency,
+		CreditPriority:    ledger.DefaultCustomerFBOPriority,
+		CostBasis:         costBasis,
 	})
 	require.NoError(t, err)
 
@@ -629,7 +632,7 @@ func customerReceivableSubAccount(
 	t *testing.T,
 	env *transactionsTestEnv,
 	currency currencyx.Code,
-	exchangeSourceCurrency *currencyx.Code,
+	costBasisCurrency *currencyx.Code,
 	costBasis *alpacadecimal.Decimal,
 	status ledger.TransactionAuthorizationStatus,
 ) ledger.SubAccount {
@@ -638,7 +641,7 @@ func customerReceivableSubAccount(
 	subAccount, err := env.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       currency,
 		CustomCurrency:                 testCustomCurrencyIdentityIfCustom(currency),
-		ExchangeSourceCurrency:         exchangeSourceCurrency,
+		CostBasisCurrency:              costBasisCurrency,
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: status,
 	})
@@ -651,16 +654,16 @@ func customerAccruedSubAccount(
 	t *testing.T,
 	env *transactionsTestEnv,
 	currency currencyx.Code,
-	exchangeSourceCurrency *currencyx.Code,
+	costBasisCurrency *currencyx.Code,
 	costBasis *alpacadecimal.Decimal,
 ) ledger.SubAccount {
 	t.Helper()
 
 	subAccount, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:               currency,
-		CustomCurrency:         testCustomCurrencyIdentityIfCustom(currency),
-		ExchangeSourceCurrency: exchangeSourceCurrency,
-		CostBasis:              costBasis,
+		Currency:          currency,
+		CustomCurrency:    testCustomCurrencyIdentityIfCustom(currency),
+		CostBasisCurrency: costBasisCurrency,
+		CostBasis:         costBasis,
 	})
 	require.NoError(t, err)
 
@@ -671,16 +674,16 @@ func businessSubAccount(
 	t *testing.T,
 	account ledger.BusinessAccount,
 	currency currencyx.Code,
-	exchangeSourceCurrency *currencyx.Code,
+	costBasisCurrency *currencyx.Code,
 	costBasis *alpacadecimal.Decimal,
 ) ledger.SubAccount {
 	t.Helper()
 
 	subAccount, err := account.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:               currency,
-		CustomCurrency:         testCustomCurrencyIdentityIfCustom(currency),
-		ExchangeSourceCurrency: exchangeSourceCurrency,
-		CostBasis:              costBasis,
+		Currency:          currency,
+		CustomCurrency:    testCustomCurrencyIdentityIfCustom(currency),
+		CostBasisCurrency: costBasisCurrency,
+		CostBasis:         costBasis,
 	})
 	require.NoError(t, err)
 

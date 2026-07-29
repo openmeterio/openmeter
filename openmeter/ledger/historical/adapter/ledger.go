@@ -67,7 +67,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 			Route: ledger.Route{
 				Currency:                       currencyx.Code(route.Currency),
 				CustomCurrency:                 customCurrency,
-				ExchangeSourceCurrency:         route.ExchangeSourceCurrency,
+				CostBasisCurrency:              route.CostBasisCurrency,
 				TaxCode:                        route.TaxCode,
 				TaxBehavior:                    route.TaxBehavior,
 				Features:                       route.Features,
@@ -192,41 +192,21 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 	})
 }
 
-// transactionGroupIdempotencyScope length-frames the namespace so distinct namespace/key pairs cannot share a uniqueness value.
-func transactionGroupIdempotencyScope(namespace, key string) string {
-	return fmt.Sprintf("%d:%s%s", len(namespace), namespace, key)
-}
-
 func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledgerhistorical.CreateTransactionGroupInput) (ledgerhistorical.TransactionGroupData, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (ledgerhistorical.TransactionGroupData, error) {
-		var idempotencyScope *string
-		if transactionGroup.IdempotencyKey != nil {
-			scope := transactionGroupIdempotencyScope(transactionGroup.Namespace, *transactionGroup.IdempotencyKey)
-			idempotencyScope = &scope
-		}
-
 		entity, err := tx.db.LedgerTransactionGroup.Create().
 			SetNamespace(transactionGroup.Namespace).
 			SetAnnotations(transactionGroup.Annotations).
-			SetNillableIdempotencyScope(idempotencyScope).
-			SetNillableIdempotencyKey(transactionGroup.IdempotencyKey).
-			SetNillableInputFingerprint(transactionGroup.InputFingerprint).
 			Save(ctx)
 		if err != nil {
-			if transactionGroup.IdempotencyKey != nil && db.IsConstraintError(err) {
-				return ledgerhistorical.TransactionGroupData{}, fmt.Errorf("%w: %v", ledgerhistorical.ErrTransactionGroupIdempotencyKeyAlreadyExists, err)
-			}
-
 			return ledgerhistorical.TransactionGroupData{}, fmt.Errorf("failed to create transaction group: %w", err)
 		}
 
 		return ledgerhistorical.TransactionGroupData{
-			ID:               entity.ID,
-			Namespace:        entity.Namespace,
-			CreatedAt:        entity.CreatedAt,
-			IdempotencyKey:   entity.IdempotencyKey,
-			InputFingerprint: entity.InputFingerprint,
-			Annotations:      entity.Annotations,
+			ID:          entity.ID,
+			Namespace:   entity.Namespace,
+			CreatedAt:   entity.CreatedAt,
+			Annotations: entity.Annotations,
 		}, nil
 	})
 }
@@ -237,20 +217,6 @@ func (r *repo) GetTransactionGroup(ctx context.Context, id models.NamespacedID) 
 		ledgertransactiongroupdb.Namespace(id.Namespace),
 		ledgertransactiongroupdb.ID(id.ID),
 	)
-}
-
-func (r *repo) GetTransactionGroupByIdempotencyKey(ctx context.Context, namespace string, key string) (*ledgerhistorical.TransactionGroup, error) {
-	group, err := r.getTransactionGroup(
-		ctx,
-		ledgertransactiongroupdb.IdempotencyScope(transactionGroupIdempotencyScope(namespace, key)),
-		ledgertransactiongroupdb.Namespace(namespace),
-		ledgertransactiongroupdb.IdempotencyKey(key),
-	)
-	if db.IsNotFound(err) {
-		return nil, nil
-	}
-
-	return group, err
 }
 
 func (r *repo) getTransactionGroup(ctx context.Context, predicates ...predicate.LedgerTransactionGroup) (*ledgerhistorical.TransactionGroup, error) {
@@ -285,12 +251,10 @@ func (r *repo) getTransactionGroup(ctx context.Context, predicates ...predicate.
 
 		return ledgerhistorical.NewTransactionGroupFromData(
 			ledgerhistorical.TransactionGroupData{
-				ID:               entity.ID,
-				Namespace:        entity.Namespace,
-				CreatedAt:        entity.CreatedAt,
-				IdempotencyKey:   entity.IdempotencyKey,
-				InputFingerprint: entity.InputFingerprint,
-				Annotations:      entity.Annotations,
+				ID:          entity.ID,
+				Namespace:   entity.Namespace,
+				CreatedAt:   entity.CreatedAt,
+				Annotations: entity.Annotations,
 			},
 			transactions,
 		), nil
@@ -485,16 +449,19 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(*currency)))
 	}
 
-	if route.Currency != "" {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(route.Currency)))
+	if route.Currency.Code != "" {
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(route.Currency.Code)))
+	}
+	if route.Currency.CustomCurrencyID != nil {
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.CustomCurrencyID(*route.Currency.CustomCurrencyID))
 	}
 
-	if route.ExchangeSourceCurrency.IsPresent() {
-		source, _ := route.ExchangeSourceCurrency.Get()
+	if route.CostBasisCurrency.IsPresent() {
+		source, _ := route.CostBasisCurrency.Get()
 		if source == nil {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.ExchangeSourceCurrencyIsNil())
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisCurrencyIsNil())
 		} else {
-			routePredicates = append(routePredicates, ledgersubaccountroutedb.ExchangeSourceCurrency(*source))
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisCurrency(*source))
 		}
 	}
 
@@ -655,16 +622,19 @@ func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) []*
 		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(*currency)))
 	}
 
-	if route.Currency != "" {
-		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(route.Currency)))
+	if route.Currency.Code != "" {
+		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(route.Currency.Code)))
+	}
+	if route.Currency.CustomCurrencyID != nil {
+		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCustomCurrencyID), *route.Currency.CustomCurrencyID))
 	}
 
-	if route.ExchangeSourceCurrency.IsPresent() {
-		source, _ := route.ExchangeSourceCurrency.Get()
+	if route.CostBasisCurrency.IsPresent() {
+		source, _ := route.CostBasisCurrency.Get()
 		if source == nil {
-			predicates = append(predicates, sql.IsNull(routeColumn(ledgersubaccountroutedb.FieldExchangeSourceCurrency)))
+			predicates = append(predicates, sql.IsNull(routeColumn(ledgersubaccountroutedb.FieldCostBasisCurrency)))
 		} else {
-			predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldExchangeSourceCurrency), string(*source)))
+			predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCostBasisCurrency), string(*source)))
 		}
 	}
 

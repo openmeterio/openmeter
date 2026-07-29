@@ -100,18 +100,18 @@ type service struct {
 type PlanIssuanceInput struct {
 	CustomerID customer.CustomerID
 
-	Amount                 alpacadecimal.Decimal
-	ImmediateReleases      []PlanIssuanceImmediateRelease
-	Currency               currencyx.Code
-	CustomCurrency         *ledger.CustomCurrencyIdentity
-	ExchangeSourceCurrency *currencyx.Code
-	TaxCode                *string
-	TaxBehavior            *ledger.TaxBehavior
-	CostBasis              *alpacadecimal.Decimal
-	CreditPriority         *int
-	Features               []string
-	ExpiresAt              time.Time
-	SourceChargeID         *string
+	Amount            alpacadecimal.Decimal
+	ImmediateReleases []PlanIssuanceImmediateRelease
+	Currency          currencyx.Code
+	CustomCurrency    *ledger.CustomCurrencyIdentity
+	CostBasisCurrency *currencyx.Code
+	TaxCode           *string
+	TaxBehavior       *ledger.TaxBehavior
+	CostBasis         *alpacadecimal.Decimal
+	CreditPriority    *int
+	Features          []string
+	ExpiresAt         time.Time
+	SourceChargeID    *string
 }
 
 type PlanIssuanceImmediateRelease struct {
@@ -688,22 +688,22 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 	}
 
 	fboSubAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:               input.Currency,
-		CustomCurrency:         input.CustomCurrency,
-		ExchangeSourceCurrency: input.ExchangeSourceCurrency,
-		CostBasis:              input.CostBasis,
-		CreditPriority:         resolveCreditPriority(input.CreditPriority),
-		Features:               input.Features,
+		Currency:          input.Currency,
+		CustomCurrency:    input.CustomCurrency,
+		CostBasisCurrency: input.CostBasisCurrency,
+		CostBasis:         input.CostBasis,
+		CreditPriority:    resolveCreditPriority(input.CreditPriority),
+		Features:          input.Features,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("get FBO sub-account: %w", err)
 	}
 
 	breakageSubAccount, err := businessAccounts.BreakageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency:               input.Currency,
-		CustomCurrency:         input.CustomCurrency,
-		ExchangeSourceCurrency: input.ExchangeSourceCurrency,
-		CostBasis:              input.CostBasis,
+		Currency:          input.Currency,
+		CustomCurrency:    input.CustomCurrency,
+		CostBasisCurrency: input.CostBasisCurrency,
+		CostBasis:         input.CostBasis,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("get breakage sub-account: %w", err)

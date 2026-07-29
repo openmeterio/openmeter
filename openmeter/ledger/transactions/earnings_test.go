@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
@@ -102,7 +103,7 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_PreservesChargeProvena
 	//   - 20 from source 2
 	env.resolveAndCommit(t, TransferCustomerFBOToAccruedTemplate{
 		At:       env.Now(),
-		Currency: env.Currency,
+		Currency: env.CurrencyReference(),
 		Sources: []PostingAmount{
 			{
 				Address: sourceFBO.Address(),
@@ -193,7 +194,7 @@ func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrue
 	env.resolveAndCommit(t,
 		TransferCustomerFBOToAccruedTemplate{
 			At:       env.Now(),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 			Sources: []PostingAmount{
 				{
 					Address: sourceFBO.Address(),
@@ -419,7 +420,7 @@ func requireEarningsBalanceBuckets(t *testing.T, env *transactionsTestEnv, expec
 		Filters: ledger.Filters{
 			AccountID: &earningsAccountID,
 			Route: ledger.RouteFilter{
-				Currency: env.Currency,
+				Currency: currencies.NewCurrencyReference(env.Currency),
 			},
 		},
 		GroupBy: []string{

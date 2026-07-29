@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -15,17 +16,17 @@ import (
 
 func TestIssueCustomerReceivableTemplateValidate(t *testing.T) {
 	err := (IssueCustomerReceivableTemplate{
-		Amount:                 alpacadecimal.NewFromInt(-1),
-		Currency:               currencyx.Code("AC|ME"),
-		ExchangeSourceCurrency: lo.ToPtr(currencyx.Code("POINTS")),
-		CostBasis:              lo.ToPtr(alpacadecimal.NewFromInt(-1)),
-		CreditPriority:         lo.ToPtr(-1),
+		Amount:            alpacadecimal.NewFromInt(-1),
+		Currency:          currencyx.Code("AC|ME"),
+		CostBasisCurrency: lo.ToPtr(currencyx.Code("POINTS")),
+		CostBasis:         lo.ToPtr(alpacadecimal.NewFromInt(-1)),
+		CreditPriority:    lo.ToPtr(-1),
 	}).Validate()
 	require.True(t, models.IsGenericValidationError(err))
 	require.ErrorContains(t, err, "amount must be positive")
 	require.ErrorContains(t, err, "at is required")
 	require.ErrorContains(t, err, "currency:")
-	require.ErrorContains(t, err, "exchange source currency:")
+	require.ErrorContains(t, err, "cost basis currency:")
 	require.ErrorContains(t, err, "cost basis:")
 	require.ErrorContains(t, err, "credit priority:")
 }
@@ -120,7 +121,7 @@ func TestAuthorizeCustomerReceivablePaymentTemplate(t *testing.T) {
 	require.True(t, env.SumBalance(t, env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)).Equal(alpacadecimal.NewFromInt(40)))
 }
 
-// TestAuthorizeCustomerReceivablePaymentTemplateValidate_RequiresExchangeSourceCurrencyForKnownCostBasis
+// TestAuthorizeCustomerReceivablePaymentTemplateValidate_RequiresCostBasisCurrencyForKnownCostBasis
 // pins the cost-basis "financial fact" invariant (see the Prepaid Credit Cost
 // Basis design doc): a resolved cost basis is only meaningful together with
 // the fiat it was quoted against, so any template touching a cost-basis
@@ -128,7 +129,7 @@ func TestAuthorizeCustomerReceivablePaymentTemplate(t *testing.T) {
 // basis is known — the same rule IssueCustomerReceivableTemplate enforces.
 // Catching this at Validate() keeps the failure local and cheap instead of
 // surfacing as a route-lookup mismatch deep inside resolve().
-func TestAuthorizeCustomerReceivablePaymentTemplateValidate_RequiresExchangeSourceCurrencyForKnownCostBasis(t *testing.T) {
+func TestAuthorizeCustomerReceivablePaymentTemplateValidate_RequiresCostBasisCurrencyForKnownCostBasis(t *testing.T) {
 	costBasis := alpacadecimal.NewFromFloat(0.25)
 
 	authorizeErr := (AuthorizeCustomerReceivablePaymentTemplate{
@@ -139,7 +140,7 @@ func TestAuthorizeCustomerReceivablePaymentTemplateValidate_RequiresExchangeSour
 		CostBasis:      &costBasis,
 	}).Validate()
 	require.Error(t, authorizeErr)
-	require.ErrorContains(t, authorizeErr, "exchange source currency:")
+	require.ErrorContains(t, authorizeErr, "cost basis currency:")
 
 	settleErr := (SettleCustomerReceivableFromPaymentTemplate{
 		At:             time.Now(),
@@ -149,42 +150,42 @@ func TestAuthorizeCustomerReceivablePaymentTemplateValidate_RequiresExchangeSour
 		CostBasis:      &costBasis,
 	}).Validate()
 	require.Error(t, settleErr)
-	require.ErrorContains(t, settleErr, "exchange source currency:")
+	require.ErrorContains(t, settleErr, "cost basis currency:")
 }
 
-// TestAuthorizeAndSettleCustomerReceivableTemplates_CarryExchangeSourceCurrency
+// TestAuthorizeAndSettleCustomerReceivableTemplates_CarryCostBasisCurrency
 // covers the positive lifecycle for a cost-basis-tracked custom-currency
 // receivable: AuthorizeCustomerReceivablePaymentTemplate and
-// SettleCustomerReceivableFromPaymentTemplate now carry ExchangeSourceCurrency,
+// SettleCustomerReceivableFromPaymentTemplate now carry CostBasisCurrency,
 // the same field IssueCustomerReceivableTemplate and
 // AttributeCustomerAdvanceReceivableCostBasisTemplate already had. Per the
 // Prepaid Credit Cost Basis design doc, a resolved cost basis is a snapshot
 // taken once and never recomputed, so authorize/settle must reuse the exact
 // fiat pairing recorded at issuance to land on the same sub-account rather
 // than a disconnected one.
-func TestAuthorizeAndSettleCustomerReceivableTemplates_CarryExchangeSourceCurrency(t *testing.T) {
+func TestAuthorizeAndSettleCustomerReceivableTemplates_CarryCostBasisCurrency(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 	env.Currency = currencyx.Code("ACME")
 	customCurrencyIdentity := env.CustomCurrencyForRoute(env.Currency)
-	exchangeSourceCurrency := currencyx.Code("USD")
+	costBasisCurrency := currencyx.Code("USD")
 	costBasis := alpacadecimal.NewFromFloat(0.25)
 
 	env.resolveAndCommit(
 		t,
 		IssueCustomerReceivableTemplate{
-			At:                     env.Now(),
-			Amount:                 alpacadecimal.NewFromInt(40),
-			Currency:               env.Currency,
-			CustomCurrency:         customCurrencyIdentity,
-			ExchangeSourceCurrency: &exchangeSourceCurrency,
-			CostBasis:              &costBasis,
+			At:                env.Now(),
+			Amount:            alpacadecimal.NewFromInt(40),
+			Currency:          env.Currency,
+			CustomCurrency:    customCurrencyIdentity,
+			CostBasisCurrency: &costBasisCurrency,
+			CostBasis:         &costBasis,
 		},
 	)
 
 	openReceivable, err := env.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       env.Currency,
 		CustomCurrency:                 customCurrencyIdentity,
-		ExchangeSourceCurrency:         &exchangeSourceCurrency,
+		CostBasisCurrency:              &costBasisCurrency,
 		CostBasis:                      &costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -193,25 +194,25 @@ func TestAuthorizeAndSettleCustomerReceivableTemplates_CarryExchangeSourceCurren
 
 	// when:
 	// - authorizing the payment for the same currency/cost-basis, passing
-	//   the same ExchangeSourceCurrency the issuance snapshot recorded
+	//   the same CostBasisCurrency the issuance snapshot recorded
 	// then:
 	// - resolution succeeds and moves the balance into the authorized route
 	env.resolveAndCommit(
 		t,
 		AuthorizeCustomerReceivablePaymentTemplate{
-			At:                     env.Now(),
-			Amount:                 alpacadecimal.NewFromInt(40),
-			Currency:               env.Currency,
-			CustomCurrency:         customCurrencyIdentity,
-			ExchangeSourceCurrency: &exchangeSourceCurrency,
-			CostBasis:              &costBasis,
+			At:                env.Now(),
+			Amount:            alpacadecimal.NewFromInt(40),
+			Currency:          env.Currency,
+			CustomCurrency:    customCurrencyIdentity,
+			CostBasisCurrency: &costBasisCurrency,
+			CostBasis:         &costBasis,
 		},
 	)
 
 	authorizedReceivable, err := env.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       env.Currency,
 		CustomCurrency:                 customCurrencyIdentity,
-		ExchangeSourceCurrency:         &exchangeSourceCurrency,
+		CostBasisCurrency:              &costBasisCurrency,
 		CostBasis:                      &costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -221,26 +222,26 @@ func TestAuthorizeAndSettleCustomerReceivableTemplates_CarryExchangeSourceCurren
 
 	// when:
 	// - settling the authorized payment, again passing the same
-	//   ExchangeSourceCurrency
+	//   CostBasisCurrency
 	// then:
 	// - resolution succeeds and clears the authorized route against wash
 	env.resolveAndCommit(
 		t,
 		SettleCustomerReceivableFromPaymentTemplate{
-			At:                     env.Now(),
-			Amount:                 alpacadecimal.NewFromInt(40),
-			Currency:               env.Currency,
-			CustomCurrency:         customCurrencyIdentity,
-			ExchangeSourceCurrency: &exchangeSourceCurrency,
-			CostBasis:              &costBasis,
+			At:                env.Now(),
+			Amount:            alpacadecimal.NewFromInt(40),
+			Currency:          env.Currency,
+			CustomCurrency:    customCurrencyIdentity,
+			CostBasisCurrency: &costBasisCurrency,
+			CostBasis:         &costBasis,
 		},
 	)
 
 	wash, err := env.BusinessAccounts.WashAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:               env.Currency,
-		CustomCurrency:         customCurrencyIdentity,
-		ExchangeSourceCurrency: &exchangeSourceCurrency,
-		CostBasis:              &costBasis,
+		Currency:          env.Currency,
+		CustomCurrency:    customCurrencyIdentity,
+		CostBasisCurrency: &costBasisCurrency,
+		CostBasis:         &costBasis,
 	})
 	require.NoError(t, err)
 	require.Equal(t, float64(0), env.SumBalance(t, authorizedReceivable).InexactFloat64())
@@ -356,7 +357,7 @@ func requireReceivableBalanceBuckets(t *testing.T, env *transactionsTestEnv, exp
 		Filters: ledger.Filters{
 			AccountID: &receivableAccountID,
 			Route: ledger.RouteFilter{
-				Currency: env.Currency,
+				Currency: currencies.NewCurrencyReference(env.Currency),
 			},
 		},
 		GroupBy: []string{

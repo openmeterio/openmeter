@@ -7,6 +7,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -22,7 +23,7 @@ func TestExpiredRecordRouteQuerySQL(t *testing.T) {
 			name: "exact feature route",
 			query: expiredRecordRouteQuery{
 				Route: ledger.RouteFilter{
-					Currency: currencyx.Code("USD"),
+					Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 					Features: mo.Some([]string{"feature-b", "feature-a"}),
 				},
 			},
@@ -36,7 +37,7 @@ func TestExpiredRecordRouteQuerySQL(t *testing.T) {
 			name: "match feature route",
 			query: expiredRecordRouteQuery{
 				Route: ledger.RouteFilter{
-					Currency:     currencyx.Code("USD"),
+					Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 					MatchFeature: "feature-a",
 				},
 			},

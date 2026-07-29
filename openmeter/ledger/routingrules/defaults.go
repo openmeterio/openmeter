@@ -60,7 +60,7 @@ var DefaultValidator = Validator{
 				RouteFieldCurrency,
 				RouteFieldFeatures,
 				RouteFieldCostBasis,
-				RouteFieldExchangeSourceCurrency,
+				RouteFieldCostBasisCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -69,7 +69,7 @@ var DefaultValidator = Validator{
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,
-				RouteFieldExchangeSourceCurrency,
+				RouteFieldCostBasisCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -78,7 +78,7 @@ var DefaultValidator = Validator{
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,
-				RouteFieldExchangeSourceCurrency,
+				RouteFieldCostBasisCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -89,7 +89,7 @@ var DefaultValidator = Validator{
 				RouteFieldTaxCode,
 				RouteFieldTaxBehavior,
 				RouteFieldCostBasis,
-				RouteFieldExchangeSourceCurrency,
+				RouteFieldCostBasisCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -98,7 +98,7 @@ var DefaultValidator = Validator{
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,
-				RouteFieldExchangeSourceCurrency,
+				RouteFieldCostBasisCurrency,
 			},
 		},
 		RequireSameRouteRule{
@@ -107,7 +107,7 @@ var DefaultValidator = Validator{
 			Fields: []RouteField{
 				RouteFieldCurrency,
 				RouteFieldCostBasis,
-				RouteFieldExchangeSourceCurrency,
+				RouteFieldCostBasisCurrency,
 			},
 		},
 	},

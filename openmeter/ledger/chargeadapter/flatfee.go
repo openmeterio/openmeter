@@ -68,7 +68,7 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: intent.GetEffectiveInvoiceAt(),
-		Currency:          intent.GetCurrency().GetCode(),
+		Currency:          intent.GetCurrency().Reference(),
 		CustomCurrency:    customCurrencyIdentity(intent.GetCurrency()),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
