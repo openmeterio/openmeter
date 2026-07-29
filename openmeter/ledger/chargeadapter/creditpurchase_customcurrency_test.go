@@ -38,7 +38,7 @@ func TestOnCreditPurchase_CustomCurrency_FullLifecycle(t *testing.T) {
 	// given: a pre-existing custom-currency advance (unknown cost basis) worth
 	// 40 ACME, created the way credit_only usage collection creates one when
 	// FBO can't cover a spend.
-	env.createCustomAdvanceExposure(t, customCurrency, customCurrencyIdentity, alpacadecimal.NewFromInt(40))
+	env.createCustomAdvanceExposure(t, customCurrency, customCurrencyIdentity, alpacadecimal.NewFromInt(40), nil)
 
 	// when: a 100 ACME external-settlement purchase comes in, priced at
 	// 0.25 USD per ACME (25 USD total).
@@ -108,6 +108,44 @@ func TestOnCreditPurchase_CustomCurrency_FullLifecycle(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.customFBOSubAccount(t, customCurrency, customCurrencyIdentity, &settlementCurrency, &costBasis)).Equal(alpacadecimal.NewFromInt(60)))
 }
 
+func TestOnCreditPurchaseInitiated_CustomCurrency_BackfillAllocatesFractionalRemainder(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+
+	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
+	customCurrency := customCurrencyValue.GetCode()
+	customCurrencyIdentity := &ledger.CustomCurrencyIdentity{ID: customCurrencyValue.ID, Precision: 2}
+	settlementCurrency := currencyx.Code("USD")
+	costBasis := alpacadecimal.NewFromInt(1)
+	spendChargeIDs := []string{
+		"01JSPEND00123456789ABCDEFG",
+		"01JSPEND10123456789ABCDEFG",
+		"01JSPEND20123456789ABCDEFG",
+	}
+
+	// given: three equal unknown-cost-basis accrued buckets whose proportional
+	// share of a 0.05 ACME backfill is a non-representable 0.0166... ACME.
+	for i := range spendChargeIDs {
+		env.createCustomAdvanceExposure(t, customCurrency, customCurrencyIdentity, alpacadecimal.NewFromInt(1), &spendChargeIDs[i])
+	}
+
+	// when: the purchase is too small to cover the full advance exposure.
+	charge := env.newExternalChargeCustomCurrency(t, customCurrencyValue, mustDecimal(t, "0.05"), costBasis, settlementCurrency)
+	charge.ID = "01JABCDEF0123456789ABCDEFG"
+	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+
+	// then: the largest-remainder allocation preserves both the 0.05 total and
+	// each spend bucket, with deterministic tie-breaking by spend charge ID.
+	env.requireAccountSourceSpendBucketAmounts(t, env.customAccruedSubAccount(t, customCurrency, customCurrencyIdentity, nil, nil).AccountID().ID, map[string]float64{
+		sourceSpendChargeKey(nil, &spendChargeIDs[0]):        0.98,
+		sourceSpendChargeKey(nil, &spendChargeIDs[1]):        0.98,
+		sourceSpendChargeKey(nil, &spendChargeIDs[2]):        0.99,
+		sourceSpendChargeKey(&charge.ID, &spendChargeIDs[0]): 0.02,
+		sourceSpendChargeKey(&charge.ID, &spendChargeIDs[1]): 0.02,
+		sourceSpendChargeKey(&charge.ID, &spendChargeIDs[2]): 0.01,
+	})
+}
+
 // TestOnPromotionalCreditPurchase_CustomCurrency locks the promotional path
 // for a custom currency: a promotional grant has no cost basis to denominate
 // (settlement returns a zero rate, not a real one), so the credited FBO and
@@ -152,7 +190,7 @@ func TestOnPromotionalCreditPurchase_CustomCurrency_CoversAdvance(t *testing.T) 
 	customCurrency := customCurrencyValue.GetCode()
 	customCurrencyIdentity := &ledger.CustomCurrencyIdentity{ID: customCurrencyValue.ID, Precision: 2}
 
-	env.createCustomAdvanceExposure(t, customCurrency, customCurrencyIdentity, alpacadecimal.NewFromInt(40))
+	env.createCustomAdvanceExposure(t, customCurrency, customCurrencyIdentity, alpacadecimal.NewFromInt(40), nil)
 
 	charge := env.newPromotionalChargeCustomCurrency(t, customCurrencyValue, alpacadecimal.NewFromInt(100))
 	ref, err := env.handler.OnPromotionalCreditPurchase(t.Context(), charge)
@@ -300,7 +338,7 @@ func TestOnCreditPurchaseInitiated_CustomCurrency_ExpiringCreditReleasesAdvanceC
 	settlementCurrency := currencyx.Code("USD")
 	costBasis := mustDecimal(t, "0.5")
 
-	env.createCustomAdvanceExposure(t, customCurrency, customCurrencyIdentity, alpacadecimal.NewFromInt(40))
+	env.createCustomAdvanceExposure(t, customCurrency, customCurrencyIdentity, alpacadecimal.NewFromInt(40), nil)
 
 	charge := env.newExternalChargeCustomCurrency(t, customCurrencyValue, alpacadecimal.NewFromInt(100), costBasis, settlementCurrency)
 	expiresAt := charge.CreatedAt.Add(time.Hour)
@@ -481,7 +519,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalChargeCustomCurrency(
 // createCustomAdvanceExposure books an unknown-cost-basis custom currency
 // advance the same way credit_only usage collection does when FBO can't
 // cover a spend: issue receivable + move it straight to accrued.
-func (e *creditPurchaseHandlerTestEnv) createCustomAdvanceExposure(t *testing.T, currency currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity, amount alpacadecimal.Decimal) {
+func (e *creditPurchaseHandlerTestEnv) createCustomAdvanceExposure(t *testing.T, currency currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity, amount alpacadecimal.Decimal, spendChargeID *string) {
 	t.Helper()
 
 	inputs, err := transactions.ResolveTransactions(
@@ -500,12 +538,14 @@ func (e *creditPurchaseHandlerTestEnv) createCustomAdvanceExposure(t *testing.T,
 			Amount:         amount,
 			Currency:       currency,
 			CustomCurrency: customCurrency,
+			SpendChargeID:  spendChargeID,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:             e.Now(),
 			Amount:         amount,
 			Currency:       currency,
 			CustomCurrency: customCurrency,
+			SpendChargeID:  spendChargeID,
 		},
 	)
 	require.NoError(t, err)
