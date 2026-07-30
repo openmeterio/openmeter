@@ -779,11 +779,10 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		return flatRC, nil
 
 	case "unit", "graduated", "volume":
-		if billingCadence == nil {
-			return nil, fmt.Errorf("billing cadence is required for usage-based rate card %q", rc.Key)
+		var bc datetime.ISODuration
+		if billingCadence != nil {
+			bc = *billingCadence
 		}
-
-		bc := *billingCadence
 
 		price, err := FromAPIBillingPriceWithCommitments(rc.Price, rc.Commitments)
 		if err != nil {
