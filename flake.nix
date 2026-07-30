@@ -173,7 +173,10 @@
         };
 
         packages = {
-          codegraph = pkgs.llm-agents.codegraph;
+          # CodeGraph 1.5.0 aborts while indexing on macOS with Node 24.
+          codegraph = pkgs.llm-agents.codegraph.override {
+            buildNpmPackage = pkgs.buildNpmPackage.override { nodejs = pkgs.nodejs_22; };
+          };
         } // import ./custom-packages.nix { inherit pkgs; };
       };
     };
