@@ -133,7 +133,7 @@ func (r CurrencyReference) WithCurrency(currency *Currency) (CurrencyReference, 
 		return CurrencyReference{}, fmt.Errorf("invalid resolved currency: %w", err)
 	}
 
-	r.CustomCurrencyID = lo.ToPtr(currency.ID)
+	r.CustomCurrencyID = lo.EmptyableToPtr(currency.ID)
 
 	r.resolved = currency
 
