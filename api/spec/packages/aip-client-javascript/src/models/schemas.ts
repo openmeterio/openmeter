@@ -595,10 +595,18 @@ export const creditTransactionType = z
   )
 
 export const chargesExpand = z
-  .enum(['real_time_usage'])
+  .enum([
+    'real_time_usage',
+    'customer',
+    'feature',
+    'subscription',
+    'invoice',
+    'realization_totals',
+    'realization_details',
+  ])
 
   .describe(
-    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage.",
+    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage, its `usage` field, and its `outstanding` (not-yet-booked) projection. - `customer`: The `customer.name` of the charge's customer. - `feature`: The `feature.id` and `feature.name` of the charge's feature. - `subscription`: The `subscription.name` of the charge's originating subscription, when present. - `invoice`: The `invoice_number` of each realization, resolved from its `invoice_id`. - `realization_totals`: The `totals` of each realization run, including credit allocations. - `realization_details`: The `detailed_lines` of each realization run.",
   )
 
 export const lifecycleController = z
@@ -642,6 +650,56 @@ export const taxConfigExternalInvoicing = z
       ),
   })
   .describe('External invoicing tax config.')
+
+export const chargeRealizationInvoiceReference = z
+  .object({
+    lineId: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of the invoice line this realization was booked to, when the realization has been invoiced.',
+      ),
+    id: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of the invoice this realization was booked to, when the realization has been invoiced.',
+      ),
+    invoiceNumber: z
+      .string()
+      .optional()
+
+      .describe(
+        'The human-readable number of the invoice this realization was booked to. Requires the `invoice` expand.',
+      ),
+  })
+
+  .describe(
+    'Reference to the invoice (and specific invoice line) a charge realization was booked to. Present once the realization has been invoiced. `id` and `line_id` are the invoice and invoice-line identifiers; `invoice_number` additionally requires the `invoice` expand, since it is resolved by joining `id` against the invoice rather than stored on the realization itself.',
+  )
+
+export const chargeRealizationType = z
+  .enum(['final_realization', 'partial_invoice', 'outstanding'])
+
+  .describe(
+    'Type of a charge realization run. Values: - `final_realization`: The run is the final realization of the charge for its service period; no further runs are expected to correct it. - `partial_invoice`: The run only realizes part of the charge, because the remainder is not yet due to be invoiced. - `invalid_due_to_unsupported_credit_note`: The run was invalidated by a credit note that OpenMeter cannot represent as a realization correction.',
+  )
+
+export const chargeRealizationPaymentStatus = z
+  .enum(['authorized', 'settled'])
+
+  .describe(
+    "Settlement status of a charge realization's payment. Values: - `authorized`: The payment has been authorized against the customer's ledger but has not settled yet. - `settled`: The payment has settled.",
+  )
+
+export const chargeRealizationDetailedLineCategory = z
+  .enum(['regular', 'commitment'])
+
+  .describe(
+    "Cost category of a charge realization detailed line. Mirrors the shared `stddetailedline` category domain, kept as its own enum so it does not couple to the invoice line's category.",
+  )
 
 export const pricePaymentTerm = z
   .union([z.literal('in_advance'), z.literal('in_arrears')])
@@ -1565,6 +1623,44 @@ export const createCurrencyCustomRequest = z
   })
   .describe('CurrencyCustom create request.')
 
+export const totals = z
+  .object({
+    amount: numeric,
+    taxesTotal: numeric,
+    taxesInclusiveTotal: numeric,
+    taxesExclusiveTotal: numeric,
+    chargesTotal: numeric,
+    discountsTotal: numeric,
+    creditsTotal: numeric,
+    total: numeric,
+  })
+
+  .describe(
+    'Totals contains the summaries of all calculations for a billing resource.',
+  )
+
+export const chargeRealizationDetailedLineCreditApplied = z
+  .object({
+    amount: numeric,
+    description: z
+      .string()
+      .optional()
+
+      .describe(
+        'Optional human-readable description of the credit allocation.',
+      ),
+    creditRealizationId: z
+      .string()
+
+      .describe(
+        'The ID of the credit realization (allocation) this credit was applied from.',
+      ),
+  })
+
+  .describe(
+    'A credit allocation applied to a charge realization detailed line.',
+  )
+
 export const currencyAmount = z
   .object({
     amount: numeric,
@@ -1600,22 +1696,6 @@ export const rateCardDiscounts = z
     usage: numeric.optional(),
   })
   .describe('Discount configuration for a rate card.')
-
-export const totals = z
-  .object({
-    amount: numeric,
-    taxesTotal: numeric,
-    taxesInclusiveTotal: numeric,
-    taxesExclusiveTotal: numeric,
-    chargesTotal: numeric,
-    discountsTotal: numeric,
-    creditsTotal: numeric,
-    total: numeric,
-  })
-
-  .describe(
-    'Totals contains the summaries of all calculations for a billing resource.',
-  )
 
 export const spendCommitments = z
   .object({
@@ -1815,12 +1895,26 @@ export const creditGrantInvoiceReference = z
 export const billingCustomerReference = z
   .object({
     id: ulid,
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the customer. Only populated where the referencing endpoint documents a `customer` expand that resolves it.',
+      ),
   })
   .describe('Customer reference.')
 
 export const subscriptionReference = z
   .object({
     id: ulid,
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the subscription. Only populated where the referencing endpoint documents a `subscription` expand that resolves it.',
+      ),
     phase: z
       .object({
         id: ulid,
@@ -1835,6 +1929,26 @@ export const subscriptionReference = z
 
   .describe(
     'Subscription reference represents a reference to the specific subscription item this entity represents.',
+  )
+
+export const chargeFeature = z
+  .object({
+    id: ulid,
+    key: z
+      .string()
+      .optional()
+      .describe('The key of the feature. Requires the `feature` expand.'),
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the feature. Requires the `feature` expand.',
+      ),
+  })
+
+  .describe(
+    'The feature associated with a charge. `key` is always present and is set at charge creation time. `id` and `name` are only resolved with the `feature` expand, since resolving them requires an additional lookup against the feature catalog.',
   )
 
 export const addonReference = z
@@ -2809,12 +2923,6 @@ export const getCreditBalanceParamsFilter = z
   })
   .describe('Filter options for getting a credit balance.')
 
-export const listChargesParamsFilter = z
-  .object({
-    status: stringFieldFilterExact.optional(),
-  })
-  .describe('Filter options for listing charges.')
-
 export const listPlansParamsFilter = z
   .object({
     key: stringFieldFilter.optional(),
@@ -2859,6 +2967,12 @@ export const subscriptionCreate = z
     billingAnchor: dateTime.optional(),
   })
   .describe('Subscription create request.')
+
+export const chargeRealizationPayment = z
+  .object({
+    status: chargeRealizationPaymentStatus,
+  })
+  .describe('Payment state of a charge realization.')
 
 export const rateCardProrationConfiguration = z
   .object({
@@ -3311,6 +3425,16 @@ export const creditTransaction = z
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
 
+export const chargeTotals = z
+  .object({
+    booked: totals,
+    realtime: totals.optional(),
+  })
+
+  .describe(
+    'The totals of a change. RealTime is only expanded when the `real_time_usage` expand is used.',
+  )
+
 export const priceTier = z
   .object({
     upToAmount: numeric.optional(),
@@ -3320,16 +3444,6 @@ export const priceTier = z
 
   .describe(
     'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
-  )
-
-export const chargeTotals = z
-  .object({
-    booked: totals,
-    realtime: totals.optional(),
-  })
-
-  .describe(
-    'The totals of a change. RealTime is only expanded when the `real_time_usage` expand is used.',
   )
 
 export const updatePriceTier = z
@@ -3629,6 +3743,16 @@ export const listEventsParamsFilter = z
   })
   .describe('Filter options for listing ingested events.')
 
+export const listChargesParamsFilter = z
+  .object({
+    status: stringFieldFilterExact.optional(),
+    featureId: ulidFieldFilter.optional(),
+    featureKey: stringFieldFilterExact.optional(),
+    servicePeriodFrom: dateTimeFieldFilter.optional(),
+    servicePeriodTo: dateTimeFieldFilter.optional(),
+  })
+  .describe('Filter options for listing charges.')
+
 export const listInvoicesParamsFilter = z
   .object({
     status: stringFieldFilterExact.optional(),
@@ -3687,6 +3811,92 @@ export const meterQueryResult = z
       ),
   })
   .describe('Meter query result.')
+
+export const chargeRealizationDetailedLineFlatFee = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z
+      .literal('flat_fee')
+      .describe('The type of the charge the realization belongs to.'),
+    servicePeriod: closedPeriod,
+    totals: totals,
+    category: chargeRealizationDetailedLineCategory,
+    creditsApplied: z
+      .array(chargeRealizationDetailedLineCreditApplied)
+      .optional()
+      .describe('Credits applied to this detailed line.'),
+    quantity: numeric,
+    unitPrice: numeric,
+  })
+  .describe("A detailed line produced by a flat fee charge's realization run.")
+
+export const chargeRealizationDetailedLineUsageBased = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z
+      .literal('usage_based')
+      .describe('The type of the charge the realization belongs to.'),
+    servicePeriod: closedPeriod,
+    totals: totals,
+    category: chargeRealizationDetailedLineCategory,
+    creditsApplied: z
+      .array(chargeRealizationDetailedLineCreditApplied)
+      .optional()
+      .describe('Credits applied to this detailed line.'),
+    quantity: numeric,
+    unitPrice: numeric,
+    pricerReferenceId: z
+      .string()
+
+      .describe(
+        'Reference ID of the pricer/rating child line that produced this detailed line.',
+      ),
+    correctsRunId: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of a prior realization run this detailed line corrects, when applicable.',
+      ),
+  })
+
+  .describe(
+    "A detailed line produced by a usage-based charge's realization run.",
+  )
 
 export const currencyCustom = z
   .object({
@@ -4469,6 +4679,7 @@ export const createChargeFlatFeeRequest = z
     taxConfig: taxConfig.optional(),
     paymentTerm: pricePaymentTerm,
     discounts: chargeFlatFeeDiscounts.optional(),
+    feature: chargeFeature.optional(),
     featureId: z
       .string()
       .optional()
@@ -4515,6 +4726,16 @@ export const ingestedEventPaginatedResponse = z
     meta: cursorMeta,
   })
   .describe('Cursor paginated response.')
+
+export const chargeRealizationDetailedLine = z
+  .discriminatedUnion('type', [
+    chargeRealizationDetailedLineFlatFee,
+    chargeRealizationDetailedLineUsageBased,
+  ])
+
+  .describe(
+    "A detailed (child) line of a charge realization run. This is distinct from an invoice's own detailed lines: it represents the rated/priced breakdown produced by the realization run itself, before that breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice runs include credit allocations in these lines, while credits-only runs keep the gross rated detail.",
+  )
 
 export const currency = z
   .discriminatedUnion('type', [currencyFiat, currencyCustom])
@@ -4984,6 +5205,40 @@ export const creditGrantPagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
+export const chargeRealization = z
+  .object({
+    invoice: chargeRealizationInvoiceReference.optional(),
+    type: chargeRealizationType,
+    servicePeriod: closedPeriod,
+    usage: numeric,
+    payment: chargeRealizationPayment.optional(),
+    totals: totals.optional(),
+    detailedLines: z
+      .array(chargeRealizationDetailedLine)
+      .optional()
+
+      .describe(
+        'The detailed (rated) lines produced by the realization run. Requires the `realization_details` expand.',
+      ),
+  })
+
+  .describe(
+    "A realization run of a charge. Realizations are always sorted by `created_at`. `totals` and `detailed_lines` are only populated with the `realization_totals` and `realization_details` expands, respectively, since computing them requires re-deriving the run's rated breakdown. `invoice_number` requires the `invoice` expand, since it is resolved by joining `invoice_id` against the invoice, not stored on the realization itself.",
+  )
+
+export const chargeOutstanding = z
+  .object({
+    type: chargeRealizationType,
+    totals: totals,
+    detailedLines: z
+      .array(chargeRealizationDetailedLine)
+      .describe('The detailed (rated) lines of the outstanding projection.'),
+  })
+
+  .describe(
+    'The part of a usage-based charge that is not booked to any realization yet — i.e. what the customer would owe if a realization were run right now. Unlike a booked `ChargeRealization`, this projection has no invoice, no payment state, and its totals exclude credit allocations. Requires the `real_time_usage` expand.',
+  )
+
 export const currencyPagePaginatedResponse = z
   .object({
     data: z.array(currency),
@@ -5079,60 +5334,6 @@ export const governanceQueryResponse = z
   })
   .describe('Response of the governance query.')
 
-export const chargeFlatFee = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    createdAt: dateTime,
-    updatedAt: dateTime,
-    deletedAt: dateTime.optional(),
-    type: z.literal('flat_fee').describe('The type of the charge.'),
-    customer: billingCustomerReference,
-    lifecycleController: lifecycleController,
-    subscription: subscriptionReference.optional(),
-    currency: currencyCode,
-    status: chargeStatus,
-    invoiceAt: dateTime,
-    servicePeriod: closedPeriod,
-    fullServicePeriod: closedPeriod,
-    billingPeriod: closedPeriod,
-    advanceAfter: dateTime.optional(),
-    uniqueReferenceId: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlementMode: settlementMode,
-    taxConfig: taxConfig.optional(),
-    paymentTerm: pricePaymentTerm,
-    discounts: chargeFlatFeeDiscounts.optional(),
-    featureKey: z
-      .string()
-      .optional()
-      .describe('The feature associated with the charge, when applicable.'),
-    featureId: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
-    prorationConfiguration: rateCardProrationConfiguration,
-    amountAfterProration: currencyAmount,
-    price: price,
-    systemIntent: chargeFlatFeeSystemIntent.optional(),
-  })
-  .describe('A flat fee charge for a customer.')
-
 export const chargeUsageBasedSystemIntent = z
   .object({
     name: z
@@ -5189,6 +5390,7 @@ export const createChargeUsageBasedRequest = z
     settlementMode: settlementMode,
     taxConfig: taxConfig.optional(),
     discounts: rateCardDiscounts.optional(),
+    feature: chargeFeature,
     featureId: z
       .string()
       .describe('The feature ID associated with the charge.'),
@@ -5256,6 +5458,61 @@ export const featurePagePaginatedResponse = z
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
+
+export const chargeFlatFee = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    createdAt: dateTime,
+    updatedAt: dateTime,
+    deletedAt: dateTime.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    customer: billingCustomerReference,
+    lifecycleController: lifecycleController,
+    subscription: subscriptionReference.optional(),
+    currency: currencyCode,
+    status: chargeStatus,
+    invoiceAt: dateTime,
+    servicePeriod: closedPeriod,
+    fullServicePeriod: closedPeriod,
+    billingPeriod: closedPeriod,
+    advanceAfter: dateTime.optional(),
+    uniqueReferenceId: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlementMode: settlementMode,
+    taxConfig: taxConfig.optional(),
+    realizations: z
+      .array(chargeRealization)
+      .describe('The realization runs of the charge, sorted by `created_at`.'),
+    outstanding: chargeOutstanding.optional(),
+    paymentTerm: pricePaymentTerm,
+    discounts: chargeFlatFeeDiscounts.optional(),
+    feature: chargeFeature.optional(),
+    featureId: z
+      .string()
+      .optional()
+      .describe('The feature ID associated with the charge.'),
+    prorationConfiguration: rateCardProrationConfiguration,
+    amountAfterProration: currencyAmount,
+    price: price,
+    systemIntent: chargeFlatFeeSystemIntent.optional(),
+  })
+  .describe('A flat fee charge for a customer.')
 
 export const workflow = z
   .object({
@@ -5325,12 +5582,17 @@ export const chargeUsageBased = z
       .describe('Unique reference ID of the charge.'),
     settlementMode: settlementMode,
     taxConfig: taxConfig.optional(),
+    realizations: z
+      .array(chargeRealization)
+      .describe('The realization runs of the charge, sorted by `created_at`.'),
+    outstanding: chargeOutstanding.optional(),
     discounts: rateCardDiscounts.optional(),
-    featureKey: z.string().describe('The feature associated with the charge.'),
+    feature: chargeFeature,
     featureId: z
       .string()
       .describe('The feature ID associated with the charge.'),
     totals: chargeTotals,
+    usage: numeric.optional(),
     price: price,
     systemIntent: chargeUsageBasedSystemIntent.optional(),
   })
@@ -6214,7 +6476,7 @@ export const listCustomerChargesQueryParams = z.object({
     .optional()
 
     .describe(
-      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage.",
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage, its `usage` field, and its `outstanding` (not-yet-booked) projection. - `customer`: Expand the charge's `customer.name`. - `feature`: Expand the charge's `feature.id` and `feature.name`. - `subscription`: Expand the charge's `subscription.name`. - `invoice`: Expand each realization's `invoice_number`. - `realization_totals`: Expand each realization run's `totals`. - `realization_details`: Expand each realization run's `detailed_lines`.",
     ),
 })
 
@@ -7486,10 +7748,18 @@ export const creditTransactionTypeWire = z
   )
 
 export const chargesExpandWire = z
-  .enum(['real_time_usage'])
+  .enum([
+    'real_time_usage',
+    'customer',
+    'feature',
+    'subscription',
+    'invoice',
+    'realization_totals',
+    'realization_details',
+  ])
 
   .describe(
-    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage.",
+    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage, its `usage` field, and its `outstanding` (not-yet-booked) projection. - `customer`: The `customer.name` of the charge's customer. - `feature`: The `feature.id` and `feature.name` of the charge's feature. - `subscription`: The `subscription.name` of the charge's originating subscription, when present. - `invoice`: The `invoice_number` of each realization, resolved from its `invoice_id`. - `realization_totals`: The `totals` of each realization run, including credit allocations. - `realization_details`: The `detailed_lines` of each realization run.",
   )
 
 export const lifecycleControllerWire = z
@@ -7533,6 +7803,56 @@ export const taxConfigExternalInvoicingWire = z
       ),
   })
   .describe('External invoicing tax config.')
+
+export const chargeRealizationInvoiceReferenceWire = z
+  .strictObject({
+    line_id: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of the invoice line this realization was booked to, when the realization has been invoiced.',
+      ),
+    id: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of the invoice this realization was booked to, when the realization has been invoiced.',
+      ),
+    invoice_number: z
+      .string()
+      .optional()
+
+      .describe(
+        'The human-readable number of the invoice this realization was booked to. Requires the `invoice` expand.',
+      ),
+  })
+
+  .describe(
+    'Reference to the invoice (and specific invoice line) a charge realization was booked to. Present once the realization has been invoiced. `id` and `line_id` are the invoice and invoice-line identifiers; `invoice_number` additionally requires the `invoice` expand, since it is resolved by joining `id` against the invoice rather than stored on the realization itself.',
+  )
+
+export const chargeRealizationTypeWire = z
+  .enum(['final_realization', 'partial_invoice', 'outstanding'])
+
+  .describe(
+    'Type of a charge realization run. Values: - `final_realization`: The run is the final realization of the charge for its service period; no further runs are expected to correct it. - `partial_invoice`: The run only realizes part of the charge, because the remainder is not yet due to be invoiced. - `invalid_due_to_unsupported_credit_note`: The run was invalidated by a credit note that OpenMeter cannot represent as a realization correction.',
+  )
+
+export const chargeRealizationPaymentStatusWire = z
+  .enum(['authorized', 'settled'])
+
+  .describe(
+    "Settlement status of a charge realization's payment. Values: - `authorized`: The payment has been authorized against the customer's ledger but has not settled yet. - `settled`: The payment has settled.",
+  )
+
+export const chargeRealizationDetailedLineCategoryWire = z
+  .enum(['regular', 'commitment'])
+
+  .describe(
+    "Cost category of a charge realization detailed line. Mirrors the shared `stddetailedline` category domain, kept as its own enum so it does not couple to the invoice line's category.",
+  )
 
 export const pricePaymentTermWire = z
   .union([z.literal('in_advance'), z.literal('in_arrears')])
@@ -8450,6 +8770,44 @@ export const createCurrencyCustomRequestWire = z
   })
   .describe('CurrencyCustom create request.')
 
+export const totalsWire = z
+  .strictObject({
+    amount: numericWire,
+    taxes_total: numericWire,
+    taxes_inclusive_total: numericWire,
+    taxes_exclusive_total: numericWire,
+    charges_total: numericWire,
+    discounts_total: numericWire,
+    credits_total: numericWire,
+    total: numericWire,
+  })
+
+  .describe(
+    'Totals contains the summaries of all calculations for a billing resource.',
+  )
+
+export const chargeRealizationDetailedLineCreditAppliedWire = z
+  .strictObject({
+    amount: numericWire,
+    description: z
+      .string()
+      .optional()
+
+      .describe(
+        'Optional human-readable description of the credit allocation.',
+      ),
+    credit_realization_id: z
+      .string()
+
+      .describe(
+        'The ID of the credit realization (allocation) this credit was applied from.',
+      ),
+  })
+
+  .describe(
+    'A credit allocation applied to a charge realization detailed line.',
+  )
+
 export const currencyAmountWire = z
   .strictObject({
     amount: numericWire,
@@ -8485,22 +8843,6 @@ export const rateCardDiscountsWire = z
     usage: numericWire.optional(),
   })
   .describe('Discount configuration for a rate card.')
-
-export const totalsWire = z
-  .strictObject({
-    amount: numericWire,
-    taxes_total: numericWire,
-    taxes_inclusive_total: numericWire,
-    taxes_exclusive_total: numericWire,
-    charges_total: numericWire,
-    discounts_total: numericWire,
-    credits_total: numericWire,
-    total: numericWire,
-  })
-
-  .describe(
-    'Totals contains the summaries of all calculations for a billing resource.',
-  )
 
 export const spendCommitmentsWire = z
   .strictObject({
@@ -8700,12 +9042,26 @@ export const creditGrantInvoiceReferenceWire = z
 export const billingCustomerReferenceWire = z
   .strictObject({
     id: ulidWire,
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the customer. Only populated where the referencing endpoint documents a `customer` expand that resolves it.',
+      ),
   })
   .describe('Customer reference.')
 
 export const subscriptionReferenceWire = z
   .strictObject({
     id: ulidWire,
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the subscription. Only populated where the referencing endpoint documents a `subscription` expand that resolves it.',
+      ),
     phase: z
       .strictObject({
         id: ulidWire,
@@ -8720,6 +9076,26 @@ export const subscriptionReferenceWire = z
 
   .describe(
     'Subscription reference represents a reference to the specific subscription item this entity represents.',
+  )
+
+export const chargeFeatureWire = z
+  .strictObject({
+    id: ulidWire,
+    key: z
+      .string()
+      .optional()
+      .describe('The key of the feature. Requires the `feature` expand.'),
+    name: z
+      .string()
+      .optional()
+
+      .describe(
+        'The display name of the feature. Requires the `feature` expand.',
+      ),
+  })
+
+  .describe(
+    'The feature associated with a charge. `key` is always present and is set at charge creation time. `id` and `name` are only resolved with the `feature` expand, since resolving them requires an additional lookup against the feature catalog.',
   )
 
 export const addonReferenceWire = z
@@ -9684,12 +10060,6 @@ export const getCreditBalanceParamsFilterWire = z
   })
   .describe('Filter options for getting a credit balance.')
 
-export const listChargesParamsFilterWire = z
-  .strictObject({
-    status: stringFieldFilterExactWire.optional(),
-  })
-  .describe('Filter options for listing charges.')
-
 export const listPlansParamsFilterWire = z
   .strictObject({
     key: stringFieldFilterWire.optional(),
@@ -9732,6 +10102,12 @@ export const subscriptionCreateWire = z
     billing_anchor: dateTimeWire.optional(),
   })
   .describe('Subscription create request.')
+
+export const chargeRealizationPaymentWire = z
+  .strictObject({
+    status: chargeRealizationPaymentStatusWire,
+  })
+  .describe('Payment state of a charge realization.')
 
 export const rateCardProrationConfigurationWire = z
   .strictObject({
@@ -10178,6 +10554,16 @@ export const creditTransactionWire = z
     "A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable.",
   )
 
+export const chargeTotalsWire = z
+  .strictObject({
+    booked: totalsWire,
+    realtime: totalsWire.optional(),
+  })
+
+  .describe(
+    'The totals of a change. RealTime is only expanded when the `real_time_usage` expand is used.',
+  )
+
 export const priceTierWire = z
   .strictObject({
     up_to_amount: numericWire.optional(),
@@ -10187,16 +10573,6 @@ export const priceTierWire = z
 
   .describe(
     'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
-  )
-
-export const chargeTotalsWire = z
-  .strictObject({
-    booked: totalsWire,
-    realtime: totalsWire.optional(),
-  })
-
-  .describe(
-    'The totals of a change. RealTime is only expanded when the `real_time_usage` expand is used.',
   )
 
 export const updatePriceTierWire = z
@@ -10496,6 +10872,16 @@ export const listEventsParamsFilterWire = z
   })
   .describe('Filter options for listing ingested events.')
 
+export const listChargesParamsFilterWire = z
+  .strictObject({
+    status: stringFieldFilterExactWire.optional(),
+    feature_id: ulidFieldFilterWire.optional(),
+    feature_key: stringFieldFilterExactWire.optional(),
+    service_period_from: dateTimeFieldFilterWire.optional(),
+    service_period_to: dateTimeFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing charges.')
+
 export const listInvoicesParamsFilterWire = z
   .strictObject({
     status: stringFieldFilterExactWire.optional(),
@@ -10554,6 +10940,92 @@ export const meterQueryResultWire = z
       ),
   })
   .describe('Meter query result.')
+
+export const chargeRealizationDetailedLineFlatFeeWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z
+      .literal('flat_fee')
+      .describe('The type of the charge the realization belongs to.'),
+    service_period: closedPeriodWire,
+    totals: totalsWire,
+    category: chargeRealizationDetailedLineCategoryWire,
+    credits_applied: z
+      .array(chargeRealizationDetailedLineCreditAppliedWire)
+      .optional()
+      .describe('Credits applied to this detailed line.'),
+    quantity: numericWire,
+    unit_price: numericWire,
+  })
+  .describe("A detailed line produced by a flat fee charge's realization run.")
+
+export const chargeRealizationDetailedLineUsageBasedWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z
+      .literal('usage_based')
+      .describe('The type of the charge the realization belongs to.'),
+    service_period: closedPeriodWire,
+    totals: totalsWire,
+    category: chargeRealizationDetailedLineCategoryWire,
+    credits_applied: z
+      .array(chargeRealizationDetailedLineCreditAppliedWire)
+      .optional()
+      .describe('Credits applied to this detailed line.'),
+    quantity: numericWire,
+    unit_price: numericWire,
+    pricer_reference_id: z
+      .string()
+
+      .describe(
+        'Reference ID of the pricer/rating child line that produced this detailed line.',
+      ),
+    corrects_run_id: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID of a prior realization run this detailed line corrects, when applicable.',
+      ),
+  })
+
+  .describe(
+    "A detailed line produced by a usage-based charge's realization run.",
+  )
 
 export const currencyCustomWire = z
   .strictObject({
@@ -11341,6 +11813,7 @@ export const createChargeFlatFeeRequestWire = z
     tax_config: taxConfigWire.optional(),
     payment_term: pricePaymentTermWire,
     discounts: chargeFlatFeeDiscountsWire.optional(),
+    feature: chargeFeatureWire.optional(),
     feature_id: z
       .string()
       .optional()
@@ -11385,6 +11858,16 @@ export const ingestedEventPaginatedResponseWire = z
     meta: cursorMetaWire,
   })
   .describe('Cursor paginated response.')
+
+export const chargeRealizationDetailedLineWire = z
+  .discriminatedUnion('type', [
+    chargeRealizationDetailedLineFlatFeeWire,
+    chargeRealizationDetailedLineUsageBasedWire,
+  ])
+
+  .describe(
+    "A detailed (child) line of a charge realization run. This is distinct from an invoice's own detailed lines: it represents the rated/priced breakdown produced by the realization run itself, before that breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice runs include credit allocations in these lines, while credits-only runs keep the gross rated detail.",
+  )
 
 export const currencyWire = z
   .discriminatedUnion('type', [currencyFiatWire, currencyCustomWire])
@@ -11857,6 +12340,40 @@ export const creditGrantPagePaginatedResponseWire = z
   })
   .describe('Page paginated response.')
 
+export const chargeRealizationWire = z
+  .strictObject({
+    invoice: chargeRealizationInvoiceReferenceWire.optional(),
+    type: chargeRealizationTypeWire,
+    service_period: closedPeriodWire,
+    usage: numericWire,
+    payment: chargeRealizationPaymentWire.optional(),
+    totals: totalsWire.optional(),
+    detailed_lines: z
+      .array(chargeRealizationDetailedLineWire)
+      .optional()
+
+      .describe(
+        'The detailed (rated) lines produced by the realization run. Requires the `realization_details` expand.',
+      ),
+  })
+
+  .describe(
+    "A realization run of a charge. Realizations are always sorted by `created_at`. `totals` and `detailed_lines` are only populated with the `realization_totals` and `realization_details` expands, respectively, since computing them requires re-deriving the run's rated breakdown. `invoice_number` requires the `invoice` expand, since it is resolved by joining `invoice_id` against the invoice, not stored on the realization itself.",
+  )
+
+export const chargeOutstandingWire = z
+  .strictObject({
+    type: chargeRealizationTypeWire,
+    totals: totalsWire,
+    detailed_lines: z
+      .array(chargeRealizationDetailedLineWire)
+      .describe('The detailed (rated) lines of the outstanding projection.'),
+  })
+
+  .describe(
+    'The part of a usage-based charge that is not booked to any realization yet — i.e. what the customer would owe if a realization were run right now. Unlike a booked `ChargeRealization`, this projection has no invoice, no payment state, and its totals exclude credit allocations. Requires the `real_time_usage` expand.',
+  )
+
 export const currencyPagePaginatedResponseWire = z
   .strictObject({
     data: z.array(currencyWire),
@@ -11953,60 +12470,6 @@ export const governanceQueryResponseWire = z
   })
   .describe('Response of the governance query.')
 
-export const chargeFlatFeeWire = z
-  .strictObject({
-    id: ulidWire,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labelsWire.optional(),
-    created_at: dateTimeWire,
-    updated_at: dateTimeWire,
-    deleted_at: dateTimeWire.optional(),
-    type: z.literal('flat_fee').describe('The type of the charge.'),
-    customer: billingCustomerReferenceWire,
-    lifecycle_controller: lifecycleControllerWire,
-    subscription: subscriptionReferenceWire.optional(),
-    currency: currencyCodeWire,
-    status: chargeStatusWire,
-    invoice_at: dateTimeWire,
-    service_period: closedPeriodWire,
-    full_service_period: closedPeriodWire,
-    billing_period: closedPeriodWire,
-    advance_after: dateTimeWire.optional(),
-    unique_reference_id: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlement_mode: settlementModeWire,
-    tax_config: taxConfigWire.optional(),
-    payment_term: pricePaymentTermWire,
-    discounts: chargeFlatFeeDiscountsWire.optional(),
-    feature_key: z
-      .string()
-      .optional()
-      .describe('The feature associated with the charge, when applicable.'),
-    feature_id: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
-    proration_configuration: rateCardProrationConfigurationWire,
-    amount_after_proration: currencyAmountWire,
-    price: priceWire,
-    system_intent: chargeFlatFeeSystemIntentWire.optional(),
-  })
-  .describe('A flat fee charge for a customer.')
-
 export const chargeUsageBasedSystemIntentWire = z
   .strictObject({
     name: z
@@ -12063,6 +12526,7 @@ export const createChargeUsageBasedRequestWire = z
     settlement_mode: settlementModeWire,
     tax_config: taxConfigWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
+    feature: chargeFeatureWire,
     feature_id: z
       .string()
       .describe('The feature ID associated with the charge.'),
@@ -12130,6 +12594,61 @@ export const featurePagePaginatedResponseWire = z
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
+
+export const chargeFlatFeeWire = z
+  .strictObject({
+    id: ulidWire,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labelsWire.optional(),
+    created_at: dateTimeWire,
+    updated_at: dateTimeWire,
+    deleted_at: dateTimeWire.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    customer: billingCustomerReferenceWire,
+    lifecycle_controller: lifecycleControllerWire,
+    subscription: subscriptionReferenceWire.optional(),
+    currency: currencyCodeWire,
+    status: chargeStatusWire,
+    invoice_at: dateTimeWire,
+    service_period: closedPeriodWire,
+    full_service_period: closedPeriodWire,
+    billing_period: closedPeriodWire,
+    advance_after: dateTimeWire.optional(),
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementModeWire,
+    tax_config: taxConfigWire.optional(),
+    realizations: z
+      .array(chargeRealizationWire)
+      .describe('The realization runs of the charge, sorted by `created_at`.'),
+    outstanding: chargeOutstandingWire.optional(),
+    payment_term: pricePaymentTermWire,
+    discounts: chargeFlatFeeDiscountsWire.optional(),
+    feature: chargeFeatureWire.optional(),
+    feature_id: z
+      .string()
+      .optional()
+      .describe('The feature ID associated with the charge.'),
+    proration_configuration: rateCardProrationConfigurationWire,
+    amount_after_proration: currencyAmountWire,
+    price: priceWire,
+    system_intent: chargeFlatFeeSystemIntentWire.optional(),
+  })
+  .describe('A flat fee charge for a customer.')
 
 export const workflowWire = z
   .strictObject({
@@ -12199,12 +12718,17 @@ export const chargeUsageBasedWire = z
       .describe('Unique reference ID of the charge.'),
     settlement_mode: settlementModeWire,
     tax_config: taxConfigWire.optional(),
+    realizations: z
+      .array(chargeRealizationWire)
+      .describe('The realization runs of the charge, sorted by `created_at`.'),
+    outstanding: chargeOutstandingWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
-    feature_key: z.string().describe('The feature associated with the charge.'),
+    feature: chargeFeatureWire,
     feature_id: z
       .string()
       .describe('The feature ID associated with the charge.'),
     totals: chargeTotalsWire,
+    usage: numericWire.optional(),
     price: priceWire,
     system_intent: chargeUsageBasedSystemIntentWire.optional(),
   })
@@ -13112,7 +13636,7 @@ export const listCustomerChargesQueryParamsWire = z.object({
     .optional()
 
     .describe(
-      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage.",
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage, its `usage` field, and its `outstanding` (not-yet-booked) projection. - `customer`: Expand the charge's `customer.name`. - `feature`: Expand the charge's `feature.id` and `feature.name`. - `subscription`: Expand the charge's `subscription.name`. - `invoice`: Expand each realization's `invoice_number`. - `realization_totals`: Expand each realization run's `totals`. - `realization_details`: Expand each realization run's `detailed_lines`.",
     ),
 })
 

@@ -27,6 +27,22 @@ type ChargeFilter struct {
 	//
 	// If omitted, all statuses are returned except for `deleted`.
 	Status *StringExactFilter
+	// Filter charges by the ID of their associated feature.
+	FeatureID *StringExactFilter
+	// Filter charges by the key of their associated feature.
+	FeatureKey *StringExactFilter
+	// Filter charges by the start of their service period.
+	//
+	// Combine with `service_period_to` to match charges whose service period overlaps
+	// a given window: `filter[service_period_to][gt]=<from>` together with
+	// `filter[service_period_from][lt]=<to>` returns charges whose service period
+	// intersects `[from, to)`.
+	ServicePeriodFrom *DateTimeFilter
+	// Filter charges by the end of their service period.
+	//
+	// See `service_period_from` for how to express a service-period overlap query
+	// using both fields together.
+	ServicePeriodTo *DateTimeFilter
 }
 
 type ChargeListParams struct {
@@ -45,6 +61,10 @@ func (p ChargeListParams) values() url.Values {
 
 	if p.Filter != nil {
 		addStringExactFilter(q, "filter[status]", p.Filter.Status)
+		addStringExactFilter(q, "filter[feature_id]", p.Filter.FeatureID)
+		addStringExactFilter(q, "filter[feature_key]", p.Filter.FeatureKey)
+		addDateTimeFilter(q, "filter[service_period_from]", p.Filter.ServicePeriodFrom)
+		addDateTimeFilter(q, "filter[service_period_to]", p.Filter.ServicePeriodTo)
 	}
 
 	if len(p.Expand) > 0 {

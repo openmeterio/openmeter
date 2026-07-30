@@ -165,6 +165,34 @@ export interface TaxConfigExternalInvoicing {
 }
 
 /**
+ * Reference to the invoice (and specific invoice line) a charge realization was
+ * booked to.
+ *
+ * Present once the realization has been invoiced. `id` and `line_id` are the
+ * invoice and invoice-line identifiers; `invoice_number` additionally requires the
+ * `invoice` expand, since it is resolved by joining `id` against the invoice
+ * rather than stored on the realization itself.
+ */
+export interface ChargeRealizationInvoiceReference {
+  /**
+   * The ID of the invoice line this realization was booked to, when the realization
+   * has been invoiced.
+   */
+  lineId?: string
+  /**
+   * The ID of the invoice this realization was booked to, when the realization has
+   * been invoiced.
+   */
+  id?: string
+  /**
+   * The human-readable number of the invoice this realization was booked to.
+   *
+   * Requires the `invoice` expand.
+   */
+  invoiceNumber?: string
+}
+
+/**
  * Discounts applicable to flat fee charges.
  *
  * This is the same as `ProductCatalog.Discounts` but without the `usage` field,
@@ -617,6 +645,36 @@ export interface CreateCurrencyCustomRequest {
   code: string
 }
 
+/** Totals contains the summaries of all calculations for a billing resource. */
+export interface Totals {
+  /** The total value of the resource before taxes, discounts and commitments. */
+  amount: string
+  /** The total tax amount applied to the resource. */
+  taxesTotal: string
+  /** The total tax amount already included in the resource amount. */
+  taxesInclusiveTotal: string
+  /** The total tax amount added on top of the resource amount. */
+  taxesExclusiveTotal: string
+  /** The total amount contributed by additional charges. */
+  chargesTotal: string
+  /** The total amount deducted through discounts. */
+  discountsTotal: string
+  /** The total amount deducted through credits before taxes are applied. */
+  creditsTotal: string
+  /** The final total value of the resource after taxes, discounts and commitments. */
+  total: string
+}
+
+/** A credit allocation applied to a charge realization detailed line. */
+export interface ChargeRealizationDetailedLineCreditApplied {
+  /** The monetary amount credited. */
+  amount: string
+  /** Optional human-readable description of the credit allocation. */
+  description?: string
+  /** The ID of the credit realization (allocation) this credit was applied from. */
+  creditRealizationId: string
+}
+
 /** Monetary amount in a specific currency. */
 export interface CurrencyAmount {
   amount: string
@@ -654,26 +712,6 @@ export interface RateCardDiscounts {
    * exhausted.
    */
   usage?: string
-}
-
-/** Totals contains the summaries of all calculations for a billing resource. */
-export interface Totals {
-  /** The total value of the resource before taxes, discounts and commitments. */
-  amount: string
-  /** The total tax amount applied to the resource. */
-  taxesTotal: string
-  /** The total tax amount already included in the resource amount. */
-  taxesInclusiveTotal: string
-  /** The total tax amount added on top of the resource amount. */
-  taxesExclusiveTotal: string
-  /** The total amount contributed by additional charges. */
-  chargesTotal: string
-  /** The total amount deducted through discounts. */
-  discountsTotal: string
-  /** The total amount deducted through credits before taxes are applied. */
-  creditsTotal: string
-  /** The final total value of the resource after taxes, discounts and commitments. */
-  total: string
 }
 
 /**
@@ -853,6 +891,13 @@ export interface CreditGrantInvoiceReference {
 export interface BillingCustomerReference {
   /** The ID of the customer. */
   id: string
+  /**
+   * The display name of the customer.
+   *
+   * Only populated where the referencing endpoint documents a `customer` expand that
+   * resolves it.
+   */
+  name?: string
 }
 
 /**
@@ -862,8 +907,39 @@ export interface BillingCustomerReference {
 export interface SubscriptionReference {
   /** The ID of the subscription. */
   id: string
+  /**
+   * The display name of the subscription.
+   *
+   * Only populated where the referencing endpoint documents a `subscription` expand
+   * that resolves it.
+   */
+  name?: string
   /** The phase of the subscription. */
   phase: { id: string; item: { id: string } }
+}
+
+/**
+ * The feature associated with a charge.
+ *
+ * `key` is always present and is set at charge creation time. `id` and `name` are
+ * only resolved with the `feature` expand, since resolving them requires an
+ * additional lookup against the feature catalog.
+ */
+export interface ChargeFeature {
+  /** The ID of the feature. */
+  id: string
+  /**
+   * The key of the feature.
+   *
+   * Requires the `feature` expand.
+   */
+  key?: string
+  /**
+   * The display name of the feature.
+   *
+   * Requires the `feature` expand.
+   */
+  name?: string
 }
 
 /** Addon reference. */
@@ -1833,23 +1909,6 @@ export interface GetCreditBalanceParamsFilter {
   featureKey?: StringFieldFilter
 }
 
-/** Filter options for listing charges. */
-export interface ListChargesParamsFilter {
-  /**
-   * Filter charges by status.
-   *
-   * Supported statuses are:
-   *
-   * - `created`
-   * - `active`
-   * - `final`
-   * - `deleted`
-   *
-   * If omitted, all statuses are returned except for `deleted`.
-   */
-  status?: StringFieldFilterExact
-}
-
 /** Filter options for listing plans. */
 export interface ListPlansParamsFilter {
   key?: StringFieldFilter
@@ -1900,6 +1959,12 @@ export interface SubscriptionCreate {
    * creation time as the billing anchor.
    */
   billingAnchor?: Date
+}
+
+/** Payment state of a charge realization. */
+export interface ChargeRealizationPayment {
+  /** The settlement status of the payment. */
+  status: 'authorized' | 'settled'
 }
 
 /** The proration configuration of the rate card. */
@@ -2405,6 +2470,25 @@ export interface CreditTransaction {
 }
 
 /**
+ * The totals of a change.
+ *
+ * RealTime is only expanded when the `real_time_usage` expand is used.
+ */
+export interface ChargeTotals {
+  /** The amount of the charge already booked to the internal accounting system. */
+  booked: Totals
+  /**
+   * The realtime amount of the charge, i.e. the whole usage rated at the charge's
+   * price for its full service period, ignoring what has already been booked to a
+   * realization. This differs from `charge.outstanding.totals`, which only covers
+   * the portion not yet booked.
+   *
+   * Requires the `real_time_usage` expand.
+   */
+  realtime?: Totals
+}
+
+/**
  * A price tier used in graduated and volume pricing.
  *
  * At least one price component (flat_price or unit_price) must be set. When
@@ -2421,22 +2505,6 @@ export interface PriceTier {
   flatPrice?: PriceFlat
   /** The unit price component of the tier. Charged per billing unit within the tier. */
   unitPrice?: PriceUnit
-}
-
-/**
- * The totals of a change.
- *
- * RealTime is only expanded when the `real_time_usage` expand is used.
- */
-export interface ChargeTotals {
-  /** The amount of the charge already booked to the internal accounting system. */
-  booked: Totals
-  /**
-   * The realtime amount of the charge.
-   *
-   * Requires the `realtime_usage` expand.
-   */
-  realtime?: Totals
 }
 
 /**
@@ -2793,6 +2861,43 @@ export interface ListEventsParamsFilter {
   storedAt?: DateTimeFieldFilter
 }
 
+/** Filter options for listing charges. */
+export interface ListChargesParamsFilter {
+  /**
+   * Filter charges by status.
+   *
+   * Supported statuses are:
+   *
+   * - `created`
+   * - `active`
+   * - `final`
+   * - `deleted`
+   *
+   * If omitted, all statuses are returned except for `deleted`.
+   */
+  status?: StringFieldFilterExact
+  /** Filter charges by the ID of their associated feature. */
+  featureId?: UlidFieldFilter
+  /** Filter charges by the key of their associated feature. */
+  featureKey?: StringFieldFilterExact
+  /**
+   * Filter charges by the start of their service period.
+   *
+   * Combine with `service_period_to` to match charges whose service period overlaps
+   * a given window: `filter[service_period_to][gt]=<from>` together with
+   * `filter[service_period_from][lt]=<to>` returns charges whose service period
+   * intersects `[from, to)`.
+   */
+  servicePeriodFrom?: DateTimeFieldFilter
+  /**
+   * Filter charges by the end of their service period.
+   *
+   * See `service_period_from` for how to express a service-period overlap query
+   * using both fields together.
+   */
+  servicePeriodTo?: DateTimeFieldFilter
+}
+
 /** Filter options for listing invoices. */
 export interface ListInvoicesParamsFilter {
   /** Filter by invoice status. */
@@ -2860,6 +2965,86 @@ export interface MeterQueryResult {
   to?: Date
   /** The usage data. If no data is available, an empty array is returned. */
   data: MeterQueryRow[]
+}
+
+/** A detailed line produced by a flat fee charge's realization run. */
+export interface ChargeRealizationDetailedLineFlatFee {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge the realization belongs to. */
+  type: 'flat_fee'
+  /** The service period covered by this detailed line. */
+  servicePeriod: ClosedPeriod
+  /** Aggregated financial totals for the detailed line. */
+  totals: Totals
+  /** The cost category of this detailed line. */
+  category: 'regular' | 'commitment'
+  /** Credits applied to this detailed line. */
+  creditsApplied?: ChargeRealizationDetailedLineCreditApplied[]
+  /** The quantity of the detailed line. */
+  quantity: string
+  /** The unit price of the detailed line. */
+  unitPrice: string
+}
+
+/** A detailed line produced by a usage-based charge's realization run. */
+export interface ChargeRealizationDetailedLineUsageBased {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge the realization belongs to. */
+  type: 'usage_based'
+  /** The service period covered by this detailed line. */
+  servicePeriod: ClosedPeriod
+  /** Aggregated financial totals for the detailed line. */
+  totals: Totals
+  /** The cost category of this detailed line. */
+  category: 'regular' | 'commitment'
+  /** Credits applied to this detailed line. */
+  creditsApplied?: ChargeRealizationDetailedLineCreditApplied[]
+  /** The quantity of the detailed line. */
+  quantity: string
+  /** The unit price of the detailed line. */
+  unitPrice: string
+  /** Reference ID of the pricer/rating child line that produced this detailed line. */
+  pricerReferenceId: string
+  /** The ID of a prior realization run this detailed line corrects, when applicable. */
+  correctsRunId?: string
 }
 
 /** Describes custom currency. */
@@ -3687,6 +3872,8 @@ export interface CreateChargeFlatFeeRequest {
   paymentTerm: PricePaymentTerm
   /** The discounts applied to the charge. */
   discounts?: ChargeFlatFeeDiscounts
+  /** The feature associated with the charge, when applicable. */
+  feature?: ChargeFeature
   /** The feature ID associated with the charge. */
   featureId?: string
   /** The proration configuration of the charge. */
@@ -4258,6 +4445,61 @@ export interface CreditGrantPagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/**
+ * A realization run of a charge.
+ *
+ * Realizations are always sorted by `created_at`. `totals` and `detailed_lines`
+ * are only populated with the `realization_totals` and `realization_details`
+ * expands, respectively, since computing them requires re-deriving the run's rated
+ * breakdown. `invoice_number` requires the `invoice` expand, since it is resolved
+ * by joining `invoice_id` against the invoice, not stored on the realization
+ * itself.
+ */
+export interface ChargeRealization {
+  /** The reference of the invoice related to the realization. */
+  invoice?: ChargeRealizationInvoiceReference
+  /** The type of the realization run. */
+  type: 'final_realization' | 'partial_invoice' | 'outstanding'
+  /** The service period covered by this realization run. */
+  servicePeriod: ClosedPeriod
+  /** The metered usage quantity this realization run accounts for. */
+  usage: string
+  /**
+   * The payment state of the realization, when the charge requires a fiat
+   * transaction to settle.
+   */
+  payment?: ChargeRealizationPayment
+  /**
+   * Financial totals for the realization run, including credit allocations.
+   *
+   * Requires the `realization_totals` expand.
+   */
+  totals?: Totals
+  /**
+   * The detailed (rated) lines produced by the realization run.
+   *
+   * Requires the `realization_details` expand.
+   */
+  detailedLines?: ChargeRealizationDetailedLine[]
+}
+
+/**
+ * The part of a usage-based charge that is not booked to any realization yet —
+ * i.e. what the customer would owe if a realization were run right now.
+ *
+ * Unlike a booked `ChargeRealization`, this projection has no invoice, no payment
+ * state, and its totals exclude credit allocations. Requires the `real_time_usage`
+ * expand.
+ */
+export interface ChargeOutstanding {
+  /** The type the outstanding projection would have if realized now. */
+  type: 'final_realization' | 'partial_invoice' | 'outstanding'
+  /** Financial totals for the outstanding projection, excluding credit allocations. */
+  totals: Totals
+  /** The detailed (rated) lines of the outstanding projection. */
+  detailedLines: ChargeRealizationDetailedLine[]
+}
+
 /** Page paginated response. */
 export interface CurrencyPagePaginatedResponse {
   data: Currency[]
@@ -4369,87 +4611,6 @@ export interface GovernanceQueryResponse {
   meta: CursorMeta
 }
 
-/** A flat fee charge for a customer. */
-export interface ChargeFlatFee {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The type of the charge. */
-  type: 'flat_fee'
-  /** The customer owning the charge. */
-  customer: BillingCustomerReference
-  /**
-   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
-   * overridden by the API user.
-   */
-  lifecycleController: 'system' | 'manual'
-  /**
-   * The subscription that originated the charge, when the charge was created from a
-   * subscription item.
-   */
-  subscription?: SubscriptionReference
-  /** The currency of the charge. */
-  currency: string
-  /** The lifecycle status of the charge. */
-  status: 'created' | 'active' | 'final' | 'deleted'
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: Date
-  /** The effective service period covered by the charge. */
-  servicePeriod: ClosedPeriod
-  /** The full, unprorated service period of the charge. */
-  fullServicePeriod: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billingPeriod: ClosedPeriod
-  /**
-   * The earliest time when the charge should be advanced again by background
-   * processing.
-   */
-  advanceAfter?: Date
-  /** Unique reference ID of the charge. */
-  uniqueReferenceId?: string
-  /** Settlement mode of the charge. */
-  settlementMode: 'credit_then_invoice' | 'credit_only'
-  /** Tax configuration of the charge. */
-  taxConfig?: TaxConfig
-  /** Payment term of the flat fee charge. */
-  paymentTerm: PricePaymentTerm
-  /** The discounts applied to the charge. */
-  discounts?: ChargeFlatFeeDiscounts
-  /** The feature associated with the charge, when applicable. */
-  featureKey?: string
-  /** The feature ID associated with the charge. */
-  featureId?: string
-  /** The proration configuration of the charge. */
-  prorationConfiguration: RateCardProrationConfiguration
-  /** The amount after proration of the charge. */
-  amountAfterProration: CurrencyAmount
-  /** The price of the charge. */
-  price: Price
-  /**
-   * Current intent from the system lifecycle controller for a charge that has an
-   * active manual override. The top-level charge fields remain the effective
-   * customer-facing intent.
-   */
-  systemIntent?: ChargeFlatFeeSystemIntent
-}
-
 /**
  * Usage-based intent fields from the system lifecycle controller shadowed by a
  * manual override.
@@ -4518,6 +4679,8 @@ export interface CreateChargeUsageBasedRequest {
   taxConfig?: TaxConfig
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
+  /** The feature associated with the charge. */
+  feature: ChargeFeature
   /** The feature ID associated with the charge. */
   featureId: string
   /** The price of the charge. */
@@ -4625,6 +4788,95 @@ export interface FeaturePagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/** A flat fee charge for a customer. */
+export interface ChargeFlatFee {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge. */
+  type: 'flat_fee'
+  /** The customer owning the charge. */
+  customer: BillingCustomerReference
+  /**
+   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+   * overridden by the API user.
+   */
+  lifecycleController: 'system' | 'manual'
+  /**
+   * The subscription that originated the charge, when the charge was created from a
+   * subscription item.
+   */
+  subscription?: SubscriptionReference
+  /** The currency of the charge. */
+  currency: string
+  /** The lifecycle status of the charge. */
+  status: 'created' | 'active' | 'final' | 'deleted'
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod: ClosedPeriod
+  /**
+   * The earliest time when the charge should be advanced again by background
+   * processing.
+   */
+  advanceAfter?: Date
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** The realization runs of the charge, sorted by `created_at`. */
+  realizations: ChargeRealization[]
+  /**
+   * The part of the charge not yet booked to any realization.
+   *
+   * Requires the `real_time_usage` expand.
+   */
+  outstanding?: ChargeOutstanding
+  /** Payment term of the flat fee charge. */
+  paymentTerm: PricePaymentTerm
+  /** The discounts applied to the charge. */
+  discounts?: ChargeFlatFeeDiscounts
+  /** The feature associated with the charge, when applicable. */
+  feature?: ChargeFeature
+  /** The feature ID associated with the charge. */
+  featureId?: string
+  /** The proration configuration of the charge. */
+  prorationConfiguration: RateCardProrationConfiguration
+  /** The amount after proration of the charge. */
+  amountAfterProration: CurrencyAmount
+  /** The price of the charge. */
+  price: Price
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  systemIntent?: ChargeFlatFeeSystemIntent
+}
+
 /** Billing workflow settings. */
 export interface Workflow {
   /** The collection settings for this workflow */
@@ -4724,14 +4976,29 @@ export interface ChargeUsageBased {
   settlementMode: 'credit_then_invoice' | 'credit_only'
   /** Tax configuration of the charge. */
   taxConfig?: TaxConfig
+  /** The realization runs of the charge, sorted by `created_at`. */
+  realizations: ChargeRealization[]
+  /**
+   * The part of the charge not yet booked to any realization.
+   *
+   * Requires the `real_time_usage` expand.
+   */
+  outstanding?: ChargeOutstanding
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
   /** The feature associated with the charge. */
-  featureKey: string
+  feature: ChargeFeature
   /** The feature ID associated with the charge. */
   featureId: string
   /** Aggregated booked and realtime totals for the charge. */
   totals: ChargeTotals
+  /**
+   * The metered usage quantity of the charge for its full service period.
+   *
+   * Requires the `real_time_usage` expand, since it is computed live from the
+   * metering store rather than stored on the charge.
+   */
+  usage?: string
   /** The price of the charge. */
   price: Price
   /**
@@ -5543,6 +5810,18 @@ export type UpdateAppRequest =
  * dynamic LLM cost lookup.
  */
 export type FeatureUnitCost = FeatureManualUnitCost | FeatureLlmUnitCost
+
+/**
+ * A detailed (child) line of a charge realization run.
+ *
+ * This is distinct from an invoice's own detailed lines: it represents the
+ * rated/priced breakdown produced by the realization run itself, before that
+ * breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice
+ * runs include credit allocations in these lines, while credits-only runs keep the
+ * gross rated detail.
+ */
+export type ChargeRealizationDetailedLine =
+  ChargeRealizationDetailedLineFlatFee | ChargeRealizationDetailedLineUsageBased
 
 /** Fiat or custom currency. */
 export type Currency = CurrencyFiat | CurrencyCustom

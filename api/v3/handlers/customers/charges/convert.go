@@ -55,6 +55,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 	}
 
 	return api.BillingChargeFlatFee{
+<<<<<<< HEAD
 		AdvanceAfter:           source.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
 		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
@@ -66,6 +67,20 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		Discounts:              convertFlatFeeDiscounts(intent.PercentageDiscounts),
 		FeatureKey:             intent.FeatureKey,
 		FeatureId:              source.State.FeatureID,
+=======
+		AdvanceAfter:         source.State.AdvanceAfter,
+		AmountAfterProration: ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
+		BillingPeriod:        ConvertClosedPeriodToAPI(intent.BillingPeriod),
+		CreatedAt:            source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
+		Currency:             ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
+		Customer:             ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
+		DeletedAt:            source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
+		Description:          intent.Description,
+		Discounts:            convertFlatFeeDiscounts(intent.PercentageDiscounts),
+		Feature: &api.BillingChargeFeature{
+			Key: lo.FromPtr(intent.FeatureKey),
+		},
+>>>>>>> f6c77a0bc (feat: tsp changes to support the new response format, extend filter with the required fields, add missing hide_future_spend filter, add outstanding realization type, remove unused hide_future_spend filter, change feature id to be non-nillable and key is optional)
 		FullServicePeriod:      ConvertClosedPeriodToAPI(intent.FullServicePeriod),
 		Id:                     source.ChargeBase.ManagedResource.ID,
 		InvoiceAt:              intent.InvoiceAt,
@@ -107,6 +122,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 	}
 
 	return api.BillingChargeUsageBased{
+<<<<<<< HEAD
 		AdvanceAfter:        source.State.AdvanceAfter,
 		BillingPeriod:       ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:           source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
@@ -117,6 +133,19 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		Discounts:           convertUsageBasedDiscounts(intent.Discounts),
 		FeatureKey:          intent.FeatureKey,
 		FeatureId:           source.State.FeatureID,
+=======
+		AdvanceAfter:  source.State.AdvanceAfter,
+		BillingPeriod: ConvertClosedPeriodToAPI(intent.BillingPeriod),
+		CreatedAt:     source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
+		Currency:      ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
+		Customer:      ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
+		DeletedAt:     source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
+		Description:   intent.Description,
+		Discounts:     convertUsageBasedDiscounts(intent.Discounts),
+		Feature: api.BillingChargeFeature{
+			Key: intent.FeatureKey,
+		},
+>>>>>>> f6c77a0bc (feat: tsp changes to support the new response format, extend filter with the required fields, add missing hide_future_spend filter, add outstanding realization type, remove unused hide_future_spend filter, change feature id to be non-nillable and key is optional)
 		FullServicePeriod:   ConvertClosedPeriodToAPI(intent.FullServicePeriod),
 		Id:                  source.ChargeBase.ManagedResource.ID,
 		InvoiceAt:           intent.InvoiceAt,
@@ -551,6 +580,11 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		}
 	}
 
+	var featureKey *string
+	if flatFee.Feature != nil {
+		featureKey = &flatFee.Feature.Key
+	}
+
 	return billingcharges.CreateCustomerChargeInput{
 		Namespace:         namespace,
 		CustomerID:        customerID,
@@ -573,7 +607,11 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 				ProRating:             proRating,
 				AmountBeforeProration: amountBeforeProration,
 			},
+<<<<<<< HEAD
 			FeatureID:      flatFee.FeatureId,
+=======
+			FeatureKey:     featureKey,
+>>>>>>> f6c77a0bc (feat: tsp changes to support the new response format, extend filter with the required fields, add missing hide_future_spend filter, add outstanding realization type, remove unused hide_future_spend filter, change feature id to be non-nillable and key is optional)
 			SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
 		},
 	}, nil
@@ -639,7 +677,11 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 				Price:     *price,
 				Discounts: discounts,
 			},
+<<<<<<< HEAD
 			FeatureID:      usageBasedFee.FeatureId,
+=======
+			FeatureKey:     usageBasedFee.Feature.Key,
+>>>>>>> f6c77a0bc (feat: tsp changes to support the new response format, extend filter with the required fields, add missing hide_future_spend filter, add outstanding realization type, remove unused hide_future_spend filter, change feature id to be non-nillable and key is optional)
 			SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
 		},
 	}, nil

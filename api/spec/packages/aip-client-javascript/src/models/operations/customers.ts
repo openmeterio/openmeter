@@ -202,6 +202,13 @@ export interface ListCustomerChargesQuery {
    *
    * To filter charges by status add the following query param:
    * `filter[status][oeq]=created,active`
+   *
+   * To filter charges by feature, use `filter[feature_id][oeq]=<id>,<id>` or
+   * `filter[feature_key][oeq]=<key>,<key>`.
+   *
+   * To filter charges whose service period overlaps a window `[from, to)`, combine
+   * `filter[service_period_to][gt]=<from>` with
+   * `filter[service_period_from][lt]=<to>`.
    */
   filter?: ListChargesParamsFilter
   /**
@@ -209,9 +216,24 @@ export interface ListCustomerChargesQuery {
    *
    * Supported values are:
    *
-   * - `real_time_usage`: Expand the charge's real-time usage.
+   * - `real_time_usage`: Expand the charge's real-time usage, its `usage` field, and
+   * its `outstanding` (not-yet-booked) projection.
+   * - `customer`: Expand the charge's `customer.name`.
+   * - `feature`: Expand the charge's `feature.id` and `feature.name`.
+   * - `subscription`: Expand the charge's `subscription.name`.
+   * - `invoice`: Expand each realization's `invoice_number`.
+   * - `realization_totals`: Expand each realization run's `totals`.
+   * - `realization_details`: Expand each realization run's `detailed_lines`.
    */
-  expand?: 'real_time_usage'[]
+  expand?: (
+    | 'real_time_usage'
+    | 'customer'
+    | 'feature'
+    | 'subscription'
+    | 'invoice'
+    | 'realization_totals'
+    | 'realization_details'
+  )[]
 }
 
 export type ListCustomerChargesRequest = AcceptDateStrings<

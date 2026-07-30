@@ -476,6 +476,11 @@ type AppStripeCreateCustomerPortalSessionResult struct {
 type BillingCustomerReference struct {
 	// The ID of the customer.
 	ID string `json:"id"`
+	// The display name of the customer.
+	//
+	// Only populated where the referencing endpoint documents a `customer` expand that
+	// resolves it.
+	Name *string `json:"name,omitempty"`
 }
 
 // Customer charge.
@@ -559,6 +564,24 @@ func ChargeFromChargeUsageBased(value ChargeUsageBased) (Charge, error) {
 	return result, nil
 }
 
+// The feature associated with a charge.
+//
+// `key` is always present and is set at charge creation time. `id` and `name` are
+// only resolved with the `feature` expand, since resolving them requires an
+// additional lookup against the feature catalog.
+type ChargeFeature struct {
+	// The ID of the feature.
+	ID string `json:"id"`
+	// The key of the feature.
+	//
+	// Requires the `feature` expand.
+	Key *string `json:"key,omitempty"`
+	// The display name of the feature.
+	//
+	// Requires the `feature` expand.
+	Name *string `json:"name,omitempty"`
+}
+
 // A flat fee charge for a customer.
 type ChargeFlatFee struct {
 	ID string `json:"id"`
@@ -608,12 +631,18 @@ type ChargeFlatFee struct {
 	SettlementMode SettlementMode `json:"settlement_mode"`
 	// Tax configuration of the charge.
 	TaxConfig *TaxConfig `json:"tax_config,omitempty"`
+	// The realization runs of the charge, sorted by `created_at`.
+	Realizations []ChargeRealization `json:"realizations"`
+	// The part of the charge not yet booked to any realization.
+	//
+	// Requires the `real_time_usage` expand.
+	Outstanding *ChargeOutstanding `json:"outstanding,omitempty"`
 	// Payment term of the flat fee charge.
 	PaymentTerm PricePaymentTerm `json:"payment_term"`
 	// The discounts applied to the charge.
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge, when applicable.
-	FeatureKey *string `json:"feature_key,omitempty"`
+	Feature *ChargeFeature `json:"feature,omitempty"`
 	// The feature ID associated with the charge.
 	FeatureID *string `json:"feature_id,omitempty"`
 	// The proration configuration of the charge.
@@ -670,10 +699,320 @@ type ChargeFlatFeeSystemIntent struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
+// The part of a usage-based charge that is not booked to any realization yet —
+// i.e. what the customer would owe if a realization were run right now.
+//
+// Unlike a booked `ChargeRealization`, this projection has no invoice, no payment
+// state, and its totals exclude credit allocations. Requires the `real_time_usage`
+// expand.
+type ChargeOutstanding struct {
+	// The type the outstanding projection would have if realized now.
+	Type ChargeRealizationType `json:"type"`
+	// Financial totals for the outstanding projection, excluding credit allocations.
+	Totals Totals `json:"totals"`
+	// The detailed (rated) lines of the outstanding projection.
+	DetailedLines []ChargeRealizationDetailedLine `json:"detailed_lines"`
+}
+
 // Page paginated response.
 type ChargePagePaginatedResponse struct {
 	Data []Charge      `json:"data"`
 	Meta PaginatedMeta `json:"meta"`
+}
+
+// A realization run of a charge.
+//
+// Realizations are always sorted by `created_at`. `totals` and `detailed_lines`
+// are only populated with the `realization_totals` and `realization_details`
+// expands, respectively, since computing them requires re-deriving the run's rated
+// breakdown. `invoice_number` requires the `invoice` expand, since it is resolved
+// by joining `invoice_id` against the invoice, not stored on the realization
+// itself.
+type ChargeRealization struct {
+	// The reference of the invoice related to the realization.
+	Invoice *ChargeRealizationInvoiceReference `json:"invoice,omitempty"`
+	// The type of the realization run.
+	Type ChargeRealizationType `json:"type"`
+	// The service period covered by this realization run.
+	ServicePeriod ClosedPeriod `json:"service_period"`
+	// The metered usage quantity this realization run accounts for.
+	Usage Numeric `json:"usage"`
+	// The payment state of the realization, when the charge requires a fiat
+	// transaction to settle.
+	Payment *ChargeRealizationPayment `json:"payment,omitempty"`
+	// Financial totals for the realization run, including credit allocations.
+	//
+	// Requires the `realization_totals` expand.
+	Totals *Totals `json:"totals,omitempty"`
+	// The detailed (rated) lines produced by the realization run.
+	//
+	// Requires the `realization_details` expand.
+	DetailedLines []ChargeRealizationDetailedLine `json:"detailed_lines,omitempty"`
+}
+
+// A detailed (child) line of a charge realization run.
+//
+// This is distinct from an invoice's own detailed lines: it represents the
+// rated/priced breakdown produced by the realization run itself, before that
+// breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice
+// runs include credit allocations in these lines, while credits-only runs keep the
+// gross rated detail.
+//
+// ChargeRealizationDetailedLine is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the ChargeRealizationDetailedLineFrom* constructors.
+// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
+type ChargeRealizationDetailedLine struct {
+	Type string `json:"type"`
+	raw  json.RawMessage
+}
+
+func (u *ChargeRealizationDetailedLine) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	if string(data) == "null" {
+		u.Type = ""
+		return nil
+	}
+
+	var envelope struct {
+		Value string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return err
+	}
+	u.Type = envelope.Value
+	return nil
+}
+
+func (u ChargeRealizationDetailedLine) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u ChargeRealizationDetailedLine) AsChargeRealizationDetailedLineFlatFee() (*ChargeRealizationDetailedLineFlatFee, error) {
+	if u.Type != "flat_fee" {
+		return nil, fmt.Errorf("ChargeRealizationDetailedLine: expected type %q, got %q", "flat_fee", u.Type)
+	}
+	var value ChargeRealizationDetailedLineFlatFee
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargeRealizationDetailedLineFromChargeRealizationDetailedLineFlatFee(value ChargeRealizationDetailedLineFlatFee) (ChargeRealizationDetailedLine, error) {
+	value.Type = "flat_fee"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargeRealizationDetailedLine{}, err
+	}
+	var result ChargeRealizationDetailedLine
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargeRealizationDetailedLine{}, err
+	}
+	return result, nil
+}
+
+func (u ChargeRealizationDetailedLine) AsChargeRealizationDetailedLineUsageBased() (*ChargeRealizationDetailedLineUsageBased, error) {
+	if u.Type != "usage_based" {
+		return nil, fmt.Errorf("ChargeRealizationDetailedLine: expected type %q, got %q", "usage_based", u.Type)
+	}
+	var value ChargeRealizationDetailedLineUsageBased
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargeRealizationDetailedLineFromChargeRealizationDetailedLineUsageBased(value ChargeRealizationDetailedLineUsageBased) (ChargeRealizationDetailedLine, error) {
+	value.Type = "usage_based"
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargeRealizationDetailedLine{}, err
+	}
+	var result ChargeRealizationDetailedLine
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargeRealizationDetailedLine{}, err
+	}
+	return result, nil
+}
+
+// Cost category of a charge realization detailed line.
+//
+// Mirrors the shared `stddetailedline` category domain, kept as its own enum so it
+// does not couple to the invoice line's category.
+type ChargeRealizationDetailedLineCategory string
+
+const (
+	ChargeRealizationDetailedLineCategoryRegular    ChargeRealizationDetailedLineCategory = "regular"
+	ChargeRealizationDetailedLineCategoryCommitment ChargeRealizationDetailedLineCategory = "commitment"
+)
+
+func (value ChargeRealizationDetailedLineCategory) Valid() bool {
+	switch value {
+	case ChargeRealizationDetailedLineCategoryRegular, ChargeRealizationDetailedLineCategoryCommitment:
+		return true
+	default:
+		return false
+	}
+}
+
+// A credit allocation applied to a charge realization detailed line.
+type ChargeRealizationDetailedLineCreditApplied struct {
+	// The monetary amount credited.
+	Amount Numeric `json:"amount"`
+	// Optional human-readable description of the credit allocation.
+	Description *string `json:"description,omitempty"`
+	// The ID of the credit realization (allocation) this credit was applied from.
+	CreditRealizationID string `json:"credit_realization_id"`
+}
+
+// A detailed line produced by a flat fee charge's realization run.
+type ChargeRealizationDetailedLineFlatFee struct {
+	ID string `json:"id"`
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string           `json:"description,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The type of the charge the realization belongs to.
+	Type ChargeType `json:"type"`
+	// The service period covered by this detailed line.
+	ServicePeriod ClosedPeriod `json:"service_period"`
+	// Aggregated financial totals for the detailed line.
+	Totals Totals `json:"totals"`
+	// The cost category of this detailed line.
+	Category ChargeRealizationDetailedLineCategory `json:"category"`
+	// Credits applied to this detailed line.
+	CreditsApplied []ChargeRealizationDetailedLineCreditApplied `json:"credits_applied,omitempty"`
+	// The quantity of the detailed line.
+	Quantity Numeric `json:"quantity"`
+	// The unit price of the detailed line.
+	UnitPrice Numeric `json:"unit_price"`
+}
+
+// A detailed line produced by a usage-based charge's realization run.
+type ChargeRealizationDetailedLineUsageBased struct {
+	ID string `json:"id"`
+	// Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+	// Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string           `json:"description,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	// An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt time.Time `json:"created_at"`
+	// An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt time.Time `json:"updated_at"`
+	// An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// The type of the charge the realization belongs to.
+	Type ChargeType `json:"type"`
+	// The service period covered by this detailed line.
+	ServicePeriod ClosedPeriod `json:"service_period"`
+	// Aggregated financial totals for the detailed line.
+	Totals Totals `json:"totals"`
+	// The cost category of this detailed line.
+	Category ChargeRealizationDetailedLineCategory `json:"category"`
+	// Credits applied to this detailed line.
+	CreditsApplied []ChargeRealizationDetailedLineCreditApplied `json:"credits_applied,omitempty"`
+	// The quantity of the detailed line.
+	Quantity Numeric `json:"quantity"`
+	// The unit price of the detailed line.
+	UnitPrice Numeric `json:"unit_price"`
+	// Reference ID of the pricer/rating child line that produced this detailed line.
+	PricerReferenceID string `json:"pricer_reference_id"`
+	// The ID of a prior realization run this detailed line corrects, when applicable.
+	CorrectsRunID *string `json:"corrects_run_id,omitempty"`
+}
+
+// Reference to the invoice (and specific invoice line) a charge realization was
+// booked to.
+//
+// Present once the realization has been invoiced. `id` and `line_id` are the
+// invoice and invoice-line identifiers; `invoice_number` additionally requires the
+// `invoice` expand, since it is resolved by joining `id` against the invoice
+// rather than stored on the realization itself.
+type ChargeRealizationInvoiceReference struct {
+	// The ID of the invoice line this realization was booked to, when the realization
+	// has been invoiced.
+	LineID *string `json:"line_id,omitempty"`
+	// The ID of the invoice this realization was booked to, when the realization has
+	// been invoiced.
+	ID *string `json:"id,omitempty"`
+	// The human-readable number of the invoice this realization was booked to.
+	//
+	// Requires the `invoice` expand.
+	InvoiceNumber *string `json:"invoice_number,omitempty"`
+}
+
+// Payment state of a charge realization.
+type ChargeRealizationPayment struct {
+	// The settlement status of the payment.
+	Status ChargeRealizationPaymentStatus `json:"status"`
+}
+
+// Settlement status of a charge realization's payment.
+//
+// Values:
+//
+// - `authorized`: The payment has been authorized against the customer's ledger
+// but has not settled yet.
+// - `settled`: The payment has settled.
+type ChargeRealizationPaymentStatus string
+
+const (
+	ChargeRealizationPaymentStatusAuthorized ChargeRealizationPaymentStatus = "authorized"
+	ChargeRealizationPaymentStatusSettled    ChargeRealizationPaymentStatus = "settled"
+)
+
+func (value ChargeRealizationPaymentStatus) Valid() bool {
+	switch value {
+	case ChargeRealizationPaymentStatusAuthorized, ChargeRealizationPaymentStatusSettled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Type of a charge realization run.
+//
+// Values:
+//
+// - `final_realization`: The run is the final realization of the charge for its
+// service period; no further runs are expected to correct it.
+// - `partial_invoice`: The run only realizes part of the charge, because the
+// remainder is not yet due to be invoiced.
+// - `invalid_due_to_unsupported_credit_note`: The run was invalidated by a credit
+// note that OpenMeter cannot represent as a realization correction.
+type ChargeRealizationType string
+
+const (
+	ChargeRealizationTypeFinalRealization ChargeRealizationType = "final_realization"
+	ChargeRealizationTypePartialInvoice   ChargeRealizationType = "partial_invoice"
+	ChargeRealizationTypeOutstanding      ChargeRealizationType = "outstanding"
+)
+
+func (value ChargeRealizationType) Valid() bool {
+	switch value {
+	case ChargeRealizationTypeFinalRealization, ChargeRealizationTypePartialInvoice, ChargeRealizationTypeOutstanding:
+		return true
+	default:
+		return false
+	}
 }
 
 // Lifecycle status of a charge.
@@ -708,9 +1047,12 @@ func (value ChargeStatus) Valid() bool {
 type ChargeTotals struct {
 	// The amount of the charge already booked to the internal accounting system.
 	Booked Totals `json:"booked"`
-	// The realtime amount of the charge.
+	// The realtime amount of the charge, i.e. the whole usage rated at the charge's
+	// price for its full service period, ignoring what has already been booked to a
+	// realization. This differs from `charge.outstanding.totals`, which only covers
+	// the portion not yet booked.
 	//
-	// Requires the `realtime_usage` expand.
+	// Requires the `real_time_usage` expand.
 	Realtime *Totals `json:"realtime,omitempty"`
 }
 
@@ -785,14 +1127,25 @@ type ChargeUsageBased struct {
 	SettlementMode SettlementMode `json:"settlement_mode"`
 	// Tax configuration of the charge.
 	TaxConfig *TaxConfig `json:"tax_config,omitempty"`
+	// The realization runs of the charge, sorted by `created_at`.
+	Realizations []ChargeRealization `json:"realizations"`
+	// The part of the charge not yet booked to any realization.
+	//
+	// Requires the `real_time_usage` expand.
+	Outstanding *ChargeOutstanding `json:"outstanding,omitempty"`
 	// Discounts applied to the usage-based charge.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge.
-	FeatureKey string `json:"feature_key"`
+	Feature ChargeFeature `json:"feature"`
 	// The feature ID associated with the charge.
 	FeatureID string `json:"feature_id"`
 	// Aggregated booked and realtime totals for the charge.
 	Totals ChargeTotals `json:"totals"`
+	// The metered usage quantity of the charge for its full service period.
+	//
+	// Requires the `real_time_usage` expand, since it is computed live from the
+	// metering store rather than stored on the charge.
+	Usage *Numeric `json:"usage,omitempty"`
 	// The price of the charge.
 	Price Price `json:"price"`
 	// Current intent from the system lifecycle controller for a charge that has an
@@ -834,16 +1187,32 @@ type ChargeUsageBasedSystemIntent struct {
 //
 // Values:
 //
-// - `real_time_usage`: The charge's real-time usage.
+// - `real_time_usage`: The charge's real-time usage, its `usage` field, and its
+// `outstanding` (not-yet-booked) projection.
+// - `customer`: The `customer.name` of the charge's customer.
+// - `feature`: The `feature.id` and `feature.name` of the charge's feature.
+// - `subscription`: The `subscription.name` of the charge's originating
+// subscription, when present.
+// - `invoice`: The `invoice_number` of each realization, resolved from its
+// `invoice_id`.
+// - `realization_totals`: The `totals` of each realization run, including credit
+// allocations.
+// - `realization_details`: The `detailed_lines` of each realization run.
 type ChargesExpand string
 
 const (
-	ChargesExpandRealTimeUsage ChargesExpand = "real_time_usage"
+	ChargesExpandRealTimeUsage      ChargesExpand = "real_time_usage"
+	ChargesExpandCustomer           ChargesExpand = "customer"
+	ChargesExpandFeature            ChargesExpand = "feature"
+	ChargesExpandSubscription       ChargesExpand = "subscription"
+	ChargesExpandInvoice            ChargesExpand = "invoice"
+	ChargesExpandRealizationTotals  ChargesExpand = "realization_totals"
+	ChargesExpandRealizationDetails ChargesExpand = "realization_details"
 )
 
 func (value ChargesExpand) Valid() bool {
 	switch value {
-	case ChargesExpandRealTimeUsage:
+	case ChargesExpandRealTimeUsage, ChargesExpandCustomer, ChargesExpandFeature, ChargesExpandSubscription, ChargesExpandInvoice, ChargesExpandRealizationTotals, ChargesExpandRealizationDetails:
 		return true
 	default:
 		return false
@@ -879,6 +1248,8 @@ type CreateChargeFlatFeeRequest struct {
 	PaymentTerm PricePaymentTerm `json:"payment_term"`
 	// The discounts applied to the charge.
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
+	// The feature associated with the charge, when applicable.
+	Feature *ChargeFeature `json:"feature,omitempty"`
 	// The feature ID associated with the charge.
 	FeatureID *string `json:"feature_id,omitempty"`
 	// The proration configuration of the charge.
@@ -999,6 +1370,8 @@ type CreateChargeUsageBasedRequest struct {
 	TaxConfig *TaxConfig `json:"tax_config,omitempty"`
 	// Discounts applied to the usage-based charge.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
+	// The feature associated with the charge.
+	Feature ChargeFeature `json:"feature"`
 	// The feature ID associated with the charge.
 	FeatureID string `json:"feature_id"`
 	// The price of the charge.

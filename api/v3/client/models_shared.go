@@ -920,6 +920,11 @@ type SpendCommitments struct {
 type SubscriptionReference struct {
 	// The ID of the subscription.
 	ID string `json:"id"`
+	// The display name of the subscription.
+	//
+	// Only populated where the referencing endpoint documents a `subscription` expand
+	// that resolves it.
+	Name *string `json:"name,omitempty"`
 	// The phase of the subscription.
 	Phase SubscriptionReferencePhase `json:"phase"`
 }
