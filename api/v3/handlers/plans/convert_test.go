@@ -1352,7 +1352,7 @@ func TestToRateCard(t *testing.T) {
 		assert.Equal(t, "0.05", unit.Amount.String())
 	})
 
-	t.Run("usage based without billing cadence returns error", func(t *testing.T) {
+	t.Run("usage based without billing cadence converts with empty cadence", func(t *testing.T) {
 		var price api.BillingPrice
 		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
 
@@ -1362,9 +1362,18 @@ func TestToRateCard(t *testing.T) {
 			Price: price,
 		}
 
-		_, err := FromAPIBillingRateCard(rc)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "billing cadence is required")
+		result, err := FromAPIBillingRateCard(rc)
+		require.NoError(t, err)
+
+		require.NotNil(t, result.GetBillingCadence())
+		assert.True(t, result.GetBillingCadence().IsZero())
+
+		validationIssues, err := models.AsValidationIssues(result.Validate())
+		require.NoError(t, err)
+		require.NotEmpty(t, validationIssues)
+		assert.Contains(t, lo.Map(validationIssues, func(i models.ValidationIssue, _ int) models.ErrorCode {
+			return i.Code()
+		}), productcatalog.ErrCodeBillingCadenceInvalidValue)
 	})
 
 	t.Run("usage based with commitments", func(t *testing.T) {
