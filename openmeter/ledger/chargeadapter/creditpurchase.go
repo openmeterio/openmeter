@@ -486,7 +486,9 @@ func settlementPaymentAmount(
 		return alpacadecimal.Zero, "", fmt.Errorf("build settlement currency: %w", err)
 	}
 
-	amount := fiatCurrency.RoundToPrecision(creditAmount.Mul(costBasis))
+	amount := creditAmount.
+		Mul(costBasis).
+		RoundBank(int32(fiatCurrency.Details().Precision))
 
 	return amount, currencyx.Code(settlementCurrency), nil
 }
