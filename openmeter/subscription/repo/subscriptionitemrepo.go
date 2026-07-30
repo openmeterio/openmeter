@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -44,6 +45,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, input s
 			Where(getItemForSubscriptionAtFilter(input)).
 			WithPhase().
 			WithTaxCode().
+			WithCustomCurrency().
 			All(ctx)
 		if err != nil {
 			return nil, err
@@ -75,6 +77,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input 
 			)).
 			WithPhase().
 			WithTaxCode().
+			WithCustomCurrency().
 			All(ctx)
 		if err != nil {
 			return nil, err
@@ -105,6 +108,7 @@ func (r *subscriptionItemRepo) GetByID(ctx context.Context, id models.Namespaced
 			)).
 			WithPhase().
 			WithTaxCode().
+			WithCustomCurrency().
 			Only(ctx)
 
 		if db.IsNotFound(err) {
@@ -122,6 +126,9 @@ func (r *subscriptionItemRepo) GetByID(ctx context.Context, id models.Namespaced
 func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.CreateSubscriptionItemEntityInput) (subscription.SubscriptionItem, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionItemRepo) (subscription.SubscriptionItem, error) {
 		var def subscription.SubscriptionItem
+		if input.RateCard.AsMeta().Price != nil && input.RateCard.AsMeta().Currency == nil {
+			return def, errors.New("priced subscription item currency must be materialized before persistence")
+		}
 
 		cmd := repo.db.SubscriptionItem.Create().
 			SetNillableActiveFromOverrideRelativeToPhaseStart(input.ActiveFromOverrideRelativeToPhaseStart.ISOStringPtrOrNil()).
@@ -157,6 +164,24 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 
 		if input.RateCard.AsMeta().Price != nil {
 			cmd.SetPrice(input.RateCard.AsMeta().Price)
+		}
+
+		currencyRef := input.RateCard.AsMeta().Currency
+		if currencyRef != nil {
+			if err := currencyRef.Validate(); err != nil {
+				return def, fmt.Errorf("invalid subscription item currency: %w", err)
+			}
+
+			if currencyRef.IsFiat() {
+				code := currencyRef.GetCode().String()
+				cmd.SetFiatCurrencyCode(code)
+			} else {
+				if currencyRef.CustomCurrencyID == nil {
+					return def, fmt.Errorf("invalid subscription item currency: custom currency %q has no managed resource identity", currencyRef.GetCode())
+				}
+
+				cmd.SetCustomCurrencyID(*currencyRef.CustomCurrencyID)
+			}
 		}
 
 		if !input.RateCard.AsMeta().Discounts.IsEmpty() {

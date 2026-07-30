@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -64,8 +64,7 @@ type Plan interface {
 	// Phases are expected to be returned in the order they activate.
 	GetPhases() []PlanPhase
 
-	// Will not make sense on the long term
-	Currency() currencyx.Code
+	Currency() currencies.CurrencyReference
 }
 
 // NewPlanNotFoundError returns a new PlanNotFoundError.

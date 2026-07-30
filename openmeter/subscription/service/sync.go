@@ -4,12 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	if err := newSpec.MaterializeRateCardCurrencies(currencies.NewCurrencyReference(newSpec.Currency)); err != nil {
+		return subscription.Subscription{}, fmt.Errorf("failed to materialize subscription item currencies: %w", err)
+	}
+
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
 		var def subscription.Subscription
 

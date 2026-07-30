@@ -1,15 +1,19 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -127,6 +131,39 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		return subscription.SubscriptionItem{}, fmt.Errorf("failed to parse billing cadence: %w", err)
 	}
 
+	var itemCurrency *currencies.CurrencyReference
+
+	switch {
+	case item.FiatCurrencyCode != nil && item.CustomCurrencyID != nil:
+		return subscription.SubscriptionItem{}, errors.New("invalid subscription item currency: fiat currency code and custom currency ID are mutually exclusive")
+	case item.FiatCurrencyCode != nil:
+		reference := currencies.NewCurrencyReference(currencyx.Code(*item.FiatCurrencyCode))
+		if err := reference.Validate(); err != nil {
+			return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: %w", err)
+		}
+
+		itemCurrency = &reference
+	case item.CustomCurrencyID != nil:
+		customCurrencyRow, err := item.Edges.CustomCurrencyOrErr()
+		if err != nil {
+			return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: custom currency %q is not loaded: %w", *item.CustomCurrencyID, err)
+		}
+		if customCurrencyRow == nil {
+			return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: custom currency %q is not loaded", *item.CustomCurrencyID)
+		}
+		if customCurrencyRow.ID != *item.CustomCurrencyID {
+			return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: loaded custom currency %q does not match reference %q", customCurrencyRow.ID, *item.CustomCurrencyID)
+		}
+
+		customCurrency, err := currencyadapter.FromDBCustomCurrency(customCurrencyRow)
+		if err != nil {
+			return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: %w", err)
+		}
+
+		reference := customCurrency.Reference()
+		itemCurrency = &reference
+	}
+
 	var rc productcatalog.RateCard
 	rcMeta := productcatalog.RateCardMeta{
 		Name:                item.Name,
@@ -140,6 +177,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		Key:                 item.Key,
 		// NOTE: resolving feature is done on service level as there is no direct relationship between subscription items and features.
 		FeatureID: nil,
+		Currency:  itemCurrency,
 	}
 
 	// Map TaxCode if eagerly loaded.

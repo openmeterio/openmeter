@@ -261,6 +261,8 @@ func TestAddAddon(t *testing.T) {
 			require.NoError(t, spec.Apply(diff.GetApplies(), subscription.ApplyContext{
 				CurrentTime: now,
 			}))
+
+			require.NoError(t, spec.MaterializeRateCardCurrencies(currencies.NewCurrencyReference(spec.Currency)))
 		}
 
 		newSpec := subView.AsSpec()

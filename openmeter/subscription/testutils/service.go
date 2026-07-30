@@ -282,7 +282,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	require.NoError(t, err)
 	require.NoError(t, svc.RegisterHook(annotationCleanupHook))
 
-	workflowSvc := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
+	workflowSvc, err := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            svc,
 		CustomerService:    customerService,
 		TransactionManager: subItemRepo,
@@ -291,6 +291,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
 	})
+	require.NoError(t, err)
 
 	return SubscriptionDependencies{
 		SubscriptionService:      svc,

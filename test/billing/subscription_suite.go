@@ -234,7 +234,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Logger:      slog.Default(),
 	})
 
-	s.SubscriptionWorkflowService = subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
+	s.SubscriptionWorkflowService, err = subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            s.SubscriptionService,
 		AddonService:       s.SubscriptionAddonService,
 		CustomerService:    deps.CustomerService,
@@ -243,6 +243,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
 	})
+	require.NoError(t, err)
 }
 
 func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMixInDependencies) entitlement.Service {
