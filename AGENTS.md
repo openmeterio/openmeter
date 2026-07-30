@@ -107,11 +107,15 @@ discrepancies instead of automatically preferring either.
 ## CodeGraph and complex work
 
 - Use CodeGraph when it materially shortens symbol, caller, flow, or impact
-  exploration. Its server keeps the existing index synchronized; do not
-  initialize or manually sync it automatically.
+  exploration. If the worktree is not initialized, run
+  `nix develop --impure .#ci -c codegraph init -i` from the repository root,
+  then retry. Check `codegraph status`; if initialization left a truncated
+  index, rebuild it with `nix develop --impure .#ci -c codegraph index` before
+  falling back. Its server keeps a healthy index synchronized; do not manually
+  sync it.
 - Treat graph relationships as navigation hints. Current source and tests are
-  authoritative; fall back to normal source navigation when CodeGraph is
-  unavailable or inconclusive.
+  authoritative; fall back to normal source navigation only when initialization
+  fails, CodeGraph is unavailable, or its results are inconclusive.
 - When planning or implementing ambiguous, design-heavy, or cross-cutting
   engineering changes, use the
   [`iterative-engineering-design`](.agents/skills/iterative-engineering-design/SKILL.md)
