@@ -13,18 +13,19 @@ documentation accurate, useful to humans, and small enough to read.
 Establish the task's actual scope before selecting documents. For a review
 given only revisions, inspect the changed paths first.
 
-Use this routing table as a starting point:
+Domain documentation lives in READMEs at package boundaries. Start with the
+README nearest the code or behavior in scope, then follow its links or inspect
+adjacent package READMEs when the behavior crosses an ownership boundary.
 
-| paths or behavior | document |
-| --- | --- |
-| `openmeter/ledger/...`, credit balances, collection, correction, ledger routing | `openmeter/ledger/README.md` |
-| `openmeter/billing/charges/...`, charge lifecycle, settlement, realizations | `openmeter/billing/charges/README.md` |
+Examples:
 
-Use judgment about adjacent domains and how much context the task needs. For
-example, if a charge change affects ledger postings, read both documents.
+- charge lifecycle work usually starts in `openmeter/billing/charges/README.md`;
+  read `openmeter/ledger/README.md` too when it changes accounting effects
+- subscription changes that affect billing may require the subscription,
+  subscription-sync, billing, or charges READMEs
 
-The table is not exhaustive; use repository structure, README links, and search
-when other domain documentation may be relevant.
+These are examples, not a registry. Use the repository structure and the
+task's behavior to decide how much context is relevant.
 
 ## Interpret docs and code together
 
@@ -35,6 +36,10 @@ tests show current behavior. Neither automatically overrides the other:
 - documentation that contradicts established behavior may be stale
 - resolve the discrepancy from surrounding code, tests, history, and the
   requested product outcome before changing either
+
+When reviewing a behavioral change, ask whether it makes an assertion in the
+relevant README false or introduces a consequential exception. Treat the
+corresponding documentation update as part of the change.
 
 Link a specific implementation or test from the assertion it supports when
 that materially shortens verification. Do not collect general navigation links
@@ -50,6 +55,8 @@ in a separate code map.
   natural package owner.
 - Keep one canonical explanation. Other domains should link to it and state
   only the consequence they need.
+- Use relative links between package READMEs so they work both in a checkout
+  and while browsing the repository on GitHub.
 
 ## Write useful domain documentation
 
@@ -88,9 +95,7 @@ consequence, it usually belongs in code rather than the README.
    snapshot.
 5. Reconcile overlapping docs: keep the full contract with its owner and link
    from consumers.
-6. Update this skill's routing table when adding, moving, or deleting a domain
-   README.
-7. Review the result for stale claims, duplicated explanations, and details
+6. Review the result for stale claims, duplicated explanations, and details
    better expressed by code comments or focused developer docs.
 
 When domain semantics change, update the relevant README in the same change.
