@@ -193,7 +193,10 @@ func ValidatePlanHasAlignedBillingCadences() models.ValidatorFunc[Plan] {
 func ValidatePlanCurrencyCodes() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		if p.Currency.Code == "" {
-			return ErrCurrencyInvalid
+			return models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				ErrCurrencyInvalid,
+			)
 		}
 
 		var errs []error

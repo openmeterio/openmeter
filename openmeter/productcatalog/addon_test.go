@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestValidateAddonRateCardCurrencies(t *testing.T) {
+func TestValidateAddonCurrencyCodes(t *testing.T) {
 	customCurrency := currencyx.Code("CREDITS")
 	usd := currencyx.Code(currency.USD)
 	eur := currencyx.Code(currency.EUR)
@@ -83,7 +83,7 @@ func TestValidateAddonRateCardCurrencies(t *testing.T) {
 				RateCards: RateCards{newRateCard(tt.override)},
 			}
 
-			err := ValidateAddonRateCardCurrencies()(addon)
+			err := ValidateAddonCurrencyCodes()(addon)
 			if tt.expectedError == nil {
 				assert.NoError(t, err)
 				return

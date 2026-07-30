@@ -207,7 +207,7 @@ func (a Addon) Validate() error {
 	return a.ValidateWith(
 		ValidateAddonMeta(),
 		ValidateAddonRateCards(),
-		ValidateAddonRateCardCurrencies(),
+		ValidateAddonCurrencyCodes(),
 	)
 }
 
@@ -218,7 +218,7 @@ func (a Addon) Publishable() error {
 	return a.ValidateWith(
 		ValidateAddonMeta(),
 		ValidateAddonRateCards(),
-		ValidateAddonRateCardCurrencies(),
+		ValidateAddonCurrencyCodes(),
 		ValidateAddonStatusPublishable(),
 		ValidateAddonHasSingleBillingCadence(),
 		ValidateAddonHasCompatiblePrices(),
@@ -276,16 +276,18 @@ func ValidateAddonRateCards() models.ValidatorFunc[Addon] {
 	}
 }
 
-// ValidateAddonRateCardCurrencies enforces the allowed relationship between
+// ValidateAddonCurrencyCodes enforces the allowed relationship between
 // the add-on's default currency and rate card overrides. Managed-resource
 // existence and cost-basis availability are validated separately by the
 // add-on service.
-func ValidateAddonRateCardCurrencies() models.ValidatorFunc[Addon] {
+func ValidateAddonCurrencyCodes() models.ValidatorFunc[Addon] {
 	return func(a Addon) error {
 		if a.Currency.Code == "" {
-			return ErrCurrencyInvalid
+			return models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				ErrCurrencyInvalid,
+			)
 		}
-
 		var errs []error
 
 		for _, rateCard := range a.RateCards {
