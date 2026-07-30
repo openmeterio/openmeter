@@ -137,6 +137,29 @@ func TestEdit(t *testing.T) {
 			},
 		},
 		{
+			Name: "Should error if settlement mode changes",
+			Handler: func(t *testing.T, deps TDeps) {
+				ctx := t.Context()
+
+				spec, err := subscription.NewSpecFromPlan(deps.ExamplePlan, subscription.CreateSubscriptionCustomerInput{
+					Name:          "Test",
+					CustomerId:    deps.Customer.ID,
+					Currency:      currencyx.Code("USD"),
+					ActiveFrom:    deps.CurrentTime,
+					BillingAnchor: deps.CurrentTime,
+				})
+				require.NoError(t, err)
+
+				sub, err := deps.Service.Create(ctx, deps.Customer.Namespace, spec)
+				require.NoError(t, err)
+
+				spec.SettlementMode = productcatalog.CreditOnlySettlementMode
+
+				_, err = deps.Service.Update(ctx, sub.NamespacedID, spec)
+				require.ErrorContains(t, err, "cannot change settlement mode")
+			},
+		},
+		{
 			Name: "Should update contents of future phases when phase start changes",
 			Handler: func(t *testing.T, deps TDeps) {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -378,6 +401,298 @@ func TestEdit(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestSyncReconciliation(t *testing.T) {
+	const (
+		firstPhaseKey  = "test_phase_1"
+		secondPhaseKey = "test_phase_2"
+		thirdPhaseKey  = "test_phase_3"
+		addedPhaseKey  = "added_phase"
+	)
+
+	type testCase struct {
+		name    string
+		prepare func(t *testing.T, spec *subscription.SubscriptionSpec)
+		mutate  func(t *testing.T, spec *subscription.SubscriptionSpec)
+		assert  func(t *testing.T, before, after subscription.SubscriptionView)
+	}
+
+	tests := []testCase{
+		{
+			name: "changing a phase persists its properties and child links",
+			mutate: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				spec.Phases[firstPhaseKey].Name = "Changed phase"
+			},
+			assert: func(t *testing.T, before, after subscription.SubscriptionView) {
+				beforePhase := requireSyncPhase(t, before, firstPhaseKey)
+				afterPhase := requireSyncPhase(t, after, firstPhaseKey)
+
+				require.Equal(t, "Changed phase", afterPhase.SubscriptionPhase.Name)
+				require.Len(t, afterPhase.ItemsByKey, len(beforePhase.ItemsByKey))
+				for _, items := range afterPhase.ItemsByKey {
+					for _, item := range items {
+						require.Equal(t, afterPhase.SubscriptionPhase.ID, item.SubscriptionItem.PhaseId)
+					}
+				}
+			},
+		},
+		{
+			name: "removing a phase deletes it and reconciles the preceding phase cadence",
+			mutate: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				delete(spec.Phases, thirdPhaseKey)
+			},
+			assert: func(t *testing.T, before, after subscription.SubscriptionView) {
+				require.Len(t, after.Phases, len(before.Phases)-1)
+				_, found := lo.Find(after.Phases, func(phase subscription.SubscriptionPhaseView) bool {
+					return phase.SubscriptionPhase.Key == thirdPhaseKey
+				})
+				require.False(t, found)
+
+				phase := requireSyncPhase(t, after, secondPhaseKey)
+				cadence, err := after.Spec.GetPhaseCadence(secondPhaseKey)
+				require.NoError(t, err)
+				require.Nil(t, cadence.ActiveTo)
+				for _, items := range phase.ItemsByKey {
+					for _, item := range items {
+						require.Nil(t, item.SubscriptionItem.ActiveTo)
+						if item.Entitlement != nil {
+							require.Nil(t, item.Entitlement.Cadence.ActiveTo)
+						}
+					}
+				}
+			},
+		},
+		{
+			name: "adding a phase creates it and reconciles the preceding phase cadence",
+			mutate: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				rateCard := subscriptiontestutils.ExampleRateCard2.Clone()
+				itemKey := rateCard.Key()
+				spec.Phases[addedPhaseKey] = &subscription.SubscriptionPhaseSpec{
+					CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+						PhaseKey:   addedPhaseKey,
+						StartAfter: datetime.MustParseDuration(t, "P4M"),
+						Name:       "Added phase",
+					},
+					ItemsByKey: map[string][]*subscription.SubscriptionItemSpec{
+						itemKey: {
+							{
+								CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+									CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+										PhaseKey: addedPhaseKey,
+										ItemKey:  itemKey,
+										RateCard: rateCard,
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+			assert: func(t *testing.T, before, after subscription.SubscriptionView) {
+				require.Len(t, after.Phases, len(before.Phases)+1)
+				addedPhase := requireSyncPhase(t, after, addedPhaseKey)
+				require.Equal(t, "Added phase", addedPhase.SubscriptionPhase.Name)
+				require.Len(t, requireSyncItems(t, addedPhase, subscriptiontestutils.ExampleRateCard2.Key()), 1)
+
+				precedingPhase := requireSyncPhase(t, after, thirdPhaseKey)
+				precedingCadence, err := after.Spec.GetPhaseCadence(thirdPhaseKey)
+				require.NoError(t, err)
+				require.NotNil(t, precedingCadence.ActiveTo)
+				require.True(t, precedingCadence.ActiveTo.Equal(addedPhase.SubscriptionPhase.ActiveFrom))
+				for _, items := range precedingPhase.ItemsByKey {
+					for _, item := range items {
+						require.NotNil(t, item.SubscriptionItem.ActiveTo)
+						require.True(t, item.SubscriptionItem.ActiveTo.Equal(addedPhase.SubscriptionPhase.ActiveFrom))
+						if item.Entitlement != nil {
+							require.NotNil(t, item.Entitlement.Cadence.ActiveTo)
+							require.True(t, item.Entitlement.Cadence.ActiveTo.Equal(addedPhase.SubscriptionPhase.ActiveFrom))
+						}
+					}
+				}
+			},
+		},
+		{
+			name: "removing an item key deletes every version and keeps sibling items",
+			prepare: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				rateCard := subscriptiontestutils.ExampleRateCard2.Clone()
+				itemKey := rateCard.Key()
+				spec.Phases[firstPhaseKey].ItemsByKey[itemKey] = []*subscription.SubscriptionItemSpec{{
+					CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+							PhaseKey: firstPhaseKey,
+							ItemKey:  itemKey,
+							RateCard: rateCard,
+						},
+					},
+				}}
+			},
+			mutate: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				delete(spec.Phases[firstPhaseKey].ItemsByKey, subscriptiontestutils.ExampleFeatureKey)
+			},
+			assert: func(t *testing.T, before, after subscription.SubscriptionView) {
+				beforePhase := requireSyncPhase(t, before, firstPhaseKey)
+				afterPhase := requireSyncPhase(t, after, firstPhaseKey)
+				require.Len(t, beforePhase.ItemsByKey, 2)
+				require.Len(t, afterPhase.ItemsByKey, 1)
+
+				_, found := afterPhase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+				require.False(t, found)
+				require.Len(t, requireSyncItems(t, afterPhase, subscriptiontestutils.ExampleRateCard2.Key()), 1)
+			},
+		},
+		{
+			name: "adding an item key creates it and keeps existing items",
+			mutate: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				rateCard := subscriptiontestutils.ExampleRateCard2.Clone()
+				itemKey := rateCard.Key()
+				spec.Phases[firstPhaseKey].ItemsByKey[itemKey] = []*subscription.SubscriptionItemSpec{{
+					CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+							PhaseKey: firstPhaseKey,
+							ItemKey:  itemKey,
+							RateCard: rateCard,
+						},
+					},
+				}}
+			},
+			assert: func(t *testing.T, before, after subscription.SubscriptionView) {
+				beforePhase := requireSyncPhase(t, before, firstPhaseKey)
+				afterPhase := requireSyncPhase(t, after, firstPhaseKey)
+				require.Len(t, beforePhase.ItemsByKey, 1)
+				require.Len(t, afterPhase.ItemsByKey, 2)
+				require.Len(t, requireSyncItems(t, afterPhase, subscriptiontestutils.ExampleFeatureKey), 1)
+
+				addedItems := requireSyncItems(t, afterPhase, subscriptiontestutils.ExampleRateCard2.Key())
+				require.Len(t, addedItems, 1)
+				require.Nil(t, addedItems[0].Entitlement)
+			},
+		},
+		{
+			name: "adding a trailing item version creates contiguous item and entitlement cadences",
+			prepare: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				activeTo := datetime.MustParseDuration(t, "P15D")
+				spec.Phases[firstPhaseKey].ItemsByKey[subscriptiontestutils.ExampleFeatureKey][0].ActiveToOverrideRelativeToPhaseStart = &activeTo
+			},
+			mutate: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				items := spec.Phases[firstPhaseKey].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+				activeFrom := datetime.MustParseDuration(t, "P15D")
+				secondVersion := *items[0]
+				secondVersion.RateCard = items[0].RateCard.Clone()
+				secondVersion.ActiveFromOverrideRelativeToPhaseStart = &activeFrom
+				secondVersion.ActiveToOverrideRelativeToPhaseStart = nil
+				spec.Phases[firstPhaseKey].ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = append(items, &secondVersion)
+			},
+			assert: func(t *testing.T, before, after subscription.SubscriptionView) {
+				beforeItems := requireSyncItems(t, requireSyncPhase(t, before, firstPhaseKey), subscriptiontestutils.ExampleFeatureKey)
+				afterItems := requireSyncItems(t, requireSyncPhase(t, after, firstPhaseKey), subscriptiontestutils.ExampleFeatureKey)
+				require.Len(t, beforeItems, 1)
+				require.Len(t, afterItems, 2)
+
+				require.NotNil(t, afterItems[0].SubscriptionItem.ActiveTo)
+				require.Equal(t, *afterItems[0].SubscriptionItem.ActiveTo, afterItems[1].SubscriptionItem.ActiveFrom)
+				require.NotNil(t, afterItems[0].Entitlement)
+				require.NotNil(t, afterItems[1].Entitlement)
+				require.NotNil(t, afterItems[0].Entitlement.Cadence.ActiveTo)
+				require.Equal(t, *afterItems[0].Entitlement.Cadence.ActiveTo, afterItems[1].Entitlement.Cadence.ActiveFrom)
+			},
+		},
+		{
+			name: "removing a trailing item version leaves only the earlier cadence",
+			prepare: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				items := spec.Phases[firstPhaseKey].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+				boundary := datetime.MustParseDuration(t, "P15D")
+				items[0].ActiveToOverrideRelativeToPhaseStart = &boundary
+
+				secondVersion := *items[0]
+				secondVersion.RateCard = items[0].RateCard.Clone()
+				secondVersion.ActiveFromOverrideRelativeToPhaseStart = &boundary
+				secondVersion.ActiveToOverrideRelativeToPhaseStart = nil
+				spec.Phases[firstPhaseKey].ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = append(items, &secondVersion)
+			},
+			mutate: func(t *testing.T, spec *subscription.SubscriptionSpec) {
+				items := spec.Phases[firstPhaseKey].ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+				spec.Phases[firstPhaseKey].ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = items[:1]
+			},
+			assert: func(t *testing.T, before, after subscription.SubscriptionView) {
+				beforeItems := requireSyncItems(t, requireSyncPhase(t, before, firstPhaseKey), subscriptiontestutils.ExampleFeatureKey)
+				afterItems := requireSyncItems(t, requireSyncPhase(t, after, firstPhaseKey), subscriptiontestutils.ExampleFeatureKey)
+				require.Len(t, beforeItems, 2)
+				require.Len(t, afterItems, 1)
+				require.NotNil(t, afterItems[0].SubscriptionItem.ActiveTo)
+				require.NotNil(t, afterItems[0].Entitlement)
+				require.Equal(t, afterItems[0].SubscriptionItem.ActiveTo, afterItems[0].Entitlement.Cadence.ActiveTo)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given a fully materialized subscription built from the example plan.
+			currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+			clock.FreezeTime(currentTime)
+			defer clock.UnFreeze()
+
+			dbDeps := subscriptiontestutils.SetupDBDeps(t)
+			defer dbDeps.Cleanup(t)
+
+			deps := subscriptiontestutils.NewService(t, dbDeps)
+			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+			require.NotNil(t, cust)
+			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+			spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+				Name:          "Test",
+				CustomerId:    cust.ID,
+				Currency:      currencyx.Code("USD"),
+				ActiveFrom:    currentTime,
+				BillingAnchor: currentTime,
+			})
+			require.NoError(t, err)
+
+			if tt.prepare != nil {
+				tt.prepare(t, &spec)
+			}
+
+			sub, err := deps.SubscriptionService.Create(t.Context(), cust.Namespace, spec)
+			require.NoError(t, err)
+			beforeView, err := deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
+			require.NoError(t, err)
+			subscriptiontestutils.ValidateSpecAndView(t, spec, beforeView)
+
+			// When the complete target spec changes one reconciliation boundary.
+			tt.mutate(t, &spec)
+			_, err = deps.SubscriptionService.Update(t.Context(), sub.NamespacedID, spec)
+			require.NoError(t, err)
+
+			// Then the persisted graph and derived entitlements exactly match the target.
+			afterView, err := deps.SubscriptionService.GetView(t.Context(), sub.NamespacedID)
+			require.NoError(t, err)
+			tt.assert(t, beforeView, afterView)
+			subscriptiontestutils.ValidateSpecAndView(t, spec, afterView)
+		})
+	}
+}
+
+func requireSyncPhase(t *testing.T, view subscription.SubscriptionView, phaseKey string) subscription.SubscriptionPhaseView {
+	t.Helper()
+
+	phase, found := lo.Find(view.Phases, func(phase subscription.SubscriptionPhaseView) bool {
+		return phase.SubscriptionPhase.Key == phaseKey
+	})
+	require.True(t, found, "phase %s not found", phaseKey)
+
+	return phase
+}
+
+func requireSyncItems(t *testing.T, phase subscription.SubscriptionPhaseView, itemKey string) []subscription.SubscriptionItemView {
+	t.Helper()
+
+	items, found := phase.ItemsByKey[itemKey]
+	require.True(t, found, "item %s not found in phase %s", itemKey, phase.SubscriptionPhase.Key)
+
+	return items
 }
 
 func TestDeleteScheduledDowngradeCanExpandDeletedSubscriptionForSync(t *testing.T) {
