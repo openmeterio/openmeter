@@ -101,6 +101,7 @@ type Application struct {
 	TaxCodeService                   taxcode.Service
 	TaxCodePlanHook                  common.TaxCodePlanHook
 	TaxCodeAddonHook                 common.TaxCodeAddonHook
+	TaxCodeSubscriptionHook          common.TaxCodeSubscriptionHook
 	TelemetryServer                  common.TelemetryServer
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
@@ -152,6 +153,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.TaxCodeNamespaceHandler,
 		common.NewTaxCodePlanServiceHook,
 		common.NewTaxCodeAddonServiceHook,
+		common.NewTaxCodeSubscriptionServiceHook,
 		common.Subscription,
 		common.Lockr,
 		common.Secret,
