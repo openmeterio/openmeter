@@ -1,11 +1,12 @@
 ---
 name: iterative-engineering-design
 description: >
-  Use for ambiguous, design-heavy, or cross-cutting engineering changes where
-  the existing system, domain model, lifecycle behavior, or production
-  compatibility must be understood before implementation. Helps build and
-  preserve a shared model through design, implementation, review, and reset.
-  Not needed for narrow fixes or already-specified mechanical work.
+  Use when planning or implementing ambiguous, design-heavy, or cross-cutting
+  engineering changes where the existing system, domain model, lifecycle
+  behavior, or production compatibility must be understood. Helps build and
+  preserve a shared model through design, implementation, and reset. Do not use
+  for code review, audits, explanation-only tasks, narrow fixes, or
+  already-specified mechanical work.
 ---
 
 # Complex Engineering Collaboration

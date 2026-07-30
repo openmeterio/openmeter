@@ -19,3 +19,11 @@ Fixes #(issue)
 ## Notes for reviewer
 
 <!-- Anything the reviewer should know? -->
+
+<!--
+## Checklist
+
+- [ ] I updated the relevant package README, or this change does not affect
+      domain behavior, ownership, lifecycle semantics, or a cross-domain
+      contract.
+-->
