@@ -90,7 +90,7 @@ func (m AddonMeta) Validate() error {
 	if err := m.Currency.Validate(); err != nil {
 		errs = append(errs, models.ErrorWithFieldPrefix(
 			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
-			ErrCurrencyInvalid,
+			err,
 		))
 	}
 

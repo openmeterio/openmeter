@@ -339,7 +339,7 @@ func (p PlanMeta) Validate() error {
 	if err := p.Currency.Validate(); err != nil {
 		errs = append(errs, models.ErrorWithFieldPrefix(
 			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
-			ErrCurrencyInvalid,
+			err,
 		))
 	}
 
