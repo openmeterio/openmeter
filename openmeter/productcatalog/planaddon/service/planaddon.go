@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -76,6 +77,11 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 				Namespace: params.Namespace,
 				ID:        params.PlanID,
 			},
+			Expand: plan.ExpandFields{
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
+			},
 		})
 		if err != nil {
 			if notFound := &(plan.NotFoundError{}); errors.As(err, &notFound) {
@@ -105,6 +111,11 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 				Namespace: params.Namespace,
 				ID:        params.AddonID,
 			},
+			Expand: addon.ExpandFields{
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
+			},
 		})
 		if err != nil {
 			if notFound := &(addon.NotFoundError{}); errors.As(err, &notFound) {
@@ -127,6 +138,37 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 
 		if params.RejectUnitConfig && (p.HasUnitConfig() || a.AsProductCatalogAddon().HasUnitConfig()) {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+		if params.RejectUnrepresentableCurrencies {
+			if p.Currency.IsCustom() || a.Currency.IsCustom() {
+				return nil, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if p.HasCurrencyOverrides() || a.AsProductCatalogAddon().HasCurrencyOverrides() {
+				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
+		}
+
+		pa := productcatalog.PlanAddon{
+			PlanAddonMeta: productcatalog.PlanAddonMeta{
+				Metadata:    params.Metadata,
+				Annotations: params.Annotations,
+				PlanAddonConfig: productcatalog.PlanAddonConfig{
+					FromPlanPhase: params.FromPlanPhase,
+					MaxQuantity:   params.MaxQuantity,
+				},
+			},
+			Plan:  p.AsProductCatalogPlan(),
+			Addon: a.AsProductCatalogAddon(),
+		}
+
+		if err = pa.ValidateWith(
+			productcatalog.ValidatePlanAddonRateCardCurrencies(),
+			productcatalog.ValidatePlanAddonWithCurrencies(),
+		); err != nil {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("invalid plan add-on assignment currencies [namespace=%s plan.id=%s addon.id=%s]: %w",
+					params.Namespace, params.PlanID, params.AddonID, err),
+			)
 		}
 
 		//
@@ -312,11 +354,43 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 				params.Namespace, params.PlanID, params.AddonID, err)
 		}
 
+		p, err := s.plan.GetPlan(ctx, plan.GetPlanInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        planAddon.Plan.ID,
+			},
+			Expand: plan.ExpandFields{
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get plan for add-on assignment update [namespace=%s plan.id=%s]: %w",
+				params.Namespace, planAddon.Plan.ID, err)
+		}
+
+		a, err := s.addon.GetAddon(ctx, addon.GetAddonInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        planAddon.Addon.ID,
+			},
+			Expand: addon.ExpandFields{
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get add-on for assignment update [namespace=%s addon.id=%s]: %w",
+				params.Namespace, planAddon.Addon.ID, err)
+		}
+
 		//
 		// Validate plan
 		//
 
-		if err = planAddon.Plan.ValidateWith(
+		if err = p.ValidateWith(
 			plan.IsPlanDeleted(clock.Now()),
 			plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled),
 		); err != nil {
@@ -327,8 +401,16 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 		}
 
 		if params.RejectUnitConfig &&
-			(planAddon.Plan.HasUnitConfig() || planAddon.Addon.AsProductCatalogAddon().HasUnitConfig()) {
+			(p.HasUnitConfig() || a.AsProductCatalogAddon().HasUnitConfig()) {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+		if params.RejectUnrepresentableCurrencies {
+			if p.Currency.IsCustom() || a.Currency.IsCustom() {
+				return nil, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if p.HasCurrencyOverrides() || a.AsProductCatalogAddon().HasCurrencyOverrides() {
+				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
 		}
 
 		//
@@ -367,13 +449,22 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 					MaxQuantity:   params.MaxQuantity,
 				},
 			},
-			Plan:  planAddon.Plan.AsProductCatalogPlan(),
-			Addon: planAddon.Addon.AsProductCatalogAddon(),
+			Plan:  p.AsProductCatalogPlan(),
+			Addon: a.AsProductCatalogAddon(),
 		}
 
 		if err = pa.Validate(); err != nil {
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("invalid plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
+					params.Namespace, params.PlanID, params.AddonID, err),
+			)
+		}
+
+		if err = pa.ValidateWith(
+			productcatalog.ValidatePlanAddonWithCurrencies(),
+		); err != nil {
+			return nil, models.NewGenericValidationError(
+				fmt.Errorf("invalid plan add-on assignment currencies [namespace=%s plan.id=%s addon.id=%s]: %w",
 					params.Namespace, params.PlanID, params.AddonID, err),
 			)
 		}

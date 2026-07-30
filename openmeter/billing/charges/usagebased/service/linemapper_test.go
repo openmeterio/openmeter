@@ -263,6 +263,10 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 			Intent: usagebased.Intent{
 				Intent: meta.Intent{
 					Currency: currencies.Currency{
+						NamespacedID: models.NamespacedID{
+							Namespace: "namespace",
+							ID:        "custom-currency-id",
+						},
 						Currency: customCurrency,
 					},
 				},

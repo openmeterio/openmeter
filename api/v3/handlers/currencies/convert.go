@@ -23,12 +23,12 @@ func FromAPICurrencySortField(ctx context.Context, field string) (currencies.Ord
 	}
 }
 
-func FromAPIBillingCurrencyType(t v3.BillingCurrencyType) currencies.CurrencyType {
+func FromAPIBillingCurrencyType(t v3.BillingCurrencyType) currencyx.CurrencyType {
 	switch t {
 	case v3.BillingCurrencyTypeCustom:
-		return currencies.CurrencyTypeCustom
+		return currencyx.CurrencyTypeCustom
 	default:
-		return currencies.CurrencyTypeFiat
+		return currencyx.CurrencyTypeFiat
 	}
 }
 

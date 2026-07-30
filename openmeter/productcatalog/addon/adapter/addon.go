@@ -8,6 +8,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	addondb "github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	addonratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
@@ -48,13 +50,25 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 		query = filter.ApplyToQuery(query, params.ID, addondb.FieldID)
 		query = filter.ApplyToQuery(query, params.Key, addondb.FieldKey)
 		query = filter.ApplyToQuery(query, params.Name, addondb.FieldName)
-		query = filter.ApplyToQuery(query, params.Currency, addondb.FieldCurrency)
+		if currencyPredicate := addonCurrencyPredicate(params.Currency); currencyPredicate != nil {
+			query = query.Where(*currencyPredicate)
+		}
 
 		if params.ExcludeUnitConfig {
 			query = query.Where(addondb.Not(addondb.HasRatecardsWith(
 				addonratecarddb.UnitConfigNotNil(),
 				addonratecarddb.DeletedAtIsNil(),
 			)))
+		}
+
+		if params.ExcludeUnrepresentableCurrencies {
+			query = query.Where(
+				addondb.CustomCurrencyIDIsNil(),
+				addondb.Not(addondb.HasRatecardsWith(
+					addonratecarddb.CurrencyCodeNotNil(),
+					addonratecarddb.DeletedAtIsNil(),
+				)),
+			)
 		}
 
 		if !params.IncludeDeleted {
@@ -100,7 +114,7 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 
 		// Eager load ratecards
 		query = query.WithRatecards(
-			AddonEagerLoadRateCardsFn,
+			addonEagerLoadRateCards(nil),
 		)
 
 		order := entutils.GetOrdering(sortx.OrderDefault)
@@ -173,7 +187,8 @@ func (a *adapter) CreateAddon(ctx context.Context, params addon.CreateAddonInput
 			SetNamespace(params.Namespace).
 			SetName(params.Name).
 			SetNillableDescription(params.Description).
-			SetCurrency(params.Currency.String()).
+			SetCurrencyCode(params.Currency.Code.String()).
+			SetNillableCustomCurrencyID(params.Currency.CustomCurrencyID).
 			SetMetadata(params.Metadata).
 			SetVersion(params.Version).
 			SetAnnotations(params.Annotations).
@@ -205,7 +220,7 @@ func (a *adapter) CreateAddon(ctx context.Context, params addon.CreateAddonInput
 				addondb.ID(addonRow.ID)),
 			).
 			WithRatecards(
-				AddonEagerLoadRateCardsFn,
+				addonEagerLoadRateCards(nil),
 			).
 			First(ctx)
 		if err != nil {
@@ -244,6 +259,8 @@ func rateCardBulkCreate(c *entdb.AddonRateCardClient, rateCards productcatalog.R
 			SetNillableFeaturesID(rateCardEntity.FeatureID).
 			SetEntitlementTemplate(rateCardEntity.EntitlementTemplate).
 			SetNillableBillingCadence(rateCardEntity.BillingCadence).
+			SetNillableCurrencyCode(rateCardEntity.CurrencyCode).
+			SetNillableCustomCurrencyID(rateCardEntity.CustomCurrencyID).
 			SetDiscounts(rateCardEntity.Discounts)
 
 		if rateCardEntity.TaxConfig != nil {
@@ -381,12 +398,16 @@ func (a *adapter) GetAddon(ctx context.Context, params addon.GetAddonInput) (*ad
 
 		// Eager load RateCards
 		query = query.WithRatecards(
-			AddonEagerLoadRateCardsFn,
+			addonEagerLoadRateCards(params.Expand.CustomCurrency),
 		)
+
+		if params.Expand.CustomCurrency != nil {
+			query = query.WithCustomCurrency(eagerLoadCustomCurrency(*params.Expand.CustomCurrency))
+		}
 
 		if params.Expand.PlanAddons {
 			query = query.WithPlans(
-				addonEagerLoadActivePlans,
+				addonEagerLoadActivePlans(params.Expand.CustomCurrency),
 			)
 		}
 
@@ -419,29 +440,38 @@ func (a *adapter) GetAddon(ctx context.Context, params addon.GetAddonInput) (*ad
 	return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)
 }
 
-var addonEagerLoadActivePlans = func(paq *entdb.PlanAddonQuery) {
-	paq.Where(
-		planaddondb.Or(
-			planaddondb.DeletedAtIsNil(),
-			planaddondb.DeletedAtGT(clock.Now().UTC()),
-		),
-	).WithPlan(func(pq *entdb.PlanQuery) {
-		pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) {
-			ppq.Where(
-				phasedb.Or(
-					phasedb.DeletedAtIsNil(),
-					phasedb.DeletedAtGT(clock.Now().UTC()),
-				),
-			).WithRatecards(func(prcq *entdb.PlanRateCardQuery) {
-				prcq.Where(
-					ratecarddb.Or(
-						ratecarddb.DeletedAtIsNil(),
-						ratecarddb.DeletedAtGT(clock.Now().UTC()),
+func addonEagerLoadActivePlans(currencyExpand *currencies.CurrencyExpandOptions) func(*entdb.PlanAddonQuery) {
+	return func(paq *entdb.PlanAddonQuery) {
+		paq.Where(
+			planaddondb.Or(
+				planaddondb.DeletedAtIsNil(),
+				planaddondb.DeletedAtGT(clock.Now().UTC()),
+			),
+		).WithPlan(func(pq *entdb.PlanQuery) {
+			if currencyExpand != nil {
+				pq.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
+			}
+
+			pq.WithPhases(func(ppq *entdb.PlanPhaseQuery) {
+				ppq.Where(
+					phasedb.Or(
+						phasedb.DeletedAtIsNil(),
+						phasedb.DeletedAtGT(clock.Now().UTC()),
 					),
-				).WithFeatures().WithTaxCode()
+				).WithRatecards(func(prcq *entdb.PlanRateCardQuery) {
+					prcq.Where(
+						ratecarddb.Or(
+							ratecarddb.DeletedAtIsNil(),
+							ratecarddb.DeletedAtGT(clock.Now().UTC()),
+						),
+					).WithFeatures().WithTaxCode()
+					if currencyExpand != nil {
+						prcq.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
+					}
+				})
 			})
 		})
-	})
+	}
 }
 
 func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput) (*addon.Addon, error) {
@@ -535,7 +565,7 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 				addondb.ID(add.ID)),
 			).
 			WithRatecards(
-				AddonEagerLoadRateCardsFn,
+				addonEagerLoadRateCards(nil),
 			).
 			First(ctx)
 		if err != nil {
@@ -553,14 +583,19 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 	return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)
 }
 
-var AddonEagerLoadRateCardsFn = func(q *entdb.AddonRateCardQuery) {
-	q.Where(
-		addonratecarddb.Or(
-			addonratecarddb.DeletedAtIsNil(),
-			addonratecarddb.DeletedAtGT(clock.Now().UTC()),
-		))
-	rateCardEagerLoadFeaturesFn(q)
-	rateCardEagerLoadTaxCodesFn(q)
+func addonEagerLoadRateCards(currencyExpand *currencies.CurrencyExpandOptions) func(*entdb.AddonRateCardQuery) {
+	return func(q *entdb.AddonRateCardQuery) {
+		q.Where(
+			addonratecarddb.Or(
+				addonratecarddb.DeletedAtIsNil(),
+				addonratecarddb.DeletedAtGT(clock.Now().UTC()),
+			))
+		rateCardEagerLoadFeaturesFn(q)
+		rateCardEagerLoadTaxCodesFn(q)
+		if currencyExpand != nil {
+			q.WithCustomCurrency(eagerLoadCustomCurrency(*currencyExpand))
+		}
+	}
 }
 
 var rateCardEagerLoadFeaturesFn = func(q *entdb.AddonRateCardQuery) {
@@ -569,4 +604,22 @@ var rateCardEagerLoadFeaturesFn = func(q *entdb.AddonRateCardQuery) {
 
 var rateCardEagerLoadTaxCodesFn = func(q *entdb.AddonRateCardQuery) {
 	q.WithTaxCode()
+}
+
+func eagerLoadCustomCurrency(expand currencies.CurrencyExpandOptions) func(*entdb.CustomCurrencyQuery) {
+	return func(q *entdb.CustomCurrencyQuery) {
+		if expand.CostBasis {
+			currencyadapter.WithCostBasis(q)
+		}
+	}
+}
+
+// addonCurrencyPredicate applies the filter to the authoritative currency code
+// stored for both fiat and custom currencies.
+func addonCurrencyPredicate(currencyFilter *filter.FilterString) *predicate.Addon {
+	if currencyFilter == nil || currencyFilter.IsEmpty() {
+		return nil
+	}
+
+	return filter.SelectPredicate[predicate.Addon](currencyFilter, addondb.FieldCurrencyCode)
 }

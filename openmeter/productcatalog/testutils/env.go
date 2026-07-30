@@ -7,6 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currenciescurrencyresolver "github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
@@ -34,6 +38,8 @@ type TestEnv struct {
 	Meter               *meteradapter.TestAdapter
 	Feature             feature.FeatureConnector
 	TaxCode             taxcode.Service
+	Currency            currencies.Service
+	CurrencyResolver    currencies.CurrencyResolver
 	Plan                plan.Service
 	PlanRepository      plan.Repository
 	PlanAddon           planaddon.Service
@@ -107,6 +113,15 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	})
 	require.NoErrorf(t, err, "initializing tax code service must not fail")
 
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{Client: client})
+	require.NoErrorf(t, err, "initializing currency adapter must not fail")
+
+	currencyService, err := currencyservice.New(currencyAdapter)
+	require.NoErrorf(t, err, "initializing currency service must not fail")
+
+	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
+	require.NoErrorf(t, err, "initializing currency resolver must not fail")
+
 	// Init plan service
 	planAdapter, err := planadapter.New(planadapter.Config{
 		Client: client,
@@ -116,11 +131,12 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, planAdapter, "plan adapter must not be nil")
 
 	planService, err := planservice.New(planservice.Config{
-		Adapter:         planAdapter,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
-		Logger:          logger,
-		Publisher:       publisher,
+		Adapter:          planAdapter,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
+		Logger:           logger,
+		Publisher:        publisher,
 	})
 	require.NoErrorf(t, err, "initializing plan service must not fail")
 	require.NotNilf(t, planService, "plan service must not be nil")
@@ -134,11 +150,12 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NotNilf(t, addonAdapter, "addon adapter must not be nil")
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:         addonAdapter,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
-		Logger:          logger,
-		Publisher:       publisher,
+		Adapter:          addonAdapter,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
+		Logger:           logger,
+		Publisher:        publisher,
 	})
 	require.NoErrorf(t, err, "initializing addon service must not fail")
 	require.NotNilf(t, addonService, "addon service must not be nil")
@@ -167,6 +184,8 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Meter:               meterAdapter,
 		Feature:             featureService,
 		TaxCode:             taxCodeService,
+		Currency:            currencyService,
+		CurrencyResolver:    currencyResolver,
 		Plan:                planService,
 		PlanRepository:      planAdapter,
 		PlanAddon:           planAddonService,

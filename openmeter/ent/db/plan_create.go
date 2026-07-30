@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -114,16 +115,22 @@ func (_c *PlanCreate) SetVersion(v int) *PlanCreate {
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *PlanCreate) SetCurrency(v string) *PlanCreate {
-	_c.mutation.SetCurrency(v)
+// SetCurrencyCode sets the "currency_code" field.
+func (_c *PlanCreate) SetCurrencyCode(v string) *PlanCreate {
+	_c.mutation.SetCurrencyCode(v)
 	return _c
 }
 
-// SetNillableCurrency sets the "currency" field if the given value is not nil.
-func (_c *PlanCreate) SetNillableCurrency(v *string) *PlanCreate {
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *PlanCreate) SetCustomCurrencyID(v string) *PlanCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *PlanCreate) SetNillableCustomCurrencyID(v *string) *PlanCreate {
 	if v != nil {
-		_c.SetCurrency(*v)
+		_c.SetCustomCurrencyID(*v)
 	}
 	return _c
 }
@@ -249,6 +256,11 @@ func (_c *PlanCreate) AddSubscriptions(v ...*Subscription) *PlanCreate {
 	return _c.AddSubscriptionIDs(ids...)
 }
 
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *PlanCreate) SetCustomCurrency(v *CustomCurrency) *PlanCreate {
+	return _c.SetCustomCurrencyID(v.ID)
+}
+
 // Mutation returns the PlanMutation object of the builder.
 func (_c *PlanCreate) Mutation() *PlanMutation {
 	return _c.mutation
@@ -291,10 +303,6 @@ func (_c *PlanCreate) defaults() {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := plan.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
-	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		v := plan.DefaultCurrency
-		_c.mutation.SetCurrency(v)
 	}
 	if _, ok := _c.mutation.ProRatingConfig(); !ok {
 		v := plan.DefaultProRatingConfig()
@@ -345,12 +353,17 @@ func (_c *PlanCreate) check() error {
 			return &ValidationError{Name: "version", err: fmt.Errorf(`db: validator failed for field "Plan.version": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "Plan.currency"`)}
+	if _, ok := _c.mutation.CurrencyCode(); !ok {
+		return &ValidationError{Name: "currency_code", err: errors.New(`db: missing required field "Plan.currency_code"`)}
 	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := plan.CurrencyValidator(v); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Plan.currency": %w`, err)}
+	if v, ok := _c.mutation.CurrencyCode(); ok {
+		if err := plan.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "Plan.currency_code": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := plan.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "Plan.custom_currency_id": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.BillingCadence(); !ok {
@@ -447,9 +460,9 @@ func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec, error) {
 		_spec.SetField(plan.FieldVersion, field.TypeInt, value)
 		_node.Version = value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(plan.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+	if value, ok := _c.mutation.CurrencyCode(); ok {
+		_spec.SetField(plan.FieldCurrencyCode, field.TypeString, value)
+		_node.CurrencyCode = value
 	}
 	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(plan.FieldBillingCadence, field.TypeString, value)
@@ -521,6 +534,23 @@ func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec, error) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   plan.CustomCurrencyTable,
+			Columns: []string{plan.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -769,8 +799,11 @@ func (u *PlanUpsertOne) UpdateNewValues() *PlanUpsertOne {
 		if _, exists := u.create.mutation.Key(); exists {
 			s.SetIgnore(plan.FieldKey)
 		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(plan.FieldCurrency)
+		if _, exists := u.create.mutation.CurrencyCode(); exists {
+			s.SetIgnore(plan.FieldCurrencyCode)
+		}
+		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
+			s.SetIgnore(plan.FieldCustomCurrencyID)
 		}
 	}))
 	return u
@@ -1194,8 +1227,11 @@ func (u *PlanUpsertBulk) UpdateNewValues() *PlanUpsertBulk {
 			if _, exists := b.mutation.Key(); exists {
 				s.SetIgnore(plan.FieldKey)
 			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(plan.FieldCurrency)
+			if _, exists := b.mutation.CurrencyCode(); exists {
+				s.SetIgnore(plan.FieldCurrencyCode)
+			}
+			if _, exists := b.mutation.CustomCurrencyID(); exists {
+				s.SetIgnore(plan.FieldCustomCurrencyID)
 			}
 		}
 	}))

@@ -10,8 +10,10 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -30,6 +32,7 @@ func TestSubscriptionItemSpecSerialize(t *testing.T) {
 						Description: lo.ToPtr("rate-card-description"),
 						FeatureKey:  lo.ToPtr("feature-key"),
 						FeatureID:   lo.ToPtr("feature-id"),
+						Currency:    lo.ToPtr(currencies.NewCurrencyReference(currencyx.Code("CREDITS"))),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
 							IssueAfterReset: lo.ToPtr(100.0),
 						}),

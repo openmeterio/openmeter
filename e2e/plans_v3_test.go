@@ -441,18 +441,18 @@ func TestV3PlanPublishValidationCases(t *testing.T) {
 	}
 }
 
-// An unknown currency must be rejected with a structured 400 +
-// `currency_invalid` code, not bubble up as a 500 from a handler-level
-// fmt.Errorf.
-func TestV3PlanInvalidCurrency(t *testing.T) {
+// A syntactically valid but unknown custom currency must be rejected with a
+// structured 400 + `currency_not_found` code, not bubble up as a 500 from a
+// handler-level fmt.Errorf.
+func TestV3PlanUnknownCustomCurrency(t *testing.T) {
 	c := newV3Client(t)
 
 	body := validPlanRequest("invalid_currency")
-	body.Currency = "ZZZ"
+	body.Currency = "ZZZZ"
 
 	_, err := c.Plans.Create(t.Context(), body)
 	problem := requireProblem(t, err, http.StatusBadRequest)
-	assertValidationCode(t, problem, "currency_invalid")
+	assertValidationCode(t, problem, "currency_not_found")
 }
 
 // TestV3PlanReadTranslatesV1DynamicAndPackagePrices verifies the v3 read-side

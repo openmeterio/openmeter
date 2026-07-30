@@ -244,6 +244,34 @@ func (u *AddonRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *
 	return u.SetPrice(*value)
 }
 
+func (u *AddonRateCardUpdate) SetOrClearCurrencyCode(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearCurrencyCode()
+	}
+	return u.SetCurrencyCode(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearCurrencyCode(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCode()
+	}
+	return u.SetCurrencyCode(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearCustomCurrencyID(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearCustomCurrencyID(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
 func (u *AddonRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -5674,6 +5702,34 @@ func (u *PlanRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *P
 		return u.ClearPrice()
 	}
 	return u.SetPrice(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearCurrencyCode(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearCurrencyCode()
+	}
+	return u.SetCurrencyCode(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearCurrencyCode(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCode()
+	}
+	return u.SetCurrencyCode(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearCustomCurrencyID(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearCustomCurrencyID(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
 }
 
 func (u *PlanRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *PlanRateCardUpdate {

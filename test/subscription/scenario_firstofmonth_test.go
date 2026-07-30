@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -20,6 +21,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -53,7 +55,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 			PlanMeta: productcatalog.PlanMeta{
 				Name:           "Test Plan",
 				Key:            "test_plan",
-				Currency:       "USD",
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				BillingCadence: datetime.MustParseDuration(t, "P1M"), // Let's do monthly billing
 				ProRatingConfig: productcatalog.ProRatingConfig{
 					Enabled: true,
@@ -337,7 +339,7 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 			PlanMeta: productcatalog.PlanMeta{
 				Name:            "Anchored Plan",
 				Key:             "anchored_plan",
-				Currency:        "USD",
+				Currency:        currencies.NewCurrencyReference(currencyx.Code("USD")),
 				BillingCadence:  datetime.MustParseDuration(t, "P1M"),
 				ProRatingConfig: productcatalog.ProRatingConfig{Enabled: true, Mode: productcatalog.ProRatingModeProratePrices},
 			},

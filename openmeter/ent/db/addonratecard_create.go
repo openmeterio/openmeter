@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -189,6 +190,34 @@ func (_c *AddonRateCardCreate) SetPrice(v *productcatalog.Price) *AddonRateCardC
 	return _c
 }
 
+// SetCurrencyCode sets the "currency_code" field.
+func (_c *AddonRateCardCreate) SetCurrencyCode(v string) *AddonRateCardCreate {
+	_c.mutation.SetCurrencyCode(v)
+	return _c
+}
+
+// SetNillableCurrencyCode sets the "currency_code" field if the given value is not nil.
+func (_c *AddonRateCardCreate) SetNillableCurrencyCode(v *string) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetCurrencyCode(*v)
+	}
+	return _c
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *AddonRateCardCreate) SetCustomCurrencyID(v string) *AddonRateCardCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *AddonRateCardCreate) SetNillableCustomCurrencyID(v *string) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
+	}
+	return _c
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_c *AddonRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardCreate {
 	_c.mutation.SetDiscounts(v)
@@ -262,6 +291,11 @@ func (_c *AddonRateCardCreate) SetFeatures(v *Feature) *AddonRateCardCreate {
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_c *AddonRateCardCreate) SetTaxCode(v *TaxCode) *AddonRateCardCreate {
 	return _c.SetTaxCodeID(v.ID)
+}
+
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *AddonRateCardCreate) SetCustomCurrency(v *CustomCurrency) *AddonRateCardCreate {
+	return _c.SetCustomCurrencyID(v.ID)
 }
 
 // Mutation returns the AddonRateCardMutation object of the builder.
@@ -366,6 +400,16 @@ func (_c *AddonRateCardCreate) check() error {
 	if v, ok := _c.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CurrencyCode(); ok {
+		if err := addonratecard.CurrencyCodeValidator(v); err != nil {
+			return &ValidationError{Name: "currency_code", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.currency_code": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := addonratecard.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.custom_currency_id": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.Discounts(); ok {
@@ -500,6 +544,10 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 		_spec.SetField(addonratecard.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
+	if value, ok := _c.mutation.CurrencyCode(); ok {
+		_spec.SetField(addonratecard.FieldCurrencyCode, field.TypeString, value)
+		_node.CurrencyCode = &value
+	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -565,6 +613,23 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.TaxCodeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.CustomCurrencyTable,
+			Columns: []string{addonratecard.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -820,6 +885,42 @@ func (u *AddonRateCardUpsert) UpdatePrice() *AddonRateCardUpsert {
 // ClearPrice clears the value of the "price" field.
 func (u *AddonRateCardUpsert) ClearPrice() *AddonRateCardUpsert {
 	u.SetNull(addonratecard.FieldPrice)
+	return u
+}
+
+// SetCurrencyCode sets the "currency_code" field.
+func (u *AddonRateCardUpsert) SetCurrencyCode(v string) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldCurrencyCode, v)
+	return u
+}
+
+// UpdateCurrencyCode sets the "currency_code" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateCurrencyCode() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldCurrencyCode)
+	return u
+}
+
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (u *AddonRateCardUpsert) ClearCurrencyCode() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldCurrencyCode)
+	return u
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (u *AddonRateCardUpsert) SetCustomCurrencyID(v string) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldCustomCurrencyID, v)
+	return u
+}
+
+// UpdateCustomCurrencyID sets the "custom_currency_id" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateCustomCurrencyID() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldCustomCurrencyID)
+	return u
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (u *AddonRateCardUpsert) ClearCustomCurrencyID() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldCustomCurrencyID)
 	return u
 }
 
@@ -1184,6 +1285,48 @@ func (u *AddonRateCardUpsertOne) UpdatePrice() *AddonRateCardUpsertOne {
 func (u *AddonRateCardUpsertOne) ClearPrice() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearPrice()
+	})
+}
+
+// SetCurrencyCode sets the "currency_code" field.
+func (u *AddonRateCardUpsertOne) SetCurrencyCode(v string) *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetCurrencyCode(v)
+	})
+}
+
+// UpdateCurrencyCode sets the "currency_code" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateCurrencyCode() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateCurrencyCode()
+	})
+}
+
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (u *AddonRateCardUpsertOne) ClearCurrencyCode() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearCurrencyCode()
+	})
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (u *AddonRateCardUpsertOne) SetCustomCurrencyID(v string) *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetCustomCurrencyID(v)
+	})
+}
+
+// UpdateCustomCurrencyID sets the "custom_currency_id" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateCustomCurrencyID() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateCustomCurrencyID()
+	})
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (u *AddonRateCardUpsertOne) ClearCustomCurrencyID() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearCustomCurrencyID()
 	})
 }
 
@@ -1729,6 +1872,48 @@ func (u *AddonRateCardUpsertBulk) UpdatePrice() *AddonRateCardUpsertBulk {
 func (u *AddonRateCardUpsertBulk) ClearPrice() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearPrice()
+	})
+}
+
+// SetCurrencyCode sets the "currency_code" field.
+func (u *AddonRateCardUpsertBulk) SetCurrencyCode(v string) *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetCurrencyCode(v)
+	})
+}
+
+// UpdateCurrencyCode sets the "currency_code" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateCurrencyCode() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateCurrencyCode()
+	})
+}
+
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (u *AddonRateCardUpsertBulk) ClearCurrencyCode() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearCurrencyCode()
+	})
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (u *AddonRateCardUpsertBulk) SetCustomCurrencyID(v string) *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetCustomCurrencyID(v)
+	})
+}
+
+// UpdateCustomCurrencyID sets the "custom_currency_id" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateCustomCurrencyID() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateCustomCurrencyID()
+	})
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (u *AddonRateCardUpsertBulk) ClearCustomCurrencyID() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearCustomCurrencyID()
 	})
 }
 

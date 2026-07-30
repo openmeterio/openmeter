@@ -6,16 +6,17 @@ import (
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -45,7 +46,7 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 	resp := api.BillingPlan{
 		BillingCadence:   p.BillingCadence.String(),
 		CreatedAt:        p.CreatedAt,
-		Currency:         p.Currency.String(),
+		Currency:         p.Currency.GetCode().String(),
 		DeletedAt:        p.DeletedAt,
 		Description:      p.Description,
 		EffectiveFrom:    p.EffectiveFrom,
@@ -119,6 +120,10 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 		Description: meta.Description,
 		Discounts:   ToAPIBillingRateCardDiscount(meta.Discounts),
 		TaxConfig:   ToAPIBillingRateCardTaxConfig(meta.TaxConfig, meta.TaxCode),
+	}
+
+	if meta.Currency != nil {
+		result.Currency = lo.ToPtr(meta.Currency.GetCode().String())
 	}
 
 	if meta.FeatureID != nil {
@@ -604,7 +609,7 @@ func FromAPICreatePlanRequest(ns string, body api.CreatePlanRequest) (plan.Creat
 		},
 	}
 
-	req.Currency = currency.Code(body.Currency)
+	req.Currency = currencies.NewCurrencyReference(currencyx.Code(body.Currency))
 
 	billingCadence, err := datetime.ISODurationString(body.BillingCadence).Parse()
 	if err != nil {
@@ -697,6 +702,11 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		Name:        rc.Name,
 		Description: rc.Description,
 		Metadata:    labelMeta,
+	}
+
+	if rc.Currency != nil {
+		reference := currencies.NewCurrencyReference(currencyx.Code(*rc.Currency))
+		meta.Currency = &reference
 	}
 
 	if rc.Feature != nil {

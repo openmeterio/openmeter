@@ -3,13 +3,14 @@ package httpdriver
 import (
 	"fmt"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -18,7 +19,7 @@ func FromAddon(a addon.Addon) (api.Addon, error) {
 
 	resp := api.Addon{
 		CreatedAt:        a.CreatedAt,
-		Currency:         a.Currency.String(),
+		Currency:         a.Currency.GetCode().String(),
 		DeletedAt:        a.DeletedAt,
 		Description:      a.Description,
 		InstanceType:     api.AddonInstanceType(a.InstanceType),
@@ -77,10 +78,11 @@ func AsCreateAddonRequest(a api.AddonCreate, namespace string) (CreateAddonReque
 		},
 	}
 
-	req.Currency = currency.Code(a.Currency)
-	if err = req.Currency.Validate(); err != nil {
+	currencyCode := currencyx.FiatCode(a.Currency)
+	if err = currencyCode.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
+	req.Currency = currencies.NewCurrencyReference(currencyx.Code(currencyCode))
 
 	req.RateCards, err = http.AsRateCards(a.RateCards)
 	if err != nil {

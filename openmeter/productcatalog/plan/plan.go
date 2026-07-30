@@ -53,6 +53,12 @@ func (p Plan) HasUnitConfig() bool {
 	})
 }
 
+func (p Plan) HasCurrencyOverrides() bool {
+	return lo.SomeBy(p.Phases, func(ph Phase) bool {
+		return ph.RateCards.HasCurrencyOverride()
+	})
+}
+
 func ValidatePlanMeta() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		return p.PlanMeta.Validate()

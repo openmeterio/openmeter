@@ -75,6 +75,12 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 				if a.Plan.HasUnitConfig() || a.Addon.AsProductCatalogAddon().HasUnitConfig() {
 					return ListPlanAddonsResponse{}, productcatalog.ErrUnitConfigNotRepresentable
 				}
+				if a.Plan.Currency.IsCustom() || a.Addon.Currency.IsCustom() {
+					return ListPlanAddonsResponse{}, productcatalog.ErrCurrencyNotRepresentable
+				}
+				if a.Plan.HasCurrencyOverrides() || a.Addon.AsProductCatalogAddon().HasCurrencyOverrides() {
+					return ListPlanAddonsResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
+				}
 
 				item, err = FromPlanAddon(a)
 				if err != nil {
@@ -126,6 +132,7 @@ func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 					ns, planID, err)
 			}
 			req.RejectUnitConfig = true
+			req.RejectUnrepresentableCurrencies = true
 
 			return req, nil
 		},
@@ -176,6 +183,7 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 					ns, params.PlanID, params.AddonID, err)
 			}
 			req.RejectUnitConfig = true
+			req.RejectUnrepresentableCurrencies = true
 
 			return req, nil
 		},
@@ -276,6 +284,12 @@ func (h *handler) GetPlanAddon() GetPlanAddonHandler {
 
 			if a.Plan.HasUnitConfig() || a.Addon.AsProductCatalogAddon().HasUnitConfig() {
 				return GetPlanAddonResponse{}, productcatalog.ErrUnitConfigNotRepresentable
+			}
+			if a.Plan.Currency.IsCustom() || a.Addon.Currency.IsCustom() {
+				return GetPlanAddonResponse{}, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if a.Plan.HasCurrencyOverrides() || a.Addon.AsProductCatalogAddon().HasCurrencyOverrides() {
+				return GetPlanAddonResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
 
 			return FromPlanAddon(*a)

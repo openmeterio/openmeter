@@ -240,7 +240,7 @@ type AddonMutation struct {
 	key                        *string
 	version                    *int
 	addversion                 *int
-	currency                   *string
+	currency_code              *string
 	instance_type              *productcatalog.AddonInstanceType
 	effective_from             *time.Time
 	effective_to               *time.Time
@@ -255,6 +255,8 @@ type AddonMutation struct {
 	subscription_addons        map[string]struct{}
 	removedsubscription_addons map[string]struct{}
 	clearedsubscription_addons bool
+	custom_currency            *string
+	clearedcustom_currency     bool
 	done                       bool
 	oldValue                   func(context.Context) (*Addon, error)
 	predicates                 []predicate.Addon
@@ -747,40 +749,89 @@ func (m *AddonMutation) ResetVersion() {
 	m.addversion = nil
 }
 
-// SetCurrency sets the "currency" field.
-func (m *AddonMutation) SetCurrency(s string) {
-	m.currency = &s
+// SetCurrencyCode sets the "currency_code" field.
+func (m *AddonMutation) SetCurrencyCode(s string) {
+	m.currency_code = &s
 }
 
-// Currency returns the value of the "currency" field in the mutation.
-func (m *AddonMutation) Currency() (r string, exists bool) {
-	v := m.currency
+// CurrencyCode returns the value of the "currency_code" field in the mutation.
+func (m *AddonMutation) CurrencyCode() (r string, exists bool) {
+	v := m.currency_code
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldCurrency returns the old "currency" field's value of the Addon entity.
+// OldCurrencyCode returns the old "currency_code" field's value of the Addon entity.
 // If the Addon object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AddonMutation) OldCurrency(ctx context.Context) (v string, err error) {
+func (m *AddonMutation) OldCurrencyCode(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+		return v, errors.New("OldCurrencyCode is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrency requires an ID field in the mutation")
+		return v, errors.New("OldCurrencyCode requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+		return v, fmt.Errorf("querying old value for OldCurrencyCode: %w", err)
 	}
-	return oldValue.Currency, nil
+	return oldValue.CurrencyCode, nil
 }
 
-// ResetCurrency resets all changes to the "currency" field.
-func (m *AddonMutation) ResetCurrency() {
-	m.currency = nil
+// ResetCurrencyCode resets all changes to the "currency_code" field.
+func (m *AddonMutation) ResetCurrencyCode() {
+	m.currency_code = nil
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (m *AddonMutation) SetCustomCurrencyID(s string) {
+	m.custom_currency = &s
+}
+
+// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
+func (m *AddonMutation) CustomCurrencyID() (r string, exists bool) {
+	v := m.custom_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the Addon entity.
+// If the Addon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonMutation) OldCustomCurrencyID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
+	}
+	return oldValue.CustomCurrencyID, nil
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (m *AddonMutation) ClearCustomCurrencyID() {
+	m.custom_currency = nil
+	m.clearedFields[addon.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyIDCleared returns if the "custom_currency_id" field was cleared in this mutation.
+func (m *AddonMutation) CustomCurrencyIDCleared() bool {
+	_, ok := m.clearedFields[addon.FieldCustomCurrencyID]
+	return ok
+}
+
+// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
+func (m *AddonMutation) ResetCustomCurrencyID() {
+	m.custom_currency = nil
+	delete(m.clearedFields, addon.FieldCustomCurrencyID)
 }
 
 // SetInstanceType sets the "instance_type" field.
@@ -1128,6 +1179,33 @@ func (m *AddonMutation) ResetSubscriptionAddons() {
 	m.removedsubscription_addons = nil
 }
 
+// ClearCustomCurrency clears the "custom_currency" edge to the CustomCurrency entity.
+func (m *AddonMutation) ClearCustomCurrency() {
+	m.clearedcustom_currency = true
+	m.clearedFields[addon.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyCleared reports if the "custom_currency" edge to the CustomCurrency entity was cleared.
+func (m *AddonMutation) CustomCurrencyCleared() bool {
+	return m.CustomCurrencyIDCleared() || m.clearedcustom_currency
+}
+
+// CustomCurrencyIDs returns the "custom_currency" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomCurrencyID instead. It exists only for internal usage by the builders.
+func (m *AddonMutation) CustomCurrencyIDs() (ids []string) {
+	if id := m.custom_currency; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomCurrency resets all changes to the "custom_currency" edge.
+func (m *AddonMutation) ResetCustomCurrency() {
+	m.custom_currency = nil
+	m.clearedcustom_currency = false
+}
+
 // Where appends a list predicates to the AddonMutation builder.
 func (m *AddonMutation) Where(ps ...predicate.Addon) {
 	m.predicates = append(m.predicates, ps...)
@@ -1162,7 +1240,7 @@ func (m *AddonMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AddonMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.namespace != nil {
 		fields = append(fields, addon.FieldNamespace)
 	}
@@ -1190,8 +1268,11 @@ func (m *AddonMutation) Fields() []string {
 	if m.version != nil {
 		fields = append(fields, addon.FieldVersion)
 	}
-	if m.currency != nil {
-		fields = append(fields, addon.FieldCurrency)
+	if m.currency_code != nil {
+		fields = append(fields, addon.FieldCurrencyCode)
+	}
+	if m.custom_currency != nil {
+		fields = append(fields, addon.FieldCustomCurrencyID)
 	}
 	if m.instance_type != nil {
 		fields = append(fields, addon.FieldInstanceType)
@@ -1231,8 +1312,10 @@ func (m *AddonMutation) Field(name string) (ent.Value, bool) {
 		return m.Key()
 	case addon.FieldVersion:
 		return m.Version()
-	case addon.FieldCurrency:
-		return m.Currency()
+	case addon.FieldCurrencyCode:
+		return m.CurrencyCode()
+	case addon.FieldCustomCurrencyID:
+		return m.CustomCurrencyID()
 	case addon.FieldInstanceType:
 		return m.InstanceType()
 	case addon.FieldEffectiveFrom:
@@ -1268,8 +1351,10 @@ func (m *AddonMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldKey(ctx)
 	case addon.FieldVersion:
 		return m.OldVersion(ctx)
-	case addon.FieldCurrency:
-		return m.OldCurrency(ctx)
+	case addon.FieldCurrencyCode:
+		return m.OldCurrencyCode(ctx)
+	case addon.FieldCustomCurrencyID:
+		return m.OldCustomCurrencyID(ctx)
 	case addon.FieldInstanceType:
 		return m.OldInstanceType(ctx)
 	case addon.FieldEffectiveFrom:
@@ -1350,12 +1435,19 @@ func (m *AddonMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetVersion(v)
 		return nil
-	case addon.FieldCurrency:
+	case addon.FieldCurrencyCode:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCurrency(v)
+		m.SetCurrencyCode(v)
+		return nil
+	case addon.FieldCustomCurrencyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyID(v)
 		return nil
 	case addon.FieldInstanceType:
 		v, ok := value.(productcatalog.AddonInstanceType)
@@ -1439,6 +1531,9 @@ func (m *AddonMutation) ClearedFields() []string {
 	if m.FieldCleared(addon.FieldDescription) {
 		fields = append(fields, addon.FieldDescription)
 	}
+	if m.FieldCleared(addon.FieldCustomCurrencyID) {
+		fields = append(fields, addon.FieldCustomCurrencyID)
+	}
 	if m.FieldCleared(addon.FieldEffectiveFrom) {
 		fields = append(fields, addon.FieldEffectiveFrom)
 	}
@@ -1470,6 +1565,9 @@ func (m *AddonMutation) ClearField(name string) error {
 		return nil
 	case addon.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case addon.FieldCustomCurrencyID:
+		m.ClearCustomCurrencyID()
 		return nil
 	case addon.FieldEffectiveFrom:
 		m.ClearEffectiveFrom()
@@ -1515,8 +1613,11 @@ func (m *AddonMutation) ResetField(name string) error {
 	case addon.FieldVersion:
 		m.ResetVersion()
 		return nil
-	case addon.FieldCurrency:
-		m.ResetCurrency()
+	case addon.FieldCurrencyCode:
+		m.ResetCurrencyCode()
+		return nil
+	case addon.FieldCustomCurrencyID:
+		m.ResetCustomCurrencyID()
 		return nil
 	case addon.FieldInstanceType:
 		m.ResetInstanceType()
@@ -1536,7 +1637,7 @@ func (m *AddonMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AddonMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.ratecards != nil {
 		edges = append(edges, addon.EdgeRatecards)
 	}
@@ -1545,6 +1646,9 @@ func (m *AddonMutation) AddedEdges() []string {
 	}
 	if m.subscription_addons != nil {
 		edges = append(edges, addon.EdgeSubscriptionAddons)
+	}
+	if m.custom_currency != nil {
+		edges = append(edges, addon.EdgeCustomCurrency)
 	}
 	return edges
 }
@@ -1571,13 +1675,17 @@ func (m *AddonMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case addon.EdgeCustomCurrency:
+		if id := m.custom_currency; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AddonMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedratecards != nil {
 		edges = append(edges, addon.EdgeRatecards)
 	}
@@ -1618,7 +1726,7 @@ func (m *AddonMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AddonMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedratecards {
 		edges = append(edges, addon.EdgeRatecards)
 	}
@@ -1627,6 +1735,9 @@ func (m *AddonMutation) ClearedEdges() []string {
 	}
 	if m.clearedsubscription_addons {
 		edges = append(edges, addon.EdgeSubscriptionAddons)
+	}
+	if m.clearedcustom_currency {
+		edges = append(edges, addon.EdgeCustomCurrency)
 	}
 	return edges
 }
@@ -1641,6 +1752,8 @@ func (m *AddonMutation) EdgeCleared(name string) bool {
 		return m.clearedplans
 	case addon.EdgeSubscriptionAddons:
 		return m.clearedsubscription_addons
+	case addon.EdgeCustomCurrency:
+		return m.clearedcustom_currency
 	}
 	return false
 }
@@ -1649,6 +1762,9 @@ func (m *AddonMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *AddonMutation) ClearEdge(name string) error {
 	switch name {
+	case addon.EdgeCustomCurrency:
+		m.ClearCustomCurrency()
+		return nil
 	}
 	return fmt.Errorf("unknown Addon unique edge %s", name)
 }
@@ -1666,6 +1782,9 @@ func (m *AddonMutation) ResetEdge(name string) error {
 	case addon.EdgeSubscriptionAddons:
 		m.ResetSubscriptionAddons()
 		return nil
+	case addon.EdgeCustomCurrency:
+		m.ResetCustomCurrency()
+		return nil
 	}
 	return fmt.Errorf("unknown Addon edge %s", name)
 }
@@ -1673,36 +1792,39 @@ func (m *AddonMutation) ResetEdge(name string) error {
 // AddonRateCardMutation represents an operation that mutates the AddonRateCard nodes in the graph.
 type AddonRateCardMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *string
-	namespace            *string
-	metadata             *map[string]string
-	created_at           *time.Time
-	updated_at           *time.Time
-	deleted_at           *time.Time
-	name                 *string
-	description          *string
-	key                  *string
-	tax_behavior         *productcatalog.TaxBehavior
-	_type                *productcatalog.RateCardType
-	feature_key          *string
-	entitlement_template **productcatalog.EntitlementTemplate
-	tax_config           **productcatalog.TaxConfig
-	billing_cadence      *datetime.ISODurationString
-	price                **productcatalog.Price
-	discounts            **productcatalog.Discounts
-	unit_config          **unitconfig.UnitConfig
-	clearedFields        map[string]struct{}
-	addon                *string
-	clearedaddon         bool
-	features             *string
-	clearedfeatures      bool
-	tax_code             *string
-	clearedtax_code      bool
-	done                 bool
-	oldValue             func(context.Context) (*AddonRateCard, error)
-	predicates           []predicate.AddonRateCard
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	metadata               *map[string]string
+	created_at             *time.Time
+	updated_at             *time.Time
+	deleted_at             *time.Time
+	name                   *string
+	description            *string
+	key                    *string
+	tax_behavior           *productcatalog.TaxBehavior
+	_type                  *productcatalog.RateCardType
+	feature_key            *string
+	entitlement_template   **productcatalog.EntitlementTemplate
+	tax_config             **productcatalog.TaxConfig
+	billing_cadence        *datetime.ISODurationString
+	price                  **productcatalog.Price
+	currency_code          *string
+	discounts              **productcatalog.Discounts
+	unit_config            **unitconfig.UnitConfig
+	clearedFields          map[string]struct{}
+	addon                  *string
+	clearedaddon           bool
+	features               *string
+	clearedfeatures        bool
+	tax_code               *string
+	clearedtax_code        bool
+	custom_currency        *string
+	clearedcustom_currency bool
+	done                   bool
+	oldValue               func(context.Context) (*AddonRateCard, error)
+	predicates             []predicate.AddonRateCard
 }
 
 var _ ent.Mutation = (*AddonRateCardMutation)(nil)
@@ -2515,6 +2637,104 @@ func (m *AddonRateCardMutation) ResetPrice() {
 	delete(m.clearedFields, addonratecard.FieldPrice)
 }
 
+// SetCurrencyCode sets the "currency_code" field.
+func (m *AddonRateCardMutation) SetCurrencyCode(s string) {
+	m.currency_code = &s
+}
+
+// CurrencyCode returns the value of the "currency_code" field in the mutation.
+func (m *AddonRateCardMutation) CurrencyCode() (r string, exists bool) {
+	v := m.currency_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrencyCode returns the old "currency_code" field's value of the AddonRateCard entity.
+// If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonRateCardMutation) OldCurrencyCode(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrencyCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrencyCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrencyCode: %w", err)
+	}
+	return oldValue.CurrencyCode, nil
+}
+
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (m *AddonRateCardMutation) ClearCurrencyCode() {
+	m.currency_code = nil
+	m.clearedFields[addonratecard.FieldCurrencyCode] = struct{}{}
+}
+
+// CurrencyCodeCleared returns if the "currency_code" field was cleared in this mutation.
+func (m *AddonRateCardMutation) CurrencyCodeCleared() bool {
+	_, ok := m.clearedFields[addonratecard.FieldCurrencyCode]
+	return ok
+}
+
+// ResetCurrencyCode resets all changes to the "currency_code" field.
+func (m *AddonRateCardMutation) ResetCurrencyCode() {
+	m.currency_code = nil
+	delete(m.clearedFields, addonratecard.FieldCurrencyCode)
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (m *AddonRateCardMutation) SetCustomCurrencyID(s string) {
+	m.custom_currency = &s
+}
+
+// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
+func (m *AddonRateCardMutation) CustomCurrencyID() (r string, exists bool) {
+	v := m.custom_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the AddonRateCard entity.
+// If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonRateCardMutation) OldCustomCurrencyID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
+	}
+	return oldValue.CustomCurrencyID, nil
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (m *AddonRateCardMutation) ClearCustomCurrencyID() {
+	m.custom_currency = nil
+	m.clearedFields[addonratecard.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyIDCleared returns if the "custom_currency_id" field was cleared in this mutation.
+func (m *AddonRateCardMutation) CustomCurrencyIDCleared() bool {
+	_, ok := m.clearedFields[addonratecard.FieldCustomCurrencyID]
+	return ok
+}
+
+// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
+func (m *AddonRateCardMutation) ResetCustomCurrencyID() {
+	m.custom_currency = nil
+	delete(m.clearedFields, addonratecard.FieldCustomCurrencyID)
+}
+
 // SetDiscounts sets the "discounts" field.
 func (m *AddonRateCardMutation) SetDiscounts(pr *productcatalog.Discounts) {
 	m.discounts = &pr
@@ -2792,6 +3012,33 @@ func (m *AddonRateCardMutation) ResetTaxCode() {
 	m.clearedtax_code = false
 }
 
+// ClearCustomCurrency clears the "custom_currency" edge to the CustomCurrency entity.
+func (m *AddonRateCardMutation) ClearCustomCurrency() {
+	m.clearedcustom_currency = true
+	m.clearedFields[addonratecard.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyCleared reports if the "custom_currency" edge to the CustomCurrency entity was cleared.
+func (m *AddonRateCardMutation) CustomCurrencyCleared() bool {
+	return m.CustomCurrencyIDCleared() || m.clearedcustom_currency
+}
+
+// CustomCurrencyIDs returns the "custom_currency" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomCurrencyID instead. It exists only for internal usage by the builders.
+func (m *AddonRateCardMutation) CustomCurrencyIDs() (ids []string) {
+	if id := m.custom_currency; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomCurrency resets all changes to the "custom_currency" edge.
+func (m *AddonRateCardMutation) ResetCustomCurrency() {
+	m.custom_currency = nil
+	m.clearedcustom_currency = false
+}
+
 // Where appends a list predicates to the AddonRateCardMutation builder.
 func (m *AddonRateCardMutation) Where(ps ...predicate.AddonRateCard) {
 	m.predicates = append(m.predicates, ps...)
@@ -2826,7 +3073,7 @@ func (m *AddonRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AddonRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 22)
 	if m.namespace != nil {
 		fields = append(fields, addonratecard.FieldNamespace)
 	}
@@ -2874,6 +3121,12 @@ func (m *AddonRateCardMutation) Fields() []string {
 	}
 	if m.price != nil {
 		fields = append(fields, addonratecard.FieldPrice)
+	}
+	if m.currency_code != nil {
+		fields = append(fields, addonratecard.FieldCurrencyCode)
+	}
+	if m.custom_currency != nil {
+		fields = append(fields, addonratecard.FieldCustomCurrencyID)
 	}
 	if m.discounts != nil {
 		fields = append(fields, addonratecard.FieldDiscounts)
@@ -2927,6 +3180,10 @@ func (m *AddonRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case addonratecard.FieldPrice:
 		return m.Price()
+	case addonratecard.FieldCurrencyCode:
+		return m.CurrencyCode()
+	case addonratecard.FieldCustomCurrencyID:
+		return m.CustomCurrencyID()
 	case addonratecard.FieldDiscounts:
 		return m.Discounts()
 	case addonratecard.FieldUnitConfig:
@@ -2976,6 +3233,10 @@ func (m *AddonRateCardMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldBillingCadence(ctx)
 	case addonratecard.FieldPrice:
 		return m.OldPrice(ctx)
+	case addonratecard.FieldCurrencyCode:
+		return m.OldCurrencyCode(ctx)
+	case addonratecard.FieldCustomCurrencyID:
+		return m.OldCustomCurrencyID(ctx)
 	case addonratecard.FieldDiscounts:
 		return m.OldDiscounts(ctx)
 	case addonratecard.FieldUnitConfig:
@@ -3105,6 +3366,20 @@ func (m *AddonRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPrice(v)
 		return nil
+	case addonratecard.FieldCurrencyCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrencyCode(v)
+		return nil
+	case addonratecard.FieldCustomCurrencyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyID(v)
+		return nil
 	case addonratecard.FieldDiscounts:
 		v, ok := value.(*productcatalog.Discounts)
 		if !ok {
@@ -3193,6 +3468,12 @@ func (m *AddonRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(addonratecard.FieldPrice) {
 		fields = append(fields, addonratecard.FieldPrice)
 	}
+	if m.FieldCleared(addonratecard.FieldCurrencyCode) {
+		fields = append(fields, addonratecard.FieldCurrencyCode)
+	}
+	if m.FieldCleared(addonratecard.FieldCustomCurrencyID) {
+		fields = append(fields, addonratecard.FieldCustomCurrencyID)
+	}
 	if m.FieldCleared(addonratecard.FieldDiscounts) {
 		fields = append(fields, addonratecard.FieldDiscounts)
 	}
@@ -3245,6 +3526,12 @@ func (m *AddonRateCardMutation) ClearField(name string) error {
 		return nil
 	case addonratecard.FieldPrice:
 		m.ClearPrice()
+		return nil
+	case addonratecard.FieldCurrencyCode:
+		m.ClearCurrencyCode()
+		return nil
+	case addonratecard.FieldCustomCurrencyID:
+		m.ClearCustomCurrencyID()
 		return nil
 	case addonratecard.FieldDiscounts:
 		m.ClearDiscounts()
@@ -3311,6 +3598,12 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 	case addonratecard.FieldPrice:
 		m.ResetPrice()
 		return nil
+	case addonratecard.FieldCurrencyCode:
+		m.ResetCurrencyCode()
+		return nil
+	case addonratecard.FieldCustomCurrencyID:
+		m.ResetCustomCurrencyID()
+		return nil
 	case addonratecard.FieldDiscounts:
 		m.ResetDiscounts()
 		return nil
@@ -3329,7 +3622,7 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AddonRateCardMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.addon != nil {
 		edges = append(edges, addonratecard.EdgeAddon)
 	}
@@ -3338,6 +3631,9 @@ func (m *AddonRateCardMutation) AddedEdges() []string {
 	}
 	if m.tax_code != nil {
 		edges = append(edges, addonratecard.EdgeTaxCode)
+	}
+	if m.custom_currency != nil {
+		edges = append(edges, addonratecard.EdgeCustomCurrency)
 	}
 	return edges
 }
@@ -3358,13 +3654,17 @@ func (m *AddonRateCardMutation) AddedIDs(name string) []ent.Value {
 		if id := m.tax_code; id != nil {
 			return []ent.Value{*id}
 		}
+	case addonratecard.EdgeCustomCurrency:
+		if id := m.custom_currency; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AddonRateCardMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	return edges
 }
 
@@ -3376,7 +3676,7 @@ func (m *AddonRateCardMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AddonRateCardMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedaddon {
 		edges = append(edges, addonratecard.EdgeAddon)
 	}
@@ -3385,6 +3685,9 @@ func (m *AddonRateCardMutation) ClearedEdges() []string {
 	}
 	if m.clearedtax_code {
 		edges = append(edges, addonratecard.EdgeTaxCode)
+	}
+	if m.clearedcustom_currency {
+		edges = append(edges, addonratecard.EdgeCustomCurrency)
 	}
 	return edges
 }
@@ -3399,6 +3702,8 @@ func (m *AddonRateCardMutation) EdgeCleared(name string) bool {
 		return m.clearedfeatures
 	case addonratecard.EdgeTaxCode:
 		return m.clearedtax_code
+	case addonratecard.EdgeCustomCurrency:
+		return m.clearedcustom_currency
 	}
 	return false
 }
@@ -3416,6 +3721,9 @@ func (m *AddonRateCardMutation) ClearEdge(name string) error {
 	case addonratecard.EdgeTaxCode:
 		m.ClearTaxCode()
 		return nil
+	case addonratecard.EdgeCustomCurrency:
+		m.ClearCustomCurrency()
+		return nil
 	}
 	return fmt.Errorf("unknown AddonRateCard unique edge %s", name)
 }
@@ -3432,6 +3740,9 @@ func (m *AddonRateCardMutation) ResetEdge(name string) error {
 		return nil
 	case addonratecard.EdgeTaxCode:
 		m.ResetTaxCode()
+		return nil
+	case addonratecard.EdgeCustomCurrency:
+		m.ResetCustomCurrency()
 		return nil
 	}
 	return fmt.Errorf("unknown AddonRateCard edge %s", name)
@@ -78789,6 +79100,18 @@ type CustomCurrencyMutation struct {
 	charges_usage_based            map[string]struct{}
 	removedcharges_usage_based     map[string]struct{}
 	clearedcharges_usage_based     bool
+	plans                          map[string]struct{}
+	removedplans                   map[string]struct{}
+	clearedplans                   bool
+	addons                         map[string]struct{}
+	removedaddons                  map[string]struct{}
+	clearedaddons                  bool
+	plan_rate_cards                map[string]struct{}
+	removedplan_rate_cards         map[string]struct{}
+	clearedplan_rate_cards         bool
+	addon_rate_cards               map[string]struct{}
+	removedaddon_rate_cards        map[string]struct{}
+	clearedaddon_rate_cards        bool
 	done                           bool
 	oldValue                       func(context.Context) (*CustomCurrency, error)
 	predicates                     []predicate.CustomCurrency
@@ -79520,6 +79843,222 @@ func (m *CustomCurrencyMutation) ResetChargesUsageBased() {
 	m.removedcharges_usage_based = nil
 }
 
+// AddPlanIDs adds the "plans" edge to the Plan entity by ids.
+func (m *CustomCurrencyMutation) AddPlanIDs(ids ...string) {
+	if m.plans == nil {
+		m.plans = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.plans[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPlans clears the "plans" edge to the Plan entity.
+func (m *CustomCurrencyMutation) ClearPlans() {
+	m.clearedplans = true
+}
+
+// PlansCleared reports if the "plans" edge to the Plan entity was cleared.
+func (m *CustomCurrencyMutation) PlansCleared() bool {
+	return m.clearedplans
+}
+
+// RemovePlanIDs removes the "plans" edge to the Plan entity by IDs.
+func (m *CustomCurrencyMutation) RemovePlanIDs(ids ...string) {
+	if m.removedplans == nil {
+		m.removedplans = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.plans, ids[i])
+		m.removedplans[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPlans returns the removed IDs of the "plans" edge to the Plan entity.
+func (m *CustomCurrencyMutation) RemovedPlansIDs() (ids []string) {
+	for id := range m.removedplans {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PlansIDs returns the "plans" edge IDs in the mutation.
+func (m *CustomCurrencyMutation) PlansIDs() (ids []string) {
+	for id := range m.plans {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPlans resets all changes to the "plans" edge.
+func (m *CustomCurrencyMutation) ResetPlans() {
+	m.plans = nil
+	m.clearedplans = false
+	m.removedplans = nil
+}
+
+// AddAddonIDs adds the "addons" edge to the Addon entity by ids.
+func (m *CustomCurrencyMutation) AddAddonIDs(ids ...string) {
+	if m.addons == nil {
+		m.addons = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.addons[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAddons clears the "addons" edge to the Addon entity.
+func (m *CustomCurrencyMutation) ClearAddons() {
+	m.clearedaddons = true
+}
+
+// AddonsCleared reports if the "addons" edge to the Addon entity was cleared.
+func (m *CustomCurrencyMutation) AddonsCleared() bool {
+	return m.clearedaddons
+}
+
+// RemoveAddonIDs removes the "addons" edge to the Addon entity by IDs.
+func (m *CustomCurrencyMutation) RemoveAddonIDs(ids ...string) {
+	if m.removedaddons == nil {
+		m.removedaddons = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.addons, ids[i])
+		m.removedaddons[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAddons returns the removed IDs of the "addons" edge to the Addon entity.
+func (m *CustomCurrencyMutation) RemovedAddonsIDs() (ids []string) {
+	for id := range m.removedaddons {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// AddonsIDs returns the "addons" edge IDs in the mutation.
+func (m *CustomCurrencyMutation) AddonsIDs() (ids []string) {
+	for id := range m.addons {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAddons resets all changes to the "addons" edge.
+func (m *CustomCurrencyMutation) ResetAddons() {
+	m.addons = nil
+	m.clearedaddons = false
+	m.removedaddons = nil
+}
+
+// AddPlanRateCardIDs adds the "plan_rate_cards" edge to the PlanRateCard entity by ids.
+func (m *CustomCurrencyMutation) AddPlanRateCardIDs(ids ...string) {
+	if m.plan_rate_cards == nil {
+		m.plan_rate_cards = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.plan_rate_cards[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPlanRateCards clears the "plan_rate_cards" edge to the PlanRateCard entity.
+func (m *CustomCurrencyMutation) ClearPlanRateCards() {
+	m.clearedplan_rate_cards = true
+}
+
+// PlanRateCardsCleared reports if the "plan_rate_cards" edge to the PlanRateCard entity was cleared.
+func (m *CustomCurrencyMutation) PlanRateCardsCleared() bool {
+	return m.clearedplan_rate_cards
+}
+
+// RemovePlanRateCardIDs removes the "plan_rate_cards" edge to the PlanRateCard entity by IDs.
+func (m *CustomCurrencyMutation) RemovePlanRateCardIDs(ids ...string) {
+	if m.removedplan_rate_cards == nil {
+		m.removedplan_rate_cards = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.plan_rate_cards, ids[i])
+		m.removedplan_rate_cards[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPlanRateCards returns the removed IDs of the "plan_rate_cards" edge to the PlanRateCard entity.
+func (m *CustomCurrencyMutation) RemovedPlanRateCardsIDs() (ids []string) {
+	for id := range m.removedplan_rate_cards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PlanRateCardsIDs returns the "plan_rate_cards" edge IDs in the mutation.
+func (m *CustomCurrencyMutation) PlanRateCardsIDs() (ids []string) {
+	for id := range m.plan_rate_cards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPlanRateCards resets all changes to the "plan_rate_cards" edge.
+func (m *CustomCurrencyMutation) ResetPlanRateCards() {
+	m.plan_rate_cards = nil
+	m.clearedplan_rate_cards = false
+	m.removedplan_rate_cards = nil
+}
+
+// AddAddonRateCardIDs adds the "addon_rate_cards" edge to the AddonRateCard entity by ids.
+func (m *CustomCurrencyMutation) AddAddonRateCardIDs(ids ...string) {
+	if m.addon_rate_cards == nil {
+		m.addon_rate_cards = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.addon_rate_cards[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAddonRateCards clears the "addon_rate_cards" edge to the AddonRateCard entity.
+func (m *CustomCurrencyMutation) ClearAddonRateCards() {
+	m.clearedaddon_rate_cards = true
+}
+
+// AddonRateCardsCleared reports if the "addon_rate_cards" edge to the AddonRateCard entity was cleared.
+func (m *CustomCurrencyMutation) AddonRateCardsCleared() bool {
+	return m.clearedaddon_rate_cards
+}
+
+// RemoveAddonRateCardIDs removes the "addon_rate_cards" edge to the AddonRateCard entity by IDs.
+func (m *CustomCurrencyMutation) RemoveAddonRateCardIDs(ids ...string) {
+	if m.removedaddon_rate_cards == nil {
+		m.removedaddon_rate_cards = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.addon_rate_cards, ids[i])
+		m.removedaddon_rate_cards[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAddonRateCards returns the removed IDs of the "addon_rate_cards" edge to the AddonRateCard entity.
+func (m *CustomCurrencyMutation) RemovedAddonRateCardsIDs() (ids []string) {
+	for id := range m.removedaddon_rate_cards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// AddonRateCardsIDs returns the "addon_rate_cards" edge IDs in the mutation.
+func (m *CustomCurrencyMutation) AddonRateCardsIDs() (ids []string) {
+	for id := range m.addon_rate_cards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAddonRateCards resets all changes to the "addon_rate_cards" edge.
+func (m *CustomCurrencyMutation) ResetAddonRateCards() {
+	m.addon_rate_cards = nil
+	m.clearedaddon_rate_cards = false
+	m.removedaddon_rate_cards = nil
+}
+
 // Where appends a list predicates to the CustomCurrencyMutation builder.
 func (m *CustomCurrencyMutation) Where(ps ...predicate.CustomCurrency) {
 	m.predicates = append(m.predicates, ps...)
@@ -79836,7 +80375,7 @@ func (m *CustomCurrencyMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomCurrencyMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 8)
 	if m.cost_basis_history != nil {
 		edges = append(edges, customcurrency.EdgeCostBasisHistory)
 	}
@@ -79848,6 +80387,18 @@ func (m *CustomCurrencyMutation) AddedEdges() []string {
 	}
 	if m.charges_usage_based != nil {
 		edges = append(edges, customcurrency.EdgeChargesUsageBased)
+	}
+	if m.plans != nil {
+		edges = append(edges, customcurrency.EdgePlans)
+	}
+	if m.addons != nil {
+		edges = append(edges, customcurrency.EdgeAddons)
+	}
+	if m.plan_rate_cards != nil {
+		edges = append(edges, customcurrency.EdgePlanRateCards)
+	}
+	if m.addon_rate_cards != nil {
+		edges = append(edges, customcurrency.EdgeAddonRateCards)
 	}
 	return edges
 }
@@ -79880,13 +80431,37 @@ func (m *CustomCurrencyMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customcurrency.EdgePlans:
+		ids := make([]ent.Value, 0, len(m.plans))
+		for id := range m.plans {
+			ids = append(ids, id)
+		}
+		return ids
+	case customcurrency.EdgeAddons:
+		ids := make([]ent.Value, 0, len(m.addons))
+		for id := range m.addons {
+			ids = append(ids, id)
+		}
+		return ids
+	case customcurrency.EdgePlanRateCards:
+		ids := make([]ent.Value, 0, len(m.plan_rate_cards))
+		for id := range m.plan_rate_cards {
+			ids = append(ids, id)
+		}
+		return ids
+	case customcurrency.EdgeAddonRateCards:
+		ids := make([]ent.Value, 0, len(m.addon_rate_cards))
+		for id := range m.addon_rate_cards {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomCurrencyMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 8)
 	if m.removedcost_basis_history != nil {
 		edges = append(edges, customcurrency.EdgeCostBasisHistory)
 	}
@@ -79898,6 +80473,18 @@ func (m *CustomCurrencyMutation) RemovedEdges() []string {
 	}
 	if m.removedcharges_usage_based != nil {
 		edges = append(edges, customcurrency.EdgeChargesUsageBased)
+	}
+	if m.removedplans != nil {
+		edges = append(edges, customcurrency.EdgePlans)
+	}
+	if m.removedaddons != nil {
+		edges = append(edges, customcurrency.EdgeAddons)
+	}
+	if m.removedplan_rate_cards != nil {
+		edges = append(edges, customcurrency.EdgePlanRateCards)
+	}
+	if m.removedaddon_rate_cards != nil {
+		edges = append(edges, customcurrency.EdgeAddonRateCards)
 	}
 	return edges
 }
@@ -79930,13 +80517,37 @@ func (m *CustomCurrencyMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customcurrency.EdgePlans:
+		ids := make([]ent.Value, 0, len(m.removedplans))
+		for id := range m.removedplans {
+			ids = append(ids, id)
+		}
+		return ids
+	case customcurrency.EdgeAddons:
+		ids := make([]ent.Value, 0, len(m.removedaddons))
+		for id := range m.removedaddons {
+			ids = append(ids, id)
+		}
+		return ids
+	case customcurrency.EdgePlanRateCards:
+		ids := make([]ent.Value, 0, len(m.removedplan_rate_cards))
+		for id := range m.removedplan_rate_cards {
+			ids = append(ids, id)
+		}
+		return ids
+	case customcurrency.EdgeAddonRateCards:
+		ids := make([]ent.Value, 0, len(m.removedaddon_rate_cards))
+		for id := range m.removedaddon_rate_cards {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomCurrencyMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 8)
 	if m.clearedcost_basis_history {
 		edges = append(edges, customcurrency.EdgeCostBasisHistory)
 	}
@@ -79948,6 +80559,18 @@ func (m *CustomCurrencyMutation) ClearedEdges() []string {
 	}
 	if m.clearedcharges_usage_based {
 		edges = append(edges, customcurrency.EdgeChargesUsageBased)
+	}
+	if m.clearedplans {
+		edges = append(edges, customcurrency.EdgePlans)
+	}
+	if m.clearedaddons {
+		edges = append(edges, customcurrency.EdgeAddons)
+	}
+	if m.clearedplan_rate_cards {
+		edges = append(edges, customcurrency.EdgePlanRateCards)
+	}
+	if m.clearedaddon_rate_cards {
+		edges = append(edges, customcurrency.EdgeAddonRateCards)
 	}
 	return edges
 }
@@ -79964,6 +80587,14 @@ func (m *CustomCurrencyMutation) EdgeCleared(name string) bool {
 		return m.clearedcharges_flat_fee
 	case customcurrency.EdgeChargesUsageBased:
 		return m.clearedcharges_usage_based
+	case customcurrency.EdgePlans:
+		return m.clearedplans
+	case customcurrency.EdgeAddons:
+		return m.clearedaddons
+	case customcurrency.EdgePlanRateCards:
+		return m.clearedplan_rate_cards
+	case customcurrency.EdgeAddonRateCards:
+		return m.clearedaddon_rate_cards
 	}
 	return false
 }
@@ -79991,6 +80622,18 @@ func (m *CustomCurrencyMutation) ResetEdge(name string) error {
 		return nil
 	case customcurrency.EdgeChargesUsageBased:
 		m.ResetChargesUsageBased()
+		return nil
+	case customcurrency.EdgePlans:
+		m.ResetPlans()
+		return nil
+	case customcurrency.EdgeAddons:
+		m.ResetAddons()
+		return nil
+	case customcurrency.EdgePlanRateCards:
+		m.ResetPlanRateCards()
+		return nil
+	case customcurrency.EdgeAddonRateCards:
+		m.ResetAddonRateCards()
 		return nil
 	}
 	return fmt.Errorf("unknown CustomCurrency edge %s", name)
@@ -106634,38 +107277,40 @@ func (m *OrganizationDefaultTaxCodesMutation) ResetEdge(name string) error {
 // PlanMutation represents an operation that mutates the Plan nodes in the graph.
 type PlanMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *string
-	namespace            *string
-	metadata             *map[string]string
-	created_at           *time.Time
-	updated_at           *time.Time
-	deleted_at           *time.Time
-	name                 *string
-	description          *string
-	key                  *string
-	version              *int
-	addversion           *int
-	currency             *string
-	billing_cadence      *datetime.ISODurationString
-	pro_rating_config    *productcatalog.ProRatingConfig
-	effective_from       *time.Time
-	effective_to         *time.Time
-	settlement_mode      *productcatalog.SettlementMode
-	clearedFields        map[string]struct{}
-	phases               map[string]struct{}
-	removedphases        map[string]struct{}
-	clearedphases        bool
-	addons               map[string]struct{}
-	removedaddons        map[string]struct{}
-	clearedaddons        bool
-	subscriptions        map[string]struct{}
-	removedsubscriptions map[string]struct{}
-	clearedsubscriptions bool
-	done                 bool
-	oldValue             func(context.Context) (*Plan, error)
-	predicates           []predicate.Plan
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	metadata               *map[string]string
+	created_at             *time.Time
+	updated_at             *time.Time
+	deleted_at             *time.Time
+	name                   *string
+	description            *string
+	key                    *string
+	version                *int
+	addversion             *int
+	currency_code          *string
+	billing_cadence        *datetime.ISODurationString
+	pro_rating_config      *productcatalog.ProRatingConfig
+	effective_from         *time.Time
+	effective_to           *time.Time
+	settlement_mode        *productcatalog.SettlementMode
+	clearedFields          map[string]struct{}
+	phases                 map[string]struct{}
+	removedphases          map[string]struct{}
+	clearedphases          bool
+	addons                 map[string]struct{}
+	removedaddons          map[string]struct{}
+	clearedaddons          bool
+	subscriptions          map[string]struct{}
+	removedsubscriptions   map[string]struct{}
+	clearedsubscriptions   bool
+	custom_currency        *string
+	clearedcustom_currency bool
+	done                   bool
+	oldValue               func(context.Context) (*Plan, error)
+	predicates             []predicate.Plan
 }
 
 var _ ent.Mutation = (*PlanMutation)(nil)
@@ -107155,40 +107800,89 @@ func (m *PlanMutation) ResetVersion() {
 	m.addversion = nil
 }
 
-// SetCurrency sets the "currency" field.
-func (m *PlanMutation) SetCurrency(s string) {
-	m.currency = &s
+// SetCurrencyCode sets the "currency_code" field.
+func (m *PlanMutation) SetCurrencyCode(s string) {
+	m.currency_code = &s
 }
 
-// Currency returns the value of the "currency" field in the mutation.
-func (m *PlanMutation) Currency() (r string, exists bool) {
-	v := m.currency
+// CurrencyCode returns the value of the "currency_code" field in the mutation.
+func (m *PlanMutation) CurrencyCode() (r string, exists bool) {
+	v := m.currency_code
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldCurrency returns the old "currency" field's value of the Plan entity.
+// OldCurrencyCode returns the old "currency_code" field's value of the Plan entity.
 // If the Plan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanMutation) OldCurrency(ctx context.Context) (v string, err error) {
+func (m *PlanMutation) OldCurrencyCode(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+		return v, errors.New("OldCurrencyCode is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrency requires an ID field in the mutation")
+		return v, errors.New("OldCurrencyCode requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+		return v, fmt.Errorf("querying old value for OldCurrencyCode: %w", err)
 	}
-	return oldValue.Currency, nil
+	return oldValue.CurrencyCode, nil
 }
 
-// ResetCurrency resets all changes to the "currency" field.
-func (m *PlanMutation) ResetCurrency() {
-	m.currency = nil
+// ResetCurrencyCode resets all changes to the "currency_code" field.
+func (m *PlanMutation) ResetCurrencyCode() {
+	m.currency_code = nil
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (m *PlanMutation) SetCustomCurrencyID(s string) {
+	m.custom_currency = &s
+}
+
+// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
+func (m *PlanMutation) CustomCurrencyID() (r string, exists bool) {
+	v := m.custom_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldCustomCurrencyID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
+	}
+	return oldValue.CustomCurrencyID, nil
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (m *PlanMutation) ClearCustomCurrencyID() {
+	m.custom_currency = nil
+	m.clearedFields[plan.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyIDCleared returns if the "custom_currency_id" field was cleared in this mutation.
+func (m *PlanMutation) CustomCurrencyIDCleared() bool {
+	_, ok := m.clearedFields[plan.FieldCustomCurrencyID]
+	return ok
+}
+
+// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
+func (m *PlanMutation) ResetCustomCurrencyID() {
+	m.custom_currency = nil
+	delete(m.clearedFields, plan.FieldCustomCurrencyID)
 }
 
 // SetBillingCadence sets the "billing_cadence" field.
@@ -107559,6 +108253,33 @@ func (m *PlanMutation) ResetSubscriptions() {
 	m.removedsubscriptions = nil
 }
 
+// ClearCustomCurrency clears the "custom_currency" edge to the CustomCurrency entity.
+func (m *PlanMutation) ClearCustomCurrency() {
+	m.clearedcustom_currency = true
+	m.clearedFields[plan.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyCleared reports if the "custom_currency" edge to the CustomCurrency entity was cleared.
+func (m *PlanMutation) CustomCurrencyCleared() bool {
+	return m.CustomCurrencyIDCleared() || m.clearedcustom_currency
+}
+
+// CustomCurrencyIDs returns the "custom_currency" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomCurrencyID instead. It exists only for internal usage by the builders.
+func (m *PlanMutation) CustomCurrencyIDs() (ids []string) {
+	if id := m.custom_currency; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomCurrency resets all changes to the "custom_currency" edge.
+func (m *PlanMutation) ResetCustomCurrency() {
+	m.custom_currency = nil
+	m.clearedcustom_currency = false
+}
+
 // Where appends a list predicates to the PlanMutation builder.
 func (m *PlanMutation) Where(ps ...predicate.Plan) {
 	m.predicates = append(m.predicates, ps...)
@@ -107593,7 +108314,7 @@ func (m *PlanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, plan.FieldNamespace)
 	}
@@ -107621,8 +108342,11 @@ func (m *PlanMutation) Fields() []string {
 	if m.version != nil {
 		fields = append(fields, plan.FieldVersion)
 	}
-	if m.currency != nil {
-		fields = append(fields, plan.FieldCurrency)
+	if m.currency_code != nil {
+		fields = append(fields, plan.FieldCurrencyCode)
+	}
+	if m.custom_currency != nil {
+		fields = append(fields, plan.FieldCustomCurrencyID)
 	}
 	if m.billing_cadence != nil {
 		fields = append(fields, plan.FieldBillingCadence)
@@ -107665,8 +108389,10 @@ func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 		return m.Key()
 	case plan.FieldVersion:
 		return m.Version()
-	case plan.FieldCurrency:
-		return m.Currency()
+	case plan.FieldCurrencyCode:
+		return m.CurrencyCode()
+	case plan.FieldCustomCurrencyID:
+		return m.CustomCurrencyID()
 	case plan.FieldBillingCadence:
 		return m.BillingCadence()
 	case plan.FieldProRatingConfig:
@@ -107704,8 +108430,10 @@ func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldKey(ctx)
 	case plan.FieldVersion:
 		return m.OldVersion(ctx)
-	case plan.FieldCurrency:
-		return m.OldCurrency(ctx)
+	case plan.FieldCurrencyCode:
+		return m.OldCurrencyCode(ctx)
+	case plan.FieldCustomCurrencyID:
+		return m.OldCustomCurrencyID(ctx)
 	case plan.FieldBillingCadence:
 		return m.OldBillingCadence(ctx)
 	case plan.FieldProRatingConfig:
@@ -107788,12 +108516,19 @@ func (m *PlanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetVersion(v)
 		return nil
-	case plan.FieldCurrency:
+	case plan.FieldCurrencyCode:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCurrency(v)
+		m.SetCurrencyCode(v)
+		return nil
+	case plan.FieldCustomCurrencyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyID(v)
 		return nil
 	case plan.FieldBillingCadence:
 		v, ok := value.(datetime.ISODurationString)
@@ -107884,6 +108619,9 @@ func (m *PlanMutation) ClearedFields() []string {
 	if m.FieldCleared(plan.FieldDescription) {
 		fields = append(fields, plan.FieldDescription)
 	}
+	if m.FieldCleared(plan.FieldCustomCurrencyID) {
+		fields = append(fields, plan.FieldCustomCurrencyID)
+	}
 	if m.FieldCleared(plan.FieldEffectiveFrom) {
 		fields = append(fields, plan.FieldEffectiveFrom)
 	}
@@ -107912,6 +108650,9 @@ func (m *PlanMutation) ClearField(name string) error {
 		return nil
 	case plan.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case plan.FieldCustomCurrencyID:
+		m.ClearCustomCurrencyID()
 		return nil
 	case plan.FieldEffectiveFrom:
 		m.ClearEffectiveFrom()
@@ -107954,8 +108695,11 @@ func (m *PlanMutation) ResetField(name string) error {
 	case plan.FieldVersion:
 		m.ResetVersion()
 		return nil
-	case plan.FieldCurrency:
-		m.ResetCurrency()
+	case plan.FieldCurrencyCode:
+		m.ResetCurrencyCode()
+		return nil
+	case plan.FieldCustomCurrencyID:
+		m.ResetCustomCurrencyID()
 		return nil
 	case plan.FieldBillingCadence:
 		m.ResetBillingCadence()
@@ -107978,7 +108722,7 @@ func (m *PlanMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PlanMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.phases != nil {
 		edges = append(edges, plan.EdgePhases)
 	}
@@ -107987,6 +108731,9 @@ func (m *PlanMutation) AddedEdges() []string {
 	}
 	if m.subscriptions != nil {
 		edges = append(edges, plan.EdgeSubscriptions)
+	}
+	if m.custom_currency != nil {
+		edges = append(edges, plan.EdgeCustomCurrency)
 	}
 	return edges
 }
@@ -108013,13 +108760,17 @@ func (m *PlanMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case plan.EdgeCustomCurrency:
+		if id := m.custom_currency; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PlanMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedphases != nil {
 		edges = append(edges, plan.EdgePhases)
 	}
@@ -108060,7 +108811,7 @@ func (m *PlanMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PlanMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedphases {
 		edges = append(edges, plan.EdgePhases)
 	}
@@ -108069,6 +108820,9 @@ func (m *PlanMutation) ClearedEdges() []string {
 	}
 	if m.clearedsubscriptions {
 		edges = append(edges, plan.EdgeSubscriptions)
+	}
+	if m.clearedcustom_currency {
+		edges = append(edges, plan.EdgeCustomCurrency)
 	}
 	return edges
 }
@@ -108083,6 +108837,8 @@ func (m *PlanMutation) EdgeCleared(name string) bool {
 		return m.clearedaddons
 	case plan.EdgeSubscriptions:
 		return m.clearedsubscriptions
+	case plan.EdgeCustomCurrency:
+		return m.clearedcustom_currency
 	}
 	return false
 }
@@ -108091,6 +108847,9 @@ func (m *PlanMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *PlanMutation) ClearEdge(name string) error {
 	switch name {
+	case plan.EdgeCustomCurrency:
+		m.ClearCustomCurrency()
+		return nil
 	}
 	return fmt.Errorf("unknown Plan unique edge %s", name)
 }
@@ -108107,6 +108866,9 @@ func (m *PlanMutation) ResetEdge(name string) error {
 		return nil
 	case plan.EdgeSubscriptions:
 		m.ResetSubscriptions()
+		return nil
+	case plan.EdgeCustomCurrency:
+		m.ResetCustomCurrency()
 		return nil
 	}
 	return fmt.Errorf("unknown Plan edge %s", name)
@@ -110275,36 +111037,39 @@ func (m *PlanPhaseMutation) ResetEdge(name string) error {
 // PlanRateCardMutation represents an operation that mutates the PlanRateCard nodes in the graph.
 type PlanRateCardMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *string
-	namespace            *string
-	metadata             *map[string]string
-	created_at           *time.Time
-	updated_at           *time.Time
-	deleted_at           *time.Time
-	name                 *string
-	description          *string
-	key                  *string
-	tax_behavior         *productcatalog.TaxBehavior
-	_type                *productcatalog.RateCardType
-	feature_key          *string
-	entitlement_template **productcatalog.EntitlementTemplate
-	tax_config           **productcatalog.TaxConfig
-	billing_cadence      *datetime.ISODurationString
-	price                **productcatalog.Price
-	discounts            **productcatalog.Discounts
-	unit_config          **unitconfig.UnitConfig
-	clearedFields        map[string]struct{}
-	phase                *string
-	clearedphase         bool
-	features             *string
-	clearedfeatures      bool
-	tax_code             *string
-	clearedtax_code      bool
-	done                 bool
-	oldValue             func(context.Context) (*PlanRateCard, error)
-	predicates           []predicate.PlanRateCard
+	op                     Op
+	typ                    string
+	id                     *string
+	namespace              *string
+	metadata               *map[string]string
+	created_at             *time.Time
+	updated_at             *time.Time
+	deleted_at             *time.Time
+	name                   *string
+	description            *string
+	key                    *string
+	tax_behavior           *productcatalog.TaxBehavior
+	_type                  *productcatalog.RateCardType
+	feature_key            *string
+	entitlement_template   **productcatalog.EntitlementTemplate
+	tax_config             **productcatalog.TaxConfig
+	billing_cadence        *datetime.ISODurationString
+	price                  **productcatalog.Price
+	currency_code          *string
+	discounts              **productcatalog.Discounts
+	unit_config            **unitconfig.UnitConfig
+	clearedFields          map[string]struct{}
+	phase                  *string
+	clearedphase           bool
+	features               *string
+	clearedfeatures        bool
+	tax_code               *string
+	clearedtax_code        bool
+	custom_currency        *string
+	clearedcustom_currency bool
+	done                   bool
+	oldValue               func(context.Context) (*PlanRateCard, error)
+	predicates             []predicate.PlanRateCard
 }
 
 var _ ent.Mutation = (*PlanRateCardMutation)(nil)
@@ -111117,6 +111882,104 @@ func (m *PlanRateCardMutation) ResetPrice() {
 	delete(m.clearedFields, planratecard.FieldPrice)
 }
 
+// SetCurrencyCode sets the "currency_code" field.
+func (m *PlanRateCardMutation) SetCurrencyCode(s string) {
+	m.currency_code = &s
+}
+
+// CurrencyCode returns the value of the "currency_code" field in the mutation.
+func (m *PlanRateCardMutation) CurrencyCode() (r string, exists bool) {
+	v := m.currency_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrencyCode returns the old "currency_code" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldCurrencyCode(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrencyCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrencyCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrencyCode: %w", err)
+	}
+	return oldValue.CurrencyCode, nil
+}
+
+// ClearCurrencyCode clears the value of the "currency_code" field.
+func (m *PlanRateCardMutation) ClearCurrencyCode() {
+	m.currency_code = nil
+	m.clearedFields[planratecard.FieldCurrencyCode] = struct{}{}
+}
+
+// CurrencyCodeCleared returns if the "currency_code" field was cleared in this mutation.
+func (m *PlanRateCardMutation) CurrencyCodeCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldCurrencyCode]
+	return ok
+}
+
+// ResetCurrencyCode resets all changes to the "currency_code" field.
+func (m *PlanRateCardMutation) ResetCurrencyCode() {
+	m.currency_code = nil
+	delete(m.clearedFields, planratecard.FieldCurrencyCode)
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (m *PlanRateCardMutation) SetCustomCurrencyID(s string) {
+	m.custom_currency = &s
+}
+
+// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
+func (m *PlanRateCardMutation) CustomCurrencyID() (r string, exists bool) {
+	v := m.custom_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldCustomCurrencyID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
+	}
+	return oldValue.CustomCurrencyID, nil
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (m *PlanRateCardMutation) ClearCustomCurrencyID() {
+	m.custom_currency = nil
+	m.clearedFields[planratecard.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyIDCleared returns if the "custom_currency_id" field was cleared in this mutation.
+func (m *PlanRateCardMutation) CustomCurrencyIDCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldCustomCurrencyID]
+	return ok
+}
+
+// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
+func (m *PlanRateCardMutation) ResetCustomCurrencyID() {
+	m.custom_currency = nil
+	delete(m.clearedFields, planratecard.FieldCustomCurrencyID)
+}
+
 // SetDiscounts sets the "discounts" field.
 func (m *PlanRateCardMutation) SetDiscounts(pr *productcatalog.Discounts) {
 	m.discounts = &pr
@@ -111394,6 +112257,33 @@ func (m *PlanRateCardMutation) ResetTaxCode() {
 	m.clearedtax_code = false
 }
 
+// ClearCustomCurrency clears the "custom_currency" edge to the CustomCurrency entity.
+func (m *PlanRateCardMutation) ClearCustomCurrency() {
+	m.clearedcustom_currency = true
+	m.clearedFields[planratecard.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyCleared reports if the "custom_currency" edge to the CustomCurrency entity was cleared.
+func (m *PlanRateCardMutation) CustomCurrencyCleared() bool {
+	return m.CustomCurrencyIDCleared() || m.clearedcustom_currency
+}
+
+// CustomCurrencyIDs returns the "custom_currency" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomCurrencyID instead. It exists only for internal usage by the builders.
+func (m *PlanRateCardMutation) CustomCurrencyIDs() (ids []string) {
+	if id := m.custom_currency; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomCurrency resets all changes to the "custom_currency" edge.
+func (m *PlanRateCardMutation) ResetCustomCurrency() {
+	m.custom_currency = nil
+	m.clearedcustom_currency = false
+}
+
 // Where appends a list predicates to the PlanRateCardMutation builder.
 func (m *PlanRateCardMutation) Where(ps ...predicate.PlanRateCard) {
 	m.predicates = append(m.predicates, ps...)
@@ -111428,7 +112318,7 @@ func (m *PlanRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 22)
 	if m.namespace != nil {
 		fields = append(fields, planratecard.FieldNamespace)
 	}
@@ -111476,6 +112366,12 @@ func (m *PlanRateCardMutation) Fields() []string {
 	}
 	if m.price != nil {
 		fields = append(fields, planratecard.FieldPrice)
+	}
+	if m.currency_code != nil {
+		fields = append(fields, planratecard.FieldCurrencyCode)
+	}
+	if m.custom_currency != nil {
+		fields = append(fields, planratecard.FieldCustomCurrencyID)
 	}
 	if m.discounts != nil {
 		fields = append(fields, planratecard.FieldDiscounts)
@@ -111529,6 +112425,10 @@ func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case planratecard.FieldPrice:
 		return m.Price()
+	case planratecard.FieldCurrencyCode:
+		return m.CurrencyCode()
+	case planratecard.FieldCustomCurrencyID:
+		return m.CustomCurrencyID()
 	case planratecard.FieldDiscounts:
 		return m.Discounts()
 	case planratecard.FieldUnitConfig:
@@ -111578,6 +112478,10 @@ func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldBillingCadence(ctx)
 	case planratecard.FieldPrice:
 		return m.OldPrice(ctx)
+	case planratecard.FieldCurrencyCode:
+		return m.OldCurrencyCode(ctx)
+	case planratecard.FieldCustomCurrencyID:
+		return m.OldCustomCurrencyID(ctx)
 	case planratecard.FieldDiscounts:
 		return m.OldDiscounts(ctx)
 	case planratecard.FieldUnitConfig:
@@ -111707,6 +112611,20 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPrice(v)
 		return nil
+	case planratecard.FieldCurrencyCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrencyCode(v)
+		return nil
+	case planratecard.FieldCustomCurrencyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyID(v)
+		return nil
 	case planratecard.FieldDiscounts:
 		v, ok := value.(*productcatalog.Discounts)
 		if !ok {
@@ -111795,6 +112713,12 @@ func (m *PlanRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(planratecard.FieldPrice) {
 		fields = append(fields, planratecard.FieldPrice)
 	}
+	if m.FieldCleared(planratecard.FieldCurrencyCode) {
+		fields = append(fields, planratecard.FieldCurrencyCode)
+	}
+	if m.FieldCleared(planratecard.FieldCustomCurrencyID) {
+		fields = append(fields, planratecard.FieldCustomCurrencyID)
+	}
 	if m.FieldCleared(planratecard.FieldDiscounts) {
 		fields = append(fields, planratecard.FieldDiscounts)
 	}
@@ -111847,6 +112771,12 @@ func (m *PlanRateCardMutation) ClearField(name string) error {
 		return nil
 	case planratecard.FieldPrice:
 		m.ClearPrice()
+		return nil
+	case planratecard.FieldCurrencyCode:
+		m.ClearCurrencyCode()
+		return nil
+	case planratecard.FieldCustomCurrencyID:
+		m.ClearCustomCurrencyID()
 		return nil
 	case planratecard.FieldDiscounts:
 		m.ClearDiscounts()
@@ -111913,6 +112843,12 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 	case planratecard.FieldPrice:
 		m.ResetPrice()
 		return nil
+	case planratecard.FieldCurrencyCode:
+		m.ResetCurrencyCode()
+		return nil
+	case planratecard.FieldCustomCurrencyID:
+		m.ResetCustomCurrencyID()
+		return nil
 	case planratecard.FieldDiscounts:
 		m.ResetDiscounts()
 		return nil
@@ -111931,7 +112867,7 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PlanRateCardMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.phase != nil {
 		edges = append(edges, planratecard.EdgePhase)
 	}
@@ -111940,6 +112876,9 @@ func (m *PlanRateCardMutation) AddedEdges() []string {
 	}
 	if m.tax_code != nil {
 		edges = append(edges, planratecard.EdgeTaxCode)
+	}
+	if m.custom_currency != nil {
+		edges = append(edges, planratecard.EdgeCustomCurrency)
 	}
 	return edges
 }
@@ -111960,13 +112899,17 @@ func (m *PlanRateCardMutation) AddedIDs(name string) []ent.Value {
 		if id := m.tax_code; id != nil {
 			return []ent.Value{*id}
 		}
+	case planratecard.EdgeCustomCurrency:
+		if id := m.custom_currency; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PlanRateCardMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	return edges
 }
 
@@ -111978,7 +112921,7 @@ func (m *PlanRateCardMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PlanRateCardMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedphase {
 		edges = append(edges, planratecard.EdgePhase)
 	}
@@ -111987,6 +112930,9 @@ func (m *PlanRateCardMutation) ClearedEdges() []string {
 	}
 	if m.clearedtax_code {
 		edges = append(edges, planratecard.EdgeTaxCode)
+	}
+	if m.clearedcustom_currency {
+		edges = append(edges, planratecard.EdgeCustomCurrency)
 	}
 	return edges
 }
@@ -112001,6 +112947,8 @@ func (m *PlanRateCardMutation) EdgeCleared(name string) bool {
 		return m.clearedfeatures
 	case planratecard.EdgeTaxCode:
 		return m.clearedtax_code
+	case planratecard.EdgeCustomCurrency:
+		return m.clearedcustom_currency
 	}
 	return false
 }
@@ -112018,6 +112966,9 @@ func (m *PlanRateCardMutation) ClearEdge(name string) error {
 	case planratecard.EdgeTaxCode:
 		m.ClearTaxCode()
 		return nil
+	case planratecard.EdgeCustomCurrency:
+		m.ClearCustomCurrency()
+		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard unique edge %s", name)
 }
@@ -112034,6 +112985,9 @@ func (m *PlanRateCardMutation) ResetEdge(name string) error {
 		return nil
 	case planratecard.EdgeTaxCode:
 		m.ResetTaxCode()
+		return nil
+	case planratecard.EdgeCustomCurrency:
+		m.ResetCustomCurrency()
 		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard edge %s", name)

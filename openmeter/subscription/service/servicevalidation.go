@@ -25,6 +25,10 @@ func (s *service) validateCreate(ctx context.Context, cust customer.Customer, sp
 		return fmt.Errorf("spec is invalid: %w", err)
 	}
 
+	if err := validateSubscriptionUsesFiatOnly(spec); err != nil {
+		return err
+	}
+
 	// 2. Let's make sure Create is possible based on the transition rules
 	if err := subscription.NewStateMachine(subscription.SubscriptionStatusInactive).CanTransitionOrErr(ctx, subscription.SubscriptionActionCreate); err != nil {
 		return err
@@ -45,6 +49,10 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 	if err := subscription.NewStateMachine(
 		currentView.Subscription.GetStatusAt(clock.Now()),
 	).CanTransitionOrErr(ctx, subscription.SubscriptionActionUpdate); err != nil {
+		return err
+	}
+
+	if err := validateSubscriptionUsesFiatOnly(newSpec); err != nil {
 		return err
 	}
 
@@ -73,6 +81,49 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 		if cus.Currency != nil {
 			if string(*cus.Currency) != string(newSpec.Currency) {
 				return models.NewGenericValidationError(fmt.Errorf("currency mismatch: customer currency is %s, but subscription currency is %s", *cus.Currency, newSpec.Currency))
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateSubscriptionUsesFiatOnly is a temporary boundary while the product
+// catalog can persist custom currencies but subscriptions cannot yet
+// materialize or bill them. Checking both the subscription default and priced
+// item overrides prevents plan changes and add-on updates from bypassing it.
+func validateSubscriptionUsesFiatOnly(spec subscription.SubscriptionSpec) error {
+	if spec.Currency != "" && spec.Currency.IsCustom() {
+		return models.NewGenericValidationError(fmt.Errorf(
+			"%w: subscription currency is %q",
+			subscription.ErrCustomCurrencySubscriptionsNotSupported,
+			spec.Currency,
+		))
+	}
+
+	for phaseKey, phase := range spec.Phases {
+		if phase == nil {
+			continue
+		}
+
+		for itemKey, items := range phase.ItemsByKey {
+			for _, item := range items {
+				if item == nil || item.RateCard == nil {
+					continue
+				}
+
+				meta := item.RateCard.AsMeta()
+				if meta.Price == nil || meta.Currency == nil || !meta.Currency.IsCustom() {
+					continue
+				}
+
+				return models.NewGenericValidationError(fmt.Errorf(
+					"%w: item %q in phase %q uses %q",
+					subscription.ErrCustomCurrencySubscriptionsNotSupported,
+					itemKey,
+					phaseKey,
+					meta.Currency.GetCode(),
+				))
 			}
 		}
 	}

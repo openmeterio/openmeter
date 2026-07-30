@@ -1,4 +1,5 @@
 import "../shared/index.tsp";
+import "../currencies/currency.tsp";
 import "../billing/tax.tsp";
 import "../features/index.tsp";
 import "../tax/codes.tsp";
@@ -40,6 +41,14 @@ model RateCard {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Feature reference")
   feature?: Shared.ResourceReference<Features.Feature>;
+
+  /**
+   * Overrides the containing plan or add-on currency for this rate card. When
+   * omitted, the containing resource currency applies.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Currency override")
+  currency?: Currencies.CurrencyCode;
 
   /**
    * The billing cadence of the rate card. When null, the charge is one-time

@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -109,6 +110,10 @@ type ListPlansInput struct {
 
 	// ExcludeUnitConfig omits plans carrying a unit_config conversion on any of their rate cards. (v1 can't represent it)
 	ExcludeUnitConfig bool
+
+	// ExcludeUnrepresentableCurrencies omits plans whose default currency or rate-card
+	// currency overrides cannot be represented by the v1 API.
+	ExcludeUnrepresentableCurrencies bool
 }
 
 func (i ListPlansInput) Validate() error {
@@ -220,6 +225,10 @@ type UpdatePlanInput struct {
 	// RejectUnitConfig makes mutation validation reject a plan that carries a unit_config conversion on any rate card.
 	RejectUnitConfig bool
 
+	// RejectUnrepresentableCurrencies makes mutation validation reject a plan whose
+	// default currency or rate-card currency overrides cannot be represented by the v1 API.
+	RejectUnrepresentableCurrencies bool
+
 	inputOptions
 }
 
@@ -328,9 +337,48 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 	if i.RejectUnitConfig && p.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
+	if i.RejectUnrepresentableCurrencies {
+		if p.Currency.IsCustom() {
+			return productcatalog.ErrCurrencyNotRepresentable
+		}
+		if p.HasCurrencyOverrides() {
+			return productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
+	}
+
+	p = i.applyTo(p)
+
+	if i.RejectUnitConfig && p.HasUnitConfig() {
+		return productcatalog.ErrUnitConfigNotRepresentable
+	}
+	if i.RejectUnrepresentableCurrencies {
+		if p.Currency.IsCustom() {
+			return productcatalog.ErrCurrencyNotRepresentable
+		}
+		if p.HasCurrencyOverrides() {
+			return productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
+	}
 
 	var errs []error
 
+	if err := p.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	issues, err := models.AsValidationIssues(errors.Join(errs...))
+	if err != nil {
+		return models.NewGenericValidationError(err)
+	}
+
+	if i.IgnoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
+}
+
+func (i UpdatePlanInput) applyTo(p productcatalog.Plan) productcatalog.Plan {
 	if i.Name != nil {
 		p.Name = *i.Name
 	}
@@ -351,29 +399,21 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 		p.ProRatingConfig = *i.ProRatingConfig
 	}
 
+	if i.SettlementMode != nil {
+		p.SettlementMode = *i.SettlementMode
+	}
+
 	if i.Phases != nil {
 		p.Phases = *i.Phases
 	}
 
-	if err := p.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	issues, err := models.AsValidationIssues(errors.Join(errs...))
-	if err != nil {
-		return models.NewGenericValidationError(err)
-	}
-
-	if i.IgnoreNonCriticalIssues {
-		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
-	}
-
-	return models.NewNillableGenericValidationError(issues.AsError())
+	return p
 }
 
 // ExpandFields defines which fields to expand when returning the Plan.
 type ExpandFields struct {
-	PlanAddons bool `json:"addons,omitempty"`
+	PlanAddons     bool                              `json:"addons,omitempty"`
+	CustomCurrency *currencies.CurrencyExpandOptions `json:"customCurrency,omitempty"`
 }
 
 type GetPlanInput struct {
@@ -434,6 +474,10 @@ type PublishPlanInput struct {
 	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectUnrepresentableCurrencies rejects the operation when the target plan uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i PublishPlanInput) Validate() error {
@@ -486,6 +530,10 @@ type ArchivePlanInput struct {
 	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectUnrepresentableCurrencies rejects the operation when the target plan uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i ArchivePlanInput) Validate() error {
@@ -525,6 +573,10 @@ type NextPlanInput struct {
 	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectUnrepresentableCurrencies rejects the operation when the source plan uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i NextPlanInput) Validate() error {

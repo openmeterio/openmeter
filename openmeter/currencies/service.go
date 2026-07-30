@@ -67,7 +67,7 @@ type ListCurrenciesInput struct {
 	Namespace string `json:"namespace"`
 
 	// CurrencyType filters currencies by type: "custom" or "fiat". Nil means no filter.
-	CurrencyType *CurrencyType `json:"currency_type,omitempty"`
+	CurrencyType *currencyx.CurrencyType `json:"currency_type,omitempty"`
 	// ID filters currencies by managed resource ID. Fiat currencies have no ID.
 	ID *filter.FilterString `json:"id,omitempty"`
 	// Code filters currencies by code field. Nil means no filter.

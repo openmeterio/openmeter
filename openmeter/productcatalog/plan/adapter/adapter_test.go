@@ -10,7 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	planratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -203,6 +206,179 @@ func TestPostgresAdapter(t *testing.T) {
 
 			assert.Equalf(t, productcatalog.CreditOnlySettlementMode, fetched.SettlementMode,
 				"persisted settlement mode mismatch: expected=%s, actual=%s", productcatalog.CreditOnlySettlementMode, fetched.SettlementMode)
+		})
+
+		t.Run("CreateWithCustomCurrencyOverride", func(t *testing.T) {
+			// given:
+			// - a USD plan with one rate card explicitly priced in a custom currency
+			// when:
+			// - the plan is persisted and loaded through the repository
+			// then:
+			// - the explicit rate-card currency is retained
+			custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"))
+			require.NoError(t, err)
+
+			input := pctestutils.NewTestPlan(
+				t,
+				namespace,
+				pctestutils.WithPlanPhases(productcatalog.Phase{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+					RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:      "credits",
+							Name:     "Credits",
+							Currency: lo.ToPtr(custom.Reference()),
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      decimal.NewFromInt(25),
+								PaymentTerm: productcatalog.InAdvancePaymentTerm,
+							}),
+						},
+					}},
+				}),
+				func(t *testing.T, p *productcatalog.Plan) {
+					t.Helper()
+					p.Key = "custom-currency-override"
+				},
+			)
+
+			created, err := env.PlanRepository.CreatePlan(t.Context(), input)
+			require.NoError(t, err)
+
+			fetched, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+			})
+			require.NoError(t, err)
+
+			fetchedCurrency := fetched.Phases[0].RateCards[0].AsMeta().Currency
+			require.NotNil(t, fetchedCurrency)
+			require.Equal(t, custom.GetCode(), fetchedCurrency.GetCode())
+			require.Equal(t, custom.ID, *fetchedCurrency.CustomCurrencyID)
+			require.False(t, fetchedCurrency.IsResolved())
+
+			expanded, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+				Expand: plan.ExpandFields{
+					CustomCurrency: &currencies.CurrencyExpandOptions{
+						CostBasis: true,
+					},
+				},
+			})
+			require.NoError(t, err)
+			expandedCurrency := expanded.Phases[0].RateCards[0].AsMeta().Currency
+			require.NotNil(t, expandedCurrency)
+			require.True(t, expandedCurrency.IsResolved())
+			managedCurrency, ok := expandedCurrency.CustomCurrency()
+			require.True(t, ok)
+			require.Equal(t, custom.ID, managedCurrency.ID)
+			require.NotNil(t, managedCurrency.CostBasis)
+
+			rateCardRow, err := env.Client.PlanRateCard.Query().
+				Where(planratecarddb.Namespace(namespace), planratecarddb.Key("credits")).
+				Only(t.Context())
+			require.NoError(t, err)
+			require.NotNil(t, rateCardRow.CurrencyCode)
+			require.Equal(t, custom.GetCode().String(), *rateCardRow.CurrencyCode)
+			require.NotNil(t, rateCardRow.CustomCurrencyID)
+			require.Equal(t, custom.ID, *rateCardRow.CustomCurrencyID)
+		})
+
+		t.Run("CreateWithCustomPlanCurrency", func(t *testing.T) {
+			// given:
+			// - a managed custom currency used as the plan default
+			// when:
+			// - the plan is created, fetched, and filtered by its public code
+			// then:
+			// - storage retains the managed ID and hydration restores that identity
+			custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "TOKENS", "Tokens", "tok"))
+			require.NoError(t, err)
+
+			input := pctestutils.NewTestPlan(
+				t,
+				namespace,
+				pctestutils.WithPlanKey("custom-plan-currency"),
+				func(t *testing.T, p *productcatalog.Plan) {
+					t.Helper()
+					p.Currency = custom.Reference()
+				},
+			)
+
+			created, err := env.PlanRepository.CreatePlan(t.Context(), input)
+			require.NoError(t, err)
+
+			fetched, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+			})
+			require.NoError(t, err)
+			require.Equal(t, custom.GetCode(), fetched.Currency.Code)
+			require.Equal(t, custom.ID, *fetched.Currency.CustomCurrencyID)
+			require.False(t, fetched.Currency.IsResolved())
+
+			expandedCurrencyOnly, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+				Expand: plan.ExpandFields{
+					CustomCurrency: &currencies.CurrencyExpandOptions{},
+				},
+			})
+			require.NoError(t, err)
+			require.False(t, expandedCurrencyOnly.Currency.IsResolved())
+			managedWithoutCostBasis, ok := expandedCurrencyOnly.Currency.CustomCurrency()
+			require.True(t, ok)
+			require.Equal(t, custom.ID, managedWithoutCostBasis.ID)
+			require.Nil(t, managedWithoutCostBasis.CostBasis)
+
+			expanded, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+				Expand: plan.ExpandFields{
+					CustomCurrency: &currencies.CurrencyExpandOptions{
+						CostBasis: true,
+					},
+				},
+			})
+			require.NoError(t, err)
+			require.True(t, expanded.Currency.IsResolved())
+			managedCurrency, ok := expanded.Currency.CustomCurrency()
+			require.True(t, ok)
+			require.Equal(t, custom.ID, managedCurrency.ID)
+			require.NotNil(t, managedCurrency.CostBasis)
+
+			planRow, err := env.Client.Plan.Get(t.Context(), created.ID)
+			require.NoError(t, err)
+			require.Equal(t, custom.GetCode().String(), planRow.CurrencyCode)
+			require.NotNil(t, planRow.CustomCurrencyID)
+			require.Equal(t, custom.ID, *planRow.CustomCurrencyID)
+
+			listed, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+				Namespaces: []string{namespace},
+				Currencies: []string{custom.GetCode().String()},
+			})
+			require.NoError(t, err)
+			require.Len(t, listed.Items, 1)
+			require.Equal(t, created.ID, listed.Items[0].ID)
+			require.False(t, listed.Items[0].Currency.IsResolved())
+
+			err = env.Client.CustomCurrency.UpdateOneID(custom.ID).
+				SetDeletedAt(time.Now().UTC()).
+				Exec(t.Context())
+			require.NoError(t, err)
+			replacement, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, custom.GetCode(), "Replacement tokens", "tok2"))
+			require.NoError(t, err)
+			require.NotEqual(t, custom.ID, replacement.ID)
+
+			fetched, err = env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{Namespace: namespace, ID: created.ID},
+				Expand: plan.ExpandFields{
+					CustomCurrency: &currencies.CurrencyExpandOptions{
+						CostBasis: true,
+					},
+				},
+			})
+			require.NoError(t, err)
+			managedCurrency, ok = fetched.Currency.CustomCurrency()
+			require.True(t, ok)
+			require.Equal(t, custom.ID, managedCurrency.ID, "code reuse must not relink existing plans")
+
+			err = env.Client.CustomCurrency.DeleteOneID(custom.ID).Exec(t.Context())
+			require.Error(t, err, "referenced custom currencies must not be hard-deleted")
 		})
 
 		t.Run("Get", func(t *testing.T) {
@@ -489,6 +665,54 @@ func TestListPlansExcludeUnitConfig(t *testing.T) {
 		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
 		require.ElementsMatch(t, []string{"plain"}, keys)
 		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude the unit_config plan, not just the page slice")
+	})
+}
+
+func TestListPlansExcludeUnrepresentableCurrencies(t *testing.T) {
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	plain := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("plain"))
+	_, err := env.PlanRepository.CreatePlan(t.Context(), plain)
+	require.NoError(t, err, "creating plain plan must not fail")
+
+	withOverride := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("with-override"))
+	overriddenRateCard, ok := withOverride.Phases[0].RateCards[0].(*productcatalog.FlatFeeRateCard)
+	require.True(t, ok, "default test plan rate card must be flat fee")
+	custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "TOKEN", "Tokens", "tok"))
+	require.NoError(t, err, "creating managed custom currency must not fail")
+	overriddenRateCard.Currency = lo.ToPtr(custom.Reference())
+	_, err = env.PlanRepository.CreatePlan(t.Context(), withOverride)
+	require.NoError(t, err, "creating plan with rate-card currency override must not fail")
+
+	withCustomDefault := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanKey("with-custom-default"))
+	withCustomDefault.Currency = custom.Reference()
+	_, err = env.PlanRepository.CreatePlan(t.Context(), withCustomDefault)
+	require.NoError(t, err, "creating plan with custom default currency must not fail")
+
+	t.Run("included when ExcludeUnrepresentableCurrencies is false", func(t *testing.T) {
+		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+			Namespaces: []string{namespace},
+		})
+		require.NoError(t, err, "listing plans must not fail")
+
+		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
+		require.ElementsMatch(t, []string{"plain", "with-override", "with-custom-default"}, keys)
+		require.Equal(t, 3, list.TotalCount, "TotalCount must count all plans")
+	})
+
+	t.Run("excluded when ExcludeUnrepresentableCurrencies is true, TotalCount stays consistent", func(t *testing.T) {
+		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+			Namespaces:                       []string{namespace},
+			ExcludeUnrepresentableCurrencies: true,
+		})
+		require.NoError(t, err, "listing plans must not fail")
+
+		keys := lo.Map(list.Items, func(p plan.Plan, _ int) string { return p.Key })
+		require.ElementsMatch(t, []string{"plain"}, keys)
+		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude plans with unrepresentable currencies")
 	})
 }
 

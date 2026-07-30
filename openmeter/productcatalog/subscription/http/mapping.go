@@ -5,10 +5,10 @@ import (
 	"slices"
 	"time"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/driver"
@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -479,10 +480,11 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 		},
 	}
 
-	req.Currency = currency.Code(a.Currency)
-	if err = req.Currency.Validate(); err != nil {
+	currencyCode := currencyx.FiatCode(a.Currency)
+	if err = currencyCode.Validate(); err != nil {
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
+	req.Currency = currencies.NewCurrencyReference(currencyx.Code(currencyCode))
 
 	req.PlanMeta.BillingCadence, err = datetime.ISODurationString(a.BillingCadence).Parse()
 	if err != nil {

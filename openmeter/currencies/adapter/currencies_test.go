@@ -10,7 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	customcurrencydb "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -38,17 +41,17 @@ func TestListCustomCurrenciesFiltersCurrencyType(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		currencyType  currencies.CurrencyType
+		currencyType  currencyx.CurrencyType
 		expectedCodes []currencyx.Code
 	}{
 		{
 			name:          "custom",
-			currencyType:  currencies.CurrencyTypeCustom,
+			currencyType:  currencyx.CurrencyTypeCustom,
 			expectedCodes: []currencyx.Code{created.Details().Code},
 		},
 		{
 			name:          "fiat",
-			currencyType:  currencies.CurrencyTypeFiat,
+			currencyType:  currencyx.CurrencyTypeFiat,
 			expectedCodes: nil,
 		},
 	}
@@ -75,6 +78,322 @@ func TestListCustomCurrenciesFiltersCurrencyType(t *testing.T) {
 			assert.Equal(t, len(testCase.expectedCodes), result.TotalCount)
 		})
 	}
+}
+
+func TestCostBasisEagerLoaders(t *testing.T) {
+	env := currenciestestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	at := time.Date(2026, time.July, 27, 12, 0, 0, 0, time.UTC)
+
+	t.Run("active currency", func(t *testing.T) {
+		// given:
+		// - a live currency with cost bases spanning every effective-period and deletion boundary
+		namespace := currenciestestutils.NewTestNamespace(t)
+		currency, err := env.Service.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+			Namespace: namespace,
+			CurrencyDetails: currencyx.CurrencyDetails{
+				Code:               "TOKENS",
+				Name:               "Tokens",
+				Symbol:             "T",
+				Precision:          2,
+				DecimalMark:        ".",
+				ThousandsSeparator: ",",
+			},
+		})
+		require.NoError(t, err)
+
+		fixtures := []struct {
+			name          string
+			fiatCode      currencyx.Code
+			effectiveFrom time.Time
+			effectiveTo   *time.Time
+			deletedAt     *time.Time
+		}{
+			{
+				name:          "expired",
+				fiatCode:      "USD",
+				effectiveFrom: at.Add(-3 * time.Hour),
+				effectiveTo:   lo.ToPtr(at.Add(-2 * time.Hour)),
+			},
+			{
+				name:          "active",
+				fiatCode:      "EUR",
+				effectiveFrom: at.Add(-time.Hour),
+				effectiveTo:   lo.ToPtr(at.Add(time.Hour)),
+			},
+			{
+				name:          "effective from boundary",
+				fiatCode:      "GBP",
+				effectiveFrom: at,
+			},
+			{
+				name:          "effective to boundary",
+				fiatCode:      "CAD",
+				effectiveFrom: at.Add(-time.Hour),
+				effectiveTo:   lo.ToPtr(at),
+			},
+			{
+				name:          "scheduled",
+				fiatCode:      "JPY",
+				effectiveFrom: at.Add(time.Hour),
+			},
+			{
+				name:          "deleted before",
+				fiatCode:      "CHF",
+				effectiveFrom: at.Add(-time.Hour),
+				deletedAt:     lo.ToPtr(at.Add(-time.Second)),
+			},
+			{
+				name:          "deleted at boundary",
+				fiatCode:      "NZD",
+				effectiveFrom: at.Add(-time.Hour),
+				deletedAt:     lo.ToPtr(at),
+			},
+			{
+				name:          "deleted after",
+				fiatCode:      "AUD",
+				effectiveFrom: at.Add(-time.Hour),
+				deletedAt:     lo.ToPtr(at.Add(time.Second)),
+			},
+		}
+
+		ids := make(map[string]string, len(fixtures))
+		for _, fixture := range fixtures {
+			row, err := env.Client.CurrencyCostBasis.Create().
+				SetNamespace(namespace).
+				SetCurrencyID(currency.ID).
+				SetFiatCode(fixture.fiatCode).
+				SetRate(alpacadecimal.RequireFromString("1")).
+				SetEffectiveFrom(fixture.effectiveFrom).
+				SetNillableEffectiveTo(fixture.effectiveTo).
+				SetNillableDeletedAt(fixture.deletedAt).
+				Save(t.Context())
+			require.NoError(t, err)
+			ids[fixture.name] = row.ID
+		}
+
+		testCases := []struct {
+			name        string
+			eagerLoad   func(*entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery
+			expectedIDs []string
+		}{
+			{
+				name: "all non-deleted history",
+				eagerLoad: func(query *entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery {
+					return currencyadapter.WithCostBasis(query)
+				},
+				expectedIDs: []string{
+					ids["expired"],
+					ids["active"],
+					ids["effective from boundary"],
+					ids["effective to boundary"],
+					ids["scheduled"],
+				},
+			},
+			{
+				name: "active",
+				eagerLoad: func(query *entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery {
+					return currencyadapter.WithActiveCostBasis(query, at)
+				},
+				expectedIDs: []string{
+					ids["active"],
+					ids["effective from boundary"],
+					ids["deleted after"],
+				},
+			},
+			{
+				name: "active and scheduled",
+				eagerLoad: func(query *entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery {
+					return currencyadapter.WithActiveAndScheduledCostBasis(query, at)
+				},
+				expectedIDs: []string{
+					ids["active"],
+					ids["effective from boundary"],
+					ids["scheduled"],
+					ids["deleted after"],
+				},
+			},
+		}
+
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				// given:
+				// - the live currency and its complete cost-basis fixture set
+				// when:
+				// - the currency is queried through the selected cost-basis loader
+				actualIDs := loadCostBasisIDs(t, env, currency.ID, testCase.eagerLoad)
+
+				// then:
+				// - lifecycle and effective-period boundaries match that loader's contract
+				assert.ElementsMatch(t, testCase.expectedIDs, actualIDs)
+			})
+		}
+	})
+
+	t.Run("deleted currency", func(t *testing.T) {
+		// given:
+		// - a deleted currency with cost bases spanning its deletion-time snapshot boundaries
+		namespace := currenciestestutils.NewTestNamespace(t)
+		currency, err := env.Service.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+			Namespace: namespace,
+			CurrencyDetails: currencyx.CurrencyDetails{
+				Code:               "CREDITS",
+				Name:               "Credits",
+				Symbol:             "C",
+				Precision:          2,
+				DecimalMark:        ".",
+				ThousandsSeparator: ",",
+			},
+		})
+		require.NoError(t, err)
+
+		deletedAt := at.Add(-24 * time.Hour)
+		fixtures := []struct {
+			name          string
+			fiatCode      currencyx.Code
+			effectiveFrom time.Time
+			effectiveTo   *time.Time
+			deletedAt     *time.Time
+		}{
+			{
+				name:          "expired at deletion",
+				fiatCode:      "USD",
+				effectiveFrom: deletedAt.Add(-3 * time.Hour),
+				effectiveTo:   lo.ToPtr(deletedAt.Add(-time.Hour)),
+				deletedAt:     &deletedAt,
+			},
+			{
+				name:          "active at deletion",
+				fiatCode:      "EUR",
+				effectiveFrom: deletedAt.Add(-time.Hour),
+				effectiveTo:   lo.ToPtr(deletedAt.Add(time.Hour)),
+				deletedAt:     &deletedAt,
+			},
+			{
+				name:          "effective from at deletion",
+				fiatCode:      "GBP",
+				effectiveFrom: deletedAt,
+				deletedAt:     &deletedAt,
+			},
+			{
+				name:          "effective to at deletion",
+				fiatCode:      "CAD",
+				effectiveFrom: deletedAt.Add(-time.Hour),
+				effectiveTo:   &deletedAt,
+				deletedAt:     &deletedAt,
+			},
+			{
+				name:          "scheduled after deletion",
+				fiatCode:      "JPY",
+				effectiveFrom: deletedAt.Add(time.Hour),
+				deletedAt:     &deletedAt,
+			},
+			{
+				name:          "different deletion timestamp",
+				fiatCode:      "CHF",
+				effectiveFrom: deletedAt.Add(-time.Hour),
+				deletedAt:     lo.ToPtr(deletedAt.Add(time.Second)),
+			},
+			{
+				name:          "not deleted",
+				fiatCode:      "AUD",
+				effectiveFrom: deletedAt.Add(-time.Hour),
+			},
+		}
+
+		ids := make(map[string]string, len(fixtures))
+		for _, fixture := range fixtures {
+			row, err := env.Client.CurrencyCostBasis.Create().
+				SetNamespace(namespace).
+				SetCurrencyID(currency.ID).
+				SetFiatCode(fixture.fiatCode).
+				SetRate(alpacadecimal.RequireFromString("1")).
+				SetEffectiveFrom(fixture.effectiveFrom).
+				SetNillableEffectiveTo(fixture.effectiveTo).
+				SetNillableDeletedAt(fixture.deletedAt).
+				Save(t.Context())
+			require.NoError(t, err)
+			ids[fixture.name] = row.ID
+		}
+
+		_, err = env.Client.CustomCurrency.UpdateOneID(currency.ID).
+			SetDeletedAt(deletedAt).
+			Save(t.Context())
+		require.NoError(t, err)
+
+		testCases := []struct {
+			name        string
+			eagerLoad   func(*entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery
+			expectedIDs []string
+		}{
+			{
+				name: "all non-deleted history",
+				eagerLoad: func(query *entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery {
+					return currencyadapter.WithCostBasis(query)
+				},
+				expectedIDs: []string{ids["not deleted"]},
+			},
+			{
+				name: "active",
+				eagerLoad: func(query *entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery {
+					return currencyadapter.WithActiveCostBasis(query, at)
+				},
+				expectedIDs: []string{
+					ids["active at deletion"],
+					ids["effective from at deletion"],
+				},
+			},
+			{
+				name: "active and scheduled",
+				eagerLoad: func(query *entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery {
+					return currencyadapter.WithActiveAndScheduledCostBasis(query, at)
+				},
+				expectedIDs: []string{
+					ids["active at deletion"],
+					ids["effective from at deletion"],
+				},
+			},
+		}
+
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				// given:
+				// - the deleted currency and its complete cost-basis fixture set
+				// when:
+				// - the deleted currency is queried through the selected cost-basis loader
+				actualIDs := loadCostBasisIDs(t, env, currency.ID, testCase.eagerLoad)
+
+				// then:
+				// - snapshot loaders use the currency deletion instant while history ignores deleted rows
+				assert.ElementsMatch(t, testCase.expectedIDs, actualIDs)
+			})
+		}
+	})
+}
+
+func loadCostBasisIDs(
+	t *testing.T,
+	env *currenciestestutils.TestEnv,
+	currencyID string,
+	eagerLoad func(*entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery,
+) []string {
+	t.Helper()
+
+	row, err := eagerLoad(
+		env.Client.CustomCurrency.Query(),
+	).Where(customcurrencydb.ID(currencyID)).Only(t.Context())
+	require.NoError(t, err)
+
+	result, err := currencyadapter.FromDBCustomCurrency(row)
+	require.NoError(t, err)
+	require.NotNil(t, result.CostBasis)
+
+	return lo.Map(*result.CostBasis, func(item currencies.CostBasis, _ int) string {
+		return item.ID
+	})
 }
 
 func TestGetCostBasisAt(t *testing.T) {

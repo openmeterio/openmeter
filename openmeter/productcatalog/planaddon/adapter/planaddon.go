@@ -58,7 +58,7 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 		}
 
 		if len(params.Currencies) > 0 {
-			planOrFilters = append(planOrFilters, plandb.CurrencyIn(params.Currencies...))
+			planOrFilters = append(planOrFilters, plandb.CurrencyCodeIn(params.Currencies...))
 		}
 
 		if len(planOrFilters) > 0 {
@@ -90,7 +90,7 @@ func (a *adapter) ListPlanAddons(ctx context.Context, params planaddon.ListPlanA
 		}
 
 		if len(params.Currencies) > 0 {
-			addonOrFilters = append(addonOrFilters, addondb.CurrencyIn(params.Currencies...))
+			addonOrFilters = append(addonOrFilters, addondb.CurrencyCodeIn(params.Currencies...))
 		}
 
 		if len(addonOrFilters) > 0 {

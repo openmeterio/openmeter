@@ -48,7 +48,7 @@ union Currency {
 @extension("x-go-type", "string")
 union CurrencyCode {
   Shared.CurrencyCode,
-  // CurrencyCodeCustom,
+  CurrencyCodeCustom,
 }
 
 /**

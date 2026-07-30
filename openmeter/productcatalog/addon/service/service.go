@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -16,7 +17,8 @@ type Config struct {
 	Logger    *slog.Logger
 	Publisher eventbus.Publisher
 
-	FeatureResolver productcatalog.FeatureResolver
+	FeatureResolver  productcatalog.FeatureResolver
+	CurrencyResolver currencies.CurrencyResolver
 }
 
 func New(config Config) (addon.Service, error) {
@@ -26,6 +28,10 @@ func New(config Config) (addon.Service, error) {
 
 	if config.FeatureResolver == nil {
 		return nil, errors.New("feature resolver is required")
+	}
+
+	if config.CurrencyResolver == nil {
+		return nil, errors.New("currency resolver is required")
 	}
 
 	if config.TaxCode == nil {
@@ -46,7 +52,8 @@ func New(config Config) (addon.Service, error) {
 		logger:    config.Logger,
 		publisher: config.Publisher,
 
-		featureResolver: config.FeatureResolver,
+		featureResolver:  config.FeatureResolver,
+		currencyResolver: config.CurrencyResolver,
 	}, nil
 }
 
@@ -58,5 +65,6 @@ type service struct {
 	logger    *slog.Logger
 	publisher eventbus.Publisher
 
-	featureResolver productcatalog.FeatureResolver
+	featureResolver  productcatalog.FeatureResolver
+	currencyResolver currencies.CurrencyResolver
 }

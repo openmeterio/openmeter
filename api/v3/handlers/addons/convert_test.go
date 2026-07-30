@@ -10,10 +10,38 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestBillingRateCardCurrencyRoundTrip(t *testing.T) {
+	customCurrency := currencyx.Code("CREDITS")
+	reference := currencies.NewCurrencyReference(customCurrency)
+	rateCard := &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:      "fee",
+			Name:     "Fee",
+			Currency: &reference,
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      decimal.NewFromInt(10),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+	}
+
+	apiRateCard, err := ToAPIBillingRateCard(rateCard)
+	require.NoError(t, err)
+	require.NotNil(t, apiRateCard.Currency)
+	assert.Equal(t, customCurrency.String(), *apiRateCard.Currency)
+
+	roundTripped, err := FromAPIBillingRateCard(apiRateCard)
+	require.NoError(t, err)
+	require.NotNil(t, roundTripped.AsMeta().Currency)
+	assert.Equal(t, customCurrency, roundTripped.AsMeta().Currency.GetCode())
+}
 
 func roundTripStaticConfig(t *testing.T, config interface{}) interface{} {
 	t.Helper()

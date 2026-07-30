@@ -12,10 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -41,7 +43,7 @@ func newTestPlan(t *testing.T) plan.Plan {
 			Key:            "pro",
 			Version:        1,
 			Name:           "Pro Plan",
-			Currency:       currency.USD,
+			Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 			BillingCadence: billingCadence,
 			ProRatingConfig: productcatalog.ProRatingConfig{
 				Enabled: true,
@@ -308,6 +310,26 @@ func TestFromPlanWithPhases(t *testing.T) {
 }
 
 func TestFromRateCard(t *testing.T) {
+	t.Run("custom currency override round trips", func(t *testing.T) {
+		custom := currencyx.Code("CREDITS")
+		reference := currencies.NewCurrencyReference(custom)
+		rc := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:      "credits",
+				Name:     "Credits",
+				Currency: &reference,
+			},
+		}
+
+		apiRateCard, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+		require.Equal(t, lo.ToPtr(api.BillingCurrencyCode(custom)), apiRateCard.Currency)
+
+		domainRateCard, err := FromAPIBillingRateCard(apiRateCard)
+		require.NoError(t, err)
+		require.Equal(t, custom, domainRateCard.AsMeta().Currency.GetCode())
+	})
+
 	t.Run("flat fee — no price, no cadence (one-time free)", func(t *testing.T) {
 		rc := &productcatalog.FlatFeeRateCard{
 			RateCardMeta: productcatalog.RateCardMeta{
@@ -1113,7 +1135,7 @@ func TestToCreatePlanInput(t *testing.T) {
 		assert.Equal(t, "test-ns", result.Namespace)
 		assert.Equal(t, "pro", result.Key)
 		assert.Equal(t, "Pro Plan", result.Name)
-		assert.Equal(t, "USD", result.Currency.String())
+		assert.Equal(t, currencyx.Code("USD"), result.Currency.Code)
 		assert.Equal(t, "P1M", result.BillingCadence.ISOString().String())
 		require.NotNil(t, result.Description)
 		assert.Equal(t, "A great plan", *result.Description)

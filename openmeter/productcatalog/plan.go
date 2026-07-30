@@ -7,9 +7,9 @@ import (
 	"slices"
 	"time"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -69,6 +69,15 @@ func (p Plan) ValidateWith(validators ...models.ValidatorFunc[Plan]) error {
 func (p Plan) HasUnitConfig() bool {
 	return lo.SomeBy(p.Phases, func(ph Phase) bool {
 		return ph.RateCards.HasUnitConfig()
+	})
+}
+
+// HasCurrencyOverrides reports whether any rate card explicitly overrides the
+// plan currency. The v1 API cannot represent these overrides, so v1 read and
+// mutation surfaces use this to avoid silently stripping them.
+func (p Plan) HasCurrencyOverrides() bool {
+	return lo.SomeBy(p.Phases, func(ph Phase) bool {
+		return ph.RateCards.HasCurrencyOverride()
 	})
 }
 
@@ -178,10 +187,93 @@ func ValidatePlanHasAlignedBillingCadences() models.ValidatorFunc[Plan] {
 	}
 }
 
+// ValidatePlanCurrencyCodes enforces the allowed relationship between the
+// plan's default currency and rate card overrides. Managed-resource existence
+// and cost-basis availability are validated separately by the plan service.
+func ValidatePlanCurrencyCodes() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		if p.Currency.Code == "" {
+			return models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				ErrCurrencyInvalid,
+			)
+		}
+
+		var errs []error
+
+		for _, phase := range p.Phases {
+			for _, rateCard := range phase.RateCards {
+				override := rateCard.AsMeta().Currency
+				if override == nil {
+					continue
+				}
+
+				fieldSelector := models.NewFieldSelectorGroup(
+					models.NewFieldSelector("phases").
+						WithExpression(models.NewFieldAttrValue("key", phase.Key)),
+					models.NewFieldSelector("rateCards").
+						WithExpression(models.NewFieldAttrValue("key", rateCard.Key())),
+					models.NewFieldSelector("currency"),
+				)
+
+				switch {
+				case !p.Currency.IsFiat():
+					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardCurrencyOverrideNotAllowed))
+				case override.Equal(p.Currency):
+					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardCurrencyOverrideRedundant))
+				case override.IsFiat():
+					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, ErrPlanMultipleFiatCurrencies))
+				}
+			}
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
+// ValidatePlanWithCurrencies validates managed currency references and ensures
+// custom rate card currencies under a fiat credit-then-invoice plan have a
+// matching cost basis effective at validation time.
+func ValidatePlanWithCurrencies() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		var errs []error
+
+		if err := ValidateCurrency()(p.Currency); err != nil {
+			return models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				err,
+			)
+		}
+
+		validationOption := ValidationOptionCostBasisRequiredTrue
+		if p.SettlementMode == CreditOnlySettlementMode {
+			validationOption = ValidationOptionCostBasisRequiredFalse
+		}
+		validateCurrencyOverride := ValidateCurrencyWithOverride(p.Currency, validationOption)
+		for _, phase := range p.Phases {
+			for _, rateCard := range phase.RateCards {
+				if err := validateCurrencyOverride(rateCard.AsMeta().Currency); err != nil {
+					fieldSelector := models.NewFieldSelectorGroup(
+						models.NewFieldSelector("phases").
+							WithExpression(models.NewFieldAttrValue("key", phase.Key)),
+						models.NewFieldSelector("rateCards").
+							WithExpression(models.NewFieldAttrValue("key", rateCard.Key())),
+						models.NewFieldSelector("currency"),
+					)
+					errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, err))
+				}
+			}
+		}
+
+		return errors.Join(errs...)
+	}
+}
+
 func (p Plan) Validate() error {
 	return p.ValidateWith(
 		ValidatePlanMeta(),
 		ValidatePlanPhases(),
+		ValidatePlanCurrencyCodes(),
 		ValidatePlanBillingCadenceLiteral(),
 		ValidatePlanHasAlignedBillingCadences(),
 	)
@@ -228,7 +320,7 @@ type PlanMeta struct {
 	Description *string `json:"description,omitempty"`
 
 	// Currency
-	Currency currency.Code `json:"currency"`
+	Currency currencies.CurrencyReference `json:"currency"`
 
 	// BillingCadence is the default billing cadence for subscriptions using this plan.
 	BillingCadence datetime.ISODuration `json:"billing_cadence"`
@@ -248,7 +340,10 @@ func (p PlanMeta) Validate() error {
 	var errs []error
 
 	if err := p.Currency.Validate(); err != nil {
-		errs = append(errs, ErrCurrencyInvalid)
+		errs = append(errs, models.ErrorWithFieldPrefix(
+			models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+			err,
+		))
 	}
 
 	if err := p.EffectivePeriod.Validate(); err != nil {
@@ -292,7 +387,7 @@ func (p PlanMeta) Equal(o PlanMeta) bool {
 		return false
 	}
 
-	if p.Currency != o.Currency {
+	if !p.Currency.Equal(o.Currency) {
 		return false
 	}
 
