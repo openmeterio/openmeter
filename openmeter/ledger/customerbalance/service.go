@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -120,6 +121,8 @@ func (i GetBalanceServiceInput) Validate() error {
 
 	if err := ledger.ValidateCurrency(i.Currency); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if i.Currency.IsCustom() {
+		errs = append(errs, fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
@@ -190,14 +193,14 @@ func (i GetBalanceCurrenciesInput) pendingGrantAsOf() time.Time {
 
 func (i GetBalanceServiceInput) bookedRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = i.Currency
+	route.Currency = currencies.NewCurrencyReference(i.Currency)
 
 	return route
 }
 
 func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = i.Currency
+	route.Currency = currencies.NewCurrencyReference(i.Currency)
 	route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
 
 	return route
@@ -463,7 +466,7 @@ func (s *service) getFBOCurrencies(ctx context.Context, customerID customer.Cust
 	codes := make([]currencyx.Code, 0, len(subAccounts))
 
 	for _, sa := range subAccounts {
-		c := sa.Route().Currency
+		c := sa.Route().Currency.Code
 		if _, ok := seen[c]; ok {
 			continue
 		}

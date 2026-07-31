@@ -747,7 +747,7 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 
 	costBasis := alpacadecimal.Zero
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CostBasis:      &costBasis,
 		CreditPriority: priority,
 	})
@@ -767,20 +767,20 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 		transactions.IssueCustomerReceivableTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
+			Currency:  e.CurrencyReference(),
 			CostBasis: &costBasis,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
+			Currency:  e.CurrencyReference(),
 			CostBasis: &costBasis,
 		},
 	)
@@ -815,7 +815,7 @@ func (e *usageBasedHandlerTestEnv) unknownReceivableSubAccountForFeature(t *test
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       e.Currency,
+		Currency:                       e.CurrencyReference(),
 		CostBasis:                      nil,
 		Features:                       []string{featureKey},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -855,7 +855,7 @@ func (e *usageBasedHandlerTestEnv) creditEarningsSubAccount(t *testing.T) ledger
 
 func (e *usageBasedHandlerTestEnv) unknownFboSubAccount(t *testing.T) ledger.SubAccount {
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)

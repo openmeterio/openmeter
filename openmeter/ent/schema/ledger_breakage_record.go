@@ -47,10 +47,7 @@ func (LedgerBreakageRecord) Fields() []ent.Field {
 		field.String("currency").
 			GoType(currencyx.Code("")).
 			NotEmpty().
-			Immutable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
-			}),
+			Immutable(),
 		field.Int("credit_priority").
 			Immutable(),
 		field.Time("expires_at").

@@ -158,7 +158,7 @@ func TestRecognizeEarnings_IdempotencyOnUnchangedState(t *testing.T) {
 
 	// Set up accrued balance and lineage.
 	env.resolveAndCommit(t, transactions.TransferCustomerReceivableToAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.Currency, CostBasis: &costBasis,
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(), CostBasis: &costBasis,
 	})
 	env.createLineageForRealization(t, chargeID, realID, alpacadecimal.NewFromInt(50), creditrealization.LineageOriginKindRealCredit)
 
@@ -197,7 +197,7 @@ func TestRecognizeEarnings_DeterministicAllocationAndSegmentTransition(t *testin
 
 	// Set up accrued balance and two lineages.
 	env.resolveAndCommit(t, transactions.TransferCustomerReceivableToAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(70), Currency: env.Currency, CostBasis: &costBasis,
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(70), Currency: env.CurrencyReference(), CostBasis: &costBasis,
 	})
 	env.createLineageForRealization(t, chargeID, realA, alpacadecimal.NewFromInt(30), creditrealization.LineageOriginKindRealCredit)
 	env.createLineageForRealization(t, chargeID, realB, alpacadecimal.NewFromInt(40), creditrealization.LineageOriginKindRealCredit)

@@ -9,6 +9,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
@@ -43,7 +44,7 @@ func TestAdapter_ListExpiredRecordsFiltersByRoute(t *testing.T) {
 		{
 			name: "unrestricted exact route",
 			route: ledger.RouteFilter{
-				Currency: env.Currency,
+				Currency: currencies.NewCurrencyReference(env.Currency),
 				Features: mo.Some[[]string](nil),
 			},
 			want: []string{"unrestricted"},
@@ -51,7 +52,7 @@ func TestAdapter_ListExpiredRecordsFiltersByRoute(t *testing.T) {
 		{
 			name: "feature match route includes unrestricted and containing features",
 			route: ledger.RouteFilter{
-				Currency:     env.Currency,
+				Currency:     currencies.NewCurrencyReference(env.Currency),
 				MatchFeature: "feature-a",
 			},
 			want: []string{"unrestricted", "feature-a", "feature-a-b"},
@@ -59,7 +60,7 @@ func TestAdapter_ListExpiredRecordsFiltersByRoute(t *testing.T) {
 		{
 			name: "exact feature route",
 			route: ledger.RouteFilter{
-				Currency: env.Currency,
+				Currency: currencies.NewCurrencyReference(env.Currency),
 				Features: mo.Some([]string{"feature-b"}),
 			},
 			want: []string{"feature-b"},
@@ -67,7 +68,7 @@ func TestAdapter_ListExpiredRecordsFiltersByRoute(t *testing.T) {
 		{
 			name: "currency route",
 			route: ledger.RouteFilter{
-				Currency: currencyx.Code("EUR"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("EUR")),
 			},
 			want: []string{"eur-unrestricted"},
 		},
@@ -110,14 +111,14 @@ func newExpiredRecord(
 	t.Helper()
 
 	fboSubAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       currency,
+		Currency:       currencies.NewCurrencyReference(currency),
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 		Features:       features,
 	})
 	require.NoError(t, err)
 
 	breakageSubAccount, err := env.BusinessAccounts.BreakageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency: currency,
+		Currency: currencies.NewCurrencyReference(currency),
 	})
 	require.NoError(t, err)
 

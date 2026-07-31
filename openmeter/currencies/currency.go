@@ -1,9 +1,12 @@
 package currencies
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/samber/lo"
 
@@ -19,21 +22,36 @@ type CurrencyReference struct {
 	resolved *Currency
 }
 
+const (
+	currencyReferenceSerializationVersionV1 = "v1"
+	currencyReferenceSerializationDelimiter = "|"
+)
+
 func NewCurrencyReference(code currencyx.Code) CurrencyReference {
 	return CurrencyReference{Code: code}
 }
 
-// IsResolved reports whether the reference contains the runtime state required
-// by currency-aware validation. Custom currencies require the cost-basis edge
-// to be loaded; a non-nil empty slice means it was loaded but has no entries.
+// IsResolved reports whether the currency definition is available locally.
+// Fiat definitions are resolved by code. Custom definitions are hydrated from
+// the currency service or a persisted immutable snapshot.
 func (r CurrencyReference) IsResolved() bool {
 	if r.IsFiat() {
 		return true
 	}
 
 	return r.CustomCurrencyID != nil &&
-		r.resolved != nil &&
-		r.resolved.CostBasis != nil
+		r.resolved != nil
+}
+
+// IsCostBasisResolved reports whether currency resolution also expanded the
+// custom currency's cost-basis history. A non-nil empty slice means the
+// expansion completed but found no entries.
+func (r CurrencyReference) IsCostBasisResolved() bool {
+	if r.IsFiat() {
+		return true
+	}
+
+	return r.IsResolved() && r.resolved.CostBasis != nil
 }
 
 func (r CurrencyReference) CustomCurrency() (*Currency, bool) {
@@ -58,6 +76,16 @@ func (r CurrencyReference) Equal(other CurrencyReference) bool {
 	return r.Code == other.Code && lo.FromPtr(r.CustomCurrencyID) == lo.FromPtr(other.CustomCurrencyID)
 }
 
+// IdentityKey returns the stable comparable identity used when values must be
+// grouped without carrying the runtime-resolved currency definition.
+func (r CurrencyReference) IdentityKey() string {
+	if r.CustomCurrencyID != nil {
+		return "CUSTOM:" + r.Code.String() + ":" + *r.CustomCurrencyID
+	}
+
+	return "FIAT:" + r.Code.String()
+}
+
 func (r CurrencyReference) Clone() CurrencyReference {
 	if r.CustomCurrencyID != nil {
 		r.CustomCurrencyID = lo.ToPtr(*r.CustomCurrencyID)
@@ -77,6 +105,121 @@ func (r CurrencyReference) String() string {
 	}
 
 	return fmt.Sprintf("%s [type=%s]", r.Code, r.Code.Type())
+}
+
+// MarshalText returns the stable persisted representation used by ledger
+// currency dimensions. Custom references must be hydrated so their immutable
+// precision snapshot is retained without a later currency-service lookup.
+func (r CurrencyReference) MarshalText() ([]byte, error) {
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+
+	if r.IsFiat() {
+		return []byte(r.Code), nil
+	}
+
+	if !r.IsResolved() {
+		return nil, errors.New("custom currency reference must be resolved")
+	}
+
+	currency, _ := r.CustomCurrency()
+
+	return []byte(strings.Join([]string{
+		"custom",
+		currencyReferenceSerializationVersionV1,
+		r.Code.String(),
+		*r.CustomCurrencyID,
+		strconv.FormatUint(uint64(currency.Details().Precision), 10),
+	}, currencyReferenceSerializationDelimiter)), nil
+}
+
+// MarshalTextPrefix returns the stable storage prefix for an unresolved
+// custom-currency filter. Resolved references should use MarshalText for an
+// exact match.
+func (r CurrencyReference) MarshalTextPrefix() ([]byte, error) {
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+
+	if r.IsFiat() {
+		return []byte(r.Code), nil
+	}
+
+	segments := []string{
+		"custom",
+		currencyReferenceSerializationVersionV1,
+		r.Code.String(),
+	}
+	if r.CustomCurrencyID != nil {
+		segments = append(segments, *r.CustomCurrencyID)
+	}
+
+	return []byte(strings.Join(segments, currencyReferenceSerializationDelimiter) + currencyReferenceSerializationDelimiter), nil
+}
+
+// MarshalJSON preserves the public object representation after implementing
+// encoding.TextMarshaler for the ledger currency dimension.
+func (r CurrencyReference) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Code             currencyx.Code `json:"code"`
+		CustomCurrencyID *string        `json:"custom_currency_id,omitempty"`
+	}{
+		Code:             r.Code,
+		CustomCurrencyID: r.CustomCurrencyID,
+	})
+}
+
+func ParseCurrencyReference(value []byte) (CurrencyReference, error) {
+	serialized := string(value)
+	segments := strings.Split(serialized, currencyReferenceSerializationDelimiter)
+	if len(segments) == 1 {
+		reference := NewCurrencyReference(currencyx.Code(serialized))
+		if err := reference.Validate(); err != nil {
+			return CurrencyReference{}, err
+		}
+		if !reference.IsFiat() {
+			return CurrencyReference{}, errors.New("custom currency reference snapshot is required")
+		}
+
+		return reference, nil
+	}
+
+	if len(segments) != 5 || segments[0] != "custom" {
+		return CurrencyReference{}, fmt.Errorf("invalid currency reference %q", serialized)
+	}
+	if segments[1] != currencyReferenceSerializationVersionV1 {
+		return CurrencyReference{}, fmt.Errorf("unsupported currency reference version %q", segments[1])
+	}
+
+	code := currencyx.Code(segments[2])
+	if !code.IsCustom() {
+		return CurrencyReference{}, fmt.Errorf("custom currency reference requires a custom currency code: %q", code)
+	}
+	if segments[3] == "" {
+		return CurrencyReference{}, errors.New("custom currency id is required")
+	}
+
+	precision, err := strconv.ParseUint(segments[4], 10, 32)
+	if err != nil {
+		return CurrencyReference{}, fmt.Errorf("invalid custom currency precision %q: %w", segments[4], err)
+	}
+
+	resolved, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(code).
+		WithName(code.String()).
+		WithPrecision(uint32(precision)).
+		Build()
+	if err != nil {
+		return CurrencyReference{}, fmt.Errorf("build custom currency snapshot: %w", err)
+	}
+
+	currency := Currency{
+		NamespacedID: models.NamespacedID{ID: segments[3]},
+		Currency:     resolved,
+	}
+
+	return currency.Reference(), nil
 }
 
 func (r CurrencyReference) Validate() error {

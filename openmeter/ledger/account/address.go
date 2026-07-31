@@ -38,7 +38,11 @@ func newSubAccountRouteFromAddressData(data AddressData) (ledger.SubAccountRoute
 		return ledger.SubAccountRoute{}, errors.New("route id is required")
 	}
 
-	subRoute, err := ledger.NewSubAccountRouteFromData(data.RouteID, data.RoutingKey, data.Route)
+	subRoute, err := ledger.NewSubAccountRouteFromData(ledger.SubAccountRouteData{
+		ID:         data.RouteID,
+		RoutingKey: data.RoutingKey,
+		Route:      data.Route,
+	})
 	if err != nil {
 		return ledger.SubAccountRoute{}, fmt.Errorf("route: %w", err)
 	}

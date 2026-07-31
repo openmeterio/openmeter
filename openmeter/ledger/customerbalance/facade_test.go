@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -152,6 +153,21 @@ func TestFacadeGetBalancesWithInvalidExplicitCurrency(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorContains(t, err, "X")
 	require.ErrorContains(t, err, "not supported by ledger")
+}
+
+func TestFacadeGetBalancesRejectsExplicitCustomCurrency(t *testing.T) {
+	env := newTestEnv(t)
+
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+
+	_, err = facade.GetBalances(t.Context(), GetBalancesInput{
+		CustomerID: env.CustomerID,
+		Currencies: CurrencyFilter{
+			Codes: []currencyx.Code{"CUSTOM"},
+		},
+	})
+	require.ErrorIs(t, err, chargemeta.ErrCustomCurrencyNotSupported)
 }
 
 func TestFacadeGetBalanceAfterTransactionCursor(t *testing.T) {

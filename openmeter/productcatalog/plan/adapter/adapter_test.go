@@ -320,7 +320,8 @@ func TestPostgresAdapter(t *testing.T) {
 				},
 			})
 			require.NoError(t, err)
-			require.False(t, expandedCurrencyOnly.Currency.IsResolved())
+			require.True(t, expandedCurrencyOnly.Currency.IsResolved())
+			require.False(t, expandedCurrencyOnly.Currency.IsCostBasisResolved())
 			managedWithoutCostBasis, ok := expandedCurrencyOnly.Currency.CustomCurrency()
 			require.True(t, ok)
 			require.Equal(t, custom.ID, managedWithoutCostBasis.ID)
@@ -336,6 +337,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.True(t, expanded.Currency.IsResolved())
+			require.True(t, expanded.Currency.IsCostBasisResolved())
 			managedCurrency, ok := expanded.Currency.CustomCurrency()
 			require.True(t, ok)
 			require.Equal(t, custom.ID, managedCurrency.ID)

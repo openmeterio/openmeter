@@ -76,7 +76,11 @@ func (a *adapter) ListRecords(ctx context.Context, input creditvoid.ListRecordsI
 		if input.Currency != nil {
 			predicates = append(predicates, dbledgercreditvoidrecord.CurrencyEQ(*input.Currency))
 		}
-		if routePredicate := voidRecordRoutePredicate(input.Route); routePredicate != nil {
+		routePredicate, err := voidRecordRoutePredicate(input.Route)
+		if err != nil {
+			return nil, fmt.Errorf("build route predicate: %w", err)
+		}
+		if routePredicate != nil {
 			predicates = append(predicates, routePredicate)
 		}
 

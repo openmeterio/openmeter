@@ -533,8 +533,8 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
-	// Let's buy 100.123 USD credits for $0.50 each. The credit amount is rounded
-	// to 100.12 USD, so the total fiat cost is $50.06.
+	// Let's buy 100.123 USD credits at a $0.50 cost basis. The external
+	// payment settles for $50.06 after rounding to USD precision.
 	intent := CreateCreditPurchaseIntent(s.T(),
 		createCreditPurchaseIntentInput{
 			customer: cust.GetID(),

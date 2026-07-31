@@ -10,11 +10,11 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // collectCustomerFBOSelections builds the sources used by FBO->accrued
@@ -25,7 +25,7 @@ import (
 func (c *accrualCollector) collectCustomerFBOSelections(
 	ctx context.Context,
 	customerID customer.CustomerID,
-	currency currencyx.Code,
+	currency currencies.CurrencyReference,
 	featureKey string,
 	target alpacadecimal.Decimal,
 	asOf time.Time,
@@ -44,7 +44,7 @@ func (c *accrualCollector) collectCustomerFBOSelections(
 func (c *accrualCollector) listCustomerFBOSources(
 	ctx context.Context,
 	customerID customer.CustomerID,
-	currency currencyx.Code,
+	currency currencies.CurrencyReference,
 	featureKey string,
 	asOf time.Time,
 ) ([]fboCollectionSource, error) {
@@ -82,7 +82,7 @@ func (c *accrualCollector) listCustomerFBOSources(
 func (c *accrualCollector) mapBreakagePlansToFBOCollectionSources(
 	ctx context.Context,
 	customerID customer.CustomerID,
-	currency currencyx.Code,
+	currency currencies.CurrencyReference,
 	featureKey string,
 	asOf time.Time,
 	sources []fboCollectionSource,
@@ -92,7 +92,7 @@ func (c *accrualCollector) mapBreakagePlansToFBOCollectionSources(
 	// available to collect.
 	openPlans, err := c.breakage.ListPlans(ctx, breakage.ListPlansInput{
 		CustomerID: customerID,
-		Currency:   currency,
+		Currency:   currency.Code,
 		AsOf:       asOf,
 	})
 	if err != nil {
@@ -101,7 +101,9 @@ func (c *accrualCollector) mapBreakagePlansToFBOCollectionSources(
 
 	breakageSources := make([]fboCollectionSource, 0, len(openPlans)+len(sources))
 	for _, plan := range openPlans {
-		reservedSources := reserveSourcesForBreakagePlan(sources, plan, featureKey)
+		// ponytail: ListPlans filters by code; keep the exact managed identity
+		// check here until same-code plan locking warrants an adapter-level filter.
+		reservedSources := reserveSourcesForBreakagePlan(sources, plan, currency, featureKey)
 		if len(reservedSources) == 0 {
 			continue
 		}
@@ -140,9 +142,13 @@ func (c *accrualCollector) mapBreakagePlansToFBOCollectionSources(
 func reserveSourcesForBreakagePlan(
 	sources []fboCollectionSource,
 	plan breakage.Plan,
+	currency currencies.CurrencyReference,
 	featureKey string,
 ) []fboCollectionSource {
 	route := plan.FBOAddress.Route().Route()
+	if !route.Currency.Equal(currency) {
+		return nil
+	}
 	if len(route.Features) > 0 && !lo.Contains(route.Features, featureKey) {
 		return nil
 	}
@@ -158,7 +164,7 @@ func (c *accrualCollector) listCustomerFBOBalanceBucketSources(
 	ctx context.Context,
 	namespace string,
 	accountID string,
-	currency currencyx.Code,
+	currency currencies.CurrencyReference,
 	featureKey string,
 	asOf time.Time,
 ) ([]fboCollectionSource, error) {

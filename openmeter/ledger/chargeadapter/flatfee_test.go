@@ -809,7 +809,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeatures(t *testing.T, priority 
 
 	costBasis := alpacadecimal.Zero
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CostBasis:      &costBasis,
 		CreditPriority: priority,
 		Features:       features,
@@ -830,7 +830,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeatures(t *testing.T, priority 
 		transactions.IssueCustomerReceivableTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
 			Features:       features,
@@ -838,14 +838,14 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeatures(t *testing.T, priority 
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
+			Currency:  e.CurrencyReference(),
 			CostBasis: &costBasis,
 			Features:  features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
+			Currency:  e.CurrencyReference(),
 			CostBasis: &costBasis,
 			Features:  features,
 		},
@@ -1072,7 +1072,7 @@ func (e *flatFeeHandlerTestEnv) unknownReceivableSubAccount(t *testing.T) ledger
 
 func (e *flatFeeHandlerTestEnv) unknownFboSubAccount(t *testing.T) ledger.SubAccount {
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)

@@ -125,8 +125,9 @@ func (s *Service) AuthorizeExternalPayment(ctx context.Context, charge creditpur
 
 	eventAt := clock.Now()
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: eventAt,
+		Charge:     charge,
+		EventAt:    eventAt,
+		FiatAmount: fiatAmount,
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, err
@@ -171,8 +172,9 @@ func (s *Service) SettleExternalPayment(ctx context.Context, charge creditpurcha
 
 	eventAt := clock.Now()
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentSettled(ctx, creditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: eventAt,
+		Charge:     charge,
+		EventAt:    eventAt,
+		FiatAmount: paymentSettlement.FiatAmount,
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, err

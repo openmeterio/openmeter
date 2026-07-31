@@ -12,6 +12,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgeraccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
@@ -44,6 +45,11 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 			return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing route edge: %w", entry.ID, subAccount.ID, err)
 		}
 
+		currency, err := currencies.ParseCurrencyReference([]byte(route.Currency))
+		if err != nil {
+			return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s route currency: %w", entry.ID, err)
+		}
+
 		return ledgerhistorical.EntryData{
 			ID:             entry.ID,
 			Namespace:      entry.Namespace,
@@ -56,7 +62,8 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 			SubAccountID:   entry.SubAccountID,
 			AccountType:    account.AccountType,
 			Route: ledger.Route{
-				Currency:                       currencyx.Code(route.Currency),
+				Currency:                       currency,
+				CostBasisCurrency:              route.CostBasisCurrency,
 				TaxCode:                        route.TaxCode,
 				TaxBehavior:                    route.TaxBehavior,
 				Features:                       route.Features,
@@ -201,12 +208,17 @@ func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledg
 }
 
 func (r *repo) GetTransactionGroup(ctx context.Context, id models.NamespacedID) (*ledgerhistorical.TransactionGroup, error) {
+	return r.getTransactionGroup(
+		ctx,
+		ledgertransactiongroupdb.Namespace(id.Namespace),
+		ledgertransactiongroupdb.ID(id.ID),
+	)
+}
+
+func (r *repo) getTransactionGroup(ctx context.Context, predicates ...predicate.LedgerTransactionGroup) (*ledgerhistorical.TransactionGroup, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgerhistorical.TransactionGroup, error) {
 		entity, err := tx.db.LedgerTransactionGroup.Query().
-			Where(
-				ledgertransactiongroupdb.Namespace(id.Namespace),
-				ledgertransactiongroupdb.ID(id.ID),
-			).
+			Where(predicates...).
 			WithTransactions(func(q *db.LedgerTransactionQuery) {
 				q.Order(
 					ledgertransactiondb.ByCreatedAt(),
@@ -282,8 +294,14 @@ func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecima
 
 func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (ledger.ListTransactionsResult, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (ledger.ListTransactionsResult, error) {
-		entryPredicates := listTransactionsEntryPredicates(input.AccountIDs, input.Currency, input.Route)
-		subAccountPredicates := listTransactionsSubAccountPredicates(input.AccountIDs, input.Currency, input.Route)
+		entryPredicates, err := listTransactionsEntryPredicates(input.AccountIDs, input.Currency, input.Route)
+		if err != nil {
+			return ledger.ListTransactionsResult{}, err
+		}
+		subAccountPredicates, err := listTransactionsSubAccountPredicates(input.AccountIDs, input.Currency, input.Route)
+		if err != nil {
+			return ledger.ListTransactionsResult{}, err
+		}
 
 		query := tx.db.LedgerTransaction.Query().
 			Where(ledgertransactiondb.Namespace(input.Namespace)).
@@ -398,43 +416,78 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 	})
 }
 
-func listTransactionsEntryPredicates(accountIDs []string, currency *currencyx.Code, route ledger.RouteFilter) []predicate.LedgerEntry {
+func listTransactionsEntryPredicates(accountIDs []string, currency *currencyx.Code, route ledger.RouteFilter) ([]predicate.LedgerEntry, error) {
 	entryPredicates := make([]predicate.LedgerEntry, 0, 2)
-	subAccountPredicates := listTransactionsSubAccountPredicates(accountIDs, currency, route)
+	subAccountPredicates, err := listTransactionsSubAccountPredicates(accountIDs, currency, route)
+	if err != nil {
+		return nil, err
+	}
 
 	if len(subAccountPredicates) > 0 {
 		entryPredicates = append(entryPredicates, ledgerentrydb.HasSubAccountWith(subAccountPredicates...))
 	}
 
-	return entryPredicates
+	return entryPredicates, nil
 }
 
-func listTransactionsSubAccountPredicates(accountIDs []string, currency *currencyx.Code, route ledger.RouteFilter) []predicate.LedgerSubAccount {
+func listTransactionsSubAccountPredicates(accountIDs []string, currency *currencyx.Code, route ledger.RouteFilter) ([]predicate.LedgerSubAccount, error) {
 	subAccountPredicates := make([]predicate.LedgerSubAccount, 0, 2)
 
 	if len(accountIDs) > 0 {
 		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountIDIn(accountIDs...))
 	}
 
-	routePredicates := listTransactionsRoutePredicates(currency, route)
+	routePredicates, err := listTransactionsRoutePredicates(currency, route)
+	if err != nil {
+		return nil, err
+	}
 	if len(routePredicates) > 0 {
 		subAccountPredicates = append(subAccountPredicates,
 			ledgersubaccountdb.HasRouteWith(routePredicates...),
 		)
 	}
 
-	return subAccountPredicates
+	return subAccountPredicates, nil
 }
 
-func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.RouteFilter) []predicate.LedgerSubAccountRoute {
-	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 3)
+func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.RouteFilter) ([]predicate.LedgerSubAccountRoute, error) {
+	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 4)
 
 	if currency != nil {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(*currency)))
+		if currency.IsCustom() {
+			prefix, err := currencies.NewCurrencyReference(*currency).MarshalTextPrefix()
+			if err != nil {
+				return nil, fmt.Errorf("serialize currency filter prefix: %w", err)
+			}
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CurrencyHasPrefix(string(prefix)))
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(*currency)))
+		}
 	}
 
-	if route.Currency != "" {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(route.Currency)))
+	if route.Currency.Code != "" {
+		if route.Currency.IsCustom() && !route.Currency.IsResolved() {
+			prefix, err := route.Currency.MarshalTextPrefix()
+			if err != nil {
+				return nil, fmt.Errorf("serialize route currency filter prefix: %w", err)
+			}
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CurrencyHasPrefix(string(prefix)))
+		} else {
+			serialized, err := route.Currency.MarshalText()
+			if err != nil {
+				return nil, fmt.Errorf("serialize route currency filter: %w", err)
+			}
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(serialized)))
+		}
+	}
+
+	if route.CostBasisCurrency.IsPresent() {
+		source, _ := route.CostBasisCurrency.Get()
+		if source == nil {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisCurrencyIsNil())
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisCurrency(*source))
+		}
 	}
 
 	if route.Features.IsPresent() {
@@ -451,7 +504,7 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 		routePredicates = append(routePredicates, matchFeature(route.MatchFeature))
 	}
 
-	return routePredicates
+	return routePredicates, nil
 }
 
 func ledgerTransactionAfterCursorPredicate(cursor ledger.TransactionCursor) predicate.LedgerTransaction {
@@ -522,10 +575,15 @@ func ledgerTransactionCreditMovementPredicate(
 		return nil, fmt.Errorf("unsupported credit movement filter: %d", movement)
 	}
 
+	selector, err := scopedFBOMovementTransactionSelector(accountIDs, currency, route, having)
+	if err != nil {
+		return nil, err
+	}
+
 	return func(s *sql.Selector) {
 		s.Where(sql.In(
 			s.C(ledgertransactiondb.FieldID),
-			scopedFBOMovementTransactionSelector(accountIDs, currency, route, having),
+			selector,
 		))
 	}, nil
 }
@@ -535,7 +593,7 @@ func scopedFBOMovementTransactionSelector(
 	currency *currencyx.Code,
 	route ledger.RouteFilter,
 	having *sql.Predicate,
-) *sql.Selector {
+) (*sql.Selector, error) {
 	const routeTableAlias = "lsar"
 
 	entries := sql.Table(ledgerentrydb.Table).As("le")
@@ -555,7 +613,15 @@ func scopedFBOMovementTransactionSelector(
 	}
 
 	routes := sql.Table(ledgersubaccountroutedb.Table).As(routeTableAlias)
-	routePredicates := scopedRouteSelectorPredicates(currency, route, routes.C, routeTableAlias)
+	routePredicates, err := scopedRouteSelectorPredicates(scopedRouteSelectorPredicatesInput{
+		currency:        currency,
+		route:           route,
+		routeColumn:     routes.C,
+		routeTableAlias: routeTableAlias,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if len(routePredicates) > 0 {
 		selector.
 			Join(routes).
@@ -567,18 +633,59 @@ func scopedFBOMovementTransactionSelector(
 
 	return selector.
 		GroupBy(entries.C(ledgerentrydb.FieldTransactionID)).
-		Having(having)
+		Having(having), nil
 }
 
-func scopedRouteSelectorPredicates(currency *currencyx.Code, route ledger.RouteFilter, routeColumn func(string) string, routeTableAlias string) []*sql.Predicate {
-	predicates := make([]*sql.Predicate, 0, 3)
+type scopedRouteSelectorPredicatesInput struct {
+	currency        *currencyx.Code
+	route           ledger.RouteFilter
+	routeColumn     func(string) string
+	routeTableAlias string
+}
+
+func scopedRouteSelectorPredicates(input scopedRouteSelectorPredicatesInput) ([]*sql.Predicate, error) {
+	currency := input.currency
+	route := input.route
+	routeColumn := input.routeColumn
+	routeTableAlias := input.routeTableAlias
+
+	predicates := make([]*sql.Predicate, 0, 4)
 
 	if currency != nil {
-		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(*currency)))
+		if currency.IsCustom() {
+			prefix, err := currencies.NewCurrencyReference(*currency).MarshalTextPrefix()
+			if err != nil {
+				return nil, fmt.Errorf("serialize currency filter prefix: %w", err)
+			}
+			predicates = append(predicates, sql.Like(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(prefix)+"%"))
+		} else {
+			predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(*currency)))
+		}
 	}
 
-	if route.Currency != "" {
-		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(route.Currency)))
+	if route.Currency.Code != "" {
+		if route.Currency.IsCustom() && !route.Currency.IsResolved() {
+			prefix, err := route.Currency.MarshalTextPrefix()
+			if err != nil {
+				return nil, fmt.Errorf("serialize route currency filter prefix: %w", err)
+			}
+			predicates = append(predicates, sql.Like(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(prefix)+"%"))
+		} else {
+			serialized, err := route.Currency.MarshalText()
+			if err != nil {
+				return nil, fmt.Errorf("serialize route currency filter: %w", err)
+			}
+			predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(serialized)))
+		}
+	}
+
+	if route.CostBasisCurrency.IsPresent() {
+		source, _ := route.CostBasisCurrency.Get()
+		if source == nil {
+			predicates = append(predicates, sql.IsNull(routeColumn(ledgersubaccountroutedb.FieldCostBasisCurrency)))
+		} else {
+			predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCostBasisCurrency), string(*source)))
+		}
 	}
 
 	if route.Features.IsPresent() {
@@ -612,7 +719,7 @@ func scopedRouteSelectorPredicates(currency *currencyx.Code, route ledger.RouteF
 		))
 	}
 
-	return predicates
+	return predicates, nil
 }
 
 type postgresArrayRouteOperator string

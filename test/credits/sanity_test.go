@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
@@ -131,19 +132,19 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyCollectionDoesNotUseCreditsGranted
 	s.AssertDecimalEqual(setup.amount, s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)), "unattributed accrued after collection")
 	s.AssertDecimalEqual(setup.amount.Neg(), s.MustCustomerReceivableBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen), "unattributed open receivable after collection")
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasisFilter,
 	}, setup.createAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): setup.amount.InexactFloat64(), // 8 = the post-period grant is still available.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &chargeID): setup.amount.InexactFloat64(), // 8 = closed-period usage is not tied to the future grant.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasisFilter,
 	}, map[string]float64{})
 }
@@ -279,13 +280,13 @@ func (s *SanitySuite) TestExpiringCreditBreakagePlanReleaseAndExpirySanity() {
 		expectedAccrued: setup.usedAmount,
 	})
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, setup.usageAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): setup.unusedAmount.InexactFloat64(), // 4 = 10 grant - 6 used by the charge.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, setup.usageAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): setup.usedAmount.InexactFloat64(), // 6 = the used grant amount remains tied to the spend charge.
@@ -301,7 +302,7 @@ func (s *SanitySuite) TestExpiringCreditBreakagePlanReleaseAndExpirySanity() {
 		label:            "at expiry after usage",
 	})
 	s.requireBreakageSourceBalanceBucketsAsOf(setup.namespace, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, setup.expiresAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): setup.unusedAmount.InexactFloat64(), // 4 = only unused credit breaks; spend provenance is not meaningful on breakage.
@@ -377,13 +378,13 @@ func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfi
 	sourceChargeID := funding.ID
 	spendChargeID := usageCharge.ID
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, backfillAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): advanceAmount.InexactFloat64(), // 8 = the advance usage is now backed by the grant.
 	})
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, backfillAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): unusedPurchaseAmount.InexactFloat64(), // 4 = 12 grant - 8 immediately backfilled advance.
@@ -409,7 +410,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfi
 		label:            "at expiry after advance backfill",
 	})
 	s.requireBreakageSourceBalanceBucketsAsOf(setup.namespace, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, expiresAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): unusedPurchaseAmount.InexactFloat64(), // 4 = only the unused grant surplus expires.
@@ -481,7 +482,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensAdvanceBackfillReleaseOnU
 	sourceChargeID := funding.ID
 	spendChargeID := usageCharge.ID
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, backfillAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): advanceAmount.InexactFloat64(), // 8 = the advance is covered by the grant before correction.
@@ -509,17 +510,17 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensAdvanceBackfillReleaseOnU
 
 	sourceOnlyGrantAmount := grantAmount.InexactFloat64() // 12 = 10 corrected advance + 2 never-spent surplus from the grant.
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): sourceOnlyGrantAmount, // freed credit is source-attributed again, but no longer tied to the corrected spend.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{}) // 0 = the corrected spend no longer has active accrued value.
 	s.requireBreakageSourceBalanceBucketsAsOf(setup.namespace, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, expiresAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): sourceOnlyGrantAmount, // 12 = the full grant is unused by expiry after correction, and breakage keeps source-only provenance.
@@ -629,13 +630,13 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensOnUsageCorrectionSanity()
 		expectedAccrued: alpacadecimal.Zero,
 	})
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): setup.grantAmount.InexactFloat64(), // 12 = the full corrected grant is available again.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{}) // 0 = deleting the usage fully clears spend-attributed accrued.
 
@@ -651,7 +652,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensOnUsageCorrectionSanity()
 		label:            "at expiry after usage correction",
 	})
 	s.requireBreakageSourceBalanceBucketsAsOf(setup.namespace, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, setup.expiresAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): setup.grantAmount.InexactFloat64(), // 12 = the restored source expires in full.
@@ -729,13 +730,13 @@ func (s *SanitySuite) TestExpiringCreditBreakagePartiallyReopensOnUsageShrinkSan
 	})
 	s.AssertDecimalEqual(retainedUsage, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "accrued after partial reopen")
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): setup.grantAmount.Sub(retainedUsage).InexactFloat64(), // 7 = 12 grant - 5 retained usage.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): retainedUsage.InexactFloat64(), // 5 = usage still retained after shrinking from 8.
@@ -751,7 +752,7 @@ func (s *SanitySuite) TestExpiringCreditBreakagePartiallyReopensOnUsageShrinkSan
 		label:            "at expiry after partial usage correction",
 	})
 	s.requireBreakageSourceBalanceBucketsAsOf(setup.namespace, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, setup.expiresAt, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): setup.grantAmount.Sub(retainedUsage).InexactFloat64(), // 7 = only the unused part of the source breaks.
@@ -824,14 +825,14 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensLatestExpirationFirstOnUs
 		{expiresAt: secondExpiresAt, planAmount: secondGrantAmount, releaseAmount: alpacadecimal.NewFromInt(3), reopenAmount: alpacadecimal.NewFromInt(3)},
 	})
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&firstSourceChargeID, nil):  1, // 1 = first source had 5 used, then 1 reopened.
 		sourceSpendChargeBucketKey(&secondSourceChargeID, nil): 5, // 5 = second source had 3 used, then all 3 reopened plus 2 unused.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&firstSourceChargeID, &spendChargeID): retainedUsage.InexactFloat64(), // 4 = retained usage stays on the earliest consumed source.
@@ -858,7 +859,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensLatestExpirationFirstOnUs
 		label:            "after all expirations",
 	})
 	s.requireBreakageSourceBalanceBucketsAsOf(setup.namespace, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, secondExpiresAt, map[string]float64{
 		sourceSpendChargeBucketKey(&firstSourceChargeID, nil):  1, // 1 = first source reopened amount eventually expires.
@@ -929,14 +930,14 @@ func (s *SanitySuite) TestExpiringCreditBreakageIgnoresNonExpiringSourceOnUsageS
 		{expiresAt: setup.expiresAt, planAmount: expiringAmount, releaseAmount: expiringAmount, reopenAmount: expiringReopenAmount},
 	})
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&expiringSourceChargeID, nil):    1, // 1 = 5 expiring grant - 4 retained expiring usage.
 		sourceSpendChargeBucketKey(&nonExpiringSourceChargeID, nil): 5, // 5 = non-expiring source is fully restored before expiring source is reopened.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&expiringSourceChargeID, &spendChargeID): retainedUsage.InexactFloat64(), // 4 = retained usage stays on the expiring source.
@@ -963,13 +964,13 @@ func (s *SanitySuite) TestExpiringCreditBreakageIgnoresNonExpiringSourceOnUsageS
 		label:            "at expiry after non-expiring partial correction",
 	})
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, setup.expiresAt, map[string]float64{
 		sourceSpendChargeBucketKey(&nonExpiringSourceChargeID, nil): nonExpiringAmount.InexactFloat64(), // 5 = non-expiring credit remains customer credit after expiry.
 	})
 	s.requireBreakageSourceBalanceBucketsAsOf(setup.namespace, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasis,
 	}, setup.expiresAt, map[string]float64{
 		sourceSpendChargeBucketKey(&expiringSourceChargeID, nil): 1, // 1 = only reopened unused expiring credit breaks.
@@ -1048,13 +1049,13 @@ func (s *SanitySuite) TestFeatureRestrictedCreditCollectionCorrectionThenCollect
 	s.AssertDecimalEqual(alpacadecimal.NewFromInt(3), s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, generalPriority, generalRoute), "general FBO after first usage")
 	s.AssertDecimalEqual(alpacadecimal.NewFromInt(7), s.MustCustomerAccruedBalance(cust.GetID(), USD, costBasisFilter), "accrued after first usage")
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasisFilter,
 	}, firstUsageAt, map[string]float64{
 		sourceSpendChargeBucketKey(&generalSourceChargeID, nil): 3, // 3 = 6 general-purpose grant - 3 used by first charge.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasisFilter,
 	}, firstUsageAt, map[string]float64{
 		sourceSpendChargeBucketKey(&restrictedSourceChargeID, &firstCharge.ID): 4, // 4 = restricted grant is fully consumed first.
@@ -1075,13 +1076,13 @@ func (s *SanitySuite) TestFeatureRestrictedCreditCollectionCorrectionThenCollect
 	s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, generalPriority, generalRoute), "general FBO after correction")
 	s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, costBasisFilter), "accrued after correction")
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasisFilter,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&generalSourceChargeID, nil): 5, // 5 = 3 remaining + 2 corrected from first charge.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasisFilter,
 	}, correctionAt, map[string]float64{
 		sourceSpendChargeBucketKey(&restrictedSourceChargeID, &firstCharge.ID): 4, // 4 = restricted source remains tied to first charge.
@@ -1107,11 +1108,11 @@ func (s *SanitySuite) TestFeatureRestrictedCreditCollectionCorrectionThenCollect
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, generalPriority, generalRoute), "general FBO after second usage")
 	s.AssertDecimalEqual(alpacadecimal.NewFromInt(10), s.MustCustomerAccruedBalance(cust.GetID(), USD, costBasisFilter), "accrued after second usage")
 	s.requireCustomerFBOSourceBalanceBucketsAsOf(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasisFilter,
 	}, secondUsageAt, map[string]float64{})
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: costBasisFilter,
 	}, secondUsageAt, map[string]float64{
 		sourceSpendChargeBucketKey(&restrictedSourceChargeID, &firstCharge.ID): 4, // 4 = first charge keeps the restricted-source slice.
@@ -1845,14 +1846,14 @@ func (s *SanitySuite) assertUnfundedCreditOnlyRealization(customerID customer.Cu
 	openStatus := ledger.TransactionAuthorizationStatusOpen
 	nilCostBasis := mo.Some[*alpacadecimal.Decimal](nil)
 	s.requireCustomerReceivableSourceSpendBalanceBuckets(customerID, ledger.RouteFilter{
-		Currency:                       USD,
+		Currency:                       currencies.NewCurrencyReference(USD),
 		CostBasis:                      nilCostBasis,
 		TransactionAuthorizationStatus: &openStatus,
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &spendChargeID): amount.Neg().InexactFloat64(),
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: nilCostBasis,
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &spendChargeID): amount.InexactFloat64(),
@@ -1874,7 +1875,7 @@ func (s *SanitySuite) assertFundedCreditOnlyAccrued(customerID customer.Customer
 	s.True(s.MustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(startOpenReceivable))
 	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(amount))
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&costBasis),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): amount.InexactFloat64(),
@@ -1899,7 +1900,7 @@ func (s *SanitySuite) recognizeFundedCreditOnlyRevenue(namespace string, custome
 	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(expectedUnknownCostBasisEarnings))
 	s.True(s.MustEarningsBalance(namespace, USD).Equal(expectedEarningsAmount))
 	s.requireEarningsSourceSpendBalanceBuckets(namespace, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&costBasis),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): expectedEarningsSourceSpendAmount,
@@ -1927,11 +1928,11 @@ func (s *SanitySuite) assertFundedRecognizedCreditOnlyDeleted(namespace string, 
 	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(expectedUnknownCostBasisEarnings))
 	s.True(s.MustEarningsBalance(namespace, USD).Equal(expectedEarningsAfterDelete))
 	s.requireEarningsSourceSpendBalanceBuckets(namespace, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&costBasis),
 	}, expectedEarningsSourceSpendBalances)
 	s.requireCustomerFBOSourceBalanceBuckets(customerID, ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&costBasis),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): expectedReissuedSourceBalanceAmount,
@@ -2002,14 +2003,14 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(allocatedAmount))
 	openStatus := ledger.TransactionAuthorizationStatusOpen
 	s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:                       USD,
+		Currency:                       currencies.NewCurrencyReference(USD),
 		CostBasis:                      mo.Some[*alpacadecimal.Decimal](nil),
 		TransactionAuthorizationStatus: &openStatus,
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &usageBasedCharge.ID): allocatedAmount.Neg().InexactFloat64(), // -50 = advance receivable created by the usage charge.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &usageBasedCharge.ID): allocatedAmount.InexactFloat64(), // 50 = source-less accrued usage before purchase backfill.
@@ -2061,20 +2062,20 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
 	sourceChargeID := creditPurchaseCharge.ID
 	s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:                       USD,
+		Currency:                       currencies.NewCurrencyReference(USD),
 		CostBasis:                      mo.Some[*alpacadecimal.Decimal](nil),
 		TransactionAuthorizationStatus: &openStatus,
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &usageBasedCharge.ID): remainingUncovered.Neg().InexactFloat64(), // -30 = 50 advance - 20 backfilled by purchase.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &usageBasedCharge.ID): remainingUncovered.InexactFloat64(), // 30 = source-less usage still uncovered.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&costBasis),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, &usageBasedCharge.ID): purchaseAmount.InexactFloat64(), // 20 = purchased source attributed to the usage charge.
@@ -2101,14 +2102,14 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	s.True(s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), mo.Some[[]string](nil)).Equal(alpacadecimal.Zero))
 	s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
 	s.requireCustomerFBOSourceBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&costBasis),
 		Features:  featureRoute,
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): purchaseAmount.InexactFloat64(), // 20 = corrected purchased backing is spend-free available credit again.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency: USD,
+		Currency: currencies.NewCurrencyReference(USD),
 	}, map[string]float64{})
 }
 
@@ -2251,14 +2252,14 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), storageRoute), "feature B purchased-cost-basis FBO after feature A backfill")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), mo.Some[[]string](nil)), "unrestricted purchased-cost-basis FBO after feature A backfill")
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &apiRequestsCharge.ID): apiRequestsAmount.Sub(purchaseAmount).InexactFloat64(), // 10 = feature A advance left uncovered.
 		sourceSpendChargeBucketKey(nil, &storageCharge.ID):     storageAmount.InexactFloat64(),                         // 40 = feature B advance is untouched by feature-A purchase.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&costBasis),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, &apiRequestsCharge.ID): purchaseAmount.InexactFloat64(), // 20 = feature-A purchase backfills only feature-A spend.
@@ -2287,13 +2288,13 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), storageRoute), "feature B purchased-cost-basis FBO after deleting feature B")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), storageRoute), "feature B nil-cost-basis FBO after deleting feature B")
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &apiRequestsCharge.ID): apiRequestsAmount.Sub(purchaseAmount).InexactFloat64(), // 10 = feature A uncovered slice remains.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&costBasis),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, &apiRequestsCharge.ID): purchaseAmount.InexactFloat64(), // 20 = feature-A purchased slice survives feature-B correction.
@@ -2320,14 +2321,14 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), apiRequestsRoute), "feature A nil-cost-basis FBO after deleting feature A")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), storageRoute), "feature B nil-cost-basis FBO after deleting feature A")
 	s.requireCustomerFBOSourceBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&costBasis),
 		Features:  apiRequestsRoute,
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): purchaseAmount.InexactFloat64(), // 20 = feature-A purchased backing returns to source-only FBO.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency: USD,
+		Currency: currencies.NewCurrencyReference(USD),
 	}, map[string]float64{})
 }
 
@@ -2450,7 +2451,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
-		s.Equal(float64(-50), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
+		s.Equal(float64(-25), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
 	})
 
 	s.Run("the customer settles the credit purchase payment", func() {
@@ -2585,10 +2586,10 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		assertDelta("external wash after invoice assignment", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after invoice assignment", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 		s.requireCustomerFBOSourceBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{}) // 0 = both available credit sources were consumed by the invoice assignment.
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    expectedPromotionalCreditAmount,
 			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): expectedPurchasedCreditAmount,
@@ -2634,7 +2635,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		assertDelta("external wash after payment processing pending", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after payment processing pending", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    expectedPromotionalCreditAmount,
 			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): expectedPurchasedCreditAmount,
@@ -2719,12 +2720,12 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// is implemented.
 		s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromFloat(expectedCreditBackedFlatFeeAmount))
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID): expectedInvoiceBackedAccruedAfterRecognition,
 		})
 		s.requireEarningsSourceSpendBalanceBuckets(ns, ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    expectedPromotionalCreditAmount,
 			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): expectedPurchasedCreditAmount,
@@ -2816,7 +2817,7 @@ func (s *SanitySuite) TestCreditPurchasePersistsPriority() {
 	s.True(s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&zeroCostBasis), priority).Equal(alpacadecimal.NewFromInt(25)))
 	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).Equal(alpacadecimal.Zero))
 	s.requireCustomerFBOSourceBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:       USD,
+		Currency:       currencies.NewCurrencyReference(USD),
 		CostBasis:      mo.Some(&zeroCostBasis),
 		CreditPriority: &priority,
 	}, map[string]float64{
@@ -2990,13 +2991,13 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(expectedTotalUsageAmount)))
 		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-expectedCreditedUsageAmount)))
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&sourceChargeID, &usageBasedChargeID.ID): expectedCreditedUsageAmount,
 			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID):             expectedInvoiceBackedUsageAmount,
 		})
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID): expectedOpenReceivableAmount,
@@ -3032,11 +3033,11 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(expectedAuthorizedReceivableAmount)))
 		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-expectedCreditedUsageAmount)))
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
 		}, map[string]float64{})
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID): expectedAuthorizedReceivableAmount,
@@ -3073,15 +3074,15 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
 		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-expectedTotalUsageAmount)))
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
 		}, map[string]float64{})
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
 		}, map[string]float64{})
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&sourceChargeID, &usageBasedChargeID.ID): expectedCreditedUsageAmount,
 			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID):             expectedInvoiceBackedUsageAmount,
@@ -3107,12 +3108,12 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		// is implemented.
 		s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromFloat(expectedCreditBackedRecognizedAmount))
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID): expectedInvoiceBackedAccruedAfterRecognition,
 		})
 		s.requireEarningsSourceSpendBalanceBuckets(ns, ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&sourceChargeID, &usageBasedChargeID.ID): expectedCreditBackedEarningsAmount,
 		})
@@ -3216,7 +3217,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusAuthorized, updatedCharge.Realizations.ExternalPaymentSettlement.Status)
 		s.Equal(float64(0), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
-		s.Equal(float64(-50), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
+		s.Equal(float64(-25), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized).InexactFloat64())
 	})
 
 	s.Run("the customer settles the credit purchase payment", func() {
@@ -3372,17 +3373,17 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		assertDelta("external wash after credit-only advance", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after credit-only advance", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 		s.requireCustomerFBOSourceBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{}) // 0 = both funded sources were consumed by the credit-only allocation.
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    30, // 30 = promotional source consumed by the flat-fee charge.
 			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): 50, // 50 = purchased source consumed by the flat-fee charge.
 			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID):                     20, // 20 = credit-only shortfall is accrued with spend provenance and no source.
 		})
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			CostBasis:                      mo.Some[*alpacadecimal.Decimal](nil),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
 		}, map[string]float64{
@@ -3479,8 +3480,8 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		// Authorization only moves the purchased receivable into the authorized bucket;
 		// attribution already happened during purchase initiation.
 		s.True(
-			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(-50)),
-			"the purchased amount should be visible in the exact authorized receivable route before settlement",
+			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&externalCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromInt(-25)),
+			"the cost-basis payment amount should be visible in the exact authorized receivable route before settlement",
 		)
 		s.True(
 			s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusAuthorized).Equal(start.advanceAuthorized),
@@ -3528,15 +3529,15 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 			s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(start.totalAccrued),
 			"settlement should only translate accrued between buckets, not change the total accrued amount",
 		)
-		assertDelta("external wash after later purchase settlement", start.externalWash, alpacadecimal.NewFromInt(-50), s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
+		assertDelta("external wash after later purchase settlement", start.externalWash, alpacadecimal.NewFromInt(-25), s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		s.requireCustomerFBOSourceBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:  USD,
+			Currency:  currencies.NewCurrencyReference(USD),
 			CostBasis: mo.Some(&externalCostBasis),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&backfillSourceChargeID, nil): 30, // 30 = 50 later purchase - 20 used to backfill prior advance.
 		})
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    30, // 30 = original promotional source remains tied to the charge.
 			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): 50, // 50 = original purchased source remains tied to the charge.
@@ -3712,7 +3713,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	s.Equal(float64(3.33), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), mo.Some(&taxB.ID), mo.Some(&taxBBehavior)).InexactFloat64())
 	s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&purchaseCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64())
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:    USD,
+		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some(&purchaseCostBasis),
 		TaxCode:     mo.Some(&taxA.ID),
 		TaxBehavior: mo.Some(&taxABehavior),
@@ -3720,7 +3721,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 		sourceSpendChargeBucketKey(&sourceChargeID, &taxASpendChargeID): 3.33, // 3.33 = 5 purchase allocated proportionally to the 10/15 tax-A advance bucket.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:    USD,
+		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some(&purchaseCostBasis),
 		TaxCode:     mo.Some(&taxB.ID),
 		TaxBehavior: mo.Some(&taxBBehavior),
@@ -3728,7 +3729,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 		sourceSpendChargeBucketKey(&sourceChargeID, &taxBSpendChargeID): 1.67, // 1.67 = 5 purchase allocated proportionally to the 5/15 tax-B advance bucket.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:    USD,
+		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some[*alpacadecimal.Decimal](nil),
 		TaxCode:     mo.Some(&taxA.ID),
 		TaxBehavior: mo.Some(&taxABehavior),
@@ -3736,7 +3737,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 		sourceSpendChargeBucketKey(nil, &taxASpendChargeID): 6.67, // 6.67 = original tax-A advance less the purchased attribution.
 	})
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:    USD,
+		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some[*alpacadecimal.Decimal](nil),
 		TaxCode:     mo.Some(&taxB.ID),
 		TaxBehavior: mo.Some(&taxBBehavior),
@@ -3871,7 +3872,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 	s.Equal(float64(15), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&purchaseCostBasis)).InexactFloat64(),
 		"15 = 10 unrestricted + 5 feature-routed legacy accrued translated to the purchased cost basis")
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:  USD,
+		Currency:  currencies.NewCurrencyReference(USD),
 		CostBasis: mo.Some(&purchaseCostBasis),
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(&sourceChargeID, nil): 15, // 15 = legacy spend provenance is unknowable, so only the new source is attributable.
@@ -3987,7 +3988,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 	s.Equal(expectedTaxConfiguredAccruedAmount, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
 	s.Equal(expectedMissingTaxBehaviorAccrued, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:    USD,
+		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some(&costBasis),
 		TaxCode:     mo.Some(&tc.ID),
 		TaxBehavior: mo.Some(&ledgerTaxBehavior),
@@ -4010,7 +4011,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 	s.Equal(expectedTaxConfiguredEarningsAmount, s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
 	s.Equal(expectedMissingTaxBehaviorEarnings, s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	s.requireEarningsSourceSpendBalanceBuckets(ns, ledger.RouteFilter{
-		Currency:    USD,
+		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some(&costBasis),
 		TaxCode:     mo.Some(&tc.ID),
 		TaxBehavior: mo.Some(&ledgerTaxBehavior),
@@ -4225,7 +4226,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 	s.Equal(expectedTaxConfiguredAccruedAmount, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
 	s.Equal(expectedMissingTaxBehaviorAccrued, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-		Currency:    USD,
+		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some(&costBasis),
 		TaxCode:     mo.Some(&tc.ID),
 		TaxBehavior: mo.Some(&ledgerTaxBehavior),
@@ -4247,7 +4248,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 	s.Equal(expectedTaxConfiguredEarningsAmount, s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
 	s.Equal(expectedMissingTaxBehaviorEarnings, s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	s.requireEarningsSourceSpendBalanceBuckets(ns, ledger.RouteFilter{
-		Currency:    USD,
+		Currency:    currencies.NewCurrencyReference(USD),
 		CostBasis:   mo.Some(&costBasis),
 		TaxCode:     mo.Some(&tc.ID),
 		TaxBehavior: mo.Some(&ledgerTaxBehavior),
@@ -4406,7 +4407,7 @@ func (s *SanitySuite) mustRecognizeAttributableAccrued(customerID customer.Custo
 		transactions.RecognizeEarningsFromAttributableAccruedTemplate{
 			At:       clock.Now(),
 			Amount:   amount,
-			Currency: currency,
+			Currency: currencies.NewCurrencyReference(currency),
 		},
 	)
 	s.Require().NoError(err)
@@ -4423,7 +4424,7 @@ func (s *SanitySuite) mustEarningsBalanceForTaxConfig(namespace string, code cur
 	s.Require().NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
-		Currency:    code,
+		Currency:    currencies.NewCurrencyReference(code),
 		CostBasis:   costBasis,
 		TaxCode:     taxCode,
 		TaxBehavior: taxBehavior,

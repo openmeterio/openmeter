@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -8,6 +9,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -18,7 +20,7 @@ func TestBuildRoutingKeyV1(t *testing.T) {
 
 	key, err := BuildRoutingKeyV1(Route{
 		TaxCode:        &taxcode,
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis:      &costBasis,
 		CreditPriority: &priority,
 	})
@@ -29,16 +31,103 @@ func TestBuildRoutingKeyV1(t *testing.T) {
 
 func TestBuildRoutingKeyV1_Nulls(t *testing.T) {
 	key, err := BuildRoutingKeyV1(Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 	})
 	require.NoError(t, err)
 	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }
 
+func TestBuildRoutingKeyCostBasisCurrency(t *testing.T) {
+	customCurrency := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-id|2")
+	key, err := BuildRoutingKey(Route{
+		Currency:          customCurrency,
+		CostBasisCurrency: lo.ToPtr(currencyx.Code("USD")),
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV4, key.Version())
+	require.Contains(t, key.Value(), "cost_basis_currency:USD|")
+}
+
+func TestBuildRoutingKeyEmptyCostBasisCurrency(t *testing.T) {
+	key, err := BuildRoutingKey(Route{
+		Currency:          currencies.NewCurrencyReference(currencyx.Code("USD")),
+		CostBasisCurrency: lo.ToPtr(currencyx.Code("")),
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV1, key.Version())
+	require.NotContains(t, key.Value(), "cost_basis_currency:")
+}
+
+func TestNewSubAccountRouteFromDataRejectsV3WithoutCostBasisCurrency(t *testing.T) {
+	customCurrency := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-id|2")
+
+	key, err := NewRoutingKey(RoutingKeyVersionV3, "currency:ACME|cost_basis_currency:null")
+	require.NoError(t, err)
+
+	_, err = NewSubAccountRouteFromData(SubAccountRouteData{
+		ID:         "route-id",
+		RoutingKey: key,
+		Route: Route{
+			Currency: customCurrency,
+		},
+	})
+	require.ErrorContains(t, err, "routing key version v3 requires cost basis currency")
+
+	compatibleKey, err := BuildRoutingKey(Route{
+		Currency: customCurrency,
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV4, compatibleKey.Version())
+}
+
+func TestRouteValidateCostBasisCurrency(t *testing.T) {
+	customCurrency := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-id|2")
+
+	tests := []struct {
+		name              string
+		currency          currencies.CurrencyReference
+		costBasisCurrency *currencyx.Code
+		wantErr           bool
+	}{
+		{name: "fiat without source", currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
+		{name: "fiat with empty source", currency: currencies.NewCurrencyReference(currencyx.Code("USD")), costBasisCurrency: lo.ToPtr(currencyx.Code(""))},
+		{name: "custom without source", currency: customCurrency},
+		{name: "custom with fiat source", currency: customCurrency, costBasisCurrency: lo.ToPtr(currencyx.Code("USD"))},
+		{name: "fiat with source", currency: currencies.NewCurrencyReference(currencyx.Code("USD")), costBasisCurrency: lo.ToPtr(currencyx.Code("EUR")), wantErr: true},
+		{name: "custom with custom source", currency: customCurrency, costBasisCurrency: lo.ToPtr(currencyx.Code("POINTS")), wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := (Route{
+				Currency:          tt.currency,
+				CostBasisCurrency: tt.costBasisCurrency,
+			}).Validate()
+			if tt.wantErr {
+				require.ErrorIs(t, err, ErrCurrencyInvalid)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestRouteFilterCostBasisCurrency(t *testing.T) {
+	costBasisCurrency := lo.ToPtr(currencyx.Code("USD"))
+	route := Route{
+		Currency:          mustCurrencyReference(t, "custom|v1|ACME|custom-currency-id|2"),
+		CostBasisCurrency: costBasisCurrency,
+	}
+
+	require.True(t, route.Matches(RouteFilter{CostBasisCurrency: mo.Some(costBasisCurrency)}))
+	require.False(t, route.Matches(RouteFilter{CostBasisCurrency: mo.Some(lo.ToPtr(currencyx.Code("EUR")))}))
+	require.False(t, route.Matches(RouteFilter{CostBasisCurrency: mo.Some[*currencyx.Code](nil)}))
+}
+
 func TestBuildRoutingKeyV1_SameLiterals_SameKey(t *testing.T) {
 	priority := 100
 	input := Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CreditPriority: &priority,
 	}
 
@@ -50,16 +139,16 @@ func TestBuildRoutingKeyV1_SameLiterals_SameKey(t *testing.T) {
 }
 
 func TestBuildRoutingKeyV1_DifferentCurrency_DifferentKey(t *testing.T) {
-	key1, err := BuildRoutingKeyV1(Route{Currency: currencyx.Code("USD")})
+	key1, err := BuildRoutingKeyV1(Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
 	require.NoError(t, err)
-	key2, err := BuildRoutingKeyV1(Route{Currency: currencyx.Code("EUR")})
+	key2, err := BuildRoutingKeyV1(Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))})
 	require.NoError(t, err)
 	require.NotEqual(t, key1.Value(), key2.Value())
 }
 
 func TestBuildRoutingKeyV1_WithTaxCodeAndFeatures(t *testing.T) {
 	key, err := BuildRoutingKeyV1(Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:  lo.ToPtr("VAT20"),
 		Features: []string{"feat-b", "feat-a"},
 	})
@@ -70,7 +159,7 @@ func TestBuildRoutingKeyV1_WithTaxCodeAndFeatures(t *testing.T) {
 
 func TestBuildRoutingKeyV1_EmptyFeatures(t *testing.T) {
 	key, err := BuildRoutingKeyV1(Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 		Features: []string{},
 	})
 	require.NoError(t, err)
@@ -79,29 +168,29 @@ func TestBuildRoutingKeyV1_EmptyFeatures(t *testing.T) {
 
 func TestRouteValidateRejectsInvalidFeatures(t *testing.T) {
 	require.Error(t, Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 		Features: []string{""},
 	}.Validate())
 
 	require.Error(t, Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 		Features: []string{"api-calls", "api-calls"},
 	}.Validate())
 }
 
 func TestBuildRoutingKeyV1_DifferentPriority_DifferentKey(t *testing.T) {
-	key1, err := BuildRoutingKeyV1(Route{Currency: currencyx.Code("USD"), CreditPriority: lo.ToPtr(1)})
+	key1, err := BuildRoutingKeyV1(Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), CreditPriority: lo.ToPtr(1)})
 	require.NoError(t, err)
-	key2, err := BuildRoutingKeyV1(Route{Currency: currencyx.Code("USD"), CreditPriority: lo.ToPtr(2)})
+	key2, err := BuildRoutingKeyV1(Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), CreditPriority: lo.ToPtr(2)})
 	require.NoError(t, err)
 	require.NotEqual(t, key1.Value(), key2.Value())
 }
 
 func TestBuildRoutingKeyV1_CanonicalizesCostBasis(t *testing.T) {
-	key1, err := BuildRoutingKeyV1(Route{Currency: currencyx.Code("USD"), CostBasis: lo.ToPtr(mustDecimal(t, "0.70"))})
+	key1, err := BuildRoutingKeyV1(Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), CostBasis: lo.ToPtr(mustDecimal(t, "0.70"))})
 	require.NoError(t, err)
 
-	key2, err := BuildRoutingKeyV1(Route{Currency: currencyx.Code("USD"), CostBasis: lo.ToPtr(mustDecimal(t, "0.7"))})
+	key2, err := BuildRoutingKeyV1(Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), CostBasis: lo.ToPtr(mustDecimal(t, "0.7"))})
 	require.NoError(t, err)
 
 	require.Equal(t, key1.Value(), key2.Value())
@@ -111,11 +200,11 @@ func TestBuildRoutingKeyV1_CanonicalizesCostBasis(t *testing.T) {
 func TestBuildRoutingKeyV1_DifferentAuthorizationStatus_DifferentKey(t *testing.T) {
 	status := TransactionAuthorizationStatusAuthorized
 
-	key1, err := BuildRoutingKeyV1(Route{Currency: currencyx.Code("USD")})
+	key1, err := BuildRoutingKeyV1(Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
 	require.NoError(t, err)
 
 	key2, err := BuildRoutingKeyV1(Route{
-		Currency:                       currencyx.Code("USD"),
+		Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TransactionAuthorizationStatus: &status,
 	})
 	require.NoError(t, err)
@@ -125,7 +214,7 @@ func TestBuildRoutingKeyV1_DifferentAuthorizationStatus_DifferentKey(t *testing.
 }
 
 func TestBuildRoutingKeyV2_DifferentTaxBehavior_DifferentKey(t *testing.T) {
-	base := Route{Currency: currencyx.Code("USD"), TaxCode: lo.ToPtr("GST10"), TaxBehavior: lo.ToPtr(TaxBehaviorInclusive)}
+	base := Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), TaxCode: lo.ToPtr("GST10"), TaxBehavior: lo.ToPtr(TaxBehaviorInclusive)}
 
 	k1, err := BuildRoutingKeyV2(base)
 	require.NoError(t, err)
@@ -157,13 +246,37 @@ func TestValidateCurrency(t *testing.T) {
 			code: "USD",
 		},
 		{
-			name:    "custom currency",
-			code:    "CREDITS",
+			name: "custom currency",
+			code: "ACME",
+		},
+		{
+			name:    "empty",
+			code:    "",
 			wantErr: true,
 		},
 		{
-			name:    "invalid currency",
-			code:    "INVALID|CURRENCY",
+			name:    "unknown three character fiat",
+			code:    "ZZZ",
+			wantErr: true,
+		},
+		{
+			name:    "leading space",
+			code:    " ACME",
+			wantErr: true,
+		},
+		{
+			name:    "trailing space",
+			code:    "ACME ",
+			wantErr: true,
+		},
+		{
+			name:    "route delimiter",
+			code:    "AC|ME",
+			wantErr: true,
+		},
+		{
+			name:    "over maximum length",
+			code:    currencyx.Code(strings.Repeat("A", currencyx.CustomCurrencyCodeMaxLength+1)),
 			wantErr: true,
 		},
 	}
@@ -184,7 +297,7 @@ func TestValidateCurrency(t *testing.T) {
 
 func TestRouteValidate_InvalidTaxBehavior(t *testing.T) {
 	r := Route{
-		Currency:    currencyx.Code("USD"),
+		Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxBehavior: lo.ToPtr(TaxBehavior("bogus")),
 	}
 	require.Error(t, r.Validate())
@@ -193,7 +306,7 @@ func TestRouteValidate_InvalidTaxBehavior(t *testing.T) {
 func TestRouteFilter_NormalizePreservesTaxCode(t *testing.T) {
 	tc := "VAT20"
 	f := RouteFilter{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference("USD"),
 		TaxCode:  mo.Some[*string](&tc),
 	}
 	norm, err := f.Normalize()
@@ -206,7 +319,7 @@ func TestRouteFilter_NormalizePreservesTaxCode(t *testing.T) {
 func TestRouteFilter_NormalizePreservesTaxBehavior(t *testing.T) {
 	b := TaxBehaviorExclusive
 	f := RouteFilter{
-		Currency:    currencyx.Code("USD"),
+		Currency:    currencies.NewCurrencyReference("USD"),
 		TaxBehavior: mo.Some[*TaxBehavior](&b),
 	}
 	norm, err := f.Normalize()
@@ -217,7 +330,7 @@ func TestRouteFilter_NormalizePreservesTaxBehavior(t *testing.T) {
 }
 
 func TestRouteFilter_NormalizeAbsentTaxFieldsStayAbsent(t *testing.T) {
-	f := RouteFilter{Currency: currencyx.Code("USD")}
+	f := RouteFilter{Currency: currencies.NewCurrencyReference("USD")}
 	norm, err := f.Normalize()
 	require.NoError(t, err)
 	require.True(t, norm.TaxCode.IsAbsent())
@@ -226,7 +339,7 @@ func TestRouteFilter_NormalizeAbsentTaxFieldsStayAbsent(t *testing.T) {
 
 func TestRouteFilter_NormalizeSomeNilTaxCodePreserved(t *testing.T) {
 	f := RouteFilter{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference("USD"),
 		TaxCode:  mo.Some[*string](nil),
 	}
 	norm, err := f.Normalize()
@@ -240,7 +353,7 @@ func TestRouteToFilter_TaxFieldsPinned(t *testing.T) {
 	tc := "GST10"
 	b := TaxBehaviorInclusive
 	r := Route{
-		Currency:    currencyx.Code("USD"),
+		Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:     &tc,
 		TaxBehavior: &b,
 	}
@@ -256,7 +369,7 @@ func TestRouteToFilter_TaxFieldsPinned(t *testing.T) {
 }
 
 func TestRouteToFilter_NilTaxFieldsPinnedAsPresent(t *testing.T) {
-	r := Route{Currency: currencyx.Code("USD")}
+	r := Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))}
 	f := r.Filter()
 
 	// nil Route fields become Some(nil) in filter — "filter for null", not "don't care"
@@ -286,7 +399,7 @@ func TestRouteMatches(t *testing.T) {
 	otherAuthStatus := TransactionAuthorizationStatusAuthorized
 
 	route := Route{
-		Currency:                       currencyx.Code("USD"),
+		Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:                        &taxCode,
 		TaxBehavior:                    &taxBehavior,
 		Features:                       []string{"storage", "api-calls"},
@@ -295,7 +408,7 @@ func TestRouteMatches(t *testing.T) {
 		TransactionAuthorizationStatus: &authStatus,
 	}
 	unrestrictedRoute := Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CreditPriority: &priority,
 	}
 
@@ -313,13 +426,13 @@ func TestRouteMatches(t *testing.T) {
 		{
 			name:   "currency match",
 			route:  route,
-			filter: RouteFilter{Currency: currencyx.Code("USD")},
+			filter: RouteFilter{Currency: currencies.NewCurrencyReference("USD")},
 			want:   true,
 		},
 		{
 			name:   "currency mismatch",
 			route:  route,
-			filter: RouteFilter{Currency: currencyx.Code("EUR")},
+			filter: RouteFilter{Currency: currencies.NewCurrencyReference("EUR")},
 			want:   false,
 		},
 		{
@@ -510,7 +623,7 @@ func TestRouteMatches(t *testing.T) {
 		},
 		{
 			name:   "credit priority filter rejects nil route credit priority",
-			route:  Route{Currency: currencyx.Code("USD")},
+			route:  Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 			filter: RouteFilter{CreditPriority: &priority},
 			want:   false,
 		},
@@ -554,7 +667,7 @@ func TestRouteMatches(t *testing.T) {
 			name:  "multiple fields match together",
 			route: route,
 			filter: RouteFilter{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference("USD"),
 				TaxCode:                        mo.Some(&taxCode),
 				TaxBehavior:                    mo.Some(&taxBehavior),
 				Features:                       mo.Some([]string{"storage", "api-calls"}),
@@ -568,7 +681,7 @@ func TestRouteMatches(t *testing.T) {
 			name:  "one mismatch makes multi-field filter fail",
 			route: route,
 			filter: RouteFilter{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference("USD"),
 				TaxCode:                        mo.Some(&taxCode),
 				TaxBehavior:                    mo.Some(&taxBehavior),
 				Features:                       mo.Some([]string{"storage", "api-calls"}),
@@ -585,6 +698,27 @@ func TestRouteMatches(t *testing.T) {
 			require.Equal(t, tt.want, tt.route.Matches(tt.filter))
 		})
 	}
+}
+
+func TestRouteMatches_CustomCurrencyReferenceIdentity(t *testing.T) {
+	alpha := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-alpha|2")
+	beta := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-beta|2")
+	route := Route{
+		Currency: alpha,
+	}
+
+	require.True(t, route.Matches(RouteFilter{Currency: alpha}))
+	require.False(t, route.Matches(RouteFilter{Currency: beta}))
+	require.True(t, route.Matches(RouteFilter{Currency: currencies.NewCurrencyReference("ACME")}))
+}
+
+func mustCurrencyReference(t *testing.T, value string) currencies.CurrencyReference {
+	t.Helper()
+
+	reference, err := currencies.ParseCurrencyReference([]byte(value))
+	require.NoError(t, err)
+
+	return reference
 }
 
 func TestRouteFilter_NormalizeRejectsExactAndMatchFeatures(t *testing.T) {
@@ -606,7 +740,7 @@ func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
 
 func TestBuildRoutingKeyV2_WithTaxBehaviorAndTaxCode(t *testing.T) {
 	key, err := BuildRoutingKeyV2(Route{
-		Currency:    currencyx.Code("USD"),
+		Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:     lo.ToPtr("GST10"),
 		TaxBehavior: lo.ToPtr(TaxBehaviorExclusive),
 	})

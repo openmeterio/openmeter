@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -19,7 +20,7 @@ import (
 type RecognizeEarningsFromAttributableAccruedTemplate struct {
 	At       time.Time
 	Amount   alpacadecimal.Decimal
-	Currency currencyx.Code
+	Currency currencies.CurrencyReference
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) Validate() error {
@@ -31,7 +32,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) Validate() error {
 		return fmt.Errorf("amount: %w", err)
 	}
 
-	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+	if err := t.Currency.Validate(); err != nil {
 		return fmt.Errorf("currency: %w", err)
 	}
 
@@ -92,12 +93,13 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 	route := address.Route().Route()
 
 	return routePairingKey{
-		currency:       route.Currency,
-		taxCode:        lo.FromPtrOr(route.TaxCode, "null"),
-		taxBehavior:    string(lo.FromPtrOr(route.TaxBehavior, "null")),
-		costBasis:      costBasisKey(route.CostBasis),
-		sourceChargeID: lo.FromPtrOr(identity.SourceChargeID, "null"),
-		spendChargeID:  lo.FromPtrOr(identity.SpendChargeID, "null"),
+		currency:          route.Currency.IdentityKey(),
+		costBasisCurrency: string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
+		taxCode:           lo.FromPtrOr(route.TaxCode, "null"),
+		taxBehavior:       string(lo.FromPtrOr(route.TaxBehavior, "null")),
+		costBasis:         costBasisKey(route.CostBasis),
+		sourceChargeID:    lo.FromPtrOr(identity.SourceChargeID, "null"),
+		spendChargeID:     lo.FromPtrOr(identity.SpendChargeID, "null"),
 	}
 }
 
@@ -149,10 +151,11 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolveEarningsSubAccB
 			// destination address per route, but entries must stay split by provenance.
 			route := collection.address.Route().Route()
 			earnings, err := earningsAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-				Currency:    t.Currency,
-				TaxCode:     route.TaxCode,
-				TaxBehavior: route.TaxBehavior,
-				CostBasis:   route.CostBasis,
+				Currency:          route.Currency,
+				CostBasisCurrency: route.CostBasisCurrency,
+				TaxCode:           route.TaxCode,
+				TaxBehavior:       route.TaxBehavior,
+				CostBasis:         route.CostBasis,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get earnings sub-account: %w", err)

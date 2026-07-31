@@ -640,7 +640,8 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	require.False(t, expandedCurrencyOnly.Currency.IsResolved())
+	require.True(t, expandedCurrencyOnly.Currency.IsResolved())
+	require.False(t, expandedCurrencyOnly.Currency.IsCostBasisResolved())
 	managedWithoutCostBasis, ok := expandedCurrencyOnly.Currency.CustomCurrency()
 	require.True(t, ok)
 	require.Equal(t, custom.ID, managedWithoutCostBasis.ID)
@@ -656,6 +657,7 @@ func TestAddonCurrencyReferencesRoundTrip(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, expandedDefault.Currency.IsResolved())
+	require.True(t, expandedDefault.Currency.IsCostBasisResolved())
 	managedDefault, ok := expandedDefault.Currency.CustomCurrency()
 	require.True(t, ok)
 	require.Equal(t, custom.ID, managedDefault.ID)

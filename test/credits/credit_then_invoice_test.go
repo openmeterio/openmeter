@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -1419,7 +1420,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "draft line should book credited portion to zero-cost-basis wash")
 		expectedCreditedFlatFeeAmount := float64(2) // 2 = credited flat-fee slice keeps source and spend provenance before invoice approval.
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&sourceChargeID, &flatFeeChargeID.ID): expectedCreditedFlatFeeAmount,
 		})
@@ -1470,13 +1471,13 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		expectedInvoiceBackedFlatFeeAmount := float64(3) // 3 = 5 flat fee less 2 promotional credits.
 		expectedOpenReceivableAmount := float64(-3)      // -3 = approved invoice creates open receivable for the fiat remainder.
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&sourceChargeID, &flatFeeChargeID.ID): expectedCreditedFlatFeeAmount,
 			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID):             expectedInvoiceBackedFlatFeeAmount,
 		})
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID): expectedOpenReceivableAmount,
@@ -1510,11 +1511,11 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "authorized payment should keep zero-cost-basis wash unchanged")
 		expectedAuthorizedReceivableAmount := float64(-3) // -3 = authorization preserves the fiat remainder's spend provenance.
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
 		}, map[string]float64{})
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID): expectedAuthorizedReceivableAmount,
@@ -1553,15 +1554,15 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		expectedCreditedFlatFeeAmount := float64(2)      // 2 = credited slice remains attributed after payment settlement.
 		expectedInvoiceBackedFlatFeeAmount := float64(3) // 3 = invoice-backed slice remains attributed after payment settlement.
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
 		}, map[string]float64{})
 		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency:                       USD,
+			Currency:                       currencies.NewCurrencyReference(USD),
 			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
 		}, map[string]float64{})
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
-			Currency: USD,
+			Currency: currencies.NewCurrencyReference(USD),
 		}, map[string]float64{
 			sourceSpendChargeBucketKey(&sourceChargeID, &flatFeeChargeID.ID): expectedCreditedFlatFeeAmount,
 			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID):             expectedInvoiceBackedFlatFeeAmount,

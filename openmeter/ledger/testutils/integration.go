@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"testing"
 	"time"
@@ -9,22 +10,58 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type IntegrationEnv struct {
-	Namespace        string
-	CustomerID       customer.CustomerID
-	Currency         currencyx.Code
+	Namespace  string
+	CustomerID customer.CustomerID
+	Currency   currencyx.Code
+	// CustomCurrency overrides the resolved custom currency used by routes.
+	// Tests that only set Currency get a deterministic definition by default.
+	CustomCurrency   *currencies.Currency
 	DB               *entdb.Client
 	CustomerAccounts ledger.CustomerAccounts
 	BusinessAccounts ledger.BusinessAccounts
 	Deps             Deps
+}
+
+func (e *IntegrationEnv) CustomCurrencyForRoute(currency currencyx.Code) currencies.CurrencyReference {
+	if e.CustomCurrency != nil {
+		return e.CustomCurrency.Reference()
+	}
+	if !currency.IsCustom() {
+		return currencies.NewCurrencyReference(currency)
+	}
+
+	id := fmt.Sprintf("%x", sha256.Sum256([]byte(currency)))[:26]
+	resolved, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(currency).
+		WithName(currency.String()).
+		WithPrecision(4).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	return (currencies.Currency{
+		NamespacedID: models.NamespacedID{
+			Namespace: e.Namespace,
+			ID:        id,
+		},
+		Currency: resolved,
+	}).Reference()
+}
+
+func (e *IntegrationEnv) CurrencyReference() currencies.CurrencyReference {
+	return e.CustomCurrencyForRoute(e.Currency)
 }
 
 func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
@@ -83,7 +120,7 @@ func (e *IntegrationEnv) FBOSubAccount(t *testing.T, priority int) ledger.SubAcc
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CreditPriority: priority,
 	})
 	require.NoError(t, err)
@@ -113,7 +150,7 @@ func (e *IntegrationEnv) ReceivableSubAccountWithCostBasisAndStatus(t *testing.T
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       e.Currency,
+		Currency:                       e.CurrencyReference(),
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: status,
 	})
@@ -138,7 +175,7 @@ func (e *IntegrationEnv) AccruedSubAccountWithCostBasisAndTaxCode(t *testing.T, 
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:  e.Currency,
+		Currency:  e.CurrencyReference(),
 		TaxCode:   taxCode,
 		CostBasis: costBasis,
 	})
@@ -157,7 +194,7 @@ func (e *IntegrationEnv) WashSubAccountWithCostBasis(t *testing.T, costBasis *al
 	t.Helper()
 
 	subAccount, err := e.BusinessAccounts.WashAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  e.Currency,
+		Currency:  e.CurrencyReference(),
 		CostBasis: costBasis,
 	})
 	require.NoError(t, err)
@@ -181,7 +218,7 @@ func (e *IntegrationEnv) EarningsSubAccountWithCostBasisAndTaxCode(t *testing.T,
 	t.Helper()
 
 	subAccount, err := e.BusinessAccounts.EarningsAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  e.Currency,
+		Currency:  e.CurrencyReference(),
 		CostBasis: costBasis,
 		TaxCode:   taxCode,
 	})
@@ -194,7 +231,7 @@ func (e *IntegrationEnv) BrokerageSubAccount(t *testing.T) ledger.SubAccount {
 	t.Helper()
 
 	subAccount, err := e.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency: e.Currency,
+		Currency: e.CurrencyReference(),
 	})
 	require.NoError(t, err)
 
@@ -205,7 +242,7 @@ func (e *IntegrationEnv) BreakageSubAccountWithCostBasis(t *testing.T, costBasis
 	t.Helper()
 
 	subAccount, err := e.BusinessAccounts.BreakageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  e.Currency,
+		Currency:  e.CurrencyReference(),
 		CostBasis: costBasis,
 	})
 	require.NoError(t, err)

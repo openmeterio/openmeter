@@ -4106,7 +4106,7 @@ var (
 		{Name: "kind", Type: field.TypeEnum, Enums: []string{"plan", "release", "reopen"}},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "currency", Type: field.TypeString},
 		{Name: "credit_priority", Type: field.TypeInt},
 		{Name: "expires_at", Type: field.TypeTime},
 		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill"}},
@@ -4245,7 +4245,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "currency", Type: field.TypeString},
 		{Name: "voided_at", Type: field.TypeTime},
 		{Name: "source_charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "void_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -4512,6 +4512,7 @@ var (
 		{Name: "routing_key_version", Type: field.TypeString},
 		{Name: "routing_key", Type: field.TypeString},
 		{Name: "currency", Type: field.TypeString},
+		{Name: "cost_basis_currency", Type: field.TypeString, Nullable: true},
 		{Name: "tax_code", Type: field.TypeString, Nullable: true},
 		{Name: "tax_behavior", Type: field.TypeString, Nullable: true},
 		{Name: "features", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
@@ -4528,7 +4529,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ledger_sub_account_routes_ledger_accounts_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[14]},
+				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[15]},
 				RefColumns: []*schema.Column{LedgerAccountsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -4547,7 +4548,7 @@ var (
 			{
 				Name:    "ledgersubaccountroute_namespace_account_id_routing_key_version_routing_key",
 				Unique:  true,
-				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[14], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
+				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[15], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
 			},
 		},
 	}

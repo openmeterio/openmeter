@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
@@ -185,7 +186,7 @@ func ledgerLoaderTestTransaction(
 ) ledger.Transaction {
 	t.Helper()
 
-	route := ledger.Route{Currency: currencyx.Code("USD")}
+	route := ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))}
 	key, err := ledger.BuildRoutingKey(route)
 	require.NoError(t, err)
 

@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
@@ -18,7 +19,7 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate(t *testing.T) {
 		TransferCustomerReceivableToAccruedTemplate{
 			At:        env.Now(),
 			Amount:    alpacadecimal.NewFromInt(50),
-			Currency:  env.Currency,
+			Currency:  env.CurrencyReference(),
 			CostBasis: &costBasis,
 		},
 	)
@@ -28,7 +29,7 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate(t *testing.T) {
 		RecognizeEarningsFromAttributableAccruedTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(50),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 	)
 	require.Len(t, inputs, 1)
@@ -46,17 +47,17 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_IgnoresUnknownCostBasi
 		IssueCustomerReceivableTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(30),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 		TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(30),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 		TransferCustomerReceivableToAccruedTemplate{
 			At:        env.Now(),
 			Amount:    alpacadecimal.NewFromInt(20),
-			Currency:  env.Currency,
+			Currency:  env.CurrencyReference(),
 			CostBasis: &costBasis,
 		},
 	)
@@ -66,7 +67,7 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_IgnoresUnknownCostBasi
 		RecognizeEarningsFromAttributableAccruedTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(50),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 	)
 	require.Len(t, inputs, 1)
@@ -102,7 +103,7 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_PreservesChargeProvena
 	//   - 20 from source 2
 	env.resolveAndCommit(t, TransferCustomerFBOToAccruedTemplate{
 		At:       env.Now(),
-		Currency: env.Currency,
+		Currency: env.CurrencyReference(),
 		Sources: []PostingAmount{
 			{
 				Address: sourceFBO.Address(),
@@ -128,7 +129,7 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_PreservesChargeProvena
 	recognizeInputs := env.resolve(t, RecognizeEarningsFromAttributableAccruedTemplate{
 		At:       env.Now(),
 		Amount:   alpacadecimal.NewFromInt(recognizedAmount),
-		Currency: env.Currency,
+		Currency: env.CurrencyReference(),
 	})
 	require.Len(t, recognizeInputs, 1)
 
@@ -193,7 +194,7 @@ func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrue
 	env.resolveAndCommit(t,
 		TransferCustomerFBOToAccruedTemplate{
 			At:       env.Now(),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 			Sources: []PostingAmount{
 				{
 					Address: sourceFBO.Address(),
@@ -208,7 +209,7 @@ func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrue
 		TransferCustomerReceivableToAccruedTemplate{
 			At:            env.Now(),
 			Amount:        alpacadecimal.NewFromFloat(invoiceBackedAmount),
-			Currency:      env.Currency,
+			Currency:      env.CurrencyReference(),
 			CostBasis:     &invoiceCostBasis,
 			SpendChargeID: &spendChargeID,
 		},
@@ -219,7 +220,7 @@ func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrue
 	recognizeInputs := env.resolve(t, RecognizeEarningsFromAttributableAccruedTemplate{
 		At:       env.Now(),
 		Amount:   alpacadecimal.NewFromInt(creditBackedAmount),
-		Currency: env.Currency,
+		Currency: env.CurrencyReference(),
 	})
 	require.Len(t, recognizeInputs, 1)
 
@@ -271,12 +272,12 @@ func TestRecognizeEarningsCorrection_FullReversal(t *testing.T) {
 
 	// Set up accrued.
 	env.resolveAndCommit(t, TransferCustomerReceivableToAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.Currency, CostBasis: &costBasis,
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(), CostBasis: &costBasis,
 	})
 
 	// Recognize earnings — resolve and commit separately to get the group.
 	recognizeInputs := env.resolve(t, RecognizeEarningsFromAttributableAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.Currency,
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(),
 	})
 	require.Len(t, recognizeInputs, 1)
 
@@ -307,10 +308,10 @@ func TestRecognizeEarningsCorrection_PartialReversal(t *testing.T) {
 	costBasis := alpacadecimal.NewFromInt(1)
 
 	env.resolveAndCommit(t, TransferCustomerReceivableToAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.Currency, CostBasis: &costBasis,
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(), CostBasis: &costBasis,
 	})
 	recognizeInputs := env.resolve(t, RecognizeEarningsFromAttributableAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.Currency,
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(),
 	})
 	require.Len(t, recognizeInputs, 1)
 
@@ -340,10 +341,10 @@ func TestRecognizeEarningsCorrection_OverCorrectionError(t *testing.T) {
 	costBasis := alpacadecimal.NewFromInt(1)
 
 	env.resolveAndCommit(t, TransferCustomerReceivableToAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.Currency, CostBasis: &costBasis,
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(), CostBasis: &costBasis,
 	})
 	recognizeInputs := env.resolve(t, RecognizeEarningsFromAttributableAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.Currency,
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(),
 	})
 	require.Len(t, recognizeInputs, 1)
 
@@ -371,16 +372,16 @@ func TestRecognizeEarningsCorrection_MultipleCostBases(t *testing.T) {
 	// Set up two cost basis buckets.
 	env.resolveAndCommit(t,
 		TransferCustomerReceivableToAccruedTemplate{
-			At: env.Now(), Amount: alpacadecimal.NewFromInt(30), Currency: env.Currency, CostBasis: &costBasis1,
+			At: env.Now(), Amount: alpacadecimal.NewFromInt(30), Currency: env.CurrencyReference(), CostBasis: &costBasis1,
 		},
 		TransferCustomerReceivableToAccruedTemplate{
-			At: env.Now(), Amount: alpacadecimal.NewFromInt(20), Currency: env.Currency, CostBasis: &costBasis2,
+			At: env.Now(), Amount: alpacadecimal.NewFromInt(20), Currency: env.CurrencyReference(), CostBasis: &costBasis2,
 		},
 	)
 
 	// Recognize earnings from both.
 	recognizeInputs := env.resolve(t, RecognizeEarningsFromAttributableAccruedTemplate{
-		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.Currency,
+		At: env.Now(), Amount: alpacadecimal.NewFromInt(50), Currency: env.CurrencyReference(),
 	})
 	require.Len(t, recognizeInputs, 1)
 
@@ -419,7 +420,7 @@ func requireEarningsBalanceBuckets(t *testing.T, env *transactionsTestEnv, expec
 		Filters: ledger.Filters{
 			AccountID: &earningsAccountID,
 			Route: ledger.RouteFilter{
-				Currency: env.Currency,
+				Currency: currencies.NewCurrencyReference(env.Currency),
 			},
 		},
 		GroupBy: []string{

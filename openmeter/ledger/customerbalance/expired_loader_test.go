@@ -142,7 +142,7 @@ func TestListCreditTransactionsExpiredBreakageFeatureFilter(t *testing.T) {
 		inputs, pending, err := env.BreakageService.PlanIssuance(t.Context(), ledgerbreakage.PlanIssuanceInput{
 			CustomerID: env.CustomerID,
 			Amount:     amount,
-			Currency:   env.Currency,
+			Currency:   env.CurrencyReference(),
 			Features:   spec.features,
 			ExpiresAt:  expiresAt,
 		})
@@ -568,7 +568,7 @@ func (e *testEnv) bookExpiredListingState(t *testing.T, issuedAt time.Time, spec
 		inputs, pending, err := e.BreakageService.PlanIssuance(t.Context(), ledgerbreakage.PlanIssuanceInput{
 			CustomerID: e.CustomerID,
 			Amount:     alpacadecimal.NewFromInt(spec.amount),
-			Currency:   e.Currency,
+			Currency:   e.CurrencyReference(),
 			ExpiresAt:  issuedAt.Add(spec.expiresAfter),
 		})
 		require.NoError(t, err)
@@ -718,7 +718,7 @@ func (e *testEnv) bookFBOUsage(t *testing.T, at time.Time, address ledger.Postin
 		},
 		transactions.TransferCustomerFBOToAccruedTemplate{
 			At:       at,
-			Currency: e.Currency,
+			Currency: e.CurrencyReference(),
 			Sources: []transactions.PostingAmount{
 				{
 					Address: address,
@@ -750,7 +750,7 @@ func (e *testEnv) bookFBORestore(t *testing.T, at time.Time, amount alpacadecima
 		transactions.IssueCustomerReceivableTemplate{
 			At:       at,
 			Amount:   amount,
-			Currency: e.Currency,
+			Currency: e.CurrencyReference(),
 		},
 	)
 	require.NoError(t, err)

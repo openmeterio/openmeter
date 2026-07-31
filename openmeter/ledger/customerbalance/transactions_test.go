@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -181,7 +182,7 @@ func mustHistoricalTransaction(t *testing.T, entries []ledgerhistorical.EntryDat
 func mustEntryData(t *testing.T, id string, accountType ledger.AccountType, currency currencyx.Code, amount alpacadecimal.Decimal) ledgerhistorical.EntryData {
 	t.Helper()
 
-	route := ledger.Route{Currency: currency}
+	route := ledger.Route{Currency: currencies.NewCurrencyReference(currency)}
 	key, err := ledger.BuildRoutingKey(route)
 	require.NoError(t, err)
 

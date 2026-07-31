@@ -11,6 +11,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
@@ -62,8 +63,8 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))})
 	sourceChargeID := "01JABCDEF0123456789ABCDEFG"
 	spendChargeID := "01JBCDEFG0123456789ABCDEFG"
 	collectionSource := "0"
@@ -182,8 +183,8 @@ func TestRepo_BookTransaction_AllowsSameSubAccountEntriesWithDifferentProvenance
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))})
 	sourceChargeID1 := "01JABCDEF0123456789ABCDEFG"
 	sourceChargeID2 := "01JBCDEFG0123456789ABCDEFG"
 	spendChargeID := "01JCDEFGH0123456789ABCDEFG"
@@ -249,7 +250,7 @@ func TestRepo_GetTransactionGroup_PreservesTaxBehavior(t *testing.T) {
 	taxCode := "tax-code"
 	taxBehavior := ledger.TaxBehaviorInclusive
 	route := ledger.Route{
-		Currency:    currencyx.Code("USD"),
+		Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:     &taxCode,
 		TaxBehavior: &taxBehavior,
 	}
@@ -321,8 +322,8 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -396,8 +397,8 @@ func TestRepo_ListTransactions_PaginatesWithBefore(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -462,8 +463,8 @@ func TestRepo_ListTransactions_BeforeNextCursorResumesWithoutOverlap(t *testing.
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -538,8 +539,8 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	usdSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	eurSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	usdSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	eurSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -574,7 +575,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 	require.Len(t, usdConsumed.Items, 1)
 	require.Equal(t, tx.ID(), usdConsumed.Items[0].ID())
 	require.Len(t, usdConsumed.Items[0].Entries(), 1)
-	require.Equal(t, currencyx.Code("USD"), usdConsumed.Items[0].Entries()[0].PostingAddress().Route().Route().Currency)
+	require.Equal(t, currencyx.Code("USD"), usdConsumed.Items[0].Entries()[0].PostingAddress().Route().Route().Currency.Code)
 
 	usdFunded, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace:      namespace,
@@ -597,7 +598,7 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 	require.Len(t, eurFunded.Items, 1)
 	require.Equal(t, tx.ID(), eurFunded.Items[0].ID())
 	require.Len(t, eurFunded.Items[0].Entries(), 1)
-	require.Equal(t, currencyx.Code("EUR"), eurFunded.Items[0].Entries()[0].PostingAddress().Route().Route().Currency)
+	require.Equal(t, currencyx.Code("EUR"), eurFunded.Items[0].Entries()[0].PostingAddress().Route().Route().Currency.Code)
 
 	eurConsumed, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
 		Namespace:      namespace,
@@ -618,8 +619,8 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *test
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	usdSubAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	usdSubAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	usdSubAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	usdSubAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -670,10 +671,10 @@ func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testi
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a"}})
-	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a", "feature-b"}})
-	featureB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-b"}})
+	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-a"}})
+	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-a", "feature-b"}})
+	featureB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-b"}})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -760,9 +761,9 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	usdSubAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	eurSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
-	usdSubAccountC := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	usdSubAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	eurSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))})
+	usdSubAccountC := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -911,8 +912,8 @@ func TestRepo_ListTransactions_FiltersHydratedEntriesByScope(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	usdSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	eurSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	usdSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	eurSubAccount := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -954,7 +955,7 @@ func TestRepo_ListTransactions_FiltersHydratedEntriesByScope(t *testing.T) {
 	require.Len(t, currencyScoped.Items, 1)
 	require.Equal(t, tx.ID(), currencyScoped.Items[0].ID())
 	require.Len(t, currencyScoped.Items[0].Entries(), 1)
-	require.Equal(t, currencyx.Code("EUR"), currencyScoped.Items[0].Entries()[0].PostingAddress().Route().Route().Currency)
+	require.Equal(t, currencyx.Code("EUR"), currencyScoped.Items[0].Entries()[0].PostingAddress().Route().Route().Currency.Code)
 }
 
 func TestRepo_SumEntries_Filters(t *testing.T) {
@@ -967,19 +968,19 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	namespace := testNamespace()
 
 	subAccountA := env.createSubAccount(t, namespace, ledger.Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CreditPriority: lo.ToPtr(1),
 	})
 	subAccountB := env.createSubAccount(t, namespace, ledger.Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CreditPriority: lo.ToPtr(2),
 	})
 	subAccountC := env.createSubAccount(t, namespace, ledger.Route{
-		Currency:       currencyx.Code("EUR"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("EUR")),
 		CreditPriority: lo.ToPtr(1),
 	})
 	subAccountD := env.createSubAccount(t, namespace, ledger.Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CreditPriority: lo.ToPtr(1),
 		CostBasis:      lo.ToPtr(mustDecimal(t, "0.7")),
 	})
@@ -1032,7 +1033,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	sumUSD, err := env.repo.SumEntries(ctx, ledger.Query{
 		Namespace: namespace,
 		Filters: ledger.Filters{
-			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1045,7 +1046,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CreditPriority: &creditPriority,
 			},
 		},
@@ -1060,7 +1061,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			TransactionID: &txID,
-			Route:         ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route:         ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1073,7 +1074,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			BookedAtPeriod: &timeutil.OpenPeriod{From: &from},
-			Route:          ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route:          ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1085,7 +1086,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:  currencyx.Code("USD"),
+				Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CostBasis: mo.Some(lo.ToPtr(mustDecimal(t, "0.70"))),
 			},
 		},
@@ -1097,7 +1098,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			After: lo.ToPtr(txLate.Cursor()),
-			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1107,7 +1108,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			After: lo.ToPtr(txCostBasis.Cursor()),
-			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
@@ -1117,19 +1118,19 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			After: lo.ToPtr(txEarly.Cursor()),
-			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+			Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		},
 	})
 	require.NoError(t, err)
 	require.True(t, sumAfterEarly.Equal(alpacadecimal.NewFromInt(0)))
 
 	subAccountFeatures := env.createSubAccount(t, namespace, ledger.Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CreditPriority: lo.ToPtr(1),
 		Features:       []string{"storage", "api-calls"},
 	})
 	subAccountUnrestricted := env.createSubAccount(t, namespace, ledger.Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CreditPriority: lo.ToPtr(3),
 	})
 
@@ -1150,7 +1151,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				Features: mo.Some([]string{"api-calls", "storage"}),
 			},
 		},
@@ -1162,7 +1163,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				Features: mo.Some([]string{"api-calls"}),
 			},
 		},
@@ -1179,9 +1180,9 @@ func TestRepo_SumEntries_MatchFeature(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
-	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a"}})
-	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a", "feature-b"}})
+	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))})
+	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-a"}})
+	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), Features: []string{"feature-a", "feature-b"}})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -1208,7 +1209,7 @@ func TestRepo_SumEntries_MatchFeature(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:     currencyx.Code("USD"),
+				Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 				MatchFeature: "feature-a",
 			},
 		},
@@ -1220,7 +1221,7 @@ func TestRepo_SumEntries_MatchFeature(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:     currencyx.Code("USD"),
+				Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 				MatchFeature: "feature-b",
 			},
 		},
@@ -1232,7 +1233,7 @@ func TestRepo_SumEntries_MatchFeature(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:     currencyx.Code("USD"),
+				Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 				MatchFeature: "feature-c",
 			},
 		},
@@ -1254,7 +1255,7 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 					From: &bookedFrom,
 				},
 				Route: ledger.RouteFilter{
-					Currency:       currencyx.Code("USD"),
+					Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 					CostBasis:      mo.Some(lo.ToPtr(mustDecimal(t, "0.70"))),
 					CreditPriority: lo.ToPtr(7),
 				},
@@ -1282,7 +1283,7 @@ func TestSumEntriesQuery_SQLMatchFeature(t *testing.T) {
 			Namespace: "ns-test",
 			Filters: ledger.Filters{
 				Route: ledger.RouteFilter{
-					Currency:     currencyx.Code("USD"),
+					Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
 					MatchFeature: "api-calls",
 				},
 			},

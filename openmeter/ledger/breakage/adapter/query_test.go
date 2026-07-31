@@ -7,6 +7,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -14,17 +15,15 @@ import (
 func TestExpiredRecordRouteQuerySQL(t *testing.T) {
 	tests := []struct {
 		name     string
-		query    expiredRecordRouteQuery
+		route    ledger.RouteFilter
 		wantSQL  string
 		wantArgs []any
 	}{
 		{
 			name: "exact feature route",
-			query: expiredRecordRouteQuery{
-				Route: ledger.RouteFilter{
-					Currency: currencyx.Code("USD"),
-					Features: mo.Some([]string{"feature-b", "feature-a"}),
-				},
+			route: ledger.RouteFilter{
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+				Features: mo.Some([]string{"feature-b", "feature-a"}),
 			},
 			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND "lsar"."features" = $2`,
 			wantArgs: []any{
@@ -34,11 +33,9 @@ func TestExpiredRecordRouteQuerySQL(t *testing.T) {
 		},
 		{
 			name: "match feature route",
-			query: expiredRecordRouteQuery{
-				Route: ledger.RouteFilter{
-					Currency:     currencyx.Code("USD"),
-					MatchFeature: "feature-a",
-				},
+			route: ledger.RouteFilter{
+				Currency:     currencies.NewCurrencyReference(currencyx.Code("USD")),
+				MatchFeature: "feature-a",
 			},
 			wantSQL: `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND ("lsar"."features" IS NULL OR "lsar"."features" @> $2)`,
 			wantArgs: []any{
@@ -46,11 +43,21 @@ func TestExpiredRecordRouteQuerySQL(t *testing.T) {
 				pq.StringArray{"feature-a"},
 			},
 		},
+		{
+			name: "unresolved custom currency code prefix",
+			route: ledger.RouteFilter{
+				Currency: currencies.NewCurrencyReference(currencyx.Code("ACME")),
+			},
+			wantSQL:  `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" LIKE $1`,
+			wantArgs: []any{"custom|v1|ACME|%"},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotSQL, gotArgs := tt.query.SQL()
+			query, err := newExpiredRecordRouteQuery(tt.route)
+			require.NoError(t, err)
+			gotSQL, gotArgs := query.SQL()
 
 			require.Equal(t, tt.wantSQL, gotSQL)
 			require.Equal(t, tt.wantArgs, gotArgs)

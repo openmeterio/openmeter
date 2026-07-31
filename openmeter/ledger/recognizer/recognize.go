@@ -66,7 +66,7 @@ func (s *service) RecognizeEarnings(ctx context.Context, in RecognizeEarningsInp
 			transactions.RecognizeEarningsFromAttributableAccruedTemplate{
 				At:       in.At,
 				Amount:   totalEligible,
-				Currency: in.Currency.GetCode(),
+				Currency: in.Currency.Reference(),
 			},
 		)
 		if err != nil {

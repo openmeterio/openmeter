@@ -53,10 +53,6 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 	intent := input.Charge.Intent
 	taxConfig := intent.GetTaxConfig()
 
-	if intent.GetCurrency().IsCustom() {
-		return nil, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
-	}
-
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
@@ -72,7 +68,7 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: intent.GetEffectiveInvoiceAt(),
-		Currency:          intent.GetCurrency().GetCode(),
+		Currency:          intent.GetCurrency().Reference(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
 		SettlementMode:    intent.GetSettlementMode(),
@@ -106,10 +102,6 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 	intent := input.Charge.Intent
 	taxConfig := intent.GetTaxConfig()
 
-	if intent.GetCurrency().IsCustom() {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
-	}
-
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
@@ -133,7 +125,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 		transactions.TransferCustomerReceivableToAccruedTemplate{
 			At:            input.BookedAt,
 			Amount:        amount,
-			Currency:      intent.GetCurrency().GetCode(),
+			Currency:      intent.GetCurrency().Reference(),
 			TaxCode:       lo.ToPtr(taxConfig.TaxCodeID),
 			TaxBehavior:   (*ledger.TaxBehavior)(taxConfig.Behavior),
 			CostBasis:     invoiceCostBasis,
@@ -178,10 +170,6 @@ func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input f
 
 	currency := intent.GetCurrency()
 
-	if currency.IsCustom() {
-		return nil, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
-	}
-
 	if err := input.ValidateWith(currency); err != nil {
 		return nil, err
 	}
@@ -206,11 +194,6 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 
 	intent := input.Charge.Intent
 
-	if intent.GetCurrency().IsCustom() {
-		// TODO[implement]: FiatAmount contains the amount paid in the fiat currency.
-		return ledgertransaction.GroupReference{}, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
-	}
-
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
 		ID:        intent.GetCustomerID(),
@@ -227,7 +210,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:            input.EventAt,
 			Amount:        input.FiatAmount,
-			Currency:      intent.GetCurrency().GetCode(),
+			Currency:      intent.GetCurrency().Reference(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},
@@ -263,11 +246,6 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 
 	intent := input.Charge.Intent
 
-	if intent.GetCurrency().IsCustom() {
-		// TODO[implement]: FiatAmount contains the amount paid in the fiat currency.
-		return ledgertransaction.GroupReference{}, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
-	}
-
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
 		ID:        intent.GetCustomerID(),
@@ -284,7 +262,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:            input.EventAt,
 			Amount:        input.FiatAmount,
-			Currency:      intent.GetCurrency().GetCode(),
+			Currency:      intent.GetCurrency().Reference(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},

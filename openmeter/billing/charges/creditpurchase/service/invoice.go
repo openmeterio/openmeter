@@ -56,8 +56,9 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge credi
 
 	eventAt := clock.Now()
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: eventAt,
+		Charge:     charge,
+		EventAt:    eventAt,
+		FiatAmount: lineWithHeader.Line.Totals.Total,
 	})
 	if err != nil {
 		return err
@@ -102,8 +103,9 @@ func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge creditpu
 
 	eventAt := clock.Now()
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentSettled(ctx, creditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: eventAt,
+		Charge:     charge,
+		EventAt:    eventAt,
+		FiatAmount: paymentSettlement.FiatAmount,
 	})
 	if err != nil {
 		return err

@@ -516,8 +516,9 @@ func TestOnCreditPurchasePaymentAuthorized(t *testing.T) {
 	defer clock.UnFreeze()
 
 	ref, err := env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: eventTime,
+		Charge:     charge,
+		EventAt:    eventTime,
+		FiatAmount: alpacadecimal.NewFromInt(100),
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
@@ -534,10 +535,18 @@ func TestOnCreditPurchasePaymentAuthorized(t *testing.T) {
 	}
 
 	ref, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: time.Time{},
+		Charge:     charge,
+		EventAt:    time.Time{},
+		FiatAmount: alpacadecimal.NewFromInt(100),
 	})
 	require.ErrorContains(t, err, "event at is required")
+	require.Empty(t, ref.TransactionGroupID)
+
+	ref, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: eventTime,
+	})
+	require.ErrorContains(t, err, "fiat amount must be positive")
 	require.Empty(t, ref.TransactionGroupID)
 }
 
@@ -554,8 +563,9 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 	}, env.transactionTemplateCodes(t, initRef.TransactionGroupID))
 
 	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: charge.CreatedAt.Add(15 * time.Minute),
+		Charge:     charge,
+		EventAt:    charge.CreatedAt.Add(15 * time.Minute),
+		FiatAmount: alpacadecimal.NewFromInt(100),
 	})
 	require.NoError(t, err)
 
@@ -564,8 +574,9 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 	defer clock.UnFreeze()
 
 	ref, err := env.handler.OnCreditPurchasePaymentSettled(t.Context(), chargecreditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: eventTime,
+		Charge:     charge,
+		EventAt:    eventTime,
+		FiatAmount: alpacadecimal.NewFromInt(100),
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
@@ -580,6 +591,40 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 		requireLedgerBookedAtEqual(t, eventTime, bookedAt)
 		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
 	}
+}
+
+func TestOnCreditPurchasePaymentLifecycleRevaluesFiatAmount(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	fiatAmount := alpacadecimal.NewFromInt(99)
+
+	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+
+	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:     charge,
+		EventAt:    charge.CreatedAt.Add(15 * time.Minute),
+		FiatAmount: fiatAmount,
+	})
+	require.NoError(t, err)
+	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(fiatAmount.Neg()))
+	brokerage, err := env.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:  env.CurrencyReference(),
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+	require.True(t, env.sumBalance(t, brokerage).Equal(alpacadecimal.NewFromInt(-1)))
+
+	_, err = env.handler.OnCreditPurchasePaymentSettled(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:     charge,
+		EventAt:    charge.CreatedAt.Add(30 * time.Minute),
+		FiatAmount: fiatAmount,
+	})
+	require.NoError(t, err)
+	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.washSubAccount(t, costBasis)).Equal(fiatAmount.Neg()))
 }
 
 func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
@@ -598,15 +643,17 @@ func TestOnCreditPurchasePaymentSettled_BacksAdvanceBeforeTopUp(t *testing.T) {
 	}, env.transactionTemplateCodes(t, initRef.TransactionGroupID))
 
 	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: charge.CreatedAt.Add(15 * time.Minute),
+		Charge:     charge,
+		EventAt:    charge.CreatedAt.Add(15 * time.Minute),
+		FiatAmount: alpacadecimal.NewFromInt(100),
 	})
 	require.NoError(t, err)
 
 	eventTime := charge.CreatedAt.Add(30 * time.Minute)
 	ref, err := env.handler.OnCreditPurchasePaymentSettled(t.Context(), chargecreditpurchase.PaymentEventInput{
-		Charge:  charge,
-		EventAt: eventTime,
+		Charge:     charge,
+		EventAt:    eventTime,
+		FiatAmount: alpacadecimal.NewFromInt(100),
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
@@ -768,7 +815,7 @@ func (e *creditPurchaseHandlerTestEnv) fboSubAccountWithFeatures(t *testing.T, c
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CostBasis:      &costBasis,
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 		Features:       features,
@@ -788,7 +835,7 @@ func (e *creditPurchaseHandlerTestEnv) unknownReceivableSubAccountWithFeatures(t
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       e.Currency,
+		Currency:                       e.CurrencyReference(),
 		Features:                       features,
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -802,7 +849,7 @@ func (e *creditPurchaseHandlerTestEnv) unknownAccruedSubAccount(t *testing.T) le
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:  e.Currency,
+		Currency:  e.CurrencyReference(),
 		CostBasis: nil,
 	})
 	require.NoError(t, err)
@@ -814,7 +861,7 @@ func (e *creditPurchaseHandlerTestEnv) accruedSubAccount(t *testing.T, costBasis
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:  e.Currency,
+		Currency:  e.CurrencyReference(),
 		CostBasis: &costBasis,
 	})
 	require.NoError(t, err)
@@ -832,7 +879,7 @@ func (e *creditPurchaseHandlerTestEnv) receivableSubAccountWithFeatures(t *testi
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       e.Currency,
+		Currency:                       e.CurrencyReference(),
 		Features:                       features,
 		CostBasis:                      &costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -846,7 +893,7 @@ func (e *creditPurchaseHandlerTestEnv) authorizedReceivableSubAccount(t *testing
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       e.Currency,
+		Currency:                       e.CurrencyReference(),
 		CostBasis:                      &costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -859,7 +906,7 @@ func (e *creditPurchaseHandlerTestEnv) washSubAccount(t *testing.T, costBasis al
 	t.Helper()
 
 	subAccount, err := e.BusinessAccounts.WashAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  e.Currency,
+		Currency:  e.CurrencyReference(),
 		CostBasis: &costBasis,
 	})
 	require.NoError(t, err)
@@ -929,14 +976,14 @@ func (e *creditPurchaseHandlerTestEnv) createAdvanceExposureForSpend(t *testing.
 		transactions.IssueCustomerReceivableTemplate{
 			At:            e.Now(),
 			Amount:        amount,
-			Currency:      e.Currency,
+			Currency:      e.CurrencyReference(),
 			Features:      features,
 			SpendChargeID: spendChargeID,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:            e.Now(),
 			Amount:        amount,
-			Currency:      e.Currency,
+			Currency:      e.CurrencyReference(),
 			Features:      features,
 			SpendChargeID: spendChargeID,
 		},

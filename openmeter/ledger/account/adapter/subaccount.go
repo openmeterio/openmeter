@@ -7,13 +7,13 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/lib/pq"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgersubaccount "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	dbledgersubaccountroute "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -79,12 +79,18 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		return nil, fmt.Errorf("failed to build routing key: %w", err)
 	}
 
+	currency, err := normalizedRoute.Currency.MarshalText()
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize route currency: %w", err)
+	}
+
 	create := r.db.LedgerSubAccountRoute.Create().
 		SetNamespace(input.Namespace).
 		SetAccountID(input.AccountID).
 		SetRoutingKeyVersion(routeKey.Version()).
 		SetRoutingKey(routeKey.Value()).
-		SetCurrency(string(normalizedRoute.Currency)).
+		SetCurrency(string(currency)).
+		SetNillableCostBasisCurrency(normalizedRoute.CostBasisCurrency).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
 		SetFeatures(pq.StringArray(normalizedRoute.Features)).
@@ -155,9 +161,29 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			return nil, fmt.Errorf("failed to normalize route filter: %w", err)
 		}
 
-		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 7)
-		if normalizedRoute.Currency != "" {
-			routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(normalizedRoute.Currency)))
+		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 8)
+		if normalizedRoute.Currency.Code != "" {
+			if normalizedRoute.Currency.IsCustom() && !normalizedRoute.Currency.IsResolved() {
+				prefix, err := normalizedRoute.Currency.MarshalTextPrefix()
+				if err != nil {
+					return nil, fmt.Errorf("failed to serialize route currency filter prefix: %w", err)
+				}
+				routePredicates = append(routePredicates, dbledgersubaccountroute.CurrencyHasPrefix(string(prefix)))
+			} else {
+				currency, err := normalizedRoute.Currency.MarshalText()
+				if err != nil {
+					return nil, fmt.Errorf("failed to serialize route currency filter: %w", err)
+				}
+				routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(currency)))
+			}
+		}
+		if normalizedRoute.CostBasisCurrency.IsPresent() {
+			costBasisCurrency, _ := normalizedRoute.CostBasisCurrency.Get()
+			if costBasisCurrency != nil {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisCurrency(*costBasisCurrency))
+			} else {
+				routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasisCurrencyIsNil())
+			}
 		}
 		if normalizedRoute.CreditPriority != nil {
 			routePredicates = append(routePredicates,
@@ -249,6 +275,11 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 
 	dbRoute := entity.Edges.Route
 
+	currency, err := currencies.ParseCurrencyReference([]byte(dbRoute.Currency))
+	if err != nil {
+		return ledgeraccount.SubAccountData{}, fmt.Errorf("parse route currency: %w", err)
+	}
+
 	return ledgeraccount.SubAccountData{
 		ID:          entity.ID,
 		Namespace:   entity.Namespace,
@@ -257,7 +288,8 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 		AccountID:   entity.AccountID,
 		AccountType: entity.Edges.Account.AccountType,
 		Route: ledger.Route{
-			Currency:                       currencyx.Code(dbRoute.Currency),
+			Currency:                       currency,
+			CostBasisCurrency:              dbRoute.CostBasisCurrency,
 			TaxCode:                        dbRoute.TaxCode,
 			TaxBehavior:                    dbRoute.TaxBehavior,
 			Features:                       []string(dbRoute.Features),
