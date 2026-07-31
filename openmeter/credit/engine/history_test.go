@@ -107,6 +107,71 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 		assert.Len(t, chunks[0].Segments(), 1)
 		assert.Equal(t, 10.0, chunks[0].TotalGrantUsage().InexactFloat64())
 	})
+
+	t.Run("Rollover starts the new usage period chunk", func(t *testing.T) {
+		resetAt := start.Add(time.Hour)
+		beforeReset := segment(0, 10, true)
+		rollover := engine.GrantBurnDownHistorySegment{
+			ClosedPeriod: timeutil.ClosedPeriod{
+				From: resetAt,
+				To:   resetAt,
+			},
+			TerminationReasons: engine.SegmentTerminationReason{
+				Rollover: true,
+			},
+			GrantUsages: []engine.GrantUsage{
+				{
+					GrantID: "grant-1",
+					Usage:   5,
+				},
+			},
+		}
+		afterReset := segment(1, 20, false)
+
+		history, err := engine.NewGrantBurnDownHistory(
+			[]engine.GrantBurnDownHistorySegment{beforeReset, rollover, afterReset},
+			usageAtStart,
+		)
+		require.NoError(t, err)
+
+		chunks := history.ChunkByResets()
+		require.Len(t, chunks, 2)
+		require.Len(t, chunks[1].Segments(), 2)
+		assert.True(t, chunks[1].Segments()[0].TerminationReasons.Rollover)
+		assert.Equal(t, 25.0, chunks[1].TotalGrantUsage().InexactFloat64())
+		assertChunkUsageAtStart(t, chunks[1], balance.SnapshottedUsage{
+			Since: resetAt,
+			Usage: 0,
+		})
+	})
+}
+
+func TestGrantBurnDownHistory_RolloverPrecedesUsageAtSameTime(t *testing.T) {
+	at := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	usageSegment := engine.GrantBurnDownHistorySegment{
+		ClosedPeriod: timeutil.ClosedPeriod{
+			From: at,
+			To:   at.Add(time.Hour),
+		},
+	}
+	rolloverSegment := engine.GrantBurnDownHistorySegment{
+		ClosedPeriod: timeutil.ClosedPeriod{
+			From: at,
+			To:   at,
+		},
+		TerminationReasons: engine.SegmentTerminationReason{
+			Rollover: true,
+		},
+	}
+
+	history, err := engine.NewGrantBurnDownHistory(
+		[]engine.GrantBurnDownHistorySegment{usageSegment, rolloverSegment},
+		balance.SnapshottedUsage{},
+	)
+	require.NoError(t, err)
+	require.Len(t, history.Segments(), 2)
+	assert.True(t, history.Segments()[0].TerminationReasons.Rollover)
+	assert.False(t, history.Segments()[1].TerminationReasons.Rollover)
 }
 
 func assertChunkUsageAtStart(t *testing.T, history engine.GrantBurnDownHistory, expected balance.SnapshottedUsage) {
