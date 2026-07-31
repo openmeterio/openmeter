@@ -8,6 +8,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestUnitConfigApply(t *testing.T) {
@@ -162,6 +164,14 @@ func TestUnitConfigApply(t *testing.T) {
 }
 
 func TestUnitConfigValidate(t *testing.T) {
+	// requireValidationError asserts Validate failed with a generic validation error whose
+	// message mentions the expected rule, so a case can't pass by tripping a different rule.
+	requireValidationError := func(t *testing.T, err error, contains string) {
+		t.Helper()
+		require.ErrorContains(t, err, contains)
+		require.True(t, models.IsGenericValidationError(err), "expected a generic validation error, got %T", err)
+	}
+
 	t.Run("nil is valid", func(t *testing.T) {
 		var c *UnitConfig
 		require.NoError(t, c.Validate())
@@ -190,7 +200,7 @@ func TestUnitConfigValidate(t *testing.T) {
 			Operation:        "bogus",
 			ConversionFactor: decimal.NewFromInt(1000),
 		}
-		require.Error(t, c.Validate())
+		requireValidationError(t, c.Validate(), "invalid unit config operation")
 	})
 
 	t.Run("conversion_factor must be greater than zero", func(t *testing.T) {
@@ -198,13 +208,13 @@ func TestUnitConfigValidate(t *testing.T) {
 			Operation:        UnitConfigOperationDivide,
 			ConversionFactor: decimal.NewFromInt(0),
 		}
-		require.Error(t, zero.Validate())
+		requireValidationError(t, zero.Validate(), "conversion_factor must be greater than zero")
 
 		negative := &UnitConfig{
 			Operation:        UnitConfigOperationDivide,
 			ConversionFactor: decimal.NewFromInt(-5),
 		}
-		require.Error(t, negative.Validate())
+		requireValidationError(t, negative.Validate(), "conversion_factor must be greater than zero")
 	})
 
 	t.Run("invalid rounding mode", func(t *testing.T) {
@@ -213,7 +223,7 @@ func TestUnitConfigValidate(t *testing.T) {
 			ConversionFactor: decimal.NewFromInt(1000),
 			Rounding:         "bogus",
 		}
-		require.Error(t, c.Validate())
+		requireValidationError(t, c.Validate(), "invalid unit config rounding mode")
 	})
 
 	t.Run("negative precision is rejected when rounding is active", func(t *testing.T) {
@@ -223,7 +233,7 @@ func TestUnitConfigValidate(t *testing.T) {
 			Rounding:         UnitConfigRoundingModeCeiling,
 			Precision:        -1,
 		}
-		require.Error(t, c.Validate())
+		requireValidationError(t, c.Validate(), "precision must not be negative")
 	})
 
 	t.Run("negative precision is ignored when rounding is none", func(t *testing.T) {
@@ -243,7 +253,7 @@ func TestUnitConfigValidate(t *testing.T) {
 			Rounding:         UnitConfigRoundingModeCeiling,
 			Precision:        math.MaxInt32 + 1,
 		}
-		require.Error(t, c.Validate())
+		requireValidationError(t, c.Validate(), "overflows int32")
 	})
 
 	t.Run("precision above int32 max is ignored when rounding is none", func(t *testing.T) {
