@@ -5,12 +5,10 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestRoutePairingKeyEquality(t *testing.T) {
-	usd := currencyx.Code("USD")
+	usd := "FIAT:USD"
 	taxA := "tax_A"
 	taxB := "tax_B"
 
@@ -40,14 +38,14 @@ func TestRoutePairingKeyEquality(t *testing.T) {
 }
 
 func TestRoutePairingKeyString(t *testing.T) {
-	usd := currencyx.Code("USD")
+	usd := "FIAT:USD"
 	tax := "tax_A"
 
 	t.Run("includes taxCode field", func(t *testing.T) {
 		k := routePairingKey{currency: usd, taxCode: lo.FromPtrOr(&tax, "null"), costBasis: "null"}
 		s := k.String()
 		assert.Contains(t, s, "tax_code=tax_A")
-		assert.Contains(t, s, "currency=USD")
+		assert.Contains(t, s, "currency=FIAT:USD")
 		assert.Contains(t, s, "cost_basis=null")
 	})
 

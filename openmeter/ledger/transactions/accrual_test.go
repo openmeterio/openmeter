@@ -229,7 +229,7 @@ func TestTransferCustomerReceivableToAccruedTemplate(t *testing.T) {
 		TransferCustomerReceivableToAccruedTemplate{
 			At:        env.Now(),
 			Amount:    alpacadecimal.NewFromInt(50),
-			Currency:  env.Currency,
+			Currency:  env.CurrencyReference(),
 			CostBasis: &costBasis,
 		},
 	)
@@ -249,7 +249,7 @@ func TestTransferCustomerReceivableToAccruedTemplate_StampsSpendCharge(t *testin
 		TransferCustomerReceivableToAccruedTemplate{
 			At:            env.Now(),
 			Amount:        alpacadecimal.NewFromInt(50),
-			Currency:      env.Currency,
+			Currency:      env.CurrencyReference(),
 			CostBasis:     &costBasis,
 			SpendChargeID: &spendChargeID,
 		},
@@ -269,12 +269,12 @@ func TestTransferCustomerFBOAdvanceToAccruedTemplate_UnknownCostBasisAdvanceNetE
 		IssueCustomerReceivableTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(30),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 		TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(30),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 	)
 	require.Len(t, inputs, 2)
@@ -294,12 +294,12 @@ func TestTransferCustomerFBOAdvanceToAccruedTemplate_AppliesTaxBehaviorToAccrued
 		IssueCustomerReceivableTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(30),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 		TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:          env.Now(),
 			Amount:      alpacadecimal.NewFromInt(30),
-			Currency:    env.Currency,
+			Currency:    env.CurrencyReference(),
 			TaxCode:     &taxCode,
 			TaxBehavior: &taxBehavior,
 		},
@@ -307,7 +307,7 @@ func TestTransferCustomerFBOAdvanceToAccruedTemplate_AppliesTaxBehaviorToAccrued
 	require.Len(t, inputs, 2)
 
 	accruedWithTaxBehavior, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:    env.Currency,
+		Currency:    env.CurrencyReference(),
 		TaxCode:     &taxCode,
 		TaxBehavior: &taxBehavior,
 	})
@@ -349,7 +349,7 @@ func TestTransferCustomerFBOToAccruedTemplate_AppliesTaxConfigToAccrued(t *testi
 	require.True(t, env.SumBalance(t, fboB).Equal(alpacadecimal.Zero))
 
 	accrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:    env.Currency,
+		Currency:    env.CurrencyReference(),
 		CostBasis:   &costBasis,
 		TaxCode:     &taxA,
 		TaxBehavior: &taxBehavior,
@@ -393,13 +393,13 @@ func TestTranslateCustomerAccruedCostBasisTemplate(t *testing.T) {
 		IssueCustomerReceivableTemplate{
 			At:            env.Now(),
 			Amount:        alpacadecimal.NewFromInt(30),
-			Currency:      env.Currency,
+			Currency:      env.CurrencyReference(),
 			SpendChargeID: &spendChargeID,
 		},
 		TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:            env.Now(),
 			Amount:        alpacadecimal.NewFromInt(30),
-			Currency:      env.Currency,
+			Currency:      env.CurrencyReference(),
 			SpendChargeID: &spendChargeID,
 		},
 	)
@@ -409,7 +409,7 @@ func TestTranslateCustomerAccruedCostBasisTemplate(t *testing.T) {
 		TranslateCustomerAccruedCostBasisTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(30),
-			Currency:       env.Currency,
+			Currency:       env.CurrencyReference(),
 			FromCostBasis:  nil,
 			ToCostBasis:    &purchasedCostBasis,
 			SourceChargeID: &sourceChargeID,

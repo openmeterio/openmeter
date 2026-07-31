@@ -177,7 +177,11 @@ func (a *adapter) ListExpiredRecords(ctx context.Context, input breakage.ListExp
 		if input.Currency != nil {
 			predicates = append(predicates, dbledgerbreakagerecord.CurrencyEQ(*input.Currency))
 		}
-		if routePredicate := expiredRecordRoutePredicate(input.Route); routePredicate != nil {
+		routePredicate, err := expiredRecordRoutePredicate(input.Route)
+		if err != nil {
+			return nil, fmt.Errorf("build route predicate: %w", err)
+		}
+		if routePredicate != nil {
 			predicates = append(predicates, routePredicate)
 		}
 

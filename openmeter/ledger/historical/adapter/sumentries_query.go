@@ -1,6 +1,8 @@
 package adapter
 
 import (
+	"fmt"
+
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"github.com/lib/pq"
@@ -138,10 +140,19 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 
 	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 8)
 	if normalizedRoute.Currency.Code != "" {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(normalizedRoute.Currency.Code)))
-	}
-	if normalizedRoute.Currency.CustomCurrencyID != nil {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.CustomCurrencyID(*normalizedRoute.Currency.CustomCurrencyID))
+		if normalizedRoute.Currency.IsCustom() && !normalizedRoute.Currency.IsResolved() {
+			prefix, err := normalizedRoute.Currency.MarshalTextPrefix()
+			if err != nil {
+				return nil, fmt.Errorf("serialize route currency filter prefix: %w", err)
+			}
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CurrencyHasPrefix(string(prefix)))
+		} else {
+			serialized, err := normalizedRoute.Currency.MarshalText()
+			if err != nil {
+				return nil, fmt.Errorf("serialize route currency filter: %w", err)
+			}
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(serialized)))
+		}
 	}
 	if normalizedRoute.CostBasisCurrency.IsPresent() {
 		costBasisCurrency, _ := normalizedRoute.CostBasisCurrency.Get()

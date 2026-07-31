@@ -111,14 +111,14 @@ func newExpiredRecord(
 	t.Helper()
 
 	fboSubAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       currency,
+		Currency:       currencies.NewCurrencyReference(currency),
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 		Features:       features,
 	})
 	require.NoError(t, err)
 
 	breakageSubAccount, err := env.BusinessAccounts.BreakageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency: currency,
+		Currency: currencies.NewCurrencyReference(currency),
 	})
 	require.NoError(t, err)
 

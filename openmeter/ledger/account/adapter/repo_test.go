@@ -100,21 +100,21 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	subA1, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Route:     ledger.Route{Currency: currencyx.Code("USD")},
+		Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 	})
 	require.NoError(t, err)
 
 	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Route:     ledger.Route{Currency: currencyx.Code("EUR")},
+		Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))},
 	})
 	require.NoError(t, err)
 
 	subA3Priority7, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Route:     ledger.Route{Currency: currencyx.Code("USD"), CreditPriority: lo.ToPtr(7)},
+		Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), CreditPriority: lo.ToPtr(7)},
 	})
 	require.NoError(t, err)
 
@@ -122,7 +122,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
 		Route: ledger.Route{
-			Currency:  currencyx.Code("USD"),
+			Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 			CostBasis: lo.ToPtr(mustDecimal(t, "0.7")),
 		},
 	})
@@ -133,7 +133,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
 		Route: ledger.Route{
-			Currency:                       currencyx.Code("USD"),
+			Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 			TransactionAuthorizationStatus: &authorizedStatus,
 		},
 	})
@@ -142,7 +142,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountB.ID.ID,
-		Route:     ledger.Route{Currency: currencyx.Code("USD")},
+		Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 	})
 	require.NoError(t, err)
 
@@ -205,7 +205,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		dup, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
-			Route:     ledger.Route{Currency: currencyx.Code("USD")},
+			Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		})
 		require.NoError(t, err)
 		require.Equal(t, subA1.ID, dup.ID)
@@ -216,7 +216,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Route: ledger.Route{
-				Currency:  currencyx.Code("USD"),
+				Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CostBasis: lo.ToPtr(mustDecimal(t, "0.70")),
 			},
 		})
@@ -248,7 +248,7 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 
 	createRoute := func(accountID string, creditPriority *int, costBasis *alpacadecimal.Decimal) error {
 		key, err := ledger.BuildRoutingKey(ledger.Route{
-			Currency:       currencyx.Code("USD"),
+			Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 			CostBasis:      costBasis,
 			CreditPriority: creditPriority,
 		})

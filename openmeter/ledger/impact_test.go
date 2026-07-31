@@ -29,7 +29,7 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 	otherAuthStatus := ledger.TransactionAuthorizationStatusAuthorized
 
 	entry := mustImpactTestEntry(t, ledger.AccountTypeCustomerFBO, ledger.Route{
-		Currency:                       currencyx.Code("USD"),
+		Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:                        &taxCode,
 		TaxBehavior:                    &taxBehavior,
 		Features:                       []string{"feature-a", "feature-b"},
@@ -211,7 +211,7 @@ func TestEntryMatchesImpactFilter_NilRouteFields(t *testing.T) {
 	authStatus := ledger.TransactionAuthorizationStatusOpen
 
 	entry := mustImpactTestEntry(t, ledger.AccountTypeCustomerReceivable, ledger.Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 	})
 
 	tests := []struct {
@@ -284,18 +284,18 @@ func TestTransactionImpact(t *testing.T) {
 	tx := impactTestTransaction{
 		entries: []ledger.Entry{
 			mustImpactTestEntry(t, ledger.AccountTypeCustomerFBO, ledger.Route{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CreditPriority: &priorityOne,
 			}, alpacadecimal.NewFromInt(10)),
 			mustImpactTestEntry(t, ledger.AccountTypeCustomerFBO, ledger.Route{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CreditPriority: &priorityTwo,
 			}, alpacadecimal.NewFromInt(-3)),
 			mustImpactTestEntry(t, ledger.AccountTypeCustomerFBO, ledger.Route{
-				Currency: currencyx.Code("EUR"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("EUR")),
 			}, alpacadecimal.NewFromInt(7)),
 			mustImpactTestEntry(t, ledger.AccountTypeCustomerAccrued, ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}, alpacadecimal.NewFromInt(20)),
 		},
 	}

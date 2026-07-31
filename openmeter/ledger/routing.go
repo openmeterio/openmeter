@@ -28,9 +28,8 @@ const (
 	RoutingKeyVersionV2 RoutingKeyVersion = "v2"
 	// RoutingKeyVersionV3 extends V2 by adding the cost_basis_currency segment.
 	RoutingKeyVersionV3 RoutingKeyVersion = "v3"
-	// RoutingKeyVersionV4 extends V3 by adding the custom_currency_id and
-	// custom_currency_precision segments. Use V4 whenever a route carries a
-	// CustomCurrencyIdentity.
+	// RoutingKeyVersionV4 extends V3 by storing the complete custom currency
+	// reference snapshot in the currency segment.
 	RoutingKeyVersionV4 RoutingKeyVersion = "v4"
 )
 
@@ -144,8 +143,8 @@ func NewSubAccountRouteFromData(data SubAccountRouteData) (SubAccountRoute, erro
 		return SubAccountRoute{}, errors.New("routing key version v3 requires cost basis currency")
 	}
 
-	if data.RoutingKey.Version() == RoutingKeyVersionV4 && normalizedRoute.CustomCurrency == nil {
-		return SubAccountRoute{}, errors.New("routing key version v4 requires custom currency identity")
+	if data.RoutingKey.Version() == RoutingKeyVersionV4 && !normalizedRoute.Currency.IsCustom() {
+		return SubAccountRoute{}, errors.New("routing key version v4 requires custom currency")
 	}
 
 	normalizedRoute.Version = data.RoutingKey.Version()
@@ -173,46 +172,6 @@ func (r SubAccountRoute) Route() Route {
 // Route — the canonical set of routing values for a sub-account
 // ----------------------------------------------------------------------------
 
-// CustomCurrencyIdentity is the persisted identity of a custom currency route
-// dimension: the managed currency's immutable ID and its precision. It is
-// denormalized onto the route so ledger operations (validation, posting) never
-// need a currency-service lookup. Fiat routes never carry a CustomCurrencyIdentity.
-// CustomCurrencyIdentityVersionV1 is the current serialization version of a
-// persisted custom currency identity. Rows written before versioning was
-// introduced carry no version and are hydrated as V1.
-const CustomCurrencyIdentityVersionV1 = 1
-
-type CustomCurrencyIdentity struct {
-	// ID is the immutable managed custom currency ID (openmeter/currencies).
-	ID string
-	// Precision is the custom currency's minor-unit precision, denormalized at
-	// route-creation time from the managed currency definition.
-	Precision int
-	// Version is the serialization version of this persisted identity. It lets
-	// the denormalized representation evolve without ambiguity; it is not part
-	// of the currency's identity, so it is excluded from Equal and the routing
-	// key. Defaulted to CustomCurrencyIdentityVersionV1 during normalization.
-	Version int
-}
-
-func (c CustomCurrencyIdentity) Validate() error {
-	if c.ID == "" {
-		return errors.New("custom currency id is required")
-	}
-	if c.Precision < 0 {
-		return errors.New("custom currency precision must not be negative")
-	}
-	return nil
-}
-
-// Equal compares the currency identity itself (managed ID and precision). The
-// serialization Version is representation metadata, not identity, so two
-// records for the same managed currency written under different versions are
-// still equal.
-func (c CustomCurrencyIdentity) Equal(other CustomCurrencyIdentity) bool {
-	return c.ID == other.ID && c.Precision == other.Precision
-}
-
 // Route holds the literal values that identify a sub-account's routing path.
 // It is used for creation, persistence, and routing key generation.
 type Route struct {
@@ -220,10 +179,7 @@ type Route struct {
 	// Direct assignment is overwritten on the next Normalize call. Do not set
 	// manually except for testing edge cases.
 	Version  RoutingKeyVersion
-	Currency currencyx.Code
-	// CustomCurrency is required whenever Currency is a custom currency and nil
-	// whenever Currency is fiat; see CustomCurrencyIdentity.
-	CustomCurrency *CustomCurrencyIdentity
+	Currency currencies.CurrencyReference
 	// CostBasisCurrency identifies the fiat currency exchanged into a custom currency.
 	// Fiat and non-exchange routes keep CostBasisCurrency nil.
 	CostBasisCurrency *currencyx.Code
@@ -238,25 +194,33 @@ type Route struct {
 	TransactionAuthorizationStatus *TransactionAuthorizationStatus
 }
 
-// Validate validates a route intended for creation/persistence. Custom
-// currency routes must carry their managed identity; see
-// validateDimensionsOnly for the looser validation route filters use.
+// Validate validates a route intended for creation and persistence. Custom
+// currency routes must carry a hydrated immutable definition snapshot.
 func (r Route) Validate() error {
 	if err := r.validateDimensionsOnly(); err != nil {
 		return err
 	}
 
-	return ValidateCustomCurrency(r.Currency, r.CustomCurrency)
+	if r.Currency.IsCustom() && !r.Currency.IsResolved() {
+		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+			"currency": r.Currency.Code,
+			"reason":   "custom_currency_reference_must_be_resolved",
+		})
+	}
+
+	return nil
 }
 
-// validateDimensionsOnly validates every route dimension except the
-// custom-currency route metadata. CurrencyReference validates the stable
-// code + managed-ID identity separately when normalizing filters.
+// validateDimensionsOnly validates every route dimension without requiring a
+// custom currency definition snapshot. Route filters only need stable identity.
 func (r Route) validateDimensionsOnly() error {
-	if err := ValidateCurrency(r.Currency); err != nil {
-		return err
+	if err := r.Currency.Validate(); err != nil {
+		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+			"currency": r.Currency.Code,
+			"error":    err,
+		})
 	}
-	if err := ValidateCostBasisCurrency(r.Currency, r.CostBasisCurrency, r.CostBasis); err != nil {
+	if err := ValidateCostBasisCurrency(r.Currency.Code, r.CostBasisCurrency, r.CostBasis); err != nil {
 		return err
 	}
 
@@ -295,7 +259,7 @@ func (r Route) validateDimensionsOnly() error {
 // All present route fields are pinned as exact-match filters (including nil values).
 func (r Route) Filter() RouteFilter {
 	return RouteFilter{
-		Currency:                       r.CurrencyReference(),
+		Currency:                       r.Currency.Clone(),
 		CostBasisCurrency:              mo.Some(r.CostBasisCurrency),
 		TaxCode:                        mo.Some(r.TaxCode),
 		TaxBehavior:                    mo.Some(r.TaxBehavior),
@@ -306,23 +270,11 @@ func (r Route) Filter() RouteFilter {
 	}
 }
 
-// CurrencyReference returns the stable domain identity represented by the
-// persisted ledger route. Precision and serialization version stay ledger
-// routing metadata and are intentionally not part of the reference.
-func (r Route) CurrencyReference() currencies.CurrencyReference {
-	reference := currencies.NewCurrencyReference(r.Currency)
-	if r.CustomCurrency != nil {
-		reference.CustomCurrencyID = lo.ToPtr(r.CustomCurrency.ID)
-	}
-
-	return reference
-}
-
 func (r Route) Matches(filter RouteFilter) bool {
-	if filter.Currency.Code != "" && r.Currency != filter.Currency.Code {
+	if filter.Currency.Code != "" && r.Currency.Code != filter.Currency.Code {
 		return false
 	}
-	if filter.Currency.CustomCurrencyID != nil && !r.CurrencyReference().Equal(filter.Currency) {
+	if filter.Currency.CustomCurrencyID != nil && !r.Currency.Equal(filter.Currency) {
 		return false
 	}
 	if filter.CostBasisCurrency.IsPresent() {
@@ -399,17 +351,9 @@ func (r Route) Normalize() (Route, error) {
 	}
 
 	normalized := r
+	normalized.Currency = r.Currency.Clone()
 	if normalized.CostBasisCurrency != nil && *normalized.CostBasisCurrency == "" {
 		normalized.CostBasisCurrency = nil
-	}
-	// Copy the shared identity pointer before defaulting its serialization
-	// version so callers keep their original value untouched.
-	if normalized.CustomCurrency != nil {
-		customCurrency := *normalized.CustomCurrency
-		if customCurrency.Version == 0 {
-			customCurrency.Version = CustomCurrencyIdentityVersionV1
-		}
-		normalized.CustomCurrency = &customCurrency
 	}
 	normalized.Features = SortedFeatures(r.Features)
 	normalized.Version = selectRoutingKeyVersion(normalized)
@@ -442,7 +386,7 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 	features, _ := f.Features.Get()
 	costBasis, _ := f.CostBasis.Get()
 	route := Route{
-		Currency:                       f.Currency.Code,
+		Currency:                       f.Currency.Clone(),
 		CostBasisCurrency:              costBasisCurrency,
 		TaxCode:                        taxCode,
 		TaxBehavior:                    taxBehavior,
@@ -511,7 +455,7 @@ type routingVersionRequirement struct {
 // routingVersionRequirements lists versions above V1 with the conditions that trigger them.
 // Ordered highest to lowest; selectRoutingKeyVersion returns the first match, V1 otherwise.
 var routingVersionRequirements = []routingVersionRequirement{
-	{version: RoutingKeyVersionV4, requires: func(r Route) bool { return r.CustomCurrency != nil }},
+	{version: RoutingKeyVersionV4, requires: func(r Route) bool { return r.Currency.IsCustom() }},
 	{version: RoutingKeyVersionV3, requires: func(r Route) bool { return r.CostBasisCurrency != nil }},
 	{version: RoutingKeyVersionV2, requires: func(r Route) bool { return r.TaxBehavior != nil }},
 }
@@ -587,8 +531,8 @@ func BuildRoutingKeyV3(route Route) (RoutingKey, error) {
 	if err != nil {
 		return RoutingKey{}, err
 	}
-	if normalizedRoute.CustomCurrency != nil {
-		return RoutingKey{}, fmt.Errorf("CustomCurrency requires a V4 routing key; use BuildRoutingKey to select the version automatically")
+	if normalizedRoute.Currency.IsCustom() {
+		return RoutingKey{}, fmt.Errorf("custom currency requires a V4 routing key; use BuildRoutingKey to select the version automatically")
 	}
 	return buildRoutingKeyV3Normalized(normalizedRoute)
 }
@@ -605,7 +549,7 @@ func BuildRoutingKeyV4(route Route) (RoutingKey, error) {
 // buildRoutingKeyV1Normalized encodes an already-normalized route as a V1 key.
 func buildRoutingKeyV1Normalized(route Route) (RoutingKey, error) {
 	value := strings.Join([]string{
-		"currency:" + string(route.Currency),
+		"currency:" + string(route.Currency.Code),
 		"tax_code:" + optionalStringValue(route.TaxCode),
 		"features:" + canonicalFeatures(route.Features),
 		"cost_basis:" + optionalDecimalValue(route.CostBasis),
@@ -619,7 +563,7 @@ func buildRoutingKeyV1Normalized(route Route) (RoutingKey, error) {
 // buildRoutingKeyV2Normalized encodes an already-normalized route as a V2 key.
 func buildRoutingKeyV2Normalized(route Route) (RoutingKey, error) {
 	value := strings.Join([]string{
-		"currency:" + string(route.Currency),
+		"currency:" + string(route.Currency.Code),
 		"tax_code:" + optionalStringValue(route.TaxCode),
 		"tax_behavior:" + string(lo.FromPtrOr(route.TaxBehavior, "null")),
 		"features:" + canonicalFeatures(route.Features),
@@ -633,7 +577,7 @@ func buildRoutingKeyV2Normalized(route Route) (RoutingKey, error) {
 
 func buildRoutingKeyV3Normalized(route Route) (RoutingKey, error) {
 	value := strings.Join([]string{
-		"currency:" + string(route.Currency),
+		"currency:" + string(route.Currency.Code),
 		"cost_basis_currency:" + string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code("null"))),
 		"tax_code:" + optionalStringValue(route.TaxCode),
 		"tax_behavior:" + string(lo.FromPtrOr(route.TaxBehavior, "null")),
@@ -647,10 +591,13 @@ func buildRoutingKeyV3Normalized(route Route) (RoutingKey, error) {
 }
 
 func buildRoutingKeyV4Normalized(route Route) (RoutingKey, error) {
+	currency, err := route.Currency.MarshalText()
+	if err != nil {
+		return RoutingKey{}, fmt.Errorf("marshal currency reference: %w", err)
+	}
+
 	value := strings.Join([]string{
-		"currency:" + string(route.Currency),
-		"custom_currency_id:" + optionalCustomCurrencyIDValue(route.CustomCurrency),
-		"custom_currency_precision:" + optionalCustomCurrencyPrecisionValue(route.CustomCurrency),
+		"currency:" + string(currency),
 		"cost_basis_currency:" + string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code("null"))),
 		"tax_code:" + optionalStringValue(route.TaxCode),
 		"tax_behavior:" + string(lo.FromPtrOr(route.TaxBehavior, "null")),
@@ -743,40 +690,6 @@ func ValidateCostBasisCurrency(currency currencyx.Code, costBasisCurrency *curre
 	return nil
 }
 
-// ValidateCustomCurrency validates the custom_currency route dimension. A
-// custom currency route must carry its managed identity (id + precision), and
-// a fiat route must not, so ledger validation never has to fall back to a
-// currency-service lookup to know a custom currency's precision.
-func ValidateCustomCurrency(currency currencyx.Code, customCurrency *CustomCurrencyIdentity) error {
-	if currency.IsCustom() {
-		if customCurrency == nil {
-			return ErrCurrencyInvalid.WithAttrs(models.Attributes{
-				"currency": currency,
-				"reason":   "custom_currency_identity_required",
-			})
-		}
-
-		if err := customCurrency.Validate(); err != nil {
-			return ErrCurrencyInvalid.WithAttrs(models.Attributes{
-				"currency": currency,
-				"reason":   "custom_currency_identity_invalid",
-				"error":    err.Error(),
-			})
-		}
-
-		return nil
-	}
-
-	if customCurrency != nil {
-		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
-			"currency": currency,
-			"reason":   "fiat_currency_must_not_have_custom_currency_identity",
-		})
-	}
-
-	return nil
-}
-
 func ValidateCostBasis(value alpacadecimal.Decimal) error {
 	if value.IsNegative() {
 		return ErrCostBasisInvalid.WithAttrs(models.Attributes{
@@ -856,18 +769,4 @@ func optionalDecimalValue(v *alpacadecimal.Decimal) string {
 		return "null"
 	}
 	return v.String()
-}
-
-func optionalCustomCurrencyIDValue(c *CustomCurrencyIdentity) string {
-	if c == nil {
-		return "null"
-	}
-	return c.ID
-}
-
-func optionalCustomCurrencyPrecisionValue(c *CustomCurrencyIdentity) string {
-	if c == nil {
-		return "null"
-	}
-	return strconv.Itoa(c.Precision)
 }

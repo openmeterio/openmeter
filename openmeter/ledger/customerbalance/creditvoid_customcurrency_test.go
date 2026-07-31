@@ -23,7 +23,7 @@ func TestCreditVoidCustomCurrency(t *testing.T) {
 	env := newTestEnv(t)
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
 	env.Currency = customCurrencyValue.GetCode()
-	env.CustomCurrency = &ledger.CustomCurrencyIdentity{ID: customCurrencyValue.ID, Precision: 2}
+	env.CustomCurrency = &customCurrencyValue
 
 	// source_charge_id is a fixed char(26) column (ULID-sized); it must be a
 	// real ULID or Postgres blank-pads it, breaking the exact string match
@@ -45,8 +45,7 @@ func TestCreditVoidCustomCurrency(t *testing.T) {
 		transactions.IssueCustomerReceivableTemplate{
 			At:             env.Now(),
 			Amount:         amount,
-			Currency:       env.Currency,
-			CustomCurrency: env.CustomCurrency,
+			Currency:       env.CurrencyReference(),
 			SourceChargeID: &chargeID,
 		},
 	)

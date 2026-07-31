@@ -1,6 +1,7 @@
 package currencies_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -79,11 +80,13 @@ func TestCurrencyReference(t *testing.T) {
 		custom.CostBasis = nil
 
 		reference := custom.Reference()
-		require.False(t, reference.IsResolved())
+		require.True(t, reference.IsResolved())
+		require.False(t, reference.IsCostBasisResolved())
 
 		custom.CostBasis = &[]currencies.CostBasis{}
 		reference = custom.Reference()
 		require.True(t, reference.IsResolved())
+		require.True(t, reference.IsCostBasisResolved())
 	})
 
 	t.Run("equality ignores runtime resolution", func(t *testing.T) {
@@ -118,6 +121,80 @@ func TestCurrencyReference(t *testing.T) {
 		}
 
 		require.ErrorContains(t, reference.Validate(), "fiat currency cannot have a custom currency id")
+	})
+}
+
+func TestCurrencyReferenceSerialization(t *testing.T) {
+	t.Run("fiat", func(t *testing.T) {
+		reference := currencies.NewCurrencyReference("USD")
+
+		serialized, err := reference.MarshalText()
+		require.NoError(t, err)
+		require.Equal(t, "USD", string(serialized))
+		prefix, err := reference.MarshalTextPrefix()
+		require.NoError(t, err)
+		require.Equal(t, "USD", string(prefix))
+
+		parsed, err := currencies.ParseCurrencyReference(serialized)
+		require.NoError(t, err)
+		require.True(t, reference.Equal(parsed))
+		require.True(t, parsed.IsResolved())
+	})
+
+	t.Run("custom", func(t *testing.T) {
+		custom := currencytestutils.NewCustomCurrency(t, "CREDITS", 2)
+		reference := custom.Reference()
+
+		serialized, err := reference.MarshalText()
+		require.NoError(t, err)
+		require.Equal(t, "custom:v1:CREDITS:"+custom.ID+":2", string(serialized))
+		prefix, err := reference.MarshalTextPrefix()
+		require.NoError(t, err)
+		require.Equal(t, "custom:v1:CREDITS:"+custom.ID+":", string(prefix))
+
+		parsed, err := currencies.ParseCurrencyReference(serialized)
+		require.NoError(t, err)
+		require.True(t, reference.Equal(parsed))
+		require.True(t, parsed.IsResolved())
+		require.False(t, parsed.IsCostBasisResolved())
+
+		resolved, ok := parsed.CustomCurrency()
+		require.True(t, ok)
+		require.Equal(t, uint32(2), resolved.Details().Precision)
+	})
+
+	t.Run("unresolved custom", func(t *testing.T) {
+		reference := currencies.NewCurrencyReference("CREDITS")
+
+		_, err := reference.MarshalText()
+		require.ErrorContains(t, err, "custom currency reference must be resolved")
+		prefix, err := reference.MarshalTextPrefix()
+		require.NoError(t, err)
+		require.Equal(t, "custom:v1:CREDITS:", string(prefix))
+	})
+
+	t.Run("invalid values", func(t *testing.T) {
+		for _, value := range []string{
+			"CREDITS",
+			"custom:v2:CREDITS:currency-1:2",
+			"custom:v1:USD:currency-1:2",
+			"custom:v1:CREDITS::2",
+			"custom:v1:CREDITS:currency-1:invalid",
+			"custom:v1:CREDITS:currency-1:13",
+		} {
+			t.Run(value, func(t *testing.T) {
+				_, err := currencies.ParseCurrencyReference([]byte(value))
+				require.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("json representation remains an object", func(t *testing.T) {
+		custom := currencytestutils.NewCustomCurrency(t, "CREDITS", 2)
+
+		serialized, err := json.Marshal(custom.Reference())
+		require.NoError(t, err)
+		require.JSONEq(t, `{"code":"CREDITS","custom_currency_id":"`+custom.ID+`"}`, string(serialized))
 	})
 }
 

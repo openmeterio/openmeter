@@ -9,6 +9,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -25,9 +26,6 @@ type balanceBucketRow struct {
 	RoutingKeyVersion              string
 	RoutingKey                     string
 	Currency                       string
-	CustomCurrencyID               stdsql.NullString
-	CustomCurrencyPrecision        stdsql.NullInt64
-	CustomCurrencyVersion          stdsql.NullInt64
 	CostBasisCurrency              stdsql.NullString
 	TaxCode                        stdsql.NullString
 	TaxBehavior                    stdsql.NullString
@@ -82,9 +80,6 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.RoutingKeyVersion,
 		&r.RoutingKey,
 		&r.Currency,
-		&r.CustomCurrencyID,
-		&r.CustomCurrencyPrecision,
-		&r.CustomCurrencyVersion,
 		&r.CostBasisCurrency,
 		&r.TaxCode,
 		&r.TaxBehavior,
@@ -111,25 +106,16 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s cost basis: %w", r.SubAccountID, err)
 	}
 
-	var customCurrency *ledger.CustomCurrencyIdentity
-	if r.CustomCurrencyID.Valid {
-		version := ledger.CustomCurrencyIdentityVersionV1
-		if r.CustomCurrencyVersion.Valid {
-			version = int(r.CustomCurrencyVersion.Int64)
-		}
-		customCurrency = &ledger.CustomCurrencyIdentity{
-			ID:        r.CustomCurrencyID.String,
-			Precision: int(r.CustomCurrencyPrecision.Int64),
-			Version:   version,
-		}
+	currency, err := currencies.ParseCurrencyReference([]byte(r.Currency))
+	if err != nil {
+		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s currency: %w", r.SubAccountID, err)
 	}
 
 	address, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
 		SubAccountID: r.SubAccountID,
 		AccountType:  ledger.AccountType(r.AccountType),
 		Route: ledger.Route{
-			Currency:                       currencyx.Code(r.Currency),
-			CustomCurrency:                 customCurrency,
+			Currency:                       currency,
 			CostBasisCurrency:              nullableCurrencyCode(r.CostBasisCurrency),
 			TaxCode:                        nullableStringValue(r.TaxCode),
 			TaxBehavior:                    nullableTaxBehavior(r.TaxBehavior),

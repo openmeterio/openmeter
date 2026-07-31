@@ -121,6 +121,8 @@ func (i GetBalanceServiceInput) Validate() error {
 
 	if err := ledger.ValidateCurrency(i.Currency); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if i.Currency.IsCustom() {
+		errs = append(errs, fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
@@ -464,7 +466,7 @@ func (s *service) getFBOCurrencies(ctx context.Context, customerID customer.Cust
 	codes := make([]currencyx.Code, 0, len(subAccounts))
 
 	for _, sa := range subAccounts {
-		c := sa.Route().Currency
+		c := sa.Route().Currency.Code
 		if _, ok := seen[c]; ok {
 			continue
 		}

@@ -14,29 +14,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-// testCustomCurrencyIdentity deterministically maps a custom currency code to
-// a fixture managed identity, so route/routing-key resolution stays
-// consistent across the many test helpers that resolve the same code.
-func testCustomCurrencyIdentity(code currencyx.Code) *ledger.CustomCurrencyIdentity {
-	id := fmt.Sprintf("%x", sha256.Sum256([]byte(code)))[:26]
-
-	return &ledger.CustomCurrencyIdentity{ID: id, Precision: 2}
-}
-
-// testCustomCurrencyIdentityIfCustom returns testCustomCurrencyIdentity(code)
-// when code is a custom currency, or nil for fiat codes.
-func testCustomCurrencyIdentityIfCustom(code currencyx.Code) *ledger.CustomCurrencyIdentity {
+func testCurrencyReference(code currencyx.Code) currencies.CurrencyReference {
 	if !code.IsCustom() {
-		return nil
+		return currencies.NewCurrencyReference(code)
 	}
 
-	return testCustomCurrencyIdentity(code)
-}
-
-func testCurrencyReference(code currencyx.Code) currencies.CurrencyReference {
-	reference := currencies.NewCurrencyReference(code)
-	if customCurrency := testCustomCurrencyIdentityIfCustom(code); customCurrency != nil {
-		reference.CustomCurrencyID = &customCurrency.ID
+	id := fmt.Sprintf("%x", sha256.Sum256([]byte(code)))[:26]
+	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom:v1:%s:%s:2", code, id)))
+	if err != nil {
+		panic(err)
 	}
 
 	return reference
@@ -102,7 +88,7 @@ func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority i
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CostBasis:      costBasis,
 		CreditPriority: priority,
 	})
@@ -113,7 +99,7 @@ func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority i
 		IssueCustomerReceivableTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      costBasis,
 			SourceChargeID: sourceChargeID,
 			CreditPriority: &priority,
@@ -121,14 +107,14 @@ func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority i
 		AuthorizeCustomerReceivablePaymentTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      costBasis,
 			SourceChargeID: sourceChargeID,
 		},
 		SettleCustomerReceivableFromPaymentTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      costBasis,
 			SourceChargeID: sourceChargeID,
 		},

@@ -50,12 +50,12 @@ func (t TransferCustomerFBOToAccruedTemplate) Validate() error {
 			return fmt.Errorf("sources[%d]: account type must be customer_fbo", i)
 		}
 
-		if !source.Address.Route().Route().CurrencyReference().Equal(t.Currency) {
+		if !source.Address.Route().Route().Currency.Equal(t.Currency) {
 			return fmt.Errorf(
 				"sources[%d]: currency must be %s, got %s",
 				i,
 				t.Currency,
-				source.Address.Route().Route().CurrencyReference(),
+				source.Address.Route().Route().Currency,
 			)
 		}
 
@@ -116,8 +116,7 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 	route := address.Route().Route()
 
 	return routePairingKey{
-		currency:          route.Currency,
-		customCurrencyID:  customCurrencyIDKey(route.CustomCurrency),
+		currency:          route.Currency.IdentityKey(),
 		costBasisCurrency: string(lo.FromPtrOr(route.CostBasisCurrency, currencyx.Code(""))),
 		costBasis:         costBasisKey(route.CostBasis),
 	}
@@ -204,8 +203,7 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 		current := accruedSubAccByKey[key]
 		if current.Address == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-				Currency:          t.Currency.Code,
-				CustomCurrency:    source.Address.Route().Route().CustomCurrency,
+				Currency:          source.Address.Route().Route().Currency,
 				CostBasisCurrency: source.Address.Route().Route().CostBasisCurrency,
 				TaxCode:           t.TaxCode,
 				TaxBehavior:       t.TaxBehavior,
@@ -275,8 +273,7 @@ func costBasisKey(costBasis *alpacadecimal.Decimal) string {
 type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	At             time.Time
 	Amount         alpacadecimal.Decimal
-	Currency       currencyx.Code
-	CustomCurrency *ledger.CustomCurrencyIdentity
+	Currency       currencies.CurrencyReference
 	TaxCode        *string
 	TaxBehavior    *ledger.TaxBehavior
 	CostBasis      *alpacadecimal.Decimal
@@ -294,7 +291,7 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) Validate() error {
 		return fmt.Errorf("amount: %w", err)
 	}
 
-	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+	if err := t.Currency.Validate(); err != nil {
 		return fmt.Errorf("currency: %w", err)
 	}
 
@@ -392,7 +389,6 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
-		CustomCurrency: t.CustomCurrency,
 		CostBasis:      t.CostBasis,
 		Features:       t.Features,
 		CreditPriority: priority,
@@ -402,11 +398,10 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 	}
 
 	accrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:       t.Currency,
-		CustomCurrency: t.CustomCurrency,
-		TaxCode:        t.TaxCode,
-		TaxBehavior:    t.TaxBehavior,
-		CostBasis:      t.CostBasis,
+		Currency:    t.Currency,
+		TaxCode:     t.TaxCode,
+		TaxBehavior: t.TaxBehavior,
+		CostBasis:   t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
@@ -436,14 +431,13 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 // TransferCustomerReceivableToAccruedTemplate acknowledges usage by moving it
 // from receivable into the customer's accrued account.
 type TransferCustomerReceivableToAccruedTemplate struct {
-	At             time.Time
-	Amount         alpacadecimal.Decimal
-	Currency       currencyx.Code
-	CustomCurrency *ledger.CustomCurrencyIdentity
-	TaxCode        *string
-	TaxBehavior    *ledger.TaxBehavior
-	CostBasis      *alpacadecimal.Decimal
-	SpendChargeID  *string
+	At            time.Time
+	Amount        alpacadecimal.Decimal
+	Currency      currencies.CurrencyReference
+	TaxCode       *string
+	TaxBehavior   *ledger.TaxBehavior
+	CostBasis     *alpacadecimal.Decimal
+	SpendChargeID *string
 }
 
 func (t TransferCustomerReceivableToAccruedTemplate) Validate() error {
@@ -455,7 +449,7 @@ func (t TransferCustomerReceivableToAccruedTemplate) Validate() error {
 		return fmt.Errorf("amount: %w", err)
 	}
 
-	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+	if err := t.Currency.Validate(); err != nil {
 		return fmt.Errorf("currency: %w", err)
 	}
 
@@ -498,7 +492,6 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 
 	receivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
-		CustomCurrency:                 t.CustomCurrency,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -507,11 +500,10 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 	}
 
 	accrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:       t.Currency,
-		CustomCurrency: t.CustomCurrency,
-		TaxCode:        t.TaxCode,
-		TaxBehavior:    t.TaxBehavior,
-		CostBasis:      t.CostBasis,
+		Currency:    t.Currency,
+		TaxCode:     t.TaxCode,
+		TaxBehavior: t.TaxBehavior,
+		CostBasis:   t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
@@ -541,14 +533,13 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 // TranslateCustomerAccruedCostBasisTemplate moves accrued balance between cost-basis buckets
 // without changing account type or currency.
 type TranslateCustomerAccruedCostBasisTemplate struct {
-	At             time.Time
-	Amount         alpacadecimal.Decimal
-	Currency       currencyx.Code
-	CustomCurrency *ledger.CustomCurrencyIdentity
-	TaxCode        *string
-	TaxBehavior    *ledger.TaxBehavior
-	FromCostBasis  *alpacadecimal.Decimal
-	ToCostBasis    *alpacadecimal.Decimal
+	At            time.Time
+	Amount        alpacadecimal.Decimal
+	Currency      currencies.CurrencyReference
+	TaxCode       *string
+	TaxBehavior   *ledger.TaxBehavior
+	FromCostBasis *alpacadecimal.Decimal
+	ToCostBasis   *alpacadecimal.Decimal
 	// CostBasisCurrency is the fiat currency the ToCostBasis leg was priced
 	// against. Nil when FromCostBasis is also nil (cost basis still unknown).
 	CostBasisCurrency *currencyx.Code
@@ -565,7 +556,7 @@ func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
 		return fmt.Errorf("amount: %w", err)
 	}
 
-	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+	if err := t.Currency.Validate(); err != nil {
 		return fmt.Errorf("currency: %w", err)
 	}
 
@@ -583,7 +574,7 @@ func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
 		return fmt.Errorf("to cost basis: %w", err)
 	}
 
-	if err := ledger.ValidateCostBasisCurrency(t.Currency, t.CostBasisCurrency, t.ToCostBasis); err != nil {
+	if err := ledger.ValidateCostBasisCurrency(t.Currency.Code, t.CostBasisCurrency, t.ToCostBasis); err != nil {
 		return fmt.Errorf("cost basis currency: %w", err)
 	}
 
@@ -673,11 +664,10 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 	}
 
 	fromAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:       t.Currency,
-		CustomCurrency: t.CustomCurrency,
-		TaxCode:        t.TaxCode,
-		TaxBehavior:    t.TaxBehavior,
-		CostBasis:      t.FromCostBasis,
+		Currency:    t.Currency,
+		TaxCode:     t.TaxCode,
+		TaxBehavior: t.TaxBehavior,
+		CostBasis:   t.FromCostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get source accrued sub-account: %w", err)
@@ -685,7 +675,6 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 
 	toAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 		Currency:          t.Currency,
-		CustomCurrency:    t.CustomCurrency,
 		CostBasisCurrency: t.CostBasisCurrency,
 		TaxCode:           t.TaxCode,
 		TaxBehavior:       t.TaxBehavior,

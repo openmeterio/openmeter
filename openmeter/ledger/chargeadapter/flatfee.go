@@ -69,7 +69,6 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: intent.GetEffectiveInvoiceAt(),
 		Currency:          intent.GetCurrency().Reference(),
-		CustomCurrency:    customCurrencyIdentity(intent.GetCurrency()),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
 		SettlementMode:    intent.GetSettlementMode(),
@@ -124,14 +123,13 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.TransferCustomerReceivableToAccruedTemplate{
-			At:             input.BookedAt,
-			Amount:         amount,
-			Currency:       intent.GetCurrency().GetCode(),
-			CustomCurrency: customCurrencyIdentity(intent.GetCurrency()),
-			TaxCode:        lo.ToPtr(taxConfig.TaxCodeID),
-			TaxBehavior:    (*ledger.TaxBehavior)(taxConfig.Behavior),
-			CostBasis:      invoiceCostBasis,
-			SpendChargeID:  &input.Charge.ID,
+			At:            input.BookedAt,
+			Amount:        amount,
+			Currency:      intent.GetCurrency().Reference(),
+			TaxCode:       lo.ToPtr(taxConfig.TaxCodeID),
+			TaxBehavior:   (*ledger.TaxBehavior)(taxConfig.Behavior),
+			CostBasis:     invoiceCostBasis,
+			SpendChargeID: &input.Charge.ID,
 		},
 	)
 	if err != nil {
@@ -210,12 +208,11 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:             input.EventAt,
-			Amount:         input.FiatAmount,
-			Currency:       intent.GetCurrency().GetCode(),
-			CustomCurrency: customCurrencyIdentity(intent.GetCurrency()),
-			CostBasis:      invoiceCostBasis,
-			SpendChargeID:  &input.Charge.ID,
+			At:            input.EventAt,
+			Amount:        input.FiatAmount,
+			Currency:      intent.GetCurrency().Reference(),
+			CostBasis:     invoiceCostBasis,
+			SpendChargeID: &input.Charge.ID,
 		},
 	)
 	if err != nil {
@@ -263,12 +260,11 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:             input.EventAt,
-			Amount:         input.FiatAmount,
-			Currency:       intent.GetCurrency().GetCode(),
-			CustomCurrency: customCurrencyIdentity(intent.GetCurrency()),
-			CostBasis:      invoiceCostBasis,
-			SpendChargeID:  &input.Charge.ID,
+			At:            input.EventAt,
+			Amount:        input.FiatAmount,
+			Currency:      intent.GetCurrency().Reference(),
+			CostBasis:     invoiceCostBasis,
+			SpendChargeID: &input.Charge.ID,
 		},
 	)
 	if err != nil {

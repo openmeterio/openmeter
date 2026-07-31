@@ -6,6 +6,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
@@ -144,7 +145,7 @@ func (AccountService) GetAccountByID(_ context.Context, id models.NamespacedID) 
 }
 
 func (AccountService) GetSubAccountByID(_ context.Context, id models.NamespacedID) (ledger.SubAccount, error) {
-	return newSubAccount(id.Namespace, id.ID, ledger.Route{Currency: noopCurrency}), nil
+	return newSubAccount(id.Namespace, id.ID, ledger.Route{Currency: currencies.NewCurrencyReference(noopCurrency)}), nil
 }
 
 func (AccountService) ListSubAccounts(context.Context, ledger.ListSubAccountsInput) ([]ledger.SubAccount, error) {
@@ -258,8 +259,8 @@ func newAccount(namespace string, accountType ledger.AccountType, id string) led
 
 func newSubAccount(namespace, accountID string, route ledger.Route) *ledgeraccount.SubAccount {
 	normalizedRoute := route
-	if normalizedRoute.Currency == "" {
-		normalizedRoute.Currency = noopCurrency
+	if normalizedRoute.Currency.Code == "" {
+		normalizedRoute.Currency = currencies.NewCurrencyReference(noopCurrency)
 	}
 
 	accountType := accountTypeForRoute(normalizedRoute)

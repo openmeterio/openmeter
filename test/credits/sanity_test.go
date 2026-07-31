@@ -4407,7 +4407,7 @@ func (s *SanitySuite) mustRecognizeAttributableAccrued(customerID customer.Custo
 		transactions.RecognizeEarningsFromAttributableAccruedTemplate{
 			At:       clock.Now(),
 			Amount:   amount,
-			Currency: currency,
+			Currency: currencies.NewCurrencyReference(currency),
 		},
 	)
 	s.Require().NoError(err)

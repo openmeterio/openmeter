@@ -125,23 +125,6 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
-		// custom_currency_id/precision denormalize the managed custom currency's
-		// immutable identity onto the route so ledger operations never need a
-		// currency-service lookup to validate or route custom-currency postings.
-		// Not a FK: the referenced custom currency may be soft-deleted while
-		// historical routes remain.
-		field.String("custom_currency_id").
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}).
-			Optional().Nillable().Immutable(),
-		field.Uint32("custom_currency_precision").
-			Optional().Nillable().Immutable(),
-		// custom_currency_version records the serialization version of the
-		// denormalized custom currency identity so its representation can evolve.
-		// Rows written before versioning are NULL and hydrate as V1.
-		field.Uint32("custom_currency_version").
-			Optional().Nillable().Immutable(),
 		// tax_code stores the TaxCode.Key string used as a routing dimension, not a FK to the tax_codes table.
 		field.String("tax_code").Optional().Nillable().Immutable(),
 		field.String("tax_behavior").

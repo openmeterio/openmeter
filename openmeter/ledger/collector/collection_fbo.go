@@ -146,7 +146,7 @@ func reserveSourcesForBreakagePlan(
 	featureKey string,
 ) []fboCollectionSource {
 	route := plan.FBOAddress.Route().Route()
-	if !route.CurrencyReference().Equal(currency) {
+	if !route.Currency.Equal(currency) {
 		return nil
 	}
 	if len(route.Features) > 0 && !lo.Contains(route.Features, featureKey) {

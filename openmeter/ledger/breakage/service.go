@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -102,8 +103,7 @@ type PlanIssuanceInput struct {
 
 	Amount            alpacadecimal.Decimal
 	ImmediateReleases []PlanIssuanceImmediateRelease
-	Currency          currencyx.Code
-	CustomCurrency    *ledger.CustomCurrencyIdentity
+	Currency          currencies.CurrencyReference
 	CostBasisCurrency *currencyx.Code
 	TaxCode           *string
 	TaxBehavior       *ledger.TaxBehavior
@@ -142,8 +142,10 @@ func (i PlanIssuanceInput) Validate() error {
 		errs = append(errs, errors.New("immediate release amount cannot exceed amount"))
 	}
 
-	if err := ledger.ValidateCurrency(i.Currency); err != nil {
+	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if i.Currency.IsCustom() && !i.Currency.IsResolved() {
+		errs = append(errs, errors.New("custom currency must be resolved"))
 	}
 
 	if i.CostBasis != nil {
@@ -319,7 +321,7 @@ func (s *service) PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]
 		Kind:                 ledger.BreakageKindPlan,
 		Amount:               input.Amount,
 		CustomerID:           input.CustomerID,
-		Currency:             input.Currency,
+		Currency:             input.Currency.Code,
 		CreditPriority:       priority,
 		ExpiresAt:            input.ExpiresAt,
 		SourceKind:           SourceKindCreditPurchase,
@@ -689,7 +691,6 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 
 	fboSubAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:          input.Currency,
-		CustomCurrency:    input.CustomCurrency,
 		CostBasisCurrency: input.CostBasisCurrency,
 		CostBasis:         input.CostBasis,
 		CreditPriority:    resolveCreditPriority(input.CreditPriority),
@@ -701,7 +702,6 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 
 	breakageSubAccount, err := businessAccounts.BreakageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
 		Currency:          input.Currency,
-		CustomCurrency:    input.CustomCurrency,
 		CostBasisCurrency: input.CostBasisCurrency,
 		CostBasis:         input.CostBasis,
 	})

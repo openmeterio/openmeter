@@ -32,12 +32,6 @@ const (
 	FieldCurrency = "currency"
 	// FieldCostBasisCurrency holds the string denoting the cost_basis_currency field in the database.
 	FieldCostBasisCurrency = "cost_basis_currency"
-	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
-	FieldCustomCurrencyID = "custom_currency_id"
-	// FieldCustomCurrencyPrecision holds the string denoting the custom_currency_precision field in the database.
-	FieldCustomCurrencyPrecision = "custom_currency_precision"
-	// FieldCustomCurrencyVersion holds the string denoting the custom_currency_version field in the database.
-	FieldCustomCurrencyVersion = "custom_currency_version"
 	// FieldTaxCode holds the string denoting the tax_code field in the database.
 	FieldTaxCode = "tax_code"
 	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
@@ -84,9 +78,6 @@ var Columns = []string{
 	FieldRoutingKey,
 	FieldCurrency,
 	FieldCostBasisCurrency,
-	FieldCustomCurrencyID,
-	FieldCustomCurrencyPrecision,
-	FieldCustomCurrencyVersion,
 	FieldTaxCode,
 	FieldTaxBehavior,
 	FieldFeatures,
@@ -169,21 +160,6 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 // ByCostBasisCurrency orders the results by the cost_basis_currency field.
 func ByCostBasisCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCostBasisCurrency, opts...).ToFunc()
-}
-
-// ByCustomCurrencyID orders the results by the custom_currency_id field.
-func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCustomCurrencyID, opts...).ToFunc()
-}
-
-// ByCustomCurrencyPrecision orders the results by the custom_currency_precision field.
-func ByCustomCurrencyPrecision(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCustomCurrencyPrecision, opts...).ToFunc()
-}
-
-// ByCustomCurrencyVersion orders the results by the custom_currency_version field.
-func ByCustomCurrencyVersion(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCustomCurrencyVersion, opts...).ToFunc()
 }
 
 // ByTaxCode orders the results by the tax_code field.

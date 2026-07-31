@@ -21,7 +21,7 @@ const (
 // validators to be resolved while preserving intrinsic reference validation.
 func ValidateCurrency() models.ValidatorFunc[currencies.CurrencyReference] {
 	return func(reference currencies.CurrencyReference) error {
-		if !reference.IsResolved() {
+		if !reference.IsCostBasisResolved() {
 			return fmt.Errorf("currency reference %q is not resolved", reference.Code)
 		}
 

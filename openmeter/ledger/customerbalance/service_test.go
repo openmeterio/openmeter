@@ -48,9 +48,10 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		input   GetBalanceServiceInput
-		wantErr bool
+		name      string
+		input     GetBalanceServiceInput
+		wantErr   bool
+		wantErrIs error
 	}{
 		{
 			name:  "valid",
@@ -83,6 +84,8 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 				CustomerID: valid.CustomerID,
 				Currency:   currencyx.Code("CREDITS"),
 			},
+			wantErr:   true,
+			wantErrIs: chargemeta.ErrCustomCurrencyNotSupported,
 		},
 		{
 			name: "multiple feature filters",
@@ -130,6 +133,9 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 			err := tt.input.Validate()
 			if tt.wantErr {
 				require.Error(t, err)
+				if tt.wantErrIs != nil {
+					require.ErrorIs(t, err, tt.wantErrIs)
+				}
 				return
 			}
 

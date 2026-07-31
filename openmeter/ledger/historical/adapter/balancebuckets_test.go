@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -30,12 +29,12 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	namespace := testNamespace()
 
 	fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis:      lo.ToPtr(mustDecimal(t, "0.70")),
 		CreditPriority: lo.ToPtr(1),
 	})
 	counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeWash, ledger.Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 	})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
@@ -165,17 +164,15 @@ func TestRepo_GetBalanceBuckets_HydratesCostBasisCurrency(t *testing.T) {
 	costBasis := mustDecimal(t, "0.25")
 	sourceCurrency := currencyx.Code("USD")
 	customCurrency := currencyx.Code("ACME")
-	customCurrencyIdentity := &ledger.CustomCurrencyIdentity{ID: "test-custom-currency-acme", Precision: 2}
+	customCurrencyReference := mustCustomCurrencyReference(t, customCurrency, "test-custom-currency-acme", 2)
 	fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
-		Currency:          customCurrency,
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		CostBasisCurrency: &sourceCurrency,
 		CostBasis:         &costBasis,
 		CreditPriority:    lo.ToPtr(1),
 	})
 	counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeBrokerage, ledger.Route{
-		Currency:          customCurrency,
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		CostBasisCurrency: &sourceCurrency,
 		CostBasis:         &costBasis,
 	})
@@ -199,7 +196,7 @@ func TestRepo_GetBalanceBuckets_HydratesCostBasisCurrency(t *testing.T) {
 		Filters: ledger.Filters{
 			AccountID: &accountID,
 			Route: ledger.RouteFilter{
-				Currency:          currencies.NewCurrencyReference(customCurrency),
+				Currency:          customCurrencyReference,
 				CostBasisCurrency: mo.Some(&sourceCurrency),
 			},
 		},
@@ -208,7 +205,7 @@ func TestRepo_GetBalanceBuckets_HydratesCostBasisCurrency(t *testing.T) {
 	require.Len(t, buckets, 1)
 
 	route := buckets[0].Address.Route().Route()
-	require.Equal(t, customCurrency, route.Currency)
+	require.Equal(t, customCurrency, route.Currency.Code)
 	require.Equal(t, &sourceCurrency, route.CostBasisCurrency)
 	require.NotNil(t, route.CostBasis)
 	require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
@@ -222,22 +219,19 @@ func TestRepo_GetBalanceBuckets_DistinctManagedCurrenciesSameCodeDoNotMerge(t *t
 
 	// given:
 	// - two managed custom currencies that both use the bare code "ACME"
-	//   but have distinct CustomCurrencyIdentity.ID (a customer could hold
+	//   but have distinct managed IDs (a customer could hold
 	//   FBO balances in two differently-managed "ACME" currencies)
 	// - both FBO sub-accounts are provisioned under the SAME account, so
-	//   RouteFilter (which has no CustomCurrency dimension) must rely on
-	//   the persisted routing key, not the account boundary, to keep them
-	//   separate
+	//   exact CurrencyReference identity keeps them separate
 	// when:
 	// - each currency is funded with a different amount
 	// then:
-	// - GetBalanceBuckets scoped by currency code alone must not sum the
-	//   two managed currencies' balances together
+	// - GetBalanceBuckets scoped by one exact reference excludes the other
 	ctx := t.Context()
 	namespace := testNamespace()
 	customCurrency := currencyx.Code("ACME")
-	alpha := &ledger.CustomCurrencyIdentity{ID: "custom-currency-alpha", Precision: 2}
-	beta := &ledger.CustomCurrencyIdentity{ID: "custom-currency-beta", Precision: 2}
+	alpha := mustCustomCurrencyReference(t, customCurrency, "custom-currency-alpha", 2)
+	beta := mustCustomCurrencyReference(t, customCurrency, "custom-currency-beta", 2)
 
 	acc, err := env.accountRepo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
 		Namespace: namespace,
@@ -249,8 +243,7 @@ func TestRepo_GetBalanceBuckets_DistinctManagedCurrenciesSameCodeDoNotMerge(t *t
 		Namespace: namespace,
 		AccountID: acc.ID.ID,
 		Route: ledger.Route{
-			Currency:       customCurrency,
-			CustomCurrency: alpha,
+			Currency:       alpha,
 			CreditPriority: lo.ToPtr(1),
 		},
 	})
@@ -260,20 +253,17 @@ func TestRepo_GetBalanceBuckets_DistinctManagedCurrenciesSameCodeDoNotMerge(t *t
 		Namespace: namespace,
 		AccountID: acc.ID.ID,
 		Route: ledger.Route{
-			Currency:       customCurrency,
-			CustomCurrency: beta,
+			Currency:       beta,
 			CreditPriority: lo.ToPtr(1),
 		},
 	})
 	require.NoError(t, err)
 
 	alphaCounterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerReceivable, ledger.Route{
-		Currency:       customCurrency,
-		CustomCurrency: alpha,
+		Currency: alpha,
 	})
 	betaCounterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerReceivable, ledger.Route{
-		Currency:       customCurrency,
-		CustomCurrency: beta,
+		Currency: beta,
 	})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
@@ -294,23 +284,23 @@ func TestRepo_GetBalanceBuckets_DistinctManagedCurrenciesSameCodeDoNotMerge(t *t
 		Filters: ledger.Filters{
 			AccountID: &acc.ID.ID,
 			Route: ledger.RouteFilter{
-				Currency: currencies.NewCurrencyReference(customCurrency),
+				Currency: alpha,
 			},
 		},
 	})
 	require.NoError(t, err)
-	require.Len(t, buckets, 2, "expected the two managed ACME currencies to remain in distinct balance buckets")
+	require.Len(t, buckets, 1)
+	require.True(t, buckets[0].Address.Route().Route().Currency.Equal(alpha))
+	require.Equal(t, 100.0, buckets[0].SettledAmount.InexactFloat64())
+}
 
-	balanceByCustomCurrencyID := lo.SliceToMap(buckets, func(bucket ledger.BalanceBucket) (string, float64) {
-		route := bucket.Address.Route().Route()
-		require.NotNil(t, route.CustomCurrency)
+func mustCustomCurrencyReference(t *testing.T, code currencyx.Code, id string, precision int) currencies.CurrencyReference {
+	t.Helper()
 
-		return strings.TrimSpace(route.CustomCurrency.ID), bucket.SettledAmount.InexactFloat64()
-	})
-	require.Equal(t, map[string]float64{
-		alpha.ID: 100,
-		beta.ID:  30,
-	}, balanceByCustomCurrencyID)
+	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom:v1:%s:%s:%d", code, id, precision)))
+	require.NoError(t, err)
+
+	return reference
 }
 
 func provenanceEntryInput(t *testing.T, sub *ledgeraccount.SubAccountData, amount alpacadecimal.Decimal, sourceChargeID, spendChargeID *string) *transactionstestutils.AnyEntryInput {

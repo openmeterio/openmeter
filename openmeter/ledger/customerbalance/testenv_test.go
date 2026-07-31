@@ -29,6 +29,7 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
@@ -404,7 +405,7 @@ func (e *testEnv) bookFBOBalanceInCurrencyWithFeatures(t *testing.T, amount alpa
 		transactions.IssueCustomerReceivableTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: currency,
+			Currency: e.currencyReference(currency),
 			Features: features,
 		},
 	)
@@ -443,13 +444,13 @@ func (e *testEnv) fundOpenReceivableInCurrencyWithFeatures(t *testing.T, amount 
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: currency,
+			Currency: e.currencyReference(currency),
 			Features: features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: currency,
+			Currency: e.currencyReference(currency),
 			Features: features,
 		},
 	)
@@ -457,6 +458,14 @@ func (e *testEnv) fundOpenReceivableInCurrencyWithFeatures(t *testing.T, amount 
 
 	_, err = e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
 	require.NoError(t, err)
+}
+
+func (e *testEnv) currencyReference(code currencyx.Code) currencies.CurrencyReference {
+	if code == e.Currency {
+		return e.CurrencyReference()
+	}
+
+	return currencies.NewCurrencyReference(code)
 }
 
 func (e *testEnv) createUsageBasedCharge(t *testing.T, unitPrice alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod) usagebased.Charge {

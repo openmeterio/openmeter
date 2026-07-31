@@ -1,6 +1,8 @@
 package adapter
 
 import (
+	"fmt"
+
 	"entgo.io/ent/dialect"
 	sql "entgo.io/ent/dialect/sql"
 	"github.com/lib/pq"
@@ -12,18 +14,48 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
-func voidRecordRoutePredicate(route ledger.RouteFilter) predicate.LedgerCreditVoidRecord {
+func voidRecordRoutePredicate(route ledger.RouteFilter) (predicate.LedgerCreditVoidRecord, error) {
 	if route.Currency.Code == "" && route.Features.IsAbsent() && route.MatchFeature == "" {
-		return nil
+		return nil, nil
+	}
+
+	query, err := newVoidRecordRouteQuery(route)
+	if err != nil {
+		return nil, err
 	}
 
 	return func(s *sql.Selector) {
-		s.Where(voidRecordRouteQuery{Route: route}.predicate(s.C(dbledgercreditvoidrecord.FieldFboSubAccountID)))
-	}
+		s.Where(query.predicate(s.C(dbledgercreditvoidrecord.FieldFboSubAccountID)))
+	}, nil
 }
 
 type voidRecordRouteQuery struct {
-	Route ledger.RouteFilter
+	Route              ledger.RouteFilter
+	serializedCurrency *string
+	currencyPrefix     bool
+}
+
+func newVoidRecordRouteQuery(route ledger.RouteFilter) (voidRecordRouteQuery, error) {
+	query := voidRecordRouteQuery{Route: route}
+	if route.Currency.Code == "" {
+		return query, nil
+	}
+
+	var serialized []byte
+	var err error
+	if route.Currency.IsCustom() && !route.Currency.IsResolved() {
+		serialized, err = route.Currency.MarshalTextPrefix()
+		query.currencyPrefix = true
+	} else {
+		serialized, err = route.Currency.MarshalText()
+	}
+	if err != nil {
+		return voidRecordRouteQuery{}, fmt.Errorf("serialize route currency filter: %w", err)
+	}
+	value := string(serialized)
+	query.serializedCurrency = &value
+
+	return query, nil
 }
 
 func (q voidRecordRouteQuery) predicate(fboSubAccountIDColumn string) *sql.Predicate {
@@ -61,11 +93,12 @@ func (q voidRecordRouteQuery) selector() *sql.Selector {
 func (q voidRecordRouteQuery) selectorPredicates(routeColumn func(string) string, routeTableAlias string) []*sql.Predicate {
 	predicates := make([]*sql.Predicate, 0, 3)
 
-	if q.Route.Currency.Code != "" {
-		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(q.Route.Currency.Code)))
-	}
-	if q.Route.Currency.CustomCurrencyID != nil {
-		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCustomCurrencyID), *q.Route.Currency.CustomCurrencyID))
+	if q.serializedCurrency != nil {
+		if q.currencyPrefix {
+			predicates = append(predicates, sql.Like(routeColumn(ledgersubaccountroutedb.FieldCurrency), *q.serializedCurrency+"%"))
+		} else {
+			predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), *q.serializedCurrency))
+		}
 	}
 
 	if q.Route.Features.IsPresent() {

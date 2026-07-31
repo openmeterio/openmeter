@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -433,7 +434,7 @@ func TestCorrectSourceLessCustomCurrencyPromotionalCollection(t *testing.T) {
 	for _, transaction := range customTransactions.Items {
 		for _, entry := range transaction.Entries() {
 			route := entry.PostingAddress().Route().Route()
-			require.Equal(t, env.Currency, route.Currency)
+			require.True(t, env.CurrencyReference().Equal(route.Currency))
 			require.Nil(t, route.CostBasisCurrency)
 		}
 	}
@@ -464,7 +465,7 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	// - the remaining correction restores 20 ACME to the USD-funded route
 	// - no USD transaction is created for the uncovered credit-only slice
 	customCurrency := env.Currency
-	customCurrencyIdentity := env.CustomCurrencyForRoute(customCurrency)
+	customCurrencyReference := env.CustomCurrencyForRoute(customCurrency)
 	fiatCurrency := currencyx.Code("USD")
 	costBasis := alpacadecimal.NewFromFloat(0.25)
 	priority := 1
@@ -488,33 +489,31 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 		transactions.IssueCustomerReceivableTemplate{
 			At:                env.Now(),
 			Amount:            alpacadecimal.NewFromInt(100),
-			Currency:          customCurrency,
-			CustomCurrency:    customCurrencyIdentity,
+			Currency:          customCurrencyReference,
 			CostBasisCurrency: &fiatCurrency,
 			CostBasis:         &costBasis,
 			CreditPriority:    &priority,
 			SourceChargeID:    &sourceCharge,
 		},
 		transactions.ConvertCurrencyTemplate{
-			At:                   env.Now(),
-			SourceAmount:         alpacadecimal.NewFromInt(25),
-			TargetAmount:         alpacadecimal.NewFromInt(100),
-			CostBasis:            costBasis,
-			SourceCurrency:       fiatCurrency,
-			TargetCurrency:       customCurrency,
-			TargetCustomCurrency: customCurrencyIdentity,
+			At:             env.Now(),
+			SourceAmount:   alpacadecimal.NewFromInt(25),
+			TargetAmount:   alpacadecimal.NewFromInt(100),
+			CostBasis:      costBasis,
+			SourceCurrency: currencies.NewCurrencyReference(fiatCurrency),
+			TargetCurrency: customCurrencyReference,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(25),
-			Currency:       fiatCurrency,
+			Currency:       currencies.NewCurrencyReference(fiatCurrency),
 			CostBasis:      &costBasis,
 			SourceChargeID: &sourceCharge,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(25),
-			Currency:       fiatCurrency,
+			Currency:       currencies.NewCurrencyReference(fiatCurrency),
 			CostBasis:      &costBasis,
 			SourceChargeID: &sourceCharge,
 		},
@@ -529,16 +528,14 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	require.NoError(t, err)
 
 	fundedFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:          customCurrency,
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		CostBasisCurrency: &fiatCurrency,
 		CreditPriority:    priority,
 		CostBasis:         &costBasis,
 	})
 	require.NoError(t, err)
 	fundedAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:          customCurrency,
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		CostBasisCurrency: &fiatCurrency,
 		TaxCode:           &taxCode,
 		TaxBehavior:       &taxBehavior,
@@ -546,10 +543,9 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	})
 	require.NoError(t, err)
 	sourceLessAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:       customCurrency,
-		CustomCurrency: customCurrencyIdentity,
-		TaxCode:        &taxCode,
-		TaxBehavior:    &taxBehavior,
+		Currency:    customCurrencyReference,
+		TaxCode:     &taxCode,
+		TaxBehavior: &taxBehavior,
 	})
 	require.NoError(t, err)
 
@@ -566,8 +562,7 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 		CustomerID:        env.CustomerID.ID,
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
-		Currency:          testCurrencyReference(customCurrency, customCurrencyIdentity),
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		SettlementMode:    productcatalog.CreditOnlySettlementMode,
 		ServicePeriod:     servicePeriod,
 		Amount:            alpacadecimal.NewFromInt(120),
@@ -642,7 +637,7 @@ func TestCorrectFiatFundedCustomCurrencyCreditOnlyShortfall(t *testing.T) {
 	for _, transaction := range sourceQualifiedTransactions.Items {
 		for _, entry := range transaction.Entries() {
 			route := entry.PostingAddress().Route().Route()
-			require.Equal(t, customCurrency, route.Currency)
+			require.True(t, customCurrencyReference.Equal(route.Currency))
 			require.Equal(t, &fiatCurrency, route.CostBasisCurrency)
 			require.NotNil(t, route.CostBasis)
 			require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
@@ -692,7 +687,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	// - 100 ACME funded from USD at priority 1 (cost basis 0.25)
 	// - 50 ACME funded from EUR at priority 2 (cost basis 0.30)
 	customCurrency := env.Currency
-	customCurrencyIdentity := env.CustomCurrencyForRoute(customCurrency)
+	customCurrencyReference := env.CustomCurrencyForRoute(customCurrency)
 	usd := currencyx.Code("USD")
 	eur := currencyx.Code("EUR")
 	usdCostBasis := alpacadecimal.NewFromFloat(0.25)
@@ -716,8 +711,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 			transactions.IssueCustomerReceivableTemplate{
 				At:                env.Now(),
 				Amount:            alpacadecimal.NewFromInt(amount),
-				Currency:          customCurrency,
-				CustomCurrency:    customCurrencyIdentity,
+				Currency:          customCurrencyReference,
 				CostBasisCurrency: &costBasisCurrency,
 				CostBasis:         &costBasis,
 				CreditPriority:    &priority,
@@ -725,13 +719,13 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 			transactions.AuthorizeCustomerReceivablePaymentTemplate{
 				At:        env.Now(),
 				Amount:    alpacadecimal.NewFromInt(amount).Mul(costBasis),
-				Currency:  costBasisCurrency,
+				Currency:  currencies.NewCurrencyReference(costBasisCurrency),
 				CostBasis: &costBasis,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
 				At:        env.Now(),
 				Amount:    alpacadecimal.NewFromInt(amount).Mul(costBasis),
-				Currency:  costBasisCurrency,
+				Currency:  currencies.NewCurrencyReference(costBasisCurrency),
 				CostBasis: &costBasis,
 			},
 		)
@@ -748,31 +742,27 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 	eurChargeID := testChargeID(2)
 
 	usdFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:          customCurrency,
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		CostBasisCurrency: &usd,
 		CostBasis:         &usdCostBasis,
 		CreditPriority:    1,
 	})
 	require.NoError(t, err)
 	usdAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:          customCurrency,
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		CostBasisCurrency: &usd,
 		CostBasis:         &usdCostBasis,
 	})
 	require.NoError(t, err)
 	eurFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:          customCurrency,
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		CostBasisCurrency: &eur,
 		CostBasis:         &eurCostBasis,
 		CreditPriority:    2,
 	})
 	require.NoError(t, err)
 	eurAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:          customCurrency,
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		CostBasisCurrency: &eur,
 		CostBasis:         &eurCostBasis,
 	})
@@ -799,8 +789,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 		CustomerID:        env.CustomerID.ID,
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
-		Currency:          testCurrencyReference(customCurrency, customCurrencyIdentity),
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		SettlementMode:    productcatalog.CreditOnlySettlementMode,
 		ServicePeriod:     servicePeriod,
 		Amount:            alpacadecimal.NewFromInt(100),
@@ -814,8 +803,7 @@ func TestCorrectCustomCurrencyCreditOnlyShortfall_MultipleFundingSourcesDoNotCro
 		CustomerID:        env.CustomerID.ID,
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
-		Currency:          testCurrencyReference(customCurrency, customCurrencyIdentity),
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          customCurrencyReference,
 		SettlementMode:    productcatalog.CreditOnlySettlementMode,
 		ServicePeriod:     servicePeriod,
 		Amount:            alpacadecimal.NewFromInt(20),
@@ -865,9 +853,10 @@ func TestBackfilledCreditReissueRoutePreservesCostBasisCurrency(t *testing.T) {
 	costBasis := alpacadecimal.NewFromFloat(0.25)
 	priority := 1
 	costBasisCurrency := lo.ToPtr(currencyx.Code("USD"))
+	currency, err := currencies.ParseCurrencyReference([]byte("custom:v1:ACME:custom-currency-id:2"))
+	require.NoError(t, err)
 	route := ledger.Route{
-		Currency:          currencyx.Code("ACME"),
-		CustomCurrency:    &ledger.CustomCurrencyIdentity{ID: "custom-currency-id", Precision: 2},
+		Currency:          currency,
 		CostBasisCurrency: costBasisCurrency,
 		CostBasis:         &costBasis,
 		CreditPriority:    &priority,

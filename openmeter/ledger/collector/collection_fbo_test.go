@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -23,15 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
-
-func testCurrencyReference(code currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity) currencies.CurrencyReference {
-	reference := currencies.NewCurrencyReference(code)
-	if customCurrency != nil {
-		reference.CustomCurrencyID = &customCurrency.ID
-	}
-
-	return reference
-}
 
 func TestCollectCustomerFBOUsesPriorityOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
@@ -56,21 +47,15 @@ func TestCollectCustomerFBOSeparatesManagedCurrenciesWithSameCode(t *testing.T) 
 	collector := newTestAccrualCollector(env)
 
 	// given: two managed custom currencies share the same display code.
-	alpha := &ledger.CustomCurrencyIdentity{
-		ID:        ulid.Make().String(),
-		Precision: 2,
-	}
-	beta := &ledger.CustomCurrencyIdentity{
-		ID:        ulid.Make().String(),
-		Precision: 2,
-	}
-	env.CustomCurrency = alpha
+	alpha := currencytestutils.NewCustomCurrency(t, env.Currency, 2)
+	beta := currencytestutils.NewCustomCurrency(t, env.Currency, 2)
+	env.CustomCurrency = &alpha
 	alphaFBO := fundPriority(t, env, 1, 60)
-	env.CustomCurrency = beta
+	env.CustomCurrency = &beta
 	betaFBO := fundPriority(t, env, 1, 60)
 
 	// then: a same-code breakage plan from beta is not attached to alpha sources.
-	env.CustomCurrency = alpha
+	env.CustomCurrency = &alpha
 	require.Empty(t, reserveSourcesForBreakagePlan(
 		[]fboCollectionSource{{
 			address:   alphaFBO.Address(),
@@ -616,8 +601,7 @@ func fundPriorityWithCostBasisAndFeatures(
 	t.Helper()
 
 	subAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       env.Currency,
-		CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
+		Currency:       env.CurrencyReference(),
 		CostBasis:      costBasis,
 		CreditPriority: priority,
 		Features:       features,
@@ -638,27 +622,24 @@ func fundPriorityWithCostBasisAndFeatures(
 		transactions.IssueCustomerReceivableTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       env.Currency,
-			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
+			Currency:       env.CurrencyReference(),
 			CostBasis:      costBasis,
 			CreditPriority: &priority,
 			Features:       features,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:             env.Now(),
-			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       env.Currency,
-			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
-			CostBasis:      costBasis,
-			Features:       features,
+			At:        env.Now(),
+			Amount:    alpacadecimal.NewFromInt(amount),
+			Currency:  env.CurrencyReference(),
+			CostBasis: costBasis,
+			Features:  features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:             env.Now(),
-			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       env.Currency,
-			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
-			CostBasis:      costBasis,
-			Features:       features,
+			At:        env.Now(),
+			Amount:    alpacadecimal.NewFromInt(amount),
+			Currency:  env.CurrencyReference(),
+			CostBasis: costBasis,
+			Features:  features,
 		},
 	)
 	require.NoError(t, err)
@@ -673,8 +654,7 @@ func fundSourceCharge(t *testing.T, env *ledgertestutils.IntegrationEnv, sourceC
 	t.Helper()
 
 	subAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       env.Currency,
-		CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
+		Currency:       env.CurrencyReference(),
 		CreditPriority: priority,
 	})
 	require.NoError(t, err)
@@ -693,23 +673,20 @@ func fundSourceCharge(t *testing.T, env *ledgertestutils.IntegrationEnv, sourceC
 		transactions.IssueCustomerReceivableTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       env.Currency,
-			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
+			Currency:       env.CurrencyReference(),
 			SourceChargeID: &sourceChargeID,
 			CreditPriority: &priority,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       env.Currency,
-			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
+			Currency:       env.CurrencyReference(),
 			SourceChargeID: &sourceChargeID,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       env.Currency,
-			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
+			Currency:       env.CurrencyReference(),
 			SourceChargeID: &sourceChargeID,
 		},
 	)
@@ -734,7 +711,6 @@ func collectToAccruedInputForTest(
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
 		Currency:          env.CurrencyReference(),
-		CustomCurrency:    env.CustomCurrencyForRoute(env.Currency),
 		SettlementMode:    settlementMode,
 		ServicePeriod: timeutil.ClosedPeriod{
 			From: env.Now().Add(-time.Hour),
@@ -889,7 +865,7 @@ func bookExpiringCreditWithFeatures(
 		transactions.IssueCustomerReceivableTemplate{
 			At:             env.Now(),
 			Amount:         creditAmount,
-			Currency:       env.Currency,
+			Currency:       env.CurrencyReference(),
 			SourceChargeID: sourceChargeID,
 			CreditPriority: &priority,
 			Features:       features,
@@ -900,7 +876,7 @@ func bookExpiringCreditWithFeatures(
 	breakageInputs, pending, err := breakageService.PlanIssuance(t.Context(), ledgerbreakage.PlanIssuanceInput{
 		CustomerID:     env.CustomerID,
 		Amount:         creditAmount,
-		Currency:       env.Currency,
+		Currency:       env.CurrencyReference(),
 		CreditPriority: &priority,
 		Features:       features,
 		ExpiresAt:      expiresAt,
@@ -934,7 +910,7 @@ func bookFutureFBOCollection(t *testing.T, env *ledgertestutils.IntegrationEnv, 
 		transactions.CoverCustomerReceivableTemplate{
 			At:             at,
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       env.Currency,
+			Currency:       env.CurrencyReference(),
 			CreditPriority: &priority,
 		},
 	)

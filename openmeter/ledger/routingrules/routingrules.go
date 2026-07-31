@@ -265,7 +265,7 @@ func (r RequireAccountAuthorizationStatusRule) Validate(tx TxView) error {
 func sameRouteField(left ledger.Route, right ledger.Route, field RouteField) (bool, error) {
 	switch field {
 	case RouteFieldCurrency:
-		return left.Currency == right.Currency, nil
+		return left.Currency.Equal(right.Currency), nil
 	case RouteFieldCostBasisCurrency:
 		return optionalCurrencyCodeEqual(left.CostBasisCurrency, right.CostBasisCurrency), nil
 	case RouteFieldTaxCode:

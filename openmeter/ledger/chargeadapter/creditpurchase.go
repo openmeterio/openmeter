@@ -89,9 +89,9 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
-	settlementAmount, settlementCurrency, err := settlementPaymentAmount(charge.Intent.Currency, charge.Intent.Settlement, charge.Intent.CreditAmount, costBasis)
+	settlementCurrency, err := settlementPaymentCurrency(charge.Intent.Currency, charge.Intent.Settlement)
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement payment amount: %w", err)
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement payment currency: %w", err)
 	}
 
 	var templates []transactions.TransactionTemplate
@@ -100,20 +100,19 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		// into the fiat amount actually being paid, before authorizing payment
 		// against it. Authorize/Settle only ever move real (fiat) money.
 		templates = append(templates, transactions.ConvertCurrencyTemplate{
-			At:                   input.EventAt,
-			SourceAmount:         settlementAmount,
-			TargetAmount:         charge.Intent.CreditAmount,
-			CostBasis:            costBasis,
-			SourceCurrency:       settlementCurrency,
-			TargetCurrency:       charge.Intent.Currency.GetCode(),
-			TargetCustomCurrency: customCurrencyIdentity(charge.Intent.Currency),
-			Features:             featureFilters,
+			At:             input.EventAt,
+			SourceAmount:   input.FiatAmount,
+			TargetAmount:   charge.Intent.CreditAmount,
+			CostBasis:      costBasis,
+			SourceCurrency: currencies.NewCurrencyReference(settlementCurrency),
+			TargetCurrency: charge.Intent.Currency.Reference(),
+			Features:       featureFilters,
 		})
 	}
 	templates = append(templates, transactions.AuthorizeCustomerReceivablePaymentTemplate{
 		At:             input.EventAt,
-		Amount:         settlementAmount,
-		Currency:       settlementCurrency,
+		Amount:         input.FiatAmount,
+		Currency:       currencies.NewCurrencyReference(settlementCurrency),
 		CostBasis:      &costBasis,
 		Features:       featureFilters,
 		SourceChargeID: &charge.ID,
@@ -171,9 +170,9 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
-	settlementAmount, settlementCurrency, err := settlementPaymentAmount(charge.Intent.Currency, charge.Intent.Settlement, charge.Intent.CreditAmount, costBasis)
+	settlementCurrency, err := settlementPaymentCurrency(charge.Intent.Currency, charge.Intent.Settlement)
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement payment amount: %w", err)
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement payment currency: %w", err)
 	}
 
 	inputs, err := transactions.ResolveTransactions(
@@ -185,8 +184,8 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:             input.EventAt,
-			Amount:         settlementAmount,
-			Currency:       settlementCurrency,
+			Amount:         input.FiatAmount,
+			Currency:       currencies.NewCurrencyReference(settlementCurrency),
 			CostBasis:      &costBasis,
 			Features:       featureFilters,
 			SourceChargeID: &charge.ID,
@@ -252,8 +251,6 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement cost basis currency: %w", err)
 	}
-	customCurrency := customCurrencyIdentity(charge.Intent.Currency)
-
 	customerID := customer.CustomerID{
 		Namespace: charge.Namespace,
 		ID:        charge.Intent.CustomerID,
@@ -301,8 +298,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
 			At:                 advanceAttributionEffectiveAt,
 			Amount:             attribution.advanceAmount,
-			Currency:           charge.Intent.Currency.GetCode(),
-			CustomCurrency:     customCurrency,
+			Currency:           charge.Intent.Currency.Reference(),
 			CostBasisCurrency:  costBasisCurrency,
 			CostBasis:          costBasisPtr,
 			AdvanceFeatures:    attribution.advanceFeatures,
@@ -315,8 +311,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
 				At:                advanceAttributionEffectiveAt,
 				Amount:            attribution.accruedAmount,
-				Currency:          charge.Intent.Currency.GetCode(),
-				CustomCurrency:    customCurrency,
+				Currency:          charge.Intent.Currency.Reference(),
 				TaxCode:           attribution.taxCode,
 				TaxBehavior:       attribution.taxBehavior,
 				FromCostBasis:     nil,
@@ -332,8 +327,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
 			At:                effectiveAt,
 			Amount:            issuableAmount,
-			Currency:          charge.Intent.Currency.GetCode(),
-			CustomCurrency:    customCurrency,
+			Currency:          charge.Intent.Currency.Reference(),
 			CostBasisCurrency: costBasisCurrency,
 			CostBasis:         costBasisPtr,
 			Features:          featureFilters,
@@ -350,8 +344,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			transactions.AuthorizeCustomerReceivablePaymentTemplate{
 				At:             effectiveAt,
 				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency.GetCode(),
-				CustomCurrency: customCurrency,
+				Currency:       charge.Intent.Currency.Reference(),
 				CostBasis:      costBasisPtr,
 				Features:       featureFilters,
 				SourceChargeID: &charge.ID,
@@ -359,8 +352,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
 				At:             effectiveAt,
 				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency.GetCode(),
-				CustomCurrency: customCurrency,
+				Currency:       charge.Intent.Currency.Reference(),
 				CostBasis:      costBasisPtr,
 				Features:       featureFilters,
 				SourceChargeID: &charge.ID,
@@ -403,8 +395,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			CustomerID:        customerID,
 			Amount:            charge.Intent.CreditAmount,
 			ImmediateReleases: immediateReleases,
-			Currency:          charge.Intent.Currency.GetCode(),
-			CustomCurrency:    customCurrency,
+			Currency:          charge.Intent.Currency.Reference(),
 			CostBasisCurrency: costBasisCurrency,
 			CostBasis:         costBasisPtr,
 			CreditPriority:    charge.Intent.Priority,
@@ -456,41 +447,26 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 	}
 }
 
-// settlementPaymentAmount returns the amount and currency that Authorize/Settle
-// payment templates must book against. Authorize/Settle only ever move real
-// money, so for a custom-currency purchase this is the fiat settlement amount
-// (CreditAmount x CostBasis, rounded to fiat precision), not the custom
-// credit amount/currency.
-func settlementPaymentAmount(
+// settlementPaymentCurrency returns the fiat currency that Authorize/Settle
+// payment templates must book against. The charge layer owns the exact fiat
+// amount and passes it through PaymentEventInput.
+func settlementPaymentCurrency(
 	currency currencies.Currency,
 	settlement chargecreditpurchase.Settlement,
-	creditAmount alpacadecimal.Decimal,
-	costBasis alpacadecimal.Decimal,
-) (alpacadecimal.Decimal, currencyx.Code, error) {
+) (currencyx.Code, error) {
 	if !currency.IsCustom() {
-		return creditAmount, currency.GetCode(), nil
+		return currency.GetCode(), nil
 	}
 
 	settlementCurrency, err := settlement.GetCurrency()
 	if err != nil {
-		return alpacadecimal.Zero, "", fmt.Errorf("get settlement currency: %w", err)
+		return "", fmt.Errorf("get settlement currency: %w", err)
 	}
 	if settlementCurrency == "" {
-		return alpacadecimal.Zero, "", fmt.Errorf("settlement currency is required for a custom currency purchase")
+		return "", fmt.Errorf("settlement currency is required for a custom currency purchase")
 	}
 
-	fiatCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
-		WithCode(currencyx.Code(settlementCurrency)).
-		Build()
-	if err != nil {
-		return alpacadecimal.Zero, "", fmt.Errorf("build settlement currency: %w", err)
-	}
-
-	amount := creditAmount.
-		Mul(costBasis).
-		RoundBank(int32(fiatCurrency.Details().Precision))
-
-	return amount, currencyx.Code(settlementCurrency), nil
+	return currencyx.Code(settlementCurrency), nil
 }
 
 // settlementCostBasisCurrency returns the fiat currency a custom-currency

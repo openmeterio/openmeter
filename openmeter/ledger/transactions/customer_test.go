@@ -17,7 +17,7 @@ import (
 func TestIssueCustomerReceivableTemplateValidate(t *testing.T) {
 	err := (IssueCustomerReceivableTemplate{
 		Amount:            alpacadecimal.NewFromInt(-1),
-		Currency:          currencyx.Code("AC|ME"),
+		Currency:          currencies.NewCurrencyReference(currencyx.Code("AC|ME")),
 		CostBasisCurrency: lo.ToPtr(currencyx.Code("POINTS")),
 		CostBasis:         lo.ToPtr(alpacadecimal.NewFromInt(-1)),
 		CreditPriority:    lo.ToPtr(-1),
@@ -40,7 +40,7 @@ func TestIssueCustomerReceivableTemplate(t *testing.T) {
 		IssueCustomerReceivableTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(50),
-			Currency:       env.Currency,
+			Currency:       env.CurrencyReference(),
 			CreditPriority: &priority,
 		},
 	)
@@ -58,7 +58,7 @@ func TestIssueCustomerReceivableTemplate_DefaultPriority(t *testing.T) {
 		IssueCustomerReceivableTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(15),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 	)
 	require.Len(t, inputs, 1)
@@ -82,10 +82,9 @@ func TestIssueCustomerReceivableTemplate_CustomPrecisionCommit(t *testing.T) {
 	env.resolveAndCommit(
 		t,
 		IssueCustomerReceivableTemplate{
-			At:             env.Now(),
-			Amount:         amount,
-			Currency:       env.Currency,
-			CustomCurrency: env.CustomCurrencyForRoute(env.Currency),
+			At:       env.Now(),
+			Amount:   amount,
+			Currency: env.CurrencyReference(),
 		},
 	)
 
@@ -101,7 +100,7 @@ func TestAuthorizeCustomerReceivablePaymentTemplate(t *testing.T) {
 		IssueCustomerReceivableTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(40),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 	)
 
@@ -110,7 +109,7 @@ func TestAuthorizeCustomerReceivablePaymentTemplate(t *testing.T) {
 		AuthorizeCustomerReceivablePaymentTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(40),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 	)
 	require.Len(t, inputs, 1)
@@ -133,21 +132,19 @@ func TestAuthorizeCustomerReceivablePaymentTemplateValidate_RequiresCostBasisCur
 	costBasis := alpacadecimal.NewFromFloat(0.25)
 
 	authorizeErr := (AuthorizeCustomerReceivablePaymentTemplate{
-		At:             time.Now(),
-		Amount:         alpacadecimal.NewFromInt(40),
-		Currency:       currencyx.Code("ACME"),
-		CustomCurrency: testCustomCurrencyIdentity(currencyx.Code("ACME")),
-		CostBasis:      &costBasis,
+		At:        time.Now(),
+		Amount:    alpacadecimal.NewFromInt(40),
+		Currency:  currencies.NewCurrencyReference(currencyx.Code("ACME")),
+		CostBasis: &costBasis,
 	}).Validate()
 	require.Error(t, authorizeErr)
 	require.ErrorContains(t, authorizeErr, "cost basis currency:")
 
 	settleErr := (SettleCustomerReceivableFromPaymentTemplate{
-		At:             time.Now(),
-		Amount:         alpacadecimal.NewFromInt(40),
-		Currency:       currencyx.Code("ACME"),
-		CustomCurrency: testCustomCurrencyIdentity(currencyx.Code("ACME")),
-		CostBasis:      &costBasis,
+		At:        time.Now(),
+		Amount:    alpacadecimal.NewFromInt(40),
+		Currency:  currencies.NewCurrencyReference(currencyx.Code("ACME")),
+		CostBasis: &costBasis,
 	}).Validate()
 	require.Error(t, settleErr)
 	require.ErrorContains(t, settleErr, "cost basis currency:")
@@ -166,7 +163,6 @@ func TestAuthorizeCustomerReceivablePaymentTemplateValidate_RequiresCostBasisCur
 func TestAuthorizeAndSettleCustomerReceivableTemplates_CarryCostBasisCurrency(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 	env.Currency = currencyx.Code("ACME")
-	customCurrencyIdentity := env.CustomCurrencyForRoute(env.Currency)
 	costBasisCurrency := currencyx.Code("USD")
 	costBasis := alpacadecimal.NewFromFloat(0.25)
 
@@ -175,16 +171,14 @@ func TestAuthorizeAndSettleCustomerReceivableTemplates_CarryCostBasisCurrency(t 
 		IssueCustomerReceivableTemplate{
 			At:                env.Now(),
 			Amount:            alpacadecimal.NewFromInt(40),
-			Currency:          env.Currency,
-			CustomCurrency:    customCurrencyIdentity,
+			Currency:          env.CurrencyReference(),
 			CostBasisCurrency: &costBasisCurrency,
 			CostBasis:         &costBasis,
 		},
 	)
 
 	openReceivable, err := env.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       env.Currency,
-		CustomCurrency:                 customCurrencyIdentity,
+		Currency:                       env.CurrencyReference(),
 		CostBasisCurrency:              &costBasisCurrency,
 		CostBasis:                      &costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -202,16 +196,14 @@ func TestAuthorizeAndSettleCustomerReceivableTemplates_CarryCostBasisCurrency(t 
 		AuthorizeCustomerReceivablePaymentTemplate{
 			At:                env.Now(),
 			Amount:            alpacadecimal.NewFromInt(40),
-			Currency:          env.Currency,
-			CustomCurrency:    customCurrencyIdentity,
+			Currency:          env.CurrencyReference(),
 			CostBasisCurrency: &costBasisCurrency,
 			CostBasis:         &costBasis,
 		},
 	)
 
 	authorizedReceivable, err := env.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       env.Currency,
-		CustomCurrency:                 customCurrencyIdentity,
+		Currency:                       env.CurrencyReference(),
 		CostBasisCurrency:              &costBasisCurrency,
 		CostBasis:                      &costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
@@ -230,16 +222,14 @@ func TestAuthorizeAndSettleCustomerReceivableTemplates_CarryCostBasisCurrency(t 
 		SettleCustomerReceivableFromPaymentTemplate{
 			At:                env.Now(),
 			Amount:            alpacadecimal.NewFromInt(40),
-			Currency:          env.Currency,
-			CustomCurrency:    customCurrencyIdentity,
+			Currency:          env.CurrencyReference(),
 			CostBasisCurrency: &costBasisCurrency,
 			CostBasis:         &costBasis,
 		},
 	)
 
 	wash, err := env.BusinessAccounts.WashAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:          env.Currency,
-		CustomCurrency:    customCurrencyIdentity,
+		Currency:          env.CurrencyReference(),
 		CostBasisCurrency: &costBasisCurrency,
 		CostBasis:         &costBasis,
 	})
@@ -257,7 +247,7 @@ func TestCoverCustomerReceivableTemplate(t *testing.T) {
 		IssueCustomerReceivableTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(45),
-			Currency:       env.Currency,
+			Currency:       env.CurrencyReference(),
 			CreditPriority: &priority,
 		},
 	)
@@ -267,7 +257,7 @@ func TestCoverCustomerReceivableTemplate(t *testing.T) {
 		CoverCustomerReceivableTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(45),
-			Currency:       env.Currency,
+			Currency:       env.CurrencyReference(),
 			CreditPriority: &priority,
 		},
 	)
@@ -285,12 +275,12 @@ func TestSettleCustomerReceivableFromPaymentTemplate(t *testing.T) {
 		IssueCustomerReceivableTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(40),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 		AuthorizeCustomerReceivablePaymentTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(40),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 	)
 
@@ -299,7 +289,7 @@ func TestSettleCustomerReceivableFromPaymentTemplate(t *testing.T) {
 		SettleCustomerReceivableFromPaymentTemplate{
 			At:       env.Now(),
 			Amount:   alpacadecimal.NewFromInt(40),
-			Currency: env.Currency,
+			Currency: env.CurrencyReference(),
 		},
 	)
 	require.Len(t, inputs, 1)
@@ -320,7 +310,7 @@ func TestAttributeCustomerAdvanceReceivableCostBasisTemplate(t *testing.T) {
 		IssueCustomerReceivableTemplate{
 			At:            env.Now(),
 			Amount:        alpacadecimal.NewFromInt(40),
-			Currency:      env.Currency,
+			Currency:      env.CurrencyReference(),
 			SpendChargeID: &spendChargeID,
 		},
 	)
@@ -330,7 +320,7 @@ func TestAttributeCustomerAdvanceReceivableCostBasisTemplate(t *testing.T) {
 		AttributeCustomerAdvanceReceivableCostBasisTemplate{
 			At:             env.Now(),
 			Amount:         alpacadecimal.NewFromInt(40),
-			Currency:       env.Currency,
+			Currency:       env.CurrencyReference(),
 			CostBasis:      &purchasedCostBasis,
 			SourceChargeID: &sourceChargeID,
 			SpendChargeID:  &spendChargeID,

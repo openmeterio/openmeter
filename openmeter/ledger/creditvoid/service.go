@@ -421,7 +421,7 @@ func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchase
 		ID:                     recordID,
 		Amount:                 slice.amount,
 		CustomerID:             input.CustomerID,
-		Currency:               route.Currency,
+		Currency:               route.Currency.Code,
 		VoidedAt:               voidedAt,
 		SourceChargeID:         input.ChargeID,
 		FBOSubAccountID:        correctedFBO,

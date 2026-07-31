@@ -115,48 +115,6 @@ func (_c *LedgerSubAccountRouteCreate) SetNillableCostBasisCurrency(v *currencyx
 	return _c
 }
 
-// SetCustomCurrencyID sets the "custom_currency_id" field.
-func (_c *LedgerSubAccountRouteCreate) SetCustomCurrencyID(v string) *LedgerSubAccountRouteCreate {
-	_c.mutation.SetCustomCurrencyID(v)
-	return _c
-}
-
-// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
-func (_c *LedgerSubAccountRouteCreate) SetNillableCustomCurrencyID(v *string) *LedgerSubAccountRouteCreate {
-	if v != nil {
-		_c.SetCustomCurrencyID(*v)
-	}
-	return _c
-}
-
-// SetCustomCurrencyPrecision sets the "custom_currency_precision" field.
-func (_c *LedgerSubAccountRouteCreate) SetCustomCurrencyPrecision(v uint32) *LedgerSubAccountRouteCreate {
-	_c.mutation.SetCustomCurrencyPrecision(v)
-	return _c
-}
-
-// SetNillableCustomCurrencyPrecision sets the "custom_currency_precision" field if the given value is not nil.
-func (_c *LedgerSubAccountRouteCreate) SetNillableCustomCurrencyPrecision(v *uint32) *LedgerSubAccountRouteCreate {
-	if v != nil {
-		_c.SetCustomCurrencyPrecision(*v)
-	}
-	return _c
-}
-
-// SetCustomCurrencyVersion sets the "custom_currency_version" field.
-func (_c *LedgerSubAccountRouteCreate) SetCustomCurrencyVersion(v uint32) *LedgerSubAccountRouteCreate {
-	_c.mutation.SetCustomCurrencyVersion(v)
-	return _c
-}
-
-// SetNillableCustomCurrencyVersion sets the "custom_currency_version" field if the given value is not nil.
-func (_c *LedgerSubAccountRouteCreate) SetNillableCustomCurrencyVersion(v *uint32) *LedgerSubAccountRouteCreate {
-	if v != nil {
-		_c.SetCustomCurrencyVersion(*v)
-	}
-	return _c
-}
-
 // SetTaxCode sets the "tax_code" field.
 func (_c *LedgerSubAccountRouteCreate) SetTaxCode(v string) *LedgerSubAccountRouteCreate {
 	_c.mutation.SetTaxCode(v)
@@ -435,18 +393,6 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 		_spec.SetField(ledgersubaccountroute.FieldCostBasisCurrency, field.TypeString, value)
 		_node.CostBasisCurrency = &value
 	}
-	if value, ok := _c.mutation.CustomCurrencyID(); ok {
-		_spec.SetField(ledgersubaccountroute.FieldCustomCurrencyID, field.TypeString, value)
-		_node.CustomCurrencyID = &value
-	}
-	if value, ok := _c.mutation.CustomCurrencyPrecision(); ok {
-		_spec.SetField(ledgersubaccountroute.FieldCustomCurrencyPrecision, field.TypeUint32, value)
-		_node.CustomCurrencyPrecision = &value
-	}
-	if value, ok := _c.mutation.CustomCurrencyVersion(); ok {
-		_spec.SetField(ledgersubaccountroute.FieldCustomCurrencyVersion, field.TypeUint32, value)
-		_node.CustomCurrencyVersion = &value
-	}
 	if value, ok := _c.mutation.TaxCode(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldTaxCode, field.TypeString, value)
 		_node.TaxCode = &value
@@ -623,15 +569,6 @@ func (u *LedgerSubAccountRouteUpsertOne) UpdateNewValues() *LedgerSubAccountRout
 		}
 		if _, exists := u.create.mutation.CostBasisCurrency(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldCostBasisCurrency)
-		}
-		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
-			s.SetIgnore(ledgersubaccountroute.FieldCustomCurrencyID)
-		}
-		if _, exists := u.create.mutation.CustomCurrencyPrecision(); exists {
-			s.SetIgnore(ledgersubaccountroute.FieldCustomCurrencyPrecision)
-		}
-		if _, exists := u.create.mutation.CustomCurrencyVersion(); exists {
-			s.SetIgnore(ledgersubaccountroute.FieldCustomCurrencyVersion)
 		}
 		if _, exists := u.create.mutation.TaxCode(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldTaxCode)
@@ -920,15 +857,6 @@ func (u *LedgerSubAccountRouteUpsertBulk) UpdateNewValues() *LedgerSubAccountRou
 			}
 			if _, exists := b.mutation.CostBasisCurrency(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldCostBasisCurrency)
-			}
-			if _, exists := b.mutation.CustomCurrencyID(); exists {
-				s.SetIgnore(ledgersubaccountroute.FieldCustomCurrencyID)
-			}
-			if _, exists := b.mutation.CustomCurrencyPrecision(); exists {
-				s.SetIgnore(ledgersubaccountroute.FieldCustomCurrencyPrecision)
-			}
-			if _, exists := b.mutation.CustomCurrencyVersion(); exists {
-				s.SetIgnore(ledgersubaccountroute.FieldCustomCurrencyVersion)
 			}
 			if _, exists := b.mutation.TaxCode(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldTaxCode)

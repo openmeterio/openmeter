@@ -98259,11 +98259,6 @@ type LedgerSubAccountRouteMutation struct {
 	routing_key                      *string
 	currency                         *string
 	cost_basis_currency              *currencyx.Code
-	custom_currency_id               *string
-	custom_currency_precision        *uint32
-	addcustom_currency_precision     *int32
-	custom_currency_version          *uint32
-	addcustom_currency_version       *int32
 	tax_code                         *string
 	tax_behavior                     *ledger.TaxBehavior
 	features                         *pq.StringArray
@@ -98736,195 +98731,6 @@ func (m *LedgerSubAccountRouteMutation) ResetCostBasisCurrency() {
 	delete(m.clearedFields, ledgersubaccountroute.FieldCostBasisCurrency)
 }
 
-// SetCustomCurrencyID sets the "custom_currency_id" field.
-func (m *LedgerSubAccountRouteMutation) SetCustomCurrencyID(s string) {
-	m.custom_currency_id = &s
-}
-
-// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
-func (m *LedgerSubAccountRouteMutation) CustomCurrencyID() (r string, exists bool) {
-	v := m.custom_currency_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the LedgerSubAccountRoute entity.
-// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountRouteMutation) OldCustomCurrencyID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
-	}
-	return oldValue.CustomCurrencyID, nil
-}
-
-// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
-func (m *LedgerSubAccountRouteMutation) ClearCustomCurrencyID() {
-	m.custom_currency_id = nil
-	m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyID] = struct{}{}
-}
-
-// CustomCurrencyIDCleared returns if the "custom_currency_id" field was cleared in this mutation.
-func (m *LedgerSubAccountRouteMutation) CustomCurrencyIDCleared() bool {
-	_, ok := m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyID]
-	return ok
-}
-
-// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
-func (m *LedgerSubAccountRouteMutation) ResetCustomCurrencyID() {
-	m.custom_currency_id = nil
-	delete(m.clearedFields, ledgersubaccountroute.FieldCustomCurrencyID)
-}
-
-// SetCustomCurrencyPrecision sets the "custom_currency_precision" field.
-func (m *LedgerSubAccountRouteMutation) SetCustomCurrencyPrecision(u uint32) {
-	m.custom_currency_precision = &u
-	m.addcustom_currency_precision = nil
-}
-
-// CustomCurrencyPrecision returns the value of the "custom_currency_precision" field in the mutation.
-func (m *LedgerSubAccountRouteMutation) CustomCurrencyPrecision() (r uint32, exists bool) {
-	v := m.custom_currency_precision
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCustomCurrencyPrecision returns the old "custom_currency_precision" field's value of the LedgerSubAccountRoute entity.
-// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountRouteMutation) OldCustomCurrencyPrecision(ctx context.Context) (v *uint32, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCustomCurrencyPrecision is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCustomCurrencyPrecision requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCustomCurrencyPrecision: %w", err)
-	}
-	return oldValue.CustomCurrencyPrecision, nil
-}
-
-// AddCustomCurrencyPrecision adds u to the "custom_currency_precision" field.
-func (m *LedgerSubAccountRouteMutation) AddCustomCurrencyPrecision(u int32) {
-	if m.addcustom_currency_precision != nil {
-		*m.addcustom_currency_precision += u
-	} else {
-		m.addcustom_currency_precision = &u
-	}
-}
-
-// AddedCustomCurrencyPrecision returns the value that was added to the "custom_currency_precision" field in this mutation.
-func (m *LedgerSubAccountRouteMutation) AddedCustomCurrencyPrecision() (r int32, exists bool) {
-	v := m.addcustom_currency_precision
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearCustomCurrencyPrecision clears the value of the "custom_currency_precision" field.
-func (m *LedgerSubAccountRouteMutation) ClearCustomCurrencyPrecision() {
-	m.custom_currency_precision = nil
-	m.addcustom_currency_precision = nil
-	m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyPrecision] = struct{}{}
-}
-
-// CustomCurrencyPrecisionCleared returns if the "custom_currency_precision" field was cleared in this mutation.
-func (m *LedgerSubAccountRouteMutation) CustomCurrencyPrecisionCleared() bool {
-	_, ok := m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyPrecision]
-	return ok
-}
-
-// ResetCustomCurrencyPrecision resets all changes to the "custom_currency_precision" field.
-func (m *LedgerSubAccountRouteMutation) ResetCustomCurrencyPrecision() {
-	m.custom_currency_precision = nil
-	m.addcustom_currency_precision = nil
-	delete(m.clearedFields, ledgersubaccountroute.FieldCustomCurrencyPrecision)
-}
-
-// SetCustomCurrencyVersion sets the "custom_currency_version" field.
-func (m *LedgerSubAccountRouteMutation) SetCustomCurrencyVersion(u uint32) {
-	m.custom_currency_version = &u
-	m.addcustom_currency_version = nil
-}
-
-// CustomCurrencyVersion returns the value of the "custom_currency_version" field in the mutation.
-func (m *LedgerSubAccountRouteMutation) CustomCurrencyVersion() (r uint32, exists bool) {
-	v := m.custom_currency_version
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCustomCurrencyVersion returns the old "custom_currency_version" field's value of the LedgerSubAccountRoute entity.
-// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountRouteMutation) OldCustomCurrencyVersion(ctx context.Context) (v *uint32, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCustomCurrencyVersion is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCustomCurrencyVersion requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCustomCurrencyVersion: %w", err)
-	}
-	return oldValue.CustomCurrencyVersion, nil
-}
-
-// AddCustomCurrencyVersion adds u to the "custom_currency_version" field.
-func (m *LedgerSubAccountRouteMutation) AddCustomCurrencyVersion(u int32) {
-	if m.addcustom_currency_version != nil {
-		*m.addcustom_currency_version += u
-	} else {
-		m.addcustom_currency_version = &u
-	}
-}
-
-// AddedCustomCurrencyVersion returns the value that was added to the "custom_currency_version" field in this mutation.
-func (m *LedgerSubAccountRouteMutation) AddedCustomCurrencyVersion() (r int32, exists bool) {
-	v := m.addcustom_currency_version
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearCustomCurrencyVersion clears the value of the "custom_currency_version" field.
-func (m *LedgerSubAccountRouteMutation) ClearCustomCurrencyVersion() {
-	m.custom_currency_version = nil
-	m.addcustom_currency_version = nil
-	m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyVersion] = struct{}{}
-}
-
-// CustomCurrencyVersionCleared returns if the "custom_currency_version" field was cleared in this mutation.
-func (m *LedgerSubAccountRouteMutation) CustomCurrencyVersionCleared() bool {
-	_, ok := m.clearedFields[ledgersubaccountroute.FieldCustomCurrencyVersion]
-	return ok
-}
-
-// ResetCustomCurrencyVersion resets all changes to the "custom_currency_version" field.
-func (m *LedgerSubAccountRouteMutation) ResetCustomCurrencyVersion() {
-	m.custom_currency_version = nil
-	m.addcustom_currency_version = nil
-	delete(m.clearedFields, ledgersubaccountroute.FieldCustomCurrencyVersion)
-}
-
 // SetTaxCode sets the "tax_code" field.
 func (m *LedgerSubAccountRouteMutation) SetTaxCode(s string) {
 	m.tax_code = &s
@@ -99355,7 +99161,7 @@ func (m *LedgerSubAccountRouteMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerSubAccountRouteMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 15)
 	if m.namespace != nil {
 		fields = append(fields, ledgersubaccountroute.FieldNamespace)
 	}
@@ -99382,15 +99188,6 @@ func (m *LedgerSubAccountRouteMutation) Fields() []string {
 	}
 	if m.cost_basis_currency != nil {
 		fields = append(fields, ledgersubaccountroute.FieldCostBasisCurrency)
-	}
-	if m.custom_currency_id != nil {
-		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyID)
-	}
-	if m.custom_currency_precision != nil {
-		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyPrecision)
-	}
-	if m.custom_currency_version != nil {
-		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyVersion)
 	}
 	if m.tax_code != nil {
 		fields = append(fields, ledgersubaccountroute.FieldTaxCode)
@@ -99436,12 +99233,6 @@ func (m *LedgerSubAccountRouteMutation) Field(name string) (ent.Value, bool) {
 		return m.Currency()
 	case ledgersubaccountroute.FieldCostBasisCurrency:
 		return m.CostBasisCurrency()
-	case ledgersubaccountroute.FieldCustomCurrencyID:
-		return m.CustomCurrencyID()
-	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
-		return m.CustomCurrencyPrecision()
-	case ledgersubaccountroute.FieldCustomCurrencyVersion:
-		return m.CustomCurrencyVersion()
 	case ledgersubaccountroute.FieldTaxCode:
 		return m.TaxCode()
 	case ledgersubaccountroute.FieldTaxBehavior:
@@ -99481,12 +99272,6 @@ func (m *LedgerSubAccountRouteMutation) OldField(ctx context.Context, name strin
 		return m.OldCurrency(ctx)
 	case ledgersubaccountroute.FieldCostBasisCurrency:
 		return m.OldCostBasisCurrency(ctx)
-	case ledgersubaccountroute.FieldCustomCurrencyID:
-		return m.OldCustomCurrencyID(ctx)
-	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
-		return m.OldCustomCurrencyPrecision(ctx)
-	case ledgersubaccountroute.FieldCustomCurrencyVersion:
-		return m.OldCustomCurrencyVersion(ctx)
 	case ledgersubaccountroute.FieldTaxCode:
 		return m.OldTaxCode(ctx)
 	case ledgersubaccountroute.FieldTaxBehavior:
@@ -99571,27 +99356,6 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetCostBasisCurrency(v)
 		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCustomCurrencyID(v)
-		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
-		v, ok := value.(uint32)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCustomCurrencyPrecision(v)
-		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyVersion:
-		v, ok := value.(uint32)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCustomCurrencyVersion(v)
-		return nil
 	case ledgersubaccountroute.FieldTaxCode:
 		v, ok := value.(string)
 		if !ok {
@@ -99642,12 +99406,6 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 // this mutation.
 func (m *LedgerSubAccountRouteMutation) AddedFields() []string {
 	var fields []string
-	if m.addcustom_currency_precision != nil {
-		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyPrecision)
-	}
-	if m.addcustom_currency_version != nil {
-		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyVersion)
-	}
 	if m.addcredit_priority != nil {
 		fields = append(fields, ledgersubaccountroute.FieldCreditPriority)
 	}
@@ -99659,10 +99417,6 @@ func (m *LedgerSubAccountRouteMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *LedgerSubAccountRouteMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
-		return m.AddedCustomCurrencyPrecision()
-	case ledgersubaccountroute.FieldCustomCurrencyVersion:
-		return m.AddedCustomCurrencyVersion()
 	case ledgersubaccountroute.FieldCreditPriority:
 		return m.AddedCreditPriority()
 	}
@@ -99674,20 +99428,6 @@ func (m *LedgerSubAccountRouteMutation) AddedField(name string) (ent.Value, bool
 // type.
 func (m *LedgerSubAccountRouteMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
-		v, ok := value.(int32)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddCustomCurrencyPrecision(v)
-		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyVersion:
-		v, ok := value.(int32)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddCustomCurrencyVersion(v)
-		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		v, ok := value.(int)
 		if !ok {
@@ -99708,15 +99448,6 @@ func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(ledgersubaccountroute.FieldCostBasisCurrency) {
 		fields = append(fields, ledgersubaccountroute.FieldCostBasisCurrency)
-	}
-	if m.FieldCleared(ledgersubaccountroute.FieldCustomCurrencyID) {
-		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyID)
-	}
-	if m.FieldCleared(ledgersubaccountroute.FieldCustomCurrencyPrecision) {
-		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyPrecision)
-	}
-	if m.FieldCleared(ledgersubaccountroute.FieldCustomCurrencyVersion) {
-		fields = append(fields, ledgersubaccountroute.FieldCustomCurrencyVersion)
 	}
 	if m.FieldCleared(ledgersubaccountroute.FieldTaxCode) {
 		fields = append(fields, ledgersubaccountroute.FieldTaxCode)
@@ -99755,15 +99486,6 @@ func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldCostBasisCurrency:
 		m.ClearCostBasisCurrency()
-		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyID:
-		m.ClearCustomCurrencyID()
-		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
-		m.ClearCustomCurrencyPrecision()
-		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyVersion:
-		m.ClearCustomCurrencyVersion()
 		return nil
 	case ledgersubaccountroute.FieldTaxCode:
 		m.ClearTaxCode()
@@ -99817,15 +99539,6 @@ func (m *LedgerSubAccountRouteMutation) ResetField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldCostBasisCurrency:
 		m.ResetCostBasisCurrency()
-		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyID:
-		m.ResetCustomCurrencyID()
-		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyPrecision:
-		m.ResetCustomCurrencyPrecision()
-		return nil
-	case ledgersubaccountroute.FieldCustomCurrencyVersion:
-		m.ResetCustomCurrencyVersion()
 		return nil
 	case ledgersubaccountroute.FieldTaxCode:
 		m.ResetTaxCode()

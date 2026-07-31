@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -346,7 +347,6 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 			At:                input.AllocateAt,
 			Amount:            amount,
 			Currency:          route.currency,
-			CustomCurrency:    route.customCurrency,
 			CostBasisCurrency: route.costBasisCurrency,
 			CostBasis:         route.costBasis,
 			Features:          route.features,
@@ -723,8 +723,7 @@ func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.Transaction
 }
 
 type backfilledCreditReissueRouteResult struct {
-	currency          currencyx.Code
-	customCurrency    *ledger.CustomCurrencyIdentity
+	currency          currencies.CurrencyReference
 	costBasisCurrency *currencyx.Code
 	costBasis         *alpacadecimal.Decimal
 	creditPriority    *int
@@ -738,8 +737,7 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	// re-issue. If the group has an FBO route, prefer it because it also carries
 	// the customer credit collection priority. Fully backfilled purchases may
 	// only have the known cost basis on receivable/accrued attribution entries.
-	var fallbackCurrency currencyx.Code
-	var fallbackCustomCurrency *ledger.CustomCurrencyIdentity
+	var fallbackCurrency currencies.CurrencyReference
 	var fallbackCostBasisCurrency *currencyx.Code
 	var fallbackCostBasis *alpacadecimal.Decimal
 	var fallbackFeatures []string
@@ -759,7 +757,6 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
 				return backfilledCreditReissueRouteResult{
 					currency:          route.Currency,
-					customCurrency:    route.CustomCurrency,
 					costBasisCurrency: route.CostBasisCurrency,
 					costBasis:         route.CostBasis,
 					creditPriority:    route.CreditPriority,
@@ -770,7 +767,6 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 
 			if fallbackCostBasis == nil {
 				fallbackCurrency = route.Currency
-				fallbackCustomCurrency = route.CustomCurrency
 				fallbackCostBasisCurrency = route.CostBasisCurrency
 				fallbackCostBasis = route.CostBasis
 				fallbackFeatures = route.Features
@@ -781,7 +777,6 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	if fallbackCostBasis != nil {
 		return backfilledCreditReissueRouteResult{
 			currency:          fallbackCurrency,
-			customCurrency:    fallbackCustomCurrency,
 			costBasisCurrency: fallbackCostBasisCurrency,
 			costBasis:         fallbackCostBasis,
 			features:          fallbackFeatures,

@@ -40,12 +40,6 @@ type LedgerSubAccountRoute struct {
 	Currency string `json:"currency,omitempty"`
 	// CostBasisCurrency holds the value of the "cost_basis_currency" field.
 	CostBasisCurrency *currencyx.Code `json:"cost_basis_currency,omitempty"`
-	// CustomCurrencyID holds the value of the "custom_currency_id" field.
-	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
-	// CustomCurrencyPrecision holds the value of the "custom_currency_precision" field.
-	CustomCurrencyPrecision *uint32 `json:"custom_currency_precision,omitempty"`
-	// CustomCurrencyVersion holds the value of the "custom_currency_version" field.
-	CustomCurrencyVersion *uint32 `json:"custom_currency_version,omitempty"`
 	// TaxCode holds the value of the "tax_code" field.
 	TaxCode *string `json:"tax_code,omitempty"`
 	// TaxBehavior holds the value of the "tax_behavior" field.
@@ -104,9 +98,9 @@ func (*LedgerSubAccountRoute) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case ledgersubaccountroute.FieldFeatures:
 			values[i] = new(pq.StringArray)
-		case ledgersubaccountroute.FieldCustomCurrencyPrecision, ledgersubaccountroute.FieldCustomCurrencyVersion, ledgersubaccountroute.FieldCreditPriority:
+		case ledgersubaccountroute.FieldCreditPriority:
 			values[i] = new(sql.NullInt64)
-		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldCostBasisCurrency, ledgersubaccountroute.FieldCustomCurrencyID, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTaxBehavior, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldCostBasisCurrency, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTaxBehavior, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
 			values[i] = new(sql.NullString)
 		case ledgersubaccountroute.FieldCreatedAt, ledgersubaccountroute.FieldUpdatedAt, ledgersubaccountroute.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -186,27 +180,6 @@ func (_m *LedgerSubAccountRoute) assignValues(columns []string, values []any) er
 			} else if value.Valid {
 				_m.CostBasisCurrency = new(currencyx.Code)
 				*_m.CostBasisCurrency = currencyx.Code(value.String)
-			}
-		case ledgersubaccountroute.FieldCustomCurrencyID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
-			} else if value.Valid {
-				_m.CustomCurrencyID = new(string)
-				*_m.CustomCurrencyID = value.String
-			}
-		case ledgersubaccountroute.FieldCustomCurrencyPrecision:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field custom_currency_precision", values[i])
-			} else if value.Valid {
-				_m.CustomCurrencyPrecision = new(uint32)
-				*_m.CustomCurrencyPrecision = uint32(value.Int64)
-			}
-		case ledgersubaccountroute.FieldCustomCurrencyVersion:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field custom_currency_version", values[i])
-			} else if value.Valid {
-				_m.CustomCurrencyVersion = new(uint32)
-				*_m.CustomCurrencyVersion = uint32(value.Int64)
 			}
 		case ledgersubaccountroute.FieldTaxCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -323,21 +296,6 @@ func (_m *LedgerSubAccountRoute) String() string {
 	builder.WriteString(", ")
 	if v := _m.CostBasisCurrency; v != nil {
 		builder.WriteString("cost_basis_currency=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.CustomCurrencyID; v != nil {
-		builder.WriteString("custom_currency_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.CustomCurrencyPrecision; v != nil {
-		builder.WriteString("custom_currency_precision=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.CustomCurrencyVersion; v != nil {
-		builder.WriteString("custom_currency_version=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

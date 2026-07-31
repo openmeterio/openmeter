@@ -1,6 +1,7 @@
 package ledger_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -17,40 +18,37 @@ import (
 
 func TestValidateTransactionInputCurrencyAccounting(t *testing.T) {
 	for _, testCase := range []struct {
-		name           string
-		currency       currencyx.Code
-		customCurrency *ledger.CustomCurrencyIdentity
-		amount         string
-		wantErr        bool
+		name     string
+		currency currencies.CurrencyReference
+		amount   string
+		wantErr  bool
 	}{
 		{
 			name:     "accepts fiat precision",
-			currency: "USD",
+			currency: currencies.NewCurrencyReference("USD"),
 			amount:   "10.01",
 		},
 		{
 			name:     "rejects excess fiat precision",
-			currency: "USD",
+			currency: currencies.NewCurrencyReference("USD"),
 			amount:   "10.001",
 			wantErr:  true,
 		},
 		{
-			name:           "accepts custom precision matching the route's declared precision",
-			currency:       "CREDITS",
-			customCurrency: &ledger.CustomCurrencyIdentity{ID: "custom-currency-id", Precision: 3},
-			amount:         "10.001",
+			name:     "accepts custom precision matching the route's declared precision",
+			currency: mustCustomCurrencyReference(t, "CREDITS", 3),
+			amount:   "10.001",
 		},
 		{
-			name:           "rejects custom precision exceeding the route's declared precision",
-			currency:       "CREDITS",
-			customCurrency: &ledger.CustomCurrencyIdentity{ID: "custom-currency-id", Precision: 2},
-			amount:         "10.001",
-			wantErr:        true,
+			name:     "rejects custom precision exceeding the route's declared precision",
+			currency: mustCustomCurrencyReference(t, "CREDITS", 2),
+			amount:   "10.001",
+			wantErr:  true,
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			amount := mustDecimal(t, testCase.amount)
-			address := mustPostingAddressWithCustomCurrency(t, testCase.currency, testCase.customCurrency)
+			address := mustPostingAddressWithCurrencyReference(t, testCase.currency)
 			txInput := &testutils.AnyTransactionInput{
 				BookedAtValue: time.Now(),
 				EntryInputsValues: []*testutils.AnyEntryInput{
@@ -86,7 +84,7 @@ func TestValidateTransactionInputCurrencyAccounting(t *testing.T) {
 					AmountValue: amount,
 				},
 				{
-					Address:     mustPostingAddressWithCustomCurrency(t, currencyx.Code("ACME"), &ledger.CustomCurrencyIdentity{ID: "custom-currency-id", Precision: 2}),
+					Address:     mustPostingAddressWithCurrencyReference(t, mustCustomCurrencyReference(t, "ACME", 2)),
 					AmountValue: amount.Neg(),
 				},
 			},
@@ -205,24 +203,33 @@ func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 	}
 }
 
+func mustCustomCurrencyReference(t *testing.T, code currencyx.Code, precision int) currencies.CurrencyReference {
+	t.Helper()
+
+	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom:v1:%s:custom-currency-id:%d", code, precision)))
+	require.NoError(t, err)
+
+	return reference
+}
+
 func mustPostingAddress(t *testing.T, currency currencyx.Code) ledger.PostingAddress {
 	t.Helper()
 
-	return mustPostingAddressWithCustomCurrency(t, currency, nil)
+	return mustPostingAddressWithCurrencyReference(t, currencies.NewCurrencyReference(currency))
 }
 
-func mustPostingAddressWithCustomCurrency(t *testing.T, currency currencyx.Code, customCurrency *ledger.CustomCurrencyIdentity) ledger.PostingAddress {
+func mustPostingAddressWithCurrencyReference(t *testing.T, currency currencies.CurrencyReference) ledger.PostingAddress {
 	t.Helper()
 
-	route := ledger.Route{Currency: currency, CustomCurrency: customCurrency}
+	route := ledger.Route{Currency: currency}
 	key, err := ledger.BuildRoutingKey(route)
 	require.NoError(t, err)
 
 	address, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-		SubAccountID: "sub_" + string(currency),
+		SubAccountID: "sub_" + string(currency.Code),
 		AccountType:  ledger.AccountTypeCustomerFBO,
 		Route:        route,
-		RouteID:      "route_" + string(currency),
+		RouteID:      "route_" + string(currency.Code),
 		RoutingKey:   key,
 	})
 	require.NoError(t, err)

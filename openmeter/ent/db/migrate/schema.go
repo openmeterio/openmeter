@@ -4513,9 +4513,6 @@ var (
 		{Name: "routing_key", Type: field.TypeString},
 		{Name: "currency", Type: field.TypeString},
 		{Name: "cost_basis_currency", Type: field.TypeString, Nullable: true},
-		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "custom_currency_precision", Type: field.TypeUint32, Nullable: true},
-		{Name: "custom_currency_version", Type: field.TypeUint32, Nullable: true},
 		{Name: "tax_code", Type: field.TypeString, Nullable: true},
 		{Name: "tax_behavior", Type: field.TypeString, Nullable: true},
 		{Name: "features", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
@@ -4532,7 +4529,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ledger_sub_account_routes_ledger_accounts_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[18]},
+				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[15]},
 				RefColumns: []*schema.Column{LedgerAccountsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -4551,7 +4548,7 @@ var (
 			{
 				Name:    "ledgersubaccountroute_namespace_account_id_routing_key_version_routing_key",
 				Unique:  true,
-				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[18], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
+				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[15], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
 			},
 		},
 	}

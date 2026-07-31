@@ -96,7 +96,7 @@ func ResolveCurrenciesForRateCards(
 			models.NewFieldSelector("currency"),
 		)
 
-		if reference.IsResolved() {
+		if reference.IsCostBasisResolved() {
 			if err := reference.Validate(); err != nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector, err))
 			}
@@ -177,7 +177,7 @@ func ResolveCurrency(ctx context.Context, resolver currencies.NamespacedCurrency
 		return fmt.Errorf("invalid currency reference: %w", err)
 	}
 
-	if reference.IsResolved() {
+	if reference.IsCostBasisResolved() {
 		return nil
 	}
 

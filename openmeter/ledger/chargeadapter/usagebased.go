@@ -72,14 +72,13 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.TransferCustomerReceivableToAccruedTemplate{
-			At:             input.BookedAt,
-			Amount:         amount,
-			Currency:       intent.GetCurrency().GetCode(),
-			CustomCurrency: customCurrencyIdentity(intent.GetCurrency()),
-			TaxCode:        lo.ToPtr(taxConfig.TaxCodeID),
-			TaxBehavior:    (*ledger.TaxBehavior)(taxConfig.Behavior),
-			CostBasis:      invoiceCostBasis,
-			SpendChargeID:  &input.Charge.ID,
+			At:            input.BookedAt,
+			Amount:        amount,
+			Currency:      intent.GetCurrency().Reference(),
+			TaxCode:       lo.ToPtr(taxConfig.TaxCodeID),
+			TaxBehavior:   (*ledger.TaxBehavior)(taxConfig.Behavior),
+			CostBasis:     invoiceCostBasis,
+			SpendChargeID: &input.Charge.ID,
 		},
 	)
 	if err != nil {
@@ -137,12 +136,11 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:             input.EventAt,
-			Amount:         receivableReplenishment,
-			Currency:       intent.GetCurrency().GetCode(),
-			CustomCurrency: customCurrencyIdentity(intent.GetCurrency()),
-			CostBasis:      invoiceCostBasis,
-			SpendChargeID:  &input.Charge.ID,
+			At:            input.EventAt,
+			Amount:        receivableReplenishment,
+			Currency:      intent.GetCurrency().Reference(),
+			CostBasis:     invoiceCostBasis,
+			SpendChargeID: &input.Charge.ID,
 		},
 	)
 	if err != nil {
@@ -210,12 +208,11 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:             input.EventAt,
-			Amount:         input.Run.InvoiceUsage.Totals.Total,
-			Currency:       intent.GetCurrency().GetCode(),
-			CustomCurrency: customCurrencyIdentity(intent.GetCurrency()),
-			CostBasis:      invoiceCostBasis,
-			SpendChargeID:  &input.Charge.ID,
+			At:            input.EventAt,
+			Amount:        input.Run.InvoiceUsage.Totals.Total,
+			Currency:      intent.GetCurrency().Reference(),
+			CostBasis:     invoiceCostBasis,
+			SpendChargeID: &input.Charge.ID,
 		},
 	)
 	if err != nil {
@@ -270,7 +267,6 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: input.BookedAt,
 		Currency:          intent.GetCurrency().Reference(),
-		CustomCurrency:    customCurrencyIdentity(intent.GetCurrency()),
 		FeatureKey:        intent.GetFeatureKey(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),

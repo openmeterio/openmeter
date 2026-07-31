@@ -6,34 +6,39 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ValidateInvariance validates that Debit - Credit = 0 for each currency in the given entries.
 func ValidateInvariance(ctx context.Context, entries []EntryInput) error {
-	totals := make(map[currencyx.Code]alpacadecimal.Decimal)
-	currencies := make([]currencyx.Code, 0)
+	totals := make(map[string]alpacadecimal.Decimal)
+	currencyByKey := make(map[string]currencies.CurrencyReference)
+	currencyKeys := make([]string, 0)
 
 	for _, entry := range entries {
 		currency := entry.PostingAddress().Route().Route().Currency
-		total, ok := totals[currency]
+		currencyKey := currency.IdentityKey()
+
+		total, ok := totals[currencyKey]
 		if !ok {
-			currencies = append(currencies, currency)
+			currencyKeys = append(currencyKeys, currencyKey)
+			currencyByKey[currencyKey] = currency
 			total = alpacadecimal.NewFromInt(0)
 		}
 
-		totals[currency] = total.Add(entry.Amount())
+		totals[currencyKey] = total.Add(entry.Amount())
 	}
 
-	for _, currency := range currencies {
-		total := totals[currency]
+	for _, currencyKey := range currencyKeys {
+		total := totals[currencyKey]
 		if total.IsZero() {
 			continue
 		}
 
 		return ErrInvalidTransactionTotal.WithAttrs(models.Attributes{
-			"currency": currency,
+			"currency": currencyByKey[currencyKey],
 			"total":    total,
 			"entries":  entries,
 		})
@@ -78,36 +83,23 @@ func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
 
 // validateEntryAmountPrecision keeps postings at their currency's declared
 // minor-unit precision. Fiat precision comes from the ISO currency table.
-// Custom currency precision comes from the route's persisted
-// CustomCurrencyIdentity (denormalized at route-creation time), never from a
-// currency-service lookup.
+// Custom currency precision comes from the route's persisted reference
+// snapshot, never from a currency-service lookup.
 func validateEntryAmountPrecision(entry EntryInput) error {
 	route := entry.PostingAddress().Route().Route()
-	currencyCode := route.Currency
+	currencyReference := route.Currency
+	currencyCode := currencyReference.Code
 
 	var currency currencyx.Currency
 	if currencyCode.IsCustom() {
-		if route.CustomCurrency == nil {
+		resolved, ok := currencyReference.CustomCurrency()
+		if !ok {
 			return ErrCurrencyInvalid.WithAttrs(models.Attributes{
 				"currency": currencyCode,
-				"reason":   "custom_currency_identity_required",
+				"reason":   "custom_currency_reference_must_be_resolved",
 			})
 		}
-
-		// Name is required by CurrencyBuilder but irrelevant to precision
-		// rounding, which only depends on Subunits; the code is a safe filler.
-		built, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
-			WithCode(currencyCode).
-			WithName(string(currencyCode)).
-			WithPrecision(uint32(route.CustomCurrency.Precision)).
-			Build()
-		if err != nil {
-			return ErrCurrencyInvalid.WithAttrs(models.Attributes{
-				"currency": currencyCode,
-				"error":    err,
-			})
-		}
-		currency = built
+		currency = resolved.Currency
 	} else {
 		built, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
 			WithCode(currencyCode).
