@@ -16,6 +16,8 @@ type SegmentTerminationReason struct {
 	PriorityChange bool
 	Recurrence     []string // Grant IDs
 	UsageReset     bool
+	// Rollover marks grant balance rollover followed by settlement of preserved overage.
+	Rollover bool
 }
 
 type GrantUsageTerminationReason string
@@ -45,10 +47,14 @@ type GrantUsage struct {
 
 // GrantBurnDownHistorySegment represents the smallest segment of grant usage which we store and calculate.
 //
-// A segment represents a period of time in which:
+// A non-rollover segment represents a period of time in which:
 // 1) The grant priority does not change
 // 2) Grants do not recurr
 // 3) There was no usage reset
+//
+// A rollover segment is an instantaneous reset transition with no metered usage.
+// Its starting balance is the rolled-over grant balance, and its grant usages
+// capture settlement of overage preserved from the previous usage period.
 //
 // It is not necessarily the largest such segment.
 type GrantBurnDownHistorySegment struct {
@@ -74,8 +80,14 @@ func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment, usageAtStar
 	s := make([]GrantBurnDownHistorySegment, len(segments))
 	copy(s, segments)
 
-	// sort segments by time
-	sort.Slice(s, func(i, j int) bool {
+	// Sort segments by time. Rollover transitions precede regular segments at
+	// the same timestamp so the reset transition is applied before new-period
+	// usage.
+	sort.SliceStable(s, func(i, j int) bool {
+		if s[i].ClosedPeriod.From.Equal(s[j].ClosedPeriod.From) {
+			return s[i].TerminationReasons.Rollover && !s[j].TerminationReasons.Rollover
+		}
+
 		return s[i].ClosedPeriod.From.Before(s[j].ClosedPeriod.From)
 	})
 

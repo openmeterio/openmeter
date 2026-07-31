@@ -107,8 +107,9 @@ func TestReset(t *testing.T) {
 		assert.Equal(t, 0.0, res.Snapshot.Usage.Usage)                 // 0 usage after 5h mark
 		assert.Equal(t, t1.Add(time.Hour*5), res.Snapshot.Usage.Since) // should mark since the last reset time
 
-		// History should have 2 segments, one before and one after the reset
-		assert.Equal(t, 2, len(res.History.Segments()))
+		// History should have a usage segment before the reset, the rollover
+		// transition, and a usage segment after the reset.
+		assert.Equal(t, 3, len(res.History.Segments()))
 
 		// The first segment should have a balance of 100 with 10 usage
 		assert.Equal(t, 100.0, res.History.Segments()[0].BalanceAtStart.Balance())
@@ -118,10 +119,21 @@ func TestReset(t *testing.T) {
 		// It should end with a reset
 		assert.True(t, res.History.Segments()[0].TerminationReasons.UsageReset)
 
-		// The second segment should have a balance of 50 with no usage
+		// The rollover transition applies no overage.
+		assert.True(t, res.History.Segments()[1].TerminationReasons.Rollover)
+		assert.Equal(t, t1.Add(time.Hour*5), res.History.Segments()[1].From)
+		assert.Equal(t, t1.Add(time.Hour*5), res.History.Segments()[1].To)
 		assert.Equal(t, 50.0, res.History.Segments()[1].BalanceAtStart.Balance())
 		assert.Equal(t, 0.0, res.History.Segments()[1].OverageAtStart)
 		assert.Equal(t, 0.0, res.History.Segments()[1].TotalUsage)
+		assert.Empty(t, res.History.Segments()[1].GrantUsages)
+		assert.Equal(t, 50.0, res.History.Segments()[1].ApplyUsage().Balance())
+
+		// The final segment starts from the settled rollover balance.
+		assert.False(t, res.History.Segments()[2].TerminationReasons.Rollover)
+		assert.Equal(t, 50.0, res.History.Segments()[2].BalanceAtStart.Balance())
+		assert.Equal(t, 0.0, res.History.Segments()[2].OverageAtStart)
+		assert.Equal(t, 0.0, res.History.Segments()[2].TotalUsage)
 	})
 
 	t.Run("Should carry over overage to next period", func(t *testing.T) {
@@ -157,9 +169,11 @@ func TestReset(t *testing.T) {
 
 		// The grant should be rolled over:
 		assert.Equal(t, 40.0, res.Snapshot.Balances[grant1.ID])
+		assert.Equal(t, 50.0, res.TotalAvailableGrantAmountAtLastPeriod())
 
-		// History should have 2 segments, one before and one after the reset
-		assert.Equal(t, 2, len(res.History.Segments()))
+		// History should have a usage segment before the reset, the rollover
+		// transition, and a usage segment after the reset.
+		assert.Equal(t, 3, len(res.History.Segments()))
 
 		// The first segment should have a balance of 0 with 10 overage
 		assert.Equal(t, 100.0, res.History.Segments()[0].BalanceAtStart.Balance())
@@ -170,10 +184,29 @@ func TestReset(t *testing.T) {
 		// It should end with a reset
 		assert.True(t, res.History.Segments()[0].TerminationReasons.UsageReset)
 
-		// The second segment should have a balance of 50 - 10 with no usage (minRolloverAmount + overage)
-		assert.Equal(t, 40.0, res.History.Segments()[1].BalanceAtStart.Balance())
-		assert.Equal(t, 0.0, res.History.Segments()[1].OverageAtStart)
+		// The rollover transition starts with the rolled balance and settles
+		// overage preserved from the previous usage period.
+		assert.True(t, res.History.Segments()[1].TerminationReasons.Rollover)
+		assert.Equal(t, t1.Add(time.Hour*5), res.History.Segments()[1].From)
+		assert.Equal(t, t1.Add(time.Hour*5), res.History.Segments()[1].To)
+		assert.Equal(t, 50.0, res.History.Segments()[1].BalanceAtStart.Balance())
+		assert.Equal(t, 10.0, res.History.Segments()[1].OverageAtStart)
 		assert.Equal(t, 0.0, res.History.Segments()[1].TotalUsage)
+		assert.Equal(t, 0.0, res.History.Segments()[1].Overage)
+		assert.Equal(t, []engine.GrantUsage{
+			{
+				GrantID:           g1.ID,
+				Usage:             10.0,
+				TerminationReason: engine.GrantUsageTerminationReasonSegmentTermination,
+			},
+		}, res.History.Segments()[1].GrantUsages)
+		assert.Equal(t, 40.0, res.History.Segments()[1].ApplyUsage().Balance())
+
+		// The final segment retains its existing post-reset semantics.
+		assert.False(t, res.History.Segments()[2].TerminationReasons.Rollover)
+		assert.Equal(t, 40.0, res.History.Segments()[2].BalanceAtStart.Balance())
+		assert.Equal(t, 0.0, res.History.Segments()[2].OverageAtStart)
+		assert.Equal(t, 0.0, res.History.Segments()[2].TotalUsage)
 	})
 
 	t.Run("No reset", func(t *testing.T) {
@@ -249,11 +282,13 @@ func TestReset(t *testing.T) {
 		assert.Equal(t, 0.0, res.Snapshot.Usage.Usage)
 		assert.Equal(t, resetTime, res.Snapshot.Usage.Since)
 
-		// Should have 2 periods, start - reset, reset - end where reset = end, 2nd period is 0 length
-		assert.Equal(t, 2, len(res.History.Segments()), "expected: %+v, got %+v, history: %+v", 2, len(res.History.Segments()), res.History.Segments())
+		// The reset is represented by the ending usage segment, a rollover
+		// transition, and the existing zero-length new-period usage segment.
+		assert.Equal(t, 3, len(res.History.Segments()), "expected: %+v, got %+v, history: %+v", 3, len(res.History.Segments()), res.History.Segments())
 
 		assert.True(t, res.History.Segments()[0].TerminationReasons.UsageReset)
-		assert.False(t, res.History.Segments()[1].TerminationReasons.UsageReset)
+		assert.True(t, res.History.Segments()[1].TerminationReasons.Rollover)
+		assert.False(t, res.History.Segments()[2].TerminationReasons.UsageReset)
 	})
 
 	t.Run("Should include grant recurrence in starting balance", func(t *testing.T) {
@@ -290,12 +325,14 @@ func TestReset(t *testing.T) {
 		assert.Equal(t, 0.0, res.Snapshot.Usage.Usage)
 		assert.Equal(t, resetTime, res.Snapshot.Usage.Since)
 
-		// Should have 2 periods, start - reset, reset - end where reset = end, 2nd period is 0 length
-		assert.Equal(t, 2, len(res.History.Segments()), "expected: %+v, got %+v, history: %+v", 2, len(res.History.Segments()), res.History.Segments())
+		// The reset is represented by the ending usage segment, a rollover
+		// transition, and the existing zero-length new-period usage segment.
+		assert.Equal(t, 3, len(res.History.Segments()), "expected: %+v, got %+v, history: %+v", 3, len(res.History.Segments()), res.History.Segments())
 
 		assert.True(t, res.History.Segments()[0].TerminationReasons.UsageReset)
-		assert.False(t, res.History.Segments()[1].TerminationReasons.UsageReset)
-		assert.Equal(t, 100.0, res.History.Segments()[1].BalanceAtStart[g1.ID])
+		assert.True(t, res.History.Segments()[1].TerminationReasons.Rollover)
+		assert.False(t, res.History.Segments()[2].TerminationReasons.UsageReset)
+		assert.Equal(t, 100.0, res.History.Segments()[2].BalanceAtStart[g1.ID])
 
 		// The starting balance should be the amount of the grant
 		assert.Equal(t, 100.0, res.Snapshot.Balances[g1.ID])

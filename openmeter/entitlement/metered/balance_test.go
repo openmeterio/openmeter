@@ -1429,7 +1429,12 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				// check returned burndownhistory
 				segments := burndownHistory.Segments()
-				assert.Len(t, segments, 2)
+				require.Len(t, segments, 3)
+				assert.True(t, segments[0].TerminationReasons.UsageReset)
+				assert.True(t, segments[1].TerminationReasons.Rollover)
+				assert.Equal(t, resetTime, segments[1].From)
+				assert.Equal(t, resetTime, segments[1].To)
+				assert.False(t, segments[2].TerminationReasons.Rollover)
 
 				assert.Len(t, windowedHistory, 2)
 

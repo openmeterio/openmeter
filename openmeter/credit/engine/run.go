@@ -76,7 +76,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		if idx != len(periods)-1 {
 			// We need to reset at each period, except the last one.
 			// If the ending time is also a reset, there will be a 0 length period at the end.
-			snap, err := e.reset(relevantGrants, runRes.Snapshot, params.ResetBehavior, period.To)
+			snap, rolloverSegment, err := e.reset(relevantGrants, runRes.Snapshot, params.ResetBehavior, period.To)
 			if err != nil {
 				return RunResult{}, fmt.Errorf("failed to reset at end of period %s - %s: %w", period.From, period.To, err)
 			}
@@ -87,6 +87,8 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 			if len(historySegments) > 0 {
 				historySegments[len(historySegments)-1].TerminationReasons.UsageReset = true
 			}
+
+			historySegments = append(historySegments, rolloverSegment)
 		}
 	}
 
