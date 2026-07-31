@@ -56,7 +56,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9
 	github.com/redis/go-redis/extra/redisotel/v9 v9.21.0
 	github.com/redis/go-redis/v9 v9.21.0
-	github.com/rickb777/period v1.0.27
+	github.com/rickb777/period v1.0.29
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/samber/lo v1.53.0
 	github.com/samber/mo v1.17.0
@@ -111,6 +111,7 @@ require (
 	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/prometheus/otlptranslator v1.0.0 // indirect
+	github.com/rickb777/plural/v2 v2.1.0 // indirect
 	github.com/samber/slog-common v0.21.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.3 // indirect
@@ -195,7 +196,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.21.0 // indirect
-	github.com/rickb777/plural v1.4.10 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
