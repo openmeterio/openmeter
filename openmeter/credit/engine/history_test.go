@@ -4,11 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -17,6 +19,15 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 	usageAtStart := balance.SnapshottedUsage{
 		Since: start.Add(-time.Hour),
 		Usage: 7,
+	}
+	startingUnitConfig := &unitconfig.UnitConfig{
+		Operation:        unitconfig.UnitConfigOperationMultiply,
+		ConversionFactor: alpacadecimal.NewFromInt(2),
+	}
+	startingSnapshot := balance.Snapshot{
+		At:         start,
+		Usage:      usageAtStart,
+		UnitConfig: startingUnitConfig,
 	}
 
 	segment := func(idx int, grantUsage float64, reset bool) engine.GrantBurnDownHistorySegment {
@@ -41,7 +52,7 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 	}
 
 	t.Run("Empty history returns no chunks", func(t *testing.T) {
-		history, err := engine.NewGrantBurnDownHistory(nil, usageAtStart)
+		history, err := engine.NewGrantBurnDownHistory(nil, startingSnapshot)
 		require.NoError(t, err)
 
 		assert.Empty(t, history.ChunkByResets())
@@ -51,7 +62,7 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 		history, err := engine.NewGrantBurnDownHistory([]engine.GrantBurnDownHistorySegment{
 			segment(0, 10, false),
 			segment(1, 20, false),
-		}, usageAtStart)
+		}, startingSnapshot)
 		require.NoError(t, err)
 
 		chunks := history.ChunkByResets()
@@ -59,9 +70,7 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 		assert.Len(t, chunks[0].Segments(), 2)
 		assert.Equal(t, 30.0, chunks[0].TotalGrantUsage().InexactFloat64())
 
-		usage, err := chunks[0].GetUsageInPeriodUntilSegment(0)
-		require.NoError(t, err)
-		assert.Equal(t, usageAtStart, usage)
+		assertChunkSnapshotAtStart(t, chunks[0], usageAtStart, startingUnitConfig)
 	})
 
 	t.Run("History is chunked after reset segments", func(t *testing.T) {
@@ -71,7 +80,7 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 			segment(2, 30, false),
 			segment(3, 40, true),
 			segment(4, 50, false),
-		}, usageAtStart)
+		}, startingSnapshot)
 		require.NoError(t, err)
 
 		chunks := history.ChunkByResets()
@@ -79,27 +88,27 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 
 		assert.Len(t, chunks[0].Segments(), 2)
 		assert.Equal(t, 30.0, chunks[0].TotalGrantUsage().InexactFloat64())
-		assertChunkUsageAtStart(t, chunks[0], usageAtStart)
+		assertChunkSnapshotAtStart(t, chunks[0], usageAtStart, startingUnitConfig)
 
 		assert.Len(t, chunks[1].Segments(), 2)
 		assert.Equal(t, 70.0, chunks[1].TotalGrantUsage().InexactFloat64())
-		assertChunkUsageAtStart(t, chunks[1], balance.SnapshottedUsage{
+		assertChunkSnapshotAtStart(t, chunks[1], balance.SnapshottedUsage{
 			Since: start.Add(2 * time.Hour),
 			Usage: 0,
-		})
+		}, startingUnitConfig)
 
 		assert.Len(t, chunks[2].Segments(), 1)
 		assert.Equal(t, 50.0, chunks[2].TotalGrantUsage().InexactFloat64())
-		assertChunkUsageAtStart(t, chunks[2], balance.SnapshottedUsage{
+		assertChunkSnapshotAtStart(t, chunks[2], balance.SnapshottedUsage{
 			Since: start.Add(4 * time.Hour),
 			Usage: 0,
-		})
+		}, startingUnitConfig)
 	})
 
 	t.Run("Final reset does not create empty trailing chunk", func(t *testing.T) {
 		history, err := engine.NewGrantBurnDownHistory([]engine.GrantBurnDownHistorySegment{
 			segment(0, 10, true),
-		}, usageAtStart)
+		}, startingSnapshot)
 		require.NoError(t, err)
 
 		chunks := history.ChunkByResets()
@@ -130,7 +139,7 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 
 		history, err := engine.NewGrantBurnDownHistory(
 			[]engine.GrantBurnDownHistorySegment{beforeReset, rollover, afterReset},
-			usageAtStart,
+			startingSnapshot,
 		)
 		require.NoError(t, err)
 
@@ -139,10 +148,10 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 		require.Len(t, chunks[1].Segments(), 2)
 		assert.True(t, chunks[1].Segments()[0].TerminationReasons.Rollover)
 		assert.Equal(t, 25.0, chunks[1].TotalGrantUsage().InexactFloat64())
-		assertChunkUsageAtStart(t, chunks[1], balance.SnapshottedUsage{
+		assertChunkSnapshotAtStart(t, chunks[1], balance.SnapshottedUsage{
 			Since: resetAt,
 			Usage: 0,
-		})
+		}, startingUnitConfig)
 	})
 }
 
@@ -166,7 +175,7 @@ func TestGrantBurnDownHistory_RolloverPrecedesUsageAtSameTime(t *testing.T) {
 
 	history, err := engine.NewGrantBurnDownHistory(
 		[]engine.GrantBurnDownHistorySegment{usageSegment, rolloverSegment},
-		balance.SnapshottedUsage{},
+		balance.Snapshot{At: at},
 	)
 	require.NoError(t, err)
 	require.Len(t, history.Segments(), 2)
@@ -174,10 +183,121 @@ func TestGrantBurnDownHistory_RolloverPrecedesUsageAtSameTime(t *testing.T) {
 	assert.False(t, history.Segments()[1].TerminationReasons.Rollover)
 }
 
-func assertChunkUsageAtStart(t *testing.T, history engine.GrantBurnDownHistory, expected balance.SnapshottedUsage) {
+func TestNewGrantBurnDownHistory_ValidatesAnchorAndContinuity(t *testing.T) {
+	at := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	startingSnapshot := balance.Snapshot{
+		At:       at,
+		Balances: balance.Map{"grant-1": 100},
+		Overage:  5,
+	}
+	first := engine.GrantBurnDownHistorySegment{
+		ClosedPeriod: timeutil.ClosedPeriod{
+			From: at,
+			To:   at.Add(time.Hour),
+		},
+		// Boundary changes such as recurrence can make this differ from the
+		// starting snapshot without breaking the history anchor.
+		BalanceAtStart: balance.Map{"grant-1": 200},
+		OverageAtStart: 5,
+	}
+	second := engine.GrantBurnDownHistorySegment{
+		ClosedPeriod: timeutil.ClosedPeriod{
+			From: at.Add(time.Hour),
+			To:   at.Add(2 * time.Hour),
+		},
+	}
+
+	t.Run("aligned continuous history", func(t *testing.T) {
+		_, err := engine.NewGrantBurnDownHistory(
+			[]engine.GrantBurnDownHistorySegment{second, first},
+			startingSnapshot,
+		)
+		require.NoError(t, err)
+	})
+
+	t.Run("empty history", func(t *testing.T) {
+		_, err := engine.NewGrantBurnDownHistory(nil, startingSnapshot)
+		require.NoError(t, err)
+	})
+
+	t.Run("first segment does not start at snapshot", func(t *testing.T) {
+		misaligned := first
+		misaligned.ClosedPeriod = timeutil.ClosedPeriod{
+			From: at.Add(time.Minute),
+			To:   first.To,
+		}
+
+		_, err := engine.NewGrantBurnDownHistory(
+			[]engine.GrantBurnDownHistorySegment{misaligned},
+			startingSnapshot,
+		)
+		require.ErrorContains(t, err, "expected starting snapshot")
+	})
+
+	t.Run("first segment overage does not match snapshot", func(t *testing.T) {
+		misaligned := first
+		misaligned.OverageAtStart = 6
+
+		_, err := engine.NewGrantBurnDownHistory(
+			[]engine.GrantBurnDownHistorySegment{misaligned},
+			startingSnapshot,
+		)
+		require.ErrorContains(t, err, "expected starting snapshot overage")
+	})
+
+	t.Run("segment starts after it ends", func(t *testing.T) {
+		invalid := first
+		invalid.ClosedPeriod = timeutil.ClosedPeriod{
+			From: at,
+			To:   at.Add(-time.Minute),
+		}
+
+		_, err := engine.NewGrantBurnDownHistory(
+			[]engine.GrantBurnDownHistorySegment{invalid},
+			startingSnapshot,
+		)
+		require.ErrorContains(t, err, "starts after it ends")
+	})
+
+	t.Run("segments have a gap", func(t *testing.T) {
+		gapped := second
+		gapped.ClosedPeriod = timeutil.ClosedPeriod{
+			From: second.From.Add(time.Minute),
+			To:   second.To,
+		}
+
+		_, err := engine.NewGrantBurnDownHistory(
+			[]engine.GrantBurnDownHistorySegment{first, gapped},
+			startingSnapshot,
+		)
+		require.ErrorContains(t, err, "are not contiguous")
+	})
+
+	t.Run("segments overlap", func(t *testing.T) {
+		overlapping := second
+		overlapping.ClosedPeriod = timeutil.ClosedPeriod{
+			From: second.From.Add(-time.Minute),
+			To:   second.To,
+		}
+
+		_, err := engine.NewGrantBurnDownHistory(
+			[]engine.GrantBurnDownHistorySegment{first, overlapping},
+			startingSnapshot,
+		)
+		require.ErrorContains(t, err, "are not contiguous")
+	})
+}
+
+func assertChunkSnapshotAtStart(
+	t *testing.T,
+	history engine.GrantBurnDownHistory,
+	expectedUsage balance.SnapshottedUsage,
+	expectedUnitConfig *unitconfig.UnitConfig,
+) {
 	t.Helper()
 
-	usage, err := history.GetUsageInPeriodUntilSegment(0)
+	snapshot, err := history.GetSnapshotAtStartOfSegment(0)
 	require.NoError(t, err)
-	assert.Equal(t, expected, usage)
+	assert.Equal(t, expectedUsage, snapshot.Usage)
+	assert.True(t, expectedUnitConfig.Equal(snapshot.UnitConfig))
 }

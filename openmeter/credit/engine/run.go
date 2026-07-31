@@ -92,7 +92,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		}
 	}
 
-	history, err := NewGrantBurnDownHistory(historySegments, params.StartingSnapshot.Usage)
+	history, err := NewGrantBurnDownHistory(historySegments, params.StartingSnapshot)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
@@ -252,7 +252,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		}
 	}
 
-	history, err := NewGrantBurnDownHistory(segments, params.StartingSnapshot.Usage)
+	history, err := NewGrantBurnDownHistory(segments, params.StartingSnapshot)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
