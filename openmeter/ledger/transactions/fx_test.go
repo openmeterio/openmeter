@@ -109,12 +109,6 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 				},
 			},
 			{
-				name: "equal currencies",
-				mutate: func(input *ConvertCurrencyTemplate) {
-					input.TargetCurrency = currencies.NewCurrencyReference(currencyx.Code("USD"))
-				},
-			},
-			{
 				name: "zero source amount",
 				mutate: func(input *ConvertCurrencyTemplate) {
 					input.SourceAmount = alpacadecimal.Zero
@@ -174,6 +168,38 @@ func TestConvertCurrencyTemplate(t *testing.T) {
 				require.Error(t, err)
 			})
 		}
+	})
+
+	t.Run("revalues a fiat receivable through brokerage", func(t *testing.T) {
+		// given:
+		// - a 100 USD credit receivable with a 0.25 USD cost basis
+		// when:
+		// - it is re-denominated into a 25 USD external payment
+		// then:
+		// - the 75 USD difference is balanced through brokerage
+		env := newTransactionsTestEnv(t)
+		costBasis := alpacadecimal.NewFromFloat(0.25)
+		inputs := env.resolve(t, ConvertCurrencyTemplate{
+			At:             env.Now(),
+			SourceAmount:   alpacadecimal.NewFromInt(25),
+			TargetAmount:   alpacadecimal.NewFromInt(100),
+			CostBasis:      costBasis,
+			SourceCurrency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+			TargetCurrency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+		})
+
+		require.Len(t, inputs, 1)
+		require.Len(t, inputs[0].EntryInputs(), 2)
+
+		amountsByAccountType := map[ledger.AccountType]float64{}
+		for _, entry := range inputs[0].EntryInputs() {
+			amountsByAccountType[entry.PostingAddress().AccountType()] = entry.Amount().InexactFloat64()
+		}
+
+		require.Equal(t, map[ledger.AccountType]float64{
+			ledger.AccountTypeCustomerReceivable: 75,
+			ledger.AccountTypeBrokerage:          -75,
+		}, amountsByAccountType)
 	})
 
 	t.Run("accepts the exact source amount supplied by the charge layer", func(t *testing.T) {

@@ -297,7 +297,7 @@ func TestRepo_GetBalanceBuckets_DistinctManagedCurrenciesSameCodeDoNotMerge(t *t
 func mustCustomCurrencyReference(t *testing.T, code currencyx.Code, id string, precision int) currencies.CurrencyReference {
 	t.Helper()
 
-	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom:v1:%s:%s:%d", code, id, precision)))
+	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom|v1|%s|%s|%d", code, id, precision)))
 	require.NoError(t, err)
 
 	return reference

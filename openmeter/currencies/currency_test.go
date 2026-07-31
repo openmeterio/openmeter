@@ -142,15 +142,15 @@ func TestCurrencyReferenceSerialization(t *testing.T) {
 	})
 
 	t.Run("custom", func(t *testing.T) {
-		custom := currencytestutils.NewCustomCurrency(t, "CREDITS", 2)
+		custom := currencytestutils.NewCustomCurrency(t, "CRED:ITS", 2)
 		reference := custom.Reference()
 
 		serialized, err := reference.MarshalText()
 		require.NoError(t, err)
-		require.Equal(t, "custom:v1:CREDITS:"+custom.ID+":2", string(serialized))
+		require.Equal(t, "custom|v1|CRED:ITS|"+custom.ID+"|2", string(serialized))
 		prefix, err := reference.MarshalTextPrefix()
 		require.NoError(t, err)
-		require.Equal(t, "custom:v1:CREDITS:"+custom.ID+":", string(prefix))
+		require.Equal(t, "custom|v1|CRED:ITS|"+custom.ID+"|", string(prefix))
 
 		parsed, err := currencies.ParseCurrencyReference(serialized)
 		require.NoError(t, err)
@@ -170,17 +170,17 @@ func TestCurrencyReferenceSerialization(t *testing.T) {
 		require.ErrorContains(t, err, "custom currency reference must be resolved")
 		prefix, err := reference.MarshalTextPrefix()
 		require.NoError(t, err)
-		require.Equal(t, "custom:v1:CREDITS:", string(prefix))
+		require.Equal(t, "custom|v1|CREDITS|", string(prefix))
 	})
 
 	t.Run("invalid values", func(t *testing.T) {
 		for _, value := range []string{
 			"CREDITS",
-			"custom:v2:CREDITS:currency-1:2",
-			"custom:v1:USD:currency-1:2",
-			"custom:v1:CREDITS::2",
-			"custom:v1:CREDITS:currency-1:invalid",
-			"custom:v1:CREDITS:currency-1:13",
+			"custom|v2|CREDITS|currency-1|2",
+			"custom|v1|USD|currency-1|2",
+			"custom|v1|CREDITS||2",
+			"custom|v1|CREDITS|currency-1|invalid",
+			"custom|v1|CREDITS|currency-1|13",
 		} {
 			t.Run(value, func(t *testing.T) {
 				_, err := currencies.ParseCurrencyReference([]byte(value))

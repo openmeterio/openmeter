@@ -853,7 +853,7 @@ func TestBackfilledCreditReissueRoutePreservesCostBasisCurrency(t *testing.T) {
 	costBasis := alpacadecimal.NewFromFloat(0.25)
 	priority := 1
 	costBasisCurrency := lo.ToPtr(currencyx.Code("USD"))
-	currency, err := currencies.ParseCurrencyReference([]byte("custom:v1:ACME:custom-currency-id:2"))
+	currency, err := currencies.ParseCurrencyReference([]byte("custom|v1|ACME|custom-currency-id|2"))
 	require.NoError(t, err)
 	route := ledger.Route{
 		Currency:          currency,

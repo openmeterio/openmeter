@@ -20,7 +20,7 @@ func testCurrencyReference(code currencyx.Code) currencies.CurrencyReference {
 	}
 
 	id := fmt.Sprintf("%x", sha256.Sum256([]byte(code)))[:26]
-	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom:v1:%s:%s:2", code, id)))
+	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom|v1|%s|%s|2", code, id)))
 	if err != nil {
 		panic(err)
 	}

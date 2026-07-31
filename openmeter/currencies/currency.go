@@ -22,7 +22,10 @@ type CurrencyReference struct {
 	resolved *Currency
 }
 
-const currencyReferenceSerializationVersionV1 = "v1"
+const (
+	currencyReferenceSerializationVersionV1 = "v1"
+	currencyReferenceSerializationDelimiter = "|"
+)
 
 func NewCurrencyReference(code currencyx.Code) CurrencyReference {
 	return CurrencyReference{Code: code}
@@ -128,7 +131,7 @@ func (r CurrencyReference) MarshalText() ([]byte, error) {
 		r.Code.String(),
 		*r.CustomCurrencyID,
 		strconv.FormatUint(uint64(currency.Details().Precision), 10),
-	}, ":")), nil
+	}, currencyReferenceSerializationDelimiter)), nil
 }
 
 // MarshalTextPrefix returns the stable storage prefix for an unresolved
@@ -152,7 +155,7 @@ func (r CurrencyReference) MarshalTextPrefix() ([]byte, error) {
 		segments = append(segments, *r.CustomCurrencyID)
 	}
 
-	return []byte(strings.Join(segments, ":") + ":"), nil
+	return []byte(strings.Join(segments, currencyReferenceSerializationDelimiter) + currencyReferenceSerializationDelimiter), nil
 }
 
 // MarshalJSON preserves the public object representation after implementing
@@ -169,7 +172,7 @@ func (r CurrencyReference) MarshalJSON() ([]byte, error) {
 
 func ParseCurrencyReference(value []byte) (CurrencyReference, error) {
 	serialized := string(value)
-	segments := strings.Split(serialized, ":")
+	segments := strings.Split(serialized, currencyReferenceSerializationDelimiter)
 	if len(segments) == 1 {
 		reference := NewCurrencyReference(currencyx.Code(serialized))
 		if err := reference.Validate(); err != nil {

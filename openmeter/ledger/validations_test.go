@@ -206,7 +206,7 @@ func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 func mustCustomCurrencyReference(t *testing.T, code currencyx.Code, precision int) currencies.CurrencyReference {
 	t.Helper()
 
-	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom:v1:%s:custom-currency-id:%d", code, precision)))
+	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom|v1|%s|custom-currency-id|%d", code, precision)))
 	require.NoError(t, err)
 
 	return reference

@@ -59,10 +59,12 @@ func (t ConvertCurrencyTemplate) Validate() error {
 
 	if err := t.TargetCurrency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("target currency: %w", err))
-	} else if !t.TargetCurrency.IsCustom() {
-		errs = append(errs, errors.New("target currency must be custom"))
-	} else if !t.TargetCurrency.IsResolved() {
-		errs = append(errs, errors.New("target custom currency must be resolved"))
+	} else if t.TargetCurrency.IsCustom() {
+		if !t.TargetCurrency.IsResolved() {
+			errs = append(errs, errors.New("target custom currency must be resolved"))
+		}
+	} else if !t.TargetCurrency.IsFiat() || t.TargetCurrency.Code != t.SourceCurrency.Code {
+		errs = append(errs, errors.New("target currency must be custom or match the source fiat currency"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -84,6 +86,10 @@ func (t ConvertCurrencyTemplate) code() TransactionTemplateCode {
 
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	costBasis := t.CostBasis
+	targetCostBasisCurrency := lo.ToPtr(t.SourceCurrency.Code)
+	if t.TargetCurrency.IsFiat() {
+		targetCostBasisCurrency = nil
+	}
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
@@ -101,7 +107,7 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 
 	targetAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.TargetCurrency,
-		CostBasisCurrency:              lo.ToPtr(t.SourceCurrency.Code),
+		CostBasisCurrency:              targetCostBasisCurrency,
 		CostBasis:                      &costBasis,
 		Features:                       t.Features,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -125,11 +131,27 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 
 	brokerageTarget, err := businessAccounts.BrokerageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
 		Currency:          t.TargetCurrency,
-		CostBasisCurrency: lo.ToPtr(t.SourceCurrency.Code),
+		CostBasisCurrency: targetCostBasisCurrency,
 		CostBasis:         &costBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get brokerage target sub-account: %w", err)
+	}
+
+	if t.TargetCurrency.IsFiat() {
+		return &TransactionInput{
+			bookedAt: t.At,
+			entryInputs: []*EntryInput{
+				{
+					address: sourceAccount.Address(),
+					amount:  t.TargetAmount.Sub(t.SourceAmount),
+				},
+				{
+					address: brokerageSource.Address(),
+					amount:  t.SourceAmount.Sub(t.TargetAmount),
+				},
+			},
+		}, nil
 	}
 
 	return &TransactionInput{

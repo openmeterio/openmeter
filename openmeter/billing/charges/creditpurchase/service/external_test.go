@@ -227,7 +227,7 @@ func TestExternalCreditPurchaseAuthorizationPassesRoundedFiatAmount(t *testing.T
 	}
 }
 
-func TestExternalCreditPurchaseAuthorizationUsesCreditAmountForFiatCurrency(t *testing.T) {
+func TestExternalCreditPurchaseAuthorizationUsesCostBasisForFiatCurrency(t *testing.T) {
 	charge := newExternalStateMachineTestChargeWithInput(t, externalStateMachineTestChargeInput{
 		status:        creditpurchase.StatusActivePaymentPending,
 		creditAmount:  alpacadecimal.NewFromInt(1),
@@ -238,7 +238,7 @@ func TestExternalCreditPurchaseAuthorizationUsesCreditAmountForFiatCurrency(t *t
 	handler.On("OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			input := args.Get(1).(creditpurchase.PaymentEventInput)
-			require.True(t, input.FiatAmount.Equal(alpacadecimal.NewFromInt(1)))
+			require.True(t, input.FiatAmount.Equal(alpacadecimal.RequireFromString("0.01")))
 		}).
 		Return(ledgertransaction.GroupReference{TransactionGroupID: "authorized-ledger-tx"}, nil).
 		Once()
@@ -248,7 +248,7 @@ func TestExternalCreditPurchaseAuthorizationUsesCreditAmountForFiatCurrency(t *t
 	_, err := realizationsService.AuthorizeExternalPayment(t.Context(), charge)
 
 	require.NoError(t, err)
-	require.True(t, adapter.createdExternalPayment.FiatAmount.Equal(alpacadecimal.NewFromInt(1)))
+	require.True(t, adapter.createdExternalPayment.FiatAmount.Equal(alpacadecimal.RequireFromString("0.01")))
 	handler.AssertExpectations(t)
 }
 
@@ -526,7 +526,7 @@ func TestExternalCreditPurchaseStateMachineAuthorizesAndSettlesPayment(t *testin
 	// then:
 	// - payment realization moves to settled and the charge becomes final
 	charge := newGrantedExternalCreditPurchaseCharge(t, creditpurchase.StatusActivePaymentPending)
-	expectedFiatAmount := alpacadecimal.NewFromInt(100)
+	expectedFiatAmount := alpacadecimal.NewFromInt(50)
 	handler := &externalStateMachineHandler{}
 	handler.On("OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {

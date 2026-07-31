@@ -95,10 +95,10 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	}
 
 	var templates []transactions.TransactionTemplate
-	if charge.Intent.Currency.IsCustom() {
-		// Re-denominate what the customer owes from the custom-currency IOU
-		// into the fiat amount actually being paid, before authorizing payment
-		// against it. Authorize/Settle only ever move real (fiat) money.
+	if charge.Intent.Currency.IsCustom() || !input.FiatAmount.Equal(charge.Intent.CreditAmount) {
+		// Re-denominate the issued credit receivable into the amount actually
+		// being paid before authorization. For fiat credits, the same-currency
+		// conversion records the cost-basis difference against brokerage.
 		templates = append(templates, transactions.ConvertCurrencyTemplate{
 			At:             input.EventAt,
 			SourceAmount:   input.FiatAmount,

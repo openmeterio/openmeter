@@ -49,7 +49,7 @@ func TestExpiredRecordRouteQuerySQL(t *testing.T) {
 				Currency: currencies.NewCurrencyReference(currencyx.Code("ACME")),
 			},
 			wantSQL:  `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" LIKE $1`,
-			wantArgs: []any{"custom:v1:ACME:%"},
+			wantArgs: []any{"custom|v1|ACME|%"},
 		},
 	}
 

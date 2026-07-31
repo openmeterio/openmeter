@@ -593,7 +593,7 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 	}
 }
 
-func TestOnCreditPurchasePaymentLifecycleUsesExactFiatAmount(t *testing.T) {
+func TestOnCreditPurchasePaymentLifecycleRevaluesFiatAmount(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
 	costBasis := mustDecimal(t, "0.5")
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
@@ -608,8 +608,14 @@ func TestOnCreditPurchasePaymentLifecycleUsesExactFiatAmount(t *testing.T) {
 		FiatAmount: fiatAmount,
 	})
 	require.NoError(t, err)
-	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-1)))
+	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(fiatAmount.Neg()))
+	brokerage, err := env.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:  env.CurrencyReference(),
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+	require.True(t, env.sumBalance(t, brokerage).Equal(alpacadecimal.NewFromInt(-1)))
 
 	_, err = env.handler.OnCreditPurchasePaymentSettled(t.Context(), chargecreditpurchase.PaymentEventInput{
 		Charge:     charge,

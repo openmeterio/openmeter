@@ -38,7 +38,7 @@ func TestBuildRoutingKeyV1_Nulls(t *testing.T) {
 }
 
 func TestBuildRoutingKeyCostBasisCurrency(t *testing.T) {
-	customCurrency := mustCurrencyReference(t, "custom:v1:ACME:custom-currency-id:2")
+	customCurrency := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-id|2")
 	key, err := BuildRoutingKey(Route{
 		Currency:          customCurrency,
 		CostBasisCurrency: lo.ToPtr(currencyx.Code("USD")),
@@ -59,7 +59,7 @@ func TestBuildRoutingKeyEmptyCostBasisCurrency(t *testing.T) {
 }
 
 func TestNewSubAccountRouteFromDataRejectsV3WithoutCostBasisCurrency(t *testing.T) {
-	customCurrency := mustCurrencyReference(t, "custom:v1:ACME:custom-currency-id:2")
+	customCurrency := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-id|2")
 
 	key, err := NewRoutingKey(RoutingKeyVersionV3, "currency:ACME|cost_basis_currency:null")
 	require.NoError(t, err)
@@ -81,7 +81,7 @@ func TestNewSubAccountRouteFromDataRejectsV3WithoutCostBasisCurrency(t *testing.
 }
 
 func TestRouteValidateCostBasisCurrency(t *testing.T) {
-	customCurrency := mustCurrencyReference(t, "custom:v1:ACME:custom-currency-id:2")
+	customCurrency := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-id|2")
 
 	tests := []struct {
 		name              string
@@ -115,7 +115,7 @@ func TestRouteValidateCostBasisCurrency(t *testing.T) {
 func TestRouteFilterCostBasisCurrency(t *testing.T) {
 	costBasisCurrency := lo.ToPtr(currencyx.Code("USD"))
 	route := Route{
-		Currency:          mustCurrencyReference(t, "custom:v1:ACME:custom-currency-id:2"),
+		Currency:          mustCurrencyReference(t, "custom|v1|ACME|custom-currency-id|2"),
 		CostBasisCurrency: costBasisCurrency,
 	}
 
@@ -701,8 +701,8 @@ func TestRouteMatches(t *testing.T) {
 }
 
 func TestRouteMatches_CustomCurrencyReferenceIdentity(t *testing.T) {
-	alpha := mustCurrencyReference(t, "custom:v1:ACME:custom-currency-alpha:2")
-	beta := mustCurrencyReference(t, "custom:v1:ACME:custom-currency-beta:2")
+	alpha := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-alpha|2")
+	beta := mustCurrencyReference(t, "custom|v1|ACME|custom-currency-beta|2")
 	route := Route{
 		Currency: alpha,
 	}
