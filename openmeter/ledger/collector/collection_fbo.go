@@ -115,6 +115,7 @@ func (c *accrualCollector) mapBreakagePlansToFBOCollectionSources(
 				sourceChargeID:    reservedSource.sourceChargeID,
 				available:         reservedSource.available,
 				creditPriority:    plan.CreditPriority,
+				freeCostBasis:     freeCostBasis(route.CostBasis),
 				featureRestricted: len(route.Features) > 0,
 				expiresAt:         &expiresAt,
 				cursor:            plan.ID.ID + ":" + reservedSource.cursor,
@@ -198,6 +199,7 @@ func (c *accrualCollector) listCustomerFBOBalanceBucketSources(
 			sourceChargeID:    bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
 			available:         bucket.SettledAmount,
 			creditPriority:    customerFBOPriority(route),
+			freeCostBasis:     freeCostBasis(route.CostBasis),
 			featureRestricted: len(route.Features) > 0,
 			cursor:            fboBalanceBucketCursor(bucket),
 		}
@@ -315,4 +317,8 @@ func customerFBOPriority(route ledger.Route) int {
 	}
 
 	return *route.CreditPriority
+}
+
+func freeCostBasis(costBasis *alpacadecimal.Decimal) bool {
+	return costBasis == nil || costBasis.IsZero()
 }
