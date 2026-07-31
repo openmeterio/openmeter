@@ -103,6 +103,19 @@ type Snapshot struct {
 	UnitConfig *unitconfig.UnitConfig
 }
 
+// Clone returns a snapshot whose mutable balances and unit configuration are
+// independent from the source.
+func (s Snapshot) Clone() Snapshot {
+	cloned := s
+	cloned.Balances = s.Balances.Clone()
+	if s.UnitConfig != nil {
+		unitConfig := s.UnitConfig.Clone()
+		cloned.UnitConfig = &unitConfig
+	}
+
+	return cloned
+}
+
 func (g Snapshot) Balance() float64 {
 	return g.Balances.Balance()
 }
