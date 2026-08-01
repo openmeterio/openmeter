@@ -22,7 +22,6 @@ type UsageQuerier interface {
 type UsageQuerierConfig struct {
 	StreamingConnector    streaming.Connector
 	DescribeOwner         func(ctx context.Context, id models.NamespacedID) (grant.Owner, error)
-	GetDefaultParams      func(ctx context.Context, ownerID models.NamespacedID) (streaming.QueryParams, error)
 	GetUsagePeriodStartAt func(ctx context.Context, ownerID models.NamespacedID, at time.Time) (time.Time, error)
 }
 
@@ -39,15 +38,12 @@ func NewUsageQuerier(conf UsageQuerierConfig) UsageQuerier {
 var _ UsageQuerier = (*usageQuerier)(nil)
 
 func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (float64, error) {
-	params, err := u.GetDefaultParams(ctx, ownerID)
-	if err != nil {
-		return 0.0, err
-	}
-
 	owner, err := u.DescribeOwner(ctx, ownerID)
 	if err != nil {
 		return 0.0, err
 	}
+
+	params := owner.DefaultQueryParams
 
 	// Let's query the meter based on the aggregation
 	switch owner.Meter.Aggregation {
