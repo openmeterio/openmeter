@@ -91,6 +91,27 @@ func (t Timeline[T]) GetTimes() []time.Time {
 	return times
 }
 
+// Len returns the number of entries in the timeline.
+func (t Timeline[T]) Len() int {
+	return len(t.times)
+}
+
+// LastIndexNotAfter returns the index of the last entry at or before at, or -1 when every
+// entry is after at. As the timeline is sorted ascending, that entry is the one in effect
+// at at. Entries sharing a timestamp resolve to the last of the tied group, so the most
+// recently added one wins.
+func (t Timeline[T]) LastIndexNotAfter(at time.Time) int {
+	firstAfter, _ := slices.BinarySearchFunc(t.times, at, func(e Timed[T], target time.Time) int {
+		if e.GetTime().After(target) {
+			return 1
+		}
+
+		return -1
+	})
+
+	return firstAfter - 1
+}
+
 func (t Timeline[T]) GetAt(idx int) Timed[T] {
 	return t.times[idx]
 }

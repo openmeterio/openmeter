@@ -44,7 +44,9 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 	snapshot := params.StartingSnapshot
 	historySegments := make([]GrantBurnDownHistorySegment, 0)
 
-	for idx, period := range timeline.GetClosedPeriods() {
+	periods := timeline.GetClosedPeriods()
+
+	for idx, period := range periods {
 		// Let's reset the snapshot usage information as we're entering a new period (between resets)
 		if idx > 0 {
 			snapshot.Usage = balance.SnapshottedUsage{
@@ -62,7 +64,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 			Until:                               period.To,
 			StartingSnapshot:                    snapshot,
 			Meter:                               params.Meter,
-			PeriodEndRecurrenceBoundaryBehavior: lo.Ternary(idx == len(timeline.GetClosedPeriods())-1, timeutil.Inclusive, timeutil.Exclusive),
+			PeriodEndRecurrenceBoundaryBehavior: lo.Ternary(idx == len(periods)-1, timeutil.Inclusive, timeutil.Exclusive),
 		})
 		if err != nil {
 			return RunResult{}, fmt.Errorf("failed to run calculation for period %s - %s: %w", period.From, period.To, err)
@@ -71,7 +73,7 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		snapshot = runRes.Snapshot
 		historySegments = append(historySegments, runRes.History.Segments()...)
 
-		if idx != len(timeline.GetClosedPeriods())-1 {
+		if idx != len(periods)-1 {
 			// We need to reset at each period, except the last one.
 			// If the ending time is also a reset, there will be a 0 length period at the end.
 			snap, err := e.reset(relevantGrants, runRes.Snapshot, params.ResetBehavior, period.To)
