@@ -182,6 +182,14 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 			}
 		}
 
+		// An empty signing secret means "keep the current secret": clients omit
+		// signing_secret unless rotating it, and an empty secret is never a valid
+		// credential — persisting it would break signature verification for the
+		// receiver and fail the downstream webhook provider update.
+		if params.Config.WebHook.SigningSecret == "" {
+			params.Config.WebHook.SigningSecret = channel.Config.WebHook.SigningSecret
+		}
+
 		err = params.ValidateWith(func(i notification.UpdateChannelInput) error {
 			if i.Type != channel.Type {
 				return fmt.Errorf("cannot update channel type: %s to %s", channel.Type, i.Type)

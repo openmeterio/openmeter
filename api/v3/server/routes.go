@@ -579,3 +579,25 @@ func (s *Server) UpdateOrganizationDefaultTaxCodes(w http.ResponseWriter, r *htt
 func (s *Server) QueryGovernanceAccess(w http.ResponseWriter, r *http.Request, params api.QueryGovernanceAccessParams) {
 	s.governanceHandler.QueryGovernanceAccess().With(params).ServeHTTP(w, r)
 }
+
+// Notification Channels
+
+func (s *Server) ListNotificationChannels(w http.ResponseWriter, r *http.Request, params api.ListNotificationChannelsParams) {
+	s.notificationChannelsHandler.ListNotificationChannels().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) CreateNotificationChannel(w http.ResponseWriter, r *http.Request) {
+	s.notificationChannelsHandler.CreateNotificationChannel().ServeHTTP(w, r)
+}
+
+func (s *Server) GetNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
+	s.notificationChannelsHandler.GetNotificationChannel().With(notificationChannelId).ServeHTTP(w, r)
+}
+
+func (s *Server) UpdateNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
+	s.notificationChannelsHandler.UpdateNotificationChannel().With(notificationChannelId).ServeHTTP(w, r)
+}
+
+func (s *Server) DeleteNotificationChannel(w http.ResponseWriter, r *http.Request, notificationChannelId api.ULID) {
+	s.notificationChannelsHandler.DeleteNotificationChannel().With(notificationChannelId).ServeHTTP(w, r)
+}

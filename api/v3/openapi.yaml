@@ -26,6 +26,8 @@ servers:
     description: OpenMeter Cloud
     variables: {}
 tags:
+  - name: OpenMeter Notifications
+    description: Notification channels deliver notification events, such as entitlement balance threshold crossings, to external systems.
   - name: OpenMeter Governance
     description: Governance evaluation of customers to check their feature access.
   - name: OpenMeter Defaults
@@ -2557,6 +2559,183 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MeterQueryRequest'
+  /openmeter/notification/channels:
+    get:
+      operationId: list-notification-channels
+      summary: List notification channels
+      description: List all notification channels.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort notification channels returned in the response. Supported sort attributes
+            are:
+
+            - `id` (default)
+            - `type`
+            - `created_at`
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter notification channels returned in the response.
+
+            To filter notification channels by type add the following query param:
+            filter[type]=webhook
+          schema:
+            $ref: '#/components/schemas/ListNotificationChannelsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannelPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    post:
+      operationId: create-notification-channel
+      summary: Create notification channel
+      description: Create a notification channel.
+      responses:
+        '201':
+          description: NotificationChannel created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationChannelRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/channels/{notificationChannelId}:
+    get:
+      operationId: get-notification-channel
+      summary: Get notification channel
+      description: Get a notification channel by id.
+      parameters:
+        - name: notificationChannelId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationChannel response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    put:
+      operationId: update-notification-channel
+      summary: Update notification channel
+      description: Update a notification channel by id.
+      parameters:
+        - name: notificationChannelId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: NotificationChannel updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotificationChannelRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    delete:
+      operationId: delete-notification-channel
+      summary: Delete notification channel
+      description: Delete a notification channel by id.
+      parameters:
+        - name: notificationChannelId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/plans:
     get:
       operationId: list-plans
@@ -9081,6 +9260,22 @@ components:
       additionalProperties: false
       description: Tax settings for a billing workflow.
       title: Workflow tax settings
+    BooleanFieldFilter:
+      anyOf:
+        - type: boolean
+        - type: object
+          properties:
+            eq:
+              type: boolean
+              description: Value strictly equals the given boolean value.
+          required:
+            - eq
+          additionalProperties: false
+      description: Filter by a boolean value (true/false).
+      title: Boolean Field Filter
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/v3/filters
+      x-go-type: filters.FilterBoolean
     ChargePagePaginatedResponse:
       type: object
       required:
@@ -9869,6 +10064,53 @@ components:
             type: $.type
       additionalProperties: false
       description: Meter create request.
+    CreateNotificationChannelRequest:
+      type: object
+      required:
+        - name
+        - type
+        - url
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          allOf:
+            - $ref: '#/components/schemas/NotificationChannelType'
+          description: The type of the channel. Immutable after creation.
+        disabled:
+          type: boolean
+          description: |-
+            Whether the channel is disabled. Disabled channels do not receive notification
+            events.
+          default: false
+        url:
+          type: string
+          description: The URL that webhook notification events are delivered to.
+        custom_headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Custom HTTP headers to include on every webhook delivery request, keyed by
+            header name.
+        signing_secret:
+          type: string
+          description: |-
+            Secret used to sign outgoing webhook payloads so recipients can verify their
+            authenticity. If omitted on create, a secret is generated automatically by the
+            delivery provider. This is a sensitive credential returned in responses (unlike
+            most secrets) specifically so clients can retrieve a server-generated value and
+            verify webhook signatures; handle it with the same care as any other credential.
+      additionalProperties: false
+      description: NotificationChannel create request.
     CreatePlanAddonRequest:
       type: object
       required:
@@ -11093,6 +11335,23 @@ components:
           description: Filter meters by name.
       additionalProperties: false
       description: Filter options for listing meters.
+    ListNotificationChannelsParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+        type:
+          $ref: '#/components/schemas/StringFieldFilterExact'
+        disabled:
+          $ref: '#/components/schemas/BooleanFieldFilter'
+        created_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+        updated_at:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+      additionalProperties: false
+      description: Filter options for listing notification channels.
     ListPlansParamsFilter:
       type: object
       properties:
@@ -11532,6 +11791,103 @@ components:
           readOnly: true
       additionalProperties: false
       description: Event validation errors.
+    NotificationChannel:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - url
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/NotificationChannelType'
+          description: The type of the channel. Immutable after creation.
+        disabled:
+          type: boolean
+          description: |-
+            Whether the channel is disabled. Disabled channels do not receive notification
+            events.
+          default: false
+        url:
+          type: string
+          description: The URL that webhook notification events are delivered to.
+        custom_headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Custom HTTP headers to include on every webhook delivery request, keyed by
+            header name.
+        signing_secret:
+          type: string
+          description: |-
+            Secret used to sign outgoing webhook payloads so recipients can verify their
+            authenticity. If omitted on create, a secret is generated automatically by the
+            delivery provider. This is a sensitive credential returned in responses (unlike
+            most secrets) specifically so clients can retrieve a server-generated value and
+            verify webhook signatures; handle it with the same care as any other credential.
+      additionalProperties: false
+      description: |-
+        A notification channel delivers notification events, such as entitlement balance
+        threshold crossings, to an external system. Today the only supported channel
+        type is a webhook delivered via Svix.
+    NotificationChannelPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannel'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
+    NotificationChannelType:
+      type: string
+      enum:
+        - webhook
+      description: |-
+        The type of a notification channel.
+
+        Currently the only supported channel type is `webhook`; the domain model
+        anticipates additional channel types (e.g. email, Slack) in the future, so this
+        is modeled as an enum rather than a boolean/constant even though it has a single
+        member today.
     Numeric:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
@@ -12765,6 +13121,59 @@ components:
             type: $.type
       additionalProperties: false
       description: Meter update request.
+    UpdateNotificationChannelRequest:
+      type: object
+      required:
+        - name
+        - type
+        - url
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        type:
+          allOf:
+            - $ref: '#/components/schemas/NotificationChannelType'
+          description: The type of the channel. Immutable after creation.
+        url:
+          type: string
+          description: The URL that webhook notification events are delivered to.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        disabled:
+          type: boolean
+          description: |-
+            Whether the channel is disabled. Disabled channels do not receive notification
+            events.
+          default: false
+        custom_headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Custom HTTP headers to include on every webhook delivery request, keyed by
+            header name.
+        signing_secret:
+          type: string
+          description: |-
+            Secret used to sign outgoing webhook payloads so recipients can verify their
+            authenticity. If omitted on create, a secret is generated automatically by the
+            delivery provider. This is a sensitive credential returned in responses (unlike
+            most secrets) specifically so clients can retrieve a server-generated value and
+            verify webhook signatures; handle it with the same care as any other credential.
+      additionalProperties: false
+      description: |-
+        Request body for updating a notification channel. Updates replace the channel's
+        mutable state rather than merging it: `type`, `name`, and `url` must always be
+        provided, and omitting `disabled`, `labels`, or `custom_headers` resets them to
+        their defaults (enabled, no labels, no custom headers). `signing_secret` is the
+        one exception: omitting it keeps the channel's current signing secret instead of
+        clearing the credential.
     UpdateOrganizationDefaultTaxCodesRequest:
       type: object
       properties:
