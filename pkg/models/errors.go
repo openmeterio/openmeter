@@ -287,6 +287,34 @@ func IsGenericUnauthorizedError(err error) bool {
 	return errors.As(err, &e)
 }
 
+func NewGenericRequestEntityTooLargeError(err error) error {
+	return &GenericRequestEntityTooLargeError{err: err}
+}
+
+var _ GenericError = &GenericRequestEntityTooLargeError{}
+
+type GenericRequestEntityTooLargeError struct {
+	err error
+}
+
+func (e *GenericRequestEntityTooLargeError) Error() string {
+	return fmt.Sprintf("request entity too large error: %s", e.err)
+}
+
+func (e *GenericRequestEntityTooLargeError) Unwrap() error {
+	return e.err
+}
+
+func IsGenericRequestEntityTooLargeError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *GenericRequestEntityTooLargeError
+
+	return errors.As(err, &e)
+}
+
 // ComponentName is the name of an internal or external component/service the error is related to or originated from.
 type ComponentName string
 

@@ -143,7 +143,9 @@ func GenericErrorEncoder() encoder.ErrorEncoder {
 			HandleErrorIfTypeMatches[*models.GenericValidationError](ctx, http.StatusBadRequest, err, w) ||
 			HandleErrorIfTypeMatches[*models.GenericNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			HandleErrorIfTypeMatches[*models.GenericUnauthorizedError](ctx, http.StatusUnauthorized, err, w) ||
-			HandleErrorIfTypeMatches[*models.GenericPreConditionFailedError](ctx, http.StatusPreconditionFailed, err, w)
+			HandleErrorIfTypeMatches[*models.GenericPreConditionFailedError](ctx, http.StatusPreconditionFailed, err, w) ||
+			HandleErrorIfTypeMatches[*models.GenericRequestEntityTooLargeError](ctx, http.StatusRequestEntityTooLarge, err, w) ||
+			HandleErrorIfTypeMatches[*models.GenericStatusFailedDependencyError](ctx, http.StatusFailedDependency, err, w)
 	}
 }
 
