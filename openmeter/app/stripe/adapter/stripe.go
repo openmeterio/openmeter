@@ -306,6 +306,8 @@ func (a *adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input app
 					fmt.Sprintf("stripe customer has no data for stripe app: %s", input.StripeCustomerID),
 				)
 			}
+
+			return appstripe.SetCustomerDefaultPaymentMethodOutput{}, fmt.Errorf("failed to get stripe app customer: %w", err)
 		}
 
 		customerID := customer.CustomerID{
