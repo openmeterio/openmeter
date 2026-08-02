@@ -2168,3 +2168,20 @@ func (n NoopLLMCostService) DeleteOverride(ctx context.Context, input llmcost.De
 func (n NoopLLMCostService) ListOverrides(ctx context.Context, input llmcost.ListOverridesInput) (pagination.Result[llmcost.Price], error) {
 	return pagination.Result[llmcost.Price]{}, nil
 }
+
+func TestAppStripeWebhookOversizedPayload(t *testing.T) {
+	const appID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	path := "/api/v1/apps/" + appID + "/stripe/webhook"
+
+	t.Run("payload above the body limit is rejected as a client error", func(t *testing.T) {
+		testServer, _ := getTestServer(t)
+		payload := []byte(`{"id":"evt_1","type":"invoice.paid","livemode":false,"created":1,"data":{"object":{"pad":"` + strings.Repeat("a", 1024*1024) + `"}}}`)
+
+		req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
+	})
+}
