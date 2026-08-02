@@ -28,6 +28,8 @@ func (s *Service) UpdateAppSecret(ctx context.Context, input secretentity.Update
 		)
 	}
 
+	defer s.cache.Remove(input.SecretID)
+
 	return s.adapter.UpdateAppSecret(ctx, input)
 }
 
@@ -38,7 +40,7 @@ func (s *Service) GetAppSecret(ctx context.Context, input secretentity.GetAppSec
 		)
 	}
 
-	secret, err := s.adapter.GetAppSecret(ctx, input)
+	secret, err := s.cache.Get(ctx, input)
 	if err != nil {
 		return secretentity.Secret{}, models.NewGenericStatusFailedDependencyError(
 			fmt.Errorf("error get app secret: %w", err),
@@ -54,6 +56,8 @@ func (s *Service) DeleteAppSecret(ctx context.Context, input secretentity.Delete
 			fmt.Errorf("error delete app secret: %w", err),
 		)
 	}
+
+	defer s.cache.Remove(input)
 
 	return s.adapter.DeleteAppSecret(ctx, input)
 }
