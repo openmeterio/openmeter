@@ -265,6 +265,28 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 			expectLineDeleted: true,
 		},
 		// given:
+		// - 0.0005 metered units produce a positive 0.001 TOKENS overage
+		// when:
+		// - the overage is converted using the 0.5 USD cost basis
+		// then:
+		// - the fiat amount rounds to zero, the line is removed, and no payment is booked
+		{
+			name: "fiat overage rounds to zero",
+			onRunCreated: runPhase{
+				usageAdded:          0.0005,
+				creditsAllocated:    0,
+				expectRunTotals:     billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001},
+				expectInvoiceTotals: billingtest.ExpectedTotals{},
+			},
+			onCollectionComplete: runPhase{
+				usageAdded:          0,
+				creditsAllocated:    0,
+				expectRunTotals:     billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001},
+				expectInvoiceTotals: billingtest.ExpectedTotals{},
+			},
+			expectLineDeleted: true,
+		},
+		// given:
 		// - 5 metered units are initially covered by 10 TOKENS of allocated credits
 		// when:
 		// - 1 late metered unit becomes visible during collection
