@@ -10,7 +10,7 @@ require (
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/oklog/ulid/v2 v2.1.1
+	github.com/oklog/ulid/v2 v2.1.2
 	github.com/openmeterio/openmeter v0.0.0-00010101000000-000000000000
 	github.com/openmeterio/openmeter/api/v3/client v0.0.0
 	github.com/samber/lo v1.53.0
