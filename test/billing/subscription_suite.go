@@ -269,9 +269,7 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 	)
 
 	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
-		OwnerConnector:     owner,
-		StreamingConnector: deps.MockStreamingConnector,
-		Repo:               balanceSnapshotRepo,
+		Repo: balanceSnapshotRepo,
 	})
 
 	transactionManager := enttx.NewCreator(deps.DBClient)

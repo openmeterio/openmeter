@@ -156,9 +156,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	transactionManager := enttx.NewCreator(dbClient)
 
 	snapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
-		OwnerConnector:     ownerConnector,
-		StreamingConnector: streamingConnector,
-		Repo:               balanceSnapshotRepo,
+		Repo: balanceSnapshotRepo,
 	})
 
 	creditConnector := credit.NewCreditConnector(

@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	db_balancesnapshot "github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -85,6 +86,10 @@ func TestGetEntitlementBalanceTotalAvailableGrantAmountAfterSnapshot(t *testing.
 				Since: periodStart,
 				Usage: 200,
 			},
+			UsageSnapshot: &balance.UsageSnapshot{
+				Usage:           200,
+				TotalGrantUsage: 200,
+			},
 		},
 	})
 	require.NoError(t, err)
@@ -102,4 +107,206 @@ func TestGetEntitlementBalanceTotalAvailableGrantAmountAfterSnapshot(t *testing.
 	require.Equal(t, 700.0, entBalance.Balance)
 	require.Equal(t, 0.0, entBalance.Overage)
 	require.Equal(t, 1000.0, entBalance.TotalAvailableGrantAmount)
+}
+
+func TestBalanceSnapshotPersistenceRequiresUsageSnapshot(t *testing.T) {
+	_, deps := setupConnector(t)
+	defer deps.Teardown()
+
+	err := deps.balanceSnapshotService.Save(t.Context(), models.NamespacedID{
+		Namespace: namespace,
+		ID:        "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+	}, []balance.Snapshot{{
+		At:       getAnchor(t),
+		Balances: balance.Map{"grant-1": 800},
+	}})
+	require.ErrorContains(t, err, "cannot save incomplete balance snapshot")
+}
+
+func TestBalanceSnapshotSelectionDuringUsageSnapshotMigration(t *testing.T) {
+	_, deps := setupConnector(t)
+	defer deps.Teardown()
+
+	ctx := t.Context()
+	periodStart := getAnchor(t)
+	completeSnapshotAt := periodStart.Add(time.Hour)
+	legacySnapshotAt := completeSnapshotAt.Add(time.Hour)
+	owner := createBalanceSnapshotOwner(t, deps, periodStart)
+	completeSnapshot := balance.Snapshot{
+		At:       completeSnapshotAt,
+		Balances: balance.Map{"grant-1": 800},
+		Usage: balance.SnapshottedUsage{
+			Since: periodStart,
+			Usage: 200,
+		},
+		UsageSnapshot: &balance.UsageSnapshot{
+			Usage:           200,
+			TotalGrantUsage: 200,
+		},
+	}
+
+	err := deps.balanceSnapshotService.Save(ctx, owner, []balance.Snapshot{completeSnapshot})
+	require.NoError(t, err)
+
+	_, err = deps.dbClient.BalanceSnapshot.Create().
+		SetNamespace(owner.Namespace).
+		SetOwnerID(owner.ID).
+		SetAt(legacySnapshotAt).
+		SetBalance(700).
+		SetGrantBalances(balance.Map{"grant-1": 700}).
+		SetOverage(0).
+		SetUsage(&balance.SnapshottedUsage{
+			Since: periodStart,
+			Usage: 300,
+		}).
+		Save(ctx)
+	require.NoError(t, err)
+
+	selectedSnapshot, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, legacySnapshotAt)
+	require.NoError(t, err)
+	require.Equal(t, completeSnapshot, selectedSnapshot)
+
+	_, err = deps.dbClient.BalanceSnapshot.Delete().
+		Where(
+			db_balancesnapshot.Namespace(owner.Namespace),
+			db_balancesnapshot.OwnerID(owner.ID),
+			db_balancesnapshot.UsageSnapshotNotNil(),
+		).
+		Exec(ctx)
+	require.NoError(t, err)
+
+	_, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, legacySnapshotAt)
+	var noSavedSnapshot *balance.NoSavedBalanceForOwnerError
+	require.ErrorAs(t, err, &noSavedSnapshot)
+}
+
+func TestBalanceSnapshotVersionsAreIndependent(t *testing.T) {
+	_, deps := setupConnector(t)
+	defer deps.Teardown()
+
+	ctx := t.Context()
+	periodStart := getAnchor(t)
+	snapshotAt := periodStart.Add(time.Hour)
+	queryAt := snapshotAt.Add(time.Hour)
+	owner := createBalanceSnapshotOwner(t, deps, periodStart)
+	snapshotA := balance.Snapshot{
+		At:       snapshotAt,
+		Balances: balance.Map{"grant-1": 800},
+		Usage: balance.SnapshottedUsage{
+			Since: periodStart,
+			Usage: 200,
+		},
+		UsageSnapshot: &balance.UsageSnapshot{
+			Usage:           200,
+			TotalGrantUsage: 200,
+		},
+	}
+	snapshotB := balance.Snapshot{
+		At:       snapshotAt.Add(10 * time.Minute),
+		Balances: balance.Map{"grant-1": 700},
+		Usage: balance.SnapshottedUsage{
+			Since: periodStart,
+			Usage: 300,
+		},
+		UsageSnapshot: &balance.UsageSnapshot{
+			Usage:           300,
+			TotalGrantUsage: 300,
+		},
+	}
+	snapshotC := balance.Snapshot{
+		At:       snapshotAt.Add(20 * time.Minute),
+		Balances: balance.Map{"grant-1": 600},
+		Usage: balance.SnapshottedUsage{
+			Since: periodStart,
+			Usage: 400,
+		},
+		UsageSnapshot: &balance.UsageSnapshot{
+			Usage:           400,
+			TotalGrantUsage: 400,
+		},
+	}
+
+	err := deps.balanceSnapshotService.Save(ctx, owner, []balance.Snapshot{snapshotA, snapshotB, snapshotC})
+	require.NoError(t, err)
+
+	_, err = deps.dbClient.BalanceSnapshot.Delete().
+		Where(
+			db_balancesnapshot.Namespace(owner.Namespace),
+			db_balancesnapshot.OwnerID(owner.ID),
+			db_balancesnapshot.AtEQ(snapshotB.At),
+		).
+		Exec(ctx)
+	require.NoError(t, err)
+
+	selectedSnapshot, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryAt)
+	require.NoError(t, err)
+	require.Equal(t, snapshotC, selectedSnapshot)
+
+	_, err = deps.dbClient.BalanceSnapshot.Delete().
+		Where(
+			db_balancesnapshot.Namespace(owner.Namespace),
+			db_balancesnapshot.OwnerID(owner.ID),
+			db_balancesnapshot.AtEQ(snapshotA.At),
+		).
+		Exec(ctx)
+	require.NoError(t, err)
+
+	selectedSnapshot, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryAt)
+	require.NoError(t, err)
+	require.Equal(t, snapshotC, selectedSnapshot)
+
+	err = deps.balanceSnapshotService.Save(ctx, owner, []balance.Snapshot{snapshotB})
+	require.NoError(t, err)
+
+	selectedSnapshot, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryAt)
+	require.NoError(t, err)
+	require.Equal(t, snapshotC, selectedSnapshot)
+}
+
+func createBalanceSnapshotOwner(t *testing.T, deps *dependencies, at time.Time) models.NamespacedID {
+	ctx := t.Context()
+	featureName := testutils.NameGenerator.Generate()
+	feat, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
+		Namespace:           namespace,
+		Name:                featureName.Name,
+		Key:                 featureName.Key,
+		MeterID:             &deps.meterID,
+		MeterGroupByFilters: map[string]filter.FilterString{},
+	})
+	require.NoError(t, err)
+
+	customerName := testutils.NameGenerator.Generate()
+	cust := createCustomerAndSubject(
+		t,
+		deps.subjectService,
+		deps.customerService,
+		namespace,
+		customerName.Key,
+		customerName.Name,
+	)
+	usagePeriod := entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+		Anchor:   at,
+		Interval: timeutil.RecurrencePeriodYear,
+	})
+	currentUsagePeriod, err := usagePeriod.GetValue().GetPeriodAt(at)
+	require.NoError(t, err)
+
+	ent, err := deps.entitlementRepo.CreateEntitlement(ctx, entitlement.CreateEntitlementRepoInputs{
+		Namespace:          namespace,
+		FeatureID:          feat.ID,
+		FeatureKey:         feat.Key,
+		UsageAttribution:   cust.GetUsageAttribution(),
+		MeasureUsageFrom:   &at,
+		EntitlementType:    entitlement.EntitlementTypeMetered,
+		IssueAfterReset:    convert.ToPointer(0.0),
+		IsSoftLimit:        convert.ToPointer(false),
+		UsagePeriod:        &usagePeriod,
+		CurrentUsagePeriod: &currentUsagePeriod,
+	})
+	require.NoError(t, err)
+
+	return models.NamespacedID{
+		Namespace: namespace,
+		ID:        ent.ID,
+	}
 }
