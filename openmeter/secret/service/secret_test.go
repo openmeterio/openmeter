@@ -23,8 +23,11 @@ var _ secret.Adapter = (*countingAdapter)(nil)
 type countingAdapter struct {
 	getCalls atomic.Int64
 	getErr   error
-	value    string
 	onGet    func()
+	onUpdate func()
+
+	mu    sync.Mutex
+	value string
 }
 
 func (a *countingAdapter) CreateAppSecret(_ context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error) {
@@ -32,11 +35,23 @@ func (a *countingAdapter) CreateAppSecret(_ context.Context, input secretentity.
 }
 
 func (a *countingAdapter) UpdateAppSecret(_ context.Context, input secretentity.UpdateAppSecretInput) (secretentity.SecretID, error) {
-	return secretentity.NewSecretID(input.AppID, input.Value, input.Key), nil
+	if a.onUpdate != nil {
+		a.onUpdate()
+	}
+
+	a.mu.Lock()
+	a.value = input.Value
+	a.mu.Unlock()
+
+	return input.SecretID, nil
 }
 
 func (a *countingAdapter) GetAppSecret(_ context.Context, input secretentity.GetAppSecretInput) (secretentity.Secret, error) {
 	a.getCalls.Add(1)
+
+	a.mu.Lock()
+	value := a.value
+	a.mu.Unlock()
 
 	if a.onGet != nil {
 		a.onGet()
@@ -46,7 +61,7 @@ func (a *countingAdapter) GetAppSecret(_ context.Context, input secretentity.Get
 		return secretentity.Secret{}, a.getErr
 	}
 
-	return secretentity.Secret{SecretID: input, Value: a.value}, nil
+	return secretentity.Secret{SecretID: input, Value: value}, nil
 }
 
 func (a *countingAdapter) DeleteAppSecret(_ context.Context, _ secretentity.DeleteAppSecretInput) error {
@@ -161,8 +176,6 @@ func TestGetAppSecretCaching(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		adapter.value = "whsec_2"
-
 		got, err := service.GetAppSecret(t.Context(), secretID)
 		require.NoError(t, err)
 		require.Equal(t, "whsec_2", got.Value)
@@ -227,6 +240,67 @@ func TestGetAppSecretCaching(t *testing.T) {
 		wg.Wait()
 
 		require.Equal(t, int64(1), adapter.getCalls.Load())
+	})
+
+	t.Run("a read racing a mutation never leaves the superseded value cached", func(t *testing.T) {
+		secretID := newTestSecretID()
+
+		fetchStarted := make(chan struct{})
+		releaseFetch := make(chan struct{})
+		updateReached := make(chan struct{})
+
+		adapter := &countingAdapter{value: "whsec_old"}
+		adapter.onGet = func() {
+			select {
+			case <-fetchStarted:
+			default:
+				close(fetchStarted)
+				<-releaseFetch
+			}
+		}
+		adapter.onUpdate = func() {
+			close(updateReached)
+		}
+
+		service, err := secretservice.New(secretservice.Config{Adapter: adapter})
+		require.NoError(t, err)
+
+		var wg sync.WaitGroup
+
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+
+			_, err := service.GetAppSecret(context.Background(), secretID)
+			require.NoError(t, err)
+		}()
+
+		<-fetchStarted
+
+		go func() {
+			defer wg.Done()
+
+			_, err := service.UpdateAppSecret(context.Background(), secretentity.UpdateAppSecretInput{
+				AppID:    secretID.AppID,
+				SecretID: secretID,
+				Key:      secretID.Key,
+				Value:    "whsec_new",
+			})
+			require.NoError(t, err)
+		}()
+
+		select {
+		case <-updateReached:
+		case <-time.After(200 * time.Millisecond):
+		}
+
+		close(releaseFetch)
+		wg.Wait()
+
+		got, err := service.GetAppSecret(context.Background(), secretID)
+		require.NoError(t, err)
+		require.Equal(t, "whsec_new", got.Value)
 	})
 
 	t.Run("deleting a secret evicts the cached value", func(t *testing.T) {
