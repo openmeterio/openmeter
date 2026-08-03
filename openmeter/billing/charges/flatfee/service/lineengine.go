@@ -865,6 +865,7 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 		},
 		Expands: meta.Expands{
 			meta.ExpandRealizations,
+			meta.ExpandDetailedLines,
 		},
 	})
 	if err != nil {

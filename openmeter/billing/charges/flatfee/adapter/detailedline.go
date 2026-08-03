@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -20,21 +19,25 @@ import (
 
 var _ flatfee.ChargeDetailedLineAdapter = (*adapter)(nil)
 
-func (a *adapter) FetchCurrentRunDetailedLines(ctx context.Context, charge flatfee.Charge) (flatfee.Charge, error) {
-	if charge.Realizations.CurrentRun == nil {
-		return flatfee.Charge{}, fmt.Errorf("current run is required to fetch flat fee detailed lines for charge %s", charge.GetChargeID())
+func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge) (flatfee.Charge, error) {
+	runIDs := make([]string, 0, len(charge.Realizations.PriorRuns)+1)
+	if charge.Realizations.CurrentRun != nil {
+		runIDs = append(runIDs, charge.Realizations.CurrentRun.ID.ID)
 	}
 
-	currentRunID := charge.Realizations.CurrentRun.ID
-	if err := currentRunID.Validate(); err != nil {
-		return flatfee.Charge{}, fmt.Errorf("current run ID: %w", err)
+	for _, run := range charge.Realizations.PriorRuns {
+		runIDs = append(runIDs, run.ID.ID)
+	}
+
+	if len(runIDs) == 0 {
+		return charge, nil
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
 		dbLines, err := tx.db.ChargeFlatFeeRunDetailedLine.Query().
 			Where(
 				dbchargeflatfeerundetailedline.NamespaceEQ(charge.Namespace),
-				dbchargeflatfeerundetailedline.RunIDEQ(currentRunID.ID),
+				dbchargeflatfeerundetailedline.RunIDIn(runIDs...),
 				dbchargeflatfeerundetailedline.DeletedAtIsNil(),
 			).
 			All(ctx)
@@ -42,13 +45,25 @@ func (a *adapter) FetchCurrentRunDetailedLines(ctx context.Context, charge flatf
 			return flatfee.Charge{}, err
 		}
 
-		lines := make(flatfee.DetailedLines, 0, len(dbLines))
-		for _, dbLine := range dbLines {
-			lines = append(lines, stddetailedline.FromDB(dbLine))
+		dbLinesByRunID := lo.GroupBy(dbLines, func(dbLine *entdb.ChargeFlatFeeRunDetailedLine) string {
+			return dbLine.RunID
+		})
+
+		if charge.Realizations.CurrentRun != nil {
+			lines := flatfee.DetailedLines(lo.Map(dbLinesByRunID[charge.Realizations.CurrentRun.ID.ID], func(dbLine *entdb.ChargeFlatFeeRunDetailedLine, _ int) flatfee.DetailedLine {
+				return stddetailedline.FromDB(dbLine)
+			}))
+			sortDetailedLines(lines)
+			charge.Realizations.CurrentRun.DetailedLines = mo.Some(lines)
 		}
 
-		sortDetailedLines(lines)
-		charge.Realizations.CurrentRun.DetailedLines = mo.Some(lines)
+		for idx := range charge.Realizations.PriorRuns {
+			lines := flatfee.DetailedLines(lo.Map(dbLinesByRunID[charge.Realizations.PriorRuns[idx].ID.ID], func(dbLine *entdb.ChargeFlatFeeRunDetailedLine, _ int) flatfee.DetailedLine {
+				return stddetailedline.FromDB(dbLine)
+			}))
+			sortDetailedLines(lines)
+			charge.Realizations.PriorRuns[idx].DetailedLines = mo.Some(lines)
+		}
 
 		return charge, nil
 	})

@@ -379,22 +379,37 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				s.Require().Len(invoice.Lines.OrEmpty(), 1)
 				line := invoice.Lines.OrEmpty()[0]
 				lineID = line.ID
-				s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
-					line:               line,
-					expectTokenOverage: test.expectRunTotals.Total,
-					expectCostBasis:    0.5,
-					expectFiatTotals:   test.expectInvoiceTotals,
-				})
+				if test.expectLineDeleted {
+					s.requireDeletedCustomCurrencyOverageLine(requireDeletedCustomCurrencyOverageLineInput{
+						line:             line,
+						expectFiatTotals: test.expectInvoiceTotals,
+					})
+				} else {
+					s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+						line:               line,
+						expectTokenOverage: test.expectRunTotals.Total,
+						expectCostBasis:    0.5,
+						expectFiatTotals:   test.expectInvoiceTotals,
+					})
+				}
 				s.Equal(overageName, line.Name)
 				s.Empty(line.RateCardDiscounts)
 				s.Empty(line.Discounts)
 				s.Empty(line.CreditsApplied)
 
 				charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
-				s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
-				s.Require().NotNil(charge.Realizations.CurrentRun)
+				var run *flatfee.RealizationRun
+				if test.expectLineDeleted {
+					s.Equal(flatfee.StatusFinal, charge.Status)
+					s.Require().NotNil(charge.Realizations.CurrentRun)
+					s.Empty(charge.Realizations.PriorRuns)
+					run = charge.Realizations.CurrentRun
+				} else {
+					s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+					s.Require().NotNil(charge.Realizations.CurrentRun)
+					run = charge.Realizations.CurrentRun
+				}
 
-				run := charge.Realizations.CurrentRun
 				runID = run.ID.ID
 				s.Equal(servicePeriod, run.ServicePeriod)
 				s.Require().NotNil(run.LineID)
@@ -414,7 +429,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				s.Len(run.CreditRealizations, expectedCreditsApplied)
 				s.Len(run.DetailedLines.OrEmpty()[0].CreditsApplied, expectedCreditsApplied)
 				s.Equal(!test.expectPaymentSettled, run.NoFiatTransactionRequired)
-				s.False(run.Immutable)
+				s.Equal(test.expectLineDeleted, run.Immutable)
 				s.Equal(1, allocationCallback.nrInvocations)
 			})
 
@@ -468,18 +483,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 			s.Run("reload persisted charge and invoice", func() {
 				charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
 				s.Equal(flatfee.StatusFinal, charge.Status)
-
-				var run *flatfee.RealizationRun
-				if test.expectLineDeleted {
-					s.Nil(charge.Realizations.CurrentRun)
-					s.Require().Len(charge.Realizations.PriorRuns, 1)
-					run = &charge.Realizations.PriorRuns[0]
-					s.False(run.Immutable)
-				} else {
-					s.Require().NotNil(charge.Realizations.CurrentRun)
-					run = charge.Realizations.CurrentRun
-					s.True(run.Immutable)
-				}
+				s.Require().NotNil(charge.Realizations.CurrentRun)
+				s.Empty(charge.Realizations.PriorRuns)
+				run := charge.Realizations.CurrentRun
+				s.True(run.Immutable)
 
 				s.Equal(runID, run.ID.ID)
 				s.RequireTotals(test.expectRunTotals, run.Totals)

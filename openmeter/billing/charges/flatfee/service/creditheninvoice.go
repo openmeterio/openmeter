@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -140,8 +141,9 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.AccrueInvoiceUsage))
 
-	// Zero-fiat-amount overages bypass invoice issuance. This state detaches the
-	// persisted run before the charge completes without payment settlement.
+	// Zero-fiat-amount overages bypass invoice issuance. This state seals the
+	// persisted current run before the charge completes without payment
+	// settlement.
 	s.Configure(flatfee.StatusActiveRealizationZeroFiatAmountOverageCompleted).
 		Permit(meta.TriggerNext, flatfee.StatusFinal).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
@@ -584,7 +586,7 @@ func (s *CreditThenInvoiceStateMachine) IsCurrentRunZeroFiatAmountOverage() bool
 	return isZeroFiatAmountOverageRun(s.Charge, *currentRun)
 }
 
-// FinalizeZeroFiatAmountOverageRun detaches the persisted current run while the
+// FinalizeZeroFiatAmountOverageRun seals the persisted current run while the
 // state machine is in zero-fiat-amount overage completion.
 func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(ctx context.Context) error {
 	currentRun := s.Charge.Realizations.CurrentRun
@@ -596,12 +598,18 @@ func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(ctx con
 		return fmt.Errorf("current realization run %s is not a zero fiat amount overage", currentRun.ID.ID)
 	}
 
-	if err := s.Adapter.DetachCurrentRun(ctx, s.Charge.GetChargeID()); err != nil {
-		return fmt.Errorf("detach zero-fiat-amount overage run: %w", err)
+	// Mark the run immutable because its deleted line might already belong to an
+	// issued invoice. This is safe because a zero-fiat line cannot yield a credit note, where
+	// the deleted line would be an issue.
+	runBase, err := s.Adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+		ID:        currentRun.ID,
+		Immutable: mo.Some(true),
+	})
+	if err != nil {
+		return fmt.Errorf("mark zero-fiat-amount overage run immutable: %w", err)
 	}
 
-	s.Charge.Realizations.PriorRuns = append(s.Charge.Realizations.PriorRuns, *currentRun)
-	s.Charge.Realizations.CurrentRun = nil
+	currentRun.RealizationRunBase = runBase
 	s.Charge.State.AdvanceAfter = nil
 
 	return nil
