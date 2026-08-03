@@ -37,7 +37,7 @@ export interface ListCurrenciesQuery {
   /**
    * Expand the currencies returned in the response.
    *
-   * To include the currently-active cost basis add: expand=cost_basis
+   * To include the active and scheduled cost basis add: expand=cost_basis
    */
   expand?: 'cost_basis'[]
 }

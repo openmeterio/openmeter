@@ -842,7 +842,7 @@ paths:
           description: |-
             Expand the currencies returned in the response.
 
-            To include the currently-active cost basis add: expand=cost_basis
+            To include the active and scheduled cost basis add: expand=cost_basis
           schema:
             type: array
             items:
@@ -5900,7 +5900,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BillingCostBasis'
-          description: The list of active cost basis for the custom currency.
+          description: |-
+            The list of active and scheduled cost bases for the custom currency. Expired and
+            deleted cost bases are excluded.
           readOnly: true
       additionalProperties: false
       description: Describes custom currency.
@@ -5913,7 +5915,7 @@ components:
 
         Values:
 
-        - `cost_basis`: The currency's currently-active cost basis.
+        - `cost_basis`: The currency's active and scheduled cost basis.
       title: Currency expands
     BillingCurrencyFiat:
       type: object

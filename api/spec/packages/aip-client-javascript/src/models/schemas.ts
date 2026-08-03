@@ -1027,7 +1027,7 @@ export const currencyExpand = z
   .enum(['cost_basis'])
 
   .describe(
-    "Expands for currencies. Values: - `cost_basis`: The currency's currently-active cost basis.",
+    "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
   )
 
 export const featureLlmTokenType = z
@@ -3738,7 +3738,10 @@ export const currencyCustom = z
     costBasis: z
       .array(costBasis)
       .optional()
-      .describe('The list of active cost basis for the custom currency.'),
+
+      .describe(
+        'The list of active and scheduled cost bases for the custom currency. Expired and deleted cost bases are excluded.',
+      ),
   })
   .describe('Describes custom currency.')
 
@@ -6545,7 +6548,7 @@ export const listCurrenciesQueryParams = z.object({
     .optional()
 
     .describe(
-      'Expand the currencies returned in the response. To include the currently-active cost basis add: expand=cost_basis',
+      'Expand the currencies returned in the response. To include the active and scheduled cost basis add: expand=cost_basis',
     ),
 })
 
@@ -7900,7 +7903,7 @@ export const currencyExpandWire = z
   .enum(['cost_basis'])
 
   .describe(
-    "Expands for currencies. Values: - `cost_basis`: The currency's currently-active cost basis.",
+    "Expands for currencies. Values: - `cost_basis`: The currency's active and scheduled cost basis.",
   )
 
 export const featureLlmTokenTypeWire = z
@@ -10593,7 +10596,10 @@ export const currencyCustomWire = z
     cost_basis: z
       .array(costBasisWire)
       .optional()
-      .describe('The list of active cost basis for the custom currency.'),
+
+      .describe(
+        'The list of active and scheduled cost bases for the custom currency. Expired and deleted cost bases are excluded.',
+      ),
   })
   .describe('Describes custom currency.')
 
@@ -13456,7 +13462,7 @@ export const listCurrenciesQueryParamsWire = z.object({
     .optional()
 
     .describe(
-      'Expand the currencies returned in the response. To include the currently-active cost basis add: expand=cost_basis',
+      'Expand the currencies returned in the response. To include the active and scheduled cost basis add: expand=cost_basis',
     ),
 })
 

@@ -343,7 +343,7 @@ func (a *adapter) GetCurrency(ctx context.Context, params currencies.GetCurrency
 			)
 
 		if params.CostBasis {
-			q = WithCostBasis(q)
+			q = WithActiveAndScheduledCostBasis(q, at)
 		}
 
 		c, err := q.First(ctx)
