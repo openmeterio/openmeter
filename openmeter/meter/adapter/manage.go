@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	featuredb "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
@@ -159,6 +160,9 @@ func (a *Adapter) HasEntitlementForMeter(ctx context.Context, namespace, meterID
 						),
 						entitlementdb.Or(entitlementdb.ActiveToIsNil(), entitlementdb.ActiveToGT(now)),
 						entitlementdb.Namespace(namespace),
+						entitlementdb.HasCustomerWith(
+							customerdb.Or(customerdb.DeletedAtGT(now), customerdb.DeletedAtIsNil()),
+						),
 						entitlementdb.HasFeatureWith(featuredb.MeterIDEQ(meterID)),
 					).
 					Exist(ctx)

@@ -135,11 +135,12 @@ func TestHasEntitlementForMeter(t *testing.T) {
 	defer clock.UnFreeze()
 
 	tests := []struct {
-		name            string
-		activeFrom      time.Time
-		activeTo        *time.Time
-		customerDeleted bool
-		want            bool
+		name               string
+		activeFrom         time.Time
+		activeTo           *time.Time
+		customerDeleted    bool
+		entitlementDeleted bool
+		want               bool
 	}{
 		{
 			name:       "active entitlement",
@@ -147,11 +148,22 @@ func TestHasEntitlementForMeter(t *testing.T) {
 			want:       true,
 		},
 		{
-			name:            "ended entitlement for deleted customer",
-			activeFrom:      now.Add(-2 * time.Hour),
-			activeTo:        lo.ToPtr(now.Add(-time.Hour)),
+			name:       "ended entitlement",
+			activeFrom: now.Add(-2 * time.Hour),
+			activeTo:   lo.ToPtr(now.Add(-time.Hour)),
+			want:       false,
+		},
+		{
+			name:            "active entitlement for deleted customer",
+			activeFrom:      now.Add(-time.Hour),
 			customerDeleted: true,
 			want:            false,
+		},
+		{
+			name:               "deleted active entitlement",
+			activeFrom:         now.Add(-time.Hour),
+			entitlementDeleted: true,
+			want:               false,
 		},
 		{
 			name:       "scheduled entitlement",
@@ -187,15 +199,19 @@ func TestHasEntitlementForMeter(t *testing.T) {
 				Save(t.Context())
 			require.NoError(t, err)
 
-			_, err = env.Client.Entitlement.Create().
+			entitlementCreate := env.Client.Entitlement.Create().
 				SetNamespace(namespace).
 				SetEntitlementType(entitlementdb.EntitlementTypeBoolean).
 				SetFeatureID(featureEntity.ID).
 				SetFeatureKey(featureEntity.Key).
 				SetCustomerID(customerEntity.ID).
 				SetActiveFrom(tt.activeFrom).
-				SetNillableActiveTo(tt.activeTo).
-				Save(t.Context())
+				SetNillableActiveTo(tt.activeTo)
+			if tt.entitlementDeleted {
+				entitlementCreate.SetDeletedAt(now)
+			}
+
+			_, err = entitlementCreate.Save(t.Context())
 			require.NoError(t, err)
 
 			if tt.customerDeleted {
