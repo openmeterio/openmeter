@@ -81,10 +81,12 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 			return nil, fmt.Errorf("flat fee charge[%s] not found for gathering preview line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
 
-		// Custom-currency gathering lines are scheduling placeholders. They
-		// remain zero until an actual draft invoice realization has resolved
-		// and persisted the charge's cost basis.
+		// Custom-currency gathering lines are scheduling placeholders. A preview
+		// cannot allocate credits to calculate the post-allocation overage, so the
+		// zero-fiat placeholder is omitted from the returned invoice.
 		if charge.Intent.GetCurrency().IsCustom() {
+			stdLine.DeletedAt = lo.ToPtr(clock.Now())
+
 			if err := stdLine.Validate(); err != nil {
 				return nil, fmt.Errorf("validating custom currency gathering preview line[%s]: %w", stdLine.ID, err)
 			}
@@ -104,6 +106,7 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 		if err := populateFlatFeeStandardLineFromRun(stdLine, populateFlatFeeStandardLineFromRunInput{
 			Charge: charge,
 			Run:    previewResult.Run,
+			Stage:  standardLinePopulationStageGatheringPreview,
 		}); err != nil {
 			return nil, fmt.Errorf("populating gathering preview line[%s] from run: %w", stdLine.ID, err)
 		}
@@ -150,6 +153,7 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		if err := populateFlatFeeStandardLineFromRun(stdLine, populateFlatFeeStandardLineFromRunInput{
 			Charge: charge,
 			Run:    *charge.Realizations.CurrentRun,
+			Stage:  standardLinePopulationStageInvoiceCreated,
 		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
@@ -193,6 +197,27 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 
 		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
 			return nil, fmt.Errorf("advancing flat fee charge[%s] after collection_completed: %w", stateMachine.GetCharge().ID, err)
+		}
+
+		charge := stateMachine.GetCharge()
+		// Advancement can finalize a zero-fiat-amount overage and detach the
+		// current run before the collected line is mapped. The line ID remains
+		// the stable association for both current and completed runs.
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err != nil {
+			return nil, fmt.Errorf("getting realization run for charge[%s] and line[%s]: %w", charge.ID, stdLine.ID, err)
+		}
+
+		if err := populateFlatFeeStandardLineFromRun(stdLine, populateFlatFeeStandardLineFromRunInput{
+			Charge: charge,
+			Run:    run,
+			Stage:  standardLinePopulationStageCollectionCompleted,
+		}); err != nil {
+			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
+		}
+
+		if err := stdLine.Validate(); err != nil {
+			return nil, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
 		}
 	}
 
@@ -742,6 +767,13 @@ func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input bill
 
 		if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.ID.ID == run.ID.ID {
 			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is still current for charge[%s]", stdLine.ID, run.ID.ID, charge.ID)
+		}
+
+		// Collection deletes only the presentation line for a zero-fiat-amount
+		// overage. Its run, credits, and details remain durable billing history
+		// and must not enter mutable-line cleanup.
+		if isZeroFiatAmountOverageRun(charge, run) {
+			continue
 		}
 
 		if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{

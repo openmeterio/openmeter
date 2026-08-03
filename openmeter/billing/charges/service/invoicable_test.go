@@ -119,6 +119,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsW
 			Amount: 100,
 			Total:  100,
 		},
+		ExpectedLines: 1,
 		ExpectedLineTotals: billingtest.ExpectedTotals{
 			Amount: 100,
 			Total:  100,
@@ -151,9 +152,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 		expectInvoiceTotals billingtest.ExpectedTotals
 
 		expectPaymentSettled bool
-		// TODO[later]: one we have proper overage line deletion we can remove this flag, and instead check that the line is deleted.
-		// TODO[later]: let's also validate that the invoice is deleted if there's no lines left on it.
-		skipDeletionCheck bool
+		expectLineDeleted    bool
 	}
 
 	// setup:
@@ -201,7 +200,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 			creditsAllocated:    10,
 			expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, CreditsTotal: 10},
 			expectInvoiceTotals: billingtest.ExpectedTotals{},
-			skipDeletionCheck:   true,
+			expectLineDeleted:   true,
 		},
 		// given:
 		// - a positive 0.001 TOKENS overage whose converted value is below USD precision
@@ -214,7 +213,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 			chargeAmount:        0.001,
 			expectRunTotals:     billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001},
 			expectInvoiceTotals: billingtest.ExpectedTotals{},
-			skipDeletionCheck:   true,
+			expectLineDeleted:   true,
 		},
 	}
 
@@ -469,13 +468,26 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 			s.Run("reload persisted charge and invoice", func() {
 				charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
 				s.Equal(flatfee.StatusFinal, charge.Status)
-				s.Require().NotNil(charge.Realizations.CurrentRun)
 
-				run := charge.Realizations.CurrentRun
+				var run *flatfee.RealizationRun
+				if test.expectLineDeleted {
+					s.Nil(charge.Realizations.CurrentRun)
+					s.Require().Len(charge.Realizations.PriorRuns, 1)
+					run = &charge.Realizations.PriorRuns[0]
+					s.False(run.Immutable)
+				} else {
+					s.Require().NotNil(charge.Realizations.CurrentRun)
+					run = charge.Realizations.CurrentRun
+					s.True(run.Immutable)
+				}
+
 				s.Equal(runID, run.ID.ID)
-				s.True(run.Immutable)
 				s.RequireTotals(test.expectRunTotals, run.Totals)
 				s.Equal(!test.expectPaymentSettled, run.NoFiatTransactionRequired)
+				s.Equal(test.creditsAllocated, run.CreditRealizations.Sum().InexactFloat64())
+				s.True(run.DetailedLines.IsPresent())
+				s.Require().Len(run.DetailedLines.OrEmpty(), 1)
+				s.RequireTotals(test.expectRunTotals, run.DetailedLines.OrEmpty()[0].Totals)
 
 				if test.expectPaymentSettled {
 					s.Equal(1, customCurrencyOverageAccruedCalls)
@@ -508,6 +520,11 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				s.Require().NoError(err)
 				s.Equal(currencyx.FiatCode(USD), activeInvoice.Currency)
 				s.RequireTotals(test.expectInvoiceTotals, activeInvoice.Totals)
+				if test.expectLineDeleted {
+					s.Empty(activeInvoice.Lines.OrEmpty())
+				} else {
+					s.Require().Len(activeInvoice.Lines.OrEmpty(), 1)
+				}
 
 				invoiceWithDeletedLines, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 					Invoice: invoice.GetInvoiceID(),
@@ -519,21 +536,25 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				s.Require().Len(invoiceWithDeletedLines.Lines.OrEmpty(), 1)
 				line := invoiceWithDeletedLines.Lines.OrEmpty()[0]
 				s.Equal(lineID, line.ID)
-				s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
-					line:               line,
-					expectTokenOverage: test.expectRunTotals.Total,
-					expectCostBasis:    0.5,
-					expectFiatTotals:   test.expectInvoiceTotals,
-				})
 				s.Equal(overageName, line.Name)
 
-				if !test.skipDeletionCheck {
-					s.Require().Len(activeInvoice.Lines.OrEmpty(), 1)
+				if test.expectLineDeleted {
+					s.requireDeletedCustomCurrencyOverageLine(requireDeletedCustomCurrencyOverageLineInput{
+						line:             line,
+						expectFiatTotals: test.expectInvoiceTotals,
+					})
+
+					// TODO: delete the standard invoice when zero overage removes its only line.
+					s.Nil(invoiceWithDeletedLines.DeletedAt)
+				} else {
+					s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
+						line:               line,
+						expectTokenOverage: test.expectRunTotals.Total,
+						expectCostBasis:    0.5,
+						expectFiatTotals:   test.expectInvoiceTotals,
+					})
 					s.Nil(line.DeletedAt)
 				}
-
-				// TODO: assert that billing deletes zero-valued custom-currency
-				// overage lines once overage deletion is implemented.
 			})
 		})
 	}
@@ -639,35 +660,18 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAn
 	originalGatheringLine, err := gatheringInvoice.Lines.OrEmpty()[0].Clone()
 	s.Require().NoError(err)
 
-	s.Run("preview keeps the zero USD placeholder without realizing the charge", func() {
+	s.Run("preview omits the zero USD placeholder without realizing the charge", func() {
 		// given:
 		// - a custom-currency charge is represented by a zero-USD gathering placeholder
 		// when:
 		// - billing calculates the gathering invoice preview with live data
 		// then:
-		// - the placeholder remains unrated and no run or credit allocation is created
+		// - the placeholder is omitted and no run or credit allocation is created
 		s.assertGatheringPreview(assertGatheringPreviewInput{
 			Namespace:             ns,
 			CustomerID:            customer.ID,
 			ExpectedInvoiceTotals: billingtest.ExpectedTotals{},
-			ExpectedLineTotals:    billingtest.ExpectedTotals{},
-			ExpectedDetailedLines: 0,
-			AssertLine: func(previewLine *billing.StandardLine) {
-				s.Equal(chargeID.ID, lo.FromPtr(previewLine.ChargeID))
-				s.Equal(overageName, previewLine.Name)
-				s.Equal(currencyx.FiatCode(USD), previewLine.Currency)
-				reason, ok := previewLine.Annotations.GetString(billing.AnnotationKeyReason)
-				s.True(ok)
-				s.Equal(billing.AnnotationValueReasonOveragePlaceholder, reason)
-				s.Empty(previewLine.RateCardDiscounts)
-				s.Empty(previewLine.Discounts)
-				s.Empty(previewLine.CreditsApplied)
-				s.Require().NotNil(previewLine.UsageBased)
-				s.Require().NotNil(previewLine.UsageBased.Price)
-				flatPrice, err := previewLine.UsageBased.Price.AsFlat()
-				s.Require().NoError(err)
-				s.True(flatPrice.Amount.IsZero())
-			},
+			ExpectedLines:         0,
 		})
 
 		charge := mustGetFlatFeeChargeWithExpands(&s.BaseSuite, chargeID, meta.Expands{meta.ExpandRealizations})
@@ -1457,6 +1461,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedGatheringPreviewPopulatesTota
 			Amount: 30,
 			Total:  30,
 		},
+		ExpectedLines: 1,
 		ExpectedLineTotals: billingtest.ExpectedTotals{
 			Amount: 30,
 			Total:  30,

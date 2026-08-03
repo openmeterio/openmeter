@@ -978,6 +978,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 				Amount: 2.5,
 				Total:  2.5,
 			},
+			ExpectedLines: 1,
 			ExpectedLineTotals: billingtest.ExpectedTotals{
 				Amount: 2.5,
 				Total:  2.5,
@@ -1406,27 +1407,4 @@ func (s *UsageBasedChargesTestSuite) mustGetUsageBasedChargeByID(chargeID meta.C
 	s.NoError(err)
 
 	return usageBasedCharge
-}
-
-type requireDeletedCustomCurrencyOverageLineInput struct {
-	line             *billing.StandardLine
-	expectFiatTotals billingtest.ExpectedTotals
-}
-
-func (s *UsageBasedChargesTestSuite) requireDeletedCustomCurrencyOverageLine(in requireDeletedCustomCurrencyOverageLineInput) {
-	s.T().Helper()
-
-	s.Require().NotNil(in.line.DeletedAt)
-	s.Equal(currencyx.FiatCode(USD), in.line.Currency)
-	switch reason := in.line.Annotations[billing.AnnotationKeyReason].(type) {
-	case string:
-		s.Equal(billing.AnnotationValueReasonOverage, reason)
-	case *string:
-		s.Require().NotNil(reason)
-		s.Equal(billing.AnnotationValueReasonOverage, *reason)
-	default:
-		s.Fail("overage reason annotation has an unexpected type")
-	}
-	s.Empty(in.line.DetailedLines)
-	s.RequireTotals(in.expectFiatTotals, in.line.Totals)
 }

@@ -11,6 +11,7 @@ type assertGatheringPreviewInput struct {
 	CustomerID string
 
 	ExpectedInvoiceTotals billingtest.ExpectedTotals
+	ExpectedLines         int
 	ExpectedLineTotals    billingtest.ExpectedTotals
 	ExpectedDetailedLines int
 
@@ -36,7 +37,11 @@ func (s *BaseSuite) assertGatheringPreview(input assertGatheringPreviewInput) bi
 	s.RequireTotals(input.ExpectedInvoiceTotals, previewInvoice.Totals)
 
 	s.Require().True(previewInvoice.Lines.IsPresent())
-	s.Require().Len(previewInvoice.Lines.OrEmpty(), 1)
+	s.Require().Len(previewInvoice.Lines.OrEmpty(), input.ExpectedLines)
+	if input.ExpectedLines == 0 {
+		return previewInvoice
+	}
+
 	previewLine := previewInvoice.Lines.OrEmpty()[0]
 	s.Len(previewLine.DetailedLines, input.ExpectedDetailedLines)
 	s.RequireTotals(input.ExpectedLineTotals, previewLine.Totals)
