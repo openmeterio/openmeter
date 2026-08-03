@@ -148,9 +148,16 @@ func (a *Adapter) HasEntitlementForMeter(ctx context.Context, namespace, meterID
 			ctx,
 			a,
 			func(ctx context.Context, repo *Adapter) (bool, error) {
+				now := clock.Now()
+
 				exists, err := repo.db.Entitlement.Query().
 					Where(
-						entitlementdb.Or(entitlementdb.DeletedAtGT(clock.Now()), entitlementdb.DeletedAtIsNil()),
+						entitlementdb.Or(entitlementdb.DeletedAtGT(now), entitlementdb.DeletedAtIsNil()),
+						entitlementdb.Or(
+							entitlementdb.And(entitlementdb.ActiveFromIsNil(), entitlementdb.CreatedAtLTE(now)),
+							entitlementdb.ActiveFromLTE(now),
+						),
+						entitlementdb.Or(entitlementdb.ActiveToIsNil(), entitlementdb.ActiveToGT(now)),
 						entitlementdb.Namespace(namespace),
 						entitlementdb.HasFeatureWith(featuredb.MeterIDEQ(meterID)),
 					).
