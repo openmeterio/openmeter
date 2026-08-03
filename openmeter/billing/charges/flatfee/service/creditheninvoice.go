@@ -13,12 +13,12 @@ import (
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type CreditThenInvoiceStateMachine struct {
@@ -66,7 +66,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 	s.Configure(flatfee.StatusCreated).
 		// Zero-amount CTI flat fees intentionally skip the billing line
 		// engine. Once invoice_at is reached there will be no gathering
-		// line to produce TriggerFinalInvoiceCreated, so the charge closes
+		// line to produce TriggerInvoiceCreated, so the charge closes
 		// directly from created.
 		Permit(
 			meta.TriggerNext,
@@ -94,12 +94,15 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		// no line-engine path left, so active must not become their terminal
 		// operational state.
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsZeroAmount)).
-		Permit(meta.TriggerFinalInvoiceCreated, flatfee.StatusActiveRealizationStarted).
+		Permit(meta.TriggerInvoiceCreated, flatfee.StatusActiveRealizationStarted).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
-		OnActive(s.AdvanceAfterServicePeriodTo)
+		OnActive(statelessx.AllOf(
+			s.ResolveDynamicCostBasis,
+			s.AdvanceAfterServicePeriodTo,
+		))
 
 	s.Configure(flatfee.StatusActiveRealizationStarted).
 		Permit(meta.TriggerNext, flatfee.StatusActiveRealizationWaitingForCollection).
@@ -107,7 +110,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
-		OnEntryFrom(meta.TriggerFinalInvoiceCreated, statelessx.WithParameters(s.StartRealization))
+		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.StartRealization))
 
 	s.Configure(flatfee.StatusActiveRealizationWaitingForCollection).
 		Permit(meta.TriggerCollectionCompleted, flatfee.StatusActiveRealizationProcessing).
@@ -141,7 +144,6 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 
 	s.Configure(flatfee.StatusActiveAwaitingPaymentSettlement).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
-		Permit(meta.TriggerAllPaymentsSettled, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
@@ -166,6 +168,9 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 	if err != nil {
 		return fmt.Errorf("getting patch target layer: %w", err)
 	}
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
+	}
 
 	if err := s.mutateIntentLayer(ctx, target, func(fields *flatfee.IntentMutableFields) {
 		fields.IntentDeletedAt = deletedAt
@@ -173,15 +178,9 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 		return fmt.Errorf("deleting intent: %w", err)
 	}
 
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// the customer-facing charge and invoice history remain owned by the override.
-		return nil
-	}
-
 	s.Charge.Status = flatfee.StatusDeleted
 
-	patches := []invoiceupdater.Patch{
+	patches := invoiceupdater.Patches{
 		invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID),
 	}
 	currentRun := s.Charge.Realizations.CurrentRun
@@ -221,10 +220,6 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 		return err
 	}
 
-	if !invoicingStateInput.ShouldReconcile {
-		return nil
-	}
-
 	return s.reconcileInvoicingState(ctx, invoicingStateInput)
 }
 
@@ -234,10 +229,6 @@ func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch 
 		return err
 	}
 
-	if !invoicingStateInput.ShouldReconcile {
-		return nil
-	}
-
 	return s.reconcileInvoicingState(ctx, invoicingStateInput)
 }
 
@@ -245,6 +236,9 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
 		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
 	}
 
 	override := patch.GetOverride()
@@ -333,9 +327,7 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 	}
 
 	return s.reconcileInvoicingState(ctx, reconcileInvoicingStateInput{
-		ShouldReconcile:         true,
 		Op:                      meta.PatchTypeLineManualEdit,
-		Period:                  s.Charge.Intent.GetEffectiveServicePeriod(),
 		Intent:                  s.Charge.Intent,
 		OldAmountAfterProration: oldAmountAfterProration,
 		NewAmountAfterProration: amountAfterProration,
@@ -346,6 +338,9 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
 		return reconcileInvoicingStateInput{}, fmt.Errorf("getting patch target layer: %w", err)
+	}
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return reconcileInvoicingStateInput{}, err
 	}
 
 	targetIntent, err := s.Charge.Intent.GetIntentForTarget(target)
@@ -368,21 +363,13 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 
 	s.Charge.Intent = intent
 
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// the customer-facing invoice remains owned by the override layer.
-		return reconcileInvoicingStateInput{}, nil
-	}
-
 	amountAfterProration, err := intent.CalculateAmountAfterProration()
 	if err != nil {
 		return reconcileInvoicingStateInput{}, fmt.Errorf("calculating amount after proration: %w", err)
 	}
 
 	return reconcileInvoicingStateInput{
-		ShouldReconcile:         true,
 		Op:                      patch.Op(),
-		Period:                  intent.GetEffectiveServicePeriod(),
 		Intent:                  intent,
 		OldAmountAfterProration: s.Charge.State.AmountAfterProration,
 		NewAmountAfterProration: amountAfterProration,
@@ -401,6 +388,54 @@ func (s *CreditThenInvoiceStateMachine) UnsupportedShrinkOperation(_ context.Con
 	)
 }
 
+// ResolveDynamicCostBasis idempotently persists the dynamic cost basis
+// effective at the charge's service-period start. Once resolved, the persisted
+// value is authoritative and must never be overwritten by lifecycle retries.
+func (s *CreditThenInvoiceStateMachine) ResolveDynamicCostBasis(ctx context.Context) error {
+	intent := s.Charge.Intent.GetCostBasisIntent()
+	if intent == nil || intent.Kind() != costbasis.ModeDynamic {
+		return nil
+	}
+
+	if s.Charge.State.ResolvedCostBasis != nil {
+		return nil
+	}
+
+	if s.Charge.State.CostBasisID == nil {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("dynamic cost basis reference is missing for flat-fee charge %s", s.Charge.ID),
+		)
+	}
+
+	resolvedState, err := s.Service.costbasisResolver.ResolveDynamicState(ctx, costbasis.ResolveDynamicStateInput{
+		CurrencyID:        s.Charge.Intent.GetCurrency().NamespacedID,
+		Intent:            *intent,
+		ServicePeriodFrom: s.Charge.Intent.GetEffectiveServicePeriod().From,
+	})
+	if err != nil {
+		return fmt.Errorf("resolve dynamic cost basis for flat-fee charge %s: %w", s.Charge.ID, err)
+	}
+
+	persisted, err := s.Adapter.SetResolvedCostBasis(ctx, costbasis.SetResolvedCostBasisInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: s.Charge.Namespace,
+			ID:        *s.Charge.State.CostBasisID,
+		},
+		State: resolvedState,
+	})
+	if err != nil {
+		return fmt.Errorf("persist dynamic cost basis for flat-fee charge %s: %w", s.Charge.ID, err)
+	}
+
+	if persisted.State == nil {
+		return fmt.Errorf("persisted dynamic cost basis is unresolved for flat-fee charge %s", s.Charge.ID)
+	}
+
+	s.Charge.State.ResolvedCostBasis = persisted.State
+
+	return nil
+}
+
 // StartRealization creates the current run. The line engine maps the run back
 // onto the returned standard line before billing persists line updates.
 func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
@@ -409,9 +444,9 @@ func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, in
 	}
 
 	result, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
-		Charge:  s.Charge,
-		Line:    *input.Line,
-		Invoice: input.Invoice,
+		Charge:    s.Charge,
+		LineID:    input.Line.ID,
+		InvoiceID: input.Invoice.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("start credit-then-invoice run: %w", err)
@@ -448,9 +483,8 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 	}
 
 	gatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
-		Charge:        s.Charge,
-		ServicePeriod: s.Charge.Intent.GetEffectiveServicePeriod(),
-		InvoiceAt:     s.Charge.Intent.GetEffectiveInvoiceAt(),
+		Charge:    s.Charge,
+		InvoiceAt: s.Charge.Intent.GetEffectiveInvoiceAt(),
 	})
 	if err != nil {
 		return fmt.Errorf("creating flat-fee attach target line: %w", err)
@@ -464,9 +498,9 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 	line.ID = input.Line.ID
 
 	result, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
-		Charge:  s.Charge,
-		Line:    *line,
-		Invoice: input.Invoice,
+		Charge:    s.Charge,
+		LineID:    line.ID,
+		InvoiceID: input.Invoice.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("start attached credit-then-invoice run: %w", err)
@@ -474,7 +508,10 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 
 	s.Charge.Realizations.CurrentRun = &result.Run
 
-	if err := populateFlatFeeStandardLineFromRun(line, result.Run); err != nil {
+	if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
+		Charge: s.Charge,
+		Run:    result.Run,
+	}); err != nil {
 		return fmt.Errorf("mapping attached flat-fee run to standard line[%s]: %w", line.ID, err)
 	}
 
@@ -521,9 +558,7 @@ func (s *CreditThenInvoiceStateMachine) AreAllPaymentsSettled() bool {
 }
 
 type reconcileInvoicingStateInput struct {
-	ShouldReconcile         bool
 	Op                      meta.PatchType
-	Period                  timeutil.ClosedPeriod
 	Intent                  flatfee.OverridableIntent
 	OldAmountAfterProration alpacadecimal.Decimal
 	NewAmountAfterProration alpacadecimal.Decimal
@@ -578,9 +613,8 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
 
 	updatedGatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
-		Charge:        s.Charge,
-		ServicePeriod: input.Period,
-		InvoiceAt:     s.Charge.Intent.GetEffectiveInvoiceAt(),
+		Charge:    s.Charge,
+		InvoiceAt: s.Charge.Intent.GetEffectiveInvoiceAt(),
 	})
 	if err != nil {
 		return fmt.Errorf("creating gathering line for %s period: %w", input.Op, err)
@@ -661,22 +695,25 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 
 		line.ID = *currentRun.LineID
 
-		// The invoice updater rebuilt the mutable standard line from the new
-		// charge intent, but the charge realization run still describes the old
-		// line amount and credit allocations. Reconcile them before handing the
-		// updated line back to billing.
-		result, err := s.Realizations.ReconcileStandardLineToIntent(ctx, flatfeerealizations.ReconcileStandardLineToIntentInput{
+		// The mutable run still describes the previous effective intent.
+		// Rerate and reconcile it first, then project the resulting charge state
+		// onto the billing-owned line identity.
+		result, err := s.Realizations.ReconcileRunToIntent(ctx, flatfeerealizations.ReconcileRunToIntentInput{
 			Charge:     s.Charge,
 			Run:        *currentRun,
-			Line:       *line,
-			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), currentRun.ServicePeriod),
+			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), s.Charge.Intent.GetEffectiveServicePeriod()),
 		})
 		if err != nil {
-			return fmt.Errorf("reconcile standard line to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)
+			return fmt.Errorf("reconcile run to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)
 		}
 
 		s.Charge.Realizations.CurrentRun = &result.Run
-		line = &result.Line
+		if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
+			Charge: s.Charge,
+			Run:    result.Run,
+		}); err != nil {
+			return fmt.Errorf("mapping reconciled flat-fee run to standard line[%s]: %w", line.ID, err)
+		}
 
 		genericLine, err := line.AsInvoiceLine().AsGenericLine()
 		if err != nil {

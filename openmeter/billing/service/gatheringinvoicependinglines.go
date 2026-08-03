@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -166,7 +167,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				}
 			}
 
-			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.GatheringInvoice) (currencyx.Code, gatheringInvoiceWithFeatureMeters) {
+			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.GatheringInvoice) (currencyx.FiatCode, gatheringInvoiceWithFeatureMeters) {
 				return i.Currency, gatheringInvoiceWithFeatureMeters{
 					Invoice: i,
 				}
@@ -198,7 +199,7 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				return nil, err
 			}
 
-			linesToBeBilledByCurrency := make(map[currencyx.Code]billing.GatheringLines)
+			linesToBeBilledByCurrency := make(map[currencyx.FiatCode]billing.GatheringLines)
 
 			for currency, inScopeLines := range inScopeLinesByCurrency {
 				// Let's first make sure we have properly split the progressively billed
@@ -310,7 +311,7 @@ type gatheringInvoiceWithFeatureMeters struct {
 }
 
 type gatherInScopeLineInput struct {
-	GatheringInvoicesByCurrency map[currencyx.Code]gatheringInvoiceWithFeatureMeters
+	GatheringInvoicesByCurrency map[currencyx.FiatCode]gatheringInvoiceWithFeatureMeters
 	// If set restricts the lines to be included to these IDs, otherwise the AsOf is used
 	// to determine the lines to be included.
 	LinesToInclude     mo.Option[[]string]
@@ -318,7 +319,7 @@ type gatherInScopeLineInput struct {
 	ProgressiveBilling bool
 }
 
-type gatherInScopeLinesResult map[currencyx.Code][]gatheringLineWithBillablePeriod
+type gatherInScopeLinesResult map[currencyx.FiatCode][]gatheringLineWithBillablePeriod
 
 func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineInput) (gatherInScopeLinesResult, error) {
 	res := make(gatherInScopeLinesResult)
@@ -495,7 +496,7 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 	}
 
 	inScopeLines, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
-		GatheringInvoicesByCurrency: map[currencyx.Code]gatheringInvoiceWithFeatureMeters{
+		GatheringInvoicesByCurrency: map[currencyx.FiatCode]gatheringInvoiceWithFeatureMeters{
 			in.Invoice.Currency: {
 				Invoice:       in.Invoice,
 				FeatureMeters: in.FeatureMeters,
@@ -677,13 +678,13 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("fetching customer profile: %w", err)
 	}
 
-	invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
-		billing.SequenceGenerationInput{
+	invoiceNumber, err := s.sequenceService.GenerateInvoiceSequenceNumber(ctx,
+		sequence.GenerationInput{
 			Namespace:    in.Customer.Namespace,
 			CustomerName: profile.Customer.Name,
 			Currency:     in.Currency,
 		},
-		billing.DraftInvoiceSequenceNumber,
+		sequence.DraftInvoiceSequenceNumber,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("generating invoice number: %w", err)

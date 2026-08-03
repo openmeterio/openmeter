@@ -9,6 +9,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -25,6 +26,7 @@ type balanceBucketRow struct {
 	RoutingKeyVersion              string
 	RoutingKey                     string
 	Currency                       string
+	CostBasisCurrency              stdsql.NullString
 	TaxCode                        stdsql.NullString
 	TaxBehavior                    stdsql.NullString
 	Features                       pq.StringArray
@@ -78,6 +80,7 @@ func (r *balanceBucketRow) destinations() []any {
 		&r.RoutingKeyVersion,
 		&r.RoutingKey,
 		&r.Currency,
+		&r.CostBasisCurrency,
 		&r.TaxCode,
 		&r.TaxBehavior,
 		&r.Features,
@@ -103,11 +106,17 @@ func (r balanceBucketRow) toBalanceBucket(groupBy []string) (ledger.BalanceBucke
 		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s cost basis: %w", r.SubAccountID, err)
 	}
 
+	currency, err := currencies.ParseCurrencyReference([]byte(r.Currency))
+	if err != nil {
+		return ledger.BalanceBucket{}, fmt.Errorf("sub-account %s currency: %w", r.SubAccountID, err)
+	}
+
 	address, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
 		SubAccountID: r.SubAccountID,
 		AccountType:  ledger.AccountType(r.AccountType),
 		Route: ledger.Route{
-			Currency:                       currencyx.Code(r.Currency),
+			Currency:                       currency,
+			CostBasisCurrency:              nullableCurrencyCode(r.CostBasisCurrency),
 			TaxCode:                        nullableStringValue(r.TaxCode),
 			TaxBehavior:                    nullableTaxBehavior(r.TaxBehavior),
 			Features:                       []string(r.Features),
@@ -151,6 +160,14 @@ func nullableStringValue(value stdsql.NullString) *string {
 	}
 
 	return lo.ToPtr(value.String)
+}
+
+func nullableCurrencyCode(value stdsql.NullString) *currencyx.Code {
+	if !value.Valid {
+		return nil
+	}
+
+	return lo.ToPtr(currencyx.Code(value.String))
 }
 
 func nullableTaxBehavior(value stdsql.NullString) *ledger.TaxBehavior {

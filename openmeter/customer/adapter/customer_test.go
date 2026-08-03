@@ -42,15 +42,13 @@ type testEnv struct {
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 
-	testdb := testutils.InitPostgresDB(t)
+	testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	dbClient := testdb.EntDriver.Client()
 
 	t.Cleanup(func() {
 		_ = dbClient.Close()
 		testdb.Close(t)
 	})
-
-	require.NoError(t, dbClient.Schema.Create(t.Context()), "schema migration must not fail")
 
 	adapter, err := customeradapter.New(customeradapter.Config{
 		Client: dbClient,
@@ -476,6 +474,35 @@ func TestGetCustomersByUsageAttribution(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Empty(t, customerIDs(got), "soft-deleted customer must not be returned")
+	})
+
+	t.Run("CustomerDeletedInFutureIncluded", func(t *testing.T) {
+		// given:
+		// - a customer whose own deleted_at is future-dated, set directly via Ent; the bulk analog
+		//   of the single-key CustomerDeletedInFutureIncluded.
+		// then:
+		// - the customer is returned once for a key set covering both its own key and its subject key,
+		//   because the deleted_at grace window now applies to the owning customer on both branches.
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		id := env.seedCustomerWithKey(ns, "key-a", "subj-a")
+		now := freezeTime(t, time.Now())
+
+		_, err := env.db.Customer.Update().
+			Where(
+				customerdb.Namespace(ns),
+				customerdb.ID(id),
+			).
+			SetDeletedAt(now.Add(time.Minute)).
+			Save(t.Context())
+		require.NoError(t, err)
+
+		got, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      []string{"key-a", "subj-a"},
+		})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{id}, customerIDs(got))
 	})
 
 	t.Run("SoftDeletedSubjectExcludedButCustomerKeyStillMatches", func(t *testing.T) {

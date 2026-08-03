@@ -7,7 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestUsageBasedLineParser(t *testing.T) {
@@ -88,4 +90,30 @@ func TestUsageBasedLineParser(t *testing.T) {
 	})
 	require.Error(err)
 	require.Nil(parsed)
+}
+
+func TestUsageBasedLineParserRejectsFlatPriceUsageDiscount(t *testing.T) {
+	flatPriceAPI := api.RateCardUsageBasedPrice{}
+	require.NoError(t, flatPriceAPI.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+		Amount:      "100",
+		PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
+		Type:        api.FlatPriceWithPaymentTermTypeFlat,
+	}))
+
+	parsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
+		RateCard: &api.InvoiceUsageBasedRateCard{
+			Price: &flatPriceAPI,
+			Discounts: &api.BillingDiscounts{
+				Percentage: &api.BillingDiscountPercentage{
+					Percentage: models.NewPercentage(50),
+				},
+				Usage: &api.BillingDiscountUsage{
+					Quantity: "1",
+				},
+			},
+		},
+	})
+
+	require.Nil(t, parsed)
+	require.ErrorIs(t, err, productcatalog.ErrUsageDiscountWithFlatPrice)
 }

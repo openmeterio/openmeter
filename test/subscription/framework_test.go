@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -16,6 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
+	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
@@ -85,6 +88,18 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	})
 	require.NoError(t, err)
 
+	billingSequenceAdapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
+		Client: deps.DBDeps.DBClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	billingSequenceService, err := billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: billingSequenceAdapter,
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
+	})
+	require.NoError(t, err)
+
 	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
 		Client: deps.DBDeps.DBClient,
 		Logger: slog.Default(),
@@ -99,6 +114,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		SequenceService:              billingSequenceService,
 		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		CustomerService:              deps.CustomerService,
 		AppService:                   appService,
@@ -136,8 +152,8 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	// OpenMeter sandbox (registration as side-effect)
 	_, err = appsandbox.NewMockableFactory(t, appsandbox.Config{
-		AppService:     appService,
-		BillingService: billingService,
+		AppService:      appService,
+		SequenceService: billingSequenceService,
 	})
 	require.NoError(t, err)
 

@@ -262,6 +262,16 @@ func CurrencyHasSuffix(v currencyx.Code) predicate.BillingStandardInvoiceDetaile
 	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldHasSuffix(FieldCurrency, vc))
 }
 
+// CurrencyIsNil applies the IsNil predicate on the "currency" field.
+func CurrencyIsNil() predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldIsNull(FieldCurrency))
+}
+
+// CurrencyNotNil applies the NotNil predicate on the "currency" field.
+func CurrencyNotNil() predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldNotNull(FieldCurrency))
+}
+
 // CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
 func CurrencyEqualFold(v currencyx.Code) predicate.BillingStandardInvoiceDetailedLine {
 	vc := string(v)

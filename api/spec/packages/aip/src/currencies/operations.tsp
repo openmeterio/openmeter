@@ -54,6 +54,14 @@ interface CurrenciesOperations {
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListCurrenciesParamsFilter,
+
+    /**
+     * Expand the currencies returned in the response.
+     *
+     * To include the active and scheduled cost basis add: expand=cost_basis
+     */
+    @query(#{ explode: false })
+    expand?: CurrenciesExpand[],
   ): Shared.PagePaginatedResponse<Currency> | Common.ErrorResponses;
 }
 
@@ -69,5 +77,17 @@ interface CurrenciesCustomOperations {
   @summary("Create custom currency")
   create(@body body: Shared.CreateRequest<CurrencyCustom>):
     | Shared.CreateResponse<CurrencyCustom>
+    | Common.ErrorResponses;
+
+  /**
+   * Get a custom currency.
+   */
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @get
+  @operationId("get-custom-currency")
+  @summary("Get custom currency")
+  get(@path currencyId: Shared.ULID):
+    | Shared.GetResponse<CurrencyCustom>
     | Common.ErrorResponses;
 }

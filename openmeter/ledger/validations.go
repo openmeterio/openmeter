@@ -6,24 +6,45 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ValidateInvariance validates that Debit - Credit = 0 for the given entries.
+// ValidateInvariance validates that Debit - Credit = 0 for each currency in the given entries.
 func ValidateInvariance(ctx context.Context, entries []EntryInput) error {
-	total := alpacadecimal.NewFromInt(0)
+	totals := make(map[string]alpacadecimal.Decimal)
+	currencyByKey := make(map[string]currencies.CurrencyReference)
+	currencyKeys := make([]string, 0)
+
 	for _, entry := range entries {
-		total = total.Add(entry.Amount())
+		currency := entry.PostingAddress().Route().Route().Currency
+		currencyKey := currency.IdentityKey()
+
+		total, ok := totals[currencyKey]
+		if !ok {
+			currencyKeys = append(currencyKeys, currencyKey)
+			currencyByKey[currencyKey] = currency
+			total = alpacadecimal.NewFromInt(0)
+		}
+
+		totals[currencyKey] = total.Add(entry.Amount())
 	}
 
-	if total.IsZero() {
-		return nil
+	for _, currencyKey := range currencyKeys {
+		total := totals[currencyKey]
+		if total.IsZero() {
+			continue
+		}
+
+		return ErrInvalidTransactionTotal.WithAttrs(models.Attributes{
+			"currency": currencyByKey[currencyKey],
+			"total":    total,
+			"entries":  entries,
+		})
 	}
 
-	return ErrInvalidTransactionTotal.WithAttrs(models.Attributes{
-		"total":   total,
-		"entries": entries,
-	})
+	return nil
 }
 
 func ValidateRouting(ctx context.Context, entries []EntryInput) error {
@@ -60,6 +81,51 @@ func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
 	return nil
 }
 
+// validateEntryAmountPrecision keeps postings at their currency's declared
+// minor-unit precision. Fiat precision comes from the ISO currency table.
+// Custom currency precision comes from the route's persisted reference
+// snapshot, never from a currency-service lookup.
+func validateEntryAmountPrecision(entry EntryInput) error {
+	route := entry.PostingAddress().Route().Route()
+	currencyReference := route.Currency
+	currencyCode := currencyReference.Code
+
+	var currency currencyx.Currency
+	if currencyCode.IsCustom() {
+		resolved, ok := currencyReference.CustomCurrency()
+		if !ok {
+			return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+				"currency": currencyCode,
+				"reason":   "custom_currency_reference_must_be_resolved",
+			})
+		}
+		currency = resolved.Currency
+	} else {
+		built, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(currencyCode).
+			Build()
+		if err != nil {
+			return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+				"currency": currencyCode,
+				"error":    err,
+			})
+		}
+		currency = built
+	}
+
+	amount := entry.Amount()
+	if currency.IsRoundedToPrecision(amount) {
+		return nil
+	}
+
+	return ErrTransactionAmountInvalid.WithAttrs(models.Attributes{
+		"reason":         "amount_not_rounded_to_currency_precision",
+		"currency":       currency.Details().Code,
+		"amount":         amount.String(),
+		"rounded_amount": currency.RoundToPrecision(amount).String(),
+	})
+}
+
 func ValidateAddress(ctx context.Context, address PostingAddress) error {
 	if address == nil {
 		return ErrAddressInvalid.WithAttrs(models.Attributes{
@@ -68,29 +134,6 @@ func ValidateAddress(ctx context.Context, address PostingAddress) error {
 	}
 
 	return nil
-}
-
-func validateEntryAmountPrecision(entry EntryInput) error {
-	currency := entry.PostingAddress().Route().Route().Currency
-	calculator, err := currency.Calculator()
-	if err != nil {
-		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
-			"currency": currency,
-			"error":    err,
-		})
-	}
-
-	amount := entry.Amount()
-	if calculator.IsRoundedToPrecision(amount) {
-		return nil
-	}
-
-	return ErrTransactionAmountInvalid.WithAttrs(models.Attributes{
-		"reason":         "amount_not_rounded_to_currency_precision",
-		"currency":       currency,
-		"amount":         amount.String(),
-		"rounded_amount": calculator.RoundToPrecision(amount).String(),
-	})
 }
 
 func ValidateTransactionInput(ctx context.Context, transaction TransactionInput) error {
@@ -102,18 +145,18 @@ func ValidateTransactionInputWith(ctx context.Context, transaction TransactionIn
 		return ErrTransactionInputRequired
 	}
 
-	// Let's validate that the entries add up
-	if err := ValidateInvariance(ctx, lo.Map(transaction.EntryInputs(), func(e EntryInput, _ int) EntryInput {
+	entries := lo.Map(transaction.EntryInputs(), func(e EntryInput, _ int) EntryInput {
 		return e
-	})); err != nil {
-		return err
-	}
+	})
 
-	// Let's validate the entries themselves
-	for _, entry := range transaction.EntryInputs() {
+	for _, entry := range entries {
 		if err := ValidateEntryInput(ctx, entry); err != nil {
 			return err
 		}
+	}
+
+	if err := ValidateInvariance(ctx, entries); err != nil {
+		return err
 	}
 
 	if routingValidator != nil {

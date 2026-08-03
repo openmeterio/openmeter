@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
@@ -21,13 +22,13 @@ func TestDefaultValidator_AllowsFBOToAccrued(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
@@ -42,13 +43,13 @@ func TestDefaultValidator_AllowsAccruedToFBO(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
@@ -64,13 +65,13 @@ func TestDefaultValidator_AllowsFBOToReceivableReverse(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-open", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TransactionAuthorizationStatus: &openStatus,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -86,13 +87,13 @@ func TestDefaultValidator_RejectsForbiddenAccountCombination(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earnings", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
@@ -106,11 +107,11 @@ func TestDefaultValidator_RejectsDuplicateSubAccountEntries(t *testing.T) {
 	validator := routingrules.DefaultValidator
 	costBasis := alpacadecimal.NewFromInt(1)
 	accruedAddress := addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-dup", ledger.Route{
-		Currency:  currencyx.Code("USD"),
+		Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis: &costBasis,
 	})
 	earningsAddress := addressForRoute(t, ledger.AccountTypeEarnings, "sub-dup", ledger.Route{
-		Currency:  currencyx.Code("USD"),
+		Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis: &costBasis,
 	})
 
@@ -133,11 +134,11 @@ func TestDefaultValidator_AllowsDuplicateSubAccountEntriesWithUniqueIdentities(t
 	validator := routingrules.DefaultValidator
 	costBasis := alpacadecimal.NewFromInt(1)
 	accruedAddress := addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-source", ledger.Route{
-		Currency:  currencyx.Code("USD"),
+		Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis: &costBasis,
 	})
 	earningsAddress := addressForRoute(t, ledger.AccountTypeEarnings, "sub-earnings", ledger.Route{
-		Currency:  currencyx.Code("USD"),
+		Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis: &costBasis,
 	})
 
@@ -179,11 +180,11 @@ func TestDefaultValidator_AllowsDuplicateSubAccountEntriesWithUniqueProvenanceId
 	}.Text()
 	costBasis := alpacadecimal.NewFromInt(1)
 	accruedAddress := addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-source", ledger.Route{
-		Currency:  currencyx.Code("USD"),
+		Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis: &costBasis,
 	})
 	earningsAddress := addressForRoute(t, ledger.AccountTypeEarnings, "sub-earnings", ledger.Route{
-		Currency:  currencyx.Code("USD"),
+		Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis: &costBasis,
 	})
 
@@ -218,7 +219,7 @@ func TestDefaultValidator_RejectsTaxBehaviorOutsideAccruedOrEarnings(t *testing.
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-tax-behavior", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxBehavior: &taxBehavior,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -236,7 +237,7 @@ func TestDefaultValidator_RejectsTaxCodeOnFBO(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-tax-code", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:  &taxCode,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -253,13 +254,13 @@ func TestDefaultValidator_RejectsMismatchedReceivableAndFBORoute(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo", ledger.Route{
-				Currency: currencyx.Code("EUR"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("EUR")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
@@ -275,11 +276,11 @@ func TestDefaultValidator_AllowsFBOCostBasisTranslationBothDirections(t *testing
 	costBasis := alpacadecimal.NewFromInt(1)
 
 	unknownFBO := addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-unknown", ledger.Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CreditPriority: &priority,
 	})
 	knownFBO := addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-known", ledger.Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis:      &costBasis,
 		CreditPriority: &priority,
 	})
@@ -324,14 +325,14 @@ func TestDefaultValidator_RejectsFBOCostBasisTranslationWithMismatchedPriority(t
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-unknown", ledger.Route{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CreditPriority: &unknownPriority,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-known", ledger.Route{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CostBasis:      &costBasis,
 				CreditPriority: &knownPriority,
 			}),
@@ -353,7 +354,7 @@ func TestDefaultValidator_RejectsFBOCostBasisTranslationWithMismatchedTaxBehavio
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-unknown", ledger.Route{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CreditPriority: &priority,
 				TaxBehavior:    &inclusive,
 			}),
@@ -361,7 +362,7 @@ func TestDefaultValidator_RejectsFBOCostBasisTranslationWithMismatchedTaxBehavio
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo-known", ledger.Route{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CostBasis:      &costBasis,
 				CreditPriority: &priority,
 				TaxBehavior:    &exclusive,
@@ -382,7 +383,7 @@ func TestDefaultValidator_AllowsReceivableCostBasisAttributionAcrossFeatures(t *
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-advance", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				Features:                       []string{"api-calls"},
 				TransactionAuthorizationStatus: &openStatus,
 			}),
@@ -390,7 +391,7 @@ func TestDefaultValidator_AllowsReceivableCostBasisAttributionAcrossFeatures(t *
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-attributed", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CostBasis:                      &costBasis,
 				TransactionAuthorizationStatus: &openStatus,
 			}),
@@ -409,14 +410,14 @@ func TestDefaultValidator_AllowsReceivableAuthorizationTransition(t *testing.T) 
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-authorized", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TransactionAuthorizationStatus: &status,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-open", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TransactionAuthorizationStatus: &openStatus,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -434,14 +435,14 @@ func TestDefaultValidator_RejectsReceivableAuthorizationTransitionWithWrongDirec
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-open", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TransactionAuthorizationStatus: &openStatus,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-authorized", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TransactionAuthorizationStatus: &status,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -459,13 +460,13 @@ func TestDefaultValidator_AllowsWashToAuthorizedReceivable(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeWash, "sub-wash", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-authorized", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TransactionAuthorizationStatus: &status,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -483,13 +484,13 @@ func TestDefaultValidator_AllowsFBOToTaxedAccrued(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerFBO, "sub-fbo", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:     &tax,
 				TaxBehavior: &taxBehavior,
 			}),
@@ -509,7 +510,7 @@ func TestDefaultValidator_RejectsTaxCodeOnReceivable(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-taxA", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:                        &taxA,
 				TransactionAuthorizationStatus: &openStatus,
 			}),
@@ -517,7 +518,7 @@ func TestDefaultValidator_RejectsTaxCodeOnReceivable(t *testing.T) {
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-taxA", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:     &taxA,
 				TaxBehavior: &taxBehavior,
 			}),
@@ -535,7 +536,7 @@ func TestDefaultValidator_RejectsFeaturesOnAccrued(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-feature", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				Features: []string{"api-calls"},
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -555,7 +556,7 @@ func TestDefaultValidator_RejectsAccruedToEarningsTaxCodeMismatch(t *testing.T) 
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-taxA", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:     &taxA,
 				TaxBehavior: &taxBehavior,
 			}),
@@ -563,7 +564,7 @@ func TestDefaultValidator_RejectsAccruedToEarningsTaxCodeMismatch(t *testing.T) 
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-taxB", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:     &taxB,
 				TaxBehavior: &taxBehavior,
 			}),
@@ -583,7 +584,7 @@ func TestDefaultValidator_RejectsAccruedToEarningsTaxBehaviorMismatch(t *testing
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-inclusive", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:     lo.ToPtr("tax_A"),
 				TaxBehavior: &inclusive,
 			}),
@@ -591,7 +592,7 @@ func TestDefaultValidator_RejectsAccruedToEarningsTaxBehaviorMismatch(t *testing
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-exclusive", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:     lo.ToPtr("tax_A"),
 				TaxBehavior: &exclusive,
 			}),
@@ -612,14 +613,14 @@ func TestDefaultValidator_AllowsReceivableToAccruedMatchingTaxCode(t *testing.T)
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TransactionAuthorizationStatus: &openStatus,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:     &tax,
 				TaxBehavior: &taxBehavior,
 			}),
@@ -638,7 +639,7 @@ func TestDefaultValidator_AllowsAccruedToEarningsMatchingTaxCode(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:     &tax,
 				TaxBehavior: &taxBehavior,
 			}),
@@ -646,7 +647,7 @@ func TestDefaultValidator_AllowsAccruedToEarningsMatchingTaxCode(t *testing.T) {
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-tax", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:     &tax,
 				TaxBehavior: &taxBehavior,
 			}),
@@ -664,14 +665,14 @@ func TestDefaultValidator_AllowsAccruedToEarningsTaxCodeWithoutTaxBehavior(t *te
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-tax-only", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:  &tax,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-tax-only", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxCode:  &tax,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -688,14 +689,14 @@ func TestDefaultValidator_RejectsTaxBehaviorWithoutTaxCode(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-behavior-only", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxBehavior: &taxBehavior,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-behavior-only", ledger.Route{
-				Currency:    currencyx.Code("USD"),
+				Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TaxBehavior: &taxBehavior,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
@@ -712,13 +713,13 @@ func TestDefaultValidator_AllowsAccruedToEarningsNilTaxCodeBothSides(t *testing.
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-accrued-nil", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeEarnings, "sub-earn-nil", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
@@ -734,13 +735,13 @@ func TestDefaultValidator_RejectsWashToOpenReceivable(t *testing.T) {
 	err := validator.ValidateEntries([]ledger.EntryInput{
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeWash, "sub-wash", ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 		&transactionstestutils.AnyEntryInput{
 			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-open", ledger.Route{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				TransactionAuthorizationStatus: &status,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(50),

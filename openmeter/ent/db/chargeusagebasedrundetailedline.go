@@ -27,7 +27,9 @@ type ChargeUsageBasedRunDetailedLine struct {
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	//
+	// Deprecated: currency is defined by the parent line or charge
+	Currency *currencyx.Code `json:"currency,omitempty"`
 	// ServicePeriodStart holds the value of the "service_period_start" field.
 	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
 	// ServicePeriodEnd holds the value of the "service_period_end" field.
@@ -49,10 +51,14 @@ type ChargeUsageBasedRunDetailedLine struct {
 	// CreditsApplied holds the value of the "credits_applied" field.
 	CreditsApplied *creditsapplied.CreditsApplied `json:"credits_applied,omitempty"`
 	// Annotations holds the value of the "annotations" field.
+	//
+	// Deprecated: Field "annotations" was marked as deprecated in the schema.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// Metadata holds the value of the "metadata" field.
+	//
+	// Deprecated: Field "metadata" was marked as deprecated in the schema.
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
@@ -180,7 +186,8 @@ func (_m *ChargeUsageBasedRunDetailedLine) assignValues(columns []string, values
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.Currency = new(currencyx.Code)
+				*_m.Currency = currencyx.Code(value.String)
 			}
 		case chargeusagebasedrundetailedline.FieldServicePeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -424,8 +431,10 @@ func (_m *ChargeUsageBasedRunDetailedLine) String() string {
 	var builder strings.Builder
 	builder.WriteString("ChargeUsageBasedRunDetailedLine(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	if v := _m.Currency; v != nil {
+		builder.WriteString("currency=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("service_period_start=")
 	builder.WriteString(_m.ServicePeriodStart.Format(time.ANSIC))

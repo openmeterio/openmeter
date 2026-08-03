@@ -26,8 +26,8 @@ type mixinBase struct {
 
 func (mixinBase) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.AnnotationsMixin{},
-		entutils.ResourceMixin{},
+		entutils.AnnotationsMixin{DeprecatedReason: "detailed line annotations are not exposed by the domain model"},
+		entutils.ResourceMixin{MetadataDeprecatedReason: "detailed line metadata is not exposed by the domain model"},
 		totals.Mixin{},
 	}
 }
@@ -36,8 +36,10 @@ func (mixinBase) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("currency").
 			GoType(currencyx.Code("")).
-			NotEmpty().
+			Optional().
+			Nillable().
 			Immutable().
+			Deprecated("currency is defined by the parent line or charge").
 			SchemaType(map[string]string{
 				dialect.Postgres: "varchar(3)",
 			}),

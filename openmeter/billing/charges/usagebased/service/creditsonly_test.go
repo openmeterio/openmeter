@@ -6,6 +6,7 @@ import (
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -25,9 +27,9 @@ func TestCreditsOnlyPeriodPatchIsConfiguredForPatchableStates(t *testing.T) {
 	for _, status := range []usagebased.Status{
 		usagebased.StatusCreated,
 		usagebased.StatusActive,
-		usagebased.StatusActiveFinalRealizationStarted,
-		usagebased.StatusActiveFinalRealizationWaitingForCollection,
-		usagebased.StatusActiveFinalRealizationCompleted,
+		usagebased.StatusActiveRealizationStarted,
+		usagebased.StatusActiveRealizationWaitingForCollection,
+		usagebased.StatusActiveRealizationCompleted,
 		usagebased.StatusFinal,
 	} {
 		t.Run(string(status), func(t *testing.T) {
@@ -86,7 +88,7 @@ func TestCreditsOnlyPeriodPatchWhileCreatedUpdatesIntentAndKeepsCreatedSchedule(
 			machine := newCreditsOnlyStateMachineWithChargeForTest(t, usagebased.Charge{
 				ChargeBase: usagebased.ChargeBase{
 					ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
-					Intent:          newUsageBasedIntentForCreditOnlyTest(servicePeriod),
+					Intent:          newUsageBasedIntentForCreditOnlyTest(t, servicePeriod),
 					Status:          usagebased.StatusCreated,
 					State: usagebased.State{
 						FeatureID:    "feature-id",
@@ -111,8 +113,8 @@ func TestCreditsOnlyPeriodPatchWhileCreatedUpdatesIntentAndKeepsCreatedSchedule(
 
 func TestCreditsOnlyExtendWhileFinalRealizationInProgressVoidsCurrentRunAndMovesActive(t *testing.T) {
 	for _, status := range []usagebased.Status{
-		usagebased.StatusActiveFinalRealizationStarted,
-		usagebased.StatusActiveFinalRealizationWaitingForCollection,
+		usagebased.StatusActiveRealizationStarted,
+		usagebased.StatusActiveRealizationWaitingForCollection,
 	} {
 		t.Run(string(status), func(t *testing.T) {
 			// given:
@@ -131,7 +133,7 @@ func TestCreditsOnlyExtendWhileFinalRealizationInProgressVoidsCurrentRunAndMoves
 			machine := newCreditsOnlyStateMachineWithChargeForTest(t, usagebased.Charge{
 				ChargeBase: usagebased.ChargeBase{
 					ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
-					Intent:          newUsageBasedIntentForCreditOnlyTest(servicePeriod),
+					Intent:          newUsageBasedIntentForCreditOnlyTest(t, servicePeriod),
 					Status:          status,
 					State: usagebased.State{
 						CurrentRealizationRunID: &currentRunID,
@@ -172,8 +174,8 @@ func TestCreditsOnlyShrinkWhileCompletedVoidsRunBeyondNewEndAndMovesActive(t *te
 	machine := newCreditsOnlyStateMachineWithChargeForTest(t, usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
 			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
-			Intent:          newUsageBasedIntentForCreditOnlyTest(servicePeriod),
-			Status:          usagebased.StatusActiveFinalRealizationCompleted,
+			Intent:          newUsageBasedIntentForCreditOnlyTest(t, servicePeriod),
+			Status:          usagebased.StatusActiveRealizationCompleted,
 			State: usagebased.State{
 				FeatureID:    "feature-id",
 				RatingEngine: usagebased.RatingEngineDelta,
@@ -210,8 +212,8 @@ func TestCreditsOnlyExtendWhileCompletedVoidsRunAndMovesActive(t *testing.T) {
 	machine := newCreditsOnlyStateMachineWithChargeForTest(t, usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
 			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
-			Intent:          newUsageBasedIntentForCreditOnlyTest(servicePeriod),
-			Status:          usagebased.StatusActiveFinalRealizationCompleted,
+			Intent:          newUsageBasedIntentForCreditOnlyTest(t, servicePeriod),
+			Status:          usagebased.StatusActiveRealizationCompleted,
 			State: usagebased.State{
 				FeatureID:    "feature-id",
 				RatingEngine: usagebased.RatingEngineDelta,
@@ -238,12 +240,14 @@ func TestCreditsOnlyExtendWhileCompletedVoidsRunAndMovesActive(t *testing.T) {
 	require.NotNil(t, run.DeletedAt)
 }
 
-func newUsageBasedIntentForCreditOnlyTest(servicePeriod timeutil.ClosedPeriod) usagebased.OverridableIntent {
+func newUsageBasedIntentForCreditOnlyTest(t testing.TB, servicePeriod timeutil.ClosedPeriod) usagebased.OverridableIntent {
+	t.Helper()
+
 	return usagebased.Intent{
 		Intent: meta.Intent{
 			ManagedBy:  billing.SubscriptionManagedLine,
 			CustomerID: "customer-id",
-			Currency:   currencyx.Code("USD"),
+			Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 			TaxConfig: productcatalog.TaxCodeConfig{
 				TaxCodeID: "tax-code-id",
 			},
@@ -276,7 +280,7 @@ func newCreditsOnlyStateMachineForTest(t *testing.T, status usagebased.Status) *
 	return newCreditsOnlyStateMachineWithChargeForTest(t, usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
 			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
-			Intent:          newUsageBasedIntentForCreditOnlyTest(servicePeriod),
+			Intent:          newUsageBasedIntentForCreditOnlyTest(t, servicePeriod),
 			Status:          status,
 			State: usagebased.State{
 				FeatureID:    "feature-id",
@@ -297,8 +301,9 @@ func newCreditsOnlyStateMachineWithChargeForTest(t *testing.T, charge usagebased
 		Lineage: creditsOnlyStateMachineLineage{},
 	})
 	require.NoError(t, err)
-
-	currencyCalculator, err := currencyx.Code("USD").Calculator()
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code(currency.USD)).
+		Build()
 	require.NoError(t, err)
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
@@ -319,7 +324,7 @@ func newCreditsOnlyStateMachineWithChargeForTest(t *testing.T, charge usagebased
 			Machine:            machine,
 			Adapter:            adapter,
 			Runs:               runService,
-			CurrencyCalculator: currencyCalculator,
+			CurrencyCalculator: cur,
 		},
 	}
 	out.configureStates()

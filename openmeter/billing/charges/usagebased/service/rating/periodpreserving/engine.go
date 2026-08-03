@@ -233,7 +233,6 @@ func (e Engine) buildDetailsByEpoch(ctx context.Context, in Input) (map[epochClo
 		}
 
 		detailedLinesWithUsageFromPriorPeriods := usagebased.NewDetailedLinesFromBilling(
-			in.Intent,
 			epoch.epochClosedPeriod.AsClosedPeriod(),
 			billingDetailedLines.DetailedLines,
 		)

@@ -93,6 +93,19 @@ enum CreditGrantStatus {
 }
 
 /**
+ * Describes how voiding a credit grant adjusts related payment state.
+ *
+ * - `none`: Voiding does not adjust invoices, payment authorization, settlement,
+ *   payment intents, or external collection state.
+ */
+@friendlyName("BillingCreditGrantVoidPaymentAdjustment")
+@summary("Credit grant void payment adjustment")
+enum CreditGrantVoidPaymentAdjustment {
+  // No payment state is adjusted by the void operation.
+  None: "none",
+}
+
+/**
  * Tax configuration for a credit grant.
  *
  * Tax configuration should be provided to ensure correct revenue recognition,
@@ -196,8 +209,9 @@ model CreditGrant {
   /**
    * Idempotency key for the credit grant creation request.
    *
-   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
-   * creating a duplicate grant, which makes create requests safe to retry.
+   * Unique per customer: reusing the same key for the same customer returns an HTTP
+   * 409 Conflict instead of creating a duplicate grant, which makes create requests
+   * safe to retry. The same key may be reused across different customers.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   key?: Shared.ExternalResourceKey;
@@ -237,9 +251,10 @@ model CreditGrantPurchase {
   /**
    * Cost basis per credit unit used to calculate the purchase amount.
    *
-   * If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-   * is $50.00. The value must be greater than 0. If the cost basis is 0, use
-   * `funding_method=none` instead.
+   * If `per_unit_cost_basis` is 0.50 and credit amount is
+   * $100.00, the total
+   * charge is $50.00. The value must be greater than 0. If the
+   * cost basis is 0, use `funding_method=none` instead.
    *
    * Defaults to 1.0.
    */

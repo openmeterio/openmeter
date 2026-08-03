@@ -18,16 +18,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebasedrundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestDetailedLineAdapter(t *testing.T) {
@@ -58,17 +57,8 @@ type newDetailedLineInput struct {
 func (s *DetailedLineAdapterSuite) SetupSuite() {
 	t := s.T()
 
-	s.testDB = testutils.InitPostgresDB(t)
+	s.testDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	s.dbClient = entdb.NewClient(entdb.Driver(s.testDB.EntDriver.Driver()))
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: s.testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           slog.Default(),
-	})
-	require.NoError(t, err)
-	defer migrator.CloseOrLogError()
-	require.NoError(t, migrator.Up())
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.dbClient,
@@ -114,7 +104,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
+						Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},
@@ -186,7 +176,11 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			Description:            lo.ToPtr("delete me"),
 		}),
 	}
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, initialLines))
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID:      charge.GetChargeID(),
+		RunID:         runBase.ID,
+		DetailedLines: initialLines,
+	}))
 
 	initialKeepRow, err := s.dbClient.ChargeUsageBasedRunDetailedLine.Query().
 		Where(
@@ -218,7 +212,11 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			Description:            lo.ToPtr("new description"),
 		}),
 	}
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, replacementLines))
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID:      charge.GetChargeID(),
+		RunID:         runBase.ID,
+		DetailedLines: replacementLines,
+	}))
 
 	replacedKeepRow, err := s.dbClient.ChargeUsageBasedRunDetailedLine.Query().
 		Where(
@@ -284,7 +282,10 @@ func (s *DetailedLineAdapterSuite) TestFetchDetailedLinesUsesDetailedLinesPresen
 	s.Require().Len(fetchedWithoutMaterializedLines.Realizations, 1)
 	s.False(fetchedWithoutMaterializedLines.Realizations[0].DetailedLines.IsPresent())
 
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, nil))
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID: charge.GetChargeID(),
+		RunID:    runBase.ID,
+	}))
 
 	fetchedWithMaterializedEmptyLines, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
@@ -313,14 +314,18 @@ func (s *DetailedLineAdapterSuite) TestFetchDetailedLinesDoesNotRepairDetailedLi
 	namespace := "usagebased-detailedline-adapter-fetch-does-not-repair-flag"
 	charge, runBase, servicePeriod := s.createChargeWithRun(namespace)
 
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, usagebased.DetailedLines{
-		s.newDetailedLine(newDetailedLineInput{
-			Charge:                 charge,
-			RunID:                  runBase.ID,
-			ServicePeriod:          servicePeriod,
-			ChildUniqueReferenceID: "existing@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
-			Quantity:               1,
-		}),
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID: charge.GetChargeID(),
+		RunID:    runBase.ID,
+		DetailedLines: usagebased.DetailedLines{
+			s.newDetailedLine(newDetailedLineInput{
+				Charge:                 charge,
+				RunID:                  runBase.ID,
+				ServicePeriod:          servicePeriod,
+				ChildUniqueReferenceID: "existing@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
+				Quantity:               1,
+			}),
+		},
 	}))
 
 	_, err := s.dbClient.ChargeUsageBasedRuns.UpdateOneID(runBase.ID.ID).
@@ -355,14 +360,18 @@ func (s *DetailedLineAdapterSuite) TestFetchDetailedLinesUsesPersistedDetailedLi
 	namespace := "usagebased-detailedline-adapter-fetch-uses-persisted-flag"
 	charge, runBase, servicePeriod := s.createChargeWithRun(namespace)
 
-	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, charge.GetChargeID(), runBase.ID, usagebased.DetailedLines{
-		s.newDetailedLine(newDetailedLineInput{
-			Charge:                 charge,
-			RunID:                  runBase.ID,
-			ServicePeriod:          servicePeriod,
-			ChildUniqueReferenceID: "persisted@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
-			Quantity:               1,
-		}),
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID: charge.GetChargeID(),
+		RunID:    runBase.ID,
+		DetailedLines: usagebased.DetailedLines{
+			s.newDetailedLine(newDetailedLineInput{
+				Charge:                 charge,
+				RunID:                  runBase.ID,
+				ServicePeriod:          servicePeriod,
+				ChildUniqueReferenceID: "persisted@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
+				Quantity:               1,
+			}),
+		},
 	}))
 
 	_, err := s.dbClient.ChargeUsageBasedRuns.UpdateOneID(runBase.ID.ID).
@@ -475,7 +484,7 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
+						Currency:          currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},
@@ -558,7 +567,6 @@ func (s *DetailedLineAdapterSuite) newDetailedLine(input newDetailedLineInput) u
 				Description: input.Description,
 			}),
 			ServicePeriod:          input.ServicePeriod,
-			Currency:               input.Charge.Intent.GetCurrency(),
 			ChildUniqueReferenceID: input.ChildUniqueReferenceID,
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),

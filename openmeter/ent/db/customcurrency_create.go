@@ -12,8 +12,16 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // CustomCurrencyCreate is the builder for creating a CustomCurrency entity.
@@ -73,7 +81,7 @@ func (_c *CustomCurrencyCreate) SetNillableDeletedAt(v *time.Time) *CustomCurren
 }
 
 // SetCode sets the "code" field.
-func (_c *CustomCurrencyCreate) SetCode(v string) *CustomCurrencyCreate {
+func (_c *CustomCurrencyCreate) SetCode(v currencyx.Code) *CustomCurrencyCreate {
 	_c.mutation.SetCode(v)
 	return _c
 }
@@ -87,6 +95,56 @@ func (_c *CustomCurrencyCreate) SetName(v string) *CustomCurrencyCreate {
 // SetSymbol sets the "symbol" field.
 func (_c *CustomCurrencyCreate) SetSymbol(v string) *CustomCurrencyCreate {
 	_c.mutation.SetSymbol(v)
+	return _c
+}
+
+// SetNillableSymbol sets the "symbol" field if the given value is not nil.
+func (_c *CustomCurrencyCreate) SetNillableSymbol(v *string) *CustomCurrencyCreate {
+	if v != nil {
+		_c.SetSymbol(*v)
+	}
+	return _c
+}
+
+// SetPrecision sets the "precision" field.
+func (_c *CustomCurrencyCreate) SetPrecision(v uint32) *CustomCurrencyCreate {
+	_c.mutation.SetPrecision(v)
+	return _c
+}
+
+// SetNillablePrecision sets the "precision" field if the given value is not nil.
+func (_c *CustomCurrencyCreate) SetNillablePrecision(v *uint32) *CustomCurrencyCreate {
+	if v != nil {
+		_c.SetPrecision(*v)
+	}
+	return _c
+}
+
+// SetDecimalMark sets the "decimal_mark" field.
+func (_c *CustomCurrencyCreate) SetDecimalMark(v string) *CustomCurrencyCreate {
+	_c.mutation.SetDecimalMark(v)
+	return _c
+}
+
+// SetNillableDecimalMark sets the "decimal_mark" field if the given value is not nil.
+func (_c *CustomCurrencyCreate) SetNillableDecimalMark(v *string) *CustomCurrencyCreate {
+	if v != nil {
+		_c.SetDecimalMark(*v)
+	}
+	return _c
+}
+
+// SetThousandsSeparator sets the "thousands_separator" field.
+func (_c *CustomCurrencyCreate) SetThousandsSeparator(v string) *CustomCurrencyCreate {
+	_c.mutation.SetThousandsSeparator(v)
+	return _c
+}
+
+// SetNillableThousandsSeparator sets the "thousands_separator" field if the given value is not nil.
+func (_c *CustomCurrencyCreate) SetNillableThousandsSeparator(v *string) *CustomCurrencyCreate {
+	if v != nil {
+		_c.SetThousandsSeparator(*v)
+	}
 	return _c
 }
 
@@ -117,6 +175,111 @@ func (_c *CustomCurrencyCreate) AddCostBasisHistory(v ...*CurrencyCostBasis) *Cu
 		ids[i] = v[i].ID
 	}
 	return _c.AddCostBasisHistoryIDs(ids...)
+}
+
+// AddChargesCreditPurchaseIDs adds the "charges_credit_purchase" edge to the ChargeCreditPurchase entity by IDs.
+func (_c *CustomCurrencyCreate) AddChargesCreditPurchaseIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddChargesCreditPurchaseIDs(ids...)
+	return _c
+}
+
+// AddChargesCreditPurchase adds the "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_c *CustomCurrencyCreate) AddChargesCreditPurchase(v ...*ChargeCreditPurchase) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargesCreditPurchaseIDs(ids...)
+}
+
+// AddChargesFlatFeeIDs adds the "charges_flat_fee" edge to the ChargeFlatFee entity by IDs.
+func (_c *CustomCurrencyCreate) AddChargesFlatFeeIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddChargesFlatFeeIDs(ids...)
+	return _c
+}
+
+// AddChargesFlatFee adds the "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_c *CustomCurrencyCreate) AddChargesFlatFee(v ...*ChargeFlatFee) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargesFlatFeeIDs(ids...)
+}
+
+// AddChargesUsageBasedIDs adds the "charges_usage_based" edge to the ChargeUsageBased entity by IDs.
+func (_c *CustomCurrencyCreate) AddChargesUsageBasedIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddChargesUsageBasedIDs(ids...)
+	return _c
+}
+
+// AddChargesUsageBased adds the "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_c *CustomCurrencyCreate) AddChargesUsageBased(v ...*ChargeUsageBased) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargesUsageBasedIDs(ids...)
+}
+
+// AddPlanIDs adds the "plans" edge to the Plan entity by IDs.
+func (_c *CustomCurrencyCreate) AddPlanIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddPlanIDs(ids...)
+	return _c
+}
+
+// AddPlans adds the "plans" edges to the Plan entity.
+func (_c *CustomCurrencyCreate) AddPlans(v ...*Plan) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPlanIDs(ids...)
+}
+
+// AddAddonIDs adds the "addons" edge to the Addon entity by IDs.
+func (_c *CustomCurrencyCreate) AddAddonIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddAddonIDs(ids...)
+	return _c
+}
+
+// AddAddons adds the "addons" edges to the Addon entity.
+func (_c *CustomCurrencyCreate) AddAddons(v ...*Addon) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAddonIDs(ids...)
+}
+
+// AddPlanRateCardIDs adds the "plan_rate_cards" edge to the PlanRateCard entity by IDs.
+func (_c *CustomCurrencyCreate) AddPlanRateCardIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddPlanRateCardIDs(ids...)
+	return _c
+}
+
+// AddPlanRateCards adds the "plan_rate_cards" edges to the PlanRateCard entity.
+func (_c *CustomCurrencyCreate) AddPlanRateCards(v ...*PlanRateCard) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPlanRateCardIDs(ids...)
+}
+
+// AddAddonRateCardIDs adds the "addon_rate_cards" edge to the AddonRateCard entity by IDs.
+func (_c *CustomCurrencyCreate) AddAddonRateCardIDs(ids ...string) *CustomCurrencyCreate {
+	_c.mutation.AddAddonRateCardIDs(ids...)
+	return _c
+}
+
+// AddAddonRateCards adds the "addon_rate_cards" edges to the AddonRateCard entity.
+func (_c *CustomCurrencyCreate) AddAddonRateCards(v ...*AddonRateCard) *CustomCurrencyCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAddonRateCardIDs(ids...)
 }
 
 // Mutation returns the CustomCurrencyMutation object of the builder.
@@ -162,6 +325,18 @@ func (_c *CustomCurrencyCreate) defaults() {
 		v := customcurrency.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Precision(); !ok {
+		v := customcurrency.DefaultPrecision
+		_c.mutation.SetPrecision(v)
+	}
+	if _, ok := _c.mutation.DecimalMark(); !ok {
+		v := customcurrency.DefaultDecimalMark
+		_c.mutation.SetDecimalMark(v)
+	}
+	if _, ok := _c.mutation.ThousandsSeparator(); !ok {
+		v := customcurrency.DefaultThousandsSeparator
+		_c.mutation.SetThousandsSeparator(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := customcurrency.DefaultID()
 		_c.mutation.SetID(v)
@@ -188,7 +363,7 @@ func (_c *CustomCurrencyCreate) check() error {
 		return &ValidationError{Name: "code", err: errors.New(`db: missing required field "CustomCurrency.code"`)}
 	}
 	if v, ok := _c.mutation.Code(); ok {
-		if err := customcurrency.CodeValidator(v); err != nil {
+		if err := customcurrency.CodeValidator(string(v)); err != nil {
 			return &ValidationError{Name: "code", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.code": %w`, err)}
 		}
 	}
@@ -200,12 +375,23 @@ func (_c *CustomCurrencyCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.name": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Symbol(); !ok {
-		return &ValidationError{Name: "symbol", err: errors.New(`db: missing required field "CustomCurrency.symbol"`)}
+	if _, ok := _c.mutation.Precision(); !ok {
+		return &ValidationError{Name: "precision", err: errors.New(`db: missing required field "CustomCurrency.precision"`)}
 	}
-	if v, ok := _c.mutation.Symbol(); ok {
-		if err := customcurrency.SymbolValidator(v); err != nil {
-			return &ValidationError{Name: "symbol", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.symbol": %w`, err)}
+	if _, ok := _c.mutation.DecimalMark(); !ok {
+		return &ValidationError{Name: "decimal_mark", err: errors.New(`db: missing required field "CustomCurrency.decimal_mark"`)}
+	}
+	if v, ok := _c.mutation.DecimalMark(); ok {
+		if err := customcurrency.DecimalMarkValidator(v); err != nil {
+			return &ValidationError{Name: "decimal_mark", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.decimal_mark": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ThousandsSeparator(); !ok {
+		return &ValidationError{Name: "thousands_separator", err: errors.New(`db: missing required field "CustomCurrency.thousands_separator"`)}
+	}
+	if v, ok := _c.mutation.ThousandsSeparator(); ok {
+		if err := customcurrency.ThousandsSeparatorValidator(v); err != nil {
+			return &ValidationError{Name: "thousands_separator", err: fmt.Errorf(`db: validator failed for field "CustomCurrency.thousands_separator": %w`, err)}
 		}
 	}
 	return nil
@@ -272,6 +458,18 @@ func (_c *CustomCurrencyCreate) createSpec() (*CustomCurrency, *sqlgraph.CreateS
 		_spec.SetField(customcurrency.FieldSymbol, field.TypeString, value)
 		_node.Symbol = value
 	}
+	if value, ok := _c.mutation.Precision(); ok {
+		_spec.SetField(customcurrency.FieldPrecision, field.TypeUint32, value)
+		_node.Precision = value
+	}
+	if value, ok := _c.mutation.DecimalMark(); ok {
+		_spec.SetField(customcurrency.FieldDecimalMark, field.TypeString, value)
+		_node.DecimalMark = value
+	}
+	if value, ok := _c.mutation.ThousandsSeparator(); ok {
+		_spec.SetField(customcurrency.FieldThousandsSeparator, field.TypeString, value)
+		_node.ThousandsSeparator = value
+	}
 	if nodes := _c.mutation.CostBasisHistoryIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -281,6 +479,118 @@ func (_c *CustomCurrencyCreate) createSpec() (*CustomCurrency, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(currencycostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargesCreditPurchaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.ChargesCreditPurchaseTable,
+			Columns: []string{customcurrency.ChargesCreditPurchaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargesFlatFeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.ChargesFlatFeeTable,
+			Columns: []string{customcurrency.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargesUsageBasedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.ChargesUsageBasedTable,
+			Columns: []string{customcurrency.ChargesUsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlansTable,
+			Columns: []string{customcurrency.PlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(plan.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonsTable,
+			Columns: []string{customcurrency.AddonsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addon.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PlanRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.PlanRateCardsTable,
+			Columns: []string{customcurrency.PlanRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(planratecard.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AddonRateCardsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customcurrency.AddonRateCardsTable,
+			Columns: []string{customcurrency.AddonRateCardsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(addonratecard.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -391,6 +701,54 @@ func (u *CustomCurrencyUpsert) SetSymbol(v string) *CustomCurrencyUpsert {
 // UpdateSymbol sets the "symbol" field to the value that was provided on create.
 func (u *CustomCurrencyUpsert) UpdateSymbol() *CustomCurrencyUpsert {
 	u.SetExcluded(customcurrency.FieldSymbol)
+	return u
+}
+
+// ClearSymbol clears the value of the "symbol" field.
+func (u *CustomCurrencyUpsert) ClearSymbol() *CustomCurrencyUpsert {
+	u.SetNull(customcurrency.FieldSymbol)
+	return u
+}
+
+// SetPrecision sets the "precision" field.
+func (u *CustomCurrencyUpsert) SetPrecision(v uint32) *CustomCurrencyUpsert {
+	u.Set(customcurrency.FieldPrecision, v)
+	return u
+}
+
+// UpdatePrecision sets the "precision" field to the value that was provided on create.
+func (u *CustomCurrencyUpsert) UpdatePrecision() *CustomCurrencyUpsert {
+	u.SetExcluded(customcurrency.FieldPrecision)
+	return u
+}
+
+// AddPrecision adds v to the "precision" field.
+func (u *CustomCurrencyUpsert) AddPrecision(v uint32) *CustomCurrencyUpsert {
+	u.Add(customcurrency.FieldPrecision, v)
+	return u
+}
+
+// SetDecimalMark sets the "decimal_mark" field.
+func (u *CustomCurrencyUpsert) SetDecimalMark(v string) *CustomCurrencyUpsert {
+	u.Set(customcurrency.FieldDecimalMark, v)
+	return u
+}
+
+// UpdateDecimalMark sets the "decimal_mark" field to the value that was provided on create.
+func (u *CustomCurrencyUpsert) UpdateDecimalMark() *CustomCurrencyUpsert {
+	u.SetExcluded(customcurrency.FieldDecimalMark)
+	return u
+}
+
+// SetThousandsSeparator sets the "thousands_separator" field.
+func (u *CustomCurrencyUpsert) SetThousandsSeparator(v string) *CustomCurrencyUpsert {
+	u.Set(customcurrency.FieldThousandsSeparator, v)
+	return u
+}
+
+// UpdateThousandsSeparator sets the "thousands_separator" field to the value that was provided on create.
+func (u *CustomCurrencyUpsert) UpdateThousandsSeparator() *CustomCurrencyUpsert {
+	u.SetExcluded(customcurrency.FieldThousandsSeparator)
 	return u
 }
 
@@ -511,6 +869,62 @@ func (u *CustomCurrencyUpsertOne) SetSymbol(v string) *CustomCurrencyUpsertOne {
 func (u *CustomCurrencyUpsertOne) UpdateSymbol() *CustomCurrencyUpsertOne {
 	return u.Update(func(s *CustomCurrencyUpsert) {
 		s.UpdateSymbol()
+	})
+}
+
+// ClearSymbol clears the value of the "symbol" field.
+func (u *CustomCurrencyUpsertOne) ClearSymbol() *CustomCurrencyUpsertOne {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.ClearSymbol()
+	})
+}
+
+// SetPrecision sets the "precision" field.
+func (u *CustomCurrencyUpsertOne) SetPrecision(v uint32) *CustomCurrencyUpsertOne {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.SetPrecision(v)
+	})
+}
+
+// AddPrecision adds v to the "precision" field.
+func (u *CustomCurrencyUpsertOne) AddPrecision(v uint32) *CustomCurrencyUpsertOne {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.AddPrecision(v)
+	})
+}
+
+// UpdatePrecision sets the "precision" field to the value that was provided on create.
+func (u *CustomCurrencyUpsertOne) UpdatePrecision() *CustomCurrencyUpsertOne {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.UpdatePrecision()
+	})
+}
+
+// SetDecimalMark sets the "decimal_mark" field.
+func (u *CustomCurrencyUpsertOne) SetDecimalMark(v string) *CustomCurrencyUpsertOne {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.SetDecimalMark(v)
+	})
+}
+
+// UpdateDecimalMark sets the "decimal_mark" field to the value that was provided on create.
+func (u *CustomCurrencyUpsertOne) UpdateDecimalMark() *CustomCurrencyUpsertOne {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.UpdateDecimalMark()
+	})
+}
+
+// SetThousandsSeparator sets the "thousands_separator" field.
+func (u *CustomCurrencyUpsertOne) SetThousandsSeparator(v string) *CustomCurrencyUpsertOne {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.SetThousandsSeparator(v)
+	})
+}
+
+// UpdateThousandsSeparator sets the "thousands_separator" field to the value that was provided on create.
+func (u *CustomCurrencyUpsertOne) UpdateThousandsSeparator() *CustomCurrencyUpsertOne {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.UpdateThousandsSeparator()
 	})
 }
 
@@ -798,6 +1212,62 @@ func (u *CustomCurrencyUpsertBulk) SetSymbol(v string) *CustomCurrencyUpsertBulk
 func (u *CustomCurrencyUpsertBulk) UpdateSymbol() *CustomCurrencyUpsertBulk {
 	return u.Update(func(s *CustomCurrencyUpsert) {
 		s.UpdateSymbol()
+	})
+}
+
+// ClearSymbol clears the value of the "symbol" field.
+func (u *CustomCurrencyUpsertBulk) ClearSymbol() *CustomCurrencyUpsertBulk {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.ClearSymbol()
+	})
+}
+
+// SetPrecision sets the "precision" field.
+func (u *CustomCurrencyUpsertBulk) SetPrecision(v uint32) *CustomCurrencyUpsertBulk {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.SetPrecision(v)
+	})
+}
+
+// AddPrecision adds v to the "precision" field.
+func (u *CustomCurrencyUpsertBulk) AddPrecision(v uint32) *CustomCurrencyUpsertBulk {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.AddPrecision(v)
+	})
+}
+
+// UpdatePrecision sets the "precision" field to the value that was provided on create.
+func (u *CustomCurrencyUpsertBulk) UpdatePrecision() *CustomCurrencyUpsertBulk {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.UpdatePrecision()
+	})
+}
+
+// SetDecimalMark sets the "decimal_mark" field.
+func (u *CustomCurrencyUpsertBulk) SetDecimalMark(v string) *CustomCurrencyUpsertBulk {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.SetDecimalMark(v)
+	})
+}
+
+// UpdateDecimalMark sets the "decimal_mark" field to the value that was provided on create.
+func (u *CustomCurrencyUpsertBulk) UpdateDecimalMark() *CustomCurrencyUpsertBulk {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.UpdateDecimalMark()
+	})
+}
+
+// SetThousandsSeparator sets the "thousands_separator" field.
+func (u *CustomCurrencyUpsertBulk) SetThousandsSeparator(v string) *CustomCurrencyUpsertBulk {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.SetThousandsSeparator(v)
+	})
+}
+
+// UpdateThousandsSeparator sets the "thousands_separator" field to the value that was provided on create.
+func (u *CustomCurrencyUpsertBulk) UpdateThousandsSeparator() *CustomCurrencyUpsertBulk {
+	return u.Update(func(s *CustomCurrencyUpsert) {
+		s.UpdateThousandsSeparator()
 	})
 }
 

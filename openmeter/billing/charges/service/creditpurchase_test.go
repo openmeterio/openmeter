@@ -11,6 +11,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -18,9 +19,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -97,6 +102,211 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	s.Equal(creditpurchase.StatusFinal, updatedCPCharge.Status)
 }
 
+func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchaseWithCustomCurrency() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-promotional-credit-purchase-custom-currency")
+
+	var customCurrency currencies.Currency
+	var customerID string
+	var defaultCreditGrantTaxCodeID string
+	var createdCharge creditpurchase.Charge
+	var promotionalTransactionGroupID string
+
+	s.Run("#1 setup customer and custom currency", func() {
+		// given:
+		// - a customer and a persisted custom currency
+		defaultCreditGrantTaxCodeID = s.ProvisionDefaultTaxCodes(ctx, ns).CreditGrantTaxCodeID
+
+		cust := s.CreateTestCustomer(ns, "test-subject")
+		s.NotEmpty(cust.ID)
+		customerID = cust.ID
+		customCurrency = s.createTestCustomCurrency(ctx, ns)
+	})
+
+	s.Run("#2 create promotional credit purchase", func() {
+		// given:
+		// - a promotional credit-purchase intent in the custom currency
+		// - mocked ledger and lineage callbacks
+		// when:
+		// - the charge is created through the root charges service
+		// then:
+		// - the callbacks run once and the charge reaches final with a persisted realization
+		servicePeriod := timeutil.ClosedPeriod{
+			From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+		}
+		creditPurchaseIntent := creditpurchase.Intent{
+			Intent: meta.Intent{
+				ManagedBy:  billing.ManuallyManagedLine,
+				CustomerID: customerID,
+				Currency:   customCurrency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: defaultCreditGrantTaxCodeID,
+				},
+			},
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "Custom Currency Credit Purchase",
+					ServicePeriod:     servicePeriod,
+					BillingPeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+				},
+				CreditAmount: alpacadecimal.NewFromFloat(100.1234),
+				Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			},
+		}
+		intent := charges.NewChargeIntent(creditPurchaseIntent)
+
+		promotionalCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+		promotionalTransactionGroupID = promotionalCallback.id
+		s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = promotionalCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
+			assert.Equal(t, creditpurchase.SettlementTypePromotional, charge.Intent.Settlement.Type())
+			assert.True(t, charge.Intent.Currency.IsCustom())
+			assert.Equal(t, customCurrency.ID, charge.Intent.Currency.ID)
+			assert.Nil(t, charge.Realizations.CreditGrantRealization)
+		})
+
+		lineageMock := &mockLineageService{Service: s.LineageService}
+		lineageMock.On("BackfillAdvanceLineageSegments", mock.Anything, mock.Anything).
+			Return(nil).
+			Once()
+
+		creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
+			Adapter:     s.CreditPurchaseAdapter,
+			Handler:     s.CreditPurchaseTestHandler,
+			Lineage:     lineageMock,
+			MetaAdapter: s.MetaAdapter,
+		})
+		s.Require().NoError(err)
+
+		originalCreditPurchaseService := s.Charges.creditPurchaseService
+		s.Charges.creditPurchaseService = creditPurchaseService
+		defer func() {
+			s.Charges.creditPurchaseService = originalCreditPurchaseService
+		}()
+
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents:   charges.ChargeIntents{intent},
+		})
+		s.Require().NoError(err)
+		s.Require().Len(created, 1)
+		s.Equal(1, promotionalCallback.nrInvocations)
+		lineageMock.AssertExpectations(s.T())
+
+		createdCharge, err = created[0].AsCreditPurchaseCharge()
+		s.Require().NoError(err)
+		s.Equal(creditpurchase.StatusFinal, createdCharge.Status)
+		s.True(createdCharge.Intent.Currency.IsCustom())
+		s.Equal(customCurrency.ID, createdCharge.Intent.Currency.ID)
+		s.Equal(float64(100.123), createdCharge.Intent.CreditAmount.InexactFloat64())
+		s.Require().NotNil(createdCharge.Realizations.CreditGrantRealization)
+		s.Equal(promotionalTransactionGroupID, createdCharge.Realizations.CreditGrantRealization.TransactionGroupID)
+	})
+
+	s.Run("#3 reload persisted charge", func() {
+		// when:
+		// - the charge is loaded again from Postgres
+		// then:
+		// - its final state, custom currency, and realization are preserved
+		persisted, err := s.mustGetChargeByID(createdCharge.GetChargeID()).AsCreditPurchaseCharge()
+		s.Require().NoError(err)
+		s.Equal(creditpurchase.StatusFinal, persisted.Status)
+		s.True(persisted.Intent.Currency.IsCustom())
+		s.Equal(customCurrency.ID, persisted.Intent.Currency.ID)
+		s.Require().NotNil(persisted.Realizations.CreditGrantRealization)
+		s.Equal(promotionalTransactionGroupID, persisted.Realizations.CreditGrantRealization.TransactionGroupID)
+	})
+}
+
+func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-invoice-credit-purchase-custom-currency")
+	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+	customCurrency := s.createTestCustomCurrency(ctx, ns)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	intent := creditpurchase.Intent{
+		Intent: meta.Intent{
+			ManagedBy:  billing.ManuallyManagedLine,
+			CustomerID: cust.ID,
+			Currency:   customCurrency,
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: defaultTaxCodes.CreditGrantTaxCodeID,
+			},
+		},
+		IntentMutableFields: creditpurchase.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "Custom Currency Credit Purchase",
+				ServicePeriod:     servicePeriod,
+				BillingPeriod:     servicePeriod,
+				FullServicePeriod: servicePeriod,
+			},
+			CreditAmount: alpacadecimal.NewFromFloat(100.1234),
+			Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+				GenericSettlement: creditpurchase.GenericSettlement{
+					Currency:  currencyx.FiatCode(currency.USD),
+					CostBasis: alpacadecimal.NewFromFloat(0.5),
+				},
+			}),
+		},
+	}
+
+	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
+		Adapter:     s.CreditPurchaseAdapter,
+		Handler:     s.CreditPurchaseTestHandler,
+		Lineage:     s.LineageService,
+		MetaAdapter: s.MetaAdapter,
+	})
+	s.Require().NoError(err)
+
+	s.Run("create", func() {
+		// given:
+		// - a custom-currency invoice credit purchase
+		// when:
+		// - the invoice credit purchase is created
+		// then:
+		// - the charge keeps the purchased currency while the gathering line uses fiat settlement
+		created, err := creditPurchaseService.Create(ctx, creditpurchase.CreateInput{
+			Namespace: ns,
+			Intent:    intent,
+		})
+		s.Require().NoError(err)
+
+		s.True(created.Charge.Intent.Currency.IsCustom())
+		s.Equal(customCurrency.ID, created.Charge.Intent.Currency.ID)
+		s.Equal(float64(100.123), created.Charge.Intent.CreditAmount.InexactFloat64())
+
+		s.Require().NotNil(created.GatheringLineToCreate)
+		gatheringLine := *created.GatheringLineToCreate
+		s.Equal(currencyx.FiatCode(currency.USD), gatheringLine.Currency)
+		s.Equal("Custom Currency Credit Purchase (100.123 TOKENS credits)", gatheringLine.Name)
+
+		flatPrice, err := gatheringLine.Price.AsFlat()
+		s.Require().NoError(err)
+		s.Equal(float64(50.06), flatPrice.Amount.InexactFloat64())
+
+		persisted, err := creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
+			Namespace: ns,
+			IDs:       []string{created.Charge.ID},
+		})
+		s.Require().NoError(err)
+		s.Require().Len(persisted, 1)
+		s.True(persisted[0].Intent.Currency.IsCustom())
+		s.Equal(customCurrency.ID, persisted[0].Intent.Currency.ID)
+
+		settlement, err := persisted[0].Intent.Settlement.AsInvoiceSettlement()
+		s.Require().NoError(err)
+		s.Equal(currencyx.FiatCode(currency.USD), settlement.Currency)
+	})
+}
+
 func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementCurrency() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-credit-purchase-mismatched-settlement-currency")
@@ -119,7 +329,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementC
 			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.Code(currency.EUR),
+					Currency:  currencyx.FiatCode(currency.EUR),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),
@@ -128,7 +338,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementC
 			name: "invoice",
 			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.Code(currency.EUR),
+					Currency:  currencyx.FiatCode(currency.EUR),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),
@@ -178,7 +388,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveSettlement
 			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.Zero,
 				},
 			}),
@@ -188,7 +398,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveSettlement
 			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.NewFromFloat(-0.5),
 				},
 			}),
@@ -197,7 +407,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveSettlement
 			name: "invoice zero",
 			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.Zero,
 				},
 			}),
@@ -206,7 +416,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveSettlement
 			name: "invoice negative",
 			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.NewFromFloat(-0.5),
 				},
 			}),
@@ -223,7 +433,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveSettlement
 				Intent: meta.Intent{
 					ManagedBy:  billing.ManuallyManagedLine,
 					CustomerID: cust.ID,
-					Currency:   USD,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -300,7 +510,7 @@ func CreateCreditPurchaseIntent(t *testing.T, input createCreditPurchaseIntentIn
 		Intent: meta.Intent{
 			ManagedBy:  billing.ManuallyManagedLine,
 			CustomerID: input.customer.ID,
-			Currency:   input.currency,
+			Currency:   currenciestestutils.NewFiatCurrency(t, input.currency),
 		},
 		IntentMutableFields: creditpurchase.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{
@@ -323,12 +533,13 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
-	// Let's buy 100 USD credits for $0.50 each (total cost is $50)
+	// Let's buy 100.123 USD credits at a $0.50 cost basis. The external
+	// payment settles for $50.06 after rounding to USD precision.
 	intent := CreateCreditPurchaseIntent(s.T(),
 		createCreditPurchaseIntentInput{
 			customer: cust.GetID(),
 			currency: USD,
-			amount:   alpacadecimal.NewFromFloat(100),
+			amount:   alpacadecimal.NewFromFloat(100.123),
 			servicePeriod: timeutil.ClosedPeriod{
 				From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
 				To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
@@ -336,7 +547,7 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				InitialStatus: creditpurchase.SettledInitialPaymentSettlementStatus,
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),
@@ -415,6 +626,7 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 			s.NotNil(creditPurchaseCharge.Realizations.ExternalPaymentSettlement, "external payment settlement should be set")
 			s.Equal(authorizedCallback.id, creditPurchaseCharge.Realizations.ExternalPaymentSettlement.Authorized.TransactionGroupID, "authorized transaction group ID should be set")
 			s.Equal(settledCallback.id, creditPurchaseCharge.Realizations.ExternalPaymentSettlement.Settled.TransactionGroupID, "settled transaction group ID should be set")
+			s.Equal(float64(50.06), creditPurchaseCharge.Realizations.ExternalPaymentSettlement.FiatAmount.InexactFloat64())
 
 			// The charge should be final
 			s.Equal(creditpurchase.StatusFinal, creditPurchaseCharge.Status)
@@ -443,7 +655,7 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),
@@ -579,7 +791,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 			servicePeriod: servicePeriod,
 			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),
@@ -711,7 +923,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		s.Require().Len(lines, 1)
 
 		line := lines[0]
-		s.Equal(USD, line.Currency)
+		s.Equal(currencyx.FiatCode(USD), line.Currency)
 		s.Equal(timeutil.ClosedPeriod{
 			From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
 			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
@@ -724,7 +936,6 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		detailedLine := line.DetailedLines[0]
 
-		s.Equal(USD, detailedLine.Currency)
 		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.PerUnitAmount)
 		s.Equal(alpacadecimal.NewFromFloat(1), detailedLine.Quantity)
 		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.Totals.Amount)
@@ -777,6 +988,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		s.Equal(1, authorizedCallback.nrInvocations)
 		s.Equal(settledCallback.id, creditPurchaseCharge.Realizations.InvoiceSettlement.Settled.TransactionGroupID)
+		s.Equal(float64(50), creditPurchaseCharge.Realizations.InvoiceSettlement.FiatAmount.InexactFloat64())
 		s.Equal(payment.StatusSettled, creditPurchaseCharge.Realizations.InvoiceSettlement.Status)
 		s.Equal(creditpurchase.StatusFinal, creditPurchaseCharge.Status)
 	})
@@ -817,7 +1029,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 			},
 			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  USD,
+					Currency:  currencyx.FiatCode(USD),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),

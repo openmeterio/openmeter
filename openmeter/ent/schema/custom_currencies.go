@@ -28,6 +28,7 @@ func (CustomCurrency) Mixin() []ent.Mixin {
 func (CustomCurrency) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("code").
+			GoType(currencyx.Code("")).
 			NotEmpty().
 			MinLen(3).
 			MaxLen(24).
@@ -35,7 +36,16 @@ func (CustomCurrency) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty(),
 		field.String("symbol").
-			NotEmpty(),
+			Optional(),
+		// NOTE: add defaults in order to avoid errors during schema migration when database has data already
+		field.Uint32("precision").
+			Default(2),
+		field.String("decimal_mark").
+			NotEmpty().
+			Default("."),
+		field.String("thousands_separator").
+			NotEmpty().
+			Default(","),
 	}
 }
 
@@ -43,6 +53,20 @@ func (CustomCurrency) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("cost_basis_history", CurrencyCostBasis.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("charges_credit_purchase", ChargeCreditPurchase.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("charges_flat_fee", ChargeFlatFee.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("charges_usage_based", ChargeUsageBased.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("plans", Plan.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("addons", Addon.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("plan_rate_cards", PlanRateCard.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("addon_rate_cards", AddonRateCard.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 
@@ -90,8 +114,7 @@ func (CurrencyCostBasis) Fields() []ent.Field {
 			Immutable(),
 		field.Time("effective_to").
 			Optional().
-			Nillable().
-			Immutable(),
+			Nillable(),
 	}
 }
 

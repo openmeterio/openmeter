@@ -19,9 +19,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -102,9 +104,31 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableUniqueReferenceID(v *string) *C
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *ChargeCreditPurchaseCreate) SetCurrency(v currencyx.Code) *ChargeCreditPurchaseCreate {
-	_c.mutation.SetCurrency(v)
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_c *ChargeCreditPurchaseCreate) SetFiatCurrencyCode(v currencyx.Code) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetFiatCurrencyCode(v)
+	return _c
+}
+
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableFiatCurrencyCode(v *currencyx.Code) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetFiatCurrencyCode(*v)
+	}
+	return _c
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetCustomCurrencyID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableCustomCurrencyID(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
+	}
 	return _c
 }
 
@@ -350,6 +374,34 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableKey(v *string) *ChargeCreditPur
 	return _c
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (_c *ChargeCreditPurchaseCreate) SetVoidedAt(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetVoidedAt(v)
+	return _c
+}
+
+// SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableVoidedAt(v *time.Time) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetVoidedAt(*v)
+	}
+	return _c
+}
+
+// SetCostBasisID sets the "cost_basis_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetCostBasisID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetCostBasisID(v)
+	return _c
+}
+
+// SetNillableCostBasisID sets the "cost_basis_id" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableCostBasisID(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetCostBasisID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeCreditPurchaseCreate) SetID(v string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetID(v)
@@ -421,6 +473,11 @@ func (_c *ChargeCreditPurchaseCreate) SetCreditGrant(v *ChargeCreditPurchaseCred
 	return _c.SetCreditGrantID(v.ID)
 }
 
+// SetCostBasis sets the "cost_basis" edge to the ChargeCreditPurchaseCostBasis entity.
+func (_c *ChargeCreditPurchaseCreate) SetCostBasis(v *ChargeCreditPurchaseCostBasis) *ChargeCreditPurchaseCreate {
+	return _c.SetCostBasisID(v.ID)
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_c *ChargeCreditPurchaseCreate) SetChargeID(id string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetChargeID(id)
@@ -463,6 +520,11 @@ func (_c *ChargeCreditPurchaseCreate) SetCustomer(v *Customer) *ChargeCreditPurc
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_c *ChargeCreditPurchaseCreate) SetTaxCode(v *TaxCode) *ChargeCreditPurchaseCreate {
 	return _c.SetTaxCodeID(v.ID)
+}
+
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *ChargeCreditPurchaseCreate) SetCustomCurrency(v *CustomCurrency) *ChargeCreditPurchaseCreate {
+	return _c.SetCustomCurrencyID(v.ID)
 }
 
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
@@ -550,12 +612,14 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeCreditPurchase.currency"`)}
+	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
+		if err := chargecreditpurchase.FiatCurrencyCodeValidator(string(v)); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.fiat_currency_code": %w`, err)}
+		}
 	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := chargecreditpurchase.CurrencyValidator(string(v)); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.currency": %w`, err)}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := chargecreditpurchase.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.custom_currency_id": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ManagedBy(); !ok {
@@ -692,9 +756,9 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_spec.SetField(chargecreditpurchase.FieldUniqueReferenceID, field.TypeString, value)
 		_node.UniqueReferenceID = &value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(chargecreditpurchase.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(chargecreditpurchase.FieldFiatCurrencyCode, field.TypeString, value)
+		_node.FiatCurrencyCode = &value
 	}
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargecreditpurchase.FieldManagedBy, field.TypeEnum, value)
@@ -776,6 +840,10 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_spec.SetField(chargecreditpurchase.FieldKey, field.TypeString, value)
 		_node.Key = &value
 	}
+	if value, ok := _c.mutation.VoidedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldVoidedAt, field.TypeTime, value)
+		_node.VoidedAt = &value
+	}
 	if nodes := _c.mutation.ExternalPaymentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -822,6 +890,23 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CostBasisIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargecreditpurchase.CostBasisTable,
+			Columns: []string{chargecreditpurchase.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CostBasisID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
@@ -923,6 +1008,23 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.TaxCodeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.CustomCurrencyTable,
+			Columns: []string{chargecreditpurchase.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1229,6 +1331,24 @@ func (u *ChargeCreditPurchaseUpsert) UpdateStatusDetailed() *ChargeCreditPurchas
 	return u
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsert) SetVoidedAt(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldVoidedAt, v)
+	return u
+}
+
+// UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateVoidedAt() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldVoidedAt)
+	return u
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsert) ClearVoidedAt() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldVoidedAt)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1252,8 +1372,11 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldUniqueReferenceID)
 		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(chargecreditpurchase.FieldCurrency)
+		if _, exists := u.create.mutation.FiatCurrencyCode(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldFiatCurrencyCode)
+		}
+		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldCustomCurrencyID)
 		}
 		if _, exists := u.create.mutation.ManagedBy(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldManagedBy)
@@ -1290,6 +1413,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.Key(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldKey)
+		}
+		if _, exists := u.create.mutation.CostBasisID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldCostBasisID)
 		}
 	}))
 	return u
@@ -1616,6 +1742,27 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateStatusDetailed() *ChargeCreditPurc
 	})
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetVoidedAt(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetVoidedAt(v)
+	})
+}
+
+// UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateVoidedAt() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateVoidedAt()
+	})
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearVoidedAt() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearVoidedAt()
+	})
+}
+
 // Exec executes the query.
 func (u *ChargeCreditPurchaseUpsertOne) Exec(ctx context.Context) error {
 	if len(u.create.conflict) == 0 {
@@ -1808,8 +1955,11 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			if _, exists := b.mutation.UniqueReferenceID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldUniqueReferenceID)
 			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(chargecreditpurchase.FieldCurrency)
+			if _, exists := b.mutation.FiatCurrencyCode(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldFiatCurrencyCode)
+			}
+			if _, exists := b.mutation.CustomCurrencyID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldCustomCurrencyID)
 			}
 			if _, exists := b.mutation.ManagedBy(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldManagedBy)
@@ -1846,6 +1996,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.Key(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldKey)
+			}
+			if _, exists := b.mutation.CostBasisID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldCostBasisID)
 			}
 		}
 	}))
@@ -2170,6 +2323,27 @@ func (u *ChargeCreditPurchaseUpsertBulk) SetStatusDetailed(v creditpurchase.Stat
 func (u *ChargeCreditPurchaseUpsertBulk) UpdateStatusDetailed() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateStatusDetailed()
+	})
+}
+
+// SetVoidedAt sets the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetVoidedAt(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetVoidedAt(v)
+	})
+}
+
+// UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateVoidedAt() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateVoidedAt()
+	})
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearVoidedAt() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearVoidedAt()
 	})
 }
 

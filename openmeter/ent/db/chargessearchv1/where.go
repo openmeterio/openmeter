@@ -64,10 +64,15 @@ func UniqueReferenceID(v string) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldEQ(FieldUniqueReferenceID, v))
 }
 
-// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCode applies equality check predicate on the "fiat_currency_code" field. It's identical to FiatCurrencyCodeEQ.
+func FiatCurrencyCode(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldEQ(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldFiatCurrencyCode, vc))
+}
+
+// CustomCurrencyID applies equality check predicate on the "custom_currency_id" field. It's identical to CustomCurrencyIDEQ.
+func CustomCurrencyID(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldCustomCurrencyID, v))
 }
 
 // SubscriptionID applies equality check predicate on the "subscription_id" field. It's identical to SubscriptionIDEQ.
@@ -674,88 +679,173 @@ func UniqueReferenceIDContainsFold(v string) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldContainsFold(FieldUniqueReferenceID, v))
 }
 
-// CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeEQ applies the EQ predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeEQ(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldEQ(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeNEQ applies the NEQ predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeNEQ(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldNEQ(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldNEQ(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeIn applies the In predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeIn(vs ...currencyx.Code) predicate.ChargesSearchV1 {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.ChargesSearchV1(sql.FieldIn(FieldCurrency, v...))
+	return predicate.ChargesSearchV1(sql.FieldIn(FieldFiatCurrencyCode, v...))
 }
 
-// CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeNotIn applies the NotIn predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeNotIn(vs ...currencyx.Code) predicate.ChargesSearchV1 {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.ChargesSearchV1(sql.FieldNotIn(FieldCurrency, v...))
+	return predicate.ChargesSearchV1(sql.FieldNotIn(FieldFiatCurrencyCode, v...))
 }
 
-// CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeGT applies the GT predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeGT(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldGT(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldGT(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeGTE applies the GTE predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeGTE(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldGTE(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldGTE(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeLT applies the LT predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeLT(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldLT(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldLT(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeLTE applies the LTE predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeLTE(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldLTE(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldLTE(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeContains applies the Contains predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeContains(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldContains(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldContains(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeHasPrefix applies the HasPrefix predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeHasPrefix(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldHasPrefix(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldHasPrefix(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeHasSuffix applies the HasSuffix predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeHasSuffix(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldHasSuffix(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldHasSuffix(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v currencyx.Code) predicate.ChargesSearchV1 {
-	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldEqualFold(FieldCurrency, vc))
+// FiatCurrencyCodeIsNil applies the IsNil predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeIsNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIsNull(FieldFiatCurrencyCode))
 }
 
-// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v currencyx.Code) predicate.ChargesSearchV1 {
+// FiatCurrencyCodeNotNil applies the NotNil predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeNotNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldFiatCurrencyCode))
+}
+
+// FiatCurrencyCodeEqualFold applies the EqualFold predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeEqualFold(v currencyx.Code) predicate.ChargesSearchV1 {
 	vc := string(v)
-	return predicate.ChargesSearchV1(sql.FieldContainsFold(FieldCurrency, vc))
+	return predicate.ChargesSearchV1(sql.FieldEqualFold(FieldFiatCurrencyCode, vc))
+}
+
+// FiatCurrencyCodeContainsFold applies the ContainsFold predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeContainsFold(v currencyx.Code) predicate.ChargesSearchV1 {
+	vc := string(v)
+	return predicate.ChargesSearchV1(sql.FieldContainsFold(FieldFiatCurrencyCode, vc))
+}
+
+// CustomCurrencyIDEQ applies the EQ predicate on the "custom_currency_id" field.
+func CustomCurrencyIDEQ(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDNEQ applies the NEQ predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNEQ(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNEQ(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDIn applies the In predicate on the "custom_currency_id" field.
+func CustomCurrencyIDIn(vs ...string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIn(FieldCustomCurrencyID, vs...))
+}
+
+// CustomCurrencyIDNotIn applies the NotIn predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNotIn(vs ...string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotIn(FieldCustomCurrencyID, vs...))
+}
+
+// CustomCurrencyIDGT applies the GT predicate on the "custom_currency_id" field.
+func CustomCurrencyIDGT(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGT(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDGTE applies the GTE predicate on the "custom_currency_id" field.
+func CustomCurrencyIDGTE(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGTE(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDLT applies the LT predicate on the "custom_currency_id" field.
+func CustomCurrencyIDLT(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLT(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDLTE applies the LTE predicate on the "custom_currency_id" field.
+func CustomCurrencyIDLTE(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLTE(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDContains applies the Contains predicate on the "custom_currency_id" field.
+func CustomCurrencyIDContains(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldContains(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDHasPrefix applies the HasPrefix predicate on the "custom_currency_id" field.
+func CustomCurrencyIDHasPrefix(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldHasPrefix(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDHasSuffix applies the HasSuffix predicate on the "custom_currency_id" field.
+func CustomCurrencyIDHasSuffix(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldHasSuffix(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDIsNil applies the IsNil predicate on the "custom_currency_id" field.
+func CustomCurrencyIDIsNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIsNull(FieldCustomCurrencyID))
+}
+
+// CustomCurrencyIDNotNil applies the NotNil predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNotNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldCustomCurrencyID))
+}
+
+// CustomCurrencyIDEqualFold applies the EqualFold predicate on the "custom_currency_id" field.
+func CustomCurrencyIDEqualFold(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEqualFold(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDContainsFold applies the ContainsFold predicate on the "custom_currency_id" field.
+func CustomCurrencyIDContainsFold(v string) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldContainsFold(FieldCustomCurrencyID, v))
 }
 
 // ManagedByEQ applies the EQ predicate on the "managed_by" field.

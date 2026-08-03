@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -19,6 +21,7 @@ import (
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -26,6 +29,52 @@ import (
 )
 
 var MonthPeriod = datetime.ISODurationFromDuration(30 * 24 * time.Hour)
+
+func TestUpdateAddonInputRejectsPersistedUnrepresentableCurrencies(t *testing.T) {
+	tests := []struct {
+		name      string
+		configure func(*productcatalog.Addon)
+		expected  error
+	}{
+		{
+			name: "custom default currency",
+			configure: func(addon *productcatalog.Addon) {
+				addon.Currency = currencies.NewCurrencyReference("CREDITS")
+			},
+			expected: productcatalog.ErrCurrencyNotRepresentable,
+		},
+		{
+			name: "currency override",
+			configure: func(addon *productcatalog.Addon) {
+				addon.RateCards[0].(*productcatalog.FlatFeeRateCard).Currency = lo.ToPtr(
+					currencies.NewCurrencyReference("CREDITS"),
+				)
+			},
+			expected: productcatalog.ErrRateCardCurrencyNotRepresentable,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - a persisted add-on carrying currency configuration the caller cannot represent
+			persisted := pctestutils.NewTestAddon(t, "test", &productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{Key: "flat", Name: "Flat"},
+			}).Addon
+			tt.configure(&persisted)
+
+			// when:
+			// - a v1-compatible update is validated against the persisted add-on
+			err := (addon.UpdateAddonInput{
+				RejectUnrepresentableCurrencies: true,
+			}).ValidateWithAddon(persisted)
+
+			// then:
+			// - validation rejects the operation before it can rewrite the add-on
+			require.ErrorIs(t, err, tt.expected)
+		})
+	}
+}
 
 func TestAddonService(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -35,8 +84,6 @@ func TestAddonService(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-
-	env.DBSchemaMigrate(t)
 
 	t.Run("Addon", func(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
@@ -454,8 +501,6 @@ func TestAddonService_List(t *testing.T) {
 		env.Close(t)
 	})
 
-	env.DBSchemaMigrate(t)
-
 	namespace := pctestutils.NewTestNamespace(t)
 
 	// Create some addons for testing
@@ -475,9 +520,9 @@ func TestAddonService_List(t *testing.T) {
 		addonInput.Key = fmt.Sprintf("addon-%d", i)
 		addonInput.Name = fmt.Sprintf("Addon %d", i)
 		if i%2 == 0 {
-			addonInput.Currency = "USD"
+			addonInput.Currency = currencies.NewCurrencyReference(currencyx.Code("USD"))
 		} else {
-			addonInput.Currency = "EUR"
+			addonInput.Currency = currencies.NewCurrencyReference(currencyx.Code("EUR"))
 		}
 
 		a, err := env.Addon.CreateAddon(ctx, addonInput)
@@ -611,4 +656,85 @@ func TestAddonService_List(t *testing.T) {
 			tc.validate(t, res)
 		})
 	}
+}
+
+func TestUpdateAddonRateCardCurrencyResolutionUsesLatestActiveIdentity(t *testing.T) {
+	// given:
+	// - a draft add-on rate card linked to a managed CREDITS resource
+	// - the currency is archived and replaced by another active currency with the same code
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+	oldCredits, err := env.Currency.CreateCurrency(
+		t.Context(),
+		currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"),
+	)
+	require.NoError(t, err)
+
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: oldCredits.ID,
+		FiatCode:   currencyx.Code("USD"),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
+	newRateCard := func() productcatalog.RateCard {
+		return &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{
+			Key:      "credits",
+			Name:     "Credits",
+			Currency: lo.ToPtr(currencies.NewCurrencyReference(oldCredits.GetCode())),
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      decimal.NewFromInt(1),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+		}}
+	}
+
+	created, err := env.Addon.CreateAddon(
+		t.Context(),
+		pctestutils.NewTestAddon(t, namespace, newRateCard()),
+	)
+	require.NoError(t, err)
+	createdCurrency := created.AsProductCatalogAddon().RateCards[0].AsMeta().Currency
+	require.NotNil(t, createdCurrency)
+	require.NotNil(t, createdCurrency.CustomCurrencyID)
+	require.Equal(t, oldCredits.ID, *createdCurrency.CustomCurrencyID)
+
+	_, err = env.Client.CustomCurrency.UpdateOneID(oldCredits.ID).
+		SetDeletedAt(time.Now().UTC()).
+		Save(t.Context())
+	require.NoError(t, err)
+
+	newCredits, err := env.Currency.CreateCurrency(
+		t.Context(),
+		currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"),
+	)
+	require.NoError(t, err)
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: newCredits.ID,
+		FiatCode:   currencyx.Code("USD"),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
+	updatedRateCards := productcatalog.RateCards{newRateCard()}
+
+	// when:
+	// - the code-only rate card is submitted as a full draft-add-on update
+	updated, err := env.Addon.UpdateAddon(t.Context(), addon.UpdateAddonInput{
+		NamespacedID: created.NamespacedID,
+		RateCards:    &updatedRateCards,
+	})
+
+	// then:
+	// - the code resolves to the currently active managed currency
+	require.NoError(t, err)
+	require.Len(t, updated.RateCards, 1)
+	updatedCurrency := updated.AsProductCatalogAddon().RateCards[0].AsMeta().Currency
+	require.NotNil(t, updatedCurrency)
+	require.NotNil(t, updatedCurrency.CustomCurrencyID)
+	require.Equal(t, newCredits.ID, *updatedCurrency.CustomCurrencyID)
 }

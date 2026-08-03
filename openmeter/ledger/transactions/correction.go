@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -17,6 +18,12 @@ type CorrectionInput struct {
 	At     time.Time
 	Amount alpacadecimal.Decimal
 
+	// CostBasis is required only by templates whose correction must reapply an
+	// immutable conversion rate (e.g. ConvertCurrencyTemplate). The charge layer
+	// supplies it; the template validates it against the original booking
+	// instead of reverse-engineering it from booked amounts.
+	CostBasis *alpacadecimal.Decimal
+
 	OriginalTransaction ledger.Transaction
 	OriginalGroup       ledger.TransactionGroup
 }
@@ -24,19 +31,21 @@ type CorrectionInput struct {
 type CorrectionScope = CorrectionInput
 
 func (i CorrectionScope) Validate() error {
+	var errs []error
+
 	if i.At.IsZero() {
-		return fmt.Errorf("at is required")
+		errs = append(errs, errors.New("at is required"))
 	}
 
 	if err := ledger.ValidateTransactionAmount(i.Amount); err != nil {
-		return fmt.Errorf("amount: %w", err)
+		errs = append(errs, fmt.Errorf("amount: %w", err))
 	}
 
 	if i.OriginalTransaction == nil {
-		return fmt.Errorf("original transaction is required")
+		errs = append(errs, errors.New("original transaction is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func CorrectTransaction(

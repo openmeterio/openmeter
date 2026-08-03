@@ -10,7 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,6 +34,7 @@ func TestPlanSerialization(t *testing.T) {
 		PlanMeta: productcatalog.PlanMeta{
 			Name:        "Test Plan",
 			Description: lo.ToPtr("Test plan description"),
+			Currency:    currencies.NewCurrencyReference(currencyx.Code("USD")),
 			Metadata: models.Metadata{
 				"key1": "value1",
 			},
@@ -150,6 +154,64 @@ func TestPlanSerialization(t *testing.T) {
 			assert.Equal(t, plan.Phases[i].RateCards[j].AsMeta(), unmarshaled.Phases[i].RateCards[j].AsMeta())
 		}
 	}
+}
+
+func TestPlanSerializationUsesCurrencyCodes(t *testing.T) {
+	// given:
+	// - a plan and rate card backed by a managed custom currency
+	managedCurrencyValue := currencytestutils.NewManagedCurrency(t, "test", "currency-resource-id", "CREDITS")
+	managedCurrency := &managedCurrencyValue
+	plan := Plan{
+		PlanMeta: productcatalog.PlanMeta{
+			Currency: managedCurrency.Reference(),
+		},
+		Phases: []Phase{
+			{
+				Phase: productcatalog.Phase{
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Currency: lo.ToPtr(managedCurrency.Reference()),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// when:
+	// - a plan containing resolved managed currency identities crosses the JSON event boundary
+	data, err := json.Marshal(plan)
+	require.NoError(t, err)
+
+	// then:
+	// - only stable currency codes are serialized, and decoding restores code-only references
+	var serialized struct {
+		Currency currencyx.Code `json:"currency"`
+		Phases   []struct {
+			RateCards []struct {
+				Currency currencyx.Code `json:"currency"`
+			} `json:"rateCards"`
+		} `json:"phases"`
+	}
+	require.NoError(t, json.Unmarshal(data, &serialized))
+	assert.Equal(t, currencyx.Code("CREDITS"), serialized.Currency)
+	require.Len(t, serialized.Phases, 1)
+	require.Len(t, serialized.Phases[0].RateCards, 1)
+	assert.Equal(t, currencyx.Code("CREDITS"), serialized.Phases[0].RateCards[0].Currency)
+	assert.NotContains(t, string(data), managedCurrency.ID)
+
+	var decoded Plan
+	require.NoError(t, json.Unmarshal(data, &decoded))
+	assert.Equal(t, currencyx.Code("CREDITS"), decoded.Currency.Code)
+	assert.False(t, decoded.Currency.IsResolved())
+	require.Len(t, decoded.Phases, 1)
+	require.Len(t, decoded.Phases[0].RateCards, 1)
+	decodedRateCardCurrency := decoded.Phases[0].RateCards[0].AsMeta().Currency
+	require.NotNil(t, decodedRateCardCurrency)
+	assert.Equal(t, currencyx.Code("CREDITS"), decodedRateCardCurrency.Code)
+	assert.False(t, decodedRateCardCurrency.IsResolved())
 }
 
 func TestPlanSerializationErrors(t *testing.T) {

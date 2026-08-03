@@ -313,6 +313,52 @@ func HasTransactionsWith(preds ...predicate.LedgerTransaction) predicate.LedgerT
 	})
 }
 
+// HasSourceBreakageRecords applies the HasEdge predicate on the "source_breakage_records" edge.
+func HasSourceBreakageRecords() predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SourceBreakageRecordsTable, SourceBreakageRecordsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSourceBreakageRecordsWith applies the HasEdge predicate on the "source_breakage_records" edge with a given conditions (other predicates).
+func HasSourceBreakageRecordsWith(preds ...predicate.LedgerBreakageRecord) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(func(s *sql.Selector) {
+		step := newSourceBreakageRecordsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBreakageRecords applies the HasEdge predicate on the "breakage_records" edge.
+func HasBreakageRecords() predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BreakageRecordsTable, BreakageRecordsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBreakageRecordsWith applies the HasEdge predicate on the "breakage_records" edge with a given conditions (other predicates).
+func HasBreakageRecordsWith(preds ...predicate.LedgerBreakageRecord) predicate.LedgerTransactionGroup {
+	return predicate.LedgerTransactionGroup(func(s *sql.Selector) {
+		step := newBreakageRecordsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.LedgerTransactionGroup) predicate.LedgerTransactionGroup {
 	return predicate.LedgerTransactionGroup(sql.AndPredicates(predicates...))

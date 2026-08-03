@@ -11,7 +11,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -29,7 +28,7 @@ type ChargeUsageBased struct {
 
 func (ChargeUsageBased) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		chargemeta.Mixin{},
+		ChargesMetaMixin{},
 	}
 }
 
@@ -94,6 +93,14 @@ func (ChargeUsageBased) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.String("cost_basis_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
+
 		field.Enum("status_detailed").
 			GoType(usagebased.Status("")),
 	}
@@ -108,6 +115,12 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 		edge.To("current_run", ChargeUsageBasedRuns.Type).
 			Field("current_realization_run_id").
 			Unique(),
+		edge.To("cost_basis", ChargeUsageBasedCostBasis.Type).
+			Field("cost_basis_id").
+			StorageKey(edge.Symbol("charge_usage_based_cost_basis_charge_fk")).
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("charge", Charge.Type).
 			Unique().
 			Immutable().
@@ -148,6 +161,12 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Immutable().
 			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
 			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.From("custom_currency", CustomCurrency.Type).
+			Ref("charges_usage_based").
+			Field("custom_currency_id").
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 
@@ -161,6 +180,26 @@ func (ChargeUsageBased) Indexes() []ent.Index {
 func (ChargeUsageBased) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "charge_usage_based"},
+	}
+}
+
+type ChargeUsageBasedCostBasis struct {
+	ent.Schema
+}
+
+func (ChargeUsageBasedCostBasis) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		ChargeCostBasisMixin{},
+	}
+}
+
+func (ChargeUsageBasedCostBasis) Edges() []ent.Edge {
+	return chargeCostBasisCurrencyEdges("charge_usage_based_cost_basis")
+}
+
+func (ChargeUsageBasedCostBasis) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "charge_usage_based_cost_bases"},
 	}
 }
 
@@ -319,6 +358,9 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			Immutable(),
 
 		field.Bool("detailed_lines_present"),
+
+		field.Bool("detailed_lines_include_credit_allocations").
+			Default(false),
 
 		field.String("line_id").
 			SchemaType(map[string]string{

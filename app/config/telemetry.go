@@ -426,7 +426,7 @@ func (c LogTelemetryConfig) NewHandler(w io.Writer) slog.Handler {
 		return slog.NewTextHandler(w, &slog.HandlerOptions{Level: c.Level})
 
 	case "tint":
-		return tint.NewHandler(os.Stdout, &tint.Options{Level: c.Level})
+		return tint.NewTextHandler(os.Stdout, &tint.Options{Level: c.Level})
 	case "prettydev":
 		return devslog.NewHandler(w, &devslog.Options{
 			MaxSlicePrintSize: 4,

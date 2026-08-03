@@ -22,6 +22,12 @@ bench-governance-matrix: ## Benchmark governance query latency (full 3x3 custome
 	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_FULL_MATRIX=1 \
 		go test -run='^$$' -bench='^BenchmarkGovernanceQuery$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
 
+.PHONY: bench-governance-namespace
+bench-governance-namespace: ## Benchmark governance query latency vs. namespace size (fixed 100 customers x 1 feature, 0/10k/100k decoys); requires direct Postgres access
+	$(call print-target)
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) \
+		go test -run='^$$' -bench='^BenchmarkGovernanceQueryNamespaceScale$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
+
 .PHONY: test-local
 test-local: ## Run tests against local openmeter
 	$(call print-target)

@@ -1,6 +1,7 @@
 package ledger_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -8,53 +9,46 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestValidateTransactionInputEntryAmountPrecision(t *testing.T) {
-	tests := []struct {
+func TestValidateTransactionInputCurrencyAccounting(t *testing.T) {
+	for _, testCase := range []struct {
 		name     string
-		currency currencyx.Code
+		currency currencies.CurrencyReference
 		amount   string
 		wantErr  bool
 	}{
 		{
-			name:     "USD accepts cents",
-			currency: currencyx.Code("USD"),
+			name:     "accepts fiat precision",
+			currency: currencies.NewCurrencyReference("USD"),
 			amount:   "10.01",
 		},
 		{
-			name:     "USD rejects sub-cent amount",
-			currency: currencyx.Code("USD"),
+			name:     "rejects excess fiat precision",
+			currency: currencies.NewCurrencyReference("USD"),
 			amount:   "10.001",
 			wantErr:  true,
 		},
 		{
-			name:     "USD accepts negative cents",
-			currency: currencyx.Code("USD"),
-			amount:   "-10.01",
+			name:     "accepts custom precision matching the route's declared precision",
+			currency: mustCustomCurrencyReference(t, "CREDITS", 3),
+			amount:   "10.001",
 		},
 		{
-			name:     "JPY accepts whole amount",
-			currency: currencyx.Code("JPY"),
-			amount:   "10",
-		},
-		{
-			name:     "JPY rejects fractional amount",
-			currency: currencyx.Code("JPY"),
-			amount:   "10.1",
+			name:     "rejects custom precision exceeding the route's declared precision",
+			currency: mustCustomCurrencyReference(t, "CREDITS", 2),
+			amount:   "10.001",
 			wantErr:  true,
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			amount := mustDecimal(t, tt.amount)
-			address := mustPostingAddress(t, tt.currency)
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			amount := mustDecimal(t, testCase.amount)
+			address := mustPostingAddressWithCurrencyReference(t, testCase.currency)
 			txInput := &testutils.AnyTransactionInput{
 				BookedAtValue: time.Now(),
 				EntryInputsValues: []*testutils.AnyEntryInput{
@@ -70,30 +64,41 @@ func TestValidateTransactionInputEntryAmountPrecision(t *testing.T) {
 			}
 
 			err := ledger.ValidateTransactionInput(t.Context(), txInput)
-			if !tt.wantErr {
-				require.NoError(t, err)
+			if testCase.wantErr {
+				require.ErrorIs(t, err, ledger.ErrTransactionAmountInvalid)
+
 				return
 			}
 
-			require.Error(t, err)
-			require.ErrorIs(t, err, ledger.ErrTransactionAmountInvalid)
-
-			issues, issueErr := models.AsValidationIssues(err)
-			require.NoError(t, issueErr)
-			require.Len(t, issues, 1)
-			require.Equal(t, ledger.ErrCodeTransactionAmountInvalid, issues[0].Code())
-
-			attrs := issues[0].Attributes()
-			require.Equal(t, "amount_not_rounded_to_currency_precision", attrs["reason"])
-			require.Equal(t, tt.currency, attrs["currency"])
-			require.Equal(t, amount.String(), attrs["amount"])
-			require.NotEmpty(t, attrs["rounded_amount"])
+			require.NoError(t, err)
 		})
 	}
+
+	t.Run("rejects a globally balanced transaction that is unbalanced by currency", func(t *testing.T) {
+		amount := mustDecimal(t, "25")
+		txInput := &testutils.AnyTransactionInput{
+			BookedAtValue: time.Now(),
+			EntryInputsValues: []*testutils.AnyEntryInput{
+				{
+					Address:     mustPostingAddress(t, currencyx.Code("USD")),
+					AmountValue: amount,
+				},
+				{
+					Address:     mustPostingAddressWithCurrencyReference(t, mustCustomCurrencyReference(t, "ACME", 2)),
+					AmountValue: amount.Neg(),
+				},
+			},
+		}
+
+		err := ledger.ValidateTransactionInput(t.Context(), txInput)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ledger.ErrInvalidTransactionTotal)
+	})
 }
 
 func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 	costBasis := alpacadecimal.NewFromFloat(0.7)
+	costBasisCurrency := currencyx.Code("USD")
 	taxCode := "vat"
 	taxBehavior := ledger.TaxBehaviorInclusive
 	creditPriority := 1
@@ -107,7 +112,19 @@ func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 		{
 			name: "currency route filter is supported",
 			route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+			},
+		},
+		{
+			name: "exchange source route filter is supported",
+			route: ledger.RouteFilter{
+				CostBasisCurrency: mo.Some(&costBasisCurrency),
+			},
+		},
+		{
+			name: "source-less route filter is supported",
+			route: ledger.RouteFilter{
+				CostBasisCurrency: mo.Some[*currencyx.Code](nil),
 			},
 		},
 		{
@@ -186,7 +203,22 @@ func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 	}
 }
 
+func mustCustomCurrencyReference(t *testing.T, code currencyx.Code, precision int) currencies.CurrencyReference {
+	t.Helper()
+
+	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom|v1|%s|custom-currency-id|%d", code, precision)))
+	require.NoError(t, err)
+
+	return reference
+}
+
 func mustPostingAddress(t *testing.T, currency currencyx.Code) ledger.PostingAddress {
+	t.Helper()
+
+	return mustPostingAddressWithCurrencyReference(t, currencies.NewCurrencyReference(currency))
+}
+
+func mustPostingAddressWithCurrencyReference(t *testing.T, currency currencies.CurrencyReference) ledger.PostingAddress {
 	t.Helper()
 
 	route := ledger.Route{Currency: currency}
@@ -194,10 +226,10 @@ func mustPostingAddress(t *testing.T, currency currencyx.Code) ledger.PostingAdd
 	require.NoError(t, err)
 
 	address, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-		SubAccountID: "sub_" + string(currency),
+		SubAccountID: "sub_" + string(currency.Code),
 		AccountType:  ledger.AccountTypeCustomerFBO,
 		Route:        route,
-		RouteID:      "route_" + string(currency),
+		RouteID:      "route_" + string(currency.Code),
 		RoutingKey:   key,
 	})
 	require.NoError(t, err)

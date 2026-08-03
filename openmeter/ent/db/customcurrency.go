@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // CustomCurrency is the model entity for the CustomCurrency schema.
@@ -26,11 +27,17 @@ type CustomCurrency struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Code holds the value of the "code" field.
-	Code string `json:"code,omitempty"`
+	Code currencyx.Code `json:"code,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Symbol holds the value of the "symbol" field.
 	Symbol string `json:"symbol,omitempty"`
+	// Precision holds the value of the "precision" field.
+	Precision uint32 `json:"precision,omitempty"`
+	// DecimalMark holds the value of the "decimal_mark" field.
+	DecimalMark string `json:"decimal_mark,omitempty"`
+	// ThousandsSeparator holds the value of the "thousands_separator" field.
+	ThousandsSeparator string `json:"thousands_separator,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomCurrencyQuery when eager-loading is set.
 	Edges        CustomCurrencyEdges `json:"edges"`
@@ -41,9 +48,23 @@ type CustomCurrency struct {
 type CustomCurrencyEdges struct {
 	// CostBasisHistory holds the value of the cost_basis_history edge.
 	CostBasisHistory []*CurrencyCostBasis `json:"cost_basis_history,omitempty"`
+	// ChargesCreditPurchase holds the value of the charges_credit_purchase edge.
+	ChargesCreditPurchase []*ChargeCreditPurchase `json:"charges_credit_purchase,omitempty"`
+	// ChargesFlatFee holds the value of the charges_flat_fee edge.
+	ChargesFlatFee []*ChargeFlatFee `json:"charges_flat_fee,omitempty"`
+	// ChargesUsageBased holds the value of the charges_usage_based edge.
+	ChargesUsageBased []*ChargeUsageBased `json:"charges_usage_based,omitempty"`
+	// Plans holds the value of the plans edge.
+	Plans []*Plan `json:"plans,omitempty"`
+	// Addons holds the value of the addons edge.
+	Addons []*Addon `json:"addons,omitempty"`
+	// PlanRateCards holds the value of the plan_rate_cards edge.
+	PlanRateCards []*PlanRateCard `json:"plan_rate_cards,omitempty"`
+	// AddonRateCards holds the value of the addon_rate_cards edge.
+	AddonRateCards []*AddonRateCard `json:"addon_rate_cards,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [8]bool
 }
 
 // CostBasisHistoryOrErr returns the CostBasisHistory value or an error if the edge
@@ -55,12 +76,77 @@ func (e CustomCurrencyEdges) CostBasisHistoryOrErr() ([]*CurrencyCostBasis, erro
 	return nil, &NotLoadedError{edge: "cost_basis_history"}
 }
 
+// ChargesCreditPurchaseOrErr returns the ChargesCreditPurchase value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPurchase, error) {
+	if e.loadedTypes[1] {
+		return e.ChargesCreditPurchase, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_credit_purchase"}
+}
+
+// ChargesFlatFeeOrErr returns the ChargesFlatFee value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) ChargesFlatFeeOrErr() ([]*ChargeFlatFee, error) {
+	if e.loadedTypes[2] {
+		return e.ChargesFlatFee, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_flat_fee"}
+}
+
+// ChargesUsageBasedOrErr returns the ChargesUsageBased value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, error) {
+	if e.loadedTypes[3] {
+		return e.ChargesUsageBased, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_usage_based"}
+}
+
+// PlansOrErr returns the Plans value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) PlansOrErr() ([]*Plan, error) {
+	if e.loadedTypes[4] {
+		return e.Plans, nil
+	}
+	return nil, &NotLoadedError{edge: "plans"}
+}
+
+// AddonsOrErr returns the Addons value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) AddonsOrErr() ([]*Addon, error) {
+	if e.loadedTypes[5] {
+		return e.Addons, nil
+	}
+	return nil, &NotLoadedError{edge: "addons"}
+}
+
+// PlanRateCardsOrErr returns the PlanRateCards value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) PlanRateCardsOrErr() ([]*PlanRateCard, error) {
+	if e.loadedTypes[6] {
+		return e.PlanRateCards, nil
+	}
+	return nil, &NotLoadedError{edge: "plan_rate_cards"}
+}
+
+// AddonRateCardsOrErr returns the AddonRateCards value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomCurrencyEdges) AddonRateCardsOrErr() ([]*AddonRateCard, error) {
+	if e.loadedTypes[7] {
+		return e.AddonRateCards, nil
+	}
+	return nil, &NotLoadedError{edge: "addon_rate_cards"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*CustomCurrency) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case customcurrency.FieldID, customcurrency.FieldNamespace, customcurrency.FieldCode, customcurrency.FieldName, customcurrency.FieldSymbol:
+		case customcurrency.FieldPrecision:
+			values[i] = new(sql.NullInt64)
+		case customcurrency.FieldID, customcurrency.FieldNamespace, customcurrency.FieldCode, customcurrency.FieldName, customcurrency.FieldSymbol, customcurrency.FieldDecimalMark, customcurrency.FieldThousandsSeparator:
 			values[i] = new(sql.NullString)
 		case customcurrency.FieldCreatedAt, customcurrency.FieldUpdatedAt, customcurrency.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -114,7 +200,7 @@ func (_m *CustomCurrency) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field code", values[i])
 			} else if value.Valid {
-				_m.Code = value.String
+				_m.Code = currencyx.Code(value.String)
 			}
 		case customcurrency.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -127,6 +213,24 @@ func (_m *CustomCurrency) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field symbol", values[i])
 			} else if value.Valid {
 				_m.Symbol = value.String
+			}
+		case customcurrency.FieldPrecision:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field precision", values[i])
+			} else if value.Valid {
+				_m.Precision = uint32(value.Int64)
+			}
+		case customcurrency.FieldDecimalMark:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field decimal_mark", values[i])
+			} else if value.Valid {
+				_m.DecimalMark = value.String
+			}
+		case customcurrency.FieldThousandsSeparator:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field thousands_separator", values[i])
+			} else if value.Valid {
+				_m.ThousandsSeparator = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -144,6 +248,41 @@ func (_m *CustomCurrency) Value(name string) (ent.Value, error) {
 // QueryCostBasisHistory queries the "cost_basis_history" edge of the CustomCurrency entity.
 func (_m *CustomCurrency) QueryCostBasisHistory() *CurrencyCostBasisQuery {
 	return NewCustomCurrencyClient(_m.config).QueryCostBasisHistory(_m)
+}
+
+// QueryChargesCreditPurchase queries the "charges_credit_purchase" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryChargesCreditPurchase() *ChargeCreditPurchaseQuery {
+	return NewCustomCurrencyClient(_m.config).QueryChargesCreditPurchase(_m)
+}
+
+// QueryChargesFlatFee queries the "charges_flat_fee" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryChargesFlatFee() *ChargeFlatFeeQuery {
+	return NewCustomCurrencyClient(_m.config).QueryChargesFlatFee(_m)
+}
+
+// QueryChargesUsageBased queries the "charges_usage_based" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryChargesUsageBased() *ChargeUsageBasedQuery {
+	return NewCustomCurrencyClient(_m.config).QueryChargesUsageBased(_m)
+}
+
+// QueryPlans queries the "plans" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryPlans() *PlanQuery {
+	return NewCustomCurrencyClient(_m.config).QueryPlans(_m)
+}
+
+// QueryAddons queries the "addons" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryAddons() *AddonQuery {
+	return NewCustomCurrencyClient(_m.config).QueryAddons(_m)
+}
+
+// QueryPlanRateCards queries the "plan_rate_cards" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryPlanRateCards() *PlanRateCardQuery {
+	return NewCustomCurrencyClient(_m.config).QueryPlanRateCards(_m)
+}
+
+// QueryAddonRateCards queries the "addon_rate_cards" edge of the CustomCurrency entity.
+func (_m *CustomCurrency) QueryAddonRateCards() *AddonRateCardQuery {
+	return NewCustomCurrencyClient(_m.config).QueryAddonRateCards(_m)
 }
 
 // Update returns a builder for updating this CustomCurrency.
@@ -184,13 +323,22 @@ func (_m *CustomCurrency) String() string {
 	}
 	builder.WriteString(", ")
 	builder.WriteString("code=")
-	builder.WriteString(_m.Code)
+	builder.WriteString(fmt.Sprintf("%v", _m.Code))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
 	builder.WriteString("symbol=")
 	builder.WriteString(_m.Symbol)
+	builder.WriteString(", ")
+	builder.WriteString("precision=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Precision))
+	builder.WriteString(", ")
+	builder.WriteString("decimal_mark=")
+	builder.WriteString(_m.DecimalMark)
+	builder.WriteString(", ")
+	builder.WriteString("thousands_separator=")
+	builder.WriteString(_m.ThousandsSeparator)
 	builder.WriteByte(')')
 	return builder.String()
 }

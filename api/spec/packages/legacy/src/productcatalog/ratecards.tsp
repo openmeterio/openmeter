@@ -178,12 +178,11 @@ union RateCardEntitlement {
 model RateCardMeteredEntitlement {
   ...OmitProperties<
     EntitlementMeteredCreateInputs,
-
-      | "featureKey"
-      | "featureId"
-      | "usagePeriod"
-      | "measureUsageFrom"
-      | "isUnlimited"
+    | "featureKey"
+    | "featureId"
+    | "usagePeriod"
+    | "measureUsageFrom"
+    | "isUnlimited"
   >;
 
   /**

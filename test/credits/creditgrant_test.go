@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
@@ -89,6 +90,8 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 		ChargesService:        s.Charges,
 		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
+		CreditVoidService:     creditvoid.NewNoopService(),
+		TransactionManager:    enttx.NewCreator(s.DBClient),
 	})
 	s.Require().NoError(err)
 
@@ -337,6 +340,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSet
 	creditAmount := alpacadecimal.NewFromInt(1)
 	costBasis, err := alpacadecimal.NewFromString("0.005")
 	s.Require().NoError(err)
+	fiatAmount := alpacadecimal.RequireFromString("0.01")
 	priority := int16(20)
 
 	// given:
@@ -385,9 +389,10 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSet
 	s.Equal(creditpurchase.StatusActivePaymentAuthorized, grant.Status)
 	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
 	s.Equal(payment.StatusAuthorized, grant.Realizations.ExternalPaymentSettlement.Status)
+	s.AssertDecimalEqual(fiatAmount, grant.Realizations.ExternalPaymentSettlement.FiatAmount, "authorized grant should persist the rounded fiat payment amount")
 	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "authorized grant should keep credits allocated")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "authorized grant should clear open receivable")
-	s.AssertDecimalEqual(creditAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "authorized grant should book authorized receivable")
+	s.AssertDecimalEqual(fiatAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "authorized grant should book the rounded fiat receivable")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "authorized grant should not book wash")
 
 	// when:
@@ -405,10 +410,11 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSet
 	s.Equal(creditpurchase.StatusFinal, grant.Status)
 	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
 	s.Equal(payment.StatusSettled, grant.Realizations.ExternalPaymentSettlement.Status)
+	s.AssertDecimalEqual(fiatAmount, grant.Realizations.ExternalPaymentSettlement.FiatAmount, "settled grant should retain the rounded fiat payment amount")
 	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "settled grant should keep credits allocated")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "settled grant should keep open receivable cleared")
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "settled grant should clear authorized receivable")
-	s.AssertDecimalEqual(creditAmount.Neg(), s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "settled grant should book wash")
+	s.AssertDecimalEqual(fiatAmount.Neg(), s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "settled grant should book the rounded fiat payment in wash")
 }
 
 func (s *CreditGrantTestSuite) TestListCreditGrants() {

@@ -16,10 +16,11 @@ import (
 type PatchType string
 
 const (
-	PatchTypeExtend         PatchType = "extend"
-	PatchTypeShrink         PatchType = "shrink"
-	PatchTypeDelete         PatchType = "delete"
-	PatchTypeLineManualEdit PatchType = "line_manual_edit"
+	PatchTypeExtend                 PatchType = "extend"
+	PatchTypeShrink                 PatchType = "shrink"
+	PatchTypeDelete                 PatchType = "delete"
+	PatchTypeLineManualEdit         PatchType = "line_manual_edit"
+	PatchTypeShrinkToRealizedPeriod PatchType = "shrink_to_realized_period"
 )
 
 type ChangeTarget string
@@ -66,11 +67,12 @@ type Patch interface {
 
 	Op() PatchType
 	Trigger() stateless.Trigger
+	GetTargetLayer(LayeredIntentReader) (ChangeTarget, error)
 }
 
 type TriggerPatchResult[T any] struct {
 	Charge         *T
-	InvoicePatches []invoiceupdater.Patch
+	InvoicePatches invoiceupdater.Patches
 }
 
 // PatchAction adapts a generic Patch action to a concrete patch action when

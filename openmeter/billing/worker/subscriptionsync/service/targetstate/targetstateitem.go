@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -18,7 +19,7 @@ import (
 type StateItem struct {
 	SubscriptionItemWithPeriods
 
-	CurrencyCalculator           currencyx.Calculator
+	Currency                     currencies.Currency
 	Subscription                 subscription.Subscription
 	SubscriptionEndProrationMode billing.SubscriptionEndProrationMode
 }
@@ -50,6 +51,10 @@ func (r StateItem) GetServicePeriod() timeutil.ClosedPeriod {
 }
 
 func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
+	if !r.Currency.IsFiat() {
+		return nil, fmt.Errorf("billing line currency must be fiat: %s", r.Currency.GetCode())
+	}
+
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -58,7 +63,7 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 				Description: r.Spec.RateCard.AsMeta().Description,
 			}),
 			ManagedBy:              billing.SubscriptionManagedLine,
-			Currency:               r.CurrencyCalculator.CurrencyCode(),
+			Currency:               currencyx.FiatCode(r.Currency.GetCode()),
 			ChildUniqueReferenceID: &r.UniqueID,
 			TaxConfig:              r.Spec.RateCard.AsMeta().TaxConfig,
 			ServicePeriod:          r.GetServicePeriod(),
@@ -94,9 +99,9 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 			return nil, fmt.Errorf("converting price to flat: %w", err)
 		}
 
-		perUnitAmount := r.CurrencyCalculator.RoundToPrecision(price.Amount)
+		perUnitAmount := r.Currency.RoundToPrecision(price.Amount)
 		if !r.ServicePeriod.IsEmpty() && r.shouldProrate() {
-			perUnitAmount = r.CurrencyCalculator.RoundToPrecision(price.Amount.Mul(r.PeriodPercentage()))
+			perUnitAmount = r.Currency.RoundToPrecision(price.Amount.Mul(r.PeriodPercentage()))
 		}
 
 		if perUnitAmount.IsZero() {

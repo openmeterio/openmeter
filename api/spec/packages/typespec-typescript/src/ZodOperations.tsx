@@ -13,8 +13,10 @@ import {
 } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 import { getAllHttpServices } from '@typespec/http'
-import { getOperationId } from '@typespec/openapi'
+import { getExtensions, getOperationId } from '@typespec/openapi'
 import { ZodSchema } from './components/ZodSchema.jsx'
+import { isSuccessStatus } from './http-status.js'
+import { queryCodecForParameter, type QueryCodec } from './query-codecs.js'
 import {
   callPart,
   CoerceContext,
@@ -50,11 +52,55 @@ export interface OperationSchema {
   render: (name: string) => Children
 }
 
+// Customer-visibility markers from the spec's shared/consts.tsp: x-private is
+// "private and should not be exposed to customers", x-internal is "internal and
+// should not be used by customers". Both are emitted but quarantined under the
+// `client.internal.*` sub-client so the audience split stays visible at every
+// call site — the SDK is also how internal consumers call the API, so dropping
+// x-private operations would just push those callers back to hand-rolled HTTP.
+// x-unstable operations stay in the public surface: most of the young v3 API
+// carries that marker, and it flags maturity, not audience.
+function hasExtension(
+  program: Program,
+  op: Operation,
+  key: `x-${string}`,
+): boolean {
+  // The walked operation is an `extends`/`op is` instance; the @extension
+  // decorators may live on it or on the source operation it was cloned from,
+  // so the whole source chain is consulted.
+  for (
+    let current: Operation | undefined = op;
+    current;
+    current = current.sourceOperation
+  ) {
+    if (getExtensions(program, current).get(key) === true) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Whether an operation belongs to the `client.internal.*` surface. Internal
+ * operations are emitted like any other (funcs, envelope types, zod schemas),
+ * but their grouped-client methods live under `client.internal.*` instead of
+ * the public sub-clients (see emitter.tsx). x-private implies the internal
+ * surface too: it marks a stricter audience than x-internal, so it must never
+ * surface publicly, but internal consumers still call it through the SDK.
+ */
+export function isInternalOperation(program: Program, op: Operation): boolean {
+  return (
+    hasExtension(program, op, 'x-internal') ||
+    hasExtension(program, op, 'x-private')
+  )
+}
+
 /**
  * Collect every HTTP operation in the program, de-duplicated by the underlying
  * TypeSpec `Operation` (the same operation surfaces under multiple service
  * namespaces — OpenMeter and MeteringAndBilling — and must not be emitted
- * twice).
+ * twice). Operations marked x-internal or x-private are collected like any
+ * other and later routed to the `client.internal.*` surface.
  */
 export function collectHttpOperations(
   program: Program,
@@ -107,6 +153,7 @@ export function operationBaseName(program: Program, op: Operation): string {
 interface ParamLeaf {
   name: string
   prop: ModelProperty
+  codec?: QueryCodec
 }
 
 function paramObject(
@@ -118,7 +165,8 @@ function paramObject(
   // emitter.tsx's `…Wire` re-render) must keep the raw wire name so a
   // `*QueryParamsWire` schema actually matches the querystring sent on the
   // wire — otherwise it silently describes the wrong (camelCase) shape.
-  const camelize = camelizeInCamelPass && !useWireMode()
+  const wire = useWireMode()
+  const camelize = camelizeInCamelPass && !wire
   return (
     <CoerceContext.Provider value={true}>
       {zodMemberExpr(
@@ -128,7 +176,17 @@ function paramObject(
             <For each={params} comma hardline enderPunctuation>
               {(p) => (
                 <ObjectProperty name={camelize ? toCamelCase(p.name) : p.name}>
-                  <ZodSchema type={p.prop} nested />
+                  {wire && p.codec ? (
+                    <CoerceContext.Provider value={false}>
+                      <ZodSchema
+                        type={p.prop}
+                        valueType={p.codec.wireType}
+                        nested
+                      />
+                    </CoerceContext.Provider>
+                  ) : (
+                    <ZodSchema type={p.prop} nested />
+                  )}
                 </ObjectProperty>
               )}
             </For>
@@ -160,7 +218,11 @@ export function operationSchemas(
     if (param.type === 'path') {
       pathParams.push({ name: param.name, prop: param.param })
     } else if (param.type === 'query') {
-      queryParams.push({ name: param.name, prop: param.param })
+      queryParams.push({
+        name: param.name,
+        prop: param.param,
+        codec: queryCodecForParameter(program, param.name),
+      })
     }
     // headers are transport metadata; intentionally skipped.
   }
@@ -248,16 +310,4 @@ function successBodyType(
     }
   }
   return undefined
-}
-
-function isSuccessStatus(
-  statusCodes: number | '*' | { start: number; end: number },
-): boolean {
-  if (statusCodes === '*') {
-    return false
-  }
-  if (typeof statusCodes === 'number') {
-    return statusCodes >= 200 && statusCodes < 300
-  }
-  return statusCodes.start >= 200 && statusCodes.start < 300
 }

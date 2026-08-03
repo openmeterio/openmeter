@@ -111,6 +111,10 @@ func (m *mockCollectionCompletedLineEngine) OnStandardInvoiceCreated(ctx context
 	return m.onStandardInvoiceCreated(ctx, input)
 }
 
+func (m *mockCollectionCompletedLineEngine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, input ombilling.OnMutableInvoiceUpdateInput) error {
+	return input.Validate()
+}
+
 func (m *mockCollectionCompletedLineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input ombilling.OnMutableInvoiceUpdateInput) (ombilling.OnMutableInvoiceUpdateResult, error) {
 	if m.onMutableLinesChanged == nil {
 		return ombilling.OnMutableInvoiceUpdateResult{
@@ -238,7 +242,7 @@ func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForAp
 			Namespace: customerEntity.Namespace,
 			ID:        customerEntity.ID,
 		},
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []ombilling.GatheringLine{{
 			GatheringLineBase: ombilling.GatheringLineBase{
 				ManagedResource: models.ManagedResource{
@@ -393,7 +397,7 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 			Namespace: customerEntity.Namespace,
 			ID:        customerEntity.ID,
 		},
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Lines: []ombilling.GatheringLine{{
 			GatheringLineBase: ombilling.GatheringLineBase{
 				ManagedResource: models.ManagedResource{

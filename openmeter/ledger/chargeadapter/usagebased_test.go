@@ -19,6 +19,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	chargeusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -29,7 +31,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -182,10 +183,9 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
 
-		currencyCalculator, err := env.Currency.Calculator()
-		require.NoError(t, err)
+		currency := env.currency
 
-		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
@@ -219,10 +219,9 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		run.CreditsAllocated = env.realizationsFromAllocations(allocations)
 
-		currencyCalculator, err := env.Currency.Calculator()
-		require.NoError(t, err)
+		currency := env.currency
 
-		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currencyCalculator)
+		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
@@ -262,10 +261,9 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.Equal(t, float64(20), env.sumBalance(t, env.creditEarningsSubAccount(t)).InexactFloat64())
 
-		currencyCalculator, err := env.Currency.Calculator()
-		require.NoError(t, err)
+		currency := env.currency
 
-		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currencyCalculator)
+		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
@@ -306,10 +304,9 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.Equal(t, float64(20), env.sumBalance(t, env.creditEarningsSubAccount(t)).InexactFloat64())
 
-		currencyCalculator, err := env.Currency.Calculator()
-		require.NoError(t, err)
+		currency := env.currency
 
-		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currencyCalculator)
+		correctionsRequest, err := run.CreditsAllocated.CreateCorrectionRequest(alpacadecimal.NewFromInt(-20), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCreditsOnlyUsageAccruedCorrection(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedCorrectionInput{
@@ -422,9 +419,10 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		defer clock.UnFreeze()
 
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge:  charge,
-			Run:     env.newRunWithInvoiceUsage("line-1", total),
-			EventAt: env.Now(),
+			Charge:     charge,
+			Run:        env.newRunWithInvoiceUsage("line-1", total),
+			EventAt:    env.Now(),
+			FiatAmount: total,
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
@@ -443,15 +441,16 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		}
 	})
 
-	t.Run("zero invoice usage is a no-op", func(t *testing.T) {
+	t.Run("zero fiat amount is rejected", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:     env.newRunWithInvoiceUsage("line-1", alpacadecimal.Zero),
-			EventAt: env.Now(),
+			Charge:     env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:        env.newRunWithInvoiceUsage("line-1", alpacadecimal.Zero),
+			EventAt:    env.Now(),
+			FiatAmount: alpacadecimal.Zero,
 		})
-		require.NoError(t, err)
+		require.ErrorContains(t, err, "fiat amount must be positive")
 		require.Empty(t, ref.TransactionGroupID)
 	})
 
@@ -459,9 +458,10 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:     env.newRunWithInvoiceUsage("line-1", alpacadecimal.NewFromInt(10)),
-			EventAt: time.Time{},
+			Charge:     env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:        env.newRunWithInvoiceUsage("line-1", alpacadecimal.NewFromInt(10)),
+			EventAt:    time.Time{},
+			FiatAmount: alpacadecimal.NewFromInt(10),
 		})
 		require.ErrorContains(t, err, "event at is required")
 		require.Empty(t, ref.TransactionGroupID)
@@ -487,9 +487,10 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 			intent.InvoiceAt = env.Now().Add(-24 * time.Hour)
 		})
 		_, err = env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
-			Charge:  authorizedCharge,
-			Run:     env.newRunWithInvoiceUsage("line-1", total),
-			EventAt: env.Now(),
+			Charge:     authorizedCharge,
+			Run:        env.newRunWithInvoiceUsage("line-1", total),
+			EventAt:    env.Now(),
+			FiatAmount: total,
 		})
 		require.NoError(t, err)
 
@@ -502,9 +503,10 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		defer clock.UnFreeze()
 
 		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
-			Charge:  settledCharge,
-			Run:     env.newRunWithAuthorizedPayment("line-1", total),
-			EventAt: eventTime,
+			Charge:     settledCharge,
+			Run:        env.newRunWithAuthorizedPayment("line-1", total),
+			EventAt:    eventTime,
+			FiatAmount: total,
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
@@ -519,15 +521,16 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		}
 	})
 
-	t.Run("zero invoice usage is a no-op", func(t *testing.T) {
+	t.Run("zero fiat amount is rejected", func(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
-			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:     env.newRunWithAuthorizedPaymentAndInvoiceUsage("line-1", alpacadecimal.NewFromInt(1), alpacadecimal.Zero),
-			EventAt: env.Now(),
+			Charge:     env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:        env.newRunWithAuthorizedPaymentAndInvoiceUsage("line-1", alpacadecimal.NewFromInt(1), alpacadecimal.Zero),
+			EventAt:    env.Now(),
+			FiatAmount: alpacadecimal.Zero,
 		})
-		require.NoError(t, err)
+		require.ErrorContains(t, err, "fiat amount must be positive")
 		require.Empty(t, ref.TransactionGroupID)
 	})
 
@@ -535,9 +538,10 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		env := newUsageBasedHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentSettled(t.Context(), chargeusagebased.OnPaymentSettledInput{
-			Charge:  env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
-			Run:     env.newRunWithAuthorizedPayment("line-1", alpacadecimal.NewFromInt(10)),
-			EventAt: time.Time{},
+			Charge:     env.newCharge(productcatalog.CreditThenInvoiceSettlementMode),
+			Run:        env.newRunWithAuthorizedPayment("line-1", alpacadecimal.NewFromInt(10)),
+			EventAt:    time.Time{},
+			FiatAmount: alpacadecimal.NewFromInt(10),
 		})
 		require.ErrorContains(t, err, "event at is required")
 		require.Empty(t, ref.TransactionGroupID)
@@ -549,6 +553,7 @@ type usageBasedHandlerTestEnv struct {
 	handler    chargeusagebased.Handler
 	lineage    lineage.Service
 	recognizer recognizer.Service
+	currency   currencies.Currency
 }
 
 func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
@@ -596,6 +601,7 @@ func newUsageBasedHandlerTestEnv(t *testing.T) *usageBasedHandlerTestEnv {
 		}, collectorService),
 		lineage:    lineageService,
 		recognizer: recognizerService,
+		currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 	}
 }
 
@@ -627,7 +633,7 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currencyx.Code("USD"),
+					Currency:   e.currency,
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: testChargeTaxCodeID,
 					},
@@ -644,7 +650,7 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 				FeatureKey:     "api_requests",
 				SettlementMode: settlementMode,
 			}.AsOverridableIntent(),
-			Status: chargeusagebased.StatusActiveFinalRealizationProcessing,
+			Status: chargeusagebased.StatusActiveRealizationProcessing,
 			State: chargeusagebased.State{
 				FeatureID:    featureID,
 				RatingEngine: chargeusagebased.RatingEngineDelta,
@@ -720,7 +726,7 @@ func (e *usageBasedHandlerTestEnv) newRunWithAuthorizedPaymentAndInvoiceUsage(li
 			Base: payment.Base{
 				ServicePeriod: run.InvoiceUsage.ServicePeriod,
 				Status:        payment.StatusAuthorized,
-				Amount:        paymentAmount,
+				FiatAmount:    paymentAmount,
 				Authorized: &ledgertransaction.TimedGroupReference{
 					GroupReference: ledgertransaction.GroupReference{
 						TransactionGroupID: "authorized-group",
@@ -741,7 +747,7 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 
 	costBasis := alpacadecimal.Zero
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CostBasis:      &costBasis,
 		CreditPriority: priority,
 	})
@@ -761,20 +767,20 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 		transactions.IssueCustomerReceivableTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
+			Currency:  e.CurrencyReference(),
 			CostBasis: &costBasis,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
+			Currency:  e.CurrencyReference(),
 			CostBasis: &costBasis,
 		},
 	)
@@ -809,7 +815,7 @@ func (e *usageBasedHandlerTestEnv) unknownReceivableSubAccountForFeature(t *test
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       e.Currency,
+		Currency:                       e.CurrencyReference(),
 		CostBasis:                      nil,
 		Features:                       []string{featureKey},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
@@ -849,7 +855,7 @@ func (e *usageBasedHandlerTestEnv) creditEarningsSubAccount(t *testing.T) ledger
 
 func (e *usageBasedHandlerTestEnv) unknownFboSubAccount(t *testing.T) ledger.SubAccount {
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)
@@ -913,7 +919,7 @@ func (e *usageBasedHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount a
 	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
 		CustomerID: e.CustomerID,
 		At:         e.Now(),
-		Currency:   e.Currency,
+		Currency:   e.currency,
 	})
 	require.NoError(t, err)
 	require.True(t, result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
@@ -930,7 +936,7 @@ func (e *usageBasedHandlerTestEnv) createInitialLineages(t *testing.T, chargeID 
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,
-		Currency:     e.Currency,
+		Currency:     e.currency,
 		Realizations: realizations,
 	})
 	require.NoError(t, err)

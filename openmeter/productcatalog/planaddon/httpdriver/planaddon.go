@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -71,6 +72,16 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 			for _, a := range resp.Items {
 				var item api.PlanAddon
 
+				if a.Plan.HasUnitConfig() || a.Addon.AsProductCatalogAddon().HasUnitConfig() {
+					return ListPlanAddonsResponse{}, productcatalog.ErrUnitConfigNotRepresentable
+				}
+				if a.Plan.Currency.IsCustom() || a.Addon.Currency.IsCustom() {
+					return ListPlanAddonsResponse{}, productcatalog.ErrCurrencyNotRepresentable
+				}
+				if a.Plan.HasCurrencyOverrides() || a.Addon.AsProductCatalogAddon().HasCurrencyOverrides() {
+					return ListPlanAddonsResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
+				}
+
 				item, err = FromPlanAddon(a)
 				if err != nil {
 					return ListPlanAddonsResponse{}, fmt.Errorf("failed to cast plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
@@ -120,6 +131,8 @@ func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 				return CreatePlanAddonRequest{}, fmt.Errorf("failed to parse create plan add-on assignment request [namespace=%s plan.id=%s]: %w",
 					ns, planID, err)
 			}
+			req.RejectUnitConfig = true
+			req.RejectUnrepresentableCurrencies = true
 
 			return req, nil
 		},
@@ -169,6 +182,8 @@ func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 				return UpdatePlanAddonRequest{}, fmt.Errorf("failed to parse update plan add-on assignment request [namespace=%s plan.id=%s addon.id=%s]: %w",
 					ns, params.PlanID, params.AddonID, err)
 			}
+			req.RejectUnitConfig = true
+			req.RejectUnrepresentableCurrencies = true
 
 			return req, nil
 		},
@@ -265,6 +280,16 @@ func (h *handler) GetPlanAddon() GetPlanAddonHandler {
 			if err != nil {
 				return GetPlanAddonResponse{}, fmt.Errorf("failed to get plan add-on assignment [namespace=%s plan.idOrKey=%s addon.idOrKey=%s]: %w",
 					request.Namespace, request.PlanIDOrKey, request.AddonIDOrKey, err)
+			}
+
+			if a.Plan.HasUnitConfig() || a.Addon.AsProductCatalogAddon().HasUnitConfig() {
+				return GetPlanAddonResponse{}, productcatalog.ErrUnitConfigNotRepresentable
+			}
+			if a.Plan.Currency.IsCustom() || a.Addon.Currency.IsCustom() {
+				return GetPlanAddonResponse{}, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if a.Plan.HasCurrencyOverrides() || a.Addon.AsProductCatalogAddon().HasCurrencyOverrides() {
+				return GetPlanAddonResponse{}, productcatalog.ErrRateCardCurrencyNotRepresentable
 			}
 
 			return FromPlanAddon(*a)

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @openmeter/typespec-typescript run build",
+    "build": "pnpm --filter @openmeter/typespec-typescript run build && pnpm --filter @openmeter/typespec-go run build",
     "generate": "pnpm run build && pnpm --filter @openmeter/api-spec-legacy run generate && pnpm --filter @openmeter/api-spec-aip run generate && pnpm run format",
     "format": "prettier --list-different --find-config-path --write . && pnpm --filter @openmeter/api-spec-aip run format",
     "lint": "prettier --check . && pnpm --filter @openmeter/api-spec-legacy run lint && pnpm --filter @openmeter/api-spec-aip run lint && pnpm --filter @openmeter/client run typecheck",
@@ -13,10 +13,10 @@
   },
   "devDependencies": {
     "@fetch-mock/vitest": "0.2.18",
-    "@typespec/prettier-plugin-typespec": "1.12.0",
-    "@vitest/coverage-v8": "4.1.8",
-    "prettier": "3.8.3",
-    "vitest": "4.1.8"
+    "@typespec/prettier-plugin-typespec": "1.14.0",
+    "@vitest/coverage-v8": "4.1.10",
+    "prettier": "3.9.6",
+    "vitest": "4.1.10"
   },
   "exports": {
     "./openapi.yaml": "./packages/legacy/output/openapi.OpenMeterCloud.yaml",
@@ -25,5 +25,5 @@
     "./v3/openapi.yaml": "./packages/aip/output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml"
   },
   "private": true,
-  "packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499"
+  "packageManager": "pnpm@11.9.0+sha512.vWgtXQP+Ul73yf1ngMaITR51asTJyf4AxTh4KCQxDc+Q493E9Tg18G3669UIXkGFXgvLs7YN4qxburieUDbwOw=="
 }

@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -11,7 +12,6 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -24,7 +24,7 @@ type ChargeCreditPurchase struct {
 
 func (ChargeCreditPurchase) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		chargemeta.Mixin{},
+		ChargesMetaMixin{},
 	}
 }
 
@@ -68,6 +68,18 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+
+		field.Time("voided_at").
+			Optional().
+			Nillable(),
+
+		field.String("cost_basis_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
 	}
 }
 
@@ -81,6 +93,12 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("credit_grant", ChargeCreditPurchaseCreditGrant.Type).
 			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("cost_basis", ChargeCreditPurchaseCostBasis.Type).
+			Field("cost_basis_id").
+			StorageKey(edge.Symbol("charge_credit_purchase_cost_basis_charge_fk")).
+			Unique().
+			Immutable().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("charge", Charge.Type).
 			Unique().
@@ -114,6 +132,12 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Immutable().
 			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
 			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.From("custom_currency", CustomCurrency.Type).
+			Ref("charges_credit_purchase").
+			Field("custom_currency_id").
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 
@@ -121,14 +145,34 @@ func (ChargeCreditPurchase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tax_code_id").
 			StorageKey("chargecreditpurchases_tax_code_id"),
-		// Idempotency key, unique per namespace. Partial so it is enforced only while live:
-		// NULL means no idempotency requested, and a soft-deleted grant must not permanently
-		// reserve a key the caller may reuse.
-		index.Fields("namespace", "key").
+		// Idempotency key, unique per customer within a namespace. Partial so it is enforced
+		// only while live: NULL means no idempotency requested, and a soft-deleted grant must
+		// not permanently reserve a key the caller may reuse.
+		index.Fields("namespace", "customer_id", "key").
 			Annotations(
 				entsql.IndexWhere("key IS NOT NULL AND deleted_at IS NULL"),
 			).
 			Unique(),
+	}
+}
+
+type ChargeCreditPurchaseCostBasis struct {
+	ent.Schema
+}
+
+func (ChargeCreditPurchaseCostBasis) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		ChargeCostBasisMixin{},
+	}
+}
+
+func (ChargeCreditPurchaseCostBasis) Edges() []ent.Edge {
+	return chargeCostBasisCurrencyEdges("charge_credit_purchase_cost_basis")
+}
+
+func (ChargeCreditPurchaseCostBasis) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "charge_credit_purchase_cost_bases"},
 	}
 }
 

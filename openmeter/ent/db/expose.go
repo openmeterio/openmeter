@@ -111,6 +111,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		BillingCustomerOverride: NewBillingCustomerOverrideClient(config),
 
+		BillingGatheringInvoiceLine: NewBillingGatheringInvoiceLineClient(config),
+
 		BillingInvoice: NewBillingInvoiceClient(config),
 
 		BillingInvoiceFlatFeeLineConfig: NewBillingInvoiceFlatFeeLineConfigClient(config),
@@ -143,6 +145,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		ChargeCreditPurchase: NewChargeCreditPurchaseClient(config),
 
+		ChargeCreditPurchaseCostBasis: NewChargeCreditPurchaseCostBasisClient(config),
+
 		ChargeCreditPurchaseCreditGrant: NewChargeCreditPurchaseCreditGrantClient(config),
 
 		ChargeCreditPurchaseExternalPayment: NewChargeCreditPurchaseExternalPaymentClient(config),
@@ -150,6 +154,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 		ChargeCreditPurchaseInvoicedPayment: NewChargeCreditPurchaseInvoicedPaymentClient(config),
 
 		ChargeFlatFee: NewChargeFlatFeeClient(config),
+
+		ChargeFlatFeeCostBasis: NewChargeFlatFeeCostBasisClient(config),
 
 		ChargeFlatFeeOverride: NewChargeFlatFeeOverrideClient(config),
 
@@ -164,6 +170,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 		ChargeFlatFeeRunPayment: NewChargeFlatFeeRunPaymentClient(config),
 
 		ChargeUsageBased: NewChargeUsageBasedClient(config),
+
+		ChargeUsageBasedCostBasis: NewChargeUsageBasedCostBasisClient(config),
 
 		ChargeUsageBasedOverride: NewChargeUsageBasedOverrideClient(config),
 
@@ -202,6 +210,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 		LedgerAccount: NewLedgerAccountClient(config),
 
 		LedgerBreakageRecord: NewLedgerBreakageRecordClient(config),
+
+		LedgerCreditVoidRecord: NewLedgerCreditVoidRecordClient(config),
 
 		LedgerCustomerAccount: NewLedgerCustomerAccountClient(config),
 

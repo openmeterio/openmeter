@@ -59,7 +59,7 @@ func TestComplete(t *testing.T) {
 
 	expected := Configuration{
 		Postgres: PostgresConfig{
-			AutoMigrate: AutoMigrateEnt,
+			AutoMigrate: AutoMigrateMigration,
 		},
 		Address: "127.0.0.1:8888",
 		Apps: AppsConfiguration{

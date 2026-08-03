@@ -8,6 +8,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -28,7 +29,7 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 	otherAuthStatus := ledger.TransactionAuthorizationStatusAuthorized
 
 	entry := mustImpactTestEntry(t, ledger.AccountTypeCustomerFBO, ledger.Route{
-		Currency:                       currencyx.Code("USD"),
+		Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		TaxCode:                        &taxCode,
 		TaxBehavior:                    &taxBehavior,
 		Features:                       []string{"feature-a", "feature-b"},
@@ -62,14 +63,14 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 		{
 			name: "currency matches",
 			filter: ledger.ImpactFilter{
-				Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
+				Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 			},
 			want: true,
 		},
 		{
 			name: "currency mismatch",
 			filter: ledger.ImpactFilter{
-				Route: ledger.RouteFilter{Currency: currencyx.Code("EUR")},
+				Route: ledger.RouteFilter{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))},
 			},
 		},
 		{
@@ -180,7 +181,7 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 			filter: ledger.ImpactFilter{
 				AccountType: ledger.AccountTypeCustomerFBO,
 				Route: ledger.RouteFilter{
-					Currency:       currencyx.Code("USD"),
+					Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 					TaxCode:        mo.Some(&taxCode),
 					TaxBehavior:    mo.Some(&taxBehavior),
 					Features:       mo.Some([]string{"feature-b", "feature-a"}),
@@ -210,7 +211,7 @@ func TestEntryMatchesImpactFilter_NilRouteFields(t *testing.T) {
 	authStatus := ledger.TransactionAuthorizationStatusOpen
 
 	entry := mustImpactTestEntry(t, ledger.AccountTypeCustomerReceivable, ledger.Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 	})
 
 	tests := []struct {
@@ -283,18 +284,18 @@ func TestTransactionImpact(t *testing.T) {
 	tx := impactTestTransaction{
 		entries: []ledger.Entry{
 			mustImpactTestEntry(t, ledger.AccountTypeCustomerFBO, ledger.Route{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CreditPriority: &priorityOne,
 			}, alpacadecimal.NewFromInt(10)),
 			mustImpactTestEntry(t, ledger.AccountTypeCustomerFBO, ledger.Route{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CreditPriority: &priorityTwo,
 			}, alpacadecimal.NewFromInt(-3)),
 			mustImpactTestEntry(t, ledger.AccountTypeCustomerFBO, ledger.Route{
-				Currency: currencyx.Code("EUR"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("EUR")),
 			}, alpacadecimal.NewFromInt(7)),
 			mustImpactTestEntry(t, ledger.AccountTypeCustomerAccrued, ledger.Route{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			}, alpacadecimal.NewFromInt(20)),
 		},
 	}
@@ -320,7 +321,7 @@ func TestTransactionImpact(t *testing.T) {
 			filter: ledger.ImpactFilter{
 				AccountType: ledger.AccountTypeCustomerFBO,
 				Route: ledger.RouteFilter{
-					Currency: currencyx.Code("USD"),
+					Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 				},
 			},
 			want: alpacadecimal.NewFromInt(7),
@@ -458,7 +459,11 @@ func mustImpactTestEntry(t *testing.T, accountType ledger.AccountType, route led
 	routingKey, err := ledger.BuildRoutingKey(normalizedRoute)
 	require.NoError(t, err)
 
-	subAccountRoute, err := ledger.NewSubAccountRouteFromData("route-id", routingKey, normalizedRoute)
+	subAccountRoute, err := ledger.NewSubAccountRouteFromData(ledger.SubAccountRouteData{
+		ID:         "route-id",
+		RoutingKey: routingKey,
+		Route:      normalizedRoute,
+	})
 	require.NoError(t, err)
 
 	entryAmount := alpacadecimal.NewFromInt(1)

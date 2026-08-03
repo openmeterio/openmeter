@@ -126,13 +126,9 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 
 	tracer := noop.NewTracerProvider().Tracer("test")
 
-	driver := testutils.InitPostgresDB(t)
+	driver := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 
 	entClient := driver.EntDriver.Client()
-
-	if err := entClient.Schema.Create(ctx); err != nil {
-		t.Fatalf("failed to create schema: %v", err)
-	}
 
 	meterService, err := meteradapter.New([]meter.Meter{})
 	if err != nil {

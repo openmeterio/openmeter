@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -73,8 +74,9 @@ type CreateIntent struct {
 	Intent      OverridableIntent
 	Annotations models.Annotations `json:"annotations"`
 
-	FeatureID    string
-	RatingEngine RatingEngine
+	FeatureID         string
+	RatingEngine      RatingEngine
+	ResolvedCostBasis *costbasis.State
 }
 
 func (i CreateIntent) Validate() error {

@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -28,7 +28,7 @@ type ChargeFlatFee struct {
 
 func (ChargeFlatFee) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		chargemeta.Mixin{},
+		ChargesMetaMixin{},
 	}
 }
 
@@ -90,6 +90,14 @@ func (ChargeFlatFee) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.String("cost_basis_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
+
 		field.Enum("status_detailed").
 			GoType(flatfee.Status("")),
 	}
@@ -102,6 +110,12 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 		edge.To("current_run", ChargeFlatFeeRun.Type).
 			Field("current_realization_run_id").
 			Unique(),
+		edge.To("cost_basis", ChargeFlatFeeCostBasis.Type).
+			Field("cost_basis_id").
+			StorageKey(edge.Symbol("charge_flat_fee_cost_basis_charge_fk")).
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("charge", Charge.Type).
 			Unique().
 			Immutable().
@@ -141,6 +155,12 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 			Immutable().
 			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
 			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.From("custom_currency", CustomCurrency.Type).
+			Ref("charges_flat_fee").
+			Field("custom_currency_id").
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 
@@ -148,6 +168,26 @@ func (ChargeFlatFee) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tax_code_id").
 			StorageKey("chargeflatfees_tax_code_id"),
+	}
+}
+
+type ChargeFlatFeeCostBasis struct {
+	ent.Schema
+}
+
+func (ChargeFlatFeeCostBasis) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		ChargeCostBasisMixin{},
+	}
+}
+
+func (ChargeFlatFeeCostBasis) Edges() []ent.Edge {
+	return chargeCostBasisCurrencyEdges("charge_flat_fee_cost_basis")
+}
+
+func (ChargeFlatFeeCostBasis) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "charge_flat_fee_cost_bases"},
 	}
 }
 

@@ -581,6 +581,13 @@ export function callPart(target: string | Refkey, ...args: Children[]) {
  * source layout — paragraph breaks and bullet lists — survives into the emitted
  * SDK. Lines are split on `\n` only; intra-line whitespace is preserved so
  * nested bullets keep their indentation, and blank lines become bare ` *`.
+ *
+ * A literal `*\/` inside the doc text would otherwise close the comment early,
+ * leaking the remainder of `doc` out as emitted source — so every occurrence is
+ * escaped to `*\/` (still renders as the original two characters to a reader,
+ * but no longer matches the block-comment terminator). Backticks need no such
+ * handling: this is a real comment, not a template literal, so they carry no
+ * syntactic meaning here.
  */
 export function jsdoc(
   doc: string | undefined,
@@ -589,7 +596,7 @@ export function jsdoc(
   if (!doc) {
     return undefined
   }
-  const trimmed = doc.trim()
+  const trimmed = doc.trim().replace(/\*\//g, '*\\/')
   if (!trimmed.includes('\n')) {
     return `${indent}/** ${trimmed} */`
   }

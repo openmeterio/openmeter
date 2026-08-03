@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -265,7 +266,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 					Intent: meta.Intent{
 						ManagedBy:  billing.ManuallyManagedLine,
 						CustomerID: cust.GetID().ID,
-						Currency:   USD,
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 						TaxConfig: productcatalog.TaxCodeConfig{
 							Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 							TaxCodeID: tc.ID,
@@ -311,7 +312,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 					Intent: meta.Intent{
 						ManagedBy:  billing.ManuallyManagedLine,
 						CustomerID: cust.GetID().ID,
-						Currency:   USD,
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 					},
 					IntentMutableFields: creditpurchase.IntentMutableFields{
 						IntentMutableFields: meta.IntentMutableFields{
@@ -382,7 +383,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 				Intent: meta.Intent{
 					ManagedBy:  billing.ManuallyManagedLine,
 					CustomerID: cust.GetID().ID,
-					Currency:   USD,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 					TaxConfig:  taxConfig,
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
@@ -395,7 +396,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 					CreditAmount: alpacadecimal.NewFromFloat(100),
 					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  USD,
+							Currency:  currencyx.FiatCode(USD),
 							CostBasis: alpacadecimal.NewFromFloat(0.5),
 						},
 					}),
@@ -409,7 +410,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -502,7 +503,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 				Intent: meta.Intent{
 					ManagedBy:  billing.ManuallyManagedLine,
 					CustomerID: cust.GetID().ID,
-					Currency:   USD,
+					Currency:   currenciestestutils.NewFiatCurrency(s.T(), USD),
 				},
 				IntentMutableFields: creditpurchase.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -514,7 +515,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 					CreditAmount: alpacadecimal.NewFromFloat(100),
 					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  USD,
+							Currency:  currencyx.FiatCode(USD),
 							CostBasis: alpacadecimal.NewFromFloat(0.5),
 						},
 					}),
@@ -528,7 +529,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -979,7 +980,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1039,7 +1040,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGe
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1110,7 +1111,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1294,7 +1295,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)
@@ -1370,7 +1371,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{ns},
 		Customers:  []string{cust.ID},
-		Currencies: []currencyx.Code{USD},
+		Currencies: []currencyx.FiatCode{currencyx.FiatCode(USD)},
 		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.NoError(err)

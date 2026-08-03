@@ -30,8 +30,8 @@ type StandardLineBase struct {
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
 	Engine      LineEngineType       `json:"engine,omitempty"`
 
-	InvoiceID string         `json:"invoiceID,omitempty"`
-	Currency  currencyx.Code `json:"currency"`
+	InvoiceID string             `json:"invoiceID,omitempty"`
+	Currency  currencyx.FiatCode `json:"currency"`
 
 	// Lifecycle
 	Period timeutil.ClosedPeriod `json:"period"`
@@ -184,8 +184,17 @@ func (i StandardLineBase) GetCreditsApplied() CreditsApplied {
 	return i.CreditsApplied
 }
 
-func (i StandardLineBase) GetCurrency() currencyx.Code {
+func (i StandardLineBase) GetCurrency() currencyx.FiatCode {
 	return i.Currency
+}
+
+func (i StandardLineBase) GetCurrencyCalculator() (currencyx.Currency, error) {
+	currency, err := i.Currency.AsFiatCurrency()
+	if err != nil {
+		return nil, fmt.Errorf("resolving fiat currency calculator: %w", err)
+	}
+
+	return currency, nil
 }
 
 func (i StandardLineBase) GetName() string {
@@ -702,12 +711,6 @@ func (i StandardLine) Validate() error {
 		errs = append(errs, fmt.Errorf("detailed lines: %w", err))
 	}
 
-	for _, detailedLine := range i.DetailedLines {
-		if detailedLine.Currency != i.Currency {
-			errs = append(errs, fmt.Errorf("detailed line[%s]: currency[%s] is not equal to line currency[%s]", detailedLine.ID, detailedLine.Currency, i.Currency))
-		}
-	}
-
 	if err := i.UsageBased.Validate(); err != nil {
 		errs = append(errs, err)
 	}
@@ -847,7 +850,7 @@ type NewFlatFeeLineInput struct {
 	Annotations models.Annotations
 	Description *string
 
-	Currency currencyx.Code
+	Currency currencyx.FiatCode
 
 	ManagedBy InvoiceLineManagedBy
 

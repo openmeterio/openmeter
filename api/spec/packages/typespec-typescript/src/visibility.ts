@@ -7,6 +7,7 @@ import {
 } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 import { isVisible, Visibility } from '@typespec/http'
+import { isSuccessStatus } from './http-status.js'
 
 /**
  * Models reachable from an operation response body, keyed by program. A model in
@@ -127,24 +128,4 @@ export function computeResponseReachableModels(
   }
 
   return reachable
-}
-
-/**
- * Whether a response's status code(s) fall in the 2xx success range. Handles the
- * three shapes `statusCodes` can take: a single number, a `{start, end}` range
- * (success when it overlaps 200–299), and the `"*"` default-response wildcard
- * (treated as success so a body declared only on the catch-all response still
- * contributes its read shape). Without this, a ranged or wildcard success body
- * would be skipped and its create-only fields would leak back into read types.
- */
-function isSuccessStatus(
-  statusCodes: number | { start: number; end: number } | '*',
-): boolean {
-  if (statusCodes === '*') {
-    return true
-  }
-  if (typeof statusCodes === 'number') {
-    return statusCodes >= 200 && statusCodes < 300
-  }
-  return statusCodes.start < 300 && statusCodes.end >= 200
 }

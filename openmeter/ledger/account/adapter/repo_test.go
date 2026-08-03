@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgeraccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	ledgersubaccountroutedb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
@@ -19,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestRepo_CreateAndGetAccount(t *testing.T) {
@@ -27,7 +27,6 @@ func TestRepo_CreateAndGetAccount(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -68,7 +67,6 @@ func TestRepo_GetAccountByID_NotFound(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	_, err := env.repo.GetAccountByID(t.Context(), models.NamespacedID{
 		Namespace: testNamespace(),
@@ -83,7 +81,6 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -103,21 +100,21 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	subA1, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Route:     ledger.Route{Currency: currencyx.Code("USD")},
+		Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 	})
 	require.NoError(t, err)
 
 	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Route:     ledger.Route{Currency: currencyx.Code("EUR")},
+		Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("EUR"))},
 	})
 	require.NoError(t, err)
 
 	subA3Priority7, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Route:     ledger.Route{Currency: currencyx.Code("USD"), CreditPriority: lo.ToPtr(7)},
+		Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD")), CreditPriority: lo.ToPtr(7)},
 	})
 	require.NoError(t, err)
 
@@ -125,7 +122,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
 		Route: ledger.Route{
-			Currency:  currencyx.Code("USD"),
+			Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 			CostBasis: lo.ToPtr(mustDecimal(t, "0.7")),
 		},
 	})
@@ -136,7 +133,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
 		Route: ledger.Route{
-			Currency:                       currencyx.Code("USD"),
+			Currency:                       currencies.NewCurrencyReference(currencyx.Code("USD")),
 			TransactionAuthorizationStatus: &authorizedStatus,
 		},
 	})
@@ -145,7 +142,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountB.ID.ID,
-		Route:     ledger.Route{Currency: currencyx.Code("USD")},
+		Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 	})
 	require.NoError(t, err)
 
@@ -163,7 +160,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Route: ledger.RouteFilter{
-				Currency:       currencyx.Code("USD"),
+				Currency:       currencies.NewCurrencyReference("USD"),
 				CreditPriority: lo.ToPtr(7),
 			},
 		})
@@ -177,7 +174,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Route: ledger.RouteFilter{
-				Currency:  currencyx.Code("USD"),
+				Currency:  currencies.NewCurrencyReference("USD"),
 				CostBasis: mo.Some(lo.ToPtr(mustDecimal(t, "0.70"))),
 			},
 		})
@@ -193,7 +190,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Route: ledger.RouteFilter{
-				Currency:                       currencyx.Code("USD"),
+				Currency:                       currencies.NewCurrencyReference("USD"),
 				TransactionAuthorizationStatus: &authorizedStatus,
 			},
 		})
@@ -208,7 +205,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		dup, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
-			Route:     ledger.Route{Currency: currencyx.Code("USD")},
+			Route:     ledger.Route{Currency: currencies.NewCurrencyReference(currencyx.Code("USD"))},
 		})
 		require.NoError(t, err)
 		require.Equal(t, subA1.ID, dup.ID)
@@ -219,7 +216,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Route: ledger.Route{
-				Currency:  currencyx.Code("USD"),
+				Currency:  currencies.NewCurrencyReference(currencyx.Code("USD")),
 				CostBasis: lo.ToPtr(mustDecimal(t, "0.70")),
 			},
 		})
@@ -233,7 +230,6 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -252,7 +248,7 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 
 	createRoute := func(accountID string, creditPriority *int, costBasis *alpacadecimal.Decimal) error {
 		key, err := ledger.BuildRoutingKey(ledger.Route{
-			Currency:       currencyx.Code("USD"),
+			Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 			CostBasis:      costBasis,
 			CreditPriority: creditPriority,
 		})
@@ -327,7 +323,7 @@ type TestEnv struct {
 func NewTestEnv(t *testing.T) *TestEnv {
 	t.Helper()
 
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	client := db.EntDriver.Client()
 
 	return &TestEnv{
@@ -335,24 +331,6 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		client: client,
 		db:     db,
 	}
-}
-
-func (e *TestEnv) DBSchemaMigrate(t *testing.T) {
-	t.Helper()
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: e.db.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           testutils.NewDiscardLogger(t),
-	})
-	require.NoError(t, err)
-	defer func() {
-		srcErr, dbErr := migrator.Close()
-		require.NoError(t, srcErr)
-		require.NoError(t, dbErr)
-	}()
-
-	require.NoError(t, migrator.Up())
 }
 
 func (e *TestEnv) Close(t *testing.T) {

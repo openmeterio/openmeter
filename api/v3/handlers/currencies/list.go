@@ -2,8 +2,8 @@ package currencies
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -74,7 +74,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 			if params.Filter != nil {
 				if params.Filter.Type != nil {
 					ft := FromAPIBillingCurrencyType(*params.Filter.Type)
-					req.FilterType = &ft
+					req.CurrencyType = &ft
 				}
 
 				code, err := filters.FromAPIFilterString(params.Filter.Code)
@@ -86,6 +86,10 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 				req.Code = code
 			}
 
+			if params.Expand != nil && slices.Contains(*params.Expand, v3.BillingCurrencyExpandCostBasis) {
+				req.CostBasis = true
+			}
+
 			return req, nil
 		},
 		func(ctx context.Context, request ListCurrenciesRequest) (ListCurrenciesResponse, error) {
@@ -93,19 +97,6 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 			if err != nil {
 				return ListCurrenciesResponse{}, err
 			}
-
-			attrs := []slog.Attr{
-				slog.String("operation", "list-currencies"),
-				slog.String("namespace", request.Namespace),
-				slog.Int("page_number", request.Page.PageNumber),
-				slog.Int("page_size", request.Page.PageSize),
-				slog.Int("result_count", len(result.Items)),
-				slog.Int("total_count", result.TotalCount),
-			}
-			if request.FilterType != nil {
-				attrs = append(attrs, slog.String("filter_type", string(*request.FilterType)))
-			}
-			slog.LogAttrs(ctx, slog.LevelDebug, "listed currencies", attrs...)
 
 			items := make([]v3.BillingCurrency, 0, len(result.Items))
 			for _, c := range result.Items {

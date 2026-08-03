@@ -8,9 +8,9 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -41,7 +41,7 @@ type accountIdentifier interface {
 func collectFromAttributableCustomerAccrued(
 	ctx context.Context,
 	customerID customer.CustomerID,
-	currency currencyx.Code,
+	currency currencies.CurrencyReference,
 	target alpacadecimal.Decimal,
 	deps ResolverDependencies,
 ) ([]postingAddressAmount, error) {
@@ -76,7 +76,7 @@ func collectFromAttributableCustomerAccrued(
 	sources := make([]postingAddressBalance, 0, len(buckets))
 	for _, bucket := range buckets {
 		route := bucket.Address.Route().Route()
-		if route.Currency != currency || route.CostBasis == nil {
+		if !route.Currency.Equal(currency) || route.CostBasis == nil {
 			continue
 		}
 

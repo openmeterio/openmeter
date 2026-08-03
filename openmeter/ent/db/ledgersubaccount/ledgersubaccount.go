@@ -34,6 +34,10 @@ const (
 	EdgeRoute = "route"
 	// EdgeEntries holds the string denoting the entries edge name in mutations.
 	EdgeEntries = "entries"
+	// EdgeFboBreakageRecords holds the string denoting the fbo_breakage_records edge name in mutations.
+	EdgeFboBreakageRecords = "fbo_breakage_records"
+	// EdgeBreakageRecords holds the string denoting the breakage_records edge name in mutations.
+	EdgeBreakageRecords = "breakage_records"
 	// Table holds the table name of the ledgersubaccount in the database.
 	Table = "ledger_sub_accounts"
 	// AccountTable is the table that holds the account relation/edge.
@@ -57,6 +61,20 @@ const (
 	EntriesInverseTable = "ledger_entries"
 	// EntriesColumn is the table column denoting the entries relation/edge.
 	EntriesColumn = "sub_account_id"
+	// FboBreakageRecordsTable is the table that holds the fbo_breakage_records relation/edge.
+	FboBreakageRecordsTable = "ledger_breakage_records"
+	// FboBreakageRecordsInverseTable is the table name for the LedgerBreakageRecord entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgerbreakagerecord" package.
+	FboBreakageRecordsInverseTable = "ledger_breakage_records"
+	// FboBreakageRecordsColumn is the table column denoting the fbo_breakage_records relation/edge.
+	FboBreakageRecordsColumn = "fbo_sub_account_id"
+	// BreakageRecordsTable is the table that holds the breakage_records relation/edge.
+	BreakageRecordsTable = "ledger_breakage_records"
+	// BreakageRecordsInverseTable is the table name for the LedgerBreakageRecord entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgerbreakagerecord" package.
+	BreakageRecordsInverseTable = "ledger_breakage_records"
+	// BreakageRecordsColumn is the table column denoting the breakage_records relation/edge.
+	BreakageRecordsColumn = "breakage_sub_account_id"
 )
 
 // Columns holds all SQL columns for ledgersubaccount fields.
@@ -159,6 +177,34 @@ func ByEntries(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newEntriesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByFboBreakageRecordsCount orders the results by fbo_breakage_records count.
+func ByFboBreakageRecordsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFboBreakageRecordsStep(), opts...)
+	}
+}
+
+// ByFboBreakageRecords orders the results by fbo_breakage_records terms.
+func ByFboBreakageRecords(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFboBreakageRecordsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBreakageRecordsCount orders the results by breakage_records count.
+func ByBreakageRecordsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBreakageRecordsStep(), opts...)
+	}
+}
+
+// ByBreakageRecords orders the results by breakage_records terms.
+func ByBreakageRecords(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBreakageRecordsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAccountStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -178,5 +224,19 @@ func newEntriesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EntriesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, EntriesTable, EntriesColumn),
+	)
+}
+func newFboBreakageRecordsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FboBreakageRecordsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, FboBreakageRecordsTable, FboBreakageRecordsColumn),
+	)
+}
+func newBreakageRecordsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BreakageRecordsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BreakageRecordsTable, BreakageRecordsColumn),
 	)
 }

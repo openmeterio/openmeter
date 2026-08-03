@@ -16,9 +16,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -78,6 +80,7 @@ type service struct {
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
 	Breakage          ledgerbreakage.Service
+	CreditVoid        creditvoid.Service
 
 	balanceCalculator chargeLiveBalanceCalculator
 }
@@ -93,6 +96,7 @@ type Config struct {
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
 	Breakage          ledgerbreakage.Service
+	CreditVoid        creditvoid.Service
 }
 
 type GetBalanceServiceInput struct {
@@ -115,8 +119,10 @@ func (i GetBalanceServiceInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
-	if err := i.Currency.Validate(); err != nil {
+	if err := ledger.ValidateCurrency(i.Currency); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if i.Currency.IsCustom() {
+		errs = append(errs, fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 
 	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
@@ -187,14 +193,14 @@ func (i GetBalanceCurrenciesInput) pendingGrantAsOf() time.Time {
 
 func (i GetBalanceServiceInput) bookedRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = i.Currency
+	route.Currency = currencies.NewCurrencyReference(i.Currency)
 
 	return route
 }
 
 func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
 	route := i.featureRoute()
-	route.Currency = i.Currency
+	route.Currency = currencies.NewCurrencyReference(i.Currency)
 	route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
 
 	return route
@@ -247,6 +253,10 @@ func New(config Config) (*service, error) {
 	if breakageService == nil {
 		breakageService = ledgerbreakage.NewNoopService()
 	}
+	creditVoidService := config.CreditVoid
+	if creditVoidService == nil {
+		creditVoidService = creditvoid.NewNoopService()
+	}
 
 	return &service{
 		AccountResolver:   config.AccountResolver,
@@ -257,6 +267,7 @@ func New(config Config) (*service, error) {
 		Ledger:            config.Ledger,
 		BalanceQuerier:    config.BalanceQuerier,
 		Breakage:          breakageService,
+		CreditVoid:        creditVoidService,
 		balanceCalculator: chargeLiveBalanceCalculator{},
 	}, nil
 }
@@ -271,16 +282,20 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 		return nil, err
 	}
 
-	// Live balance remains a current projection from open charges.
-	// Historical cursor/as-of filtering only affects the booked/available side for now.
-	impacts, err := s.getChargeLiveBalanceImpacts(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter))
-	if err != nil {
-		return nil, fmt.Errorf("get charge live balance impacts: %w", err)
-	}
+	live := alpacadecimal.Zero
+	// Open-charge state is only available as a current projection. Historical
+	// queries return zero instead of mixing current impacts with a past ledger
+	// balance that never represented one coherent point in time.
+	if input.BalanceQuery.AsOf == nil {
+		impacts, err := s.getChargeLiveBalanceImpacts(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter))
+		if err != nil {
+			return nil, fmt.Errorf("get charge live balance impacts: %w", err)
+		}
 
-	live, err := s.calculateLiveBalance(ctx, input, settled, impacts)
-	if err != nil {
-		return nil, fmt.Errorf("calculate live balance: %w", err)
+		live, err = s.calculateLiveBalance(ctx, input, settled, impacts)
+		if err != nil {
+			return nil, fmt.Errorf("calculate live balance: %w", err)
+		}
 	}
 
 	pending, err := s.getPendingGrantAmount(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter), input.pendingGrantAsOf())
@@ -451,7 +466,7 @@ func (s *service) getFBOCurrencies(ctx context.Context, customerID customer.Cust
 	codes := make([]currencyx.Code, 0, len(subAccounts))
 
 	for _, sa := range subAccounts {
-		c := sa.Route().Currency
+		c := sa.Route().Currency.Code
 		if _, ok := seen[c]; ok {
 			continue
 		}
@@ -489,7 +504,11 @@ func (s *service) getPendingGrantCurrencies(
 			continue
 		}
 
-		codes = append(codes, creditPurchaseCharge.Intent.Currency)
+		if creditPurchaseCharge.Intent.Currency.IsCustom() {
+			return nil, fmt.Errorf("credit purchase charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
+		}
+
+		codes = append(codes, creditPurchaseCharge.Intent.Currency.GetCode())
 	}
 
 	return dedupeCurrencies(codes), nil
@@ -514,7 +533,7 @@ func (s *service) getPendingGrantAmount(
 			return alpacadecimal.Zero, fmt.Errorf("map credit purchase charge: %w", err)
 		}
 
-		if creditPurchaseCharge.Intent.Currency != currency {
+		if creditPurchaseCharge.Intent.Currency.GetCode() != currency {
 			continue
 		}
 
@@ -688,8 +707,12 @@ func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency curren
 		return nil, fmt.Errorf("map flat fee charge: %w", err)
 	}
 
-	if flatFeeCharge.Intent.GetCurrency() != currency {
+	if flatFeeCharge.Intent.GetCurrency().GetCode() != currency {
 		return nil, nil
+	}
+
+	if flatFeeCharge.Intent.GetCurrency().IsCustom() {
+		return nil, fmt.Errorf("flat fee charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
 	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.GetFeatureKey()) {
@@ -705,8 +728,12 @@ func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, c
 		return nil, fmt.Errorf("map usage based charge: %w", err)
 	}
 
-	if usageBasedCharge.Intent.GetCurrency() != currency {
+	if usageBasedCharge.Intent.GetCurrency().GetCode() != currency {
 		return nil, nil
+	}
+
+	if usageBasedCharge.Intent.GetCurrency().IsCustom() {
+		return nil, fmt.Errorf("usage based charge with custom currency: %w", meta.ErrCustomCurrencyNotSupported)
 	}
 
 	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.GetFeatureKey()) {

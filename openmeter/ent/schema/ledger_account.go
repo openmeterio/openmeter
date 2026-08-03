@@ -10,6 +10,7 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -42,6 +43,7 @@ func (LedgerAccount) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("sub_accounts", LedgerSubAccount.Type),
 		edge.To("sub_account_routes", LedgerSubAccountRoute.Type),
+		edge.To("customer_accounts", LedgerCustomerAccount.Type),
 	}
 }
 
@@ -90,6 +92,8 @@ func (LedgerSubAccount) Edges() []ent.Edge {
 			Immutable().
 			Unique(),
 		edge.To("entries", LedgerEntry.Type),
+		edge.To("fbo_breakage_records", LedgerBreakageRecord.Type),
+		edge.To("breakage_records", LedgerBreakageRecord.Type),
 	}
 }
 
@@ -116,6 +120,11 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 		field.String("routing_key").Immutable(),
 		// Literal routing values (denormalized from routing_key for query filtering; not FKs).
 		field.String("currency").Immutable(),
+		field.String("cost_basis_currency").
+			GoType(currencyx.Code("")).
+			Optional().
+			Nillable().
+			Immutable(),
 		// tax_code stores the TaxCode.Key string used as a routing dimension, not a FK to the tax_codes table.
 		field.String("tax_code").Optional().Nillable().Immutable(),
 		field.String("tax_behavior").

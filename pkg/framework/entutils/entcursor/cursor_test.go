@@ -16,7 +16,7 @@ import (
 
 func TestCursor(t *testing.T) {
 	// create isolated pg db for tests
-	driver := testutils.InitPostgresDB(t)
+	driver := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer driver.PGDriver.Close()
 
 	// build db clients

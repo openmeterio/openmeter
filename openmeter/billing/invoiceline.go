@@ -103,8 +103,9 @@ type GenericInvoiceLineReader interface {
 	GetInvoiceID() string
 	GetEngine() LineEngineType
 	GetLineEngineType() LineEngineType
-	GetCurrency() currencyx.Code
+	GetCurrency() currencyx.FiatCode
 	GetPrice() *productcatalog.Price
+	GetUnitConfig() *productcatalog.UnitConfig
 	GetTaxConfig() *TaxConfig
 	GetServicePeriod() timeutil.ClosedPeriod
 	GetChildUniqueReferenceID() *string
@@ -142,6 +143,14 @@ var InvoiceLineTypes = []InvoiceLineType{
 func (t InvoiceLineType) Validate() error {
 	if !slices.Contains(InvoiceLineTypes, t) {
 		return fmt.Errorf("invalid invoice line type: %s", t)
+	}
+
+	return nil
+}
+
+func (t InvoiceLineType) Require(types ...InvoiceLineType) error {
+	if !slices.Contains(types, t) {
+		return fmt.Errorf("invoice line type: %s", t)
 	}
 
 	return nil

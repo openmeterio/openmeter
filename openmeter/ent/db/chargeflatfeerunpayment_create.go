@@ -58,9 +58,9 @@ func (_c *ChargeFlatFeeRunPaymentCreate) SetStatus(v payment.Status) *ChargeFlat
 	return _c
 }
 
-// SetAmount sets the "amount" field.
-func (_c *ChargeFlatFeeRunPaymentCreate) SetAmount(v alpacadecimal.Decimal) *ChargeFlatFeeRunPaymentCreate {
-	_c.mutation.SetAmount(v)
+// SetFiatAmount sets the "fiat_amount" field.
+func (_c *ChargeFlatFeeRunPaymentCreate) SetFiatAmount(v alpacadecimal.Decimal) *ChargeFlatFeeRunPaymentCreate {
+	_c.mutation.SetFiatAmount(v)
 	return _c
 }
 
@@ -281,8 +281,8 @@ func (_c *ChargeFlatFeeRunPaymentCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunPayment.status": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Amount(); !ok {
-		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "ChargeFlatFeeRunPayment.amount"`)}
+	if _, ok := _c.mutation.FiatAmount(); !ok {
+		return &ValidationError{Name: "fiat_amount", err: errors.New(`db: missing required field "ChargeFlatFeeRunPayment.fiat_amount"`)}
 	}
 	if v, ok := _c.mutation.AuthorizedTransactionGroupID(); ok {
 		if err := chargeflatfeerunpayment.AuthorizedTransactionGroupIDValidator(v); err != nil {
@@ -369,9 +369,9 @@ func (_c *ChargeFlatFeeRunPaymentCreate) createSpec() (*ChargeFlatFeeRunPayment,
 		_spec.SetField(chargeflatfeerunpayment.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
 	}
-	if value, ok := _c.mutation.Amount(); ok {
-		_spec.SetField(chargeflatfeerunpayment.FieldAmount, field.TypeOther, value)
-		_node.Amount = value
+	if value, ok := _c.mutation.FiatAmount(); ok {
+		_spec.SetField(chargeflatfeerunpayment.FieldFiatAmount, field.TypeOther, value)
+		_node.FiatAmount = value
 	}
 	if value, ok := _c.mutation.AuthorizedTransactionGroupID(); ok {
 		_spec.SetField(chargeflatfeerunpayment.FieldAuthorizedTransactionGroupID, field.TypeString, value)
@@ -531,15 +531,15 @@ func (u *ChargeFlatFeeRunPaymentUpsert) UpdateStatus() *ChargeFlatFeeRunPaymentU
 	return u
 }
 
-// SetAmount sets the "amount" field.
-func (u *ChargeFlatFeeRunPaymentUpsert) SetAmount(v alpacadecimal.Decimal) *ChargeFlatFeeRunPaymentUpsert {
-	u.Set(chargeflatfeerunpayment.FieldAmount, v)
+// SetFiatAmount sets the "fiat_amount" field.
+func (u *ChargeFlatFeeRunPaymentUpsert) SetFiatAmount(v alpacadecimal.Decimal) *ChargeFlatFeeRunPaymentUpsert {
+	u.Set(chargeflatfeerunpayment.FieldFiatAmount, v)
 	return u
 }
 
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunPaymentUpsert) UpdateAmount() *ChargeFlatFeeRunPaymentUpsert {
-	u.SetExcluded(chargeflatfeerunpayment.FieldAmount)
+// UpdateFiatAmount sets the "fiat_amount" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunPaymentUpsert) UpdateFiatAmount() *ChargeFlatFeeRunPaymentUpsert {
+	u.SetExcluded(chargeflatfeerunpayment.FieldFiatAmount)
 	return u
 }
 
@@ -768,17 +768,17 @@ func (u *ChargeFlatFeeRunPaymentUpsertOne) UpdateStatus() *ChargeFlatFeeRunPayme
 	})
 }
 
-// SetAmount sets the "amount" field.
-func (u *ChargeFlatFeeRunPaymentUpsertOne) SetAmount(v alpacadecimal.Decimal) *ChargeFlatFeeRunPaymentUpsertOne {
+// SetFiatAmount sets the "fiat_amount" field.
+func (u *ChargeFlatFeeRunPaymentUpsertOne) SetFiatAmount(v alpacadecimal.Decimal) *ChargeFlatFeeRunPaymentUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunPaymentUpsert) {
-		s.SetAmount(v)
+		s.SetFiatAmount(v)
 	})
 }
 
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunPaymentUpsertOne) UpdateAmount() *ChargeFlatFeeRunPaymentUpsertOne {
+// UpdateFiatAmount sets the "fiat_amount" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunPaymentUpsertOne) UpdateFiatAmount() *ChargeFlatFeeRunPaymentUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunPaymentUpsert) {
-		s.UpdateAmount()
+		s.UpdateFiatAmount()
 	})
 }
 
@@ -1194,17 +1194,17 @@ func (u *ChargeFlatFeeRunPaymentUpsertBulk) UpdateStatus() *ChargeFlatFeeRunPaym
 	})
 }
 
-// SetAmount sets the "amount" field.
-func (u *ChargeFlatFeeRunPaymentUpsertBulk) SetAmount(v alpacadecimal.Decimal) *ChargeFlatFeeRunPaymentUpsertBulk {
+// SetFiatAmount sets the "fiat_amount" field.
+func (u *ChargeFlatFeeRunPaymentUpsertBulk) SetFiatAmount(v alpacadecimal.Decimal) *ChargeFlatFeeRunPaymentUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunPaymentUpsert) {
-		s.SetAmount(v)
+		s.SetFiatAmount(v)
 	})
 }
 
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunPaymentUpsertBulk) UpdateAmount() *ChargeFlatFeeRunPaymentUpsertBulk {
+// UpdateFiatAmount sets the "fiat_amount" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunPaymentUpsertBulk) UpdateFiatAmount() *ChargeFlatFeeRunPaymentUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunPaymentUpsert) {
-		s.UpdateAmount()
+		s.UpdateFiatAmount()
 	})
 }
 

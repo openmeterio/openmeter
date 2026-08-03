@@ -16,7 +16,6 @@ import (
 func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 	env := taxcodetestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 
 	ns := testutils.NameGenerator.Generate().Key
 

@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
@@ -23,14 +24,16 @@ import (
 // LedgerSubAccountQuery is the builder for querying LedgerSubAccount entities.
 type LedgerSubAccountQuery struct {
 	config
-	ctx         *QueryContext
-	order       []ledgersubaccount.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.LedgerSubAccount
-	withAccount *LedgerAccountQuery
-	withRoute   *LedgerSubAccountRouteQuery
-	withEntries *LedgerEntryQuery
-	modifiers   []func(*sql.Selector)
+	ctx                    *QueryContext
+	order                  []ledgersubaccount.OrderOption
+	inters                 []Interceptor
+	predicates             []predicate.LedgerSubAccount
+	withAccount            *LedgerAccountQuery
+	withRoute              *LedgerSubAccountRouteQuery
+	withEntries            *LedgerEntryQuery
+	withFboBreakageRecords *LedgerBreakageRecordQuery
+	withBreakageRecords    *LedgerBreakageRecordQuery
+	modifiers              []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -126,6 +129,50 @@ func (_q *LedgerSubAccountQuery) QueryEntries() *LedgerEntryQuery {
 			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, selector),
 			sqlgraph.To(ledgerentry.Table, ledgerentry.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, ledgersubaccount.EntriesTable, ledgersubaccount.EntriesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFboBreakageRecords chains the current query on the "fbo_breakage_records" edge.
+func (_q *LedgerSubAccountQuery) QueryFboBreakageRecords() *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, selector),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgersubaccount.FboBreakageRecordsTable, ledgersubaccount.FboBreakageRecordsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBreakageRecords chains the current query on the "breakage_records" edge.
+func (_q *LedgerSubAccountQuery) QueryBreakageRecords() *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, selector),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgersubaccount.BreakageRecordsTable, ledgersubaccount.BreakageRecordsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -320,14 +367,16 @@ func (_q *LedgerSubAccountQuery) Clone() *LedgerSubAccountQuery {
 		return nil
 	}
 	return &LedgerSubAccountQuery{
-		config:      _q.config,
-		ctx:         _q.ctx.Clone(),
-		order:       append([]ledgersubaccount.OrderOption{}, _q.order...),
-		inters:      append([]Interceptor{}, _q.inters...),
-		predicates:  append([]predicate.LedgerSubAccount{}, _q.predicates...),
-		withAccount: _q.withAccount.Clone(),
-		withRoute:   _q.withRoute.Clone(),
-		withEntries: _q.withEntries.Clone(),
+		config:                 _q.config,
+		ctx:                    _q.ctx.Clone(),
+		order:                  append([]ledgersubaccount.OrderOption{}, _q.order...),
+		inters:                 append([]Interceptor{}, _q.inters...),
+		predicates:             append([]predicate.LedgerSubAccount{}, _q.predicates...),
+		withAccount:            _q.withAccount.Clone(),
+		withRoute:              _q.withRoute.Clone(),
+		withEntries:            _q.withEntries.Clone(),
+		withFboBreakageRecords: _q.withFboBreakageRecords.Clone(),
+		withBreakageRecords:    _q.withBreakageRecords.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -364,6 +413,28 @@ func (_q *LedgerSubAccountQuery) WithEntries(opts ...func(*LedgerEntryQuery)) *L
 		opt(query)
 	}
 	_q.withEntries = query
+	return _q
+}
+
+// WithFboBreakageRecords tells the query-builder to eager-load the nodes that are connected to
+// the "fbo_breakage_records" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LedgerSubAccountQuery) WithFboBreakageRecords(opts ...func(*LedgerBreakageRecordQuery)) *LedgerSubAccountQuery {
+	query := (&LedgerBreakageRecordClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withFboBreakageRecords = query
+	return _q
+}
+
+// WithBreakageRecords tells the query-builder to eager-load the nodes that are connected to
+// the "breakage_records" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LedgerSubAccountQuery) WithBreakageRecords(opts ...func(*LedgerBreakageRecordQuery)) *LedgerSubAccountQuery {
+	query := (&LedgerBreakageRecordClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBreakageRecords = query
 	return _q
 }
 
@@ -445,10 +516,12 @@ func (_q *LedgerSubAccountQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*LedgerSubAccount{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [5]bool{
 			_q.withAccount != nil,
 			_q.withRoute != nil,
 			_q.withEntries != nil,
+			_q.withFboBreakageRecords != nil,
+			_q.withBreakageRecords != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -488,6 +561,24 @@ func (_q *LedgerSubAccountQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		if err := _q.loadEntries(ctx, query, nodes,
 			func(n *LedgerSubAccount) { n.Edges.Entries = []*LedgerEntry{} },
 			func(n *LedgerSubAccount, e *LedgerEntry) { n.Edges.Entries = append(n.Edges.Entries, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withFboBreakageRecords; query != nil {
+		if err := _q.loadFboBreakageRecords(ctx, query, nodes,
+			func(n *LedgerSubAccount) { n.Edges.FboBreakageRecords = []*LedgerBreakageRecord{} },
+			func(n *LedgerSubAccount, e *LedgerBreakageRecord) {
+				n.Edges.FboBreakageRecords = append(n.Edges.FboBreakageRecords, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBreakageRecords; query != nil {
+		if err := _q.loadBreakageRecords(ctx, query, nodes,
+			func(n *LedgerSubAccount) { n.Edges.BreakageRecords = []*LedgerBreakageRecord{} },
+			func(n *LedgerSubAccount, e *LedgerBreakageRecord) {
+				n.Edges.BreakageRecords = append(n.Edges.BreakageRecords, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -577,6 +668,66 @@ func (_q *LedgerSubAccountQuery) loadEntries(ctx context.Context, query *LedgerE
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "sub_account_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *LedgerSubAccountQuery) loadFboBreakageRecords(ctx context.Context, query *LedgerBreakageRecordQuery, nodes []*LedgerSubAccount, init func(*LedgerSubAccount), assign func(*LedgerSubAccount, *LedgerBreakageRecord)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*LedgerSubAccount)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(ledgerbreakagerecord.FieldFboSubAccountID)
+	}
+	query.Where(predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(ledgersubaccount.FboBreakageRecordsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.FboSubAccountID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "fbo_sub_account_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *LedgerSubAccountQuery) loadBreakageRecords(ctx context.Context, query *LedgerBreakageRecordQuery, nodes []*LedgerSubAccount, init func(*LedgerSubAccount), assign func(*LedgerSubAccount, *LedgerBreakageRecord)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*LedgerSubAccount)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(ledgerbreakagerecord.FieldBreakageSubAccountID)
+	}
+	query.Where(predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(ledgersubaccount.BreakageRecordsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.BreakageSubAccountID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "breakage_sub_account_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

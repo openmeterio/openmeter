@@ -208,9 +208,16 @@ type RealizationRunBase struct {
 	// ServicePeriodTo is the end of the service period for the realization run.
 	ServicePeriodTo time.Time `json:"servicePeriodTo"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
-	MeteredQuantity           alpacadecimal.Decimal `json:"meteredQuantity"`
-	Totals                    totals.Totals         `json:"totals"`
-	NoFiatTransactionRequired bool                  `json:"noFiatTransactionRequired"`
+	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
+	// Totals includes credit allocations and excludes taxes.
+	Totals                    totals.Totals `json:"totals"`
+	NoFiatTransactionRequired bool          `json:"noFiatTransactionRequired"`
+	// DetailedLinesIncludeCreditAllocations describes if credit allocation is applied to the detailed lines.
+	// Credits-only: always false
+	// Credit-then-invoice:
+	// - true, for all runs (even when 0 credits were allocated)
+	// - legacy runs have false, as previously we didn't store credit allocations on detailed lines
+	DetailedLinesIncludeCreditAllocations bool `json:"detailedLinesIncludeCreditAllocations"`
 }
 
 func (r RealizationRunBase) Normalized() RealizationRunBase {
@@ -281,7 +288,9 @@ type RealizationRun struct {
 	CreditsAllocated creditrealization.Realizations `json:"creditsAllocated"`
 	InvoiceUsage     *invoicedusage.AccruedUsage    `json:"invoicedUsage"`
 	Payment          *payment.Invoiced              `json:"payment"`
-	DetailedLines    mo.Option[DetailedLines]       `json:"detailedLines,omitzero"`
+	// DetailedLines excludes taxes. Credit-then-invoice runs include credit
+	// allocations, while credits-only runs retain their gross rated details.
+	DetailedLines mo.Option[DetailedLines] `json:"detailedLines,omitzero"`
 }
 
 func (r RealizationRun) Validate() error {
@@ -425,6 +434,23 @@ func (r RealizationRuns) WithoutVoidedBillingHistory() RealizationRuns {
 	return lo.Filter(r, func(run RealizationRun, _ int) bool {
 		return !run.IsVoidedBillingHistory()
 	})
+}
+
+// Latest returns the run with the latest service-period end. Ties are
+// resolved by creation time so callers get the newest run for the same realized
+// boundary. Filtering voided history is a caller decision.
+func (r RealizationRuns) Latest() (RealizationRun, bool) {
+	if len(r) == 0 {
+		return RealizationRun{}, false
+	}
+
+	return lo.MaxBy(r, func(run RealizationRun, latest RealizationRun) bool {
+		if c := meta.NormalizeTimestamp(run.ServicePeriodTo).Compare(meta.NormalizeTimestamp(latest.ServicePeriodTo)); c != 0 {
+			return c > 0
+		}
+
+		return run.CreatedAt.After(latest.CreatedAt)
+	}), true
 }
 
 func (r RealizationRuns) Validate() error {

@@ -1,17 +1,109 @@
 package productcatalog
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestRateCardJSONRoundTrip(t *testing.T) {
+	managedCurrency := mustManagedCustomCurrency(t, "01J00000000000000000000000", "CREDITS")
+
+	tests := []struct {
+		name              string
+		input             RateCard
+		target            RateCard
+		mismatchTarget    RateCard
+		mismatchTargetKey string
+		mismatchError     string
+	}{
+		{
+			name: "flat fee",
+			input: &FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{
+					Key:      "flat",
+					Name:     "Flat",
+					Currency: lo.ToPtr(managedCurrency.Reference()),
+				},
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
+			},
+			target: &FlatFeeRateCard{},
+			mismatchTarget: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{Key: "unchanged"},
+			},
+			mismatchTargetKey: "unchanged",
+			mismatchError:     `rate card type mismatch: expected "usage_based", got "flat_fee"`,
+		},
+		{
+			name: "usage based",
+			input: &UsageBasedRateCard{
+				RateCardMeta: RateCardMeta{
+					Key:      "usage",
+					Name:     "Usage",
+					Currency: lo.ToPtr(managedCurrency.Reference()),
+				},
+				BillingCadence: datetime.MustParseDuration(t, "P1M"),
+			},
+			target: &UsageBasedRateCard{},
+			mismatchTarget: &FlatFeeRateCard{
+				RateCardMeta: RateCardMeta{Key: "unchanged"},
+			},
+			mismatchTargetKey: "unchanged",
+			mismatchError:     `rate card type mismatch: expected "flat_fee", got "usage_based"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - a concrete rate card serialized with its type discriminator
+			// when:
+			// - it is restored into either the matching or a different concrete type
+			// then:
+			// - the matching type round-trips and the mismatched receiver remains unchanged
+			data, err := json.Marshal(tt.input)
+			require.NoError(t, err)
+
+			require.NoError(t, json.Unmarshal(data, tt.target))
+			require.True(t, tt.input.Equal(tt.target))
+
+			err = json.Unmarshal(data, tt.mismatchTarget)
+			require.EqualError(t, err, tt.mismatchError)
+			require.Equal(t, tt.mismatchTargetKey, tt.mismatchTarget.Key())
+		})
+	}
+}
+
+func TestRateCardMetaCloneDeepCopiesCurrency(t *testing.T) {
+	custom := mustManagedCustomCurrency(t, "currency-1", "CREDITS")
+	original := RateCardMeta{Currency: lo.ToPtr(custom.Reference())}
+
+	clone := original.Clone()
+
+	require.NotSame(t, original.Currency, clone.Currency)
+	require.NotSame(t, original.Currency.CustomCurrencyID, clone.Currency.CustomCurrencyID)
+
+	resolved, ok := original.Currency.CustomCurrency()
+	require.True(t, ok)
+	clonedResolved, ok := clone.Currency.CustomCurrency()
+	require.True(t, ok)
+	require.NotSame(t, resolved, clonedResolved)
+
+	*clone.Currency.CustomCurrencyID = "currency-2"
+	clonedResolved.ID = "currency-2"
+
+	require.Equal(t, "currency-1", *original.Currency.CustomCurrencyID)
+	require.Equal(t, "currency-1", resolved.ID)
+}
 
 func TestFlatFeeRateCard(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
@@ -1367,5 +1459,78 @@ func TestRateCardMetaUnitConfig(t *testing.T) {
 			ConversionFactor: decimal.NewFromFloat(1.5),
 		})
 		assert.NoError(t, valid.Validate())
+	})
+}
+
+func TestRateCardsHasUnitConfig(t *testing.T) {
+	card := func(uc *UnitConfig) RateCard {
+		return &UsageBasedRateCard{
+			RateCardMeta: RateCardMeta{
+				Key:        "feat-1",
+				Name:       "Feature 1",
+				FeatureKey: lo.ToPtr("feat-1"),
+				Price:      NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
+				UnitConfig: uc,
+			},
+		}
+	}
+	divide := &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(1000)}
+
+	t.Run("empty collection has none", func(t *testing.T) {
+		assert.False(t, RateCards{}.HasUnitConfig())
+	})
+
+	t.Run("no rate card carries unit_config", func(t *testing.T) {
+		assert.False(t, RateCards{card(nil), card(nil)}.HasUnitConfig())
+	})
+
+	t.Run("any rate card carrying unit_config is detected", func(t *testing.T) {
+		assert.True(t, RateCards{card(nil), card(divide)}.HasUnitConfig())
+	})
+}
+
+func TestValidateRateCardsHaveCompatibleUnitConfig(t *testing.T) {
+	card := func(uc *UnitConfig) RateCard {
+		return &UsageBasedRateCard{
+			RateCardMeta: RateCardMeta{
+				Key:        "feat-1",
+				Name:       "Feature 1",
+				FeatureKey: lo.ToPtr("feat-1"),
+				Price:      NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
+				UnitConfig: uc,
+			},
+		}
+	}
+
+	divide1000 := func() *UnitConfig {
+		return &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(1000)}
+	}
+	divide500 := func() *UnitConfig {
+		return &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(500)}
+	}
+
+	validate := func(addon, target RateCard) error {
+		return NewRateCardWithOverlay(addon, target).ValidateWith(ValidateRateCardsHaveCompatibleUnitConfig)
+	}
+
+	t.Run("addon without unit_config leaves target untouched (compatible)", func(t *testing.T) {
+		assert.NoError(t, validate(card(nil), card(divide1000())))
+	})
+
+	t.Run("addon with equal unit_config is compatible", func(t *testing.T) {
+		assert.NoError(t, validate(card(divide1000()), card(divide1000())))
+	})
+
+	t.Run("both without unit_config is compatible", func(t *testing.T) {
+		assert.NoError(t, validate(card(nil), card(nil)))
+	})
+
+	t.Run("two differing unit_configs are rejected", func(t *testing.T) {
+		assert.ErrorIs(t, validate(card(divide500()), card(divide1000())), ErrAddonRateCardUnitConfigMismatch)
+	})
+
+	t.Run("a unit_config on only one side is compatible", func(t *testing.T) {
+		assert.NoError(t, validate(card(divide1000()), card(nil)))
+		assert.NoError(t, validate(card(nil), card(divide1000())))
 	})
 }

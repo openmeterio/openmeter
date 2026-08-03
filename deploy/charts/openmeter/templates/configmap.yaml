@@ -22,7 +22,7 @@ aggregation:
 {{/* Overwrite postgres config if self-hosted postgres is used */}}
 {{- if .Values.postgresql.enabled -}}
 postgres:
-  autoMigrate: ent
+  autoMigrate: migration
   url: postgres://application:application@{{ include "openmeter.fullname" . }}-postgres:5432/application
 {{- end }}
 

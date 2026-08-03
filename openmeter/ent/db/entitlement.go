@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -56,6 +57,8 @@ type Entitlement struct {
 	PreserveOverageAtReset *bool `json:"preserve_overage_at_reset,omitempty"`
 	// Config holds the value of the "config" field.
 	Config *string `json:"config,omitempty"`
+	// UnitConfig holds the value of the "unit_config" field.
+	UnitConfig *unitconfig.UnitConfig `json:"unit_config,omitempty"`
 	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
 	UsagePeriodInterval *datetime.ISODurationString `json:"usage_period_interval,omitempty"`
 	// Historically this field had been overwritten with each anchor reset, now we keep the original anchor time and the value is populated from the last reset which is queried dynamically
@@ -166,6 +169,8 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldActiveFrom, entitlement.FieldActiveTo, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
 			values[i] = new(sql.NullTime)
+		case entitlement.FieldUnitConfig:
+			values[i] = entitlement.ValueScanner.UnitConfig.ScanValue()
 		case entitlement.FieldAnnotations:
 			values[i] = entitlement.ValueScanner.Annotations.ScanValue()
 		default:
@@ -301,6 +306,12 @@ func (_m *Entitlement) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Config = new(string)
 				*_m.Config = value.String
+			}
+		case entitlement.FieldUnitConfig:
+			if value, err := entitlement.ValueScanner.UnitConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.UnitConfig = value
 			}
 		case entitlement.FieldUsagePeriodInterval:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -469,6 +480,11 @@ func (_m *Entitlement) String() string {
 	if v := _m.Config; v != nil {
 		builder.WriteString("config=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitConfig; v != nil {
+		builder.WriteString("unit_config=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	if v := _m.UsagePeriodInterval; v != nil {

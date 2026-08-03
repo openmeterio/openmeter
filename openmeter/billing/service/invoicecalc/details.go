@@ -116,7 +116,6 @@ func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine)
 						Name:      in.Name,
 					}),
 					ServicePeriod:          period,
-					Currency:               line.Currency,
 					ChildUniqueReferenceID: in.ChildUniqueReferenceID,
 					PaymentTerm:            lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 					PerUnitAmount:          in.PerUnitAmount,

@@ -36,7 +36,7 @@ func (s SettlementType) Values() []string {
 }
 
 type GenericSettlement struct {
-	Currency  currencyx.Code        `json:"currency"`
+	Currency  currencyx.FiatCode    `json:"currency"`
 	CostBasis alpacadecimal.Decimal `json:"costBasis"`
 }
 
@@ -325,5 +325,29 @@ func (s Settlement) GetCostBasis() (alpacadecimal.Decimal, error) {
 		return alpacadecimal.Zero, nil
 	default:
 		return alpacadecimal.Zero, fmt.Errorf("invalid settlement type: %s", s.t)
+	}
+}
+
+// GetCurrency returns the fiat currency real money settles in. Promotional
+// settlements never move real money, so they return an empty currency rather
+// than an error.
+func (s Settlement) GetCurrency() (currencyx.FiatCode, error) {
+	switch s.t {
+	case SettlementTypeInvoice:
+		if s.invoice == nil {
+			return "", fmt.Errorf("invoice is nil")
+		}
+
+		return s.invoice.Currency, nil
+	case SettlementTypeExternal:
+		if s.external == nil {
+			return "", fmt.Errorf("external is nil")
+		}
+
+		return s.external.Currency, nil
+	case SettlementTypePromotional:
+		return "", nil
+	default:
+		return "", fmt.Errorf("invalid settlement type: %s", s.t)
 	}
 }

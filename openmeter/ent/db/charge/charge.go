@@ -38,6 +38,8 @@ const (
 	EdgeUsageBased = "usage_based"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
+	// EdgeBillingGatheringInvoiceLines holds the string denoting the billing_gathering_invoice_lines edge name in mutations.
+	EdgeBillingGatheringInvoiceLines = "billing_gathering_invoice_lines"
 	// EdgeBillingSplitLineGroups holds the string denoting the billing_split_line_groups edge name in mutations.
 	EdgeBillingSplitLineGroups = "billing_split_line_groups"
 	// EdgeCreditRealizationLineages holds the string denoting the credit_realization_lineages edge name in mutations.
@@ -72,6 +74,13 @@ const (
 	BillingInvoiceLinesInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLinesColumn is the table column denoting the billing_invoice_lines relation/edge.
 	BillingInvoiceLinesColumn = "charge_id"
+	// BillingGatheringInvoiceLinesTable is the table that holds the billing_gathering_invoice_lines relation/edge.
+	BillingGatheringInvoiceLinesTable = "billing_gathering_invoice_lines"
+	// BillingGatheringInvoiceLinesInverseTable is the table name for the BillingGatheringInvoiceLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinggatheringinvoiceline" package.
+	BillingGatheringInvoiceLinesInverseTable = "billing_gathering_invoice_lines"
+	// BillingGatheringInvoiceLinesColumn is the table column denoting the billing_gathering_invoice_lines relation/edge.
+	BillingGatheringInvoiceLinesColumn = "charge_id"
 	// BillingSplitLineGroupsTable is the table that holds the billing_split_line_groups relation/edge.
 	BillingSplitLineGroupsTable = "billing_invoice_split_line_groups"
 	// BillingSplitLineGroupsInverseTable is the table name for the BillingInvoiceSplitLineGroup entity.
@@ -205,6 +214,20 @@ func ByBillingInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOpti
 	}
 }
 
+// ByBillingGatheringInvoiceLinesCount orders the results by billing_gathering_invoice_lines count.
+func ByBillingGatheringInvoiceLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingGatheringInvoiceLinesStep(), opts...)
+	}
+}
+
+// ByBillingGatheringInvoiceLines orders the results by billing_gathering_invoice_lines terms.
+func ByBillingGatheringInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingGatheringInvoiceLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByBillingSplitLineGroupsCount orders the results by billing_split_line_groups count.
 func ByBillingSplitLineGroupsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -258,6 +281,13 @@ func newBillingInvoiceLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceLinesTable, BillingInvoiceLinesColumn),
+	)
+}
+func newBillingGatheringInvoiceLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingGatheringInvoiceLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingGatheringInvoiceLinesTable, BillingGatheringInvoiceLinesColumn),
 	)
 }
 func newBillingSplitLineGroupsStep() *sqlgraph.Step {

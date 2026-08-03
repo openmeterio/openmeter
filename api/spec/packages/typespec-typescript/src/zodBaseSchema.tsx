@@ -18,6 +18,7 @@ import type { Typekit } from '@typespec/compiler/typekit'
 import { useTsp } from '@typespec/emitter-framework'
 import { ZodCustomTypeComponent } from './components/ZodCustomTypeComponent.jsx'
 import { ZodSchema } from './components/ZodSchema.jsx'
+import { reportDiagnostic } from './lib.js'
 import {
   activeRefkeySym,
   bodyProperties,
@@ -78,6 +79,11 @@ export function zodBaseSchemaParts(type: Type) {
     case 'Tuple':
       return tupleBaseType(type)
     default:
+      reportDiagnostic($.program, {
+        code: 'unsupported-type',
+        target: type,
+        format: { kind: type.kind },
+      })
       return zodMemberExpr(callPart('any'))
   }
 }
@@ -117,6 +123,10 @@ function literalBaseType(type: LiteralType) {
 }
 
 function scalarBaseType($: Typekit, type: Scalar) {
+  // Captured before the extendsX predicate chain: each failed predicate
+  // narrows `type`, so by the fallback arms the compiler no longer lets the
+  // Scalar's own members through.
+  const scalarName = type.name
   if (type.baseScalar && shouldReference($.program, type.baseScalar)) {
     return (
       <MemberExpression.Part
@@ -150,6 +160,11 @@ function scalarBaseType($: Typekit, type: Scalar) {
   }
 
   if ($.scalar.extendsBytes(type)) {
+    reportDiagnostic($.program, {
+      code: 'unsupported-type',
+      target: type,
+      format: { kind: `bytes scalar '${scalarName}'` },
+    })
     return zodMemberExpr(callPart('any'))
   }
 
@@ -163,25 +178,19 @@ function scalarBaseType($: Typekit, type: Scalar) {
 
   if ($.scalar.extendsUtcDateTime(type)) {
     const encoding = $.scalar.getEncoding(type)
-    if (encoding === undefined) {
-      return zodMemberExpr(idPart('coerce'), callPart('date'))
-    }
-    if (encoding.encoding === 'unixTimestamp') {
+    if (encoding?.encoding === 'unixTimestamp') {
       return scalarBaseType($, encoding.type)
     }
-    if (encoding.encoding === 'rfc3339') {
-      return zodMemberExpr(callPart('string'), callPart('datetime'))
+    if (encoding === undefined || encoding.encoding === 'rfc3339') {
+      return dateTimeBaseType()
     }
     return scalarBaseType($, encoding.type)
   }
 
   if ($.scalar.extendsOffsetDateTime(type)) {
     const encoding = $.scalar.getEncoding(type)
-    if (encoding === undefined) {
-      return zodMemberExpr(idPart('coerce'), callPart('date'))
-    }
-    if (encoding.encoding === 'rfc3339') {
-      return zodMemberExpr(callPart('string'), callPart('datetime'))
+    if (encoding === undefined || encoding.encoding === 'rfc3339') {
+      return dateTimeBaseType()
     }
     return scalarBaseType($, encoding.type)
   }
@@ -194,7 +203,31 @@ function scalarBaseType($: Typekit, type: Scalar) {
     return scalarBaseType($, encoding.type)
   }
 
+  reportDiagnostic($.program, {
+    code: 'unsupported-type',
+    target: type,
+    format: { kind: `scalar '${scalarName}'` },
+  })
   return zodMemberExpr(callPart('any'))
+}
+
+/**
+ * RFC 3339 date-time scalars diverge between the two schema passes: the public
+ * pass types them `z.date()` (the SDK surface takes and returns `Date`; the
+ * runtime wire mapper converts at the request/response boundary), while the
+ * wire pass keeps the RFC 3339 string the JSON payload actually carries.
+ *
+ * `offset: true` because RFC 3339 permits a numeric UTC offset, not just `Z`,
+ * and the API emits them; zod's default rejects everything but `Z`.
+ */
+function dateTimeBaseType() {
+  if (useWireMode()) {
+    return zodMemberExpr(
+      callPart('string'),
+      callPart('datetime', '{ offset: true }'),
+    )
+  }
+  return zodMemberExpr(callPart('date'))
 }
 
 function enumBaseType(type: Enum) {
@@ -236,6 +269,7 @@ function modelBaseType(type: Model) {
   const { $ } = useTsp()
   const wire = useWireMode()
   const rkSym = activeRefkeySym(wire)
+
   // Closed objects are strict in the wire pass so a leaked-camelCase or unknown
   // wire key is rejected. Open models (record spread, `emitsAsIntersection`) stay
   // permissive — strict would defeat the record arm that exists to accept them.
@@ -355,6 +389,42 @@ function unionBaseType(type: Union) {
   const { $ } = useTsp()
 
   const discriminated = $.union.getDiscriminatedUnion(type)
+
+  if ($.union.isExpression(type)) {
+    const variants = Array.from(type.variants.values())
+    const nonNullVariants = variants.filter(
+      (variant) =>
+        variant.type.kind !== 'Intrinsic' || variant.type.name !== 'null',
+    )
+
+    if (
+      nonNullVariants.length > 0 &&
+      nonNullVariants.length < variants.length
+    ) {
+      const inner =
+        nonNullVariants.length === 1 ? (
+          <ZodSchema type={nonNullVariants[0]!.type} nested />
+        ) : (
+          zodMemberExpr(
+            callPart(
+              'union',
+              <ArrayExpression>
+                <For each={nonNullVariants} comma line>
+                  {(variant) => <ZodSchema type={variant.type} nested />}
+                </For>
+              </ArrayExpression>,
+            ),
+          )
+        )
+
+      return (
+        <MemberExpression>
+          <MemberExpression.Part>{inner}</MemberExpression.Part>
+          {callPart('nullable')}
+        </MemberExpression>
+      )
+    }
+  }
 
   if ($.union.isExpression(type) || !discriminated) {
     return zodMemberExpr(

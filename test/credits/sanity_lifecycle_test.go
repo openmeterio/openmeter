@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -240,7 +241,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	clock.FreezeTime(chargeBStartFinalizationAt)
 	advancedChargeB := s.mustAdvanceUsageBasedChargeByID(ctx, cust.GetID(), chargeB.GetChargeID())
 	s.Require().NotNil(advancedChargeB)
-	s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, advancedChargeB.Status)
+	s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, advancedChargeB.Status)
 	s.Equal(alpacadecimal.NewFromInt(-40), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
 	s.Equal(alpacadecimal.NewFromInt(40), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 
@@ -259,7 +260,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  USD,
+						Currency:  currencyx.FiatCode(USD),
 						CostBasis: costBasis1,
 					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -326,7 +327,7 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  USD,
+						Currency:  currencyx.FiatCode(USD),
 						CostBasis: costBasis2,
 					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -470,7 +471,7 @@ func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfill
 	clock.FreezeTime(startFinalizationAt)
 	advancedCharge = s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
 	s.Require().NotNil(advancedCharge)
-	s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, advancedCharge.Status)
+	s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, advancedCharge.Status)
 	s.Equal(alpacadecimal.NewFromInt(-20), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen))
 	s.Equal(alpacadecimal.NewFromInt(20), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)))
 	s.Equal(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen))
@@ -491,7 +492,7 @@ func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfill
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  USD,
+						Currency:  currencyx.FiatCode(USD),
 						CostBasis: costBasis,
 					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,

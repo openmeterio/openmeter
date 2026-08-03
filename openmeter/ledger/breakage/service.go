@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -102,7 +103,8 @@ type PlanIssuanceInput struct {
 
 	Amount            alpacadecimal.Decimal
 	ImmediateReleases []PlanIssuanceImmediateRelease
-	Currency          currencyx.Code
+	Currency          currencies.CurrencyReference
+	CostBasisCurrency *currencyx.Code
 	TaxCode           *string
 	TaxBehavior       *ledger.TaxBehavior
 	CostBasis         *alpacadecimal.Decimal
@@ -140,8 +142,10 @@ func (i PlanIssuanceInput) Validate() error {
 		errs = append(errs, errors.New("immediate release amount cannot exceed amount"))
 	}
 
-	if err := ledger.ValidateCurrency(i.Currency); err != nil {
+	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if i.Currency.IsCustom() && !i.Currency.IsResolved() {
+		errs = append(errs, errors.New("custom currency must be resolved"))
 	}
 
 	if i.CostBasis != nil {
@@ -208,7 +212,7 @@ func (i ReleasePlanInput) Validate() error {
 	}
 
 	switch i.SourceKind {
-	case SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill:
+	case SourceKindCreditPurchase, SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill:
 	default:
 		errs = append(errs, fmt.Errorf("invalid release source kind: %s", i.SourceKind))
 	}
@@ -317,7 +321,7 @@ func (s *service) PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]
 		Kind:                 ledger.BreakageKindPlan,
 		Amount:               input.Amount,
 		CustomerID:           input.CustomerID,
-		Currency:             input.Currency,
+		Currency:             input.Currency.Code,
 		CreditPriority:       priority,
 		ExpiresAt:            input.ExpiresAt,
 		SourceKind:           SourceKindCreditPurchase,
@@ -686,18 +690,20 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 	}
 
 	fboSubAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       input.Currency,
-		CostBasis:      input.CostBasis,
-		CreditPriority: resolveCreditPriority(input.CreditPriority),
-		Features:       input.Features,
+		Currency:          input.Currency,
+		CostBasisCurrency: input.CostBasisCurrency,
+		CostBasis:         input.CostBasis,
+		CreditPriority:    resolveCreditPriority(input.CreditPriority),
+		Features:          input.Features,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("get FBO sub-account: %w", err)
 	}
 
 	breakageSubAccount, err := businessAccounts.BreakageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency:  input.Currency,
-		CostBasis: input.CostBasis,
+		Currency:          input.Currency,
+		CostBasisCurrency: input.CostBasisCurrency,
+		CostBasis:         input.CostBasis,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("get breakage sub-account: %w", err)

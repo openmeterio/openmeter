@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -34,7 +35,8 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromLineManualEdit(li
 		return flatfee.IntentMutableFields{}, fmt.Errorf("getting flat price from line[%s]: %w", line.GetID(), err)
 	}
 
-	out := s.Charge.Intent.GetEffectiveIntent().IntentMutableFields
+	effectiveIntent := s.Charge.Intent.GetEffectiveIntent()
+	out := effectiveIntent.IntentMutableFields
 	out.Name = line.GetName()
 	out.Description = line.GetDescription()
 	out.Metadata = line.GetMetadata().Clone()
@@ -50,7 +52,7 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromLineManualEdit(li
 	out.AmountBeforeProration = flatPrice.Amount
 	out.PercentageDiscounts = line.GetRateCardDiscounts().Percentage.CloneOrNil()
 
-	out = out.Normalized(s.Charge.Intent.GetCurrency())
+	out = out.Normalized(effectiveIntent.Currency)
 	if err := out.Validate(); err != nil {
 		return flatfee.IntentMutableFields{}, err
 	}
@@ -75,6 +77,12 @@ func intentFromManualCreatedLine(
 	if line.GetID() == "" {
 		return flatfee.Intent{}, fmt.Errorf("line id is required")
 	}
+
+	fiatCurrency, err := line.GetCurrency().AsFiatCurrency()
+	if err != nil {
+		return flatfee.Intent{}, fmt.Errorf("resolving fiat currency %q: %w", line.GetCurrency(), err)
+	}
+	currency := currencies.Currency{Currency: fiatCurrency}
 
 	if chargeID := line.GetChargeID(); chargeID != nil && *chargeID != "" {
 		return flatfee.Intent{}, fmt.Errorf("line[%s]: charge id must be empty for manual create", line.GetID())
@@ -122,7 +130,7 @@ func intentFromManualCreatedLine(
 			ManagedBy:   billing.ManuallyManagedLine,
 			CustomerID:  invoice.GetCustomerID().ID,
 			Annotations: annotations,
-			Currency:    line.GetCurrency(),
+			Currency:    currency,
 			TaxConfig:   taxConfig,
 		},
 		IntentMutableFields: flatfee.IntentMutableFields{

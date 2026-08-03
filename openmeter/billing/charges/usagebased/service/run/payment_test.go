@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -22,11 +23,11 @@ import (
 )
 
 func TestBookInvoicedPaymentAuthorizedInputValidate(t *testing.T) {
-	valid := newBookPaymentAuthorizedInput()
+	valid := newBookPaymentAuthorizedInput(t)
 	require.NoError(t, valid.Validate())
 
 	t.Run("rejects existing payment", func(t *testing.T) {
-		in := newBookPaymentAuthorizedInput()
+		in := newBookPaymentAuthorizedInput(t)
 		in.Run.Payment = &payment.Invoiced{
 			Payment: payment.Payment{
 				NamespacedID: models.NamespacedID{Namespace: in.Charge.Namespace, ID: "payment-1"},
@@ -34,7 +35,7 @@ func TestBookInvoicedPaymentAuthorizedInputValidate(t *testing.T) {
 				Base: payment.Base{
 					ServicePeriod: in.Line.Period,
 					Status:        payment.StatusAuthorized,
-					Amount:        in.Line.Totals.Total,
+					FiatAmount:    in.Line.Totals.Total,
 					Authorized: &ledgertransaction.TimedGroupReference{
 						GroupReference: ledgertransaction.GroupReference{
 							TransactionGroupID: "authorized-group",
@@ -50,38 +51,48 @@ func TestBookInvoicedPaymentAuthorizedInputValidate(t *testing.T) {
 	})
 
 	t.Run("rejects mismatched line id", func(t *testing.T) {
-		in := newBookPaymentAuthorizedInput()
+		in := newBookPaymentAuthorizedInput(t)
 		other := "other-line"
 		in.Run.LineID = &other
 		require.ErrorContains(t, in.Validate(), "already linked to a different line")
 	})
 }
 
+func TestBookInvoicedPaymentAuthorizedSkipsZeroFiatAmount(t *testing.T) {
+	in := newBookPaymentAuthorizedInput(t)
+	in.Line.Totals = totals.Totals{}
+	service := Service{handler: &usagebased.UnimplementedHandler{}}
+
+	result, err := service.BookInvoicedPaymentAuthorized(t.Context(), in)
+	require.NoError(t, err)
+	require.Nil(t, result.Payment)
+}
+
 func TestSettleInvoicedPaymentInputValidate(t *testing.T) {
-	valid := newSettlePaymentInput()
+	valid := newSettlePaymentInput(t)
 	require.NoError(t, valid.Validate())
 
 	t.Run("rejects missing payment", func(t *testing.T) {
-		in := newSettlePaymentInput()
+		in := newSettlePaymentInput(t)
 		in.Run.Payment = nil
 		require.ErrorContains(t, in.Validate(), "cannot settle an unauthorized payment")
 	})
 
 	t.Run("allows missing payment when no fiat transaction is required", func(t *testing.T) {
-		in := newSettlePaymentInput()
+		in := newSettlePaymentInput(t)
 		in.Run.Payment = nil
 		in.Run.NoFiatTransactionRequired = true
 		require.NoError(t, in.Validate())
 	})
 
 	t.Run("rejects mismatched payment line id", func(t *testing.T) {
-		in := newSettlePaymentInput()
+		in := newSettlePaymentInput(t)
 		in.Run.Payment.LineID = "other-line"
 		require.ErrorContains(t, in.Validate(), "payment line ID does not match")
 	})
 
 	t.Run("rejects non authorized payment status", func(t *testing.T) {
-		in := newSettlePaymentInput()
+		in := newSettlePaymentInput(t)
 		in.Run.Payment.Status = payment.StatusSettled
 		in.Run.Payment.Settled = &ledgertransaction.TimedGroupReference{
 			GroupReference: ledgertransaction.GroupReference{
@@ -93,11 +104,23 @@ func TestSettleInvoicedPaymentInputValidate(t *testing.T) {
 	})
 }
 
-func newBookPaymentAuthorizedInput() BookInvoicedPaymentAuthorizedInput {
+func TestSettleInvoicedPaymentSkipsZeroFiatAmount(t *testing.T) {
+	in := newSettlePaymentInput(t)
+	in.Line.Totals = totals.Totals{}
+	service := Service{handler: &usagebased.UnimplementedHandler{}}
+
+	result, err := service.SettleInvoicedPayment(t.Context(), in)
+	require.NoError(t, err)
+	require.Nil(t, result.Payment)
+}
+
+func newBookPaymentAuthorizedInput(t testing.TB) BookInvoicedPaymentAuthorizedInput {
+	t.Helper()
+
 	lineID := "line-1"
 	now := time.Now().UTC()
 	return BookInvoicedPaymentAuthorizedInput{
-		Charge: newUsageBasedCharge(),
+		Charge: newUsageBasedCharge(t),
 		Run:    newUsageBasedRun(lineID),
 		Invoice: billing.StandardInvoice{
 			StandardInvoiceBase: billing.StandardInvoiceBase{
@@ -114,7 +137,7 @@ func newBookPaymentAuthorizedInput() BookInvoicedPaymentAuthorizedInput {
 					Name:            "line-1",
 				},
 				ManagedBy: billing.SystemManagedLine,
-				Currency:  currencyx.Code("USD"),
+				Currency:  currencyx.FiatCode("USD"),
 				InvoiceID: "invoice-1",
 				InvoiceAt: now,
 				Period: timeutil.ClosedPeriod{
@@ -136,8 +159,10 @@ func newBookPaymentAuthorizedInput() BookInvoicedPaymentAuthorizedInput {
 	}
 }
 
-func newSettlePaymentInput() SettleInvoicedPaymentInput {
-	authInput := newBookPaymentAuthorizedInput()
+func newSettlePaymentInput(t testing.TB) SettleInvoicedPaymentInput {
+	t.Helper()
+
+	authInput := newBookPaymentAuthorizedInput(t)
 	authInput.Run.InvoiceUsage = &invoicedusage.AccruedUsage{
 		ServicePeriod: authInput.Line.Period,
 		Totals:        authInput.Line.Totals,
@@ -149,7 +174,7 @@ func newSettlePaymentInput() SettleInvoicedPaymentInput {
 			Base: payment.Base{
 				ServicePeriod: authInput.Line.Period,
 				Status:        payment.StatusAuthorized,
-				Amount:        authInput.Line.Totals.Total,
+				FiatAmount:    authInput.Line.Totals.Total,
 				Authorized: &ledgertransaction.TimedGroupReference{
 					GroupReference: ledgertransaction.GroupReference{
 						TransactionGroupID: "authorized-group",
@@ -165,7 +190,9 @@ func newSettlePaymentInput() SettleInvoicedPaymentInput {
 	return SettleInvoicedPaymentInput(authInput)
 }
 
-func newUsageBasedCharge() usagebased.Charge {
+func newUsageBasedCharge(t testing.TB) usagebased.Charge {
+	t.Helper()
+
 	now := time.Now().UTC()
 	period := timeutil.ClosedPeriod{From: now.Add(-2 * time.Hour), To: now.Add(-time.Hour)}
 
@@ -180,7 +207,7 @@ func newUsageBasedCharge() usagebased.Charge {
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: "cust-1",
-					Currency:   currencyx.Code("USD"),
+					Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: "tax-code-id",
 					},

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -1405,6 +1406,259 @@ func ReleaseIDEqualFold(v string) predicate.LedgerBreakageRecord {
 // ReleaseIDContainsFold applies the ContainsFold predicate on the "release_id" field.
 func ReleaseIDContainsFold(v string) predicate.LedgerBreakageRecord {
 	return predicate.LedgerBreakageRecord(sql.FieldContainsFold(FieldReleaseID, v))
+}
+
+// HasSourceTransactionGroup applies the HasEdge predicate on the "source_transaction_group" edge.
+func HasSourceTransactionGroup() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SourceTransactionGroupTable, SourceTransactionGroupColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSourceTransactionGroupWith applies the HasEdge predicate on the "source_transaction_group" edge with a given conditions (other predicates).
+func HasSourceTransactionGroupWith(preds ...predicate.LedgerTransactionGroup) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newSourceTransactionGroupStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSourceTransaction applies the HasEdge predicate on the "source_transaction" edge.
+func HasSourceTransaction() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SourceTransactionTable, SourceTransactionColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSourceTransactionWith applies the HasEdge predicate on the "source_transaction" edge with a given conditions (other predicates).
+func HasSourceTransactionWith(preds ...predicate.LedgerTransaction) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newSourceTransactionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSourceEntry applies the HasEdge predicate on the "source_entry" edge.
+func HasSourceEntry() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SourceEntryTable, SourceEntryColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSourceEntryWith applies the HasEdge predicate on the "source_entry" edge with a given conditions (other predicates).
+func HasSourceEntryWith(preds ...predicate.LedgerEntry) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newSourceEntryStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBreakageTransactionGroup applies the HasEdge predicate on the "breakage_transaction_group" edge.
+func HasBreakageTransactionGroup() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, BreakageTransactionGroupTable, BreakageTransactionGroupColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBreakageTransactionGroupWith applies the HasEdge predicate on the "breakage_transaction_group" edge with a given conditions (other predicates).
+func HasBreakageTransactionGroupWith(preds ...predicate.LedgerTransactionGroup) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newBreakageTransactionGroupStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBreakageTransaction applies the HasEdge predicate on the "breakage_transaction" edge.
+func HasBreakageTransaction() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, BreakageTransactionTable, BreakageTransactionColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBreakageTransactionWith applies the HasEdge predicate on the "breakage_transaction" edge with a given conditions (other predicates).
+func HasBreakageTransactionWith(preds ...predicate.LedgerTransaction) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newBreakageTransactionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasFboSubAccount applies the HasEdge predicate on the "fbo_sub_account" edge.
+func HasFboSubAccount() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, FboSubAccountTable, FboSubAccountColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFboSubAccountWith applies the HasEdge predicate on the "fbo_sub_account" edge with a given conditions (other predicates).
+func HasFboSubAccountWith(preds ...predicate.LedgerSubAccount) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newFboSubAccountStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBreakageSubAccount applies the HasEdge predicate on the "breakage_sub_account" edge.
+func HasBreakageSubAccount() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, BreakageSubAccountTable, BreakageSubAccountColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBreakageSubAccountWith applies the HasEdge predicate on the "breakage_sub_account" edge with a given conditions (other predicates).
+func HasBreakageSubAccountWith(preds ...predicate.LedgerSubAccount) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newBreakageSubAccountStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPlannedReleases applies the HasEdge predicate on the "planned_releases" edge.
+func HasPlannedReleases() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PlannedReleasesTable, PlannedReleasesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPlannedReleasesWith applies the HasEdge predicate on the "planned_releases" edge with a given conditions (other predicates).
+func HasPlannedReleasesWith(preds ...predicate.LedgerBreakageRecord) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newPlannedReleasesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasReleaseReopens applies the HasEdge predicate on the "release_reopens" edge.
+func HasReleaseReopens() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ReleaseReopensTable, ReleaseReopensColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasReleaseReopensWith applies the HasEdge predicate on the "release_reopens" edge with a given conditions (other predicates).
+func HasReleaseReopensWith(preds ...predicate.LedgerBreakageRecord) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newReleaseReopensStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPlan applies the HasEdge predicate on the "plan" edge.
+func HasPlan() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PlanTable, PlanColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPlanWith applies the HasEdge predicate on the "plan" edge with a given conditions (other predicates).
+func HasPlanWith(preds ...predicate.LedgerBreakageRecord) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newPlanStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasRelease applies the HasEdge predicate on the "release" edge.
+func HasRelease() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ReleaseTable, ReleaseColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasReleaseWith applies the HasEdge predicate on the "release" edge with a given conditions (other predicates).
+func HasReleaseWith(preds ...predicate.LedgerBreakageRecord) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(func(s *sql.Selector) {
+		step := newReleaseStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

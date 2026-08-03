@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -58,7 +59,7 @@ func BuildTestPlanInput(t *testing.T) *testPlanbuilder {
 					Name:           "Test Plan",
 					Key:            "test_plan",
 					Version:        1,
-					Currency:       currency.USD,
+					Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
 					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					ProRatingConfig: productcatalog.ProRatingConfig{
 						Enabled: true,

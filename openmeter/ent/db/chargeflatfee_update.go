@@ -637,6 +637,9 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargeflatfee.FieldUniqueReferenceID, field.TypeString)
 	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(chargeflatfee.FieldFiatCurrencyCode, field.TypeString)
+	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeflatfee.FieldAdvanceAfter, field.TypeTime, value)
 	}
@@ -1522,6 +1525,9 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 	}
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargeflatfee.FieldUniqueReferenceID, field.TypeString)
+	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(chargeflatfee.FieldFiatCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeflatfee.FieldAdvanceAfter, field.TypeTime, value)

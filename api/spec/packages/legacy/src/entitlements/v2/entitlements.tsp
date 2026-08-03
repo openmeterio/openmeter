@@ -190,15 +190,14 @@ model EntitlementMeteredV2 {
   type: EntitlementType.metered;
   ...OmitProperties<
     EntitlementMeteredV2CreateInputs,
-
-      | "type"
-      | "measureUsageFrom"
-      | "metadata"
-      | "usagePeriod"
-      | "featureKey"
-      | "featureId"
-      | "currentUsagePeriod"
-      | "grants"
+    | "type"
+    | "measureUsageFrom"
+    | "metadata"
+    | "usagePeriod"
+    | "featureKey"
+    | "featureId"
+    | "currentUsagePeriod"
+    | "grants"
   >;
   ...OmitProperties<
     EntitlementSharedFields,

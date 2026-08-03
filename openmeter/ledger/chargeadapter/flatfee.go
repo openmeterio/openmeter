@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -67,7 +68,7 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: intent.GetEffectiveInvoiceAt(),
-		Currency:          intent.GetCurrency(),
+		Currency:          intent.GetCurrency().Reference(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
 		SettlementMode:    intent.GetSettlementMode(),
@@ -124,7 +125,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 		transactions.TransferCustomerReceivableToAccruedTemplate{
 			At:            input.BookedAt,
 			Amount:        amount,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().Reference(),
 			TaxCode:       lo.ToPtr(taxConfig.TaxCodeID),
 			TaxBehavior:   (*ledger.TaxBehavior)(taxConfig.Behavior),
 			CostBasis:     invoiceCostBasis,
@@ -155,15 +156,21 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 	}, nil
 }
 
+func (h *flatFeeHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
+	if err := input.Validate(); err != nil {
+		return flatfee.OnCustomCurrencyOverageAccruedResult{}, err
+	}
+
+	// TODO[implement]: Book the fiat overage in the customer's outstanding account.
+	return flatfee.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
+}
+
 func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
 	intent := input.Charge.Intent
 
-	currencyCalculator, err := intent.GetCurrency().Calculator()
-	if err != nil {
-		return nil, fmt.Errorf("get currency calculator: %w", err)
-	}
+	currency := intent.GetCurrency()
 
-	if err := input.ValidateWith(currencyCalculator); err != nil {
+	if err := input.ValidateWith(currency); err != nil {
 		return nil, err
 	}
 
@@ -185,10 +192,6 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	if input.Amount.IsZero() {
-		return ledgertransaction.GroupReference{}, nil
-	}
-
 	intent := input.Charge.Intent
 
 	customerID := customer.CustomerID{
@@ -206,8 +209,8 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:            input.EventAt,
-			Amount:        input.Amount,
-			Currency:      intent.GetCurrency(),
+			Amount:        input.FiatAmount,
+			Currency:      intent.GetCurrency().Reference(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},
@@ -241,10 +244,6 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		return ledgertransaction.GroupReference{}, err
 	}
 
-	if !input.Amount.IsPositive() {
-		return ledgertransaction.GroupReference{}, nil
-	}
-
 	intent := input.Charge.Intent
 
 	customerID := customer.CustomerID{
@@ -262,8 +261,8 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:            input.EventAt,
-			Amount:        input.Amount,
-			Currency:      intent.GetCurrency(),
+			Amount:        input.FiatAmount,
+			Currency:      intent.GetCurrency().Reference(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},

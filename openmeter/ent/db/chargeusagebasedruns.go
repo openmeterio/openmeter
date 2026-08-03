@@ -63,6 +63,8 @@ type ChargeUsageBasedRuns struct {
 	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
 	// DetailedLinesPresent holds the value of the "detailed_lines_present" field.
 	DetailedLinesPresent bool `json:"detailed_lines_present,omitempty"`
+	// DetailedLinesIncludeCreditAllocations holds the value of the "detailed_lines_include_credit_allocations" field.
+	DetailedLinesIncludeCreditAllocations bool `json:"detailed_lines_include_credit_allocations,omitempty"`
 	// LineID holds the value of the "line_id" field.
 	LineID *string `json:"line_id,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
@@ -202,7 +204,7 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebasedruns.FieldAmount, chargeusagebasedruns.FieldTaxesTotal, chargeusagebasedruns.FieldTaxesInclusiveTotal, chargeusagebasedruns.FieldTaxesExclusiveTotal, chargeusagebasedruns.FieldChargesTotal, chargeusagebasedruns.FieldDiscountsTotal, chargeusagebasedruns.FieldCreditsTotal, chargeusagebasedruns.FieldTotal, chargeusagebasedruns.FieldMeteredQuantity:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeusagebasedruns.FieldDetailedLinesPresent, chargeusagebasedruns.FieldNoFiatTransactionRequired:
+		case chargeusagebasedruns.FieldDetailedLinesPresent, chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations, chargeusagebasedruns.FieldNoFiatTransactionRequired:
 			values[i] = new(sql.NullBool)
 		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType, chargeusagebasedruns.FieldInitialType, chargeusagebasedruns.FieldLineID, chargeusagebasedruns.FieldInvoiceID:
 			values[i] = new(sql.NullString)
@@ -343,6 +345,12 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 				return fmt.Errorf("unexpected type %T for field detailed_lines_present", values[i])
 			} else if value.Valid {
 				_m.DetailedLinesPresent = value.Bool
+			}
+		case chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field detailed_lines_include_credit_allocations", values[i])
+			} else if value.Valid {
+				_m.DetailedLinesIncludeCreditAllocations = value.Bool
 			}
 		case chargeusagebasedruns.FieldLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -509,6 +517,9 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("detailed_lines_present=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DetailedLinesPresent))
+	builder.WriteString(", ")
+	builder.WriteString("detailed_lines_include_credit_allocations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DetailedLinesIncludeCreditAllocations))
 	builder.WriteString(", ")
 	if v := _m.LineID; v != nil {
 		builder.WriteString("line_id=")

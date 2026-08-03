@@ -23,17 +23,19 @@ func TestListExpiredBreakageImpactsGroupsBySourceChargeID(t *testing.T) {
 	currency := currencyx.Code("USD")
 	chargeA := "charge-a"
 	chargeB := "charge-b"
+	planAID := "01KBREAKAGE000000000000000001"
 
 	svc := &service{
 		adapter: fakeBreakageAdapter{
 			expiredRecords: []Record{
 				{
-					ID:             models.NamespacedID{Namespace: "ns", ID: "01KBREAKAGE000000000000000001"},
+					ID:             models.NamespacedID{Namespace: "ns", ID: planAID},
 					Kind:           ledger.BreakageKindPlan,
 					Amount:         alpacadecimal.NewFromInt(10),
 					CustomerID:     customerID,
 					Currency:       currency,
 					ExpiresAt:      expiresAt,
+					SourceKind:     SourceKindCreditPurchase,
 					SourceChargeID: &chargeA,
 				},
 				{
@@ -43,7 +45,9 @@ func TestListExpiredBreakageImpactsGroupsBySourceChargeID(t *testing.T) {
 					CustomerID:     customerID,
 					Currency:       currency,
 					ExpiresAt:      expiresAt,
+					SourceKind:     SourceKindUsage,
 					SourceChargeID: &chargeA,
+					PlanID:         &planAID,
 				},
 				{
 					ID:             models.NamespacedID{Namespace: "ns", ID: "01KBREAKAGE000000000000000003"},
@@ -52,6 +56,7 @@ func TestListExpiredBreakageImpactsGroupsBySourceChargeID(t *testing.T) {
 					CustomerID:     customerID,
 					Currency:       currency,
 					ExpiresAt:      expiresAt,
+					SourceKind:     SourceKindCreditPurchase,
 					SourceChargeID: &chargeB,
 				},
 			},

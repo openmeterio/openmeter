@@ -28,6 +28,7 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	costpkg "github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -834,7 +835,7 @@ func TestListCustomerChargesRoute(t *testing.T) {
 	})
 }
 
-// NoopChargeService is a no-op implementation of billingcharges.ChargeService for testing.
+// NoopChargeService is a no-op implementation of billingcharges.Service for testing.
 type NoopChargeService struct{}
 
 func (n NoopChargeService) GetByID(_ context.Context, _ billingcharges.GetByIDInput) (billingcharges.Charge, error) {
@@ -877,11 +878,19 @@ func (n NoopChargeService) ListCharges(_ context.Context, input billingcharges.L
 	}, nil
 }
 
+func (n NoopChargeService) HandleCreditPurchaseExternalPaymentStateTransition(_ context.Context, _ billingcharges.HandleCreditPurchaseExternalPaymentStateTransitionInput) (creditpurchase.Charge, error) {
+	return creditpurchase.Charge{}, nil
+}
+
+func (n NoopChargeService) CreateCustomerCharge(_ context.Context, _ billingcharges.CreateCustomerChargeInput) (billingcharges.Charge, error) {
+	return billingcharges.Charge{}, nil
+}
+
 func (n NoopChargeService) GetCurrentTotals(_ context.Context, _ usagebased.GetCurrentTotalsInput) (usagebased.GetCurrentTotalsResult, error) {
 	return usagebased.GetCurrentTotalsResult{}, nil
 }
 
-var _ billingcharges.ChargeService = NoopChargeService{}
+var _ billingcharges.Service = NoopChargeService{}
 
 // NoopPublisher is a publisher that does nothing (no-operation)
 // Useful for testing or when publishing needs to be disabled
@@ -1279,12 +1288,8 @@ func (n NoopAppService) ListMarketplaceListings(ctx context.Context, input app.M
 	return pagination.Result[app.RegistryItem]{}, nil
 }
 
-func (n NoopAppService) InstallMarketplaceListingWithAPIKey(ctx context.Context, input app.InstallAppWithAPIKeyInput) (app.App, error) {
-	return appstripe.App{}, nil
-}
-
-func (n NoopAppService) InstallMarketplaceListing(ctx context.Context, input app.InstallAppInput) (app.App, error) {
-	return appstripe.App{}, nil
+func (n *NoopAppService) InstallApp(ctx context.Context, input app.InstallAppV3Input) (app.InstallAppV3Output, error) {
+	return app.InstallAppV3Output{}, nil
 }
 
 func (n NoopAppService) GetMarketplaceListingOauth2InstallURL(ctx context.Context, input app.GetOauth2InstallURLInput) (app.GetOauth2InstallURLOutput, error) {
@@ -1462,7 +1467,7 @@ func (n NoopCustomerService) GetCustomerByUsageAttribution(ctx context.Context, 
 	return &customer.Customer{}, nil
 }
 
-func (n NoopCustomerService) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) ([]customer.Customer, error) {
+func (n NoopCustomerService) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) (map[string]*customer.Customer, error) {
 	return nil, nil
 }
 
@@ -1894,6 +1899,10 @@ func (n NoopBillingService) ListStandardInvoices(ctx context.Context, input bill
 	return billing.ListStandardInvoicesResponse{}, nil
 }
 
+func (n NoopBillingService) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.StandardInvoice, error) {
+	return nil, nil
+}
+
 func (n NoopBillingService) CreateStandardInvoiceFromGatheringLines(ctx context.Context, input billing.CreateStandardInvoiceFromGatheringLinesInput) (*billing.StandardInvoice, error) {
 	return &billing.StandardInvoice{}, nil
 }
@@ -1968,11 +1977,6 @@ func (n NoopBillingService) DeleteGatheringInvoice(ctx context.Context, input bi
 
 func (n NoopBillingService) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
 	return billing.GatheringInvoice{}, nil
-}
-
-// SequenceService methods
-func (n NoopBillingService) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.SequenceGenerationInput, def billing.SequenceDefinition) (string, error) {
-	return "", nil
 }
 
 // InvoiceAppService methods
@@ -2102,11 +2106,15 @@ func (n NoopIngestService) IngestEvents(ctx context.Context, request ingest.Inge
 	return true, nil
 }
 
-// NoopCurrencyService implements currencies.CurrencyService with no-op operations
+// NoopCurrencyService implements currencies.Service with no-op operations
 // for use in testing
-var _ currencies.CurrencyService = (*NoopCurrencyService)(nil)
+var _ currencies.Service = (*NoopCurrencyService)(nil)
 
 type NoopCurrencyService struct{}
+
+func (n NoopCurrencyService) GetCurrency(ctx context.Context, params currencies.GetCurrencyInput) (currencies.Currency, error) {
+	return currencies.Currency{}, nil
+}
 
 func (n NoopCurrencyService) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
 	return pagination.Result[currencies.Currency]{}, nil
@@ -2117,6 +2125,14 @@ func (n NoopCurrencyService) CreateCurrency(ctx context.Context, params currenci
 }
 
 func (n NoopCurrencyService) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
+	return currencies.CostBasis{}, nil
+}
+
+func (n NoopCurrencyService) GetCostBasis(ctx context.Context, params currencies.GetCostBasisInput) (currencies.CostBasis, error) {
+	return currencies.CostBasis{}, nil
+}
+
+func (n NoopCurrencyService) GetCostBasisAt(ctx context.Context, params currencies.GetCostBasisAtInput) (currencies.CostBasis, error) {
 	return currencies.CostBasis{}, nil
 }
 

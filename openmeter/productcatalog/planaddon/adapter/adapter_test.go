@@ -33,8 +33,6 @@ func TestPostgresAdapter(t *testing.T) {
 		env.Close(t)
 	})
 
-	env.DBSchemaMigrate(t)
-
 	t.Run("Addon", func(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
 			// Get new namespace ID

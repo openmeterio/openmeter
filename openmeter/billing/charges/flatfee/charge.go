@@ -11,6 +11,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -46,6 +49,19 @@ func (c ChargeBase) Validate() error {
 		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
 
+	costBasisIntent := c.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		if c.State.CostBasisID != nil {
+			errs = append(errs, errors.New("cost basis ID must not be set without a cost basis intent"))
+		}
+
+		if c.State.ResolvedCostBasis != nil {
+			errs = append(errs, errors.New("resolved cost basis must not be set without a cost basis intent"))
+		}
+	} else if c.State.CostBasisID == nil {
+		errs = append(errs, errors.New("cost basis ID is required with a cost basis intent"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -63,8 +79,27 @@ func (c ChargeBase) GetCustomerID() customer.CustomerID {
 	}
 }
 
-func (c ChargeBase) GetCurrency() currencyx.Code {
+func (c ChargeBase) GetCurrency() currencies.Currency {
 	return c.Intent.GetCurrency()
+}
+
+func (c ChargeBase) GetInvoiceCurrency() (currencyx.FiatCode, error) {
+	currency := c.GetCurrency()
+	if currency.IsFiat() {
+		return currencyx.FiatCode(currency.GetCode()), nil
+	}
+
+	costBasisIntent := c.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		return "", errors.New("cost basis intent is required for a custom-currency invoice")
+	}
+
+	fiatCurrency, err := costBasisIntent.GetFiatCurrency()
+	if err != nil {
+		return "", fmt.Errorf("getting cost basis fiat currency: %w", err)
+	}
+
+	return fiatCurrency.GetFiatCode(), nil
 }
 
 func (c ChargeBase) ErrorAttributes() models.Attributes {
@@ -115,15 +150,25 @@ func (c Charge) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+func (c Charge) ConvertCustomCurrencyOverageToFiat(creditCurrencyTotals totals.Totals) (meta.FiatOverage, error) {
+	return meta.ConvertCustomCurrencyOverageToFiat(meta.ConvertCustomCurrencyOverageToFiatInput{
+		Currency:          c.Intent.GetCurrency(),
+		CostBasisIntent:   c.Intent.GetCostBasisIntent(),
+		ResolvedCostBasis: c.State.ResolvedCostBasis,
+		Totals:            creditCurrencyTotals,
+	})
+}
+
 type Intent struct {
 	meta.Intent
 	IntentMutableFields `json:"intentMutableFields"`
 	SettlementMode      productcatalog.SettlementMode `json:"settlementMode"`
 	FeatureKey          *string                       `json:"featureKey,omitempty"`
+	CostBasis           *costbasis.Intent             `json:"costBasis,omitempty"`
 }
 
 func (i Intent) Normalized() Intent {
-	i.IntentMutableFields = i.IntentMutableFields.Normalized(i.Currency)
+	i.IntentMutableFields = i.IntentMutableFields.Normalized(i.Intent.Currency)
 
 	return i
 }
@@ -135,6 +180,7 @@ func (i Intent) AsOverridableIntent() OverridableIntent {
 		baseLayer:      i.IntentMutableFields,
 		settlementMode: i.SettlementMode,
 		featureKey:     i.FeatureKey,
+		costBasis:      i.CostBasis,
 	}
 }
 
@@ -153,7 +199,32 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
 
+	if err := validateCostBasis(i.Currency, i.SettlementMode, i.CostBasis); err != nil {
+		errs = append(errs, err)
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func validateCostBasis(currency currencies.Currency, settlementMode productcatalog.SettlementMode, intent *costbasis.Intent) error {
+	isCostBasisRequired := currency.IsCustom() && settlementMode == productcatalog.CreditThenInvoiceSettlementMode
+	if !isCostBasisRequired {
+		if intent != nil {
+			return errors.New("cost basis must not be set unless currency is custom and settlement mode is credit then invoice")
+		}
+
+		return nil
+	}
+
+	if intent == nil {
+		return errors.New("cost basis is required for custom currency with credit then invoice settlement")
+	}
+
+	if err := intent.Validate(); err != nil {
+		return fmt.Errorf("cost basis: %w", err)
+	}
+
+	return nil
 }
 
 // CalculateAmountAfterProration computes the prorated amount from AmountBeforeProration,
@@ -180,12 +251,11 @@ func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
 	percentage := alpacadecimal.NewFromInt(servicePeriodDuration).Div(alpacadecimal.NewFromInt(fullServicePeriodDuration))
 	amount := i.AmountBeforeProration.Mul(percentage)
 
-	calc, err := i.Currency.Calculator()
-	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("creating currency calculator: %w", err)
+	if err := i.Currency.Validate(); err != nil {
+		return alpacadecimal.Decimal{}, fmt.Errorf("currency: %w", err)
 	}
 
-	return calc.RoundToPrecision(amount), nil
+	return i.Intent.Currency.RoundToPrecision(amount), nil
 }
 
 // OverridableIntent stores the immutable intent plus the base and optional
@@ -200,6 +270,7 @@ type OverridableIntent struct {
 
 	settlementMode productcatalog.SettlementMode
 	featureKey     *string
+	costBasis      *costbasis.Intent
 }
 
 func NewOverridableIntent(baseIntent Intent, overrideLayer *IntentMutableFields) OverridableIntent {
@@ -209,6 +280,7 @@ func NewOverridableIntent(baseIntent Intent, overrideLayer *IntentMutableFields)
 		overrideLayer:  overrideLayer,
 		settlementMode: baseIntent.SettlementMode,
 		featureKey:     baseIntent.FeatureKey,
+		costBasis:      baseIntent.CostBasis,
 	}
 }
 
@@ -226,7 +298,7 @@ func (i OverridableIntent) GetCustomerID() string {
 	return i.intent.CustomerID
 }
 
-func (i OverridableIntent) GetCurrency() currencyx.Code {
+func (i OverridableIntent) GetCurrency() currencies.Currency {
 	return i.intent.Currency
 }
 
@@ -269,6 +341,10 @@ func (i OverridableIntent) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
 
+	if err := validateCostBasis(i.intent.Currency, i.settlementMode, i.costBasis); err != nil {
+		errs = append(errs, err)
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -288,6 +364,7 @@ func (i OverridableIntent) GetEffectiveIntent() Intent {
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
 		FeatureKey:          featureKey,
+		CostBasis:           i.GetCostBasisIntent(),
 	}
 
 	if i.overrideLayer != nil {
@@ -337,6 +414,16 @@ func (i OverridableIntent) GetFeatureKey() string {
 	return *i.featureKey
 }
 
+// GetCostBasisIntent returns the immutable cost-basis intent from the base intent.
+// Override layers cannot change how the charge's custom-currency value is resolved.
+func (i OverridableIntent) GetCostBasisIntent() *costbasis.Intent {
+	if i.costBasis == nil {
+		return nil
+	}
+
+	return lo.ToPtr(i.costBasis.Clone())
+}
+
 // GetTaxConfig returns the immutable tax config from the base intent.
 // Override layers cannot change tax attribution.
 func (i OverridableIntent) GetTaxConfig() productcatalog.TaxCodeConfig {
@@ -369,6 +456,7 @@ func (i OverridableIntent) GetBaseIntent() Intent {
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
 		FeatureKey:          featureKey,
+		CostBasis:           i.GetCostBasisIntent(),
 	}
 }
 
@@ -382,6 +470,7 @@ func (i OverridableIntent) GetIntentForTarget(target meta.ChangeTarget) (Intent,
 		Intent:         i.intent.Clone(),
 		SettlementMode: i.settlementMode,
 		FeatureKey:     featureKey,
+		CostBasis:      i.GetCostBasisIntent(),
 	}
 
 	switch target {
@@ -490,14 +579,10 @@ type IntentMutableFields struct {
 	AmountBeforeProration alpacadecimal.Decimal          `json:"amountBeforeProration"`
 }
 
-func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFields {
+func (f IntentMutableFields) Normalized(currency currencies.Currency) IntentMutableFields {
 	f.IntentMutableFields = f.IntentMutableFields.Normalized()
 	f.InvoiceAt = meta.NormalizeTimestamp(f.InvoiceAt)
-
-	calc, err := currency.Calculator()
-	if err == nil {
-		f.AmountBeforeProration = calc.RoundToPrecision(f.AmountBeforeProration)
-	}
+	f.AmountBeforeProration = currency.RoundToPrecision(f.AmountBeforeProration)
 
 	return f
 }
@@ -549,6 +634,8 @@ type State struct {
 	AdvanceAfter         *time.Time            `json:"advanceAfter,omitempty"`
 	FeatureID            *string               `json:"featureId,omitempty"`
 	AmountAfterProration alpacadecimal.Decimal `json:"amountAfterProration"`
+	CostBasisID          *string               `json:"-"`
+	ResolvedCostBasis    *costbasis.State      `json:"resolvedCostBasis,omitempty"`
 }
 
 func (s State) Normalized() State {
@@ -568,6 +655,16 @@ func (s State) Validate() error {
 
 	if s.AmountAfterProration.IsNegative() {
 		errs = append(errs, fmt.Errorf("amount after proration cannot be negative"))
+	}
+
+	if s.CostBasisID != nil && *s.CostBasisID == "" {
+		errs = append(errs, fmt.Errorf("cost basis ID is required"))
+	}
+
+	if s.ResolvedCostBasis != nil {
+		if err := s.ResolvedCostBasis.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resolved cost basis: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

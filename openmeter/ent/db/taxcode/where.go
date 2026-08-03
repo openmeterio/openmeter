@@ -599,6 +599,29 @@ func HasBillingInvoiceLinesWith(preds ...predicate.BillingInvoiceLine) predicate
 	})
 }
 
+// HasBillingGatheringInvoiceLines applies the HasEdge predicate on the "billing_gathering_invoice_lines" edge.
+func HasBillingGatheringInvoiceLines() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BillingGatheringInvoiceLinesTable, BillingGatheringInvoiceLinesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingGatheringInvoiceLinesWith applies the HasEdge predicate on the "billing_gathering_invoice_lines" edge with a given conditions (other predicates).
+func HasBillingGatheringInvoiceLinesWith(preds ...predicate.BillingGatheringInvoiceLine) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newBillingGatheringInvoiceLinesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasSubscriptionItems applies the HasEdge predicate on the "subscription_items" edge.
 func HasSubscriptionItems() predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {

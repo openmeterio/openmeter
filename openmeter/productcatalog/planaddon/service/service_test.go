@@ -6,10 +6,13 @@ import (
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -17,6 +20,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -32,8 +37,6 @@ func TestPlanAddonService(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-
-	env.DBSchemaMigrate(t)
 
 	t.Run("Addon", func(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
@@ -425,5 +428,133 @@ func TestPlanAddonService(t *testing.T) {
 				})
 			})
 		})
+	})
+}
+
+func TestPlanAddonCustomCurrencyIntegration(t *testing.T) {
+	// given:
+	// - a USD plan whose priced rate card uses a managed custom currency
+	// - an active USD add-on whose rate card overrides to that custom currency
+	// when:
+	// - the add-on is assigned through the plan add-on service
+	// then:
+	// - managed lookup, cost-basis lookup, effective-currency compatibility, and DB mapping all preserve the custom currency
+	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+	managedCurrency, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"))
+	require.NoError(t, err)
+
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: managedCurrency.ID,
+		FiatCode:   currencyx.Code(currency.USD),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
+	customCurrency := managedCurrency.GetCode()
+	month := datetime.MustParseDuration(t, "P1M")
+	price := func() *productcatalog.Price {
+		return productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      decimal.NewFromInt(25),
+			PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		})
+	}
+
+	planInput := pctestutils.NewTestPlan(t, namespace, pctestutils.WithPlanPhases(productcatalog.Phase{
+		PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+		RateCards: productcatalog.RateCards{
+			&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:      "credits",
+					Name:     "Credits",
+					Currency: lo.ToPtr(currencies.NewCurrencyReference(customCurrency)),
+					Price:    price(),
+				},
+				BillingCadence: &month,
+			},
+		},
+	}))
+	createdPlan, err := env.Plan.CreatePlan(t.Context(), planInput)
+	require.NoError(t, err)
+
+	addonInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:      "credits",
+			Name:     "Credits",
+			Currency: lo.ToPtr(currencies.NewCurrencyReference(customCurrency)),
+			Price:    price(),
+		},
+		BillingCadence: &month,
+	})
+	addonInput.Key = "custom-currency-addon"
+
+	createdAddon, err := env.Addon.CreateAddon(t.Context(), addonInput)
+	require.NoError(t, err)
+	createdAddon, err = env.Addon.PublishAddon(t.Context(), addon.PublishAddonInput{
+		NamespacedID: createdAddon.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(now.Add(-time.Second)),
+		},
+	})
+	require.NoError(t, err)
+
+	assigned, err := env.PlanAddon.CreatePlanAddon(t.Context(), planaddon.CreatePlanAddonInput{
+		NamespacedModel: models.NamespacedModel{Namespace: namespace},
+		PlanID:          createdPlan.ID,
+		AddonID:         createdAddon.ID,
+		FromPlanPhase:   "default",
+	})
+	require.NoError(t, err)
+	require.Equal(t, currencyx.Code(currency.USD), assigned.Addon.Currency.GetCode())
+	require.Len(t, assigned.Addon.RateCards, 1)
+	require.Equal(t, customCurrency, assigned.Addon.RateCards[0].AsMeta().Currency.GetCode())
+	require.Equal(t, customCurrency, assigned.Addon.RateCards[0].AsMeta().EffectiveCurrency(assigned.Addon.Currency).GetCode())
+
+	t.Run("missing plan fiat cost basis", func(t *testing.T) {
+		// given:
+		// - another managed custom currency without a USD cost basis
+		// when:
+		// - an add-on introduces a newly priced rate card in that currency
+		// then:
+		// - assignment fails before the plan add-on row is written
+		currencyWithoutBasis, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "POINTS", "Points", "pt"))
+		require.NoError(t, err)
+
+		points := currencyWithoutBasis.GetCode()
+		input := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:   "points",
+				Name:  "Points",
+				Price: price(),
+			},
+			BillingCadence: &month,
+		})
+		input.Key = "missing-cost-basis-addon"
+		input.Currency = currencies.NewCurrencyReference(points)
+
+		created, err := env.Addon.CreateAddon(t.Context(), input)
+		require.NoError(t, err)
+		created, err = env.Addon.PublishAddon(t.Context(), addon.PublishAddonInput{
+			NamespacedID: created.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: lo.ToPtr(now.Add(-time.Second)),
+			},
+		})
+		require.NoError(t, err)
+
+		_, err = env.PlanAddon.CreatePlanAddon(t.Context(), planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{Namespace: namespace},
+			PlanID:          createdPlan.ID,
+			AddonID:         created.ID,
+			FromPlanPhase:   "default",
+		})
+		require.ErrorIs(t, err, productcatalog.ErrCurrencyCostBasisNotFound)
 	})
 }

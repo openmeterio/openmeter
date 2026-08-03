@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -73,7 +74,7 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 		transactions.TransferCustomerReceivableToAccruedTemplate{
 			At:            input.BookedAt,
 			Amount:        amount,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().Reference(),
 			TaxCode:       lo.ToPtr(taxConfig.TaxCodeID),
 			TaxBehavior:   (*ledger.TaxBehavior)(taxConfig.Behavior),
 			CostBasis:     invoiceCostBasis,
@@ -137,7 +138,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:            input.EventAt,
 			Amount:        receivableReplenishment,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().Reference(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},
@@ -164,6 +165,15 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 	return ledgertransaction.GroupReference{
 		TransactionGroupID: transactionGroup.ID().ID,
 	}, nil
+}
+
+func (h *usageBasedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error) {
+	if err := input.Validate(); err != nil {
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, err
+	}
+
+	// TODO[implement]: Book the fiat overage in the customer's outstanding account.
+	return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
 }
 
 func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
@@ -200,7 +210,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:            input.EventAt,
 			Amount:        input.Run.InvoiceUsage.Totals.Total,
-			Currency:      intent.GetCurrency(),
+			Currency:      intent.GetCurrency().Reference(),
 			CostBasis:     invoiceCostBasis,
 			SpendChargeID: &input.Charge.ID,
 		},
@@ -256,7 +266,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		Annotations:       chargeAnnotationsForUsageBasedCharge(input.Charge),
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: input.BookedAt,
-		Currency:          intent.GetCurrency(),
+		Currency:          intent.GetCurrency().Reference(),
 		FeatureKey:        intent.GetFeatureKey(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
@@ -285,12 +295,9 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Cont
 		return nil, fmt.Errorf("credits only usage accrued correction: %w", err)
 	}
 
-	currencyCalculator, err := intent.GetCurrency().Calculator()
-	if err != nil {
-		return nil, fmt.Errorf("get currency calculator: %w", err)
-	}
+	currency := intent.GetCurrency()
 
-	if err := input.ValidateWith(currencyCalculator); err != nil {
+	if err := input.ValidateWith(currency); err != nil {
 		return nil, err
 	}
 

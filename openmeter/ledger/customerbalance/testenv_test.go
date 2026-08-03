@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -28,12 +29,18 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
+	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -64,6 +71,7 @@ type testEnv struct {
 	*ledgertestutils.IntegrationEnv
 
 	BreakageService   ledgerbreakage.Service
+	CreditVoidService creditvoid.Service
 	Service           *service
 	creditPurchase    creditpurchase.Service
 	flatFeeService    flatfee.Service
@@ -188,6 +196,25 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	creditVoidAdapter, err := creditvoidadapter.New(creditvoidadapter.Config{
+		Client: base.DB,
+	})
+	require.NoError(t, err)
+
+	creditVoidService, err := creditvoid.NewService(creditvoid.Config{
+		Adapter: creditVoidAdapter,
+		Ledger:  base.Deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
+		},
+		Breakage:           breakageService,
+		AccountLocker:      base.Deps.AccountService,
+		TransactionManager: enttx.NewCreator(base.DB),
+	})
+	require.NoError(t, err)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
@@ -215,6 +242,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{
+		Client: base.DB,
+	})
+	require.NoError(t, err)
+
+	currencyService, err := currencyservice.New(currencyAdapter)
+	require.NoError(t, err)
+
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter: flatFeeAdapter,
 		Handler: ledgerchargeadapter.NewFlatFeeHandler(
@@ -230,6 +265,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
 		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:    currencyService,
 	})
 	require.NoError(t, err)
 
@@ -247,9 +283,11 @@ func newTestEnv(t *testing.T) *testEnv {
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
+		InvoiceUpdater:          invoiceupdater.NewUnimplementedUpdater(t),
 		CustomerOverrideService: billingService,
 		FeatureService:          featureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:              currencyService,
 		StreamingConnector:      streaming,
 	})
 	require.NoError(t, err)
@@ -299,12 +337,14 @@ func newTestEnv(t *testing.T) *testEnv {
 		Ledger:            base.Deps.HistoricalLedger,
 		BalanceQuerier:    base.Deps.HistoricalLedger,
 		Breakage:          breakageService,
+		CreditVoid:        creditVoidService,
 	})
 	require.NoError(t, err)
 
 	env := &testEnv{
 		IntegrationEnv:    base,
 		BreakageService:   breakageService,
+		CreditVoidService: creditVoidService,
 		Service:           service,
 		creditPurchase:    creditPurchaseService,
 		flatFeeService:    flatFeeService,
@@ -365,7 +405,7 @@ func (e *testEnv) bookFBOBalanceInCurrencyWithFeatures(t *testing.T, amount alpa
 		transactions.IssueCustomerReceivableTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: currency,
+			Currency: e.currencyReference(currency),
 			Features: features,
 		},
 	)
@@ -404,13 +444,13 @@ func (e *testEnv) fundOpenReceivableInCurrencyWithFeatures(t *testing.T, amount 
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: currency,
+			Currency: e.currencyReference(currency),
 			Features: features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
-			Currency: currency,
+			Currency: e.currencyReference(currency),
 			Features: features,
 		},
 	)
@@ -418,6 +458,14 @@ func (e *testEnv) fundOpenReceivableInCurrencyWithFeatures(t *testing.T, amount 
 
 	_, err = e.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(e.Namespace, nil, inputs...))
 	require.NoError(t, err)
+}
+
+func (e *testEnv) currencyReference(code currencyx.Code) currencies.CurrencyReference {
+	if code == e.Currency {
+		return e.CurrencyReference()
+	}
+
+	return currencies.NewCurrencyReference(code)
 }
 
 func (e *testEnv) createUsageBasedCharge(t *testing.T, unitPrice alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod) usagebased.Charge {
@@ -435,7 +483,7 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 				Intent: chargemeta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currency,
+					Currency:   currenciestestutils.NewFiatCurrency(t, currency),
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: e.taxCodeID,
 					},
@@ -483,7 +531,7 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 				Intent: chargemeta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currency,
+					Currency:   currenciestestutils.NewFiatCurrency(t, currency),
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: e.taxCodeID,
 					},
@@ -546,7 +594,7 @@ func (e *testEnv) createPendingInvoiceCreditGrant(t *testing.T, amount alpacadec
 
 	return e.createCreditPurchase(t, amount, currency, nil, creditpurchase.FeatureFilters(features), creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 		GenericSettlement: creditpurchase.GenericSettlement{
-			Currency:  currency,
+			Currency:  currencyx.FiatCode(currency),
 			CostBasis: alpacadecimal.NewFromFloat(1),
 		},
 	}))
@@ -594,7 +642,7 @@ func (e *testEnv) createCreditPurchase(
 			Intent: chargemeta.Intent{
 				ManagedBy:  billing.SubscriptionManagedLine,
 				CustomerID: e.CustomerID.ID,
-				Currency:   currency,
+				Currency:   currenciestestutils.NewFiatCurrency(t, currency),
 				TaxConfig: productcatalog.TaxCodeConfig{
 					TaxCodeID: e.taxCodeID,
 				},

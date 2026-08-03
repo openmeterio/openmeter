@@ -58,9 +58,11 @@ type LedgerEntryEdges struct {
 	Transaction *LedgerTransaction `json:"transaction,omitempty"`
 	// SubAccount holds the value of the sub_account edge.
 	SubAccount *LedgerSubAccount `json:"sub_account,omitempty"`
+	// SourceBreakageRecords holds the value of the source_breakage_records edge.
+	SourceBreakageRecords []*LedgerBreakageRecord `json:"source_breakage_records,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // TransactionOrErr returns the Transaction value or an error if the edge
@@ -83,6 +85,15 @@ func (e LedgerEntryEdges) SubAccountOrErr() (*LedgerSubAccount, error) {
 		return nil, &NotFoundError{label: ledgersubaccount.Label}
 	}
 	return nil, &NotLoadedError{edge: "sub_account"}
+}
+
+// SourceBreakageRecordsOrErr returns the SourceBreakageRecords value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerEntryEdges) SourceBreakageRecordsOrErr() ([]*LedgerBreakageRecord, error) {
+	if e.loadedTypes[2] {
+		return e.SourceBreakageRecords, nil
+	}
+	return nil, &NotLoadedError{edge: "source_breakage_records"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -219,6 +230,11 @@ func (_m *LedgerEntry) QueryTransaction() *LedgerTransactionQuery {
 // QuerySubAccount queries the "sub_account" edge of the LedgerEntry entity.
 func (_m *LedgerEntry) QuerySubAccount() *LedgerSubAccountQuery {
 	return NewLedgerEntryClient(_m.config).QuerySubAccount(_m)
+}
+
+// QuerySourceBreakageRecords queries the "source_breakage_records" edge of the LedgerEntry entity.
+func (_m *LedgerEntry) QuerySourceBreakageRecords() *LedgerBreakageRecordQuery {
+	return NewLedgerEntryClient(_m.config).QuerySourceBreakageRecords(_m)
 }
 
 // Update returns a builder for updating this LedgerEntry.

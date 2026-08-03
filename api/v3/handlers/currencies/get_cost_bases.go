@@ -2,7 +2,6 @@ package currencies
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -11,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -50,10 +50,10 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 				})
 			}
 
-			var filterFiatCode *string
+			var filterFiatCode *currencyx.Code
 			if args.Params.Filter != nil && args.Params.Filter.FiatCode != nil {
 				s := *args.Params.Filter.FiatCode
-				filterFiatCode = &s
+				filterFiatCode = lo.ToPtr(currencyx.Code(s))
 			}
 
 			return ListCostBasesRequest{
@@ -68,20 +68,6 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 			if err != nil {
 				return ListCostBasesResponse{}, err
 			}
-
-			attrs := []slog.Attr{
-				slog.String("operation", "list-cost-bases"),
-				slog.String("namespace", req.Namespace),
-				slog.String("currency_id", req.CurrencyID),
-				slog.Int("page_number", req.Page.PageNumber),
-				slog.Int("page_size", req.Page.PageSize),
-				slog.Int("result_count", len(result.Items)),
-				slog.Int("total_count", result.TotalCount),
-			}
-			if req.FilterFiatCode != nil {
-				attrs = append(attrs, slog.String("filter_fiat_code", *req.FilterFiatCode))
-			}
-			slog.LogAttrs(ctx, slog.LevelDebug, "listed currency cost bases", attrs...)
 
 			items := lo.Map(result.Items, func(cb currencies.CostBasis, _ int) v3.BillingCostBasis {
 				return ToAPIBillingCostBasis(cb)

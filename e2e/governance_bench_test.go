@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 // BenchmarkGovernanceQuery measures end-to-end latency of
@@ -70,24 +70,26 @@ func BenchmarkGovernanceQuery(b *testing.B) {
 		b.Run(s.name, func(b *testing.B) {
 			custKeys, featKeys := seedGovernanceFixture(b, client, s.customers, s.features)
 
-			reqBody := apiv3.GovernanceQueryRequest{
-				Customer: apiv3.GovernanceQueryRequestCustomers{Keys: custKeys},
-				Feature:  &apiv3.GovernanceQueryRequestFeatures{Keys: featKeys},
+			reqBody := v3sdk.GovernanceQueryRequest{
+				Customer: v3sdk.GovernanceQueryRequestCustomers{Keys: custKeys},
+				Feature:  &v3sdk.GovernanceQueryRequestFeatures{Keys: featKeys},
 			}
 
 			// Warm-up + correctness gate: a wrong result (e.g. missing customers)
 			// would make the latency number meaningless.
-			status, resp, problem := v3.QueryGovernance(reqBody)
-			require.Equalf(b, http.StatusOK, status, "governance query failed: %+v", problem)
+			resp, err := v3.Governance.QueryAccess(b.Context(), reqBody, v3sdk.GovernanceQueryResultListParams{})
+			v3.requireStatus(http.StatusOK, err)
 			require.Lenf(b, resp.Data, s.customers, "expected %d resolved customers", s.customers)
 			require.Lenf(b, resp.Data[0].Features, s.features, "expected %d features per customer", s.features)
 
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				status, _, _ := v3.QueryGovernance(reqBody)
-				if status != http.StatusOK {
-					b.Fatalf("governance query returned %d", status)
+				if _, err := v3.Governance.QueryAccess(b.Context(), reqBody, v3sdk.GovernanceQueryResultListParams{}); err != nil {
+					b.Fatalf("governance query failed: %v", err)
+				}
+				if s := v3.statuses.last(); s != http.StatusOK {
+					b.Fatalf("governance query returned %d", s)
 				}
 			}
 			b.StopTimer()

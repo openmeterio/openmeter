@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
@@ -59,8 +60,95 @@ const (
 	FieldPlanID = "plan_id"
 	// FieldReleaseID holds the string denoting the release_id field in the database.
 	FieldReleaseID = "release_id"
+	// EdgeSourceTransactionGroup holds the string denoting the source_transaction_group edge name in mutations.
+	EdgeSourceTransactionGroup = "source_transaction_group"
+	// EdgeSourceTransaction holds the string denoting the source_transaction edge name in mutations.
+	EdgeSourceTransaction = "source_transaction"
+	// EdgeSourceEntry holds the string denoting the source_entry edge name in mutations.
+	EdgeSourceEntry = "source_entry"
+	// EdgeBreakageTransactionGroup holds the string denoting the breakage_transaction_group edge name in mutations.
+	EdgeBreakageTransactionGroup = "breakage_transaction_group"
+	// EdgeBreakageTransaction holds the string denoting the breakage_transaction edge name in mutations.
+	EdgeBreakageTransaction = "breakage_transaction"
+	// EdgeFboSubAccount holds the string denoting the fbo_sub_account edge name in mutations.
+	EdgeFboSubAccount = "fbo_sub_account"
+	// EdgeBreakageSubAccount holds the string denoting the breakage_sub_account edge name in mutations.
+	EdgeBreakageSubAccount = "breakage_sub_account"
+	// EdgePlannedReleases holds the string denoting the planned_releases edge name in mutations.
+	EdgePlannedReleases = "planned_releases"
+	// EdgeReleaseReopens holds the string denoting the release_reopens edge name in mutations.
+	EdgeReleaseReopens = "release_reopens"
+	// EdgePlan holds the string denoting the plan edge name in mutations.
+	EdgePlan = "plan"
+	// EdgeRelease holds the string denoting the release edge name in mutations.
+	EdgeRelease = "release"
 	// Table holds the table name of the ledgerbreakagerecord in the database.
 	Table = "ledger_breakage_records"
+	// SourceTransactionGroupTable is the table that holds the source_transaction_group relation/edge.
+	SourceTransactionGroupTable = "ledger_breakage_records"
+	// SourceTransactionGroupInverseTable is the table name for the LedgerTransactionGroup entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgertransactiongroup" package.
+	SourceTransactionGroupInverseTable = "ledger_transaction_groups"
+	// SourceTransactionGroupColumn is the table column denoting the source_transaction_group relation/edge.
+	SourceTransactionGroupColumn = "source_transaction_group_id"
+	// SourceTransactionTable is the table that holds the source_transaction relation/edge.
+	SourceTransactionTable = "ledger_breakage_records"
+	// SourceTransactionInverseTable is the table name for the LedgerTransaction entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgertransaction" package.
+	SourceTransactionInverseTable = "ledger_transactions"
+	// SourceTransactionColumn is the table column denoting the source_transaction relation/edge.
+	SourceTransactionColumn = "source_transaction_id"
+	// SourceEntryTable is the table that holds the source_entry relation/edge.
+	SourceEntryTable = "ledger_breakage_records"
+	// SourceEntryInverseTable is the table name for the LedgerEntry entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgerentry" package.
+	SourceEntryInverseTable = "ledger_entries"
+	// SourceEntryColumn is the table column denoting the source_entry relation/edge.
+	SourceEntryColumn = "source_entry_id"
+	// BreakageTransactionGroupTable is the table that holds the breakage_transaction_group relation/edge.
+	BreakageTransactionGroupTable = "ledger_breakage_records"
+	// BreakageTransactionGroupInverseTable is the table name for the LedgerTransactionGroup entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgertransactiongroup" package.
+	BreakageTransactionGroupInverseTable = "ledger_transaction_groups"
+	// BreakageTransactionGroupColumn is the table column denoting the breakage_transaction_group relation/edge.
+	BreakageTransactionGroupColumn = "breakage_transaction_group_id"
+	// BreakageTransactionTable is the table that holds the breakage_transaction relation/edge.
+	BreakageTransactionTable = "ledger_breakage_records"
+	// BreakageTransactionInverseTable is the table name for the LedgerTransaction entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgertransaction" package.
+	BreakageTransactionInverseTable = "ledger_transactions"
+	// BreakageTransactionColumn is the table column denoting the breakage_transaction relation/edge.
+	BreakageTransactionColumn = "breakage_transaction_id"
+	// FboSubAccountTable is the table that holds the fbo_sub_account relation/edge.
+	FboSubAccountTable = "ledger_breakage_records"
+	// FboSubAccountInverseTable is the table name for the LedgerSubAccount entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccount" package.
+	FboSubAccountInverseTable = "ledger_sub_accounts"
+	// FboSubAccountColumn is the table column denoting the fbo_sub_account relation/edge.
+	FboSubAccountColumn = "fbo_sub_account_id"
+	// BreakageSubAccountTable is the table that holds the breakage_sub_account relation/edge.
+	BreakageSubAccountTable = "ledger_breakage_records"
+	// BreakageSubAccountInverseTable is the table name for the LedgerSubAccount entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccount" package.
+	BreakageSubAccountInverseTable = "ledger_sub_accounts"
+	// BreakageSubAccountColumn is the table column denoting the breakage_sub_account relation/edge.
+	BreakageSubAccountColumn = "breakage_sub_account_id"
+	// PlannedReleasesTable is the table that holds the planned_releases relation/edge.
+	PlannedReleasesTable = "ledger_breakage_records"
+	// PlannedReleasesColumn is the table column denoting the planned_releases relation/edge.
+	PlannedReleasesColumn = "plan_id"
+	// ReleaseReopensTable is the table that holds the release_reopens relation/edge.
+	ReleaseReopensTable = "ledger_breakage_records"
+	// ReleaseReopensColumn is the table column denoting the release_reopens relation/edge.
+	ReleaseReopensColumn = "release_id"
+	// PlanTable is the table that holds the plan relation/edge.
+	PlanTable = "ledger_breakage_records"
+	// PlanColumn is the table column denoting the plan relation/edge.
+	PlanColumn = "plan_id"
+	// ReleaseTable is the table that holds the release relation/edge.
+	ReleaseTable = "ledger_breakage_records"
+	// ReleaseColumn is the table column denoting the release relation/edge.
+	ReleaseColumn = "release_id"
 )
 
 // Columns holds all SQL columns for ledgerbreakagerecord fields.
@@ -256,4 +344,172 @@ func ByPlanID(opts ...sql.OrderTermOption) OrderOption {
 // ByReleaseID orders the results by the release_id field.
 func ByReleaseID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReleaseID, opts...).ToFunc()
+}
+
+// BySourceTransactionGroupField orders the results by source_transaction_group field.
+func BySourceTransactionGroupField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSourceTransactionGroupStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// BySourceTransactionField orders the results by source_transaction field.
+func BySourceTransactionField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSourceTransactionStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// BySourceEntryField orders the results by source_entry field.
+func BySourceEntryField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSourceEntryStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByBreakageTransactionGroupField orders the results by breakage_transaction_group field.
+func ByBreakageTransactionGroupField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBreakageTransactionGroupStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByBreakageTransactionField orders the results by breakage_transaction field.
+func ByBreakageTransactionField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBreakageTransactionStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByFboSubAccountField orders the results by fbo_sub_account field.
+func ByFboSubAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFboSubAccountStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByBreakageSubAccountField orders the results by breakage_sub_account field.
+func ByBreakageSubAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBreakageSubAccountStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByPlannedReleasesCount orders the results by planned_releases count.
+func ByPlannedReleasesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPlannedReleasesStep(), opts...)
+	}
+}
+
+// ByPlannedReleases orders the results by planned_releases terms.
+func ByPlannedReleases(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPlannedReleasesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByReleaseReopensCount orders the results by release_reopens count.
+func ByReleaseReopensCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newReleaseReopensStep(), opts...)
+	}
+}
+
+// ByReleaseReopens orders the results by release_reopens terms.
+func ByReleaseReopens(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newReleaseReopensStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByPlanField orders the results by plan field.
+func ByPlanField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPlanStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByReleaseField orders the results by release field.
+func ByReleaseField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newReleaseStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newSourceTransactionGroupStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SourceTransactionGroupInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SourceTransactionGroupTable, SourceTransactionGroupColumn),
+	)
+}
+func newSourceTransactionStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SourceTransactionInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SourceTransactionTable, SourceTransactionColumn),
+	)
+}
+func newSourceEntryStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SourceEntryInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SourceEntryTable, SourceEntryColumn),
+	)
+}
+func newBreakageTransactionGroupStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BreakageTransactionGroupInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BreakageTransactionGroupTable, BreakageTransactionGroupColumn),
+	)
+}
+func newBreakageTransactionStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BreakageTransactionInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BreakageTransactionTable, BreakageTransactionColumn),
+	)
+}
+func newFboSubAccountStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FboSubAccountInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, FboSubAccountTable, FboSubAccountColumn),
+	)
+}
+func newBreakageSubAccountStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BreakageSubAccountInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BreakageSubAccountTable, BreakageSubAccountColumn),
+	)
+}
+func newPlannedReleasesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PlannedReleasesTable, PlannedReleasesColumn),
+	)
+}
+func newReleaseReopensStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ReleaseReopensTable, ReleaseReopensColumn),
+	)
+}
+func newPlanStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, PlanTable, PlanColumn),
+	)
+}
+func newReleaseStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ReleaseTable, ReleaseColumn),
+	)
 }

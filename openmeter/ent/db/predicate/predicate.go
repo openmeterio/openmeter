@@ -55,11 +55,36 @@ type AppStripeCustomer func(*sql.Selector)
 // BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)
 
+// BalanceSnapshotOrErr calls the predicate only if the error is not nit.
+func BalanceSnapshotOrErr(p BalanceSnapshot, err error) BalanceSnapshot {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // BillingCustomerLock is the predicate function for billingcustomerlock builders.
 type BillingCustomerLock func(*sql.Selector)
 
 // BillingCustomerOverride is the predicate function for billingcustomeroverride builders.
 type BillingCustomerOverride func(*sql.Selector)
+
+// BillingGatheringInvoiceLine is the predicate function for billinggatheringinvoiceline builders.
+type BillingGatheringInvoiceLine func(*sql.Selector)
+
+// BillingGatheringInvoiceLineOrErr calls the predicate only if the error is not nit.
+func BillingGatheringInvoiceLineOrErr(p BillingGatheringInvoiceLine, err error) BillingGatheringInvoiceLine {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // BillingInvoice is the predicate function for billinginvoice builders.
 type BillingInvoice func(*sql.Selector)
@@ -186,6 +211,9 @@ func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPu
 	}
 }
 
+// ChargeCreditPurchaseCostBasis is the predicate function for chargecreditpurchasecostbasis builders.
+type ChargeCreditPurchaseCostBasis func(*sql.Selector)
+
 // ChargeCreditPurchaseCreditGrant is the predicate function for chargecreditpurchasecreditgrant builders.
 type ChargeCreditPurchaseCreditGrant func(*sql.Selector)
 
@@ -208,6 +236,9 @@ func ChargeFlatFeeOrErr(p ChargeFlatFee, err error) ChargeFlatFee {
 		p(s)
 	}
 }
+
+// ChargeFlatFeeCostBasis is the predicate function for chargeflatfeecostbasis builders.
+type ChargeFlatFeeCostBasis func(*sql.Selector)
 
 // ChargeFlatFeeOverride is the predicate function for chargeflatfeeoverride builders.
 type ChargeFlatFeeOverride func(*sql.Selector)
@@ -251,6 +282,9 @@ func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
 		p(s)
 	}
 }
+
+// ChargeUsageBasedCostBasis is the predicate function for chargeusagebasedcostbasis builders.
+type ChargeUsageBasedCostBasis func(*sql.Selector)
 
 // ChargeUsageBasedOverride is the predicate function for chargeusagebasedoverride builders.
 type ChargeUsageBasedOverride func(*sql.Selector)
@@ -341,6 +375,9 @@ type LedgerAccount func(*sql.Selector)
 
 // LedgerBreakageRecord is the predicate function for ledgerbreakagerecord builders.
 type LedgerBreakageRecord func(*sql.Selector)
+
+// LedgerCreditVoidRecord is the predicate function for ledgercreditvoidrecord builders.
+type LedgerCreditVoidRecord func(*sql.Selector)
 
 // LedgerCustomerAccount is the predicate function for ledgercustomeraccount builders.
 type LedgerCustomerAccount func(*sql.Selector)

@@ -26,8 +26,8 @@ const (
 	FieldServicePeriodTo = "service_period_to"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
-	// FieldAmount holds the string denoting the amount field in the database.
-	FieldAmount = "amount"
+	// FieldFiatAmount holds the string denoting the fiat_amount field in the database.
+	FieldFiatAmount = "amount"
 	// FieldAuthorizedTransactionGroupID holds the string denoting the authorized_transaction_group_id field in the database.
 	FieldAuthorizedTransactionGroupID = "authorized_transaction_group_id"
 	// FieldAuthorizedAt holds the string denoting the authorized_at field in the database.
@@ -78,7 +78,7 @@ var Columns = []string{
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
 	FieldStatus,
-	FieldAmount,
+	FieldFiatAmount,
 	FieldAuthorizedTransactionGroupID,
 	FieldAuthorizedAt,
 	FieldSettledTransactionGroupID,
@@ -161,9 +161,9 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
-// ByAmount orders the results by the amount field.
-func ByAmount(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAmount, opts...).ToFunc()
+// ByFiatAmount orders the results by the fiat_amount field.
+func ByFiatAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFiatAmount, opts...).ToFunc()
 }
 
 // ByAuthorizedTransactionGroupID orders the results by the authorized_transaction_group_id field.

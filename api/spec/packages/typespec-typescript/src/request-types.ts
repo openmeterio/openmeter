@@ -62,6 +62,15 @@ function inputGuard(name: string, schemaRef: string): string {
   )
 }
 
+/**
+ * The `…Request` alias funcs accept. Body- and query-bearing requests are
+ * wrapped in `AcceptDateStrings<…>` so every date-time field takes
+ * `Date | string` at the call site. The widening lives on the request alias
+ * only: domain interfaces stay `Date` (they also describe responses, and the
+ * model/query conformance guards pin them to the schemas), so a shared model
+ * never has to fork an input variant just for dates. Path-only requests carry
+ * no date-times (path params are strings) and stay bare.
+ */
 function requestDecl(op: SdkOperation, bodyRef: string): string {
   const hasPath = op.pathParams.length > 0
   const hasQuery = op.queryParams.length > 0
@@ -72,16 +81,18 @@ function requestDecl(op: SdkOperation, bodyRef: string): string {
 
   if (op.hasBody) {
     if (!hasPath && !hasQuery) {
-      return `${decl} ${bodyRef}`
+      return `${decl} AcceptDateStrings<${bodyRef}>`
     }
     const queryPart = hasQuery ? ` & ${queryRef}` : ''
     const pathLine = hasPath
       ? `${op.pathParams.map(pathField).join('\n')}\n`
       : ''
-    return `${decl} {\n${pathLine}  body: ${bodyRef}\n}${queryPart}`
+    return `${decl} AcceptDateStrings<{\n${pathLine}  body: ${bodyRef}\n}${queryPart}>`
   }
   if (hasQuery) {
-    return hasPath ? `${decl} ${queryRef} & ${pathObj}` : `${decl} ${queryRef}`
+    return hasPath
+      ? `${decl} AcceptDateStrings<${queryRef} & ${pathObj}>`
+      : `${decl} AcceptDateStrings<${queryRef}>`
   }
   if (hasPath) {
     return `${decl} {\n${op.pathParams.map(pathField).join('\n')}\n}`
@@ -111,6 +122,8 @@ export interface RequestTypes {
   interfaceImports: Map<string, string>
   /** Whether any declaration references zod (`z`/`schemas`). */
   usesZod: boolean
+  /** Whether any request alias is wrapped in `AcceptDateStrings` (lib/wire.js). */
+  usesAcceptDateStrings: boolean
 }
 
 export function requestTypesFor(
@@ -200,6 +213,9 @@ export function requestTypesFor(
     guards: guards.join('\n\n'),
     interfaceImports,
     usesZod,
+    usesAcceptDateStrings: sdkOps.some(
+      (op) => op.hasBody || op.queryParams.length > 0,
+    ),
   }
 }
 

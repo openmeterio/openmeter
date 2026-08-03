@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -46,7 +47,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 			}),
 			ManagedBy:     billing.ManuallyManagedLine,
 			Engine:        billing.LineEngineTypeInvoice,
-			Currency:      USD,
+			Currency:      currencyx.FiatCode(USD),
 			ServicePeriod: servicePeriod,
 			InvoiceAt:     servicePeriod.To,
 			Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
@@ -70,7 +71,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 		InvoiceAt:     servicePeriod.From,
 		ManagedBy:     billing.ManuallyManagedLine,
 		Name:          "manual flat",
-		Currency:      USD,
+		Currency:      currencyx.FiatCode(USD),
 		PerUnitAmount: alpacadecimal.NewFromInt(10),
 		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 		RateCardDiscounts: billing.Discounts{
@@ -86,7 +87,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: USD,
+		Currency: currencyx.FiatCode(USD),
 		Lines: []billing.GatheringLine{
 			usageLine,
 			flatLine,
@@ -154,7 +155,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreat
 		InvoiceAt:     servicePeriod.From,
 		ManagedBy:     billing.ManuallyManagedLine,
 		Name:          "manual zero flat",
-		Currency:      USD,
+		Currency:      currencyx.FiatCode(USD),
 		PerUnitAmount: alpacadecimal.Zero,
 		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 	})
@@ -163,7 +164,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreat
 
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: USD,
+		Currency: currencyx.FiatCode(USD),
 		Lines: []billing.GatheringLine{
 			zeroFlatLine,
 		},
@@ -198,14 +199,14 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsNonManu
 		InvoiceAt:     servicePeriod.From,
 		ManagedBy:     billing.SystemManagedLine,
 		Name:          "system flat",
-		Currency:      USD,
+		Currency:      currencyx.FiatCode(USD),
 		PerUnitAmount: alpacadecimal.NewFromInt(10),
 		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 	})
 
 	_, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: USD,
+		Currency: currencyx.FiatCode(USD),
 		Lines: []billing.GatheringLine{
 			systemLine,
 		},
@@ -219,7 +220,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsNonManu
 		InvoiceAt:     servicePeriod.From,
 		ManagedBy:     billing.ManuallyManagedLine,
 		Name:          "subscription flat",
-		Currency:      USD,
+		Currency:      currencyx.FiatCode(USD),
 		PerUnitAmount: alpacadecimal.NewFromInt(10),
 		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 	})
@@ -232,7 +233,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsNonManu
 
 	_, err = s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: USD,
+		Currency: currencyx.FiatCode(USD),
 		Lines: []billing.GatheringLine{
 			subscriptionLine,
 		},
@@ -270,7 +271,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackParti
 			}),
 			ManagedBy:     billing.ManuallyManagedLine,
 			Engine:        billing.LineEngineTypeInvoice,
-			Currency:      USD,
+			Currency:      currencyx.FiatCode(USD),
 			ServicePeriod: servicePeriod,
 			InvoiceAt:     servicePeriod.To,
 			Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
@@ -286,7 +287,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackParti
 		InvoiceAt:     servicePeriod.From,
 		ManagedBy:     billing.ManuallyManagedLine,
 		Name:          "manual zero flat",
-		Currency:      USD,
+		Currency:      currencyx.FiatCode(USD),
 		PerUnitAmount: alpacadecimal.Zero,
 		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 	})
@@ -294,7 +295,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackParti
 
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
-		Currency: USD,
+		Currency: currencyx.FiatCode(USD),
 		Lines: []billing.GatheringLine{
 			usageLine,
 			zeroFlatLine,

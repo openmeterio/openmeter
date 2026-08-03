@@ -22,7 +22,7 @@ from corehttp.runtime import AsyncPipelineClient
 from corehttp.runtime.pipeline import PipelineResponse
 from corehttp.utils import case_insensitive_dict
 
-from ... import models as _models
+from ... import models as _models, types as _types
 from ..._utils.model_base import SdkJSONEncoder, _deserialize, _failsafe_deserialize
 from ..._utils.serialization import Deserializer, Serializer
 from ...operations._operations import (
@@ -185,7 +185,7 @@ from ...operations._operations import (
 from .._configuration import OpenMeterClientConfiguration
 
 if TYPE_CHECKING:
-    from ... import _types
+    from ... import _unions
 T = TypeVar("T")
 ClsType = Optional[Callable[[PipelineResponse[HttpRequest, AsyncHttpResponse], T, dict[str, Any]], Any]]
 JSON = MutableMapping[str, Any]
@@ -193,7 +193,7 @@ _Unset: Any = object()
 List = list
 
 
-class PortalOperations:
+class PortalOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -218,7 +218,7 @@ class PortalOperations:
         )
 
 
-class AppsOperations:
+class AppsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -321,7 +321,7 @@ class AppsOperations:
 
         return deserialized  # type: ignore
 
-    async def get(self, id: str, **kwargs: Any) -> "_types.App":
+    async def get(self, id: str, **kwargs: Any) -> "_unions.App":
         """Get app.
 
         Get the app.
@@ -342,7 +342,7 @@ class AppsOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.App"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.App"] = kwargs.pop("cls", None)
 
         _request = build_apps_get_request(
             id=id,
@@ -394,7 +394,7 @@ class AppsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.App", response.json())
+            deserialized = _deserialize("_unions.App", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -404,7 +404,7 @@ class AppsOperations:
     @overload
     async def update(
         self, id: str, app: _models.StripeAppReplaceUpdate, *, content_type: str = "application/json", **kwargs: Any
-    ) -> "_types.App":
+    ) -> "_unions.App":
         """Update app.
 
         Update an app.
@@ -425,7 +425,7 @@ class AppsOperations:
     @overload
     async def update(
         self, id: str, app: _models.SandboxAppReplaceUpdate, *, content_type: str = "application/json", **kwargs: Any
-    ) -> "_types.App":
+    ) -> "_unions.App":
         """Update app.
 
         Update an app.
@@ -451,7 +451,7 @@ class AppsOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.App":
+    ) -> "_unions.App":
         """Update app.
 
         Update an app.
@@ -469,7 +469,7 @@ class AppsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def update(self, id: str, app: "_types.AppReplaceUpdate", **kwargs: Any) -> "_types.App":
+    async def update(self, id: str, app: "_unions.AppReplaceUpdate", **kwargs: Any) -> "_unions.App":
         """Update app.
 
         Update an app.
@@ -496,7 +496,7 @@ class AppsOperations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType["_types.App"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.App"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(app, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -553,7 +553,7 @@ class AppsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.App", response.json())
+            deserialized = _deserialize("_unions.App", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -627,7 +627,7 @@ class AppsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class AppStripeOperations:
+class AppStripeOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -666,7 +666,7 @@ class AppStripeOperations:
 
     @overload
     async def webhook(
-        self, id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, id: str, body: _types.StripeWebhookEvent, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.StripeWebhookResponse:
         """Stripe webhook.
 
@@ -675,7 +675,7 @@ class AppStripeOperations:
         :param id: Required.
         :type id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.StripeWebhookEvent
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -705,7 +705,7 @@ class AppStripeOperations:
         """
 
     async def webhook(
-        self, id: str, body: Union[_models.StripeWebhookEvent, JSON, IO[bytes]], **kwargs: Any
+        self, id: str, body: Union[_models.StripeWebhookEvent, _types.StripeWebhookEvent, IO[bytes]], **kwargs: Any
     ) -> _models.StripeWebhookResponse:
         """Stripe webhook.
 
@@ -713,8 +713,9 @@ class AppStripeOperations:
 
         :param id: Required.
         :type id: str
-        :param body: Is one of the following types: StripeWebhookEvent, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.StripeWebhookEvent or JSON or IO[bytes]
+        :param body: Is either a StripeWebhookEvent type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.StripeWebhookEvent or
+         ~openmeter._generated.types.StripeWebhookEvent or IO[bytes]
         :return: StripeWebhookResponse. The StripeWebhookResponse is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.StripeWebhookResponse
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -821,7 +822,7 @@ class AppStripeOperations:
 
     @overload
     async def update_stripe_api_key(
-        self, id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, id: str, request: _types.StripeAPIKeyInput, *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
         """Update Stripe API key.
 
@@ -832,7 +833,7 @@ class AppStripeOperations:
         :param id: Required.
         :type id: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.StripeAPIKeyInput
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -864,7 +865,7 @@ class AppStripeOperations:
         """
 
     async def update_stripe_api_key(
-        self, id: str, request: Union[_models.StripeAPIKeyInput, JSON, IO[bytes]], **kwargs: Any
+        self, id: str, request: Union[_models.StripeAPIKeyInput, _types.StripeAPIKeyInput, IO[bytes]], **kwargs: Any
     ) -> None:
         """Update Stripe API key.
 
@@ -874,8 +875,9 @@ class AppStripeOperations:
 
         :param id: Required.
         :type id: str
-        :param request: Is one of the following types: StripeAPIKeyInput, JSON, IO[bytes] Required.
-        :type request: ~openmeter._generated.models.StripeAPIKeyInput or JSON or IO[bytes]
+        :param request: Is either a StripeAPIKeyInput type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.StripeAPIKeyInput or
+         ~openmeter._generated.types.StripeAPIKeyInput or IO[bytes]
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -964,14 +966,14 @@ class AppStripeOperations:
 
     @overload
     async def create_checkout_session(
-        self, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, body: _types.CreateStripeCheckoutSessionRequest, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.CreateStripeCheckoutSessionResult:
         """Create checkout session.
 
         Create checkout session.
 
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.CreateStripeCheckoutSessionRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -1001,16 +1003,17 @@ class AppStripeOperations:
         """
 
     async def create_checkout_session(
-        self, body: Union[_models.CreateStripeCheckoutSessionRequest, JSON, IO[bytes]], **kwargs: Any
+        self,
+        body: Union[_models.CreateStripeCheckoutSessionRequest, _types.CreateStripeCheckoutSessionRequest, IO[bytes]],
+        **kwargs: Any
     ) -> _models.CreateStripeCheckoutSessionResult:
         """Create checkout session.
 
         Create checkout session.
 
-        :param body: Is one of the following types: CreateStripeCheckoutSessionRequest, JSON, IO[bytes]
-         Required.
-        :type body: ~openmeter._generated.models.CreateStripeCheckoutSessionRequest or JSON or
-         IO[bytes]
+        :param body: Is either a CreateStripeCheckoutSessionRequest type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.CreateStripeCheckoutSessionRequest or
+         ~openmeter._generated.types.CreateStripeCheckoutSessionRequest or IO[bytes]
         :return: CreateStripeCheckoutSessionResult. The CreateStripeCheckoutSessionResult is compatible
          with MutableMapping
         :rtype: ~openmeter._generated.models.CreateStripeCheckoutSessionResult
@@ -1094,7 +1097,7 @@ class AppStripeOperations:
         return deserialized  # type: ignore
 
 
-class CustomerAppsOperations:
+class CustomerAppsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -1113,7 +1116,7 @@ class CustomerAppsOperations:
 
     async def list_app_data(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         *,
         page: Optional[int] = None,
         page_size: Optional[int] = None,
@@ -1216,12 +1219,12 @@ class CustomerAppsOperations:
     @overload
     async def upsert_app_data(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        app_data: List["_types.CustomerAppData"],
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        app_data: List["_unions.CustomerAppData"],
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> List["_types.CustomerAppData"]:
+    ) -> List["_unions.CustomerAppData"]:
         """Upsert customer app data.
 
         Upsert customer app data.
@@ -1246,12 +1249,12 @@ class CustomerAppsOperations:
     @overload
     async def upsert_app_data(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         app_data: IO[bytes],
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> List["_types.CustomerAppData"]:
+    ) -> List["_unions.CustomerAppData"]:
         """Upsert customer app data.
 
         Upsert customer app data.
@@ -1273,17 +1276,17 @@ class CustomerAppsOperations:
 
     async def upsert_app_data(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        app_data: Union[List["_types.CustomerAppData"], IO[bytes]],
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        app_data: Union[List["_unions.CustomerAppData"], IO[bytes]],
         **kwargs: Any
-    ) -> List["_types.CustomerAppData"]:
+    ) -> List["_unions.CustomerAppData"]:
         """Upsert customer app data.
 
         Upsert customer app data.
 
         :param customer_id_or_key: Is one of the following types: str Required.
         :type customer_id_or_key: str or str
-        :param app_data: Is either a ["_types.CustomerAppData"] type or a IO[bytes] type. Required.
+        :param app_data: Is either a ["_unions.CustomerAppData"] type or a IO[bytes] type. Required.
         :type app_data: list[~openmeter._generated.models.StripeCustomerAppData or
          ~openmeter._generated.models.SandboxCustomerAppData or
          ~openmeter._generated.models.CustomInvoicingCustomerAppData] or IO[bytes]
@@ -1304,7 +1307,7 @@ class CustomerAppsOperations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType[List["_types.CustomerAppData"]] = kwargs.pop("cls", None)
+        cls: ClsType[List["_unions.CustomerAppData"]] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = None
@@ -1365,14 +1368,16 @@ class CustomerAppsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(List["_types.CustomerAppData"], response.json())
+            deserialized = _deserialize(List["_unions.CustomerAppData"], response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-    async def delete_app_data(self, customer_id_or_key: "_types.ULIDOrExternalKey", app_id: str, **kwargs: Any) -> None:
+    async def delete_app_data(
+        self, customer_id_or_key: "_unions.ULIDOrExternalKey", app_id: str, **kwargs: Any
+    ) -> None:
         """Delete customer app data.
 
         Delete customer app data.
@@ -1442,7 +1447,7 @@ class CustomerAppsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class CustomersOperations:
+class CustomersOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -1479,14 +1484,14 @@ class CustomersOperations:
 
     @overload
     async def create(
-        self, customer: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, customer: _types.CustomerCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Customer:
         """Create customer.
 
         Create a new customer.
 
         :param customer: Required.
-        :type customer: JSON
+        :type customer: ~openmeter._generated.types.CustomerCreate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -1513,13 +1518,16 @@ class CustomersOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def create(self, customer: Union[_models.CustomerCreate, JSON, IO[bytes]], **kwargs: Any) -> _models.Customer:
+    async def create(
+        self, customer: Union[_models.CustomerCreate, _types.CustomerCreate, IO[bytes]], **kwargs: Any
+    ) -> _models.Customer:
         """Create customer.
 
         Create a new customer.
 
-        :param customer: Is one of the following types: CustomerCreate, JSON, IO[bytes] Required.
-        :type customer: ~openmeter._generated.models.CustomerCreate or JSON or IO[bytes]
+        :param customer: Is either a CustomerCreate type or a IO[bytes] type. Required.
+        :type customer: ~openmeter._generated.models.CustomerCreate or
+         ~openmeter._generated.types.CustomerCreate or IO[bytes]
         :return: Customer. The Customer is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Customer
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -1734,7 +1742,7 @@ class CustomersOperations:
 
     async def get(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         *,
         expand: Optional[List[Union[str, _models.CustomerExpand]]] = None,
         **kwargs: Any
@@ -1823,7 +1831,7 @@ class CustomersOperations:
     @overload
     async def update(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         customer: _models.CustomerReplaceUpdate,
         *,
         content_type: str = "application/json",
@@ -1848,8 +1856,8 @@ class CustomersOperations:
     @overload
     async def update(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        customer: JSON,
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        customer: _types.CustomerReplaceUpdate,
         *,
         content_type: str = "application/json",
         **kwargs: Any
@@ -1861,7 +1869,7 @@ class CustomersOperations:
         :param customer_id_or_key: Is one of the following types: str Required.
         :type customer_id_or_key: str or str
         :param customer: Required.
-        :type customer: JSON
+        :type customer: ~openmeter._generated.types.CustomerReplaceUpdate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -1873,7 +1881,7 @@ class CustomersOperations:
     @overload
     async def update(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         customer: IO[bytes],
         *,
         content_type: str = "application/json",
@@ -1897,8 +1905,8 @@ class CustomersOperations:
 
     async def update(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        customer: Union[_models.CustomerReplaceUpdate, JSON, IO[bytes]],
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        customer: Union[_models.CustomerReplaceUpdate, _types.CustomerReplaceUpdate, IO[bytes]],
         **kwargs: Any
     ) -> _models.Customer:
         """Update customer.
@@ -1907,9 +1915,9 @@ class CustomersOperations:
 
         :param customer_id_or_key: Is one of the following types: str Required.
         :type customer_id_or_key: str or str
-        :param customer: Is one of the following types: CustomerReplaceUpdate, JSON, IO[bytes]
-         Required.
-        :type customer: ~openmeter._generated.models.CustomerReplaceUpdate or JSON or IO[bytes]
+        :param customer: Is either a CustomerReplaceUpdate type or a IO[bytes] type. Required.
+        :type customer: ~openmeter._generated.models.CustomerReplaceUpdate or
+         ~openmeter._generated.types.CustomerReplaceUpdate or IO[bytes]
         :return: Customer. The Customer is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Customer
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -1992,7 +2000,7 @@ class CustomersOperations:
 
         return deserialized  # type: ignore
 
-    async def delete(self, customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any) -> None:
+    async def delete(self, customer_id_or_key: "_unions.ULIDOrExternalKey", **kwargs: Any) -> None:
         """Delete customer.
 
         Delete a customer by ID.
@@ -2060,7 +2068,7 @@ class CustomersOperations:
 
     async def list_customer_subscriptions(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         *,
         status: Optional[List[Union[str, _models.SubscriptionStatus]]] = None,
         order: Optional[Union[str, _models.SortOrder]] = None,
@@ -2169,7 +2177,7 @@ class CustomersOperations:
         return deserialized  # type: ignore
 
 
-class FeaturesOperations:
+class FeaturesOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -2198,7 +2206,7 @@ class FeaturesOperations:
         order: Optional[Union[str, _models.SortOrder]] = None,
         order_by: Optional[Union[str, _models.FeatureOrderBy]] = None,
         **kwargs: Any
-    ) -> "_types.ListFeaturesResult":
+    ) -> "_unions.ListFeaturesResult":
         """List features.
 
         List features.
@@ -2243,7 +2251,7 @@ class FeaturesOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.ListFeaturesResult"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.ListFeaturesResult"] = kwargs.pop("cls", None)
 
         _request = build_features_list_request(
             meter_slug=meter_slug,
@@ -2299,7 +2307,7 @@ class FeaturesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.ListFeaturesResult", response.json())
+            deserialized = _deserialize("_unions.ListFeaturesResult", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -2328,7 +2336,9 @@ class FeaturesOperations:
         """
 
     @overload
-    async def create(self, feature: JSON, *, content_type: str = "application/json", **kwargs: Any) -> _models.Feature:
+    async def create(
+        self, feature: _types.FeatureCreateInputs, *, content_type: str = "application/json", **kwargs: Any
+    ) -> _models.Feature:
         """Create feature.
 
         Features are either metered or static. A feature is metered if meterSlug is provided at
@@ -2337,7 +2347,7 @@ class FeaturesOperations:
         UNIQUE_COUNT and LATEST aggregations are supported for features.
 
         :param feature: Required.
-        :type feature: JSON
+        :type feature: ~openmeter._generated.types.FeatureCreateInputs
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -2368,7 +2378,7 @@ class FeaturesOperations:
         """
 
     async def create(
-        self, feature: Union[_models.FeatureCreateInputs, JSON, IO[bytes]], **kwargs: Any
+        self, feature: Union[_models.FeatureCreateInputs, _types.FeatureCreateInputs, IO[bytes]], **kwargs: Any
     ) -> _models.Feature:
         """Create feature.
 
@@ -2377,8 +2387,9 @@ class FeaturesOperations:
         calculating feature usage, based on the meter's groupBy fields. Meters with SUM, COUNT,
         UNIQUE_COUNT and LATEST aggregations are supported for features.
 
-        :param feature: Is one of the following types: FeatureCreateInputs, JSON, IO[bytes] Required.
-        :type feature: ~openmeter._generated.models.FeatureCreateInputs or JSON or IO[bytes]
+        :param feature: Is either a FeatureCreateInputs type or a IO[bytes] type. Required.
+        :type feature: ~openmeter._generated.models.FeatureCreateInputs or
+         ~openmeter._generated.types.FeatureCreateInputs or IO[bytes]
         :return: Feature. The Feature is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Feature
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -2609,7 +2620,7 @@ class FeaturesOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class PlansOperations:
+class PlansOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -2792,13 +2803,15 @@ class PlansOperations:
         """
 
     @overload
-    async def create(self, request: JSON, *, content_type: str = "application/json", **kwargs: Any) -> _models.Plan:
+    async def create(
+        self, request: _types.PlanCreate, *, content_type: str = "application/json", **kwargs: Any
+    ) -> _models.Plan:
         """Create a plan.
 
         Create a new plan.
 
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.PlanCreate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -2825,13 +2838,16 @@ class PlansOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def create(self, request: Union[_models.PlanCreate, JSON, IO[bytes]], **kwargs: Any) -> _models.Plan:
+    async def create(
+        self, request: Union[_models.PlanCreate, _types.PlanCreate, IO[bytes]], **kwargs: Any
+    ) -> _models.Plan:
         """Create a plan.
 
         Create a new plan.
 
-        :param request: Is one of the following types: PlanCreate, JSON, IO[bytes] Required.
-        :type request: ~openmeter._generated.models.PlanCreate or JSON or IO[bytes]
+        :param request: Is either a PlanCreate type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.PlanCreate or
+         ~openmeter._generated.types.PlanCreate or IO[bytes]
         :return: Plan. The Plan is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Plan
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -2933,7 +2949,7 @@ class PlansOperations:
 
     @overload
     async def update(
-        self, plan_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, plan_id: str, body: _types.PlanReplaceUpdate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Plan:
         """Update a plan.
 
@@ -2942,7 +2958,7 @@ class PlansOperations:
         :param plan_id: Required.
         :type plan_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.PlanReplaceUpdate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -2972,7 +2988,7 @@ class PlansOperations:
         """
 
     async def update(
-        self, plan_id: str, body: Union[_models.PlanReplaceUpdate, JSON, IO[bytes]], **kwargs: Any
+        self, plan_id: str, body: Union[_models.PlanReplaceUpdate, _types.PlanReplaceUpdate, IO[bytes]], **kwargs: Any
     ) -> _models.Plan:
         """Update a plan.
 
@@ -2980,8 +2996,9 @@ class PlansOperations:
 
         :param plan_id: Required.
         :type plan_id: str
-        :param body: Is one of the following types: PlanReplaceUpdate, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.PlanReplaceUpdate or JSON or IO[bytes]
+        :param body: Is either a PlanReplaceUpdate type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.PlanReplaceUpdate or
+         ~openmeter._generated.types.PlanReplaceUpdate or IO[bytes]
         :return: Plan. The Plan is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Plan
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -3456,7 +3473,7 @@ class PlansOperations:
         return deserialized  # type: ignore
 
 
-class PlanAddonsOperations:
+class PlanAddonsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -3619,7 +3636,7 @@ class PlanAddonsOperations:
 
     @overload
     async def create(
-        self, plan_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, plan_id: str, body: _types.PlanAddonCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.PlanAddon:
         """Create new add-on assignment for plan.
 
@@ -3628,7 +3645,7 @@ class PlanAddonsOperations:
         :param plan_id: Required.
         :type plan_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.PlanAddonCreate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -3658,7 +3675,7 @@ class PlanAddonsOperations:
         """
 
     async def create(
-        self, plan_id: str, body: Union[_models.PlanAddonCreate, JSON, IO[bytes]], **kwargs: Any
+        self, plan_id: str, body: Union[_models.PlanAddonCreate, _types.PlanAddonCreate, IO[bytes]], **kwargs: Any
     ) -> _models.PlanAddon:
         """Create new add-on assignment for plan.
 
@@ -3666,8 +3683,9 @@ class PlanAddonsOperations:
 
         :param plan_id: Required.
         :type plan_id: str
-        :param body: Is one of the following types: PlanAddonCreate, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.PlanAddonCreate or JSON or IO[bytes]
+        :param body: Is either a PlanAddonCreate type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.PlanAddonCreate or
+         ~openmeter._generated.types.PlanAddonCreate or IO[bytes]
         :return: PlanAddon. The PlanAddon is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.PlanAddon
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -3782,7 +3800,13 @@ class PlanAddonsOperations:
 
     @overload
     async def update(
-        self, plan_id: str, plan_addon_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        plan_id: str,
+        plan_addon_id: str,
+        body: _types.PlanAddonReplaceUpdate,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.PlanAddon:
         """Update add-on assignment for plan.
 
@@ -3793,7 +3817,7 @@ class PlanAddonsOperations:
         :param plan_addon_id: Required.
         :type plan_addon_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.PlanAddonReplaceUpdate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -3834,7 +3858,7 @@ class PlanAddonsOperations:
         self,
         plan_id: str,
         plan_addon_id: str,
-        body: Union[_models.PlanAddonReplaceUpdate, JSON, IO[bytes]],
+        body: Union[_models.PlanAddonReplaceUpdate, _types.PlanAddonReplaceUpdate, IO[bytes]],
         **kwargs: Any
     ) -> _models.PlanAddon:
         """Update add-on assignment for plan.
@@ -3845,8 +3869,9 @@ class PlanAddonsOperations:
         :type plan_id: str
         :param plan_addon_id: Required.
         :type plan_addon_id: str
-        :param body: Is one of the following types: PlanAddonReplaceUpdate, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.PlanAddonReplaceUpdate or JSON or IO[bytes]
+        :param body: Is either a PlanAddonReplaceUpdate type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.PlanAddonReplaceUpdate or
+         ~openmeter._generated.types.PlanAddonReplaceUpdate or IO[bytes]
         :return: PlanAddon. The PlanAddon is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.PlanAddon
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -4084,7 +4109,7 @@ class PlanAddonsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class AddonsOperations:
+class AddonsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -4267,13 +4292,15 @@ class AddonsOperations:
         """
 
     @overload
-    async def create(self, request: JSON, *, content_type: str = "application/json", **kwargs: Any) -> _models.Addon:
+    async def create(
+        self, request: _types.AddonCreate, *, content_type: str = "application/json", **kwargs: Any
+    ) -> _models.Addon:
         """Create an add-on.
 
         Create a new add-on.
 
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.AddonCreate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -4300,13 +4327,16 @@ class AddonsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def create(self, request: Union[_models.AddonCreate, JSON, IO[bytes]], **kwargs: Any) -> _models.Addon:
+    async def create(
+        self, request: Union[_models.AddonCreate, _types.AddonCreate, IO[bytes]], **kwargs: Any
+    ) -> _models.Addon:
         """Create an add-on.
 
         Create a new add-on.
 
-        :param request: Is one of the following types: AddonCreate, JSON, IO[bytes] Required.
-        :type request: ~openmeter._generated.models.AddonCreate or JSON or IO[bytes]
+        :param request: Is either a AddonCreate type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.AddonCreate or
+         ~openmeter._generated.types.AddonCreate or IO[bytes]
         :return: Addon. The Addon is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Addon
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -4413,7 +4443,12 @@ class AddonsOperations:
 
     @overload
     async def update(
-        self, addon_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        addon_id: str,
+        request: _types.AddonReplaceUpdate,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.Addon:
         """Update add-on.
 
@@ -4422,7 +4457,7 @@ class AddonsOperations:
         :param addon_id: Required.
         :type addon_id: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.AddonReplaceUpdate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -4452,7 +4487,10 @@ class AddonsOperations:
         """
 
     async def update(
-        self, addon_id: str, request: Union[_models.AddonReplaceUpdate, JSON, IO[bytes]], **kwargs: Any
+        self,
+        addon_id: str,
+        request: Union[_models.AddonReplaceUpdate, _types.AddonReplaceUpdate, IO[bytes]],
+        **kwargs: Any
     ) -> _models.Addon:
         """Update add-on.
 
@@ -4460,8 +4498,9 @@ class AddonsOperations:
 
         :param addon_id: Required.
         :type addon_id: str
-        :param request: Is one of the following types: AddonReplaceUpdate, JSON, IO[bytes] Required.
-        :type request: ~openmeter._generated.models.AddonReplaceUpdate or JSON or IO[bytes]
+        :param request: Is either a AddonReplaceUpdate type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.AddonReplaceUpdate or
+         ~openmeter._generated.types.AddonReplaceUpdate or IO[bytes]
         :return: Addon. The Addon is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Addon
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -4856,7 +4895,7 @@ class AddonsOperations:
         return deserialized  # type: ignore
 
 
-class SubscriptionsOperations:
+class SubscriptionsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -4994,7 +5033,7 @@ class SubscriptionsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def create(self, body: "_types.SubscriptionCreate", **kwargs: Any) -> _models.Subscription:
+    async def create(self, body: "_unions.SubscriptionCreate", **kwargs: Any) -> _models.Subscription:
         """Create subscription.
 
         create.
@@ -5108,7 +5147,12 @@ class SubscriptionsOperations:
 
     @overload
     async def edit(
-        self, subscription_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        subscription_id: str,
+        body: _types.SubscriptionEdit,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.Subscription:
         """Edit subscription.
 
@@ -5118,7 +5162,7 @@ class SubscriptionsOperations:
         :param subscription_id: Required.
         :type subscription_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.SubscriptionEdit
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -5149,7 +5193,10 @@ class SubscriptionsOperations:
         """
 
     async def edit(
-        self, subscription_id: str, body: Union[_models.SubscriptionEdit, JSON, IO[bytes]], **kwargs: Any
+        self,
+        subscription_id: str,
+        body: Union[_models.SubscriptionEdit, _types.SubscriptionEdit, IO[bytes]],
+        **kwargs: Any
     ) -> _models.Subscription:
         """Edit subscription.
 
@@ -5158,8 +5205,9 @@ class SubscriptionsOperations:
 
         :param subscription_id: Required.
         :type subscription_id: str
-        :param body: Is one of the following types: SubscriptionEdit, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.SubscriptionEdit or JSON or IO[bytes]
+        :param body: Is either a SubscriptionEdit type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.SubscriptionEdit or
+         ~openmeter._generated.types.SubscriptionEdit or IO[bytes]
         :return: Subscription. The Subscription is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Subscription
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -5299,7 +5347,7 @@ class SubscriptionsOperations:
         """
 
     async def change(
-        self, subscription_id: str, body: "_types.SubscriptionChange", **kwargs: Any
+        self, subscription_id: str, body: "_unions.SubscriptionChange", **kwargs: Any
     ) -> _models.SubscriptionChangeResponseBody:
         """Change subscription.
 
@@ -5423,7 +5471,12 @@ class SubscriptionsOperations:
 
     @overload
     async def migrate(
-        self, subscription_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        subscription_id: str,
+        body: _types.MigrateRequest,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.SubscriptionChangeResponseBody:
         """Migrate subscription.
 
@@ -5434,7 +5487,7 @@ class SubscriptionsOperations:
         :param subscription_id: Required.
         :type subscription_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.MigrateRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -5468,7 +5521,7 @@ class SubscriptionsOperations:
         """
 
     async def migrate(
-        self, subscription_id: str, body: Union[_models.MigrateRequest, JSON, IO[bytes]], **kwargs: Any
+        self, subscription_id: str, body: Union[_models.MigrateRequest, _types.MigrateRequest, IO[bytes]], **kwargs: Any
     ) -> _models.SubscriptionChangeResponseBody:
         """Migrate subscription.
 
@@ -5478,8 +5531,9 @@ class SubscriptionsOperations:
 
         :param subscription_id: Required.
         :type subscription_id: str
-        :param body: Is one of the following types: MigrateRequest, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.MigrateRequest or JSON or IO[bytes]
+        :param body: Is either a MigrateRequest type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.MigrateRequest or
+         ~openmeter._generated.types.MigrateRequest or IO[bytes]
         :return: SubscriptionChangeResponseBody. The SubscriptionChangeResponseBody is compatible with
          MutableMapping
         :rtype: ~openmeter._generated.models.SubscriptionChangeResponseBody
@@ -5673,7 +5727,7 @@ class SubscriptionsOperations:
 
     @overload
     async def cancel(
-        self, subscription_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, subscription_id: str, body: _types.CancelRequest, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Subscription:
         """Cancel subscription.
 
@@ -5683,7 +5737,7 @@ class SubscriptionsOperations:
         :param subscription_id: Required.
         :type subscription_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.CancelRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -5714,7 +5768,7 @@ class SubscriptionsOperations:
         """
 
     async def cancel(
-        self, subscription_id: str, body: Union[_models.CancelRequest, JSON, IO[bytes]], **kwargs: Any
+        self, subscription_id: str, body: Union[_models.CancelRequest, _types.CancelRequest, IO[bytes]], **kwargs: Any
     ) -> _models.Subscription:
         """Cancel subscription.
 
@@ -5723,8 +5777,9 @@ class SubscriptionsOperations:
 
         :param subscription_id: Required.
         :type subscription_id: str
-        :param body: Is one of the following types: CancelRequest, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.CancelRequest or JSON or IO[bytes]
+        :param body: Is either a CancelRequest type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.CancelRequest or
+         ~openmeter._generated.types.CancelRequest or IO[bytes]
         :return: Subscription. The Subscription is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Subscription
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -5959,7 +6014,7 @@ class SubscriptionsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class SubscriptionAddonsOperations:
+class SubscriptionAddonsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -6003,7 +6058,12 @@ class SubscriptionAddonsOperations:
 
     @overload
     async def create(
-        self, subscription_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        subscription_id: str,
+        request: _types.SubscriptionAddonCreate,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.SubscriptionAddon:
         """Create subscription addon.
 
@@ -6012,7 +6072,7 @@ class SubscriptionAddonsOperations:
         :param subscription_id: Required.
         :type subscription_id: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.SubscriptionAddonCreate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -6042,7 +6102,10 @@ class SubscriptionAddonsOperations:
         """
 
     async def create(
-        self, subscription_id: str, request: Union[_models.SubscriptionAddonCreate, JSON, IO[bytes]], **kwargs: Any
+        self,
+        subscription_id: str,
+        request: Union[_models.SubscriptionAddonCreate, _types.SubscriptionAddonCreate, IO[bytes]],
+        **kwargs: Any
     ) -> _models.SubscriptionAddon:
         """Create subscription addon.
 
@@ -6050,9 +6113,9 @@ class SubscriptionAddonsOperations:
 
         :param subscription_id: Required.
         :type subscription_id: str
-        :param request: Is one of the following types: SubscriptionAddonCreate, JSON, IO[bytes]
-         Required.
-        :type request: ~openmeter._generated.models.SubscriptionAddonCreate or JSON or IO[bytes]
+        :param request: Is either a SubscriptionAddonCreate type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.SubscriptionAddonCreate or
+         ~openmeter._generated.types.SubscriptionAddonCreate or IO[bytes]
         :return: SubscriptionAddon. The SubscriptionAddon is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.SubscriptionAddon
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -6332,7 +6395,7 @@ class SubscriptionAddonsOperations:
         self,
         subscription_id: str,
         subscription_addon_id: str,
-        body: JSON,
+        body: _types.SubscriptionAddonUpdate,
         *,
         content_type: str = "application/json",
         **kwargs: Any
@@ -6347,7 +6410,7 @@ class SubscriptionAddonsOperations:
         :param subscription_addon_id: Required.
         :type subscription_addon_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.SubscriptionAddonUpdate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -6389,7 +6452,7 @@ class SubscriptionAddonsOperations:
         self,
         subscription_id: str,
         subscription_addon_id: str,
-        body: Union[_models.SubscriptionAddonUpdate, JSON, IO[bytes]],
+        body: Union[_models.SubscriptionAddonUpdate, _types.SubscriptionAddonUpdate, IO[bytes]],
         **kwargs: Any
     ) -> _models.SubscriptionAddon:
         """Update subscription addon.
@@ -6401,8 +6464,9 @@ class SubscriptionAddonsOperations:
         :type subscription_id: str
         :param subscription_addon_id: Required.
         :type subscription_addon_id: str
-        :param body: Is one of the following types: SubscriptionAddonUpdate, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.SubscriptionAddonUpdate or JSON or IO[bytes]
+        :param body: Is either a SubscriptionAddonUpdate type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.SubscriptionAddonUpdate or
+         ~openmeter._generated.types.SubscriptionAddonUpdate or IO[bytes]
         :return: SubscriptionAddon. The SubscriptionAddon is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.SubscriptionAddon
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -6487,7 +6551,7 @@ class SubscriptionAddonsOperations:
         return deserialized  # type: ignore
 
 
-class EntitlementsOperations:
+class EntitlementsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -6518,7 +6582,7 @@ class EntitlementsOperations:
         order: Optional[Union[str, _models.SortOrder]] = None,
         order_by: Optional[Union[str, _models.EntitlementOrderBy]] = None,
         **kwargs: Any
-    ) -> "_types.ListEntitlementsResult":
+    ) -> "_unions.ListEntitlementsResult":
         """List all entitlements.
 
         List all entitlements for all the subjects and features. This endpoint is intended for
@@ -6584,7 +6648,7 @@ class EntitlementsOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.ListEntitlementsResult"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.ListEntitlementsResult"] = kwargs.pop("cls", None)
 
         _request = build_entitlements_list_request(
             feature=feature,
@@ -6642,14 +6706,14 @@ class EntitlementsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.ListEntitlementsResult", response.json())
+            deserialized = _deserialize("_unions.ListEntitlementsResult", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-    async def get(self, entitlement_id: str, **kwargs: Any) -> "_types.Entitlement":
+    async def get(self, entitlement_id: str, **kwargs: Any) -> "_unions.Entitlement":
         """Get entitlement by ID.
 
         Get entitlement by ID.
@@ -6674,7 +6738,7 @@ class EntitlementsOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.Entitlement"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.Entitlement"] = kwargs.pop("cls", None)
 
         _request = build_entitlements_get_request(
             entitlement_id=entitlement_id,
@@ -6726,7 +6790,7 @@ class EntitlementsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.Entitlement", response.json())
+            deserialized = _deserialize("_unions.Entitlement", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -6734,7 +6798,7 @@ class EntitlementsOperations:
         return deserialized  # type: ignore
 
 
-class GrantsOperations:
+class GrantsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -6967,7 +7031,7 @@ class GrantsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class SubjectsOperations:
+class SubjectsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -6992,7 +7056,7 @@ class SubjectsOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.Entitlement":
+    ) -> "_unions.Entitlement":
         """Create a subject entitlement.
 
         OpenMeter has three types of entitlements: metered, boolean, and static. The type property
@@ -7040,7 +7104,7 @@ class SubjectsOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.Entitlement":
+    ) -> "_unions.Entitlement":
         """Create a subject entitlement.
 
         OpenMeter has three types of entitlements: metered, boolean, and static. The type property
@@ -7088,7 +7152,7 @@ class SubjectsOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.Entitlement":
+    ) -> "_unions.Entitlement":
         """Create a subject entitlement.
 
         OpenMeter has three types of entitlements: metered, boolean, and static. The type property
@@ -7129,8 +7193,8 @@ class SubjectsOperations:
         """
 
     async def post(
-        self, subject_id_or_key: str, entitlement: "_types.EntitlementCreateInputs", **kwargs: Any
-    ) -> "_types.Entitlement":
+        self, subject_id_or_key: str, entitlement: "_unions.EntitlementCreateInputs", **kwargs: Any
+    ) -> "_unions.Entitlement":
         """Create a subject entitlement.
 
         OpenMeter has three types of entitlements: metered, boolean, and static. The type property
@@ -7179,7 +7243,7 @@ class SubjectsOperations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType["_types.Entitlement"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.Entitlement"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(entitlement, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -7236,7 +7300,7 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.Entitlement", response.json())
+            deserialized = _deserialize("_unions.Entitlement", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -7245,7 +7309,7 @@ class SubjectsOperations:
 
     async def list(
         self, subject_id_or_key: str, *, include_deleted: Optional[bool] = None, **kwargs: Any
-    ) -> List["_types.Entitlement"]:
+    ) -> List["_unions.Entitlement"]:
         """List subject entitlements.
 
         List all entitlements for a subject. For checking entitlement access, use the /value endpoint
@@ -7274,7 +7338,7 @@ class SubjectsOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List["_types.Entitlement"]] = kwargs.pop("cls", None)
+        cls: ClsType[List["_unions.Entitlement"]] = kwargs.pop("cls", None)
 
         _request = build_subjects_list_request(
             subject_id_or_key=subject_id_or_key,
@@ -7324,14 +7388,14 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(List["_types.Entitlement"], response.json())
+            deserialized = _deserialize(List["_unions.Entitlement"], response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-    async def get(self, subject_id_or_key: str, entitlement_id: str, **kwargs: Any) -> "_types.Entitlement":
+    async def get(self, subject_id_or_key: str, entitlement_id: str, **kwargs: Any) -> "_unions.Entitlement":
         """Get subject entitlement.
 
         Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
@@ -7360,7 +7424,7 @@ class SubjectsOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.Entitlement"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.Entitlement"] = kwargs.pop("cls", None)
 
         _request = build_subjects_get_request(
             subject_id_or_key=subject_id_or_key,
@@ -7413,7 +7477,7 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.Entitlement", response.json())
+            deserialized = _deserialize("_unions.Entitlement", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -7509,7 +7573,7 @@ class SubjectsOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.Entitlement":
+    ) -> "_unions.Entitlement":
         """Override subject entitlement.
 
         Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes
@@ -7549,7 +7613,7 @@ class SubjectsOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.Entitlement":
+    ) -> "_unions.Entitlement":
         """Override subject entitlement.
 
         Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes
@@ -7589,7 +7653,7 @@ class SubjectsOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.Entitlement":
+    ) -> "_unions.Entitlement":
         """Override subject entitlement.
 
         Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes
@@ -7624,9 +7688,9 @@ class SubjectsOperations:
         self,
         subject_id_or_key: str,
         entitlement_id_or_feature_key: str,
-        entitlement: "_types.EntitlementCreateInputs",
+        entitlement: "_unions.EntitlementCreateInputs",
         **kwargs: Any
-    ) -> "_types.Entitlement":
+    ) -> "_unions.Entitlement":
         """Override subject entitlement.
 
         Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes
@@ -7665,7 +7729,7 @@ class SubjectsOperations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType["_types.Entitlement"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.Entitlement"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(entitlement, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -7726,7 +7790,7 @@ class SubjectsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.Entitlement", response.json())
+            deserialized = _deserialize("_unions.Entitlement", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -7891,7 +7955,7 @@ class SubjectsOperations:
         self,
         subject_id_or_key: str,
         entitlement_id_or_feature_key: str,
-        grant: JSON,
+        grant: _types.EntitlementGrantCreateInput,
         *,
         content_type: str = "application/json",
         **kwargs: Any
@@ -7930,7 +7994,7 @@ class SubjectsOperations:
         :param entitlement_id_or_feature_key: Required.
         :type entitlement_id_or_feature_key: str
         :param grant: Required.
-        :type grant: JSON
+        :type grant: ~openmeter._generated.types.EntitlementGrantCreateInput
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -7996,7 +8060,7 @@ class SubjectsOperations:
         self,
         subject_id_or_key: str,
         entitlement_id_or_feature_key: str,
-        grant: Union[_models.EntitlementGrantCreateInput, JSON, IO[bytes]],
+        grant: Union[_models.EntitlementGrantCreateInput, _types.EntitlementGrantCreateInput, IO[bytes]],
         **kwargs: Any
     ) -> _models.EntitlementGrant:
         """Create subject entitlement grant.
@@ -8032,9 +8096,9 @@ class SubjectsOperations:
         :type subject_id_or_key: str
         :param entitlement_id_or_feature_key: Required.
         :type entitlement_id_or_feature_key: str
-        :param grant: Is one of the following types: EntitlementGrantCreateInput, JSON, IO[bytes]
-         Required.
-        :type grant: ~openmeter._generated.models.EntitlementGrantCreateInput or JSON or IO[bytes]
+        :param grant: Is either a EntitlementGrantCreateInput type or a IO[bytes] type. Required.
+        :type grant: ~openmeter._generated.models.EntitlementGrantCreateInput or
+         ~openmeter._generated.types.EntitlementGrantCreateInput or IO[bytes]
         :return: EntitlementGrant. The EntitlementGrant is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.EntitlementGrant
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -8387,7 +8451,7 @@ class SubjectsOperations:
         self,
         subject_id_or_key: str,
         entitlement_id: str,
-        reset: JSON,
+        reset: _types.ResetEntitlementUsageInput,
         *,
         content_type: str = "application/json",
         **kwargs: Any
@@ -8413,7 +8477,7 @@ class SubjectsOperations:
         :param entitlement_id: Required.
         :type entitlement_id: str
         :param reset: Required.
-        :type reset: JSON
+        :type reset: ~openmeter._generated.types.ResetEntitlementUsageInput
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -8466,7 +8530,7 @@ class SubjectsOperations:
         self,
         subject_id_or_key: str,
         entitlement_id: str,
-        reset: Union[_models.ResetEntitlementUsageInput, JSON, IO[bytes]],
+        reset: Union[_models.ResetEntitlementUsageInput, _types.ResetEntitlementUsageInput, IO[bytes]],
         **kwargs: Any
     ) -> None:
         """Reset subject entitlement.
@@ -8489,9 +8553,9 @@ class SubjectsOperations:
         :type subject_id_or_key: str
         :param entitlement_id: Required.
         :type entitlement_id: str
-        :param reset: Is one of the following types: ResetEntitlementUsageInput, JSON, IO[bytes]
-         Required.
-        :type reset: ~openmeter._generated.models.ResetEntitlementUsageInput or JSON or IO[bytes]
+        :param reset: Is either a ResetEntitlementUsageInput type or a IO[bytes] type. Required.
+        :type reset: ~openmeter._generated.models.ResetEntitlementUsageInput or
+         ~openmeter._generated.types.ResetEntitlementUsageInput or IO[bytes]
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -8563,7 +8627,7 @@ class SubjectsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class CustomerOperations:
+class CustomerOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -8581,7 +8645,7 @@ class CustomerOperations:
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
     async def get_customer_access(
-        self, customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any
+        self, customer_id_or_key: "_unions.ULIDOrExternalKey", **kwargs: Any
     ) -> _models.CustomerAccess:
         """Get customer access.
 
@@ -8662,7 +8726,7 @@ class CustomerOperations:
         return deserialized  # type: ignore
 
 
-class CustomerEntitlementOperations:
+class CustomerEntitlementOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -8681,7 +8745,7 @@ class CustomerEntitlementOperations:
 
     async def get_customer_entitlement_value(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         feature_key: str,
         *,
         time: Optional[datetime.datetime] = None,
@@ -8774,7 +8838,7 @@ class CustomerEntitlementOperations:
         return deserialized  # type: ignore
 
 
-class CustomerStripeOperations:
+class CustomerStripeOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -8791,7 +8855,9 @@ class CustomerStripeOperations:
         self._serialize: Serializer = input_args.pop(0) if input_args else kwargs.pop("serializer")
         self._deserialize: Deserializer = input_args.pop(0) if input_args else kwargs.pop("deserializer")
 
-    async def get(self, customer_id_or_key: "_types.ULIDOrExternalKey", **kwargs: Any) -> _models.StripeCustomerAppData:
+    async def get(
+        self, customer_id_or_key: "_unions.ULIDOrExternalKey", **kwargs: Any
+    ) -> _models.StripeCustomerAppData:
         """Get customer stripe app data.
 
         Get stripe app data for a customer. Only returns data if the customer billing profile is linked
@@ -8874,7 +8940,7 @@ class CustomerStripeOperations:
     @overload
     async def upsert(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         app_data: _models.StripeCustomerAppDataBase,
         *,
         content_type: str = "application/json",
@@ -8900,8 +8966,8 @@ class CustomerStripeOperations:
     @overload
     async def upsert(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        app_data: JSON,
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        app_data: _types.StripeCustomerAppDataBase,
         *,
         content_type: str = "application/json",
         **kwargs: Any
@@ -8914,7 +8980,7 @@ class CustomerStripeOperations:
         :param customer_id_or_key: Is one of the following types: str Required.
         :type customer_id_or_key: str or str
         :param app_data: Required.
-        :type app_data: JSON
+        :type app_data: ~openmeter._generated.types.StripeCustomerAppDataBase
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -8926,7 +8992,7 @@ class CustomerStripeOperations:
     @overload
     async def upsert(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         app_data: IO[bytes],
         *,
         content_type: str = "application/json",
@@ -8951,8 +9017,8 @@ class CustomerStripeOperations:
 
     async def upsert(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        app_data: Union[_models.StripeCustomerAppDataBase, JSON, IO[bytes]],
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        app_data: Union[_models.StripeCustomerAppDataBase, _types.StripeCustomerAppDataBase, IO[bytes]],
         **kwargs: Any
     ) -> _models.StripeCustomerAppData:
         """Upsert customer stripe app data.
@@ -8962,9 +9028,9 @@ class CustomerStripeOperations:
 
         :param customer_id_or_key: Is one of the following types: str Required.
         :type customer_id_or_key: str or str
-        :param app_data: Is one of the following types: StripeCustomerAppDataBase, JSON, IO[bytes]
-         Required.
-        :type app_data: ~openmeter._generated.models.StripeCustomerAppDataBase or JSON or IO[bytes]
+        :param app_data: Is either a StripeCustomerAppDataBase type or a IO[bytes] type. Required.
+        :type app_data: ~openmeter._generated.models.StripeCustomerAppDataBase or
+         ~openmeter._generated.types.StripeCustomerAppDataBase or IO[bytes]
         :return: StripeCustomerAppData. The StripeCustomerAppData is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.StripeCustomerAppData
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -9050,7 +9116,7 @@ class CustomerStripeOperations:
     @overload
     async def create_portal_session(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         params: _models.CreateStripeCustomerPortalSessionParams,
         *,
         content_type: str = "application/json",
@@ -9080,8 +9146,8 @@ class CustomerStripeOperations:
     @overload
     async def create_portal_session(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        params: JSON,
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        params: _types.CreateStripeCustomerPortalSessionParams,
         *,
         content_type: str = "application/json",
         **kwargs: Any
@@ -9097,7 +9163,7 @@ class CustomerStripeOperations:
         :param customer_id_or_key: Is one of the following types: str Required.
         :type customer_id_or_key: str or str
         :param params: Required.
-        :type params: JSON
+        :type params: ~openmeter._generated.types.CreateStripeCustomerPortalSessionParams
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -9110,7 +9176,7 @@ class CustomerStripeOperations:
     @overload
     async def create_portal_session(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         params: IO[bytes],
         *,
         content_type: str = "application/json",
@@ -9139,8 +9205,10 @@ class CustomerStripeOperations:
 
     async def create_portal_session(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        params: Union[_models.CreateStripeCustomerPortalSessionParams, JSON, IO[bytes]],
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        params: Union[
+            _models.CreateStripeCustomerPortalSessionParams, _types.CreateStripeCustomerPortalSessionParams, IO[bytes]
+        ],
         **kwargs: Any
     ) -> _models.StripeCustomerPortalSession:
         """Create Stripe customer portal session.
@@ -9153,10 +9221,10 @@ class CustomerStripeOperations:
 
         :param customer_id_or_key: Is one of the following types: str Required.
         :type customer_id_or_key: str or str
-        :param params: Is one of the following types: CreateStripeCustomerPortalSessionParams, JSON,
-         IO[bytes] Required.
-        :type params: ~openmeter._generated.models.CreateStripeCustomerPortalSessionParams or JSON or
-         IO[bytes]
+        :param params: Is either a CreateStripeCustomerPortalSessionParams type or a IO[bytes] type.
+         Required.
+        :type params: ~openmeter._generated.models.CreateStripeCustomerPortalSessionParams or
+         ~openmeter._generated.types.CreateStripeCustomerPortalSessionParams or IO[bytes]
         :return: StripeCustomerPortalSession. The StripeCustomerPortalSession is compatible with
          MutableMapping
         :rtype: ~openmeter._generated.models.StripeCustomerPortalSession
@@ -9241,7 +9309,7 @@ class CustomerStripeOperations:
         return deserialized  # type: ignore
 
 
-class MarketplaceOperations:
+class MarketplaceOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -9634,7 +9702,12 @@ class MarketplaceOperations:
 
     @overload
     async def install_with_api_key(
-        self, type: Union[str, _models.AppType], _: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        type: Union[str, _models.AppType],
+        _: _types.InstallWithApiKeyRequest,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.MarketplaceInstallResponse:
         """Install app via API key.
 
@@ -9644,7 +9717,7 @@ class MarketplaceOperations:
          "custom_invoicing". Required.
         :type type: str or ~openmeter.models.AppType
         :param _: Required.
-        :type _: JSON
+        :type _: ~openmeter._generated.types.InstallWithApiKeyRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -9679,7 +9752,7 @@ class MarketplaceOperations:
     async def install_with_api_key(
         self,
         type: Union[str, _models.AppType],
-        _: Union[_models.InstallWithApiKeyRequest, JSON, IO[bytes]],
+        _: Union[_models.InstallWithApiKeyRequest, _types.InstallWithApiKeyRequest, IO[bytes]],
         **kwargs: Any
     ) -> _models.MarketplaceInstallResponse:
         """Install app via API key.
@@ -9689,8 +9762,9 @@ class MarketplaceOperations:
         :param type: The type of the app to install. Known values are: "stripe", "sandbox", and
          "custom_invoicing". Required.
         :type type: str or ~openmeter.models.AppType
-        :param _: Is one of the following types: InstallWithApiKeyRequest, JSON, IO[bytes] Required.
-        :type _: ~openmeter._generated.models.InstallWithApiKeyRequest or JSON or IO[bytes]
+        :param _: Is either a InstallWithApiKeyRequest type or a IO[bytes] type. Required.
+        :type _: ~openmeter._generated.models.InstallWithApiKeyRequest or
+         ~openmeter._generated.types.InstallWithApiKeyRequest or IO[bytes]
         :return: MarketplaceInstallResponse. The MarketplaceInstallResponse is compatible with
          MutableMapping
         :rtype: ~openmeter._generated.models.MarketplaceInstallResponse
@@ -9801,7 +9875,12 @@ class MarketplaceOperations:
 
     @overload
     async def install(
-        self, type: Union[str, _models.AppType], _: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        type: Union[str, _models.AppType],
+        _: _types.MarketplaceInstallRequestPayload,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.MarketplaceInstallResponse:
         """Install app.
 
@@ -9811,7 +9890,7 @@ class MarketplaceOperations:
          "custom_invoicing". Required.
         :type type: str or ~openmeter.models.AppType
         :param _: Required.
-        :type _: JSON
+        :type _: ~openmeter._generated.types.MarketplaceInstallRequestPayload
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -9846,7 +9925,7 @@ class MarketplaceOperations:
     async def install(
         self,
         type: Union[str, _models.AppType],
-        _: Union[_models.MarketplaceInstallRequestPayload, JSON, IO[bytes]],
+        _: Union[_models.MarketplaceInstallRequestPayload, _types.MarketplaceInstallRequestPayload, IO[bytes]],
         **kwargs: Any
     ) -> _models.MarketplaceInstallResponse:
         """Install app.
@@ -9856,9 +9935,9 @@ class MarketplaceOperations:
         :param type: The type of the app to install. Known values are: "stripe", "sandbox", and
          "custom_invoicing". Required.
         :type type: str or ~openmeter.models.AppType
-        :param _: Is one of the following types: MarketplaceInstallRequestPayload, JSON, IO[bytes]
-         Required.
-        :type _: ~openmeter._generated.models.MarketplaceInstallRequestPayload or JSON or IO[bytes]
+        :param _: Is either a MarketplaceInstallRequestPayload type or a IO[bytes] type. Required.
+        :type _: ~openmeter._generated.models.MarketplaceInstallRequestPayload or
+         ~openmeter._generated.types.MarketplaceInstallRequestPayload or IO[bytes]
         :return: MarketplaceInstallResponse. The MarketplaceInstallResponse is compatible with
          MutableMapping
         :rtype: ~openmeter._generated.models.MarketplaceInstallResponse
@@ -9941,7 +10020,7 @@ class MarketplaceOperations:
         return deserialized  # type: ignore
 
 
-class AppCustomInvoicingOperations:
+class AppCustomInvoicingOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -9985,7 +10064,12 @@ class AppCustomInvoicingOperations:
 
     @overload
     async def draft_syncronized(
-        self, invoice_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        invoice_id: str,
+        body: _types.CustomInvoicingDraftSynchronizedRequest,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> None:
         """Submit draft synchronization results.
 
@@ -9994,7 +10078,7 @@ class AppCustomInvoicingOperations:
         :param invoice_id: Required.
         :type invoice_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.CustomInvoicingDraftSynchronizedRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -10026,7 +10110,9 @@ class AppCustomInvoicingOperations:
     async def draft_syncronized(
         self,
         invoice_id: str,
-        body: Union[_models.CustomInvoicingDraftSynchronizedRequest, JSON, IO[bytes]],
+        body: Union[
+            _models.CustomInvoicingDraftSynchronizedRequest, _types.CustomInvoicingDraftSynchronizedRequest, IO[bytes]
+        ],
         **kwargs: Any
     ) -> None:
         """Submit draft synchronization results.
@@ -10035,10 +10121,10 @@ class AppCustomInvoicingOperations:
 
         :param invoice_id: Required.
         :type invoice_id: str
-        :param body: Is one of the following types: CustomInvoicingDraftSynchronizedRequest, JSON,
-         IO[bytes] Required.
-        :type body: ~openmeter._generated.models.CustomInvoicingDraftSynchronizedRequest or JSON or
-         IO[bytes]
+        :param body: Is either a CustomInvoicingDraftSynchronizedRequest type or a IO[bytes] type.
+         Required.
+        :type body: ~openmeter._generated.models.CustomInvoicingDraftSynchronizedRequest or
+         ~openmeter._generated.types.CustomInvoicingDraftSynchronizedRequest or IO[bytes]
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -10133,7 +10219,12 @@ class AppCustomInvoicingOperations:
 
     @overload
     async def finalized(
-        self, invoice_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        invoice_id: str,
+        body: _types.CustomInvoicingFinalizedRequest,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> None:
         """Submit issuing synchronization results.
 
@@ -10142,7 +10233,7 @@ class AppCustomInvoicingOperations:
         :param invoice_id: Required.
         :type invoice_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.CustomInvoicingFinalizedRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -10172,7 +10263,10 @@ class AppCustomInvoicingOperations:
         """
 
     async def finalized(
-        self, invoice_id: str, body: Union[_models.CustomInvoicingFinalizedRequest, JSON, IO[bytes]], **kwargs: Any
+        self,
+        invoice_id: str,
+        body: Union[_models.CustomInvoicingFinalizedRequest, _types.CustomInvoicingFinalizedRequest, IO[bytes]],
+        **kwargs: Any
     ) -> None:
         """Submit issuing synchronization results.
 
@@ -10180,9 +10274,9 @@ class AppCustomInvoicingOperations:
 
         :param invoice_id: Required.
         :type invoice_id: str
-        :param body: Is one of the following types: CustomInvoicingFinalizedRequest, JSON, IO[bytes]
-         Required.
-        :type body: ~openmeter._generated.models.CustomInvoicingFinalizedRequest or JSON or IO[bytes]
+        :param body: Is either a CustomInvoicingFinalizedRequest type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.CustomInvoicingFinalizedRequest or
+         ~openmeter._generated.types.CustomInvoicingFinalizedRequest or IO[bytes]
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -10277,7 +10371,12 @@ class AppCustomInvoicingOperations:
 
     @overload
     async def payment_status(
-        self, invoice_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        invoice_id: str,
+        body: _types.CustomInvoicingUpdatePaymentStatusRequest,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> None:
         """Update payment status.
 
@@ -10286,7 +10385,7 @@ class AppCustomInvoicingOperations:
         :param invoice_id: Required.
         :type invoice_id: str
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.CustomInvoicingUpdatePaymentStatusRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -10318,7 +10417,11 @@ class AppCustomInvoicingOperations:
     async def payment_status(
         self,
         invoice_id: str,
-        body: Union[_models.CustomInvoicingUpdatePaymentStatusRequest, JSON, IO[bytes]],
+        body: Union[
+            _models.CustomInvoicingUpdatePaymentStatusRequest,
+            _types.CustomInvoicingUpdatePaymentStatusRequest,
+            IO[bytes],
+        ],
         **kwargs: Any
     ) -> None:
         """Update payment status.
@@ -10327,10 +10430,10 @@ class AppCustomInvoicingOperations:
 
         :param invoice_id: Required.
         :type invoice_id: str
-        :param body: Is one of the following types: CustomInvoicingUpdatePaymentStatusRequest, JSON,
-         IO[bytes] Required.
-        :type body: ~openmeter._generated.models.CustomInvoicingUpdatePaymentStatusRequest or JSON or
-         IO[bytes]
+        :param body: Is either a CustomInvoicingUpdatePaymentStatusRequest type or a IO[bytes] type.
+         Required.
+        :type body: ~openmeter._generated.models.CustomInvoicingUpdatePaymentStatusRequest or
+         ~openmeter._generated.types.CustomInvoicingUpdatePaymentStatusRequest or IO[bytes]
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -10399,7 +10502,7 @@ class AppCustomInvoicingOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class EventsOperations:
+class EventsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -10565,14 +10668,14 @@ class EventsOperations:
 
     @overload
     async def ingest_event(
-        self, body: JSON, *, content_type: str = "application/cloudevents+json", **kwargs: Any
+        self, body: _types.Event, *, content_type: str = "application/cloudevents+json", **kwargs: Any
     ) -> None:
         """Ingest events.
 
         Ingests an event or batch of events following the CloudEvents specification.
 
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.Event
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/cloudevents+json".
         :paramtype content_type: str
@@ -10599,13 +10702,14 @@ class EventsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def ingest_event(self, body: Union[_models.Event, JSON, IO[bytes]], **kwargs: Any) -> None:
+    async def ingest_event(self, body: Union[_models.Event, _types.Event, IO[bytes]], **kwargs: Any) -> None:
         """Ingest events.
 
         Ingests an event or batch of events following the CloudEvents specification.
 
-        :param body: Is one of the following types: Event, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.Event or JSON or IO[bytes]
+        :param body: Is either a Event type or a IO[bytes] type. Required.
+        :type body: ~openmeter._generated.models.Event or ~openmeter._generated.types.Event or
+         IO[bytes]
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -10690,12 +10794,12 @@ class EventsOperations:
 
     @overload
     async def ingest_events(
-        self, body: List[JSON], *, content_type: str = "application/cloudevents-batch+json", **kwargs: Any
+        self, body: List[_types.Event], *, content_type: str = "application/cloudevents-batch+json", **kwargs: Any
     ) -> None:
         """ingest_events.
 
         :param body: Required.
-        :type body: list[JSON]
+        :type body: list[~openmeter._generated.types.Event]
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/cloudevents-batch+json".
         :paramtype content_type: str
@@ -10720,11 +10824,14 @@ class EventsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def ingest_events(self, body: Union[List[_models.Event], List[JSON], IO[bytes]], **kwargs: Any) -> None:
+    async def ingest_events(
+        self, body: Union[List[_models.Event], List[_types.Event], IO[bytes]], **kwargs: Any
+    ) -> None:
         """ingest_events.
 
-        :param body: Is one of the following types: [Event], [JSON], IO[bytes] Required.
-        :type body: list[~openmeter._generated.models.Event] or list[JSON] or IO[bytes]
+        :param body: Is either a [Event] type or a IO[bytes] type. Required.
+        :type body: list[~openmeter._generated.models.Event] or list[~openmeter._generated.types.Event]
+         or IO[bytes]
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -10823,7 +10930,7 @@ class EventsOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def ingest_events_json(self, body: "_types.IngestEventsBody", **kwargs: Any) -> None:
+    async def ingest_events_json(self, body: "_unions.IngestEventsBody", **kwargs: Any) -> None:
         """ingest_events_json.
 
         :param body: Is either a Event type or a [Event] type. Required.
@@ -10895,7 +11002,7 @@ class EventsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class EventsV2Operations:
+class EventsV2Operations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -11008,7 +11115,7 @@ class EventsV2Operations:
         return AsyncItemPaged(get_next, extract_data)
 
 
-class MetersOperations:
+class MetersOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -11226,13 +11333,15 @@ class MetersOperations:
         """
 
     @overload
-    async def create(self, meter: JSON, *, content_type: str = "application/json", **kwargs: Any) -> _models.Meter:
+    async def create(
+        self, meter: _types.MeterCreate, *, content_type: str = "application/json", **kwargs: Any
+    ) -> _models.Meter:
         """Create meter.
 
         Create a meter.
 
         :param meter: Required.
-        :type meter: JSON
+        :type meter: ~openmeter._generated.types.MeterCreate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -11257,13 +11366,16 @@ class MetersOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def create(self, meter: Union[_models.MeterCreate, JSON, IO[bytes]], **kwargs: Any) -> _models.Meter:
+    async def create(
+        self, meter: Union[_models.MeterCreate, _types.MeterCreate, IO[bytes]], **kwargs: Any
+    ) -> _models.Meter:
         """Create meter.
 
         Create a meter.
 
-        :param meter: Is one of the following types: MeterCreate, JSON, IO[bytes] Required.
-        :type meter: ~openmeter._generated.models.MeterCreate or JSON or IO[bytes]
+        :param meter: Is either a MeterCreate type or a IO[bytes] type. Required.
+        :type meter: ~openmeter._generated.models.MeterCreate or
+         ~openmeter._generated.types.MeterCreate or IO[bytes]
         :return: Meter. The Meter is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Meter
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -11370,7 +11482,7 @@ class MetersOperations:
 
     @overload
     async def update(
-        self, meter_id_or_slug: str, meter: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, meter_id_or_slug: str, meter: _types.MeterUpdate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.Meter:
         """Update meter.
 
@@ -11379,7 +11491,7 @@ class MetersOperations:
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
         :param meter: Required.
-        :type meter: JSON
+        :type meter: ~openmeter._generated.types.MeterUpdate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -11409,7 +11521,7 @@ class MetersOperations:
         """
 
     async def update(
-        self, meter_id_or_slug: str, meter: Union[_models.MeterUpdate, JSON, IO[bytes]], **kwargs: Any
+        self, meter_id_or_slug: str, meter: Union[_models.MeterUpdate, _types.MeterUpdate, IO[bytes]], **kwargs: Any
     ) -> _models.Meter:
         """Update meter.
 
@@ -11417,8 +11529,9 @@ class MetersOperations:
 
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
-        :param meter: Is one of the following types: MeterUpdate, JSON, IO[bytes] Required.
-        :type meter: ~openmeter._generated.models.MeterUpdate or JSON or IO[bytes]
+        :param meter: Is either a MeterUpdate type or a IO[bytes] type. Required.
+        :type meter: ~openmeter._generated.models.MeterUpdate or
+         ~openmeter._generated.types.MeterUpdate or IO[bytes]
         :return: Meter. The Meter is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Meter
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -11904,7 +12017,12 @@ class MetersOperations:
 
     @overload
     async def query(
-        self, meter_id_or_slug: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        meter_id_or_slug: str,
+        request: _types.MeterQueryRequest,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -11913,7 +12031,7 @@ class MetersOperations:
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.MeterQueryRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -11943,7 +12061,10 @@ class MetersOperations:
         """
 
     async def query(
-        self, meter_id_or_slug: str, request: Union[_models.MeterQueryRequest, JSON, IO[bytes]], **kwargs: Any
+        self,
+        meter_id_or_slug: str,
+        request: Union[_models.MeterQueryRequest, _types.MeterQueryRequest, IO[bytes]],
+        **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -11951,8 +12072,9 @@ class MetersOperations:
 
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
-        :param request: Is one of the following types: MeterQueryRequest, JSON, IO[bytes] Required.
-        :type request: ~openmeter._generated.models.MeterQueryRequest or JSON or IO[bytes]
+        :param request: Is either a MeterQueryRequest type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.MeterQueryRequest or
+         ~openmeter._generated.types.MeterQueryRequest or IO[bytes]
         :return: MeterQueryResult. The MeterQueryResult is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.MeterQueryResult
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -12319,7 +12441,7 @@ class MetersOperations:
         return deserialized  # type: ignore
 
 
-class SubjectsOperations:
+class SubjectsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -12521,7 +12643,7 @@ class SubjectsOperations:
 
     @overload
     async def upsert(
-        self, subject: List[JSON], *, content_type: str = "application/json", **kwargs: Any
+        self, subject: List[_types.SubjectUpsert], *, content_type: str = "application/json", **kwargs: Any
     ) -> List[_models.Subject]:
         """Upsert subject.
 
@@ -12534,7 +12656,7 @@ class SubjectsOperations:
         subject key usage attribution instead.
 
         :param subject: Required.
-        :type subject: list[JSON]
+        :type subject: list[~openmeter._generated.types.SubjectUpsert]
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -12568,7 +12690,7 @@ class SubjectsOperations:
         """
 
     async def upsert(
-        self, subject: Union[List[_models.SubjectUpsert], List[JSON], IO[bytes]], **kwargs: Any
+        self, subject: Union[List[_models.SubjectUpsert], List[_types.SubjectUpsert], IO[bytes]], **kwargs: Any
     ) -> List[_models.Subject]:
         """Upsert subject.
 
@@ -12580,8 +12702,9 @@ class SubjectsOperations:
         ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
         subject key usage attribution instead.
 
-        :param subject: Is one of the following types: [SubjectUpsert], [JSON], IO[bytes] Required.
-        :type subject: list[~openmeter._generated.models.SubjectUpsert] or list[JSON] or IO[bytes]
+        :param subject: Is either a [SubjectUpsert] type or a IO[bytes] type. Required.
+        :type subject: list[~openmeter._generated.models.SubjectUpsert] or
+         list[~openmeter._generated.types.SubjectUpsert] or IO[bytes]
         :return: list of Subject
         :rtype: list[~openmeter._generated.models.Subject]
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -12729,7 +12852,7 @@ class SubjectsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class DebugOperations:
+class DebugOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -12827,7 +12950,7 @@ class DebugOperations:
         return deserialized  # type: ignore
 
 
-class NotificationChannelsOperations:
+class NotificationChannelsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -12963,7 +13086,7 @@ class NotificationChannelsOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationChannel":
+    ) -> "_unions.NotificationChannel":
         """Create a notification channel.
 
         Create a new notification channel.
@@ -12979,8 +13102,8 @@ class NotificationChannelsOperations:
         """
 
     async def create(
-        self, request: "_types.NotificationChannelCreateRequest", **kwargs: Any
-    ) -> "_types.NotificationChannel":
+        self, request: "_unions.NotificationChannelCreateRequest", **kwargs: Any
+    ) -> "_unions.NotificationChannel":
         """Create a notification channel.
 
         Create a new notification channel.
@@ -13003,7 +13126,7 @@ class NotificationChannelsOperations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType["_types.NotificationChannel"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.NotificationChannel"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -13056,7 +13179,7 @@ class NotificationChannelsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.NotificationChannel", response.json())
+            deserialized = _deserialize("_unions.NotificationChannel", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -13071,7 +13194,7 @@ class NotificationChannelsOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationChannel":
+    ) -> "_unions.NotificationChannel":
         """Update a notification channel.
 
         Update notification channel.
@@ -13089,8 +13212,8 @@ class NotificationChannelsOperations:
         """
 
     async def update(
-        self, channel_id: str, request: "_types.NotificationChannelCreateRequest", **kwargs: Any
-    ) -> "_types.NotificationChannel":
+        self, channel_id: str, request: "_unions.NotificationChannelCreateRequest", **kwargs: Any
+    ) -> "_unions.NotificationChannel":
         """Update a notification channel.
 
         Update notification channel.
@@ -13114,7 +13237,7 @@ class NotificationChannelsOperations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType["_types.NotificationChannel"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.NotificationChannel"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -13171,14 +13294,14 @@ class NotificationChannelsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.NotificationChannel", response.json())
+            deserialized = _deserialize("_unions.NotificationChannel", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-    async def get(self, channel_id: str, **kwargs: Any) -> "_types.NotificationChannel":
+    async def get(self, channel_id: str, **kwargs: Any) -> "_unions.NotificationChannel":
         """Get notification channel.
 
         Get a notification channel by id.
@@ -13198,7 +13321,7 @@ class NotificationChannelsOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.NotificationChannel"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.NotificationChannel"] = kwargs.pop("cls", None)
 
         _request = build_notification_channels_get_request(
             channel_id=channel_id,
@@ -13250,7 +13373,7 @@ class NotificationChannelsOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.NotificationChannel", response.json())
+            deserialized = _deserialize("_unions.NotificationChannel", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -13326,7 +13449,7 @@ class NotificationChannelsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class NotificationRulesOperations:
+class NotificationRulesOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -13475,7 +13598,7 @@ class NotificationRulesOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationRule":
+    ) -> "_unions.NotificationRule":
         """Create a notification rule.
 
         Create a new notification rule.
@@ -13501,7 +13624,7 @@ class NotificationRulesOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationRule":
+    ) -> "_unions.NotificationRule":
         """Create a notification rule.
 
         Create a new notification rule.
@@ -13527,7 +13650,7 @@ class NotificationRulesOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationRule":
+    ) -> "_unions.NotificationRule":
         """Create a notification rule.
 
         Create a new notification rule.
@@ -13553,7 +13676,7 @@ class NotificationRulesOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationRule":
+    ) -> "_unions.NotificationRule":
         """Create a notification rule.
 
         Create a new notification rule.
@@ -13572,7 +13695,9 @@ class NotificationRulesOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def create(self, request: "_types.NotificationRuleCreateRequest", **kwargs: Any) -> "_types.NotificationRule":
+    async def create(
+        self, request: "_unions.NotificationRuleCreateRequest", **kwargs: Any
+    ) -> "_unions.NotificationRule":
         """Create a notification rule.
 
         Create a new notification rule.
@@ -13603,7 +13728,7 @@ class NotificationRulesOperations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType["_types.NotificationRule"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.NotificationRule"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -13656,7 +13781,7 @@ class NotificationRulesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.NotificationRule", response.json())
+            deserialized = _deserialize("_unions.NotificationRule", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -13671,7 +13796,7 @@ class NotificationRulesOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationRule":
+    ) -> "_unions.NotificationRule":
         """Update a notification rule.
 
         Update notification rule.
@@ -13700,7 +13825,7 @@ class NotificationRulesOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationRule":
+    ) -> "_unions.NotificationRule":
         """Update a notification rule.
 
         Update notification rule.
@@ -13729,7 +13854,7 @@ class NotificationRulesOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationRule":
+    ) -> "_unions.NotificationRule":
         """Update a notification rule.
 
         Update notification rule.
@@ -13758,7 +13883,7 @@ class NotificationRulesOperations:
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.NotificationRule":
+    ) -> "_unions.NotificationRule":
         """Update a notification rule.
 
         Update notification rule.
@@ -13780,8 +13905,8 @@ class NotificationRulesOperations:
         """
 
     async def update(
-        self, rule_id: str, request: "_types.NotificationRuleCreateRequest", **kwargs: Any
-    ) -> "_types.NotificationRule":
+        self, rule_id: str, request: "_unions.NotificationRuleCreateRequest", **kwargs: Any
+    ) -> "_unions.NotificationRule":
         """Update a notification rule.
 
         Update notification rule.
@@ -13813,7 +13938,7 @@ class NotificationRulesOperations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType["_types.NotificationRule"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.NotificationRule"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(request, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -13870,14 +13995,14 @@ class NotificationRulesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.NotificationRule", response.json())
+            deserialized = _deserialize("_unions.NotificationRule", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
 
         return deserialized  # type: ignore
 
-    async def get(self, rule_id: str, **kwargs: Any) -> "_types.NotificationRule":
+    async def get(self, rule_id: str, **kwargs: Any) -> "_unions.NotificationRule":
         """Get notification rule.
 
         Get a notification rule by id.
@@ -13901,7 +14026,7 @@ class NotificationRulesOperations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.NotificationRule"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.NotificationRule"] = kwargs.pop("cls", None)
 
         _request = build_notification_rules_get_request(
             rule_id=rule_id,
@@ -13953,7 +14078,7 @@ class NotificationRulesOperations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.NotificationRule", response.json())
+            deserialized = _deserialize("_unions.NotificationRule", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -14108,7 +14233,7 @@ class NotificationRulesOperations:
         return deserialized  # type: ignore
 
 
-class NotificationEventsOperations:
+class NotificationEventsOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -14367,7 +14492,12 @@ class NotificationEventsOperations:
 
     @overload
     async def resend(
-        self, event_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        event_id: str,
+        request: _types.NotificationEventResendRequest,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> None:
         """Re-send notification event.
 
@@ -14376,7 +14506,7 @@ class NotificationEventsOperations:
         :param event_id: Required.
         :type event_id: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.NotificationEventResendRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -14406,7 +14536,10 @@ class NotificationEventsOperations:
         """
 
     async def resend(
-        self, event_id: str, request: Union[_models.NotificationEventResendRequest, JSON, IO[bytes]], **kwargs: Any
+        self,
+        event_id: str,
+        request: Union[_models.NotificationEventResendRequest, _types.NotificationEventResendRequest, IO[bytes]],
+        **kwargs: Any
     ) -> None:
         """Re-send notification event.
 
@@ -14414,9 +14547,9 @@ class NotificationEventsOperations:
 
         :param event_id: Required.
         :type event_id: str
-        :param request: Is one of the following types: NotificationEventResendRequest, JSON, IO[bytes]
-         Required.
-        :type request: ~openmeter._generated.models.NotificationEventResendRequest or JSON or IO[bytes]
+        :param request: Is either a NotificationEventResendRequest type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.NotificationEventResendRequest or
+         ~openmeter._generated.types.NotificationEventResendRequest or IO[bytes]
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -14487,7 +14620,7 @@ class NotificationEventsOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class EntitlementsV2Operations:
+class EntitlementsV2Operations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -14648,7 +14781,7 @@ class EntitlementsV2Operations:
 
         return deserialized  # type: ignore
 
-    async def get(self, entitlement_id: str, **kwargs: Any) -> "_types.EntitlementV2":
+    async def get(self, entitlement_id: str, **kwargs: Any) -> "_unions.EntitlementV2":
         """Get entitlement by ID.
 
         Get entitlement by ID.
@@ -14670,7 +14803,7 @@ class EntitlementsV2Operations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.EntitlementV2"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.EntitlementV2"] = kwargs.pop("cls", None)
 
         _request = build_entitlements_v2_get_request(
             entitlement_id=entitlement_id,
@@ -14722,7 +14855,7 @@ class EntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.EntitlementV2", response.json())
+            deserialized = _deserialize("_unions.EntitlementV2", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -14730,7 +14863,7 @@ class EntitlementsV2Operations:
         return deserialized  # type: ignore
 
 
-class CustomerEntitlementsV2Operations:
+class CustomerEntitlementsV2Operations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -14750,12 +14883,12 @@ class CustomerEntitlementsV2Operations:
     @overload
     async def post(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement: _models.EntitlementMeteredV2CreateInputs,
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.EntitlementV2":
+    ) -> "_unions.EntitlementV2":
         """Create a customer entitlement.
 
         OpenMeter has three types of entitlements: metered, boolean, and static. The type property
@@ -14795,12 +14928,12 @@ class CustomerEntitlementsV2Operations:
     @overload
     async def post(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement: _models.EntitlementStaticCreateInputs,
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.EntitlementV2":
+    ) -> "_unions.EntitlementV2":
         """Create a customer entitlement.
 
         OpenMeter has three types of entitlements: metered, boolean, and static. The type property
@@ -14840,12 +14973,12 @@ class CustomerEntitlementsV2Operations:
     @overload
     async def post(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement: _models.EntitlementBooleanCreateInputs,
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.EntitlementV2":
+    ) -> "_unions.EntitlementV2":
         """Create a customer entitlement.
 
         OpenMeter has three types of entitlements: metered, boolean, and static. The type property
@@ -14884,10 +15017,10 @@ class CustomerEntitlementsV2Operations:
 
     async def post(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        entitlement: "_types.EntitlementV2CreateInputs",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        entitlement: "_unions.EntitlementV2CreateInputs",
         **kwargs: Any
-    ) -> "_types.EntitlementV2":
+    ) -> "_unions.EntitlementV2":
         """Create a customer entitlement.
 
         OpenMeter has three types of entitlements: metered, boolean, and static. The type property
@@ -14933,7 +15066,7 @@ class CustomerEntitlementsV2Operations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType["_types.EntitlementV2"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.EntitlementV2"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(entitlement, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -14990,7 +15123,7 @@ class CustomerEntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.EntitlementV2", response.json())
+            deserialized = _deserialize("_unions.EntitlementV2", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -14999,7 +15132,7 @@ class CustomerEntitlementsV2Operations:
 
     async def list(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         *,
         include_deleted: Optional[bool] = None,
         page: Optional[int] = None,
@@ -15107,8 +15240,8 @@ class CustomerEntitlementsV2Operations:
         return deserialized  # type: ignore
 
     async def get(
-        self, customer_id_or_key: "_types.ULIDOrExternalKey", entitlement_id_or_feature_key: str, **kwargs: Any
-    ) -> "_types.EntitlementV2":
+        self, customer_id_or_key: "_unions.ULIDOrExternalKey", entitlement_id_or_feature_key: str, **kwargs: Any
+    ) -> "_unions.EntitlementV2":
         """Get customer entitlement.
 
         Get entitlement by feature key. For checking entitlement access, use the /value endpoint
@@ -15133,7 +15266,7 @@ class CustomerEntitlementsV2Operations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType["_types.EntitlementV2"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.EntitlementV2"] = kwargs.pop("cls", None)
 
         _request = build_customer_entitlements_v2_get_request(
             customer_id_or_key=customer_id_or_key,
@@ -15186,7 +15319,7 @@ class CustomerEntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.EntitlementV2", response.json())
+            deserialized = _deserialize("_unions.EntitlementV2", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -15194,7 +15327,7 @@ class CustomerEntitlementsV2Operations:
         return deserialized  # type: ignore
 
     async def delete(
-        self, customer_id_or_key: "_types.ULIDOrExternalKey", entitlement_id_or_feature_key: str, **kwargs: Any
+        self, customer_id_or_key: "_unions.ULIDOrExternalKey", entitlement_id_or_feature_key: str, **kwargs: Any
     ) -> None:
         """Delete customer entitlement.
 
@@ -15272,13 +15405,13 @@ class CustomerEntitlementsV2Operations:
     @overload
     async def override(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        entitlement_id_or_feature_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        entitlement_id_or_feature_key: "_unions.ULIDOrExternalKey",
         entitlement: _models.EntitlementMeteredV2CreateInputs,
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.EntitlementV2":
+    ) -> "_unions.EntitlementV2":
         """Override customer entitlement.
 
         Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes
@@ -15307,13 +15440,13 @@ class CustomerEntitlementsV2Operations:
     @overload
     async def override(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        entitlement_id_or_feature_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        entitlement_id_or_feature_key: "_unions.ULIDOrExternalKey",
         entitlement: _models.EntitlementStaticCreateInputs,
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.EntitlementV2":
+    ) -> "_unions.EntitlementV2":
         """Override customer entitlement.
 
         Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes
@@ -15342,13 +15475,13 @@ class CustomerEntitlementsV2Operations:
     @overload
     async def override(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        entitlement_id_or_feature_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        entitlement_id_or_feature_key: "_unions.ULIDOrExternalKey",
         entitlement: _models.EntitlementBooleanCreateInputs,
         *,
         content_type: str = "application/json",
         **kwargs: Any
-    ) -> "_types.EntitlementV2":
+    ) -> "_unions.EntitlementV2":
         """Override customer entitlement.
 
         Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes
@@ -15376,11 +15509,11 @@ class CustomerEntitlementsV2Operations:
 
     async def override(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
-        entitlement_id_or_feature_key: "_types.ULIDOrExternalKey",
-        entitlement: "_types.EntitlementV2CreateInputs",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
+        entitlement_id_or_feature_key: "_unions.ULIDOrExternalKey",
+        entitlement: "_unions.EntitlementV2CreateInputs",
         **kwargs: Any
-    ) -> "_types.EntitlementV2":
+    ) -> "_unions.EntitlementV2":
         """Override customer entitlement.
 
         Overriding an entitlement creates a new entitlement from the provided inputs and soft deletes
@@ -15414,7 +15547,7 @@ class CustomerEntitlementsV2Operations:
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType["_types.EntitlementV2"] = kwargs.pop("cls", None)
+        cls: ClsType["_unions.EntitlementV2"] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _content = json.dumps(entitlement, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
@@ -15475,7 +15608,7 @@ class CustomerEntitlementsV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize("_types.EntitlementV2", response.json())
+            deserialized = _deserialize("_unions.EntitlementV2", response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore
@@ -15483,7 +15616,7 @@ class CustomerEntitlementsV2Operations:
         return deserialized  # type: ignore
 
 
-class CustomerEntitlementV2Operations:
+class CustomerEntitlementV2Operations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -15502,7 +15635,7 @@ class CustomerEntitlementV2Operations:
 
     async def get_grants(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
         *,
         include_deleted: Optional[bool] = None,
@@ -15628,7 +15761,7 @@ class CustomerEntitlementV2Operations:
     @overload
     async def create_customer_entitlement_grant(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
         grant: _models.EntitlementGrantCreateInputV2,
         *,
@@ -15676,9 +15809,9 @@ class CustomerEntitlementV2Operations:
     @overload
     async def create_customer_entitlement_grant(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
-        grant: JSON,
+        grant: _types.EntitlementGrantCreateInputV2,
         *,
         content_type: str = "application/json",
         **kwargs: Any
@@ -15712,7 +15845,7 @@ class CustomerEntitlementV2Operations:
         :param entitlement_id_or_feature_key: Required.
         :type entitlement_id_or_feature_key: str
         :param grant: Required.
-        :type grant: JSON
+        :type grant: ~openmeter._generated.types.EntitlementGrantCreateInputV2
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -15724,7 +15857,7 @@ class CustomerEntitlementV2Operations:
     @overload
     async def create_customer_entitlement_grant(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
         grant: IO[bytes],
         *,
@@ -15771,9 +15904,9 @@ class CustomerEntitlementV2Operations:
 
     async def create_customer_entitlement_grant(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
-        grant: Union[_models.EntitlementGrantCreateInputV2, JSON, IO[bytes]],
+        grant: Union[_models.EntitlementGrantCreateInputV2, _types.EntitlementGrantCreateInputV2, IO[bytes]],
         **kwargs: Any
     ) -> _models.EntitlementGrantV2:
         """Create customer entitlement grant.
@@ -15804,9 +15937,9 @@ class CustomerEntitlementV2Operations:
         :type customer_id_or_key: str or str
         :param entitlement_id_or_feature_key: Required.
         :type entitlement_id_or_feature_key: str
-        :param grant: Is one of the following types: EntitlementGrantCreateInputV2, JSON, IO[bytes]
-         Required.
-        :type grant: ~openmeter._generated.models.EntitlementGrantCreateInputV2 or JSON or IO[bytes]
+        :param grant: Is either a EntitlementGrantCreateInputV2 type or a IO[bytes] type. Required.
+        :type grant: ~openmeter._generated.models.EntitlementGrantCreateInputV2 or
+         ~openmeter._generated.types.EntitlementGrantCreateInputV2 or IO[bytes]
         :return: EntitlementGrantV2. The EntitlementGrantV2 is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.EntitlementGrantV2
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -15892,7 +16025,7 @@ class CustomerEntitlementV2Operations:
 
     async def get_customer_entitlement_value(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
         *,
         time: Optional[datetime.datetime] = None,
@@ -15986,7 +16119,7 @@ class CustomerEntitlementV2Operations:
 
     async def get_customer_entitlement_history(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
         *,
         window_size: Union[str, _models.WindowSize],
@@ -16105,7 +16238,7 @@ class CustomerEntitlementV2Operations:
     @overload
     async def reset_customer_entitlement(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
         reset: _models.ResetEntitlementUsageInput,
         *,
@@ -16140,9 +16273,9 @@ class CustomerEntitlementV2Operations:
     @overload
     async def reset_customer_entitlement(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
-        reset: JSON,
+        reset: _types.ResetEntitlementUsageInput,
         *,
         content_type: str = "application/json",
         **kwargs: Any
@@ -16163,7 +16296,7 @@ class CustomerEntitlementV2Operations:
         :param entitlement_id_or_feature_key: Required.
         :type entitlement_id_or_feature_key: str
         :param reset: Required.
-        :type reset: JSON
+        :type reset: ~openmeter._generated.types.ResetEntitlementUsageInput
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -16175,7 +16308,7 @@ class CustomerEntitlementV2Operations:
     @overload
     async def reset_customer_entitlement(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
         reset: IO[bytes],
         *,
@@ -16209,9 +16342,9 @@ class CustomerEntitlementV2Operations:
 
     async def reset_customer_entitlement(
         self,
-        customer_id_or_key: "_types.ULIDOrExternalKey",
+        customer_id_or_key: "_unions.ULIDOrExternalKey",
         entitlement_id_or_feature_key: str,
-        reset: Union[_models.ResetEntitlementUsageInput, JSON, IO[bytes]],
+        reset: Union[_models.ResetEntitlementUsageInput, _types.ResetEntitlementUsageInput, IO[bytes]],
         **kwargs: Any
     ) -> None:
         """Reset customer entitlement.
@@ -16229,9 +16362,9 @@ class CustomerEntitlementV2Operations:
         :type customer_id_or_key: str or str
         :param entitlement_id_or_feature_key: Required.
         :type entitlement_id_or_feature_key: str
-        :param reset: Is one of the following types: ResetEntitlementUsageInput, JSON, IO[bytes]
-         Required.
-        :type reset: ~openmeter._generated.models.ResetEntitlementUsageInput or JSON or IO[bytes]
+        :param reset: Is either a ResetEntitlementUsageInput type or a IO[bytes] type. Required.
+        :type reset: ~openmeter._generated.models.ResetEntitlementUsageInput or
+         ~openmeter._generated.types.ResetEntitlementUsageInput or IO[bytes]
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -16303,7 +16436,7 @@ class CustomerEntitlementV2Operations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class GrantsV2Operations:
+class GrantsV2Operations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -16324,7 +16457,7 @@ class GrantsV2Operations:
         self,
         *,
         feature: Optional[List[str]] = None,
-        customer: Optional[List["_types.ULIDOrExternalKey"]] = None,
+        customer: Optional[List["_unions.ULIDOrExternalKey"]] = None,
         include_deleted: Optional[bool] = None,
         page: Optional[int] = None,
         page_size: Optional[int] = None,
@@ -16452,7 +16585,7 @@ class GrantsV2Operations:
         return deserialized  # type: ignore
 
 
-class BillingProfilesOperations:
+class BillingProfilesOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -16605,7 +16738,7 @@ class BillingProfilesOperations:
 
     @overload
     async def create(
-        self, profile: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, profile: _types.BillingProfileCreate, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.BillingProfile:
         """Create a new billing profile.
 
@@ -16615,7 +16748,7 @@ class BillingProfilesOperations:
         can be applied to a billing profile to customize the billing behavior for a specific customer.
 
         :param profile: Required.
-        :type profile: JSON
+        :type profile: ~openmeter._generated.types.BillingProfileCreate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -16646,7 +16779,7 @@ class BillingProfilesOperations:
         """
 
     async def create(
-        self, profile: Union[_models.BillingProfileCreate, JSON, IO[bytes]], **kwargs: Any
+        self, profile: Union[_models.BillingProfileCreate, _types.BillingProfileCreate, IO[bytes]], **kwargs: Any
     ) -> _models.BillingProfile:
         """Create a new billing profile.
 
@@ -16655,8 +16788,9 @@ class BillingProfilesOperations:
         Billing profiles are representations of a customer's billing information. Customer overrides
         can be applied to a billing profile to customize the billing behavior for a specific customer.
 
-        :param profile: Is one of the following types: BillingProfileCreate, JSON, IO[bytes] Required.
-        :type profile: ~openmeter._generated.models.BillingProfileCreate or JSON or IO[bytes]
+        :param profile: Is either a BillingProfileCreate type or a IO[bytes] type. Required.
+        :type profile: ~openmeter._generated.models.BillingProfileCreate or
+         ~openmeter._generated.types.BillingProfileCreate or IO[bytes]
         :return: BillingProfile. The BillingProfile is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.BillingProfile
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -16927,7 +17061,12 @@ class BillingProfilesOperations:
 
     @overload
     async def update(
-        self, id: str, profile: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        id: str,
+        profile: _types.BillingProfileReplaceUpdateWithWorkflow,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.BillingProfile:
         """Update a billing profile.
 
@@ -16939,7 +17078,7 @@ class BillingProfilesOperations:
         :param id: Required.
         :type id: str
         :param profile: Required.
-        :type profile: JSON
+        :type profile: ~openmeter._generated.types.BillingProfileReplaceUpdateWithWorkflow
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -16972,7 +17111,12 @@ class BillingProfilesOperations:
         """
 
     async def update(
-        self, id: str, profile: Union[_models.BillingProfileReplaceUpdateWithWorkflow, JSON, IO[bytes]], **kwargs: Any
+        self,
+        id: str,
+        profile: Union[
+            _models.BillingProfileReplaceUpdateWithWorkflow, _types.BillingProfileReplaceUpdateWithWorkflow, IO[bytes]
+        ],
+        **kwargs: Any
     ) -> _models.BillingProfile:
         """Update a billing profile.
 
@@ -16983,10 +17127,10 @@ class BillingProfilesOperations:
 
         :param id: Required.
         :type id: str
-        :param profile: Is one of the following types: BillingProfileReplaceUpdateWithWorkflow, JSON,
-         IO[bytes] Required.
-        :type profile: ~openmeter._generated.models.BillingProfileReplaceUpdateWithWorkflow or JSON or
-         IO[bytes]
+        :param profile: Is either a BillingProfileReplaceUpdateWithWorkflow type or a IO[bytes] type.
+         Required.
+        :type profile: ~openmeter._generated.models.BillingProfileReplaceUpdateWithWorkflow or
+         ~openmeter._generated.types.BillingProfileReplaceUpdateWithWorkflow or IO[bytes]
         :return: BillingProfile. The BillingProfile is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.BillingProfile
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -17070,7 +17214,7 @@ class BillingProfilesOperations:
         return deserialized  # type: ignore
 
 
-class CustomerOverridesOperations:
+class CustomerOverridesOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -17266,7 +17410,12 @@ class CustomerOverridesOperations:
 
     @overload
     async def upsert(
-        self, customer_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        customer_id: str,
+        request: _types.BillingProfileCustomerOverrideCreate,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.BillingProfileCustomerOverrideWithDetails:
         """Create a new or update a customer override.
 
@@ -17279,7 +17428,7 @@ class CustomerOverridesOperations:
         :param customer_id: Required.
         :type customer_id: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.BillingProfileCustomerOverrideCreate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -17317,7 +17466,9 @@ class CustomerOverridesOperations:
     async def upsert(
         self,
         customer_id: str,
-        request: Union[_models.BillingProfileCustomerOverrideCreate, JSON, IO[bytes]],
+        request: Union[
+            _models.BillingProfileCustomerOverrideCreate, _types.BillingProfileCustomerOverrideCreate, IO[bytes]
+        ],
         **kwargs: Any
     ) -> _models.BillingProfileCustomerOverrideWithDetails:
         """Create a new or update a customer override.
@@ -17330,10 +17481,10 @@ class CustomerOverridesOperations:
 
         :param customer_id: Required.
         :type customer_id: str
-        :param request: Is one of the following types: BillingProfileCustomerOverrideCreate, JSON,
-         IO[bytes] Required.
-        :type request: ~openmeter._generated.models.BillingProfileCustomerOverrideCreate or JSON or
-         IO[bytes]
+        :param request: Is either a BillingProfileCustomerOverrideCreate type or a IO[bytes] type.
+         Required.
+        :type request: ~openmeter._generated.models.BillingProfileCustomerOverrideCreate or
+         ~openmeter._generated.types.BillingProfileCustomerOverrideCreate or IO[bytes]
         :return: BillingProfileCustomerOverrideWithDetails. The
          BillingProfileCustomerOverrideWithDetails is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.BillingProfileCustomerOverrideWithDetails
@@ -17582,7 +17733,7 @@ class CustomerOverridesOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class InvoicesOperations:
+class InvoicesOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -17630,7 +17781,7 @@ class InvoicesOperations:
 
     @overload
     async def invoice_pending_lines_action(
-        self, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, request: _types.InvoicePendingLinesActionInput, *, content_type: str = "application/json", **kwargs: Any
     ) -> List[_models.Invoice]:
         """Invoice a customer based on the pending line items.
 
@@ -17648,7 +17799,7 @@ class InvoicesOperations:
         The call can return multiple invoices if the pending line items are in different currencies.
 
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.InvoicePendingLinesActionInput
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -17687,7 +17838,9 @@ class InvoicesOperations:
         """
 
     async def invoice_pending_lines_action(
-        self, request: Union[_models.InvoicePendingLinesActionInput, JSON, IO[bytes]], **kwargs: Any
+        self,
+        request: Union[_models.InvoicePendingLinesActionInput, _types.InvoicePendingLinesActionInput, IO[bytes]],
+        **kwargs: Any
     ) -> List[_models.Invoice]:
         """Invoice a customer based on the pending line items.
 
@@ -17704,9 +17857,9 @@ class InvoicesOperations:
 
         The call can return multiple invoices if the pending line items are in different currencies.
 
-        :param request: Is one of the following types: InvoicePendingLinesActionInput, JSON, IO[bytes]
-         Required.
-        :type request: ~openmeter._generated.models.InvoicePendingLinesActionInput or JSON or IO[bytes]
+        :param request: Is either a InvoicePendingLinesActionInput type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.InvoicePendingLinesActionInput or
+         ~openmeter._generated.types.InvoicePendingLinesActionInput or IO[bytes]
         :return: list of Invoice
         :rtype: list[~openmeter._generated.models.Invoice]
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -17944,7 +18097,7 @@ class InvoicesOperations:
         return deserialized  # type: ignore
 
 
-class InvoiceOperations:
+class InvoiceOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -18154,7 +18307,12 @@ class InvoiceOperations:
 
     @overload
     async def update_invoice(
-        self, invoice_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        invoice_id: str,
+        request: _types.InvoiceReplaceUpdate,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.Invoice:
         """Update an invoice.
 
@@ -18165,7 +18323,7 @@ class InvoiceOperations:
         :param invoice_id: Required.
         :type invoice_id: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.InvoiceReplaceUpdate
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -18197,7 +18355,10 @@ class InvoiceOperations:
         """
 
     async def update_invoice(
-        self, invoice_id: str, request: Union[_models.InvoiceReplaceUpdate, JSON, IO[bytes]], **kwargs: Any
+        self,
+        invoice_id: str,
+        request: Union[_models.InvoiceReplaceUpdate, _types.InvoiceReplaceUpdate, IO[bytes]],
+        **kwargs: Any
     ) -> _models.Invoice:
         """Update an invoice.
 
@@ -18207,8 +18368,9 @@ class InvoiceOperations:
 
         :param invoice_id: Required.
         :type invoice_id: str
-        :param request: Is one of the following types: InvoiceReplaceUpdate, JSON, IO[bytes] Required.
-        :type request: ~openmeter._generated.models.InvoiceReplaceUpdate or JSON or IO[bytes]
+        :param request: Is either a InvoiceReplaceUpdate type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.InvoiceReplaceUpdate or
+         ~openmeter._generated.types.InvoiceReplaceUpdate or IO[bytes]
         :return: Invoice. The Invoice is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Invoice
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -18491,7 +18653,12 @@ class InvoiceOperations:
 
     @overload
     async def void_invoice_action(
-        self, invoice_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        invoice_id: str,
+        request: _types.VoidInvoiceActionInput,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.Invoice:
         """Void an invoice.
 
@@ -18505,7 +18672,7 @@ class InvoiceOperations:
         :param invoice_id: Required.
         :type invoice_id: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.VoidInvoiceActionInput
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -18540,7 +18707,10 @@ class InvoiceOperations:
         """
 
     async def void_invoice_action(
-        self, invoice_id: str, request: Union[_models.VoidInvoiceActionInput, JSON, IO[bytes]], **kwargs: Any
+        self,
+        invoice_id: str,
+        request: Union[_models.VoidInvoiceActionInput, _types.VoidInvoiceActionInput, IO[bytes]],
+        **kwargs: Any
     ) -> _models.Invoice:
         """Void an invoice.
 
@@ -18553,9 +18723,9 @@ class InvoiceOperations:
 
         :param invoice_id: Required.
         :type invoice_id: str
-        :param request: Is one of the following types: VoidInvoiceActionInput, JSON, IO[bytes]
-         Required.
-        :type request: ~openmeter._generated.models.VoidInvoiceActionInput or JSON or IO[bytes]
+        :param request: Is either a VoidInvoiceActionInput type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.VoidInvoiceActionInput or
+         ~openmeter._generated.types.VoidInvoiceActionInput or IO[bytes]
         :return: Invoice. The Invoice is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Invoice
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -18890,7 +19060,7 @@ class InvoiceOperations:
         return deserialized  # type: ignore
 
 
-class CustomerInvoiceOperations:
+class CustomerInvoiceOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -18939,7 +19109,12 @@ class CustomerInvoiceOperations:
 
     @overload
     async def simulate_invoice(
-        self, customer_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        customer_id: str,
+        request: _types.InvoiceSimulationInput,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.Invoice:
         """Simulate an invoice for a customer.
 
@@ -18953,7 +19128,7 @@ class CustomerInvoiceOperations:
         :param customer_id: Required.
         :type customer_id: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.InvoiceSimulationInput
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -18988,7 +19163,10 @@ class CustomerInvoiceOperations:
         """
 
     async def simulate_invoice(
-        self, customer_id: str, request: Union[_models.InvoiceSimulationInput, JSON, IO[bytes]], **kwargs: Any
+        self,
+        customer_id: str,
+        request: Union[_models.InvoiceSimulationInput, _types.InvoiceSimulationInput, IO[bytes]],
+        **kwargs: Any
     ) -> _models.Invoice:
         """Simulate an invoice for a customer.
 
@@ -19001,9 +19179,9 @@ class CustomerInvoiceOperations:
 
         :param customer_id: Required.
         :type customer_id: str
-        :param request: Is one of the following types: InvoiceSimulationInput, JSON, IO[bytes]
-         Required.
-        :type request: ~openmeter._generated.models.InvoiceSimulationInput or JSON or IO[bytes]
+        :param request: Is either a InvoiceSimulationInput type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.InvoiceSimulationInput or
+         ~openmeter._generated.types.InvoiceSimulationInput or IO[bytes]
         :return: Invoice. The Invoice is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.Invoice
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -19120,7 +19298,12 @@ class CustomerInvoiceOperations:
 
     @overload
     async def create_pending_invoice_line(
-        self, customer_id: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        customer_id: str,
+        request: _types.InvoicePendingLineCreateInput,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.InvoicePendingLineCreateResponse:
         """Create pending line items.
 
@@ -19137,7 +19320,7 @@ class CustomerInvoiceOperations:
         :param customer_id: Required.
         :type customer_id: str
         :param request: Required.
-        :type request: JSON
+        :type request: ~openmeter._generated.types.InvoicePendingLineCreateInput
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -19177,7 +19360,10 @@ class CustomerInvoiceOperations:
         """
 
     async def create_pending_invoice_line(
-        self, customer_id: str, request: Union[_models.InvoicePendingLineCreateInput, JSON, IO[bytes]], **kwargs: Any
+        self,
+        customer_id: str,
+        request: Union[_models.InvoicePendingLineCreateInput, _types.InvoicePendingLineCreateInput, IO[bytes]],
+        **kwargs: Any
     ) -> _models.InvoicePendingLineCreateResponse:
         """Create pending line items.
 
@@ -19193,9 +19379,9 @@ class CustomerInvoiceOperations:
 
         :param customer_id: Required.
         :type customer_id: str
-        :param request: Is one of the following types: InvoicePendingLineCreateInput, JSON, IO[bytes]
-         Required.
-        :type request: ~openmeter._generated.models.InvoicePendingLineCreateInput or JSON or IO[bytes]
+        :param request: Is either a InvoicePendingLineCreateInput type or a IO[bytes] type. Required.
+        :type request: ~openmeter._generated.models.InvoicePendingLineCreateInput or
+         ~openmeter._generated.types.InvoicePendingLineCreateInput or IO[bytes]
         :return: InvoicePendingLineCreateResponse. The InvoicePendingLineCreateResponse is compatible
          with MutableMapping
         :rtype: ~openmeter._generated.models.InvoicePendingLineCreateResponse
@@ -19278,7 +19464,7 @@ class CustomerInvoiceOperations:
         return deserialized  # type: ignore
 
 
-class ProgressOperations:
+class ProgressOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -19375,7 +19561,7 @@ class ProgressOperations:
         return deserialized  # type: ignore
 
 
-class CurrenciesOperations:
+class CurrenciesOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -19467,7 +19653,7 @@ class CurrenciesOperations:
         return deserialized  # type: ignore
 
 
-class PortalPortalTokensOperations:
+class PortalPortalTokensOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.
@@ -19504,14 +19690,14 @@ class PortalPortalTokensOperations:
 
     @overload
     async def create(
-        self, token: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self, token: _types.PortalToken, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.PortalToken:
         """Create consumer portal token.
 
         Create a consumer portal token.
 
         :param token: Required.
-        :type token: JSON
+        :type token: ~openmeter._generated.types.PortalToken
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -19538,13 +19724,16 @@ class PortalPortalTokensOperations:
         :raises ~corehttp.exceptions.HttpResponseError:
         """
 
-    async def create(self, token: Union[_models.PortalToken, JSON, IO[bytes]], **kwargs: Any) -> _models.PortalToken:
+    async def create(
+        self, token: Union[_models.PortalToken, _types.PortalToken, IO[bytes]], **kwargs: Any
+    ) -> _models.PortalToken:
         """Create consumer portal token.
 
         Create a consumer portal token.
 
-        :param token: Is one of the following types: PortalToken, JSON, IO[bytes] Required.
-        :type token: ~openmeter._generated.models.PortalToken or JSON or IO[bytes]
+        :param token: Is either a PortalToken type or a IO[bytes] type. Required.
+        :type token: ~openmeter._generated.models.PortalToken or
+         ~openmeter._generated.types.PortalToken or IO[bytes]
         :return: PortalToken. The PortalToken is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.PortalToken
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -19727,13 +19916,15 @@ class PortalPortalTokensOperations:
         """
 
     @overload
-    async def invalidate(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> None:
+    async def invalidate(
+        self, body: _types.InvalidateRequest, *, content_type: str = "application/json", **kwargs: Any
+    ) -> None:
         """Invalidate portal tokens.
 
         Invalidates consumer portal tokens by ID or subject.
 
         :param body: Required.
-        :type body: JSON
+        :type body: ~openmeter._generated.types.InvalidateRequest
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -19760,7 +19951,7 @@ class PortalPortalTokensOperations:
 
     async def invalidate(
         self,
-        body: Union[JSON, IO[bytes]] = _Unset,
+        body: Union[JSON, _types.InvalidateRequest, IO[bytes]] = _Unset,
         *,
         id: Optional[str] = None,
         subject: Optional[str] = None,
@@ -19770,8 +19961,8 @@ class PortalPortalTokensOperations:
 
         Invalidates consumer portal tokens by ID or subject.
 
-        :param body: Is either a JSON type or a IO[bytes] type. Required.
-        :type body: JSON or IO[bytes]
+        :param body: Is one of the following types: JSON, InvalidateRequest, IO[bytes] Required.
+        :type body: JSON or ~openmeter._generated.types.InvalidateRequest or IO[bytes]
         :keyword id: Invalidate a portal token by ID. Default value is None.
         :paramtype id: str
         :keyword subject: Invalidate all portal tokens for a subject. Default value is None.
@@ -19846,7 +20037,7 @@ class PortalPortalTokensOperations:
             return cls(pipeline_response, None, {})  # type: ignore
 
 
-class PortalPortalMetersOperations:
+class PortalPortalMetersOperations:  # pylint: disable=docstring-missing-param
     """
     .. warning::
         **DO NOT** instantiate this class directly.

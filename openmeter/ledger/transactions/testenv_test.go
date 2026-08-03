@@ -1,14 +1,32 @@
 package transactions
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
+
+func testCurrencyReference(code currencyx.Code) currencies.CurrencyReference {
+	if !code.IsCustom() {
+		return currencies.NewCurrencyReference(code)
+	}
+
+	id := fmt.Sprintf("%x", sha256.Sum256([]byte(code)))[:26]
+	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom|v1|%s|%s|2", code, id)))
+	if err != nil {
+		panic(err)
+	}
+
+	return reference
+}
 
 type transactionsTestEnv struct {
 	*ledgertestutils.IntegrationEnv
@@ -70,7 +88,7 @@ func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority i
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CostBasis:      costBasis,
 		CreditPriority: priority,
 	})
@@ -81,7 +99,7 @@ func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority i
 		IssueCustomerReceivableTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      costBasis,
 			SourceChargeID: sourceChargeID,
 			CreditPriority: &priority,
@@ -89,14 +107,14 @@ func (e *transactionsTestEnv) fundPriorityWithCostBasis(t *testing.T, priority i
 		AuthorizeCustomerReceivablePaymentTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      costBasis,
 			SourceChargeID: sourceChargeID,
 		},
 		SettleCustomerReceivableFromPaymentTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      costBasis,
 			SourceChargeID: sourceChargeID,
 		},

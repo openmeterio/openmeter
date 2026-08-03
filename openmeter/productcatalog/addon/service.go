@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -95,6 +96,13 @@ type ListAddonsInput struct {
 	Key      *filter.FilterString
 	Name     *filter.FilterString
 	Currency *filter.FilterString
+
+	// ExcludeUnitConfig omits add-ons carrying a unit_config conversion on any of their rate cards.
+	ExcludeUnitConfig bool
+
+	// ExcludeUnrepresentableCurrencies omits add-ons whose default currency or rate-card
+	// currency overrides cannot be represented by the v1 API.
+	ExcludeUnrepresentableCurrencies bool
 }
 
 func (i ListAddonsInput) Validate() error {
@@ -208,6 +216,16 @@ type UpdateAddonInput struct {
 	// RateCards
 	RateCards *productcatalog.RateCards `json:"rateCards,omitempty"`
 
+	// RejectUnitConfig makes mutation validation reject an add-on that carries a unit_config
+	// conversion on any rate card. The v1 API cannot represent unit_config, and v1 update
+	// rewrites rate cards from a body that has no such field, so proceeding would silently
+	// drop the conversion. v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
+
+	// RejectUnrepresentableCurrencies makes mutation validation reject an add-on whose
+	// default currency or rate-card currency overrides cannot be represented by the v1 API.
+	RejectUnrepresentableCurrencies bool
+
 	inputOptions
 }
 
@@ -292,8 +310,64 @@ func (i UpdateAddonInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
+func (i UpdateAddonInput) ValidateWithAddon(a productcatalog.Addon) error {
+	a = i.applyTo(a)
+
+	if i.RejectUnitConfig && a.HasUnitConfig() {
+		return productcatalog.ErrUnitConfigNotRepresentable
+	}
+	if i.RejectUnrepresentableCurrencies {
+		if a.Currency.IsCustom() {
+			return productcatalog.ErrCurrencyNotRepresentable
+		}
+		if a.HasCurrencyOverrides() {
+			return productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
+	}
+
+	issues, err := models.AsValidationIssues(a.Validate())
+	if err != nil {
+		return models.NewGenericValidationError(err)
+	}
+
+	if i.IgnoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
+}
+
+func (i UpdateAddonInput) applyTo(a productcatalog.Addon) productcatalog.Addon {
+	if i.Name != nil {
+		a.Name = *i.Name
+	}
+
+	if i.Description != nil {
+		a.Description = i.Description
+	}
+
+	if i.Metadata != nil {
+		a.Metadata = *i.Metadata
+	}
+
+	if i.Annotations != nil {
+		a.Annotations = *i.Annotations
+	}
+
+	if i.InstanceType != nil {
+		a.InstanceType = *i.InstanceType
+	}
+
+	if i.RateCards != nil {
+		a.RateCards = *i.RateCards
+	}
+
+	return a
+}
+
 type ExpandFields struct {
-	PlanAddons bool `json:"plans,omitempty"`
+	PlanAddons     bool                              `json:"plans,omitempty"`
+	CustomCurrency *currencies.CurrencyExpandOptions `json:"customCurrency,omitempty"`
 }
 
 type GetAddonInput struct {
@@ -350,6 +424,14 @@ type PublishAddonInput struct {
 
 	// AddonEffectivePeriod
 	productcatalog.EffectivePeriod
+
+	// RejectUnitConfig rejects the operation when the target add-on carries a unit_config
+	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
+
+	// RejectUnrepresentableCurrencies rejects the operation when the target add-on uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i PublishAddonInput) Validate() error {
@@ -398,6 +480,14 @@ type ArchiveAddonInput struct {
 
 	// EffectiveFrom defines the time from the Addon is going to be unpublished.
 	EffectiveTo time.Time `json:"effectiveTo,omitempty"`
+
+	// RejectUnitConfig rejects the operation when the target add-on carries a unit_config
+	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
+
+	// RejectUnrepresentableCurrencies rejects the operation when the target add-on uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i ArchiveAddonInput) Validate() error {
@@ -434,6 +524,10 @@ type NextAddonInput struct {
 	// Version is the version of the Addon.
 	// If not set the latest version is assumed.
 	Version int `json:"version,omitempty"`
+
+	// RejectUnrepresentableCurrencies rejects the operation when the source add-on uses
+	// currency configuration that the v1 API cannot represent.
+	RejectUnrepresentableCurrencies bool
 }
 
 func (i NextAddonInput) Validate() error {

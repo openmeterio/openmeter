@@ -21,6 +21,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -29,6 +31,8 @@ import (
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
+	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
@@ -56,6 +60,7 @@ type BaseSuite struct {
 	LedgerAccountService ledgeraccount.Service
 	LedgerResolver       *ledgerresolvers.AccountResolver
 	BreakageService      ledgerbreakage.Service
+	CreditVoidService    creditvoid.Service
 	FlatFeeHandler       flatfee.Handler
 	LineageService       lineage.Service
 	RevenueRecognizer    recognizer.Service
@@ -102,6 +107,26 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 	s.BreakageService = breakageService
+
+	creditVoidAdapter, err := creditvoidadapter.New(creditvoidadapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+
+	creditVoidService, err := creditvoid.NewService(creditvoid.Config{
+		Adapter: creditVoidAdapter,
+		Ledger:  deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: deps.ResolversService,
+			AccountCatalog: deps.AccountService,
+			BalanceQuerier: deps.HistoricalLedger,
+		},
+		Breakage:           breakageService,
+		AccountLocker:      deps.AccountService,
+		TransactionManager: transactionManager,
+	})
+	s.NoError(err)
+	s.CreditVoidService = creditVoidService
 
 	revenueRecognizer, err := recognizer.NewService(recognizer.Config{
 		Ledger: deps.HistoricalLedger,
@@ -163,6 +188,7 @@ func (s *BaseSuite) SetupSuite() {
 		Ledger:            deps.HistoricalLedger,
 		BalanceQuerier:    deps.HistoricalLedger,
 		Breakage:          breakageService,
+		CreditVoid:        creditVoidService,
 	})
 	s.NoError(err)
 	s.CustomerBalanceSvc = customerBalanceSvc
@@ -233,7 +259,7 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 		ManagedBy:         input.ManagedBy,
 		UniqueReferenceID: lo.EmptyableToPtr(input.UniqueReferenceID),
 		CustomerID:        input.Customer.ID,
-		Currency:          input.Currency,
+		Currency:          currenciestestutils.NewFiatCurrency(s.T(), input.Currency),
 		TaxConfig:         input.TaxConfig,
 	}
 	intentMutableFields := meta.IntentMutableFields{
@@ -320,7 +346,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.C
 	}
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency:       code,
+		Currency:       currencies.NewCurrencyReference(code),
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(priority),
 	}, query)
@@ -340,7 +366,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityForFeatures(customerID cus
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency:       code,
+		Currency:       currencies.NewCurrencyReference(code),
 		CostBasis:      costBasis,
 		CreditPriority: lo.ToPtr(priority),
 		Features:       features,
@@ -360,7 +386,7 @@ func (s *BaseSuite) MustCustomerReceivableBalance(customerID customer.CustomerID
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:                       code,
+		Currency:                       currencies.NewCurrencyReference(code),
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
 	}, ledger.BalanceQuery{})
@@ -379,7 +405,7 @@ func (s *BaseSuite) MustCustomerReceivableBalanceForFeatures(customerID customer
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:                       code,
+		Currency:                       currencies.NewCurrencyReference(code),
 		CostBasis:                      costBasis,
 		Features:                       features,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
@@ -398,7 +424,7 @@ func (s *BaseSuite) MustCustomerReceivableBalanceForTaxCode(customerID customer.
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:                       code,
+		Currency:                       currencies.NewCurrencyReference(code),
 		CostBasis:                      costBasis,
 		TaxCode:                        taxCode,
 		TransactionAuthorizationStatus: lo.ToPtr(status),
@@ -416,7 +442,7 @@ func (s *BaseSuite) MustCustomerAccruedBalanceForTaxCode(customerID customer.Cus
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 		TaxCode:   taxCode,
 	}, ledger.BalanceQuery{})
@@ -434,7 +460,7 @@ func (s *BaseSuite) MustCustomerAccruedBalanceForTaxConfig(customerID customer.C
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
-		Currency:    code,
+		Currency:    currencies.NewCurrencyReference(code),
 		CostBasis:   costBasis,
 		TaxCode:     taxCode,
 		TaxBehavior: taxBehavior,
@@ -454,7 +480,7 @@ func (s *BaseSuite) MustCustomerAccruedBalance(customerID customer.CustomerID, c
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.AccruedAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
@@ -472,7 +498,7 @@ func (s *BaseSuite) MustWashBalance(namespace string, code currencyx.Code, costB
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.WashAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
@@ -494,7 +520,7 @@ func (s *BaseSuite) MustEarningsBalanceForCostBasis(namespace string, code curre
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
@@ -509,7 +535,7 @@ func (s *BaseSuite) MustBreakageBalanceAsOf(namespace string, code currencyx.Cod
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.BreakageAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 	}, ledger.BalanceQuery{AsOf: &asOf})
 	s.NoError(err)
@@ -525,7 +551,7 @@ func (s *BaseSuite) MustEarningsBalanceForTaxCode(namespace string, code currenc
 	s.NoError(err)
 
 	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), businessAccounts.EarningsAccount, ledger.RouteFilter{
-		Currency:  code,
+		Currency:  currencies.NewCurrencyReference(code),
 		CostBasis: costBasis,
 		TaxCode:   taxCode,
 	}, ledger.BalanceQuery{})
@@ -724,7 +750,7 @@ func (s *BaseSuite) MustRecognizeRevenue(customerID customer.CustomerID, code cu
 	result, err := s.RevenueRecognizer.RecognizeEarnings(s.T().Context(), recognizer.RecognizeEarningsInput{
 		CustomerID: customerID,
 		At:         clock.Now(),
-		Currency:   code,
+		Currency:   currenciestestutils.NewFiatCurrency(s.T(), code),
 	})
 	s.NoError(err)
 	s.True(result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
@@ -787,7 +813,7 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 		Intent: meta.Intent{
 			ManagedBy:  billing.ManuallyManagedLine,
 			CustomerID: input.Customer.ID,
-			Currency:   input.Currency,
+			Currency:   currenciestestutils.NewFiatCurrency(s.T(), input.Currency),
 			TaxConfig:  input.TaxConfig,
 		},
 		IntentMutableFields: creditpurchase.IntentMutableFields{

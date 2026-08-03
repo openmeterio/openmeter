@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -26,11 +27,12 @@ const (
 	CreditTransactionTypeFunded   CreditTransactionType = "funded"
 	CreditTransactionTypeConsumed CreditTransactionType = "consumed"
 	CreditTransactionTypeExpired  CreditTransactionType = "expired"
+	CreditTransactionTypeVoided   CreditTransactionType = "voided"
 )
 
 func (t CreditTransactionType) Validate() error {
 	switch t {
-	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed, CreditTransactionTypeExpired:
+	case CreditTransactionTypeFunded, CreditTransactionTypeConsumed, CreditTransactionTypeExpired, CreditTransactionTypeVoided:
 		return nil
 	default:
 		return fmt.Errorf("invalid credit transaction type: %s", t)
@@ -284,7 +286,7 @@ func creditTransactionFBOImpact(tx ledger.Transaction) (alpacadecimal.Decimal, c
 	amount := ledger.TransactionImpact(tx, ledger.ImpactFilter{
 		AccountType: ledger.AccountTypeCustomerFBO,
 	})
-	var currency currencyx.Code
+	var currency currencies.CurrencyReference
 
 	for _, entry := range tx.Entries() {
 		if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerFBO {
@@ -292,19 +294,19 @@ func creditTransactionFBOImpact(tx ledger.Transaction) (alpacadecimal.Decimal, c
 		}
 
 		entryCurrency := entry.PostingAddress().Route().Route().Currency
-		if currency == "" {
+		if currency.Code == "" {
 			currency = entryCurrency
 		}
-		if currency != entryCurrency {
+		if !currency.Equal(entryCurrency) {
 			return alpacadecimal.Decimal{}, "", fmt.Errorf("transaction %s has multiple customer FBO currencies", tx.ID().ID)
 		}
 	}
 
-	if currency == "" {
+	if currency.Code == "" {
 		return alpacadecimal.Decimal{}, "", fmt.Errorf("no customer FBO entry found in transaction %s", tx.ID().ID)
 	}
 
-	return amount, currency, nil
+	return amount, currency.Code, nil
 }
 
 func applyCreditTransactionBalances(items []CreditTransaction, after alpacadecimal.Decimal) {

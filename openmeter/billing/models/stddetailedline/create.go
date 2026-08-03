@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	billingtotals "github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 type Creator[T any] interface {
@@ -17,7 +16,6 @@ type Creator[T any] interface {
 
 	SetName(string) T
 	SetNillableDescription(*string) T
-	SetCurrency(currencyx.Code) T
 	SetServicePeriodStart(time.Time) T
 	SetServicePeriodEnd(time.Time) T
 	SetQuantity(alpacadecimal.Decimal) T
@@ -33,7 +31,6 @@ func Create[T Creator[T]](creator Creator[T], line Base) T {
 	create := creator.
 		SetName(line.Name).
 		SetNillableDescription(line.Description).
-		SetCurrency(line.Currency).
 		SetServicePeriodStart(line.ServicePeriod.From.In(time.UTC)).
 		SetServicePeriodEnd(line.ServicePeriod.To.In(time.UTC)).
 		SetQuantity(line.Quantity).

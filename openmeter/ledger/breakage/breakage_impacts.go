@@ -137,6 +137,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			CustomerID:  input.CustomerID,
 			Currency:    group.currency,
 			Amount:      group.amount.Neg(),
+			SourceKind:  SourceKindCreditPurchase,
 			Annotations: annotations,
 		}
 

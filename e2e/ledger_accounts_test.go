@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -36,29 +35,6 @@ func TestNewCustomerHasLedgerAccounts(t *testing.T) {
 		require.True(t, ok, "missing business account mapping for type=%s", accountType)
 		require.NotEmpty(t, accountID, "empty business account id for type=%s", accountType)
 	}
-}
-
-func initE2EPostgresPool(t *testing.T) *pgxpool.Pool {
-	t.Helper()
-
-	dsn := os.Getenv("OPENMETER_E2E_POSTGRES_URL")
-	if dsn == "" {
-		address := os.Getenv("OPENMETER_ADDRESS")
-		if !strings.Contains(address, "localhost:38888") && !strings.Contains(address, "127.0.0.1:38888") {
-			t.Skipf("ledger account e2e requires OPENMETER_E2E_POSTGRES_URL or local compose stack at localhost:38888, got %q", address)
-		}
-
-		dsn = "postgres://postgres:postgres@127.0.0.1:35432/postgres?sslmode=disable"
-	}
-
-	pool, err := pgxpool.New(t.Context(), dsn)
-	require.NoError(t, err)
-
-	t.Cleanup(pool.Close)
-
-	require.NoError(t, pool.Ping(t.Context()))
-
-	return pool
 }
 
 func getCustomerNamespace(t *testing.T, pool *pgxpool.Pool, customerID string) string {

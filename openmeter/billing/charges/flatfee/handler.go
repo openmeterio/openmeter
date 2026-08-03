@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -77,6 +78,85 @@ func (i OnInvoiceUsageAccruedInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type OnCustomCurrencyOverageAccruedInput struct {
+	Charge Charge         `json:"charge"`
+	Run    RealizationRun `json:"run"`
+}
+
+func (i OnCustomCurrencyOverageAccruedInput) CustomCurrency() currencies.Currency {
+	return i.Charge.Intent.GetCurrency()
+}
+
+func (i OnCustomCurrencyOverageAccruedInput) GetFiatCurrency() (*currencyx.FiatCurrency, error) {
+	costBasisIntent := i.Charge.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		return nil, fmt.Errorf("cost basis intent is required")
+	}
+
+	return costBasisIntent.GetFiatCurrency()
+}
+
+func (i OnCustomCurrencyOverageAccruedInput) GetCostBasis() (alpacadecimal.Decimal, error) {
+	if i.Charge.State.ResolvedCostBasis == nil {
+		return alpacadecimal.Decimal{}, fmt.Errorf("cost basis is not resolved")
+	}
+
+	return i.Charge.State.ResolvedCostBasis.CostBasis, nil
+}
+
+func (i OnCustomCurrencyOverageAccruedInput) GetCustomCurrencyAmountAccrued() alpacadecimal.Decimal {
+	return i.Run.Totals.Total
+}
+
+func (i OnCustomCurrencyOverageAccruedInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
+	if err := i.CustomCurrency().Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("custom currency: %w", err))
+	}
+
+	if !i.CustomCurrency().IsCustom() {
+		errs = append(errs, fmt.Errorf("custom currency must be custom typed currency"))
+	}
+
+	if !i.GetCustomCurrencyAmountAccrued().IsPositive() {
+		errs = append(errs, fmt.Errorf("amount must be positive"))
+	}
+
+	if _, err := i.GetCostBasis(); err != nil {
+		errs = append(errs, fmt.Errorf("cost basis: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type OnCustomCurrencyOverageAccruedResult struct {
+	TransactionGroup ledgertransaction.GroupReference `json:"transactionGroup"`
+	TotalFiatAmount  alpacadecimal.Decimal            `json:"totalFiatAmount"`
+}
+
+func (r OnCustomCurrencyOverageAccruedResult) Validate() error {
+	var errs []error
+
+	if err := r.TransactionGroup.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("transaction group: %w", err))
+	}
+
+	if r.TotalFiatAmount.IsNegative() {
+		errs = append(errs, fmt.Errorf("total fiat amount cannot be negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type CorrectCreditAllocationsInput struct {
 	Charge   Charge    `json:"charge"`
 	BookedAt time.Time `json:"bookedAt"`
@@ -99,7 +179,7 @@ func (i CorrectCreditAllocationsInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i CorrectCreditAllocationsInput) ValidateWith(currencyCalculator currencyx.Calculator) error {
+func (i CorrectCreditAllocationsInput) ValidateWith(currencyCalculator currencyx.Currency) error {
 	var errs []error
 
 	if err := i.Validate(); err != nil {
@@ -114,9 +194,10 @@ func (i CorrectCreditAllocationsInput) ValidateWith(currencyCalculator currencyx
 }
 
 type PaymentEventInput struct {
-	Charge  Charge                `json:"charge"`
-	EventAt time.Time             `json:"eventAt"`
-	Amount  alpacadecimal.Decimal `json:"amount"`
+	Charge     Charge                `json:"charge"`
+	Run        RealizationRun        `json:"run"`
+	EventAt    time.Time             `json:"eventAt"`
+	FiatAmount alpacadecimal.Decimal `json:"fiatAmount"`
 }
 
 func (i PaymentEventInput) Validate() error {
@@ -126,12 +207,16 @@ func (i PaymentEventInput) Validate() error {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
+	if err := i.Run.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run: %w", err))
+	}
+
 	if i.EventAt.IsZero() {
 		errs = append(errs, fmt.Errorf("event at is required"))
 	}
 
-	if i.Amount.IsNegative() {
-		errs = append(errs, fmt.Errorf("amount cannot be negative"))
+	if !i.FiatAmount.IsPositive() {
+		errs = append(errs, fmt.Errorf("fiat amount must be positive"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -148,6 +233,10 @@ type Handler interface {
 
 	// OnFlatFeeStandardInvoiceUsageAccrued is called when the remaining usage is sent to the customer on a standard invoice.
 	OnInvoiceUsageAccrued(ctx context.Context, input OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+
+	// OnCustomCurrencyOverageAccrued is called when uncovered custom-currency flat-fee value is accrued in fiat.
+	// This must be modeled as a credit purchase flow from the ledger point of view.
+	OnCustomCurrencyOverageAccrued(ctx context.Context, input OnCustomCurrencyOverageAccruedInput) (OnCustomCurrencyOverageAccruedResult, error)
 
 	// OnCorrectCreditAllocations is called when a credit allocation needs to be corrected.
 	OnCorrectCreditAllocations(ctx context.Context, input CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)

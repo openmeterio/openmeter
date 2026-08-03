@@ -8,20 +8,20 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-func (s *service) recognizeCustomerEarnings(ctx context.Context, customerID customer.CustomerID, currencies ...currencyx.Code) error {
+func (s *service) recognizeCustomerEarnings(ctx context.Context, customerID customer.CustomerID, currencies ...currencies.Currency) error {
 	for _, currency := range lo.Uniq(currencies) {
 		if _, err := s.recognizerService.RecognizeEarnings(ctx, recognizer.RecognizeEarningsInput{
 			CustomerID: customerID,
 			At:         clock.Now(),
 			Currency:   currency,
 		}); err != nil {
-			return fmt.Errorf("recognize earnings for currency %s: %w", currency, err)
+			return fmt.Errorf("recognize earnings for currency %s: %w", currency.GetCode(), err)
 		}
 	}
 

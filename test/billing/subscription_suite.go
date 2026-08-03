@@ -13,6 +13,9 @@ import (
 	grantrepo "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	credithook "github.com/openmeterio/openmeter/openmeter/credit/hook"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currenciescurrencyresolver "github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -129,12 +132,22 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	featureResolver, err := featureresolver.New(deps.FeatureService)
 	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
 
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{Client: deps.DBClient})
+	require.NoError(t, err)
+
+	currencyService, err := currencyservice.New(currencyAdapter)
+	require.NoError(t, err)
+
+	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
+	require.NoError(t, err)
+
 	planService, err := planservice.New(planservice.Config{
-		FeatureResolver: featureResolver,
-		Adapter:         planAdapter,
-		TaxCode:         taxCodeService,
-		Logger:          slog.Default(),
-		Publisher:       publisher,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		Adapter:          planAdapter,
+		TaxCode:          taxCodeService,
+		Logger:           slog.Default(),
+		Publisher:        publisher,
 	})
 	require.NoError(t, err)
 
@@ -177,11 +190,12 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	require.NoError(t, err)
 
 	addonService, err := addonservice.New(addonservice.Config{
-		Adapter:         addonRepo,
-		Logger:          slog.Default(),
-		Publisher:       publisher,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
+		Adapter:          addonRepo,
+		Logger:           slog.Default(),
+		Publisher:        publisher,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
 	})
 	require.NoError(t, err)
 

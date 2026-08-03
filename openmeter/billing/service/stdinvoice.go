@@ -160,3 +160,16 @@ func (s *Service) ListStandardInvoices(ctx context.Context, input billing.ListSt
 		TotalCount: resp.TotalCount,
 	}, nil
 }
+
+func (s *Service) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.StandardInvoice, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{Err: err}
+	}
+
+	invoices, err := s.adapter.ListStandardInvoicesPendingAdvancement(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("listing standard invoices pending advancement: %w", err)
+	}
+
+	return invoices, nil
+}

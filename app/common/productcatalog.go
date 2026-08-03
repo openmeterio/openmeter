@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	costadapter "github.com/openmeterio/openmeter/openmeter/cost/adapter"
 	costservice "github.com/openmeterio/openmeter/openmeter/cost/service"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -88,6 +89,7 @@ func NewPlanService(
 	logger *slog.Logger,
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
+	currencyResolver currencies.CurrencyResolver,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (plan.Service, error) {
@@ -100,11 +102,12 @@ func NewPlanService(
 	}
 
 	return planservice.New(planservice.Config{
-		Adapter:         adapter,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
-		Logger:          logger.With("subsystem", "productcatalog.plan"),
-		Publisher:       publisher,
+		Adapter:          adapter,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
+		Logger:           logger.With("subsystem", "productcatalog.plan"),
+		Publisher:        publisher,
 	})
 }
 
@@ -112,6 +115,7 @@ func NewAddonService(
 	logger *slog.Logger,
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
+	currencyResolver currencies.CurrencyResolver,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (addon.Service, error) {
@@ -124,11 +128,12 @@ func NewAddonService(
 	}
 
 	return addonservice.New(addonservice.Config{
-		Adapter:         adapter,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
-		Logger:          logger.With("subsystem", "productcatalog.addon"),
-		Publisher:       publisher,
+		Adapter:          adapter,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: currencyResolver,
+		TaxCode:          taxCodeService,
+		Logger:           logger.With("subsystem", "productcatalog.addon"),
+		Publisher:        publisher,
 	})
 }
 

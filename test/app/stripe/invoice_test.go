@@ -31,6 +31,7 @@ import (
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -159,6 +160,8 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		ChargesService:        chargeStack.ChargesService,
 		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
+		CreditVoidService:     creditvoid.NewNoopService(),
+		TransactionManager:    enttx.NewCreator(s.DBClient),
 	})
 	s.Require().NoError(err, "failed to initialize credit grant service")
 	s.CreditGrant = creditGrantService
@@ -390,7 +393,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
-				Currency: currencyx.Code(currency.USD),
+				Currency: currencyx.FiatCode(currency.USD),
 				Lines: []billing.GatheringLine{
 					{
 						// Covered case: Discount caused by maximum amount
@@ -1238,7 +1241,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -1421,7 +1424,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},

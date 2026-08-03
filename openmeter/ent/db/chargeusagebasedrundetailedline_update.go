@@ -577,6 +577,9 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) sqlSave(ctx context.Context) (_
 			}
 		}
 	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(chargeusagebasedrundetailedline.FieldCurrency, field.TypeString)
+	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldServicePeriodStart, field.TypeTime, value)
 	}
@@ -1354,6 +1357,9 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) sqlSave(ctx context.Context)
 				ps[i](selector)
 			}
 		}
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(chargeusagebasedrundetailedline.FieldCurrency, field.TypeString)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldServicePeriodStart, field.TypeTime, value)

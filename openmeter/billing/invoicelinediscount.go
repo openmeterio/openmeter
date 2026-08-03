@@ -141,7 +141,7 @@ func (i AmountLineDiscountsManaged) Clone() AmountLineDiscountsManaged {
 	})
 }
 
-func (i AmountLineDiscountsManaged) SumAmount(currency currencyx.Calculator) alpacadecimal.Decimal {
+func (i AmountLineDiscountsManaged) SumAmount(currency currencyx.Currency) alpacadecimal.Decimal {
 	sum := alpacadecimal.Zero
 	for _, amount := range i {
 		sum = sum.Add(currency.RoundToPrecision(amount.Amount)).Add(currency.RoundToPrecision(amount.RoundingAmount))

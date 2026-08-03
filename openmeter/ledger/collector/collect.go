@@ -104,8 +104,11 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return resolvedCollectedInputs{}, fmt.Errorf("amount: %w", err)
 	}
 
-	if err := ledger.ValidateCurrency(input.Currency); err != nil {
+	if err := input.Currency.Validate(); err != nil {
 		return resolvedCollectedInputs{}, fmt.Errorf("currency: %w", err)
+	}
+	if input.Currency.IsCustom() && !input.Currency.IsResolved() {
+		return resolvedCollectedInputs{}, fmt.Errorf("currency: custom currency must be resolved")
 	}
 
 	selections, err := c.collectCustomerFBOSelections(ctx, c.customerID(input), input.Currency, input.FeatureKey, amount, input.SourceBalanceAsOf)

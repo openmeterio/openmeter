@@ -69,7 +69,7 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 		Customer:  *customerEntity,
 
 		Number:   "INV-123",
-		Currency: currencyx.Code(currency.USD),
+		Currency: currencyx.FiatCode(currency.USD),
 		Status:   billing.StandardInvoiceStatusGathering,
 
 		Profile:  *profile,
@@ -137,7 +137,6 @@ func newDetailedLine(in newLineInput) billing.DetailedLine {
 					Namespace: in.Namespace,
 					Name:      in.Name,
 				}),
-				Currency:               in.Invoice.Currency,
 				ServicePeriod:          in.Period,
 				ChildUniqueReferenceID: in.ChildUniqueReferenceID,
 				PerUnitAmount:          alpacadecimal.NewFromFloat(100),
@@ -864,7 +863,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLines() {
 
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -875,7 +874,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLines() {
 						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 						InvoiceAt:     periodEnd,
 						ManagedBy:     billing.ManuallyManagedLine,
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						RateCardDiscounts: billing.Discounts{
 							Percentage: &billing.PercentageDiscount{
 								PercentageDiscount: productcatalog.PercentageDiscount{
@@ -898,7 +897,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLines() {
 						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 						InvoiceAt:     periodEnd,
 						ManagedBy:     billing.ManuallyManagedLine,
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						RateCardDiscounts: billing.Discounts{
 							Percentage: &billing.PercentageDiscount{
 								PercentageDiscount: productcatalog.PercentageDiscount{
@@ -992,7 +991,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() 
 
 		createdPendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -1003,7 +1002,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() 
 						ServicePeriod: timeutil.ClosedPeriod{From: line1PeriodStart, To: line1PeriodEnd},
 						InvoiceAt:     line1PeriodStart,
 						ManagedBy:     billing.ManuallyManagedLine,
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						RateCardDiscounts: billing.Discounts{
 							Percentage: &billing.PercentageDiscount{
 								PercentageDiscount: productcatalog.PercentageDiscount{
@@ -1027,7 +1026,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() 
 						ServicePeriod: timeutil.ClosedPeriod{From: line2PeriodStart, To: line2PeriodEnd},
 						InvoiceAt:     line2PeriodStart,
 						ManagedBy:     billing.ManuallyManagedLine,
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						RateCardDiscounts: billing.Discounts{
 							Percentage: &billing.PercentageDiscount{
 								PercentageDiscount: productcatalog.PercentageDiscount{

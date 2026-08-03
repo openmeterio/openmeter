@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
@@ -26,17 +27,18 @@ import (
 // ChargeQuery is the builder for querying Charge entities.
 type ChargeQuery struct {
 	config
-	ctx                           *QueryContext
-	order                         []charge.OrderOption
-	inters                        []Interceptor
-	predicates                    []predicate.Charge
-	withFlatFee                   *ChargeFlatFeeQuery
-	withCreditPurchase            *ChargeCreditPurchaseQuery
-	withUsageBased                *ChargeUsageBasedQuery
-	withBillingInvoiceLines       *BillingInvoiceLineQuery
-	withBillingSplitLineGroups    *BillingInvoiceSplitLineGroupQuery
-	withCreditRealizationLineages *CreditRealizationLineageQuery
-	modifiers                     []func(*sql.Selector)
+	ctx                              *QueryContext
+	order                            []charge.OrderOption
+	inters                           []Interceptor
+	predicates                       []predicate.Charge
+	withFlatFee                      *ChargeFlatFeeQuery
+	withCreditPurchase               *ChargeCreditPurchaseQuery
+	withUsageBased                   *ChargeUsageBasedQuery
+	withBillingInvoiceLines          *BillingInvoiceLineQuery
+	withBillingGatheringInvoiceLines *BillingGatheringInvoiceLineQuery
+	withBillingSplitLineGroups       *BillingInvoiceSplitLineGroupQuery
+	withCreditRealizationLineages    *CreditRealizationLineageQuery
+	modifiers                        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -154,6 +156,28 @@ func (_q *ChargeQuery) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
 			sqlgraph.From(charge.Table, charge.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, charge.BillingInvoiceLinesTable, charge.BillingInvoiceLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingGatheringInvoiceLines chains the current query on the "billing_gathering_invoice_lines" edge.
+func (_q *ChargeQuery) QueryBillingGatheringInvoiceLines() *BillingGatheringInvoiceLineQuery {
+	query := (&BillingGatheringInvoiceLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(charge.Table, charge.FieldID, selector),
+			sqlgraph.To(billinggatheringinvoiceline.Table, billinggatheringinvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, charge.BillingGatheringInvoiceLinesTable, charge.BillingGatheringInvoiceLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -392,17 +416,18 @@ func (_q *ChargeQuery) Clone() *ChargeQuery {
 		return nil
 	}
 	return &ChargeQuery{
-		config:                        _q.config,
-		ctx:                           _q.ctx.Clone(),
-		order:                         append([]charge.OrderOption{}, _q.order...),
-		inters:                        append([]Interceptor{}, _q.inters...),
-		predicates:                    append([]predicate.Charge{}, _q.predicates...),
-		withFlatFee:                   _q.withFlatFee.Clone(),
-		withCreditPurchase:            _q.withCreditPurchase.Clone(),
-		withUsageBased:                _q.withUsageBased.Clone(),
-		withBillingInvoiceLines:       _q.withBillingInvoiceLines.Clone(),
-		withBillingSplitLineGroups:    _q.withBillingSplitLineGroups.Clone(),
-		withCreditRealizationLineages: _q.withCreditRealizationLineages.Clone(),
+		config:                           _q.config,
+		ctx:                              _q.ctx.Clone(),
+		order:                            append([]charge.OrderOption{}, _q.order...),
+		inters:                           append([]Interceptor{}, _q.inters...),
+		predicates:                       append([]predicate.Charge{}, _q.predicates...),
+		withFlatFee:                      _q.withFlatFee.Clone(),
+		withCreditPurchase:               _q.withCreditPurchase.Clone(),
+		withUsageBased:                   _q.withUsageBased.Clone(),
+		withBillingInvoiceLines:          _q.withBillingInvoiceLines.Clone(),
+		withBillingGatheringInvoiceLines: _q.withBillingGatheringInvoiceLines.Clone(),
+		withBillingSplitLineGroups:       _q.withBillingSplitLineGroups.Clone(),
+		withCreditRealizationLineages:    _q.withCreditRealizationLineages.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -450,6 +475,17 @@ func (_q *ChargeQuery) WithBillingInvoiceLines(opts ...func(*BillingInvoiceLineQ
 		opt(query)
 	}
 	_q.withBillingInvoiceLines = query
+	return _q
+}
+
+// WithBillingGatheringInvoiceLines tells the query-builder to eager-load the nodes that are connected to
+// the "billing_gathering_invoice_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeQuery) WithBillingGatheringInvoiceLines(opts ...func(*BillingGatheringInvoiceLineQuery)) *ChargeQuery {
+	query := (&BillingGatheringInvoiceLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingGatheringInvoiceLines = query
 	return _q
 }
 
@@ -553,11 +589,12 @@ func (_q *ChargeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Charg
 	var (
 		nodes       = []*Charge{}
 		_spec       = _q.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [7]bool{
 			_q.withFlatFee != nil,
 			_q.withCreditPurchase != nil,
 			_q.withUsageBased != nil,
 			_q.withBillingInvoiceLines != nil,
+			_q.withBillingGatheringInvoiceLines != nil,
 			_q.withBillingSplitLineGroups != nil,
 			_q.withCreditRealizationLineages != nil,
 		}
@@ -606,6 +643,15 @@ func (_q *ChargeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Charg
 			func(n *Charge) { n.Edges.BillingInvoiceLines = []*BillingInvoiceLine{} },
 			func(n *Charge, e *BillingInvoiceLine) {
 				n.Edges.BillingInvoiceLines = append(n.Edges.BillingInvoiceLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingGatheringInvoiceLines; query != nil {
+		if err := _q.loadBillingGatheringInvoiceLines(ctx, query, nodes,
+			func(n *Charge) { n.Edges.BillingGatheringInvoiceLines = []*BillingGatheringInvoiceLine{} },
+			func(n *Charge, e *BillingGatheringInvoiceLine) {
+				n.Edges.BillingGatheringInvoiceLines = append(n.Edges.BillingGatheringInvoiceLines, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -743,6 +789,39 @@ func (_q *ChargeQuery) loadBillingInvoiceLines(ctx context.Context, query *Billi
 	}
 	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(charge.BillingInvoiceLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ChargeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "charge_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeQuery) loadBillingGatheringInvoiceLines(ctx context.Context, query *BillingGatheringInvoiceLineQuery, nodes []*Charge, init func(*Charge), assign func(*Charge, *BillingGatheringInvoiceLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Charge)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinggatheringinvoiceline.FieldChargeID)
+	}
+	query.Where(predicate.BillingGatheringInvoiceLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(charge.BillingGatheringInvoiceLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

@@ -14,15 +14,15 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) (creditpurchase.ChargeWithGatheringLine, error) {
-	input.Intent.IntentMutableFields = input.Intent.IntentMutableFields.Normalized(input.Intent.Currency)
-
 	if err := input.Validate(); err != nil {
 		return creditpurchase.ChargeWithGatheringLine{}, err
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) {
+		input.Intent = input.Intent.Normalized()
+
 		// Let's create the credit purchase charge
-		charge, err := s.adapter.CreateCharge(ctx, creditpurchase.CreateChargeInput(input))
+		charge, err := s.adapter.CreateCharge(ctx, input)
 		if err != nil {
 			return creditpurchase.ChargeWithGatheringLine{}, err
 		}
@@ -89,7 +89,8 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 
 	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
 	totalCost := intent.CreditAmount.Mul(invoiceSettlement.CostBasis)
-	calc, err := invoiceSettlement.Currency.Calculator()
+	invoiceCurrency := invoiceSettlement.Currency
+	calc, err := invoiceCurrency.AsFiatCurrency()
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("creating currency calculator: %w", err)
 	}
@@ -112,7 +113,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   charge.Namespace,
-				Name:        intent.Name,
+				Name:        fmt.Sprintf("%s (%s %s credits)", intent.Name, intent.CreditAmount, intent.Currency.GetCode()),
 				Description: intent.Description,
 			}),
 			Metadata:    intent.Metadata.Clone(),
@@ -126,7 +127,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 					},
 				),
 			),
-			Currency:      invoiceSettlement.Currency,
+			Currency:      invoiceCurrency,
 			ServicePeriod: intent.ServicePeriod,
 			InvoiceAt:     intent.CalculateEffectiveAt(),
 			TaxConfig:     lo.ToPtr(intent.TaxConfig.ToTaxConfig()),

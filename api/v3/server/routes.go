@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
@@ -149,6 +150,26 @@ func (s *Server) GetApp(w http.ResponseWriter, r *http.Request, appId api.ULID) 
 	s.appsHandler.GetApp().With(appId).ServeHTTP(w, r)
 }
 
+func (s *Server) UninstallApp(w http.ResponseWriter, r *http.Request, appId api.ULID) {
+	s.appsHandler.UninstallApp().With(appId).ServeHTTP(w, r)
+}
+
+func (s *Server) UpdateApp(w http.ResponseWriter, r *http.Request, appId api.ULID) {
+	s.appsHandler.UpdateApp().With(appId).ServeHTTP(w, r)
+}
+
+func (s *Server) ListAppCatalog(w http.ResponseWriter, r *http.Request, params api.ListAppCatalogParams) {
+	s.appsHandler.ListAppCatalog().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetAppCatalogItem(w http.ResponseWriter, r *http.Request, pType api.BillingAppType) {
+	s.appsHandler.GetAppCatalog().With(pType).ServeHTTP(w, r)
+}
+
+func (s *Server) InstallApp(w http.ResponseWriter, r *http.Request) {
+	s.appsHandler.InstallApp().ServeHTTP(w, r)
+}
+
 // Billing Profiles
 
 func (s *Server) ListBillingProfiles(w http.ResponseWriter, r *http.Request, params api.ListBillingProfilesParams) {
@@ -187,6 +208,26 @@ func (s *Server) UpdateInvoice(w http.ResponseWriter, r *http.Request, invoiceId
 
 func (s *Server) DeleteInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
 	s.billingInvoicesHandler.DeleteBillingInvoice().With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) AdvanceInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionAdvance).
+		With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) ApproveInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionApprove).
+		With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) RetryInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionRetry).
+		With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) SnapshotQuantitiesInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionSnapshotQuantities).
+		With(invoiceId).ServeHTTP(w, r)
 }
 
 // Customer Billing
@@ -249,6 +290,10 @@ func (s *Server) CreateCostBasis(w http.ResponseWriter, r *http.Request, currenc
 
 func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyId api.ULID, params api.ListCostBasesParams) {
 	s.currenciesHandler.ListCostBases().With(currencieshandler.ListCostBasesArgs{CurrencyID: currencyId, Params: params}).ServeHTTP(w, r)
+}
+
+func (s *Server) GetCustomCurrency(w http.ResponseWriter, r *http.Request, currencyId api.ULID) {
+	s.currenciesHandler.GetCurrency().With(currencyId).ServeHTTP(w, r)
 }
 
 // Features
@@ -456,6 +501,18 @@ func (s *Server) GetCreditGrant(w http.ResponseWriter, r *http.Request, customer
 
 func (s *Server) CreateCreditAdjustment(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
 	unimplemented.CreateCreditAdjustment(w, r, customerId)
+}
+
+func (s *Server) VoidCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
+	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+		unimplemented.VoidCreditGrant(w, r, customerId, creditGrantId)
+		return
+	}
+
+	s.customersCreditsHandler.VoidCreditGrant().With(customerscreditshandler.VoidCreditGrantParams{
+		CustomerID:    customerId,
+		CreditGrantID: creditGrantId,
+	}).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {

@@ -16,64 +16,39 @@ const (
 	// Active status and substates
 	StatusActive Status = Status(meta.ChargeStatusActive)
 
-	StatusActivePartialInvoiceStarted                Status = "active.partial_invoice.started"
-	StatusActivePartialInvoiceWaitingForCollection   Status = "active.partial_invoice.waiting_for_collection"
-	StatusActivePartialInvoiceProcessing             Status = "active.partial_invoice.processing"
-	StatusActivePartialInvoiceIssuing                Status = "active.partial_invoice.issuing"
-	StatusActivePartialInvoiceCompleted              Status = "active.partial_invoice.completed"
-	StatusActiveFinalRealizationStarted              Status = "active.final_realization.started"
-	StatusActiveFinalRealizationWaitingForCollection Status = "active.final_realization.waiting_for_collection"
-	StatusActiveFinalRealizationProcessing           Status = "active.final_realization.processing"
-	StatusActiveFinalRealizationIssuing              Status = "active.final_realization.issuing"
-	StatusActiveFinalRealizationCompleted            Status = "active.final_realization.completed"
-	StatusActiveAwaitingPaymentSettlement            Status = "active.awaiting_payment_settlement"
+	StatusActiveRealizationStarted              Status = "active.realization.started"
+	StatusActiveRealizationWaitingForCollection Status = "active.realization.waiting_for_collection"
+	StatusActiveRealizationProcessing           Status = "active.realization.processing"
+	StatusActiveRealizationIssuing              Status = "active.realization.issuing"
+	StatusActiveRealizationCompleted            Status = "active.realization.completed"
+	StatusActiveAwaitingPaymentSettlement       Status = "active.awaiting_payment_settlement"
 
 	StatusFinal   Status = Status(meta.ChargeStatusFinal)
 	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
 )
 
-// mutableFinalRealizationStatuses are final realization states backed by mutable invoice lines.
-var mutableFinalRealizationStatuses = []Status{
-	StatusActiveFinalRealizationStarted,
-	StatusActiveFinalRealizationWaitingForCollection,
-	StatusActiveFinalRealizationProcessing,
+// mutableRealizationStatuses are states where the current realization can still
+// be rebuilt by period changes instead of touching immutable invoice or ledger
+// records.
+var mutableRealizationStatuses = []Status{
+	StatusActiveRealizationStarted,
+	StatusActiveRealizationWaitingForCollection,
+	StatusActiveRealizationProcessing,
 }
 
-func IsMutableFinalRealizationStatus(status Status) bool {
-	return slices.Contains(mutableFinalRealizationStatuses, status)
-}
-
-// mutableInvoiceBackedRealizationStatuses are states where billing still owns a
-// mutable invoice line for the current realization run, so period changes can
-// ask billing to delete and rebuild that line instead of touching immutable
-// invoice or ledger records.
-var mutableInvoiceBackedRealizationStatuses = []Status{
-	StatusActivePartialInvoiceStarted,
-	StatusActivePartialInvoiceWaitingForCollection,
-	StatusActivePartialInvoiceProcessing,
-	StatusActiveFinalRealizationStarted,
-	StatusActiveFinalRealizationWaitingForCollection,
-	StatusActiveFinalRealizationProcessing,
-}
-
-func IsMutableInvoiceBackedRealizationStatus(status Status) bool {
-	return slices.Contains(mutableInvoiceBackedRealizationStatuses, status)
+func IsMutableRealizationStatus(status Status) bool {
+	return slices.Contains(mutableRealizationStatuses, status)
 }
 
 func (Status) Values() []string {
 	return []string{
 		string(StatusCreated),
 		string(StatusActive),
-		string(StatusActivePartialInvoiceStarted),
-		string(StatusActivePartialInvoiceWaitingForCollection),
-		string(StatusActivePartialInvoiceProcessing),
-		string(StatusActivePartialInvoiceIssuing),
-		string(StatusActivePartialInvoiceCompleted),
-		string(StatusActiveFinalRealizationStarted),
-		string(StatusActiveFinalRealizationWaitingForCollection),
-		string(StatusActiveFinalRealizationProcessing),
-		string(StatusActiveFinalRealizationIssuing),
-		string(StatusActiveFinalRealizationCompleted),
+		string(StatusActiveRealizationStarted),
+		string(StatusActiveRealizationWaitingForCollection),
+		string(StatusActiveRealizationProcessing),
+		string(StatusActiveRealizationIssuing),
+		string(StatusActiveRealizationCompleted),
 		string(StatusActiveAwaitingPaymentSettlement),
 		string(StatusFinal),
 		string(StatusDeleted),

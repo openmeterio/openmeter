@@ -261,6 +261,18 @@ type LineEngine interface {
 	OnCollectionCompleted(ctx context.Context, input OnCollectionCompletedInput) (StandardLines, error)
 	// OnMutableStandardLinesDeletedBySystem is invoked after mutable standard invoice lines are marked deleted by the system.
 	OnMutableStandardLinesDeletedBySystem(ctx context.Context, input OnMutableStandardLinesDeletedInput) error
+	// ValidateMutableInvoiceLineEditViaAPI is invoked before mutable invoice lines are edited through the API.
+	// Can be used to reject edits that are not supported by the engine (including deletion, etc.) to prevent the
+	// invoice from entering an invalid state without recovery.
+	//
+	// Additional checks can be performed in OnMutableInvoiceLinesEditedViaAPI but those errors will become
+	// validation issues, thus alter the invoice state.
+	//
+	// For API requests it is better to reject and edit before, the existing validation issue logic is geared
+	// towards state machine failures.
+	//
+	// Implementations must not mutate invoice, charge, ledger, or external state from this hook.
+	ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, input OnMutableInvoiceUpdateInput) error
 	// OnMutableInvoiceLinesEditedViaAPI is invoked after mutable invoice lines are edited through the API.
 	// Implementations must return exactly one CreatedLines entry for each input Created line and
 	// exactly one UpdatedLines entry for each input Updated override, even when they only accept

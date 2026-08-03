@@ -53,7 +53,6 @@ func TestStandardLineValidateAllowsNegativeDetailedLineQuantityWithPositiveTotal
 					ChildUniqueReferenceID: "detail_123",
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					ServicePeriod:          line.Period,
-					Currency:               line.Currency,
 					PerUnitAmount:          alpacadecimal.NewFromInt(10),
 					Quantity:               alpacadecimal.NewFromInt(-1),
 				},
@@ -115,7 +114,7 @@ func validStandardLineForValidation() StandardLine {
 			},
 			ManagedBy: SystemManagedLine,
 			InvoiceID: "inv_123",
-			Currency:  currencyx.Code("USD"),
+			Currency:  currencyx.FiatCode("USD"),
 			Period: timeutil.ClosedPeriod{
 				From: start,
 				To:   start.Add(time.Hour),

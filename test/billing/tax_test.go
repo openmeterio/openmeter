@@ -209,7 +209,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -296,7 +296,7 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, custom
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},

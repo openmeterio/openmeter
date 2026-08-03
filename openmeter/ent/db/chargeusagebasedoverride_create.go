@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -177,7 +178,7 @@ func (_c *ChargeUsageBasedOverrideCreate) SetDiscounts(v *billing.Discounts) *Ch
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_c *ChargeUsageBasedOverrideCreate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideCreate {
+func (_c *ChargeUsageBasedOverrideCreate) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedOverrideCreate {
 	_c.mutation.SetUnitConfig(v)
 	return _c
 }
@@ -767,7 +768,7 @@ func (u *ChargeUsageBasedOverrideUpsert) UpdateDiscounts() *ChargeUsageBasedOver
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *ChargeUsageBasedOverrideUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpsert {
+func (u *ChargeUsageBasedOverrideUpsert) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedOverrideUpsert {
 	u.Set(chargeusagebasedoverride.FieldUnitConfig, v)
 	return u
 }
@@ -1105,7 +1106,7 @@ func (u *ChargeUsageBasedOverrideUpsertOne) UpdateDiscounts() *ChargeUsageBasedO
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *ChargeUsageBasedOverrideUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpsertOne {
+func (u *ChargeUsageBasedOverrideUpsertOne) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedOverrideUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.SetUnitConfig(v)
 	})
@@ -1616,7 +1617,7 @@ func (u *ChargeUsageBasedOverrideUpsertBulk) UpdateDiscounts() *ChargeUsageBased
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *ChargeUsageBasedOverrideUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpsertBulk {
+func (u *ChargeUsageBasedOverrideUpsertBulk) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedOverrideUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.SetUnitConfig(v)
 	})

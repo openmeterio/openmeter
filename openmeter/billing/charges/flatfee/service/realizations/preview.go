@@ -7,16 +7,16 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type BuildCreditThenInvoiceGatheringPreviewRunInput struct {
-	Charge flatfee.Charge
-	Line   billing.StandardLine
+	Charge    flatfee.Charge
+	LineID    string
+	InvoiceID string
 }
 
 func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
@@ -26,13 +26,12 @@ func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
-	if err := i.Line.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("line: %w", err))
+	if i.LineID == "" {
+		errs = append(errs, errors.New("line ID is required"))
 	}
 
-	lineChargeID := lo.FromPtrOr(i.Line.ChargeID, "<nil>")
-	if lineChargeID != i.Charge.ID {
-		errs = append(errs, fmt.Errorf("line charge id mismatch: got %s, want %s", lineChargeID, i.Charge.ID))
+	if i.InvoiceID == "" {
+		errs = append(errs, errors.New("invoice ID is required"))
 	}
 
 	if i.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
@@ -56,45 +55,38 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(in BuildCreditThenIn
 		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, err
 	}
 
-	currencyCalculator, err := in.Charge.Intent.GetCurrency().Calculator()
+	rateableIntent, err := in.Charge.GetRateableIntent()
 	if err != nil {
-		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("get currency calculator: %w", err)
+		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("getting rateable intent: %w", err)
 	}
 
-	amountAfterProration, err := invoiceupdater.GetFlatFeePerUnitAmount(&in.Line)
+	ratingResult, err := s.Rate(rateableIntent)
 	if err != nil {
-		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("get flat fee line amount: %w", err)
+		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("rating flat fee: %w", err)
 	}
 
-	amountAfterProration = currencyCalculator.RoundToPrecision(amountAfterProration)
-
-	line, err := rateFlatFeeLine(in.Line, s.ratingService)
-	if err != nil {
-		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, err
-	}
-
-	detailedLines := flatfee.DetailedLines(lo.Map(line.DetailedLines, func(detailedLine billing.DetailedLine, _ int) flatfee.DetailedLine {
-		return detailedLine.Base.Clone()
-	}))
-
-	runTotals := line.Totals.RoundToPrecision(currencyCalculator)
 	runType := flatfee.RealizationRunTypeFinalRealization
+	previewAt := clock.Now()
 	run := flatfee.RealizationRun{
 		RealizationRunBase: flatfee.RealizationRunBase{
 			ID: flatfee.RealizationRunID{
-				Namespace: in.Line.Namespace,
-				ID:        fmt.Sprintf("preview-%s", in.Line.ID),
+				Namespace: in.Charge.Namespace,
+				ID:        fmt.Sprintf("preview-%s", in.LineID),
 			},
-			LineID:                    lo.ToPtr(in.Line.ID),
-			InvoiceID:                 lo.ToPtr(in.Line.InvoiceID),
+			ManagedModel: models.ManagedModel{
+				CreatedAt: previewAt,
+				UpdatedAt: previewAt,
+			},
+			LineID:                    lo.ToPtr(in.LineID),
+			InvoiceID:                 lo.ToPtr(in.InvoiceID),
 			Type:                      runType,
 			InitialType:               runType,
-			ServicePeriod:             in.Line.Period,
-			AmountAfterProration:      amountAfterProration,
-			Totals:                    runTotals,
-			NoFiatTransactionRequired: runTotals.Total.IsZero(),
+			ServicePeriod:             rateableIntent.ServicePeriod,
+			AmountAfterProration:      rateableIntent.AmountAfterProration,
+			Totals:                    ratingResult.Totals,
+			NoFiatTransactionRequired: ratingResult.Totals.Total.IsZero(),
 		},
-		DetailedLines: mo.Some(detailedLines),
+		DetailedLines: mo.Some(ratingResult.DetailedLines),
 	}
 
 	return BuildCreditThenInvoiceGatheringPreviewRunResult{Run: run}, nil

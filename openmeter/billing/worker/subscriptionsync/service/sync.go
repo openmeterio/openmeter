@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -173,7 +174,9 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			}
 		}
 
-		currency, err := subs.Currency.Calculator()
+		cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+			WithCode(subs.Currency).
+			Build()
 		if err != nil {
 			return nil, fmt.Errorf("getting currency calculator: %w", err)
 		}
@@ -189,7 +192,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 				AsOf:                         asOf,
 				CustomerDeletedAt:            customerDeletedAt,
 				SubscriptionEndProrationMode: subscriptionEndProrationMode,
-				Currency:                     currency,
+				Currency:                     cur,
 				DryRun:                       options.DryRun,
 			})
 			if err != nil {
@@ -227,7 +230,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			if err := s.reconciler.Apply(ctx, reconciler.ApplyInput{
 				DryRun:   options.DryRun,
 				Customer: customerID,
-				Currency: currency,
+				Currency: cur,
 				Plan:     linesDiff,
 			}); err != nil {
 				return nil, err

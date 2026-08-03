@@ -1,23 +1,132 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+func intentFromManualCreatedLine(
+	ctx context.Context,
+	invoice billing.GenericInvoiceReader,
+	line billing.GenericInvoiceLineReader,
+	defaultInvoicingTaxCodeResolver billing.DefaultTaxCodeResolver,
+) (usagebased.Intent, error) {
+	if invoice == nil {
+		return usagebased.Intent{}, fmt.Errorf("invoice is required")
+	}
+
+	if line == nil {
+		return usagebased.Intent{}, fmt.Errorf("line is required")
+	}
+
+	if line.GetID() == "" {
+		return usagebased.Intent{}, fmt.Errorf("line id is required")
+	}
+
+	currency, err := line.GetCurrency().AsFiatCurrency()
+	if err != nil {
+		return usagebased.Intent{}, fmt.Errorf("resolving fiat currency %q: %w", line.GetCurrency(), err)
+	}
+
+	if chargeID := line.GetChargeID(); chargeID != nil && *chargeID != "" {
+		return usagebased.Intent{}, fmt.Errorf("line[%s]: charge id must be empty for manual create", line.GetID())
+	}
+
+	price := line.GetPrice()
+	if price == nil {
+		return usagebased.Intent{}, fmt.Errorf("line[%s]: price is required", line.GetID())
+	}
+
+	if line.GetFeatureKey() == "" {
+		return usagebased.Intent{}, fmt.Errorf("line[%s]: feature key is required", line.GetID())
+	}
+
+	annotations, err := line.GetAnnotations().Clone()
+	if err != nil {
+		return usagebased.Intent{}, fmt.Errorf("cloning line[%s] annotations: %w", line.GetID(), err)
+	}
+
+	servicePeriod := line.GetServicePeriod()
+	invoiceAt := servicePeriod.To
+	if invoiceAtAccessor, ok := line.(billing.InvoiceAtAccessor); ok {
+		invoiceAt = invoiceAtAccessor.GetInvoiceAt()
+	}
+
+	taxConfig := productcatalog.TaxCodeConfig{}
+	if lineTaxConfig := line.GetTaxConfig(); lineTaxConfig != nil {
+		taxConfig = productcatalog.TaxCodeConfigFrom(lineTaxConfig.ToProductCatalog())
+	}
+
+	var unitConfig *productcatalog.UnitConfig
+	if config := line.GetUnitConfig(); config != nil {
+		unitConfig = lo.ToPtr(config.Clone())
+	}
+
+	intent := usagebased.Intent{
+		Intent: meta.Intent{
+			ManagedBy:   billing.ManuallyManagedLine,
+			CustomerID:  invoice.GetCustomerID().ID,
+			Annotations: annotations,
+			Currency:    currencies.Currency{Currency: currency},
+			TaxConfig:   taxConfig,
+		},
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              line.GetName(),
+				Description:       line.GetDescription(),
+				Metadata:          line.GetMetadata().Clone(),
+				ServicePeriod:     servicePeriod,
+				FullServicePeriod: servicePeriod,
+				BillingPeriod:     servicePeriod,
+			},
+			InvoiceAt:  invoiceAt,
+			Price:      *price.Clone(),
+			Discounts:  line.GetRateCardDiscounts().Clone(),
+			UnitConfig: unitConfig,
+		},
+		FeatureKey:     line.GetFeatureKey(),
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+	}
+
+	intent = intent.Normalized()
+	if intent.TaxConfig.TaxCodeID == "" {
+		if defaultInvoicingTaxCodeResolver == nil {
+			return usagebased.Intent{}, fmt.Errorf("line[%s]: default invoicing tax code resolver is required", line.GetID())
+		}
+
+		defaultTaxCodeID, err := defaultInvoicingTaxCodeResolver(ctx)
+		if err != nil {
+			return usagebased.Intent{}, fmt.Errorf("resolving default invoicing tax code: %w", err)
+		}
+
+		intent.TaxConfig.TaxCodeID = defaultTaxCodeID
+	}
+
+	if err := intent.Validate(); err != nil {
+		return usagebased.Intent{}, err
+	}
+
+	return intent, nil
+}
+
 type populateStandardLineFromRunInput struct {
-	Run        usagebased.RealizationRun
-	Runs       usagebased.RealizationRuns
-	UnitConfig *productcatalog.UnitConfig
+	Charge usagebased.Charge
+	Run    usagebased.RealizationRun
 }
 
 func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateStandardLineFromRunInput) error {
@@ -25,17 +134,24 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 		stdLine.UsageBased = &billing.UsageBasedLine{}
 	}
 
-	currencyCalculator, err := stdLine.Currency.Calculator()
+	cur, err := stdLine.Currency.AsFiatCurrency()
 	if err != nil {
 		return fmt.Errorf("creating currency calculator: %w", err)
 	}
 
-	billingMeteredQuantity, err := input.Runs.MapToBillingMeteredQuantity(input.Run)
+	// Wait until StoredAtLT plus the internal collection period before collecting the line.
+	// This ensures the usage snapshot bounded by StoredAtLT is no longer changing when billing reads it.
+	stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(input.Run.StoredAtLT.Add(usagebased.InternalCollectionPeriod))
+
+	if input.Charge.Intent.GetCurrency().IsCustom() {
+		return populateCustomCurrencyOverageFromRun(stdLine, input, cur)
+	}
+
+	billingMeteredQuantity, err := input.Charge.Realizations.MapToBillingMeteredQuantity(input.Run)
 	if err != nil {
 		return fmt.Errorf("mapping run metered quantity to billing: %w", err)
 	}
 
-	stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(input.Run.StoredAtLT.Add(usagebased.InternalCollectionPeriod))
 	stdLine.UsageBased.MeteredQuantity = lo.ToPtr(billingMeteredQuantity.LinePeriod)
 	stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(billingMeteredQuantity.PreLinePeriod)
 
@@ -49,15 +165,7 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 	billableUsage := mutator.ApplyUnitConfig(billingrating.Usage{
 		Quantity:              billingMeteredQuantity.LinePeriod,
 		PreLinePeriodQuantity: billingMeteredQuantity.PreLinePeriod,
-	}, input.UnitConfig)
-
-	// Snapshot the config that produced the conversion above onto the line, so the
-	// metered→invoiced derivation stays auditable and re-rating converts identically
-	// even if the rate card's unit_config is edited after invoicing. Today the source
-	// is the charge intent's effective config (a reconciliation-time copy of the rate
-	// card); once unit_config is frozen onto the subscription item at subscription
-	// creation, the intent — and therefore this snapshot — will carry that frozen value.
-	stdLine.UsageBased.UnitConfig = input.UnitConfig
+	}, stdLine.UsageBased.UnitConfig)
 
 	discountedUsage, err := mutator.ApplyUsageDiscount(mutator.ApplyUsageDiscountInput{
 		Usage:                 billableUsage,
@@ -79,15 +187,15 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 
 	stdLine.CreditsApplied = creditsApplied
 
-	mappedDetailedLines, err := mapUsageBasedDetailedLines(stdLine, input.Run, currencyCalculator)
+	mappedDetailedLines, err := mapUsageBasedDetailedLines(stdLine, input.Run, cur)
 	if err != nil {
 		return fmt.Errorf("mapping run detailed lines: %w", err)
 	}
 
 	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(mappedDetailedLines)
-	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(currencyCalculator)
+	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(cur)
 
-	expectedTotals := input.Run.Totals.RoundToPrecision(currencyCalculator)
+	expectedTotals := input.Run.Totals.RoundToPrecision(cur)
 	if !stdLine.Totals.Equal(expectedTotals) {
 		return fmt.Errorf("mapped line totals do not match run totals [line_id=%s run_id=%s line_total=%s run_total=%s]",
 			stdLine.ID, input.Run.ID.ID, stdLine.Totals.Total.String(), expectedTotals.Total.String())
@@ -96,11 +204,96 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 	return nil
 }
 
+func populateCustomCurrencyOverageFromRun(
+	stdLine *billing.StandardLine,
+	input populateStandardLineFromRunInput,
+	invoiceCurrency currencyx.Currency,
+) error {
+	charge := input.Charge
+	run := input.Run
+
+	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(run.Totals)
+	if err != nil {
+		return fmt.Errorf("custom currency charge[%s] converting overage to fiat: %w", charge.ID, err)
+	}
+
+	if stdLine.Currency != fiatOverage.Currency.GetFiatCode() {
+		return fmt.Errorf(
+			"custom currency charge[%s] invoice currency mismatch: %s != %s",
+			charge.ID,
+			stdLine.Currency,
+			fiatOverage.Currency.Details().Code,
+		)
+	}
+
+	if stdLine.Annotations == nil {
+		stdLine.Annotations = models.Annotations{}
+	}
+	stdLine.Annotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonOverage)
+
+	stdLine.RateCardDiscounts = billing.Discounts{}
+	stdLine.Discounts = billing.StandardLineDiscounts{}
+	stdLine.CreditsApplied = nil
+
+	stdLine.UsageBased = &billing.UsageBasedLine{
+		ConfigID:   stdLine.UsageBased.ConfigID,
+		FeatureKey: stdLine.UsageBased.FeatureKey,
+		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      fiatOverage.Amount,
+			PaymentTerm: productcatalog.InArrearsPaymentTerm,
+		}),
+		MeteredQuantity:              lo.ToPtr(alpacadecimal.NewFromInt(1)),
+		Quantity:                     lo.ToPtr(alpacadecimal.NewFromInt(1)),
+		MeteredPreLinePeriodQuantity: lo.ToPtr(alpacadecimal.Zero),
+		PreLinePeriodQuantity:        lo.ToPtr(alpacadecimal.Zero),
+	}
+
+	name := "overage"
+	if stdLine.Name != "" {
+		name = fmt.Sprintf("%s (overage)", stdLine.Name)
+	}
+
+	detailedLine, err := creditpurchase.NewDetailedLine(creditpurchase.NewDetailedLineInput{
+		Namespace:            stdLine.Namespace,
+		InvoiceID:            stdLine.InvoiceID,
+		Name:                 name,
+		ServicePeriod:        stdLine.Period,
+		CustomCurrency:       charge.Intent.GetCurrency(),
+		CustomCurrencyAmount: run.Totals.Total,
+		ResolvedCostBasis:    charge.State.ResolvedCostBasis,
+		FiatCurrency:         fiatOverage.Currency,
+		FiatAmount:           fiatOverage.Amount,
+	})
+	if err != nil {
+		return fmt.Errorf("creating custom currency overage detail: %w", err)
+	}
+
+	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(billing.DetailedLines{detailedLine})
+	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(invoiceCurrency)
+
+	if !stdLine.Totals.Total.Equal(fiatOverage.Amount) {
+		return fmt.Errorf(
+			"custom currency charge[%s] mapped overage total mismatch [line_id=%s run_id=%s line_total=%s overage_total=%s]",
+			charge.ID,
+			stdLine.ID,
+			run.ID.ID,
+			stdLine.Totals.Total.String(),
+			fiatOverage.Amount.String(),
+		)
+	}
+
+	return nil
+}
+
 func mapUsageBasedDetailedLines(
 	stdLine *billing.StandardLine,
 	run usagebased.RealizationRun,
-	currencyCalculator currencyx.Calculator,
+	currencyCalculator currencyx.Currency,
 ) (billing.DetailedLines, error) {
+	if currencyCalculator == nil {
+		return nil, fmt.Errorf("currency calculator is required")
+	}
+
 	if run.DetailedLines.IsAbsent() {
 		return nil, fmt.Errorf("run %s detailed lines must be expanded", run.ID.ID)
 	}

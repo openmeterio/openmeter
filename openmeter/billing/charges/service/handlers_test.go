@@ -7,23 +7,43 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 )
 
+type mockLineageService struct {
+	lineage.Service
+	mock.Mock
+}
+
+func (m *mockLineageService) CreateInitialLineages(ctx context.Context, input lineage.CreateInitialLineagesInput) error {
+	return m.Called(ctx, input).Error(0)
+}
+
+func (m *mockLineageService) PersistCorrectionLineageSegments(ctx context.Context, input lineage.PersistCorrectionLineageSegmentsInput) error {
+	return m.Called(ctx, input).Error(0)
+}
+
+func (m *mockLineageService) BackfillAdvanceLineageSegments(ctx context.Context, input lineage.BackfillAdvanceLineageSegmentsInput) error {
+	return m.Called(ctx, input).Error(0)
+}
+
 var _ flatfee.Handler = (*flatFeeTestHandler)(nil)
 
 type flatFeeTestHandler struct {
-	onAllocateCredits          func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error)
-	onInvoiceUsageAccrued      func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
-	onCorrectCreditAllocations func(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
-	onPaymentAuthorized        func(ctx context.Context, input flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
-	onPaymentSettled           func(ctx context.Context, input flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
-	onPaymentUncollectible     func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onAllocateCredits              func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error)
+	onInvoiceUsageAccrued          func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+	onCustomCurrencyOverageAccrued func(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error)
+	onCorrectCreditAllocations     func(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error)
+	onPaymentAuthorized            func(ctx context.Context, input flatfee.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
+	onPaymentSettled               func(ctx context.Context, input flatfee.OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
+	onPaymentUncollectible         func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
 }
 
 func newFlatFeeTestHandler() *flatFeeTestHandler {
@@ -44,6 +64,14 @@ func (h *flatFeeTestHandler) OnInvoiceUsageAccrued(ctx context.Context, input fl
 	}
 
 	return h.onInvoiceUsageAccrued(ctx, input)
+}
+
+func (h *flatFeeTestHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input flatfee.OnCustomCurrencyOverageAccruedInput) (flatfee.OnCustomCurrencyOverageAccruedResult, error) {
+	if h.onCustomCurrencyOverageAccrued == nil {
+		return flatfee.OnCustomCurrencyOverageAccruedResult{}, errors.New("onCustomCurrencyOverageAccrued is not set")
+	}
+
+	return h.onCustomCurrencyOverageAccrued(ctx, input)
 }
 
 func (h *flatFeeTestHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
@@ -135,6 +163,7 @@ var _ usagebased.Handler = (*usageBasedTestHandler)(nil)
 
 type usageBasedTestHandler struct {
 	onInvoiceUsageAccrued               func(ctx context.Context, input usagebased.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+	onCustomCurrencyOverageAccrued      func(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error)
 	onPaymentAuthorized                 func(ctx context.Context, input usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error)
 	onPaymentSettled                    func(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error)
 	onCreditsOnlyUsageAccrued           func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
@@ -151,6 +180,14 @@ func (h *usageBasedTestHandler) OnInvoiceUsageAccrued(ctx context.Context, input
 	}
 
 	return h.onInvoiceUsageAccrued(ctx, input)
+}
+
+func (h *usageBasedTestHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error) {
+	if h.onCustomCurrencyOverageAccrued == nil {
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, errors.New("onCustomCurrencyOverageAccrued is not set")
+	}
+
+	return h.onCustomCurrencyOverageAccrued(ctx, input)
 }
 
 func (h *usageBasedTestHandler) OnPaymentAuthorized(ctx context.Context, input usagebased.OnPaymentAuthorizedInput) (ledgertransaction.GroupReference, error) {

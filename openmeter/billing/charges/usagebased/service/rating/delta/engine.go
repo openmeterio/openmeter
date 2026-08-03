@@ -93,7 +93,6 @@ func (e Engine) Rate(_ context.Context, in Input) (Result, error) {
 	}
 
 	currentDetailedLines := usagebased.NewDetailedLinesFromBilling(
-		in.Intent,
 		in.CurrentPeriod.ServicePeriod,
 		billingDetailedLines.DetailedLines,
 	)

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Docs"
+  short_description: "Find and maintain OpenMeter domain docs"
+  default_prompt: "Use $domain-docs to locate the relevant package domain documentation for this task."

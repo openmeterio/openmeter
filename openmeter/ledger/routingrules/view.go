@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 type EntryView struct {
@@ -150,6 +151,14 @@ func optionalDecimalEqual(left *alpacadecimal.Decimal, right *alpacadecimal.Deci
 	}
 
 	return left.Equal(*right)
+}
+
+func optionalCurrencyCodeEqual(left *currencyx.Code, right *currencyx.Code) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+
+	return *left == *right
 }
 
 func stringSliceEqual(left []string, right []string) bool {

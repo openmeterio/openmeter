@@ -2,6 +2,8 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -27,7 +29,9 @@ func (LedgerCustomerAccount) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("customer_id").Immutable(),
 		field.String("account_type").GoType(ledger.AccountType("")).Immutable(),
-		field.String("account_id").Immutable(),
+		field.String("account_id").SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}).Immutable(),
 	}
 }
 
@@ -40,5 +44,12 @@ func (LedgerCustomerAccount) Indexes() []ent.Index {
 }
 
 func (LedgerCustomerAccount) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.From("account", LedgerAccount.Type).
+			Ref("customer_accounts").
+			Field("account_id").
+			Required().
+			Immutable().
+			Unique(),
+	}
 }

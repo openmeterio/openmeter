@@ -48,11 +48,13 @@ The authoritative operator surface for each Common type is defined in `api/spec/
 
 The Go types in `api/v3/filters/filter.go` deliberately expose a **superset** of operators beyond what the matching OAS `Common.*FieldFilter` advertises, so a single Go struct can back several endpoints with different narrow OAS surfaces:
 
-- `filters.FilterString` adds `gt`/`gte`/`lt`/`lte` and an `$exists` check on top of `Common.StringFieldFilter`'s operators
+- `filters.FilterString` adds `gt`/`gte`/`lt`/`lte` and an `exists` check on top of `Common.StringFieldFilter`'s operators
 - `filters.FilterNumeric` adds `neq` and `oeq`
 - `filters.FilterDateTime` matches its Common type exactly (`eq`/`gt`/`gte`/`lt`/`lte`)
 
-The existence check (`$exists`) and `nexists` are AIP-160 operators, but they are not currently modeled in any `Common.*FieldFilter` `oneOf` shape, so picking e.g. `Common.StringFieldFilter` in TypeSpec does not advertise them. Do not rely on `gt`/`gte`/`lt`/`lte` on string fields as a stable contract — the Common type is the public surface.
+The existence check (`exists`) and `nexists` are AIP-160 operators, but they are not currently modeled in any `Common.*FieldFilter` `oneOf` shape, so picking e.g. `Common.StringFieldFilter` in TypeSpec does not advertise them. Do not rely on `gt`/`gte`/`lt`/`lte` on string fields as a stable contract — the Common type is the public surface.
+
+Note: the v3 `exists` operator is unrelated to the `$`-prefixed Mongo-style tags (`$eq`, `$in`, ...) used by the v1 API (`api/api.gen.go`) — don't conflate the two.
 
 ## Operators
 

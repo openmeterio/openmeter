@@ -108,7 +108,7 @@ type Config struct {
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	TaxCodeService              taxcode.Service
 	CurrencyService             currencies.Service
-	ChargeService               billingcharges.ChargeService
+	ChargeService               billingcharges.Service
 	CostService                 cost.Service
 	FeatureConnector            feature.FeatureConnector
 
@@ -281,7 +281,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Get the OpenAPI spec
-	swagger, err := api.GetSwagger()
+	swagger, err := api.GetSpec()
 	if err != nil {
 		slog.Error("failed to get swagger", "error", err)
 		return nil, err
@@ -303,8 +303,8 @@ func NewServer(config *Config) (*Server, error) {
 		return ns, nil
 	}
 
-	addonHandler := addonshandler.New(resolveNamespace, config.AddonService, httptransport.WithErrorHandler(config.ErrorHandler))
-	appsHandler := appshandler.New(resolveNamespace, config.AppService, httptransport.WithErrorHandler(config.ErrorHandler))
+	addonHandler := addonshandler.New(resolveNamespace, config.AddonService, config.UnitConfig.Enabled, httptransport.WithErrorHandler(config.ErrorHandler))
+	appsHandler := appshandler.New(resolveNamespace, config.AppService, config.BillingService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, config.MeterEventService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersBillingHandler := customersbillinghandler.New(resolveNamespace, config.BillingService, config.CustomerService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -332,7 +332,7 @@ func NewServer(config *Config) (*Server, error) {
 	plansHandler := planshandler.New(resolveNamespace, config.PlanService, config.UnitConfig.Enabled, httptransport.WithErrorHandler(config.ErrorHandler))
 	planAddonsHandler := planaddonshandler.New(resolveNamespace, config.PlanService, config.PlanAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
-	currenciesHandler := currencieshandler.New(resolveNamespace, config.CurrencyService, httptransport.WithErrorHandler(config.ErrorHandler))
+	currenciesHandler := currencieshandler.New(resolveNamespace, config.CurrencyService, config.Credits.Enabled, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var chargesH chargeshandler.Handler
 	if config.ChargeService != nil {

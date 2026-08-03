@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -30,7 +29,6 @@ type DBGetter interface {
 	GetPaymentTerm() productcatalog.PaymentTermType
 	GetServicePeriodStart() time.Time
 	GetServicePeriodEnd() time.Time
-	GetCurrency() currencyx.Code
 	GetPerUnitAmount() alpacadecimal.Decimal
 	GetQuantity() alpacadecimal.Decimal
 	GetCreditsApplied() *creditsapplied.CreditsApplied
@@ -58,7 +56,6 @@ func FromDB[T DBGetter](dbEntity T) Base {
 			From: dbEntity.GetServicePeriodStart().In(time.UTC),
 			To:   dbEntity.GetServicePeriodEnd().In(time.UTC),
 		},
-		Currency:       dbEntity.GetCurrency(),
 		PerUnitAmount:  dbEntity.GetPerUnitAmount(),
 		Quantity:       dbEntity.GetQuantity(),
 		Totals:         totals.FromDB(dbEntity),

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 // BalanceSnapshotCreate is the builder for creating a BalanceSnapshot entity.
@@ -108,6 +109,12 @@ func (_c *BalanceSnapshotCreate) SetAt(v time.Time) *BalanceSnapshotCreate {
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *BalanceSnapshotCreate) SetUnitConfig(v *unitconfig.UnitConfig) *BalanceSnapshotCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
 // SetEntitlementID sets the "entitlement" edge to the Entitlement entity by ID.
 func (_c *BalanceSnapshotCreate) SetEntitlementID(id string) *BalanceSnapshotCreate {
 	_c.mutation.SetEntitlementID(id)
@@ -195,6 +202,11 @@ func (_c *BalanceSnapshotCreate) check() error {
 	if _, ok := _c.mutation.At(); !ok {
 		return &ValidationError{Name: "at", err: errors.New(`db: missing required field "BalanceSnapshot.at"`)}
 	}
+	if v, ok := _c.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "BalanceSnapshot.unit_config": %w`, err)}
+		}
+	}
 	if len(_c.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "BalanceSnapshot.entitlement"`)}
 	}
@@ -205,7 +217,10 @@ func (_c *BalanceSnapshotCreate) sqlSave(ctx context.Context) (*BalanceSnapshot,
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -219,7 +234,7 @@ func (_c *BalanceSnapshotCreate) sqlSave(ctx context.Context) (*BalanceSnapshot,
 	return _node, nil
 }
 
-func (_c *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.CreateSpec) {
+func (_c *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &BalanceSnapshot{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(balancesnapshot.Table, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
@@ -261,6 +276,14 @@ func (_c *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.Creat
 		_spec.SetField(balancesnapshot.FieldAt, field.TypeTime, value)
 		_node.At = value
 	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		vv, err := balancesnapshot.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(balancesnapshot.FieldUnitConfig, field.TypeString, vv)
+		_node.UnitConfig = value
+	}
 	if nodes := _c.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -278,7 +301,7 @@ func (_c *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.Creat
 		_node.OwnerID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -394,6 +417,9 @@ func (u *BalanceSnapshotUpsertOne) UpdateNewValues() *BalanceSnapshotUpsertOne {
 		}
 		if _, exists := u.create.mutation.At(); exists {
 			s.SetIgnore(balancesnapshot.FieldAt)
+		}
+		if _, exists := u.create.mutation.UnitConfig(); exists {
+			s.SetIgnore(balancesnapshot.FieldUnitConfig)
 		}
 	}))
 	return u
@@ -524,7 +550,10 @@ func (_c *BalanceSnapshotCreateBulk) Save(ctx context.Context) ([]*BalanceSnapsh
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -660,6 +689,9 @@ func (u *BalanceSnapshotUpsertBulk) UpdateNewValues() *BalanceSnapshotUpsertBulk
 			}
 			if _, exists := b.mutation.At(); exists {
 				s.SetIgnore(balancesnapshot.FieldAt)
+			}
+			if _, exists := b.mutation.UnitConfig(); exists {
+				s.SetIgnore(balancesnapshot.FieldUnitConfig)
 			}
 		}
 	}))

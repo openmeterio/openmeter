@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -49,8 +51,9 @@ type Handler interface {
 }
 
 type PaymentEventInput struct {
-	Charge  Charge    `json:"charge"`
-	EventAt time.Time `json:"eventAt"`
+	Charge     Charge                `json:"charge"`
+	EventAt    time.Time             `json:"eventAt"`
+	FiatAmount alpacadecimal.Decimal `json:"fiatAmount"`
 }
 
 func (i PaymentEventInput) Validate() error {
@@ -62,6 +65,10 @@ func (i PaymentEventInput) Validate() error {
 
 	if i.EventAt.IsZero() {
 		errs = append(errs, fmt.Errorf("event at is required"))
+	}
+
+	if !i.FiatAmount.IsPositive() {
+		errs = append(errs, fmt.Errorf("fiat amount must be positive"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

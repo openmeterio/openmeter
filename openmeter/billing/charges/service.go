@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -19,8 +17,9 @@ import (
 type Service interface {
 	ChargeService
 
-	// Facade interfaces provide convinience helpers for the API layer.
+	// Facade interfaces provide convenience helpers for the API layer.
 	CreditPurchaseFacadeService
+	CustomerChargeAPIService
 }
 
 type ChargeService interface {
@@ -37,10 +36,6 @@ type ChargeService interface {
 	// going through the temporary delete+create remap.
 	ApplyPatches(ctx context.Context, input ApplyPatchesInput) error
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
-}
-
-type CreditPurchaseFacadeService interface {
-	HandleCreditPurchaseExternalPaymentStateTransition(ctx context.Context, input HandleCreditPurchaseExternalPaymentStateTransitionInput) (creditpurchase.Charge, error)
 }
 
 type CreateInput struct {
@@ -107,26 +102,6 @@ func (i GetByIDsInput) Validate() error {
 
 	if err := i.Expands.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("expands: %w", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-type HandleCreditPurchaseExternalPaymentStateTransitionInput struct {
-	ChargeID meta.ChargeID
-
-	TargetPaymentState payment.Status
-}
-
-func (i HandleCreditPurchaseExternalPaymentStateTransitionInput) Validate() error {
-	var errs []error
-
-	if err := i.ChargeID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("charge ID: %w", err))
-	}
-
-	if err := i.TargetPaymentState.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("target payment state: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

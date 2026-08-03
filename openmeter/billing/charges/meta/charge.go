@@ -9,8 +9,8 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -92,7 +92,7 @@ type Expands = expand.Expand[Expand]
 type ChargeAccessor interface {
 	GetChargeID() ChargeID
 	GetCustomerID() customer.CustomerID
-	GetCurrency() currencyx.Code
+	GetCurrency() currencies.Currency
 	ErrorAttributes() models.Attributes
 }
 

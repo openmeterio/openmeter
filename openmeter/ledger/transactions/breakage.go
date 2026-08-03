@@ -45,7 +45,7 @@ func (t breakageTemplateBase) validate() error {
 		return fmt.Errorf("breakage address account type must be breakage")
 	}
 
-	if t.FBOAddress.Route().Route().Currency != t.BreakageAddress.Route().Route().Currency {
+	if !t.FBOAddress.Route().Route().Currency.Equal(t.BreakageAddress.Route().Route().Currency) {
 		return fmt.Errorf("FBO and breakage currency must match")
 	}
 

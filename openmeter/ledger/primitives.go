@@ -10,6 +10,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -44,7 +45,8 @@ type SubAccount interface {
 
 // RouteFilter is the set of route fields that can be used to filter sub-accounts and query balances.
 type RouteFilter struct {
-	Currency currencyx.Code
+	Currency          currencies.CurrencyReference
+	CostBasisCurrency mo.Option[*currencyx.Code]
 
 	// Non-currency fields are retained for near-future expansion.
 	TaxCode     mo.Option[*string]
@@ -265,7 +267,7 @@ func (i ListTransactionsInput) Validate() error {
 	}
 
 	if i.Currency != nil {
-		if err := i.Currency.Validate(); err != nil {
+		if err := ValidateCurrency(*i.Currency); err != nil {
 			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
 				"reason":   "currency_invalid",
 				"currency": i.Currency,

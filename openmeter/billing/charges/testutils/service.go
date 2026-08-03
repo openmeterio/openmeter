@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
@@ -24,6 +25,10 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -90,6 +95,7 @@ type Services struct {
 	UsageBasedService     usagebased.Service
 	FlatFeeService        flatfee.Service
 	CreditPurchaseService creditpurchase.Service
+	CurrencyService       currencies.Service
 }
 
 // NewServices constructs the charges stack from external dependencies and handlers.
@@ -115,6 +121,18 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating meta adapter: %w", err)
+	}
+
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{
+		Client: config.Client,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating currency adapter: %w", err)
+	}
+
+	currencyService, err := currencyservice.New(currencyAdapter)
+	if err != nil {
+		return nil, fmt.Errorf("creating currency service: %w", err)
 	}
 
 	locker, err := lockr.NewLocker(&lockr.LockerConfig{
@@ -154,6 +172,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
 		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:    currencyService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating flat fee service: %w", err)
@@ -172,15 +191,25 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating usage based adapter: %w", err)
 	}
 
+	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
+		BillingService: config.BillingService,
+		Logger:         logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating invoice updater: %w", err)
+	}
+
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
 		Handler:                 config.UsageBasedHandler,
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
+		InvoiceUpdater:          invoiceUpdater,
 		CustomerOverrideService: config.BillingService,
 		FeatureService:          config.FeatureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
+		Currencies:              currencyService,
 		StreamingConnector:      config.StreamingConnector,
 	})
 	if err != nil {
@@ -232,6 +261,11 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating charges adapter: %w", err)
 	}
 
+	currencyResolver, err := currencyresolver.New(currencyService)
+	if err != nil {
+		return nil, fmt.Errorf("creating currency resolver: %w", err)
+	}
+
 	chargesService, err := chargesservice.New(chargesservice.Config{
 		Logger:                logger,
 		Adapter:               rootAdapter,
@@ -243,6 +277,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		RecognizerService:     config.RecognizerService,
 		BillingService:        config.BillingService,
 		TaxCodeService:        config.TaxCodeService,
+		CurrencyResolver:      currencyResolver,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating charges service: %w", err)
@@ -253,5 +288,6 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		UsageBasedService:     usageBasedService,
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
+		CurrencyService:       currencyService,
 	}, nil
 }

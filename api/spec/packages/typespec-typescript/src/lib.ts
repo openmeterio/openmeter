@@ -1,4 +1,8 @@
-import { createTypeSpecLibrary, JSONSchemaType } from '@typespec/compiler'
+import {
+  createTypeSpecLibrary,
+  JSONSchemaType,
+  paramMessage,
+} from '@typespec/compiler'
 
 export interface ZodEmitterOptions {
   'package-name': string
@@ -44,7 +48,25 @@ export const $lib = createTypeSpecLibrary({
   emitter: {
     options: EmitterOptionsSchema,
   },
-  diagnostics: {},
+  // Every silent-degradation path in the emitter must report one of these.
+  // Nothing in the current spec triggers them — they exist so future spec
+  // shapes the emitter cannot faithfully map surface in the generate output
+  // instead of quietly eroding the SDK (a z.any() schema, or an endpoint
+  // missing from the published client).
+  diagnostics: {
+    'unsupported-type': {
+      severity: 'warning',
+      messages: {
+        default: paramMessage`${'kind'} has no schema mapping and degrades to any/unknown in the generated SDK`,
+      },
+    },
+    'ungrouped-operation': {
+      severity: 'warning',
+      messages: {
+        default: paramMessage`operation '${'operation'}' has no resolvable source interface (not authored via the extends/op-is pattern) and was omitted from the generated SDK`,
+      },
+    },
+  },
 })
 
 export const { reportDiagnostic, createDiagnostic } = $lib

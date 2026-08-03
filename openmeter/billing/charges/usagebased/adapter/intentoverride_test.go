@@ -15,15 +15,14 @@ import (
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestUsageBasedIntentOverrideAdapter(t *testing.T) {
@@ -44,17 +43,8 @@ type UsageBasedIntentOverrideAdapterSuite struct {
 func (s *UsageBasedIntentOverrideAdapterSuite) SetupSuite() {
 	t := s.T()
 
-	s.testDB = testutils.InitPostgresDB(t)
+	s.testDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	s.dbClient = entdb.NewClient(entdb.Driver(s.testDB.EntDriver.Driver()))
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: s.testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           slog.Default(),
-	})
-	require.NoError(t, err)
-	defer migrator.CloseOrLogError()
-	require.NoError(t, migrator.Up())
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.dbClient,
@@ -110,8 +100,9 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 		},
 	}
 
-	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) {
+	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) error {
 		fields.IntentDeletedAt = lo.ToPtr(time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC))
+		return nil
 	}))
 	override := usagebased.IntentMutableFields{
 		IntentMutableFields: chargesmeta.IntentMutableFields{
@@ -281,8 +272,9 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUnitConfigRoundTrip() {
 	s.True(fetched.Intent.GetBaseIntent().UnitConfig.Equal(newTestUnitConfig(1000, "K")))
 
 	// base update→read: the base unit_config is mutable (lives alongside price)
-	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) {
+	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) error {
 		f.UnitConfig = newTestUnitConfig(1000000, "M")
+		return nil
 	}))
 	updated, err := s.adapter.UpdateCharge(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
@@ -293,8 +285,9 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUnitConfigRoundTrip() {
 	s.True(fetched.Intent.GetBaseIntent().UnitConfig.Equal(newTestUnitConfig(1000000, "M")))
 
 	// base clear→read
-	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) {
+	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) error {
 		f.UnitConfig = nil
+		return nil
 	}))
 	updated, err = s.adapter.UpdateCharge(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
@@ -398,7 +391,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) us
 					Intent: chargesmeta.Intent{
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
-						Currency:   currencyx.Code("USD"),
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},
@@ -426,16 +419,6 @@ func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) us
 	})
 	s.Require().NoError(err)
 	s.Require().Len(createdCharges, 1)
-	s.Require().NoError(s.meta.RegisterCharges(s.T().Context(), chargesmeta.RegisterChargesInput{
-		Namespace: namespace,
-		Type:      chargesmeta.ChargeTypeUsageBased,
-		Charges: []chargesmeta.IDWithUniqueReferenceID{
-			{
-				ID:                createdCharges[0].ID,
-				UniqueReferenceID: createdCharges[0].Intent.GetUniqueReferenceID(),
-			},
-		},
-	}))
 	s.Nil(createdCharges[0].Intent.GetOverrideLayerMutableFields())
 
 	return createdCharges[0]

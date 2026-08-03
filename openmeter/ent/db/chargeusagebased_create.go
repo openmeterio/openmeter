@@ -17,9 +17,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -27,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -101,9 +104,31 @@ func (_c *ChargeUsageBasedCreate) SetNillableUniqueReferenceID(v *string) *Charg
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *ChargeUsageBasedCreate) SetCurrency(v currencyx.Code) *ChargeUsageBasedCreate {
-	_c.mutation.SetCurrency(v)
+// SetFiatCurrencyCode sets the "fiat_currency_code" field.
+func (_c *ChargeUsageBasedCreate) SetFiatCurrencyCode(v currencyx.Code) *ChargeUsageBasedCreate {
+	_c.mutation.SetFiatCurrencyCode(v)
+	return _c
+}
+
+// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableFiatCurrencyCode(v *currencyx.Code) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetFiatCurrencyCode(*v)
+	}
+	return _c
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *ChargeUsageBasedCreate) SetCustomCurrencyID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableCustomCurrencyID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
+	}
 	return _c
 }
 
@@ -326,7 +351,7 @@ func (_c *ChargeUsageBasedCreate) SetPrice(v *productcatalog.Price) *ChargeUsage
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_c *ChargeUsageBasedCreate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedCreate {
+func (_c *ChargeUsageBasedCreate) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedCreate {
 	_c.mutation.SetUnitConfig(v)
 	return _c
 }
@@ -341,6 +366,20 @@ func (_c *ChargeUsageBasedCreate) SetCurrentRealizationRunID(v string) *ChargeUs
 func (_c *ChargeUsageBasedCreate) SetNillableCurrentRealizationRunID(v *string) *ChargeUsageBasedCreate {
 	if v != nil {
 		_c.SetCurrentRealizationRunID(*v)
+	}
+	return _c
+}
+
+// SetCostBasisID sets the "cost_basis_id" field.
+func (_c *ChargeUsageBasedCreate) SetCostBasisID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetCostBasisID(v)
+	return _c
+}
+
+// SetNillableCostBasisID sets the "cost_basis_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableCostBasisID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetCostBasisID(*v)
 	}
 	return _c
 }
@@ -414,6 +453,11 @@ func (_c *ChargeUsageBasedCreate) SetCurrentRun(v *ChargeUsageBasedRuns) *Charge
 	return _c.SetCurrentRunID(v.ID)
 }
 
+// SetCostBasis sets the "cost_basis" edge to the ChargeUsageBasedCostBasis entity.
+func (_c *ChargeUsageBasedCreate) SetCostBasis(v *ChargeUsageBasedCostBasis) *ChargeUsageBasedCreate {
+	return _c.SetCostBasisID(v.ID)
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_c *ChargeUsageBasedCreate) SetChargeID(id string) *ChargeUsageBasedCreate {
 	_c.mutation.SetChargeID(id)
@@ -480,6 +524,11 @@ func (_c *ChargeUsageBasedCreate) SetFeature(v *Feature) *ChargeUsageBasedCreate
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_c *ChargeUsageBasedCreate) SetTaxCode(v *TaxCode) *ChargeUsageBasedCreate {
 	return _c.SetTaxCodeID(v.ID)
+}
+
+// SetCustomCurrency sets the "custom_currency" edge to the CustomCurrency entity.
+func (_c *ChargeUsageBasedCreate) SetCustomCurrency(v *CustomCurrency) *ChargeUsageBasedCreate {
+	return _c.SetCustomCurrencyID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
@@ -567,12 +616,14 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeUsageBased.currency"`)}
+	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
+		if err := chargeusagebased.FiatCurrencyCodeValidator(string(v)); err != nil {
+			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.fiat_currency_code": %w`, err)}
+		}
 	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := chargeusagebased.CurrencyValidator(string(v)); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.currency": %w`, err)}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := chargeusagebased.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.custom_currency_id": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ManagedBy(); !ok {
@@ -754,9 +805,9 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_spec.SetField(chargeusagebased.FieldUniqueReferenceID, field.TypeString, value)
 		_node.UniqueReferenceID = &value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(chargeusagebased.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
+		_spec.SetField(chargeusagebased.FieldFiatCurrencyCode, field.TypeString, value)
+		_node.FiatCurrencyCode = &value
 	}
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(chargeusagebased.FieldManagedBy, field.TypeEnum, value)
@@ -899,6 +950,23 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_node.CurrentRealizationRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.CostBasisIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebased.CostBasisTable,
+			Columns: []string{chargeusagebased.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedcostbasis.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CostBasisID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -1031,6 +1099,23 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.TaxCodeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomCurrencyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.CustomCurrencyTable,
+			Columns: []string{chargeusagebased.CustomCurrencyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customcurrency.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1386,7 +1471,7 @@ func (u *ChargeUsageBasedUpsert) UpdatePrice() *ChargeUsageBasedUpsert {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *ChargeUsageBasedUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsert {
+func (u *ChargeUsageBasedUpsert) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldUnitConfig, v)
 	return u
 }
@@ -1456,8 +1541,11 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
 			s.SetIgnore(chargeusagebased.FieldUniqueReferenceID)
 		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(chargeusagebased.FieldCurrency)
+		if _, exists := u.create.mutation.FiatCurrencyCode(); exists {
+			s.SetIgnore(chargeusagebased.FieldFiatCurrencyCode)
+		}
+		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
+			s.SetIgnore(chargeusagebased.FieldCustomCurrencyID)
 		}
 		if _, exists := u.create.mutation.ManagedBy(); exists {
 			s.SetIgnore(chargeusagebased.FieldManagedBy)
@@ -1485,6 +1573,9 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		}
 		if _, exists := u.create.mutation.FeatureKey(); exists {
 			s.SetIgnore(chargeusagebased.FieldFeatureKey)
+		}
+		if _, exists := u.create.mutation.CostBasisID(); exists {
+			s.SetIgnore(chargeusagebased.FieldCostBasisID)
 		}
 	}))
 	return u
@@ -1868,7 +1959,7 @@ func (u *ChargeUsageBasedUpsertOne) UpdatePrice() *ChargeUsageBasedUpsertOne {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *ChargeUsageBasedUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsertOne {
+func (u *ChargeUsageBasedUpsertOne) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.SetUnitConfig(v)
 	})
@@ -2115,8 +2206,11 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			if _, exists := b.mutation.UniqueReferenceID(); exists {
 				s.SetIgnore(chargeusagebased.FieldUniqueReferenceID)
 			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(chargeusagebased.FieldCurrency)
+			if _, exists := b.mutation.FiatCurrencyCode(); exists {
+				s.SetIgnore(chargeusagebased.FieldFiatCurrencyCode)
+			}
+			if _, exists := b.mutation.CustomCurrencyID(); exists {
+				s.SetIgnore(chargeusagebased.FieldCustomCurrencyID)
 			}
 			if _, exists := b.mutation.ManagedBy(); exists {
 				s.SetIgnore(chargeusagebased.FieldManagedBy)
@@ -2144,6 +2238,9 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			}
 			if _, exists := b.mutation.FeatureKey(); exists {
 				s.SetIgnore(chargeusagebased.FieldFeatureKey)
+			}
+			if _, exists := b.mutation.CostBasisID(); exists {
+				s.SetIgnore(chargeusagebased.FieldCostBasisID)
 			}
 		}
 	}))
@@ -2528,7 +2625,7 @@ func (u *ChargeUsageBasedUpsertBulk) UpdatePrice() *ChargeUsageBasedUpsertBulk {
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (u *ChargeUsageBasedUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsertBulk {
+func (u *ChargeUsageBasedUpsertBulk) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.SetUnitConfig(v)
 	})

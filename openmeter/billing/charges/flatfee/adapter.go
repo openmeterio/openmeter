@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -24,8 +25,13 @@ type Adapter interface {
 	ChargeRunAdapter
 	ChargeInvoicedUsageAdapter
 	ChargePaymentAdapter
+	ChargeCostBasisAdapter
 
 	entutils.TxCreator
+}
+
+type ChargeCostBasisAdapter interface {
+	SetResolvedCostBasis(ctx context.Context, input costbasis.SetResolvedCostBasisInput) (costbasis.CostBasis, error)
 }
 
 type ChargeAdapter interface {
@@ -141,6 +147,7 @@ type IntentWithInitialStatus struct {
 	InitialAdvanceAfter       *time.Time
 	AmountAfterProration      alpacadecimal.Decimal
 	NoFiatTransactionRequired bool
+	ResolvedCostBasis         *costbasis.State
 }
 
 func (i IntentWithInitialStatus) Validate() error {

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -23,14 +24,15 @@ import (
 // PlanQuery is the builder for querying Plan entities.
 type PlanQuery struct {
 	config
-	ctx               *QueryContext
-	order             []plan.OrderOption
-	inters            []Interceptor
-	predicates        []predicate.Plan
-	withPhases        *PlanPhaseQuery
-	withAddons        *PlanAddonQuery
-	withSubscriptions *SubscriptionQuery
-	modifiers         []func(*sql.Selector)
+	ctx                *QueryContext
+	order              []plan.OrderOption
+	inters             []Interceptor
+	predicates         []predicate.Plan
+	withPhases         *PlanPhaseQuery
+	withAddons         *PlanAddonQuery
+	withSubscriptions  *SubscriptionQuery
+	withCustomCurrency *CustomCurrencyQuery
+	modifiers          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -126,6 +128,28 @@ func (_q *PlanQuery) QuerySubscriptions() *SubscriptionQuery {
 			sqlgraph.From(plan.Table, plan.FieldID, selector),
 			sqlgraph.To(subscription.Table, subscription.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, plan.SubscriptionsTable, plan.SubscriptionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCustomCurrency chains the current query on the "custom_currency" edge.
+func (_q *PlanQuery) QueryCustomCurrency() *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, selector),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, plan.CustomCurrencyTable, plan.CustomCurrencyColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -320,14 +344,15 @@ func (_q *PlanQuery) Clone() *PlanQuery {
 		return nil
 	}
 	return &PlanQuery{
-		config:            _q.config,
-		ctx:               _q.ctx.Clone(),
-		order:             append([]plan.OrderOption{}, _q.order...),
-		inters:            append([]Interceptor{}, _q.inters...),
-		predicates:        append([]predicate.Plan{}, _q.predicates...),
-		withPhases:        _q.withPhases.Clone(),
-		withAddons:        _q.withAddons.Clone(),
-		withSubscriptions: _q.withSubscriptions.Clone(),
+		config:             _q.config,
+		ctx:                _q.ctx.Clone(),
+		order:              append([]plan.OrderOption{}, _q.order...),
+		inters:             append([]Interceptor{}, _q.inters...),
+		predicates:         append([]predicate.Plan{}, _q.predicates...),
+		withPhases:         _q.withPhases.Clone(),
+		withAddons:         _q.withAddons.Clone(),
+		withSubscriptions:  _q.withSubscriptions.Clone(),
+		withCustomCurrency: _q.withCustomCurrency.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -364,6 +389,17 @@ func (_q *PlanQuery) WithSubscriptions(opts ...func(*SubscriptionQuery)) *PlanQu
 		opt(query)
 	}
 	_q.withSubscriptions = query
+	return _q
+}
+
+// WithCustomCurrency tells the query-builder to eager-load the nodes that are connected to
+// the "custom_currency" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *PlanQuery) WithCustomCurrency(opts ...func(*CustomCurrencyQuery)) *PlanQuery {
+	query := (&CustomCurrencyClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCustomCurrency = query
 	return _q
 }
 
@@ -445,10 +481,11 @@ func (_q *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 	var (
 		nodes       = []*Plan{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withPhases != nil,
 			_q.withAddons != nil,
 			_q.withSubscriptions != nil,
+			_q.withCustomCurrency != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -490,6 +527,12 @@ func (_q *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 		if err := _q.loadSubscriptions(ctx, query, nodes,
 			func(n *Plan) { n.Edges.Subscriptions = []*Subscription{} },
 			func(n *Plan, e *Subscription) { n.Edges.Subscriptions = append(n.Edges.Subscriptions, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCustomCurrency; query != nil {
+		if err := _q.loadCustomCurrency(ctx, query, nodes, nil,
+			func(n *Plan, e *CustomCurrency) { n.Edges.CustomCurrency = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -589,6 +632,38 @@ func (_q *PlanQuery) loadSubscriptions(ctx context.Context, query *SubscriptionQ
 	}
 	return nil
 }
+func (_q *PlanQuery) loadCustomCurrency(ctx context.Context, query *CustomCurrencyQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *CustomCurrency)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Plan)
+	for i := range nodes {
+		if nodes[i].CustomCurrencyID == nil {
+			continue
+		}
+		fk := *nodes[i].CustomCurrencyID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(customcurrency.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "custom_currency_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *PlanQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -617,6 +692,9 @@ func (_q *PlanQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != plan.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withCustomCurrency != nil {
+			_spec.Node.AddColumnOnce(plan.FieldCustomCurrencyID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

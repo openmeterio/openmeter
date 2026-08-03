@@ -1,8 +1,23 @@
-import { type Model, type Program, type Type } from '@typespec/compiler'
+import {
+  type Model,
+  type Program,
+  type Type,
+  type Union,
+} from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 import { bodyProperties, jsdoc, publicPropertyName } from './utils.jsx'
-import { type IoMode, type RefName, isOptional, tsTypeOf } from './ts-types.js'
-import { computeDivergentModels, inputVariantName } from './input-variants.js'
+import {
+  type IoMode,
+  type RefName,
+  isOptional,
+  tsTypeOf,
+  unionVariantsType,
+} from './ts-types.js'
+import {
+  computeDivergentModels,
+  computeDivergentUnions,
+  inputVariantName,
+} from './input-variants.js'
 
 type ResolveName = (type: Type) => string | undefined
 type SchemaName = (resolvedName: string) => string
@@ -75,9 +90,11 @@ export interface InterfacesResult {
   typeNames: string[]
   /** Models whose input shape diverges from their output interface. */
   divergentModels: Set<Model>
+  /** Named unions whose input shape diverges from their output alias. */
+  divergentUnions: Set<Union>
   /**
-   * Input-mode ref resolver: the `…Input` variant for a divergent model, else
-   * the model's interface. Used to build request/query types.
+   * Input-mode ref resolver: the `…Input` variant for a divergent model or
+   * union, else the type's plain alias. Used to build request/query types.
    */
   refNameInput: RefName
 }
@@ -85,12 +102,13 @@ export interface InterfacesResult {
 export function interfacesFile(
   program: Program,
   models: Model[],
+  unions: Union[],
   resolveName: ResolveName,
   schemaName: SchemaName,
   interfaceName: (resolvedName: string) => string,
 ): InterfacesResult {
   const tk = $(program)
-  const emitted = new Set<Type>(models)
+  const emitted = new Set<Type>([...models, ...unions])
   const refName = (type: Type): string | undefined => {
     if (!emitted.has(type)) {
       return undefined
@@ -100,6 +118,7 @@ export function interfacesFile(
   }
 
   const divergent = computeDivergentModels(program, models)
+  const divergentUnions = computeDivergentUnions(unions, divergent)
   // An input-mode ref points at a child's `…Input` variant when that child also
   // diverges, so relaxed optionality propagates through the subtree.
   const refNameInput: RefName = (type) => {
@@ -107,9 +126,13 @@ export function interfacesFile(
     if (!name) {
       return undefined
     }
-    return type.kind === 'Model' && divergent.has(type)
-      ? inputVariantName(name)
-      : name
+    if (type.kind === 'Model' && divergent.has(type)) {
+      return inputVariantName(name)
+    }
+    if (type.kind === 'Union' && divergentUnions.has(type)) {
+      return inputVariantName(name)
+    }
+    return name
   }
 
   const blocks: string[] = []
@@ -173,9 +196,60 @@ export function interfacesFile(
           ? ` extends ${inputVariantName(refName(model.baseModel)!)}`
           : extendsClause
       const inputBody = interfaceBody(program, model, refNameInput, 'input')
-      inputBlocks.push(
+      const inputParts: string[] = []
+      if (doc) {
+        inputParts.push(doc)
+      }
+      inputParts.push(
         `export interface ${inputNameStr}${inputExtends} {\n${inputBody}\n}`,
       )
+      inputBlocks.push(inputParts.join('\n'))
+      asserts.push(
+        inputConformanceGuard(
+          inputNameStr,
+          `z.input<typeof schemas.${schemaName(resolved)}>`,
+        ),
+      )
+    }
+  }
+
+  for (const union of unions) {
+    const resolved = resolveName(union)
+    if (!resolved) {
+      continue
+    }
+    const name = interfaceName(resolved)
+    const schemaRef = `z.output<typeof schemas.${schemaName(resolved)}>`
+    const doc = jsdoc(tk.type.getDoc(union), '')
+
+    // Exclude the union from its own ref resolution so the alias expands its
+    // variants (`PriceFree | PriceFlat | …`) instead of aliasing to itself.
+    const structural: RefName = (type) =>
+      type === union ? undefined : refName(type)
+    const parts: string[] = []
+    if (doc) {
+      parts.push(doc)
+    }
+    parts.push(
+      `export type ${name} = ${unionVariantsType(program, union, structural, 'output')}`,
+    )
+    blocks.push(parts.join('\n'))
+    asserts.push(conformanceGuard(name, schemaRef))
+
+    // Mirrors the model input variant above: emitted only when substituting a
+    // variant's own `…Input` interface actually changes the union's shape.
+    if (divergentUnions.has(union)) {
+      const inputNameStr = inputVariantName(name)
+      const structuralInput: RefName = (type) =>
+        type === union ? undefined : refNameInput(type)
+      const inputParts: string[] = []
+      if (doc) {
+        inputParts.push(doc)
+      }
+      inputParts.push(
+        `export type ${inputNameStr} = ${unionVariantsType(program, union, structuralInput, 'input')}`,
+      )
+      inputBlocks.push(inputParts.join('\n'))
       asserts.push(
         inputConformanceGuard(
           inputNameStr,
@@ -200,6 +274,7 @@ export function interfacesFile(
     asserts: assertsFile,
     typeNames,
     divergentModels: divergent,
+    divergentUnions,
     refNameInput,
   }
 }

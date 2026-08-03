@@ -34,6 +34,9 @@ model CreditBalance {
 
   /**
    * Credits available after applying currently live charge impacts.
+   *
+   * Always zero for historical balance queries using the `timestamp` parameter
+   * because live charge impacts cannot be reconstructed historically.
    */
   @visibility(Lifecycle.Read)
   @example("200.00")

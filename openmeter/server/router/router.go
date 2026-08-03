@@ -106,7 +106,7 @@ type Config struct {
 	AppCustomInvoicing          appcustominvoicing.SyncService
 	Billing                     billing.Service
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
-	ChargeService               billingcharges.ChargeService
+	ChargeService               billingcharges.Service
 	Credits                     config.CreditsConfiguration
 	UnitConfig                  config.UnitConfigConfiguration
 	CurrencyService             currencies.Service
@@ -498,6 +498,7 @@ func NewRouter(config Config) (*Router, error) {
 			SubscriptionAddonService:    config.SubscriptionAddonService,
 			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
 			SubscriptionService:         config.SubscriptionService,
+			AddonService:                config.Addon,
 			NamespaceDecoder:            config.NamespaceDecoder,
 			Logger:                      config.Logger,
 		},
@@ -525,6 +526,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.currencyHandler = currencyhandler.New(
 		resolveNamespace,
 		config.CurrencyService,
+		config.Credits.Enabled,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

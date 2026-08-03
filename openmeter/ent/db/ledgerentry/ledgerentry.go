@@ -42,6 +42,8 @@ const (
 	EdgeTransaction = "transaction"
 	// EdgeSubAccount holds the string denoting the sub_account edge name in mutations.
 	EdgeSubAccount = "sub_account"
+	// EdgeSourceBreakageRecords holds the string denoting the source_breakage_records edge name in mutations.
+	EdgeSourceBreakageRecords = "source_breakage_records"
 	// Table holds the table name of the ledgerentry in the database.
 	Table = "ledger_entries"
 	// TransactionTable is the table that holds the transaction relation/edge.
@@ -58,6 +60,13 @@ const (
 	SubAccountInverseTable = "ledger_sub_accounts"
 	// SubAccountColumn is the table column denoting the sub_account relation/edge.
 	SubAccountColumn = "sub_account_id"
+	// SourceBreakageRecordsTable is the table that holds the source_breakage_records relation/edge.
+	SourceBreakageRecordsTable = "ledger_breakage_records"
+	// SourceBreakageRecordsInverseTable is the table name for the LedgerBreakageRecord entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgerbreakagerecord" package.
+	SourceBreakageRecordsInverseTable = "ledger_breakage_records"
+	// SourceBreakageRecordsColumn is the table column denoting the source_breakage_records relation/edge.
+	SourceBreakageRecordsColumn = "source_entry_id"
 )
 
 // Columns holds all SQL columns for ledgerentry fields.
@@ -184,6 +193,20 @@ func BySubAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newSubAccountStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// BySourceBreakageRecordsCount orders the results by source_breakage_records count.
+func BySourceBreakageRecordsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSourceBreakageRecordsStep(), opts...)
+	}
+}
+
+// BySourceBreakageRecords orders the results by source_breakage_records terms.
+func BySourceBreakageRecords(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSourceBreakageRecordsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newTransactionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -196,5 +219,12 @@ func newSubAccountStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubAccountInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, SubAccountTable, SubAccountColumn),
+	)
+}
+func newSourceBreakageRecordsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SourceBreakageRecordsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SourceBreakageRecordsTable, SourceBreakageRecordsColumn),
 	)
 }

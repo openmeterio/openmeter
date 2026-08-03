@@ -15,8 +15,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -24,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -51,8 +54,10 @@ type ChargeUsageBased struct {
 	Status meta.ChargeStatus `json:"status,omitempty"`
 	// UniqueReferenceID holds the value of the "unique_reference_id" field.
 	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
+	FiatCurrencyCode *currencyx.Code `json:"fiat_currency_code,omitempty"`
+	// CustomCurrencyID holds the value of the "custom_currency_id" field.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// ManagedBy holds the value of the "managed_by" field.
 	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
 	// SubscriptionID holds the value of the "subscription_id" field.
@@ -100,9 +105,11 @@ type ChargeUsageBased struct {
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
-	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
+	UnitConfig *unitconfig.UnitConfig `json:"unit_config,omitempty"`
 	// CurrentRealizationRunID holds the value of the "current_realization_run_id" field.
 	CurrentRealizationRunID *string `json:"current_realization_run_id,omitempty"`
+	// CostBasisID holds the value of the "cost_basis_id" field.
+	CostBasisID *string `json:"cost_basis_id,omitempty"`
 	// StatusDetailed holds the value of the "status_detailed" field.
 	StatusDetailed usagebased.Status `json:"status_detailed,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -119,6 +126,8 @@ type ChargeUsageBasedEdges struct {
 	DetailedLines []*ChargeUsageBasedRunDetailedLine `json:"detailed_lines,omitempty"`
 	// CurrentRun holds the value of the current_run edge.
 	CurrentRun *ChargeUsageBasedRuns `json:"current_run,omitempty"`
+	// CostBasis holds the value of the cost_basis edge.
+	CostBasis *ChargeUsageBasedCostBasis `json:"cost_basis,omitempty"`
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
 	// IntentOverride holds the value of the intent_override edge.
@@ -135,9 +144,11 @@ type ChargeUsageBasedEdges struct {
 	Feature *Feature `json:"feature,omitempty"`
 	// TaxCode holds the value of the tax_code edge.
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
+	// CustomCurrency holds the value of the custom_currency edge.
+	CustomCurrency *CustomCurrency `json:"custom_currency,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [11]bool
+	loadedTypes [13]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
@@ -169,12 +180,23 @@ func (e ChargeUsageBasedEdges) CurrentRunOrErr() (*ChargeUsageBasedRuns, error) 
 	return nil, &NotLoadedError{edge: "current_run"}
 }
 
+// CostBasisOrErr returns the CostBasis value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedEdges) CostBasisOrErr() (*ChargeUsageBasedCostBasis, error) {
+	if e.CostBasis != nil {
+		return e.CostBasis, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: chargeusagebasedcostbasis.Label}
+	}
+	return nil, &NotLoadedError{edge: "cost_basis"}
+}
+
 // ChargeOrErr returns the Charge value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeUsageBasedEdges) ChargeOrErr() (*Charge, error) {
 	if e.Charge != nil {
 		return e.Charge, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
@@ -185,7 +207,7 @@ func (e ChargeUsageBasedEdges) ChargeOrErr() (*Charge, error) {
 func (e ChargeUsageBasedEdges) IntentOverrideOrErr() (*ChargeUsageBasedOverride, error) {
 	if e.IntentOverride != nil {
 		return e.IntentOverride, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: chargeusagebasedoverride.Label}
 	}
 	return nil, &NotLoadedError{edge: "intent_override"}
@@ -196,7 +218,7 @@ func (e ChargeUsageBasedEdges) IntentOverrideOrErr() (*ChargeUsageBasedOverride,
 func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -207,7 +229,7 @@ func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -218,7 +240,7 @@ func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, err
 func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -229,7 +251,7 @@ func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error
 func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -240,7 +262,7 @@ func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 	if e.Feature != nil {
 		return e.Feature, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: dbfeature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
@@ -251,10 +273,21 @@ func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 func (e ChargeUsageBasedEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[10] {
+	} else if e.loadedTypes[11] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
+// CustomCurrencyOrErr returns the CustomCurrency value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedEdges) CustomCurrencyOrErr() (*CustomCurrency, error) {
+	if e.CustomCurrency != nil {
+		return e.CustomCurrency, nil
+	} else if e.loadedTypes[12] {
+		return nil, &NotFoundError{label: customcurrency.Label}
+	}
+	return nil, &NotLoadedError{edge: "custom_currency"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -264,7 +297,7 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebased.FieldAnnotations, chargeusagebased.FieldMetadata:
 			values[i] = new([]byte)
-		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
+		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldFiatCurrencyCode, chargeusagebased.FieldCustomCurrencyID, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldCostBasisID, chargeusagebased.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
 		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldInvoiceAt, chargeusagebased.FieldIntentDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -350,11 +383,19 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 				_m.UniqueReferenceID = new(string)
 				*_m.UniqueReferenceID = value.String
 			}
-		case chargeusagebased.FieldCurrency:
+		case chargeusagebased.FieldFiatCurrencyCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
+				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.FiatCurrencyCode = new(currencyx.Code)
+				*_m.FiatCurrencyCode = currencyx.Code(value.String)
+			}
+		case chargeusagebased.FieldCustomCurrencyID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyID = new(string)
+				*_m.CustomCurrencyID = value.String
 			}
 		case chargeusagebased.FieldManagedBy:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -519,6 +560,13 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 				_m.CurrentRealizationRunID = new(string)
 				*_m.CurrentRealizationRunID = value.String
 			}
+		case chargeusagebased.FieldCostBasisID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_basis_id", values[i])
+			} else if value.Valid {
+				_m.CostBasisID = new(string)
+				*_m.CostBasisID = value.String
+			}
 		case chargeusagebased.FieldStatusDetailed:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status_detailed", values[i])
@@ -551,6 +599,11 @@ func (_m *ChargeUsageBased) QueryDetailedLines() *ChargeUsageBasedRunDetailedLin
 // QueryCurrentRun queries the "current_run" edge of the ChargeUsageBased entity.
 func (_m *ChargeUsageBased) QueryCurrentRun() *ChargeUsageBasedRunsQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryCurrentRun(_m)
+}
+
+// QueryCostBasis queries the "cost_basis" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryCostBasis() *ChargeUsageBasedCostBasisQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryCostBasis(_m)
 }
 
 // QueryCharge queries the "charge" edge of the ChargeUsageBased entity.
@@ -591,6 +644,11 @@ func (_m *ChargeUsageBased) QueryFeature() *FeatureQuery {
 // QueryTaxCode queries the "tax_code" edge of the ChargeUsageBased entity.
 func (_m *ChargeUsageBased) QueryTaxCode() *TaxCodeQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryTaxCode(_m)
+}
+
+// QueryCustomCurrency queries the "custom_currency" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryCustomCurrency() *CustomCurrencyQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryCustomCurrency(_m)
 }
 
 // Update returns a builder for updating this ChargeUsageBased.
@@ -645,8 +703,15 @@ func (_m *ChargeUsageBased) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	if v := _m.FiatCurrencyCode; v != nil {
+		builder.WriteString("fiat_currency_code=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyID; v != nil {
+		builder.WriteString("custom_currency_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("managed_by=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))
@@ -742,6 +807,11 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString(", ")
 	if v := _m.CurrentRealizationRunID; v != nil {
 		builder.WriteString("current_realization_run_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CostBasisID; v != nil {
+		builder.WriteString("cost_basis_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

@@ -503,7 +503,7 @@ func TestWithLineEngineInvoiceLineChangesGroupsAPIEditsByEngine(t *testing.T) {
 		StandardInvoiceBase: billing.StandardInvoiceBase{
 			Namespace:   "ns",
 			ID:          "invoice-1",
-			SchemaLevel: 1,
+			SchemaLevel: 2,
 		},
 		Lines: billing.NewStandardInvoiceLines(billing.StandardLines{invoiceLine, chargeLine}),
 	}
@@ -598,7 +598,7 @@ func TestWithLineEngineInvoiceLineChangesPreallocatesCreatedLineID(t *testing.T)
 			Namespace:   "ns",
 			ID:          "invoice-1",
 			Currency:    "USD",
-			SchemaLevel: 1,
+			SchemaLevel: 2,
 		},
 		Lines: billing.NewStandardInvoiceLines(nil),
 	}
@@ -655,7 +655,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualChanges(t *testing.T) {
 			Namespace:   "ns",
 			ID:          "invoice-1",
 			Status:      billing.StandardInvoiceStatusGathering,
-			SchemaLevel: 1,
+			SchemaLevel: 2,
 		},
 		Lines: billing.NewStandardInvoiceLines(billing.StandardLines{originalLine}),
 	}
@@ -765,7 +765,7 @@ func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T
 				ID:              "invoice-1",
 				Name:            "invoice-1",
 			},
-			Currency:      currencyx.Code("USD"),
+			Currency:      currencyx.FiatCode("USD"),
 			ServicePeriod: originalLine.ServicePeriod,
 			SchemaLevel:   1,
 		},
@@ -815,7 +815,7 @@ func newStandardLineForLineEngineTest(id string, engine billing.LineEngineType, 
 			},
 			Engine:    engine,
 			InvoiceID: "invoice-1",
-			Currency:  currencyx.Code("USD"),
+			Currency:  currencyx.FiatCode("USD"),
 			ManagedBy: billing.ManuallyManagedLine,
 			Period: timeutil.ClosedPeriod{
 				From: now,
@@ -855,7 +855,7 @@ func newGatheringLineForLineEngineTest(id string, engine billing.LineEngineType,
 			},
 			Engine:    engine,
 			InvoiceID: "invoice-1",
-			Currency:  currencyx.Code("USD"),
+			Currency:  currencyx.FiatCode("USD"),
 			ManagedBy: billing.ManuallyManagedLine,
 			ServicePeriod: timeutil.ClosedPeriod{
 				From: now,
@@ -889,7 +889,7 @@ func standardInvoicePairForTaxConfigDiffTest(beforeTaxConfig, afterTaxConfig *bi
 		StandardInvoiceBase: billing.StandardInvoiceBase{
 			Namespace:   "ns",
 			ID:          "invoice-1",
-			SchemaLevel: 1,
+			SchemaLevel: 2,
 			Workflow: billing.InvoiceWorkflow{
 				Config: billing.WorkflowConfig{
 					Invoicing: billing.InvoicingConfig{

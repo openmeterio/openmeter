@@ -215,6 +215,20 @@ func (_u *ChargeUsageBasedRunsUpdate) SetNillableDetailedLinesPresent(v *bool) *
 	return _u
 }
 
+// SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetDetailedLinesIncludeCreditAllocations(v)
+	return _u
+}
+
+// SetNillableDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableDetailedLinesIncludeCreditAllocations(v *bool) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetDetailedLinesIncludeCreditAllocations(*v)
+	}
+	return _u
+}
+
 // SetLineID sets the "line_id" field.
 func (_u *ChargeUsageBasedRunsUpdate) SetLineID(v string) *ChargeUsageBasedRunsUpdate {
 	_u.mutation.SetLineID(v)
@@ -561,6 +575,9 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if value, ok := _u.mutation.DetailedLinesPresent(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DetailedLinesIncludeCreditAllocations(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
@@ -990,6 +1007,20 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableDetailedLinesPresent(v *bool
 	return _u
 }
 
+// SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetDetailedLinesIncludeCreditAllocations(v)
+	return _u
+}
+
+// SetNillableDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableDetailedLinesIncludeCreditAllocations(v *bool) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetDetailedLinesIncludeCreditAllocations(*v)
+	}
+	return _u
+}
+
 // SetLineID sets the "line_id" field.
 func (_u *ChargeUsageBasedRunsUpdateOne) SetLineID(v string) *ChargeUsageBasedRunsUpdateOne {
 	_u.mutation.SetLineID(v)
@@ -1366,6 +1397,9 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if value, ok := _u.mutation.DetailedLinesPresent(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DetailedLinesIncludeCreditAllocations(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)

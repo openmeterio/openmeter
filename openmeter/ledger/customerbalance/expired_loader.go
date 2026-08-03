@@ -7,12 +7,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 )
 
-type expiredCreditTransactionLoader struct {
-	service *service
+func newExpiredCreditTransactionLoader(s *service) creditTransactionLoader {
+	return &expiredCreditTransactionLoader{
+		service: s,
+	}
 }
 
-func newExpiredCreditTransactionLoader(s *service) creditTransactionLoader {
-	return &expiredCreditTransactionLoader{service: s}
+type expiredCreditTransactionLoader struct {
+	service *service
 }
 
 func (l *expiredCreditTransactionLoader) Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error) {

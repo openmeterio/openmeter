@@ -37,8 +37,10 @@ const (
 	FieldStatus = "status"
 	// FieldUniqueReferenceID holds the string denoting the unique_reference_id field in the database.
 	FieldUniqueReferenceID = "unique_reference_id"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
+	// FieldFiatCurrencyCode holds the string denoting the fiat_currency_code field in the database.
+	FieldFiatCurrencyCode = "currency"
+	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
+	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
@@ -88,7 +90,8 @@ var Columns = []string{
 	FieldFullServicePeriodTo,
 	FieldStatus,
 	FieldUniqueReferenceID,
-	FieldCurrency,
+	FieldFiatCurrencyCode,
+	FieldCustomCurrencyID,
 	FieldManagedBy,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
@@ -120,8 +123,10 @@ func ValidColumn(column string) bool {
 var (
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
+	// FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	FiatCurrencyCodeValidator func(string) error
+	// CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	CustomCurrencyIDValidator func(string) error
 	// TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
 	TaxCodeIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
@@ -224,9 +229,14 @@ func ByUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUniqueReferenceID, opts...).ToFunc()
 }
 
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+// ByFiatCurrencyCode orders the results by the fiat_currency_code field.
+func ByFiatCurrencyCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFiatCurrencyCode, opts...).ToFunc()
+}
+
+// ByCustomCurrencyID orders the results by the custom_currency_id field.
+func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomCurrencyID, opts...).ToFunc()
 }
 
 // ByManagedBy orders the results by the managed_by field.

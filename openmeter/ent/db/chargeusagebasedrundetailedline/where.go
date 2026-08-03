@@ -272,6 +272,16 @@ func CurrencyHasSuffix(v currencyx.Code) predicate.ChargeUsageBasedRunDetailedLi
 	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldHasSuffix(FieldCurrency, vc))
 }
 
+// CurrencyIsNil applies the IsNil predicate on the "currency" field.
+func CurrencyIsNil() predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldIsNull(FieldCurrency))
+}
+
+// CurrencyNotNil applies the NotNil predicate on the "currency" field.
+func CurrencyNotNil() predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldNotNull(FieldCurrency))
+}
+
 // CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
 func CurrencyEqualFold(v currencyx.Code) predicate.ChargeUsageBasedRunDetailedLine {
 	vc := string(v)

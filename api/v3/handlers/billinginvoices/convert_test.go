@@ -74,6 +74,49 @@ func apiLineForMergeTest(t *testing.T, period timeutil.ClosedPeriod, id *string)
 	return out
 }
 
+func TestMapRateCardSurfacesUnitConfigSnapshot(t *testing.T) {
+	period := mergeTestPeriod()
+
+	// given: a standard line whose usage-based config carries a unit_config snapshot
+	// (a divide-by-1000, ceiling-rounded, "GB"-labeled conversion).
+	line := standardLineForMergeTest(t, "line-id", period)
+	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(5)})
+	line.UsageBased.UnitConfig = &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: decimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		Precision:        0,
+		DisplayUnit:      lo.ToPtr("GB"),
+	}
+
+	// when: mapping the line's rate card to the v3 API type.
+	rc, err := mapRateCard(line)
+	require.NoError(t, err)
+
+	// then: the snapshot surfaces field-for-field on the API rate card.
+	require.NotNil(t, rc.UnitConfig)
+	require.Equal(t, api.BillingUnitConfigOperationDivide, rc.UnitConfig.Operation)
+	require.Equal(t, "1000", rc.UnitConfig.ConversionFactor)
+	require.Equal(t, lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling), rc.UnitConfig.Rounding)
+	require.Equal(t, lo.ToPtr(0), rc.UnitConfig.Precision)
+	require.Equal(t, lo.ToPtr("GB"), rc.UnitConfig.DisplayUnit)
+}
+
+func TestMapRateCardOmitsUnitConfigWhenAbsent(t *testing.T) {
+	period := mergeTestPeriod()
+
+	// given: a standard line with no unit_config snapshot (the common case).
+	line := standardLineForMergeTest(t, "line-id", period)
+	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(5)})
+
+	// when: mapping the rate card.
+	rc, err := mapRateCard(line)
+	require.NoError(t, err)
+
+	// then: the API field is nil (omitted) — identity with today's output.
+	require.Nil(t, rc.UnitConfig)
+}
+
 func TestMergeStandardInvoiceLinesFromAPITombstonesOmittedLines(t *testing.T) {
 	period := mergeTestPeriod()
 	keptLine := standardLineForMergeTest(t, "kept-line-id", period)

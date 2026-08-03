@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -243,6 +244,34 @@ func (u *AddonRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *
 	return u.SetPrice(*value)
 }
 
+func (u *AddonRateCardUpdate) SetOrClearCurrencyCode(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearCurrencyCode()
+	}
+	return u.SetCurrencyCode(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearCurrencyCode(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCode()
+	}
+	return u.SetCurrencyCode(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearCustomCurrencyID(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearCustomCurrencyID(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
 func (u *AddonRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -257,14 +286,14 @@ func (u *AddonRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disc
 	return u.SetDiscounts(*value)
 }
 
-func (u *AddonRateCardUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *AddonRateCardUpdate {
+func (u *AddonRateCardUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *AddonRateCardUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *AddonRateCardUpdateOne {
+func (u *AddonRateCardUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *AddonRateCardUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -619,6 +648,258 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDefaultTaxConfig(val
 		return u.ClearInvoiceDefaultTaxConfig()
 	}
 	return u.SetInvoiceDefaultTaxConfig(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearAnnotations(value *models.Annotations) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearMetadata(value *map[string]string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearMetadata(value *map[string]string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearDeletedAt(value *time.Time) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearDescription(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearDescription(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxConfig()
+	}
+	return u.SetTaxConfig(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearFeatureKey(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearFeatureKey(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearRatecardDiscounts()
+	}
+	return u.SetRatecardDiscounts(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearRatecardDiscounts(value **billing.Discounts) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearRatecardDiscounts()
+	}
+	return u.SetRatecardDiscounts(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearChildUniqueReferenceID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearChildUniqueReferenceID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearChildUniqueReferenceID()
+	}
+	return u.SetChildUniqueReferenceID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionID()
+	}
+	return u.SetSubscriptionID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionID()
+	}
+	return u.SetSubscriptionID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionPhaseID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionPhaseID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionPhaseID()
+	}
+	return u.SetSubscriptionPhaseID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionItemID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionItemID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionItemID()
+	}
+	return u.SetSubscriptionItemID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionBillingPeriodFrom(value *time.Time) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionBillingPeriodFrom()
+	}
+	return u.SetSubscriptionBillingPeriodFrom(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionBillingPeriodFrom(value *time.Time) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionBillingPeriodFrom()
+	}
+	return u.SetSubscriptionBillingPeriodFrom(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSubscriptionBillingPeriodTo(value *time.Time) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSubscriptionBillingPeriodTo()
+	}
+	return u.SetSubscriptionBillingPeriodTo(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSubscriptionBillingPeriodTo(value *time.Time) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSubscriptionBillingPeriodTo()
+	}
+	return u.SetSubscriptionBillingPeriodTo(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearTaxCodeID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearTaxCodeID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearSplitLineGroupID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearSplitLineGroupID()
+	}
+	return u.SetSplitLineGroupID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearSplitLineGroupID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearSplitLineGroupID()
+	}
+	return u.SetSplitLineGroupID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearChargeID(value *string) *BillingGatheringInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearChargeID()
+	}
+	return u.SetChargeID(*value)
+}
+
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearChargeID(value *string) *BillingGatheringInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearChargeID()
+	}
+	return u.SetChargeID(*value)
 }
 
 func (u *BillingInvoiceUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceUpdate {
@@ -1727,14 +2008,14 @@ func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearMeteredQuantity(
 	return u.SetMeteredQuantity(*value)
 }
 
-func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
+func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -2287,6 +2568,90 @@ func (u *ChargeCreditPurchaseUpdateOne) SetOrClearDescription(value *string) *Ch
 	return u.SetDescription(*value)
 }
 
+func (u *ChargeCreditPurchaseUpdate) SetOrClearVoidedAt(value *time.Time) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearVoidedAt()
+	}
+	return u.SetVoidedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearVoidedAt(value *time.Time) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearVoidedAt()
+	}
+	return u.SetVoidedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearCurrencyCostBasisID(value *string) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearCurrencyCostBasisID(value *string) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearResolvedCostBasisID(value *string) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearResolvedCostBasisID(value *string) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearResolvedAt(value *time.Time) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearResolvedAt(value *time.Time) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCostBasisUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseCostBasisUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *ChargeCreditPurchaseCreditGrantUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCreditGrantUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -2607,6 +2972,76 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearCurrentRealizationRunID(value *string
 		return u.ClearCurrentRealizationRunID()
 	}
 	return u.SetCurrentRealizationRunID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearCurrencyCostBasisID(value *string) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearCurrencyCostBasisID(value *string) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearResolvedCostBasisID(value *string) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearResolvedCostBasisID(value *string) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearResolvedAt(value *time.Time) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearResolvedAt(value *time.Time) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeCostBasisUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeCostBasisUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
 }
 
 func (u *ChargeFlatFeeOverrideUpdate) SetOrClearDescription(value *string) *ChargeFlatFeeOverrideUpdate {
@@ -3155,14 +3590,14 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearDiscounts(value **billing.Discount
 	return u.SetDiscounts(*value)
 }
 
-func (u *ChargeUsageBasedUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedUpdate {
+func (u *ChargeUsageBasedUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *ChargeUsageBasedUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *ChargeUsageBasedUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedUpdateOne {
+func (u *ChargeUsageBasedUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *ChargeUsageBasedUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -3181,6 +3616,76 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearCurrentRealizationRunID(value *str
 		return u.ClearCurrentRealizationRunID()
 	}
 	return u.SetCurrentRealizationRunID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearCurrencyCostBasisID(value *string) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearCurrencyCostBasisID(value *string) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCostBasisID()
+	}
+	return u.SetCurrencyCostBasisID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearResolvedCostBasisID(value *string) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearResolvedCostBasisID(value *string) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasisID()
+	}
+	return u.SetResolvedCostBasisID(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearResolvedCostBasis(value *alpacadecimal.Decimal) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedCostBasis()
+	}
+	return u.SetResolvedCostBasis(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearResolvedAt(value *time.Time) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearResolvedAt(value *time.Time) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearResolvedAt()
+	}
+	return u.SetResolvedAt(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedCostBasisUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedCostBasisUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
 }
 
 func (u *ChargeUsageBasedOverrideUpdate) SetOrClearDescription(value *string) *ChargeUsageBasedOverrideUpdate {
@@ -3267,14 +3772,14 @@ func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearFeatureKey(value *string) 
 	return u.SetFeatureKey(*value)
 }
 
-func (u *ChargeUsageBasedOverrideUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdate {
+func (u *ChargeUsageBasedOverrideUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *ChargeUsageBasedOverrideUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdateOne {
+func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *ChargeUsageBasedOverrideUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -3673,6 +4178,20 @@ func (u *CurrencyCostBasisUpdateOne) SetOrClearDeletedAt(value *time.Time) *Curr
 	return u.SetDeletedAt(*value)
 }
 
+func (u *CurrencyCostBasisUpdate) SetOrClearEffectiveTo(value *time.Time) *CurrencyCostBasisUpdate {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
+func (u *CurrencyCostBasisUpdateOne) SetOrClearEffectiveTo(value *time.Time) *CurrencyCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
 func (u *CustomCurrencyUpdate) SetOrClearDeletedAt(value *time.Time) *CustomCurrencyUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -3685,6 +4204,20 @@ func (u *CustomCurrencyUpdateOne) SetOrClearDeletedAt(value *time.Time) *CustomC
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *CustomCurrencyUpdate) SetOrClearSymbol(value *string) *CustomCurrencyUpdate {
+	if value == nil {
+		return u.ClearSymbol()
+	}
+	return u.SetSymbol(*value)
+}
+
+func (u *CustomCurrencyUpdateOne) SetOrClearSymbol(value *string) *CustomCurrencyUpdateOne {
+	if value == nil {
+		return u.ClearSymbol()
+	}
+	return u.SetSymbol(*value)
 }
 
 func (u *CustomerUpdate) SetOrClearMetadata(value *map[string]string) *CustomerUpdate {
@@ -4381,6 +4914,34 @@ func (u *LedgerBreakageRecordUpdate) SetOrClearDeletedAt(value *time.Time) *Ledg
 }
 
 func (u *LedgerBreakageRecordUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerBreakageRecordUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerCreditVoidRecordUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerCreditVoidRecordUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerCreditVoidRecordUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerCreditVoidRecordUpdateOne {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
@@ -5143,6 +5704,34 @@ func (u *PlanRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *P
 	return u.SetPrice(*value)
 }
 
+func (u *PlanRateCardUpdate) SetOrClearCurrencyCode(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearCurrencyCode()
+	}
+	return u.SetCurrencyCode(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearCurrencyCode(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCurrencyCode()
+	}
+	return u.SetCurrencyCode(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearCustomCurrencyID(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearCustomCurrencyID(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCustomCurrencyID()
+	}
+	return u.SetCustomCurrencyID(*value)
+}
+
 func (u *PlanRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -5157,14 +5746,14 @@ func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disco
 	return u.SetDiscounts(*value)
 }
 
-func (u *PlanRateCardUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *PlanRateCardUpdate {
+func (u *PlanRateCardUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
 	return u.SetUnitConfig(*value)
 }
 
-func (u *PlanRateCardUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *PlanRateCardUpdateOne {
+func (u *PlanRateCardUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *PlanRateCardUpdateOne {
 	if value == nil {
 		return u.ClearUnitConfig()
 	}
@@ -5617,6 +6206,20 @@ func (u *SubscriptionItemUpdateOne) SetOrClearDiscounts(value **productcatalog.D
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearUnitConfig(value **unitconfig.UnitConfig) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
 }
 
 func (u *SubscriptionPhaseUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionPhaseUpdate {

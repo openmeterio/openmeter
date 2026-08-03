@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceflatfeelineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -40,10 +41,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
@@ -52,6 +55,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
@@ -71,6 +75,7 @@ import (
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercreditvoidrecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -170,6 +175,7 @@ func checkColumn(t, c string) error {
 			balancesnapshot.Table:                                  balancesnapshot.ValidColumn,
 			billingcustomerlock.Table:                              billingcustomerlock.ValidColumn,
 			billingcustomeroverride.Table:                          billingcustomeroverride.ValidColumn,
+			billinggatheringinvoiceline.Table:                      billinggatheringinvoiceline.ValidColumn,
 			billinginvoice.Table:                                   billinginvoice.ValidColumn,
 			billinginvoiceflatfeelineconfig.Table:                  billinginvoiceflatfeelineconfig.ValidColumn,
 			billinginvoiceline.Table:                               billinginvoiceline.ValidColumn,
@@ -186,10 +192,12 @@ func checkColumn(t, c string) error {
 			billingworkflowconfig.Table:                            billingworkflowconfig.ValidColumn,
 			charge.Table:                                           charge.ValidColumn,
 			chargecreditpurchase.Table:                             chargecreditpurchase.ValidColumn,
+			chargecreditpurchasecostbasis.Table:                    chargecreditpurchasecostbasis.ValidColumn,
 			chargecreditpurchasecreditgrant.Table:                  chargecreditpurchasecreditgrant.ValidColumn,
 			chargecreditpurchaseexternalpayment.Table:              chargecreditpurchaseexternalpayment.ValidColumn,
 			chargecreditpurchaseinvoicedpayment.Table:              chargecreditpurchaseinvoicedpayment.ValidColumn,
 			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,
+			chargeflatfeecostbasis.Table:                           chargeflatfeecostbasis.ValidColumn,
 			chargeflatfeeoverride.Table:                            chargeflatfeeoverride.ValidColumn,
 			chargeflatfeerun.Table:                                 chargeflatfeerun.ValidColumn,
 			chargeflatfeeruncreditallocations.Table:                chargeflatfeeruncreditallocations.ValidColumn,
@@ -197,6 +205,7 @@ func checkColumn(t, c string) error {
 			chargeflatfeeruninvoicedusage.Table:                    chargeflatfeeruninvoicedusage.ValidColumn,
 			chargeflatfeerunpayment.Table:                          chargeflatfeerunpayment.ValidColumn,
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
+			chargeusagebasedcostbasis.Table:                        chargeusagebasedcostbasis.ValidColumn,
 			chargeusagebasedoverride.Table:                         chargeusagebasedoverride.ValidColumn,
 			chargeusagebasedruncreditallocations.Table:             chargeusagebasedruncreditallocations.ValidColumn,
 			chargeusagebasedrundetailedline.Table:                  chargeusagebasedrundetailedline.ValidColumn,
@@ -216,6 +225,7 @@ func checkColumn(t, c string) error {
 			llmcostprice.Table:                                     llmcostprice.ValidColumn,
 			ledgeraccount.Table:                                    ledgeraccount.ValidColumn,
 			ledgerbreakagerecord.Table:                             ledgerbreakagerecord.ValidColumn,
+			ledgercreditvoidrecord.Table:                           ledgercreditvoidrecord.ValidColumn,
 			ledgercustomeraccount.Table:                            ledgercustomeraccount.ValidColumn,
 			ledgerentry.Table:                                      ledgerentry.ValidColumn,
 			ledgersubaccount.Table:                                 ledgersubaccount.ValidColumn,

@@ -2,8 +2,13 @@
   "mcpServers": {
     "codegraph": {
       "type": "stdio",
-      "command": "codegraph",
-      "args": ["serve", "--mcp"]
+      "command": "nix",
+      "args": ["run", ".#codegraph", "--", "serve", "--mcp"],
+      "env": {
+        "CODEGRAPH_MCP_TOOLS": "explore,node,search,callers,callees,impact",
+        "CODEGRAPH_TELEMETRY": "0",
+        "CODEGRAPH_NO_UPDATE_CHECK": "1"
+      }
     }
   }
 }

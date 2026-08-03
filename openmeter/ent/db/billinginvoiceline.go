@@ -54,7 +54,7 @@ type BillingInvoiceLine struct {
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
 	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
+	Currency currencyx.FiatCode `json:"currency,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig billing.TaxConfig `json:"tax_config,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
@@ -475,7 +475,7 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
+				_m.Currency = currencyx.FiatCode(value.String)
 			}
 		case billinginvoiceline.FieldTaxConfig:
 			if value, ok := values[i].(*[]byte); !ok {

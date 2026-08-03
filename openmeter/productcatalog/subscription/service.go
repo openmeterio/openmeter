@@ -23,11 +23,12 @@ type SubscriptionChangeResponse struct {
 }
 
 type MigrateSubscriptionRequest struct {
-	ID            models.NamespacedID
-	TargetVersion *int
-	StartingPhase *string
-	Timing        *subscription.Timing
-	BillingAnchor *time.Time
+	ID               models.NamespacedID
+	TargetVersion    *int
+	StartingPhase    *string
+	Timing           *subscription.Timing
+	BillingAnchor    *time.Time
+	RejectUnitConfig bool
 }
 
 type ChangeSubscriptionRequest struct {
@@ -38,6 +39,8 @@ type ChangeSubscriptionRequest struct {
 	// Only used if existing plan is provided
 	StartingPhase  *string
 	SettlementMode *productcatalog.SettlementMode
+
+	RejectUnitConfig bool
 }
 
 type CreateSubscriptionRequest struct {

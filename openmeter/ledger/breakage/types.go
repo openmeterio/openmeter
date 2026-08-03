@@ -155,6 +155,7 @@ type BreakageImpact struct {
 	CustomerID  customer.CustomerID
 	Currency    currencyx.Code
 	Amount      alpacadecimal.Decimal
+	SourceKind  SourceKind
 	Annotations models.Annotations
 }
 

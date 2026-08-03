@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -67,7 +68,7 @@ func (t legacyFundCustomerReceivableTemplate) resolve(ctx context.Context, custo
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency:                       t.Currency,
+		Currency:                       currencies.NewCurrencyReference(t.Currency),
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -81,7 +82,7 @@ func (t legacyFundCustomerReceivableTemplate) resolve(ctx context.Context, custo
 	}
 
 	wash, err := businessAccounts.WashAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency:  t.Currency,
+		Currency:  currencies.NewCurrencyReference(t.Currency),
 		CostBasis: t.CostBasis,
 	})
 	if err != nil {
@@ -159,7 +160,7 @@ func (t legacySettleCustomerReceivablePaymentTemplate) resolve(ctx context.Conte
 	}
 
 	authorizedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency:                       t.Currency,
+		Currency:                       currencies.NewCurrencyReference(t.Currency),
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -168,7 +169,7 @@ func (t legacySettleCustomerReceivablePaymentTemplate) resolve(ctx context.Conte
 	}
 
 	openReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency:                       t.Currency,
+		Currency:                       currencies.NewCurrencyReference(t.Currency),
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})

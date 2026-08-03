@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 )
 
-func ParseBody(r *http.Request, payload any) *apierrors.BaseAPIError {
+func ParseBody(r *http.Request, payload any) error {
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&payload); err != nil {
 		return apierrors.NewBadRequestError(r.Context(), err,
@@ -26,7 +26,7 @@ func ParseBody(r *http.Request, payload any) *apierrors.BaseAPIError {
 }
 
 // ParseOptionalBody parses the request body if present, leaving payload unchanged if the body is empty.
-func ParseOptionalBody(r *http.Request, payload any) *apierrors.BaseAPIError {
+func ParseOptionalBody(r *http.Request, payload any) error {
 	if r.Body == nil {
 		return nil
 	}

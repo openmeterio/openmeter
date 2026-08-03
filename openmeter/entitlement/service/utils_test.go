@@ -96,7 +96,7 @@ func setupDependecies(t *testing.T) (entitlement.Service, *dependencies) {
 	}
 
 	// create isolated pg db for tests
-	testdb := testutils.InitPostgresDB(t)
+	testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	dbClient := testdb.EntDriver.Client()
 	pgDriver := testdb.PGDriver
 	entDriver := testdb.EntDriver
@@ -105,10 +105,6 @@ func setupDependecies(t *testing.T) (entitlement.Service, *dependencies) {
 	defer m.Unlock()
 
 	// migrate db via ent schema upsert
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to create schema: %v", err)
-	}
-
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
 
 	locker, err := lockr.NewLocker(&lockr.LockerConfig{

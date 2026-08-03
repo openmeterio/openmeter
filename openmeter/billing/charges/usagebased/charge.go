@@ -9,7 +9,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -49,6 +51,19 @@ func (c ChargeBase) Validate() error {
 		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
 
+	costBasisIntent := c.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		if c.State.CostBasisID != nil {
+			errs = append(errs, errors.New("cost basis ID must not be set without a cost basis intent"))
+		}
+
+		if c.State.ResolvedCostBasis != nil {
+			errs = append(errs, errors.New("resolved cost basis must not be set without a cost basis intent"))
+		}
+	} else if c.State.CostBasisID == nil {
+		errs = append(errs, errors.New("cost basis ID is required with a cost basis intent"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -66,8 +81,27 @@ func (c ChargeBase) GetCustomerID() customer.CustomerID {
 	}
 }
 
-func (c ChargeBase) GetCurrency() currencyx.Code {
+func (c ChargeBase) GetCurrency() currencies.Currency {
 	return c.Intent.GetCurrency()
+}
+
+func (c ChargeBase) GetInvoiceCurrency() (currencyx.FiatCode, error) {
+	currency := c.GetCurrency()
+	if currency.IsFiat() {
+		return currencyx.FiatCode(currency.GetCode()), nil
+	}
+
+	costBasisIntent := c.Intent.GetCostBasisIntent()
+	if costBasisIntent == nil {
+		return "", errors.New("cost basis intent is required for a custom-currency invoice")
+	}
+
+	fiatCurrency, err := costBasisIntent.GetFiatCurrency()
+	if err != nil {
+		return "", fmt.Errorf("getting cost basis fiat currency: %w", err)
+	}
+
+	return fiatCurrency.GetFiatCode(), nil
 }
 
 // GetIntentDeletedAt returns the effective intent deletion timestamp.
@@ -135,6 +169,15 @@ func (c Charge) GetCurrentRealizationRun() (RealizationRun, error) {
 	return c.Realizations.GetByID(*c.State.CurrentRealizationRunID)
 }
 
+func (c Charge) ConvertCustomCurrencyOverageToFiat(creditCurrencyTotals totals.Totals) (meta.FiatOverage, error) {
+	return meta.ConvertCustomCurrencyOverageToFiat(meta.ConvertCustomCurrencyOverageToFiatInput{
+		Currency:          c.Intent.GetCurrency(),
+		CostBasisIntent:   c.Intent.GetCostBasisIntent(),
+		ResolvedCostBasis: c.State.ResolvedCostBasis,
+		Totals:            creditCurrencyTotals,
+	})
+}
+
 func (c Charge) GetCustomerID() customer.CustomerID {
 	return customer.CustomerID{
 		Namespace: c.Namespace,
@@ -197,6 +240,7 @@ type Intent struct {
 	IntentMutableFields `json:"intentMutableFields"`
 	SettlementMode      productcatalog.SettlementMode `json:"settlementMode"`
 	FeatureKey          string                        `json:"featureKey"`
+	CostBasis           *costbasis.Intent             `json:"costBasis,omitempty"`
 }
 
 // AsOverridableIntent maps the intent's mutable fields as the base layer.
@@ -206,6 +250,7 @@ func (i Intent) AsOverridableIntent() OverridableIntent {
 		baseLayer:      i.IntentMutableFields,
 		settlementMode: i.SettlementMode,
 		featureKey:     i.FeatureKey,
+		costBasis:      i.CostBasis,
 	}
 }
 
@@ -234,7 +279,32 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("feature key is required"))
 	}
 
+	if err := validateCostBasis(i.Currency, i.SettlementMode, i.CostBasis); err != nil {
+		errs = append(errs, err)
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func validateCostBasis(currency currencies.Currency, settlementMode productcatalog.SettlementMode, intent *costbasis.Intent) error {
+	isCostBasisRequired := currency.IsCustom() && settlementMode == productcatalog.CreditThenInvoiceSettlementMode
+	if !isCostBasisRequired {
+		if intent != nil {
+			return errors.New("cost basis must not be set unless currency is custom and settlement mode is credit then invoice")
+		}
+
+		return nil
+	}
+
+	if intent == nil {
+		return errors.New("cost basis is required for custom currency with credit then invoice settlement")
+	}
+
+	if err := intent.Validate(); err != nil {
+		return fmt.Errorf("cost basis: %w", err)
+	}
+
+	return nil
 }
 
 // OverridableIntent stores the immutable intent plus the base and optional
@@ -249,6 +319,7 @@ type OverridableIntent struct {
 
 	settlementMode productcatalog.SettlementMode
 	featureKey     string
+	costBasis      *costbasis.Intent
 }
 
 func NewOverridableIntent(baseIntent Intent, overrideLayer *IntentMutableFields) OverridableIntent {
@@ -258,6 +329,7 @@ func NewOverridableIntent(baseIntent Intent, overrideLayer *IntentMutableFields)
 		overrideLayer:  overrideLayer,
 		settlementMode: baseIntent.SettlementMode,
 		featureKey:     baseIntent.FeatureKey,
+		costBasis:      baseIntent.CostBasis,
 	}
 }
 
@@ -275,7 +347,7 @@ func (i OverridableIntent) GetCustomerID() string {
 	return i.intent.CustomerID
 }
 
-func (i OverridableIntent) GetCurrency() currencyx.Code {
+func (i OverridableIntent) GetCurrency() currencies.Currency {
 	return i.intent.Currency
 }
 
@@ -318,6 +390,10 @@ func (i OverridableIntent) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
 
+	if err := validateCostBasis(i.intent.Currency, i.settlementMode, i.costBasis); err != nil {
+		errs = append(errs, err)
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -332,6 +408,7 @@ func (i OverridableIntent) GetEffectiveIntent() Intent {
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
 		FeatureKey:          i.featureKey,
+		CostBasis:           i.GetCostBasisIntent(),
 	}
 
 	if i.overrideLayer != nil {
@@ -365,6 +442,16 @@ func (i OverridableIntent) GetEffectiveInvoiceAt() time.Time {
 // the base intent. Override layers cannot change usage attribution.
 func (i OverridableIntent) GetFeatureKey() string {
 	return i.featureKey
+}
+
+// GetCostBasisIntent returns the immutable cost-basis intent from the base intent.
+// Override layers cannot change how the charge's custom-currency value is resolved.
+func (i OverridableIntent) GetCostBasisIntent() *costbasis.Intent {
+	if i.costBasis == nil {
+		return nil
+	}
+
+	return lo.ToPtr(i.costBasis.Clone())
 }
 
 // GetEffectivePrice returns a cloned price from the active mutable layer,
@@ -433,6 +520,7 @@ func (i OverridableIntent) GetBaseIntent() Intent {
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
 		FeatureKey:          i.featureKey,
+		CostBasis:           i.GetCostBasisIntent(),
 	}
 }
 
@@ -441,6 +529,7 @@ func (i OverridableIntent) GetIntentForTarget(target meta.ChangeTarget) (Intent,
 		Intent:         i.intent.Clone(),
 		SettlementMode: i.settlementMode,
 		FeatureKey:     i.featureKey,
+		CostBasis:      i.GetCostBasisIntent(),
 	}
 
 	switch target {
@@ -479,7 +568,7 @@ func (i OverridableIntent) GetDeletedAt() *time.Time {
 	return i.baseLayer.IntentDeletedAt
 }
 
-func (i *OverridableIntent) MutateEffective(editFn func(*IntentMutableFields)) error {
+func (i *OverridableIntent) MutateEffective(editFn func(*IntentMutableFields) error) error {
 	target := meta.ChangeTargetBase
 	if i.overrideLayer != nil {
 		target = meta.ChangeTargetOverride
@@ -493,7 +582,7 @@ func (i *OverridableIntent) MutateEffective(editFn func(*IntentMutableFields)) e
 // The callback always receives a non-nil pointer to a cloned mutable-field value.
 // The clone is written back only after it normalizes and validates, so validation
 // errors do not partially mutate the intent.
-func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(*IntentMutableFields)) error {
+func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(*IntentMutableFields) error) error {
 	var targetFields IntentMutableFields
 	switch target {
 	case meta.ChangeTargetBase:
@@ -506,7 +595,9 @@ func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(*Intent
 		targetFields = i.overrideLayer.Clone()
 	}
 
-	editFn(&targetFields)
+	if err := editFn(&targetFields); err != nil {
+		return err
+	}
 
 	normalizedFields := targetFields.Normalized()
 
@@ -596,10 +687,12 @@ func (f IntentMutableFields) Validate() error {
 }
 
 type State struct {
-	CurrentRealizationRunID *string      `json:"currentRealizationRunId"`
-	AdvanceAfter            *time.Time   `json:"advanceAfter"`
-	FeatureID               string       `json:"featureId"`
-	RatingEngine            RatingEngine `json:"ratingEngine"`
+	CurrentRealizationRunID *string          `json:"currentRealizationRunId"`
+	AdvanceAfter            *time.Time       `json:"advanceAfter"`
+	FeatureID               string           `json:"featureId"`
+	RatingEngine            RatingEngine     `json:"ratingEngine"`
+	CostBasisID             *string          `json:"-"`
+	ResolvedCostBasis       *costbasis.State `json:"resolvedCostBasis,omitempty"`
 }
 
 func (s State) Normalized() State {
@@ -621,6 +714,16 @@ func (s State) Validate() error {
 
 	if err := s.RatingEngine.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("rating engine: %w", err))
+	}
+
+	if s.CostBasisID != nil && *s.CostBasisID == "" {
+		errs = append(errs, fmt.Errorf("cost basis ID is required"))
+	}
+
+	if s.ResolvedCostBasis != nil {
+		if err := s.ResolvedCostBasis.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resolved cost basis: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

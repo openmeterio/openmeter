@@ -1,4 +1,0 @@
-interface:
-  display_name: "Currencyx"
-  short_description: "Work on fiat and custom currency primitives"
-  default_prompt: "Use $currencyx to update OpenMeter currency code, rounding, calculator, allocation, or fiat/custom boundary behavior."

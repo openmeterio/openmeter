@@ -1,6 +1,6 @@
 --- a/chi-middleware.tmpl
 +++ b/chi-middleware.tmpl
-@@ -77,11 +77,21 @@
+@@ -77,16 +77,26 @@
          }{{end}}
        {{end}}
        {{if .IsStyled}}
@@ -15,7 +15,12 @@
 +      {{- else }}
        err = runtime.BindQueryParameterWithOptions("{{.Style}}", {{.Explode}}, {{.Required}}, "{{.ParamName}}", r.URL.Query(), &params.{{.GoName}}, runtime.BindQueryParameterOptions{Type: "{{.SchemaType}}", Format: "{{.SchemaFormat}}"})
        if err != nil {
-         siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "{{.ParamName}}", Err: err})
+         var requiredError *runtime.RequiredParameterError
+         if errors.As(err, &requiredError) {
+           siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "{{.ParamName}}"})
+         } else {
+           siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "{{.ParamName}}", Err: err})
+         }
          return
        }
 +      {{- end }}

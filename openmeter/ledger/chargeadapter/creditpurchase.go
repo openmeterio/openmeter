@@ -13,10 +13,12 @@ import (
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -87,6 +89,35 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
+	settlementCurrency, err := settlementPaymentCurrency(charge.Intent.Currency, charge.Intent.Settlement)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement payment currency: %w", err)
+	}
+
+	var templates []transactions.TransactionTemplate
+	if charge.Intent.Currency.IsCustom() || !input.FiatAmount.Equal(charge.Intent.CreditAmount) {
+		// Re-denominate the issued credit receivable into the amount actually
+		// being paid before authorization. For fiat credits, the same-currency
+		// conversion records the cost-basis difference against brokerage.
+		templates = append(templates, transactions.ConvertCurrencyTemplate{
+			At:             input.EventAt,
+			SourceAmount:   input.FiatAmount,
+			TargetAmount:   charge.Intent.CreditAmount,
+			CostBasis:      costBasis,
+			SourceCurrency: currencies.NewCurrencyReference(settlementCurrency),
+			TargetCurrency: charge.Intent.Currency.Reference(),
+			Features:       featureFilters,
+		})
+	}
+	templates = append(templates, transactions.AuthorizeCustomerReceivablePaymentTemplate{
+		At:             input.EventAt,
+		Amount:         input.FiatAmount,
+		Currency:       currencies.NewCurrencyReference(settlementCurrency),
+		CostBasis:      &costBasis,
+		Features:       featureFilters,
+		SourceChargeID: &charge.ID,
+	})
+
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		h.resolverDependencies(),
@@ -94,14 +125,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 			CustomerID: customerID,
 			Namespace:  charge.Namespace,
 		},
-		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:             input.EventAt,
-			Amount:         charge.Intent.CreditAmount,
-			Currency:       charge.Intent.Currency,
-			CostBasis:      &costBasis,
-			Features:       featureFilters,
-			SourceChargeID: &charge.ID,
-		},
+		templates...,
 	)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
@@ -113,11 +137,12 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		}
 	}
 
-	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+	transactionGroupInput := transactions.GroupInputs(
 		charge.Namespace,
 		annotations,
 		inputs...,
-	))
+	)
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactionGroupInput)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
 	}
@@ -145,6 +170,11 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
+	settlementCurrency, err := settlementPaymentCurrency(charge.Intent.Currency, charge.Intent.Settlement)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement payment currency: %w", err)
+	}
+
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		h.resolverDependencies(),
@@ -154,8 +184,8 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:             input.EventAt,
-			Amount:         charge.Intent.CreditAmount,
-			Currency:       charge.Intent.Currency,
+			Amount:         input.FiatAmount,
+			Currency:       currencies.NewCurrencyReference(settlementCurrency),
 			CostBasis:      &costBasis,
 			Features:       featureFilters,
 			SourceChargeID: &charge.ID,
@@ -171,11 +201,12 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		}
 	}
 
-	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+	transactionGroupInput := transactions.GroupInputs(
 		charge.Namespace,
 		annotations,
 		inputs...,
-	))
+	)
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactionGroupInput)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
 	}
@@ -208,17 +239,47 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
 	}
 
+	costBasisPtr := &costBasis
+	if charge.Intent.Currency.IsCustom() && charge.Intent.Settlement.Type() == chargecreditpurchase.SettlementTypePromotional {
+		// A custom-currency promotional grant has no cost basis to denominate
+		// (GetCostBasis returns zero, not a real rate), so leave the route's
+		// cost basis unset rather than routing it as a zero-rate bucket.
+		costBasisPtr = nil
+	}
+
+	costBasisCurrency, err := settlementCostBasisCurrency(charge.Intent.Currency, charge.Intent.Settlement)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement cost basis currency: %w", err)
+	}
 	customerID := customer.CustomerID{
 		Namespace: charge.Namespace,
 		ID:        charge.Intent.CustomerID,
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
-	bookedAt := charge.Intent.ServicePeriod.To
+	effectiveAt := charge.Intent.ServicePeriod.To
+	// LedgerTransaction.CreatedAt retains recording time. For effective time,
+	// future-effective purchases book attribution immediately so subsequent
+	// committed purchases observe reduced advance; already-effective purchases
+	// backdate attribution alongside issuance and settlement.
+	advanceAttributionEffectiveAt := clock.Now()
+	if effectiveAt.Before(advanceAttributionEffectiveAt) {
+		advanceAttributionEffectiveAt = effectiveAt
+	}
 
-	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get advance attributions: %w", err)
+	// Advance attribution re-buckets an existing unknown-cost-basis advance into
+	// this purchase's known cost-basis bucket, which requires a cost basis to
+	// attribute into. A grant with no cost basis (a custom-currency promotional
+	// grant) has none, so it skips attribution and issues its full amount to
+	// FBO. The outstanding advance is left on its unknown-cost-basis route,
+	// where the balance formula (FBO + nil-cost-basis advance receivable) still
+	// nets it against the new credit, and a later paid purchase attributes it.
+	var advanceAttributions []advanceAttribution
+	if costBasisPtr != nil {
+		advanceAttributions, err = h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
+		if err != nil {
+			return ledgertransaction.GroupReference{}, fmt.Errorf("get advance attributions: %w", err)
+		}
 	}
 
 	advanceAttributionAmount := alpacadecimal.Zero
@@ -235,10 +296,11 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 	for _, attribution := range advanceAttributions {
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
-			At:                 bookedAt,
+			At:                 advanceAttributionEffectiveAt,
 			Amount:             attribution.advanceAmount,
-			Currency:           charge.Intent.Currency,
-			CostBasis:          &costBasis,
+			Currency:           charge.Intent.Currency.Reference(),
+			CostBasisCurrency:  costBasisCurrency,
+			CostBasis:          costBasisPtr,
 			AdvanceFeatures:    attribution.advanceFeatures,
 			AttributedFeatures: featureFilters,
 			SourceChargeID:     &charge.ID,
@@ -247,28 +309,30 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 		if attribution.accruedAmount.IsPositive() {
 			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
-				At:             bookedAt,
-				Amount:         attribution.accruedAmount,
-				Currency:       charge.Intent.Currency,
-				TaxCode:        attribution.taxCode,
-				TaxBehavior:    attribution.taxBehavior,
-				FromCostBasis:  nil,
-				ToCostBasis:    &costBasis,
-				SourceChargeID: &charge.ID,
-				SpendChargeID:  attribution.spendChargeID,
+				At:                advanceAttributionEffectiveAt,
+				Amount:            attribution.accruedAmount,
+				Currency:          charge.Intent.Currency.Reference(),
+				TaxCode:           attribution.taxCode,
+				TaxBehavior:       attribution.taxBehavior,
+				FromCostBasis:     nil,
+				ToCostBasis:       costBasisPtr,
+				CostBasisCurrency: costBasisCurrency,
+				SourceChargeID:    &charge.ID,
+				SpendChargeID:     attribution.spendChargeID,
 			})
 		}
 	}
 
 	if issuableAmount.IsPositive() {
 		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
-			At:             bookedAt,
-			Amount:         issuableAmount,
-			Currency:       charge.Intent.Currency,
-			CostBasis:      &costBasis,
-			Features:       featureFilters,
-			SourceChargeID: &charge.ID,
-			CreditPriority: charge.Intent.Priority,
+			At:                effectiveAt,
+			Amount:            issuableAmount,
+			Currency:          charge.Intent.Currency.Reference(),
+			CostBasisCurrency: costBasisCurrency,
+			CostBasis:         costBasisPtr,
+			Features:          featureFilters,
+			SourceChargeID:    &charge.ID,
+			CreditPriority:    charge.Intent.Priority,
 		})
 	}
 
@@ -278,18 +342,18 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		// does not leave an unsettled receivable behind.
 		templates = append(templates,
 			transactions.AuthorizeCustomerReceivablePaymentTemplate{
-				At:             bookedAt,
+				At:             effectiveAt,
 				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency,
-				CostBasis:      &costBasis,
+				Currency:       charge.Intent.Currency.Reference(),
+				CostBasis:      costBasisPtr,
 				Features:       featureFilters,
 				SourceChargeID: &charge.ID,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
-				At:             bookedAt,
+				At:             effectiveAt,
 				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency,
-				CostBasis:      &costBasis,
+				Currency:       charge.Intent.Currency.Reference(),
+				CostBasis:      costBasisPtr,
 				Features:       featureFilters,
 				SourceChargeID: &charge.ID,
 			},
@@ -331,8 +395,9 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			CustomerID:        customerID,
 			Amount:            charge.Intent.CreditAmount,
 			ImmediateReleases: immediateReleases,
-			Currency:          charge.Intent.Currency,
-			CostBasis:         &costBasis,
+			Currency:          charge.Intent.Currency.Reference(),
+			CostBasisCurrency: costBasisCurrency,
+			CostBasis:         costBasisPtr,
 			CreditPriority:    charge.Intent.Priority,
 			Features:          featureFilters,
 			ExpiresAt:         *charge.Intent.ExpiresAt,
@@ -380,6 +445,47 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 		AccountCatalog: h.accountCatalog,
 		BalanceQuerier: h.balanceQuerier,
 	}
+}
+
+// settlementPaymentCurrency returns the fiat currency that Authorize/Settle
+// payment templates must book against. The charge layer owns the exact fiat
+// amount and passes it through PaymentEventInput.
+func settlementPaymentCurrency(
+	currency currencies.Currency,
+	settlement chargecreditpurchase.Settlement,
+) (currencyx.Code, error) {
+	if !currency.IsCustom() {
+		return currency.GetCode(), nil
+	}
+
+	settlementCurrency, err := settlement.GetCurrency()
+	if err != nil {
+		return "", fmt.Errorf("get settlement currency: %w", err)
+	}
+	if settlementCurrency == "" {
+		return "", fmt.Errorf("settlement currency is required for a custom currency purchase")
+	}
+
+	return currencyx.Code(settlementCurrency), nil
+}
+
+// settlementCostBasisCurrency returns the fiat currency a custom-currency
+// route's cost basis is denominated in, or nil when the currency is fiat or
+// the settlement has no known cost basis yet (e.g. promotional grants).
+func settlementCostBasisCurrency(currency currencies.Currency, settlement chargecreditpurchase.Settlement) (*currencyx.Code, error) {
+	if !currency.IsCustom() {
+		return nil, nil
+	}
+
+	settlementCurrency, err := settlement.GetCurrency()
+	if err != nil {
+		return nil, fmt.Errorf("get settlement currency: %w", err)
+	}
+	if settlementCurrency == "" {
+		return nil, nil
+	}
+
+	return lo.ToPtr(currencyx.Code(settlementCurrency)), nil
 }
 
 // advanceAttribution is the posting plan for one slice of existing advance
@@ -440,29 +546,29 @@ type advanceReceivableBuckets struct {
 func (h *creditPurchaseHandler) advanceAttributions(
 	ctx context.Context,
 	customerID customer.CustomerID,
-	currency currencyx.Code,
+	currency currencies.Currency,
 	amount alpacadecimal.Decimal,
 	creditFeatures []string,
 ) ([]advanceAttribution, error) {
+	if err := currency.Validate(); err != nil {
+		return nil, fmt.Errorf("currency: %w", err)
+	}
+	currencyReference := currency.Reference()
+
 	customerAccounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	advanceReceivables, err := h.advanceReceivableBalances(ctx, customerAccounts.ReceivableAccount.ID(), currency)
+	advanceReceivables, err := h.advanceReceivableBalances(ctx, customerAccounts.ReceivableAccount.ID(), currencyReference)
 	if err != nil {
 		return nil, fmt.Errorf("list advance receivable balances: %w", err)
 	}
 	slices.SortStableFunc(advanceReceivables, cmpx.Compare[advanceReceivableBalance])
 
-	unattributedAccrued, err := h.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currency)
+	unattributedAccrued, err := h.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currencyReference)
 	if err != nil {
 		return nil, err
-	}
-
-	calculator, err := currency.Calculator()
-	if err != nil {
-		return nil, fmt.Errorf("get currency calculator: %w", err)
 	}
 
 	receivableBuckets := newAdvanceReceivableBuckets(advanceReceivables, creditFeatures)
@@ -490,7 +596,7 @@ func (h *creditPurchaseHandler) advanceAttributions(
 
 	attributions := make([]advanceAttribution, 0, len(unattributedAccrued)+len(advanceReceivables))
 	if accruedAttributable.IsPositive() {
-		accruedAttributions, err := allocateAccruedAttribution(calculator, accruedAttributable, unattributedAccrued, receivableBuckets.remainingBySpendKey)
+		accruedAttributions, err := allocateAccruedAttribution(currency, accruedAttributable, unattributedAccrued, receivableBuckets.remainingBySpendKey)
 		if err != nil {
 			return nil, err
 		}
@@ -670,7 +776,7 @@ type advanceReceivableBalance struct {
 // balances because one receivable sub-account can contain multiple spend-charge
 // provenance buckets. Backfill needs those buckets split so each translated
 // entry preserves the spend charge that created the advance.
-func (h *creditPurchaseHandler) advanceReceivableBalances(ctx context.Context, receivableAccountID models.NamespacedID, currency currencyx.Code) ([]advanceReceivableBalance, error) {
+func (h *creditPurchaseHandler) advanceReceivableBalances(ctx context.Context, receivableAccountID models.NamespacedID, currency currencies.CurrencyReference) ([]advanceReceivableBalance, error) {
 	openStatus := ledger.TransactionAuthorizationStatusOpen
 	buckets, err := h.balanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: receivableAccountID.Namespace,
@@ -712,7 +818,7 @@ func (h *creditPurchaseHandler) advanceReceivableBalances(ctx context.Context, r
 // that can be attributed to a creditpurchase. It groups by spend charge and tax
 // dimensions because cost-basis backfill must preserve both dimensions when it
 // moves accrued value into the purchased source bucket.
-func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencyx.Code) ([]unattributedAccruedBalance, error) {
+func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencies.CurrencyReference) ([]unattributedAccruedBalance, error) {
 	buckets, err := h.balanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
 		Namespace: accruedAccount.ID().Namespace,
 		Filters: ledger.Filters{
@@ -769,7 +875,7 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 // This keeps the old proportional tax-bucket behavior while preserving spend
 // provenance on each generated attribution leg.
 func allocateAccruedAttribution(
-	calculator currencyx.Calculator,
+	calculator currencyx.Currency,
 	amount alpacadecimal.Decimal,
 	unattributedAccrued []unattributedAccruedBalance,
 	advanceRemainingBySpendKey map[string]alpacadecimal.Decimal,

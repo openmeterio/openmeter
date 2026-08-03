@@ -17,6 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -28,7 +30,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -220,10 +221,9 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 			intent.SettlementMode = productcatalog.CreditOnlySettlementMode
 		})
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
-		require.NoError(t, err)
+		currency := chargeWithRealizations.Intent.GetCurrency()
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -256,10 +256,9 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 			intent.SettlementMode = productcatalog.CreditOnlySettlementMode
 		})
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
-		require.NoError(t, err)
+		currency := chargeWithRealizations.Intent.GetCurrency()
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-35), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -290,10 +289,9 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 			intent.SettlementMode = productcatalog.CreditOnlySettlementMode
 		})
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
-		require.NoError(t, err)
+		currency := chargeWithRealizations.Intent.GetCurrency()
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -321,10 +319,9 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 
 		chargeWithRealizations := env.newChargeWithCreditRealizationsAndAccruedUsage(allocations, alpacadecimal.Zero)
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
-		require.NoError(t, err)
+		currency := chargeWithRealizations.Intent.GetCurrency()
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -355,10 +352,9 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
-		require.NoError(t, err)
+		currency := chargeWithRealizations.Intent.GetCurrency()
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -395,10 +391,9 @@ func TestOnCorrectCreditAllocations(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
 
-		currencyCalculator, err := chargeWithRealizations.Intent.GetCurrency().Calculator()
-		require.NoError(t, err)
+		currency := chargeWithRealizations.Intent.GetCurrency()
 
-		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currencyCalculator)
+		correctionsRequest, err := chargeWithRealizations.Realizations.CurrentRun.CreditRealizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-30), currency)
 		require.NoError(t, err)
 
 		corrections, err := env.handler.OnCorrectCreditAllocations(t.Context(), chargeflatfee.CorrectCreditAllocationsInput{
@@ -587,7 +582,7 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		require.True(t, env.sumBalance(t, env.invoiceEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
 	})
 
-	t.Run("credit_only authorization is a no-op without receivable funding", func(t *testing.T) {
+	t.Run("zero fiat amount is rejected before authorization", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
 		priorityOne := env.fundPriority(t, 1, 40)
@@ -605,7 +600,7 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		})
 
 		ref, err := env.handler.OnPaymentAuthorized(t.Context(), env.newPaymentEventInput(charge))
-		require.NoError(t, err)
+		require.ErrorContains(t, err, "fiat amount must be positive")
 		require.Empty(t, ref.TransactionGroupID)
 
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
@@ -662,40 +657,12 @@ func TestOnFlatFeePaymentSettled(t *testing.T) {
 		}
 	})
 
-	t.Run("credit_then_invoice no receivable portion is a no-op", func(t *testing.T) {
+	t.Run("zero fiat amount is rejected before settlement", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
 		ref, err := env.handler.OnPaymentSettled(t.Context(), env.newPaymentEventInput(env.newChargeWithCreditRealizationsAndAccruedUsage(nil, alpacadecimal.Zero)))
-		require.NoError(t, err)
+		require.ErrorContains(t, err, "fiat amount must be positive")
 		require.Empty(t, ref.TransactionGroupID)
-	})
-
-	t.Run("credit_only payment settled is a no-op after authorization", func(t *testing.T) {
-		env := newFlatFeeHandlerTestEnv(t)
-
-		env.fundPriority(t, 1, 30)
-
-		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(
-			env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(30)),
-			alpacadecimal.NewFromInt(30),
-		))
-		require.NoError(t, err)
-
-		charge := env.newChargeWithCreditRealizationsAndAccruedUsage(realizations, alpacadecimal.Zero)
-		editFlatFeeBaseIntentForTest(t, &charge, func(intent *chargeflatfee.Intent) {
-			intent.SettlementMode = productcatalog.CreditOnlySettlementMode
-		})
-
-		_, err = env.handler.OnPaymentAuthorized(t.Context(), env.newPaymentEventInput(charge))
-		require.NoError(t, err)
-
-		ref, err := env.handler.OnPaymentSettled(t.Context(), env.newPaymentEventInput(charge))
-		require.NoError(t, err)
-		require.Empty(t, ref.TransactionGroupID)
-		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
-		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
 	})
 }
 
@@ -715,6 +682,7 @@ type flatFeeHandlerTestEnv struct {
 	handler    chargeflatfee.Handler
 	lineage    lineage.Service
 	recognizer recognizer.Service
+	currency   currencies.Currency
 }
 
 func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
@@ -758,6 +726,7 @@ func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 		),
 		lineage:    lineageService,
 		recognizer: recognizerService,
+		currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 	}
 }
 
@@ -798,7 +767,7 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 					Intent: meta.Intent{
 						ManagedBy:  billing.SystemManagedLine,
 						CustomerID: e.CustomerID.ID,
-						Currency:   currencyx.Code("USD"),
+						Currency:   e.currency,
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: testChargeTaxCodeID,
 						},
@@ -840,7 +809,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeatures(t *testing.T, priority 
 
 	costBasis := alpacadecimal.Zero
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CostBasis:      &costBasis,
 		CreditPriority: priority,
 		Features:       features,
@@ -861,7 +830,7 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeatures(t *testing.T, priority 
 		transactions.IssueCustomerReceivableTemplate{
 			At:             e.Now(),
 			Amount:         alpacadecimal.NewFromInt(amount),
-			Currency:       e.Currency,
+			Currency:       e.CurrencyReference(),
 			CostBasis:      &costBasis,
 			CreditPriority: &priority,
 			Features:       features,
@@ -869,14 +838,14 @@ func (e *flatFeeHandlerTestEnv) fundPriorityWithFeatures(t *testing.T, priority 
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
+			Currency:  e.CurrencyReference(),
 			CostBasis: &costBasis,
 			Features:  features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        e.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
-			Currency:  e.Currency,
+			Currency:  e.CurrencyReference(),
 			CostBasis: &costBasis,
 			Features:  features,
 		},
@@ -943,7 +912,7 @@ func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPerio
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currencyx.Code("USD"),
+					Currency:   e.currency,
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: testChargeTaxCodeID,
 					},
@@ -994,14 +963,19 @@ func (e *flatFeeHandlerTestEnv) newRunBase(servicePeriod timeutil.ClosedPeriod, 
 
 func (e *flatFeeHandlerTestEnv) newPaymentEventInput(charge chargeflatfee.Charge) chargeflatfee.PaymentEventInput {
 	amount := alpacadecimal.Zero
-	if charge.Realizations.CurrentRun != nil && charge.Realizations.CurrentRun.AccruedUsage != nil {
-		amount = charge.Realizations.CurrentRun.AccruedUsage.Totals.Total
+	run := chargeflatfee.RealizationRun{}
+	if charge.Realizations.CurrentRun != nil {
+		run = *charge.Realizations.CurrentRun
+		if run.AccruedUsage != nil {
+			amount = run.AccruedUsage.Totals.Total
+		}
 	}
 
 	return chargeflatfee.PaymentEventInput{
-		Charge:  charge,
-		EventAt: e.Now(),
-		Amount:  amount,
+		Charge:     charge,
+		Run:        run,
+		EventAt:    e.Now(),
+		FiatAmount: amount,
 	}
 }
 
@@ -1098,7 +1072,7 @@ func (e *flatFeeHandlerTestEnv) unknownReceivableSubAccount(t *testing.T) ledger
 
 func (e *flatFeeHandlerTestEnv) unknownFboSubAccount(t *testing.T) ledger.SubAccount {
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:       e.Currency,
+		Currency:       e.CurrencyReference(),
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)
@@ -1132,7 +1106,7 @@ func (e *flatFeeHandlerTestEnv) recognizeCreditAccrued(t *testing.T, amount alpa
 	result, err := e.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
 		CustomerID: e.CustomerID,
 		At:         e.Now(),
-		Currency:   e.Currency,
+		Currency:   e.currency,
 	})
 	require.NoError(t, err)
 	require.True(t, result.RecognizedAmount.Equal(amount), "recognized=%s expected=%s", result.RecognizedAmount, amount)
@@ -1149,7 +1123,7 @@ func (e *flatFeeHandlerTestEnv) createInitialLineages(t *testing.T, chargeID str
 		Namespace:    e.Namespace,
 		ChargeID:     chargeID,
 		CustomerID:   e.CustomerID.ID,
-		Currency:     e.Currency,
+		Currency:     e.currency,
 		Realizations: realizations,
 	})
 	require.NoError(t, err)

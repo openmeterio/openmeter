@@ -278,6 +278,91 @@ paths:
       tags:
         - OpenMeter Product Catalog
       x-unstable: true
+  /openmeter/app-catalog:
+    get:
+      operationId: list-app-catalog
+      summary: List app catalog
+      description: List available apps.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppCatalogItemPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/app-catalog/install:
+    post:
+      operationId: install-app
+      summary: Install app from the catalog
+      description: Install an app from the catalog.
+      responses:
+        '201':
+          description: InstallAppResponse created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInstallAppResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingInstallAppRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/app-catalog/{appType}:
+    get:
+      operationId: get-app-catalog-item
+      summary: Get app catalog item by type
+      description: Get an app catalog item by type.
+      parameters:
+        - name: appType
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/BillingAppType'
+      responses:
+        '200':
+          description: AppCatalogItem response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingAppCatalogItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/apps:
     get:
       operationId: list-apps
@@ -300,6 +385,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/apps/{appId}:
     get:
       operationId: get-app
@@ -328,6 +416,71 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    delete:
+      operationId: uninstall-app
+      summary: Uninstall app
+      description: Uninstall an app by ID.
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Apps
+      x-private: true
+      x-internal: true
+      x-unstable: true
+    put:
+      operationId: update-app
+      summary: Update app
+      description: Update an installed app.
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: App updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingApp'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingUpdateAppRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/billing/invoices:
     get:
       operationId: list-invoices
@@ -496,6 +649,161 @@ paths:
       x-private: true
       x-internal: true
       x-unstable: true
+  /openmeter/billing/invoices/{invoiceId}/advance:
+    post:
+      operationId: advance-invoice
+      summary: Advance billing invoice's next status
+      description: |-
+        Advance a billing invoice.
+
+        Advances the invoice to the next workflow state. The next state is determined by
+        the invoice's current status and workflow configuration. Only invoices in draft
+        or issued status can be advanced.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The updated invoice after advancing to the next state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/billing/invoices/{invoiceId}/approve:
+    post:
+      operationId: approve-invoice
+      summary: Send the invoice to the customer
+      description: |-
+        Approve a billing invoice.
+
+        This call instantly sends the invoice to the customer using the configured
+        billing profile app.
+
+        This call is valid in two invoice statuses:
+
+        - draft: the invoice will be sent to the customer, the invoice state becomes
+        issued
+        - manual_approval_needed: the invoice will be sent to the customer, the invoice
+        state becomes issued
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The updated invoice after sending to the customer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/billing/invoices/{invoiceId}/retry:
+    post:
+      operationId: retry-invoice
+      summary: Retry advancing the invoice after a failed attempt
+      description: |-
+        Retry sending a billing invoice.
+
+        Retry advancing the invoice after a failed attempt.
+
+        The action can be called when the invoice's statusDetails' actions field contain
+        the "retry" action.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The updated invoice after retrying the action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/billing/invoices/{invoiceId}/snapshot-quantities:
+    post:
+      operationId: snapshot-quantities-invoice
+      summary: Snapshot quantities for usage based line items
+      description: |-
+        Snapshot quantities for usage-based line items.
+
+        This call will snapshot the quantities for all usage based line items in the
+        invoice.
+
+        This call is only valid in draft.waiting_for_collection status, where the
+        collection period can be skipped using this action.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: |-
+            The updated invoice with the snapshot quantities for usage based line
+            items.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/currencies:
     get:
       operationId: list-currencies
@@ -528,6 +836,19 @@ paths:
           schema:
             $ref: '#/components/schemas/ListCurrenciesParamsFilter'
           style: deepObject
+        - name: expand
+          in: query
+          required: false
+          description: |-
+            Expand the currencies returned in the response.
+
+            To include the active and scheduled cost basis add: expand=cost_basis
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingCurrencyExpand'
+          explode: false
+          style: form
       responses:
         '200':
           description: Page paginated response.
@@ -573,6 +894,34 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCurrencyCustomRequest'
+      x-internal: true
+      x-unstable: true
+  /openmeter/currencies/custom/{currencyId}:
+    get:
+      operationId: get-custom-currency
+      summary: Get custom currency
+      description: Get a custom currency.
+      parameters:
+        - name: currencyId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CurrencyCustom response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCurrencyCustom'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Currencies
       x-internal: true
       x-unstable: true
   /openmeter/currencies/custom/{currencyId}/cost-bases:
@@ -1047,6 +1396,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/BillingChargesExpand'
+          explode: false
           style: form
       responses:
         '200':
@@ -1156,7 +1506,8 @@ paths:
           description: |-
             Return the credit balance as of this timestamp.
 
-            Defaults to the current time.
+            Defaults to the current time. Historical responses return `live` as zero because
+            live charge impacts are only available for current balances.
           schema:
             $ref: '#/components/schemas/DateTime'
           explode: false
@@ -1338,6 +1689,57 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateCreditGrantExternalSettlementRequest'
       x-unstable: true
+  /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void:
+    post:
+      operationId: void-credit-grant
+      summary: Void credit grant
+      description: |-
+        Void a credit grant, forfeiting the remaining unused balance.
+
+        Voiding is a forward-looking, irreversible operation. Credits already consumed
+        by usage remain unaffected — only the remaining balance is forfeited. The grant
+        reads as `voided` status afterwards. Payment state is not adjusted when
+        `payment_adjustment` is `none`, so invoice-backed or externally collected
+        payments may still collect the original amount. Only `active` grants can be
+        voided; voiding a pending, expired, or fully consumed grant returns a conflict.
+        Retrying a successful void is an idempotent success.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: creditGrantId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CreditGrant updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCreditGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Customers
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoidCreditGrantRequest'
+      x-unstable: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:
       operationId: list-credit-transactions
@@ -1506,7 +1908,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - Metering Events
-      x-unstable: true
     post:
       operationId: ingest-metering-events
       description: Ingests an event or batch of events following the CloudEvents specification.
@@ -1590,7 +1991,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Features
-      x-unstable: true
     post:
       operationId: create-feature
       summary: Create feature
@@ -1616,7 +2016,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateFeatureRequest'
-      x-unstable: true
   /openmeter/features/{featureId}:
     get:
       operationId: get-feature
@@ -1647,7 +2046,6 @@ paths:
           $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Features
-      x-unstable: true
     patch:
       operationId: update-feature
       summary: Update feature
@@ -1681,7 +2079,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateFeatureRequest'
-      x-unstable: true
     delete:
       operationId: delete-feature
       summary: Delete feature
@@ -1705,7 +2102,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Features
-      x-unstable: true
   /openmeter/features/{featureId}/cost/query:
     post:
       operationId: query-feature-cost
@@ -2075,7 +2471,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateMeterRequest'
-      x-unstable: true
     delete:
       operationId: delete-meter
       summary: Delete meter
@@ -2154,7 +2549,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-      x-unstable: true
       tags:
         - Meters
       requestBody:
@@ -3387,6 +3781,20 @@ components:
           title: Phone Number
       additionalProperties: false
       description: Address
+    AppCatalogItemPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCatalogItem'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      additionalProperties: false
+      description: Page paginated response.
     AppPagePaginatedResponse:
       type: object
       required:
@@ -3414,12 +3822,55 @@ components:
           sandbox: '#/components/schemas/BillingAppSandbox'
           external_invoicing: '#/components/schemas/BillingAppExternalInvoicing'
       description: Installed application.
+    BillingAppCapability:
+      type: object
+      required:
+        - type
+        - key
+        - name
+        - description
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCapabilityType'
+          description: Type of the capability.
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: Key of the capability.
+        name:
+          type: string
+          description: Name of the capability.
+        description:
+          type: string
+          description: Description of the capability.
+      additionalProperties: false
+      description: App capability describes a function that an App can perform.
+      example:
+        type: collect_payments
+        key: stripe_collect_payment
+        name: Collect Payments
+        description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+    BillingAppCapabilityType:
+      type: string
+      enum:
+        - report_usage
+        - report_events
+        - calculate_tax
+        - invoice_customers
+        - collect_payments
+      description: |-
+        Supported capability types for an App.
+
+        Each capability defines an integration function that an App can perform.
     BillingAppCatalogItem:
       type: object
       required:
         - type
         - name
         - description
+        - capabilities
+        - install_methods
       properties:
         type:
           allOf:
@@ -3434,6 +3885,18 @@ components:
           type: string
           description: Description of the app.
           readOnly: true
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCapability'
+          description: Capabilities of the app.
+          readOnly: true
+        install_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppInstallMethods'
+          description: Available install methods of the app.
+          readOnly: true
       additionalProperties: false
       description: |-
         Available apps for billing integrations to connect with third-party services.
@@ -3444,6 +3907,22 @@ components:
         type: stripe
         name: Stripe
         description: Stripe integration allows you to collect payments with Stripe.
+        capabilities:
+          - type: calculate_tax
+            key: stripe_calculate_tax
+            name: Calculate Tax
+            description: Stripe Tax calculates tax portion of the invoices.
+          - type: invoice_customers
+            key: stripe_invoice_customers
+            name: Invoice Customers
+            description: Stripe invoices customers with due amount.
+          - type: collect_payments
+            key: stripe_collect_payments
+            name: Collect Payments
+            description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+        install_methods:
+          - with_oauth2
+          - with_api_key
     BillingAppCustomerData:
       type: object
       properties:
@@ -3543,7 +4022,6 @@ components:
           enum:
             - external_invoicing
           description: The app type.
-          readOnly: true
         definition:
           allOf:
             - $ref: '#/components/schemas/BillingAppCatalogItem'
@@ -3597,6 +4075,13 @@ components:
 
         State synchronization is controlled by hooks that pause invoice progression
         until the external system confirms synchronization via API callbacks.
+    BillingAppInstallMethods:
+      type: string
+      enum:
+        - with_oauth2
+        - with_api_key
+        - no_credentials_required
+      description: Supported installation methods for an app.
     BillingAppReference:
       type: object
       required:
@@ -3660,7 +4145,6 @@ components:
           enum:
             - sandbox
           description: The app type.
-          readOnly: true
         definition:
           allOf:
             - $ref: '#/components/schemas/BillingAppCatalogItem'
@@ -3734,7 +4218,6 @@ components:
           enum:
             - stripe
           description: The app type.
-          readOnly: true
         definition:
           allOf:
             - $ref: '#/components/schemas/BillingAppCatalogItem'
@@ -5066,8 +5549,9 @@ components:
           description: |-
             Idempotency key for the credit grant creation request.
 
-            When provided, reusing the same key returns an HTTP 409 Conflict instead of
-            creating a duplicate grant, which makes create requests safe to retry.
+            Unique per customer: reusing the same key for the same customer returns an HTTP
+            409 Conflict instead of creating a duplicate grant, which makes create requests
+            safe to retry. The same key may be reused across different customers.
         expires_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -5144,9 +5628,10 @@ components:
           description: |-
             Cost basis per credit unit used to calculate the purchase amount.
 
-            If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-            is $50.00. The value must be greater than 0. If the cost basis is 0, use
-            `funding_method=none` instead.
+            If `per_unit_cost_basis` is 0.50 and credit amount is
+            $100.00, the total
+            charge is $50.00. The value must be greater than 0. If the
+            cost basis is 0, use `funding_method=none` instead.
 
             Defaults to 1.0.
           default: '1.0'
@@ -5207,6 +5692,16 @@ components:
         Tax configuration should be provided to ensure correct revenue recognition,
         including for externally funded grants.
       title: Tax configuration for a credit grant
+    BillingCreditGrantVoidPaymentAdjustment:
+      type: string
+      enum:
+        - none
+      description: |-
+        Describes how voiding a credit grant adjusts related payment state.
+
+        - `none`: Voiding does not adjust invoices, payment authorization, settlement,
+        payment intents, or external collection state.
+      title: Credit grant void payment adjustment
     BillingCreditPurchasePaymentSettlementStatus:
       type: string
       enum:
@@ -5306,12 +5801,14 @@ components:
         - funded
         - consumed
         - expired
+        - voided
       description: |-
         The type of the credit transaction.
 
         - `funded`: Credit granted and available for consumption.
         - `consumed`: Credit consumed by usage or fees.
         - `expired`: Credit removed because it expired before being used.
+        - `voided`: Credit removed because the grant was voided before being used.
     BillingCurrency:
       type: object
       oneOf:
@@ -5324,14 +5821,14 @@ components:
           custom: '#/components/schemas/BillingCurrencyCustom'
       description: Fiat or custom currency.
     BillingCurrencyCode:
-      type: string
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/CurrencyCode'
+        - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
       x-go-type: string
     BillingCurrencyCodeCustom:
       type: string
-      minLength: 3
+      minLength: 4
       maxLength: 24
       description: |-
         Custom currency code. It should be a unique code but not conflicting with any
@@ -5341,6 +5838,9 @@ components:
       required:
         - type
         - name
+        - precision
+        - decimal_mark
+        - thousand_separator
         - id
         - code
         - created_at
@@ -5364,6 +5864,27 @@ components:
           description: |-
             The symbol of the currency. It should be a string that represents the symbol of
             the currency, such as "$" for US Dollar or "€" for Euro.
+        precision:
+          type: integer
+          format: uint32
+          description: |-
+            The precision of the currency. It should be a number that represents the number
+            of decimal places used for the currency, such as 2 for US Dollar or Euro.
+        decimal_mark:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The decimal mark for the currency. It should be a string that represents the
+            decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+        thousand_separator:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The thousand separator for the currency. It should be a string that represents
+            the thousand separator of the currency, such as "," for US Dollar or "." for
+            Euro.
         id:
           allOf:
             - $ref: '#/components/schemas/ULID'
@@ -5375,13 +5896,35 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of the custom currency creation date.
           readOnly: true
+        cost_basis:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCostBasis'
+          description: |-
+            The list of active and scheduled cost bases for the custom currency. Expired and
+            deleted cost bases are excluded.
+          readOnly: true
       additionalProperties: false
       description: Describes custom currency.
+    BillingCurrencyExpand:
+      type: string
+      enum:
+        - cost_basis
+      description: |-
+        Expands for currencies.
+
+        Values:
+
+        - `cost_basis`: The currency's active and scheduled cost basis.
+      title: Currency expands
     BillingCurrencyFiat:
       type: object
       required:
         - type
         - name
+        - precision
+        - decimal_mark
+        - thousand_separator
         - code
       properties:
         type:
@@ -5403,6 +5946,27 @@ components:
           description: |-
             The symbol of the currency. It should be a string that represents the symbol of
             the currency, such as "$" for US Dollar or "€" for Euro.
+        precision:
+          type: integer
+          format: uint32
+          description: |-
+            The precision of the currency. It should be a number that represents the number
+            of decimal places used for the currency, such as 2 for US Dollar or Euro.
+        decimal_mark:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The decimal mark for the currency. It should be a string that represents the
+            decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+        thousand_separator:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The thousand separator for the currency. It should be a string that represents
+            the thousand separator of the currency, such as "," for US Dollar or "." for
+            Euro.
         code:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -5749,6 +6313,107 @@ components:
       description: |-
         Per-unit cost configuration for a feature. Either a fixed manual amount or a
         dynamic LLM cost lookup.
+    BillingInstallAppExternalInvoicing:
+      type: object
+      required:
+        - type
+        - name
+        - create_billing_profile
+      properties:
+        type:
+          type: string
+          enum:
+            - external_invoicing
+          description: Type of the app.
+        name:
+          type: string
+          description: Name of the app.
+        create_billing_profile:
+          type: boolean
+          description: |-
+            If true, a billing profile will be created for the app. The Stripe app will be
+            also set as the default billing profile if the current default is a Sandbox app.
+      additionalProperties: false
+      description: Base model for installing an app from the catalog.
+    BillingInstallAppRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingInstallAppStripeWithApiKey'
+        - $ref: '#/components/schemas/BillingInstallAppSandbox'
+        - $ref: '#/components/schemas/BillingInstallAppExternalInvoicing'
+      discriminator:
+        propertyName: type
+        mapping:
+          stripe: '#/components/schemas/BillingInstallAppStripeWithApiKey'
+          sandbox: '#/components/schemas/BillingInstallAppSandbox'
+          external_invoicing: '#/components/schemas/BillingInstallAppExternalInvoicing'
+      description: Request to install an app from the catalog.
+    BillingInstallAppResponse:
+      type: object
+      required:
+        - app
+        - default_for_capability_types
+      properties:
+        app:
+          allOf:
+            - $ref: '#/components/schemas/BillingApp'
+          readOnly: true
+        default_for_capability_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCapabilityType'
+          readOnly: true
+      additionalProperties: false
+      description: Response of the app install.
+    BillingInstallAppSandbox:
+      type: object
+      required:
+        - type
+        - name
+        - create_billing_profile
+      properties:
+        type:
+          type: string
+          enum:
+            - sandbox
+          description: Type of the app.
+        name:
+          type: string
+          description: Name of the app.
+        create_billing_profile:
+          type: boolean
+          description: |-
+            If true, a billing profile will be created for the app. The Stripe app will be
+            also set as the default billing profile if the current default is a Sandbox app.
+      additionalProperties: false
+      description: Base model for installing an app from the catalog.
+    BillingInstallAppStripeWithApiKey:
+      type: object
+      required:
+        - type
+        - name
+        - create_billing_profile
+        - api_key
+      properties:
+        type:
+          type: string
+          enum:
+            - stripe
+          description: Type of the app.
+        name:
+          type: string
+          description: Name of the app.
+        create_billing_profile:
+          type: boolean
+          description: |-
+            If true, a billing profile will be created for the app. The Stripe app will be
+            also set as the default billing profile if the current default is a Sandbox app.
+        api_key:
+          type: string
+          format: password
+          description: API key for the app.
+      additionalProperties: false
+      description: Model for installing an app from the catalog with an API key.
     BillingInvoice:
       type: object
       oneOf:
@@ -6108,6 +6773,14 @@ components:
             - $ref: '#/components/schemas/BillingRateCardDiscounts'
           description: Discount configuration from the rate card.
           title: Discounts
+        unit_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingUnitConfig'
+          description: |-
+            Unit config snapshot applied when this line was billed, converting the raw
+            metered quantity into the billed quantity. Frozen at billing time; read-only.
+          title: Unit config
+          readOnly: true
       additionalProperties: false
       description: Rate card configuration snapshot for a usage-based invoice line.
     BillingInvoiceLineUsageDiscount:
@@ -6809,7 +7482,7 @@ components:
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency code of the plan.
           title: Currency
         billing_cadence:
@@ -7249,6 +7922,13 @@ components:
             - $ref: '#/components/schemas/FeatureReference'
           description: The feature associated with the rate card.
           title: Feature reference
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: |-
+            Overrides the containing plan or add-on currency for this rate card. When
+            omitted, the containing resource currency applies.
+          title: Currency override
         billing_cadence:
           allOf:
             - $ref: '#/components/schemas/ISO8601Duration'
@@ -8187,6 +8867,19 @@ components:
         - `floor`: Round down to the previous integer.
         - `half_up`: Round to the nearest integer, with 0.5 rounding up.
         - `none`: No rounding; the converted value is used as-is.
+    BillingUpdateAppRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/UpdateAppStripeRequest'
+        - $ref: '#/components/schemas/UpdateAppSandboxRequest'
+        - $ref: '#/components/schemas/UpdateAppExternalInvoicingRequest'
+      discriminator:
+        propertyName: type
+        mapping:
+          stripe: '#/components/schemas/UpdateAppStripeRequest'
+          sandbox: '#/components/schemas/UpdateAppSandboxRequest'
+          external_invoicing: '#/components/schemas/UpdateAppExternalInvoicingRequest'
+      description: Request to update an installed app.
     BillingWorkflow:
       type: object
       properties:
@@ -8850,9 +9543,10 @@ components:
           description: |-
             Cost basis per credit unit used to calculate the purchase amount.
 
-            If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge
-            is $50.00. The value must be greater than 0. If the cost basis is 0, use
-            `funding_method=none` instead.
+            If `per_unit_cost_basis` is 0.50 and credit amount is
+            $100.00, the total
+            charge is $50.00. The value must be greater than 0. If the
+            cost basis is 0, use `funding_method=none` instead.
 
             Defaults to 1.0.
           default: '1.0'
@@ -8946,8 +9640,9 @@ components:
           description: |-
             Idempotency key for the credit grant creation request.
 
-            When provided, reusing the same key returns an HTTP 409 Conflict instead of
-            creating a duplicate grant, which makes create requests safe to retry.
+            Unique per customer: reusing the same key for the same customer returns an HTTP
+            409 Conflict instead of creating a duplicate grant, which makes create requests
+            safe to retry. The same key may be reused across different customers.
       additionalProperties: false
       description: CreditGrant create request.
     CreateCreditGrantTaxConfig:
@@ -8969,15 +9664,18 @@ components:
         including for externally funded grants.
       title: Tax configuration for a credit grant
     CreateCurrencyCode:
-      type: string
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/CurrencyCode'
+        - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
       x-go-type: string
     CreateCurrencyCustomRequest:
       type: object
       required:
         - name
+        - precision
+        - decimal_mark
+        - thousand_separator
         - code
       properties:
         name:
@@ -8993,6 +9691,27 @@ components:
           description: |-
             The symbol of the currency. It should be a string that represents the symbol of
             the currency, such as "$" for US Dollar or "€" for Euro.
+        precision:
+          type: integer
+          format: uint32
+          description: |-
+            The precision of the currency. It should be a number that represents the number
+            of decimal places used for the currency, such as 2 for US Dollar or Euro.
+        decimal_mark:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The decimal mark for the currency. It should be a string that represents the
+            decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+        thousand_separator:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: |-
+            The thousand separator for the currency. It should be a string that represents
+            the thousand separator of the currency, such as "," for US Dollar or "." for
+            Euro.
         code:
           $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       additionalProperties: false
@@ -9232,7 +9951,7 @@ components:
           title: Key
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency code of the plan.
           title: Currency
         billing_cadence:
@@ -9342,7 +10061,11 @@ components:
         live:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: Credits available after applying currently live charge impacts.
+          description: |-
+            Credits available after applying currently live charge impacts.
+
+            Always zero for historical balance queries using the `timestamp` parameter
+            because live charge impacts cannot be reconstructed historically.
           example: '200.00'
           readOnly: true
         settled:
@@ -11466,6 +12189,126 @@ components:
           title: Phone Number
       additionalProperties: false
       description: Address
+    UpdateAppExternalInvoicingRequest:
+      type: object
+      required:
+        - name
+        - type
+        - enable_draft_sync_hook
+        - enable_issuing_sync_hook
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - external_invoicing
+          description: The app type.
+        enable_draft_sync_hook:
+          type: boolean
+          description: |-
+            Enable draft synchronization hook.
+
+            When enabled, invoices will pause at the draft state and wait for the
+            integration to call the draft synchronized endpoint before progressing to the
+            issuing state. This allows the external system to validate and prepare the
+            invoice data.
+
+            When disabled, invoices automatically progress through the draft state based on
+            the configured workflow timing.
+        enable_issuing_sync_hook:
+          type: boolean
+          description: |-
+            Enable issuing synchronization hook.
+
+            When enabled, invoices will pause at the issuing state and wait for the
+            integration to call the issuing synchronized endpoint before progressing to the
+            issued state. This ensures the external invoicing system has successfully
+            created and finalized the invoice before it is marked as issued.
+
+            When disabled, invoices automatically progress through the issuing state and are
+            immediately marked as issued.
+      additionalProperties: false
+      description: AppExternalInvoicing update request.
+    UpdateAppSandboxRequest:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - sandbox
+          description: The app type.
+      additionalProperties: false
+      description: AppSandbox update request.
+    UpdateAppStripeRequest:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - stripe
+          description: The app type.
+        secret_api_key:
+          type: string
+          format: password
+          description: The Stripe secret API key used to authenticate API requests.
+      additionalProperties: false
+      description: AppStripe update request.
     UpdateBillingInvoiceWorkflow:
       type: object
       properties:
@@ -12405,6 +13248,21 @@ components:
       type: string
       minLength: 1
       description: Subject key.
+    VoidCreditGrantRequest:
+      type: object
+      properties:
+        payment_adjustment:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantVoidPaymentAdjustment'
+          description: |-
+            How voiding adjusts payment state related to the grant.
+
+            Currently only `none` is supported: voiding does not adjust invoices, payment
+            authorization, settlement, payment intents, or external collection state. If
+            payment later completes, the original invoiced amount may still be collected.
+          default: none
+      additionalProperties: false
+      description: Request body for voiding a credit grant.
     SortQuery:
       title: SortQuery
       type: string

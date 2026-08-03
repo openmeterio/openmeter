@@ -375,12 +375,12 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 				return DeleteInvoiceResponse{}, err
 			}
 
-			if err := billing.ValidateAPIInvoiceDeleteSupported(invoice); err != nil {
-				return DeleteInvoiceResponse{}, err
-			}
-
 			switch invoice.Type() {
 			case billing.InvoiceTypeGathering:
+				if err := billing.ValidateAPIInvoiceDeleteSupported(invoice); err != nil {
+					return DeleteInvoiceResponse{}, err
+				}
+
 				if _, err := h.service.DeleteGatheringInvoice(ctx, request); err != nil {
 					return DeleteInvoiceResponse{}, fmt.Errorf("deleting gathering invoice: %w", err)
 				}
@@ -463,7 +463,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				CustomerID: &params.CustomerID,
 
 				Number:   body.Number,
-				Currency: currencyx.Code(body.Currency),
+				Currency: currencyx.FiatCode(body.Currency),
 				Lines:    billing.NewStandardInvoiceLines(lines),
 			}, nil
 		},

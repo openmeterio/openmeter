@@ -4,12 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/peterldowns/pgtestdb"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -40,32 +38,11 @@ func (c *creator) Tx(ctx context.Context) (context.Context, transaction.Driver, 
 }
 
 func TestLockerLockForTx(t *testing.T) {
-	// Lets write some testrunning utilities
-	var m sync.Mutex
-
 	withDBClient := func(fn func(t *testing.T, client *db.Client)) func(t *testing.T) {
 		return func(t *testing.T) {
-			// Let's set up a test postgres
-			testdb := testutils.InitPostgresDB(t)
+			testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 			dbClient := testdb.EntDriver.Client()
-			pgDriver := testdb.PGDriver
-			entDriver := testdb.EntDriver
-
-			defer func() {
-				_ = dbClient.Close()
-				_ = entDriver.Close()
-				_ = pgDriver.Close()
-			}()
-
-			// migration tooling is not concurrency safe
-			func() {
-				m.Lock()
-				defer m.Unlock()
-
-				if err := dbClient.Schema.Create(context.Background()); err != nil {
-					t.Fatalf("failed to create schema: %v", err)
-				}
-			}()
+			t.Cleanup(func() { testdb.Close(t) })
 
 			fn(t, dbClient)
 		}
@@ -236,27 +213,14 @@ func TestLockerLockForTx(t *testing.T) {
 	}))
 
 	t.Run("Should error if acquiring lock takes longer than timeout", func(t *testing.T) {
-		// We'll need a custom db setup to configure the timeout
 		lockTimeout := time.Second * 3
 
-		host := os.Getenv("POSTGRES_HOST")
-		if host == "" {
-			t.Skip("POSTGRES_HOST not set")
-		}
-
-		// TODO: fix migrations
-		dbConf := pgtestdb.Custom(t, pgtestdb.Config{
-			DriverName: "pgx",
-			User:       "postgres",
-			Password:   "postgres",
-			Host:       host,
-			Port:       "5432",
-			Options:    "sslmode=disable",
-		}, &testutils.NoopMigrator{})
+		testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
+		t.Cleanup(func() { testDB.Close(t) })
 
 		pgdrv, err := pgdriver.NewPostgresDriver(
-			context.TODO(),
-			dbConf.URL(),
+			t.Context(),
+			testDB.URL,
 			pgdriver.WithLockTimeout(lockTimeout),
 		)
 		if err != nil {

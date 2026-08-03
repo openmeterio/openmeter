@@ -106,9 +106,14 @@ func Version(v int) predicate.Addon {
 	return predicate.Addon(sql.FieldEQ(FieldVersion, v))
 }
 
-// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldEQ(FieldCurrency, v))
+// CurrencyCode applies equality check predicate on the "currency_code" field. It's identical to CurrencyCodeEQ.
+func CurrencyCode(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEQ(FieldCurrencyCode, v))
+}
+
+// CustomCurrencyID applies equality check predicate on the "custom_currency_id" field. It's identical to CustomCurrencyIDEQ.
+func CustomCurrencyID(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEQ(FieldCustomCurrencyID, v))
 }
 
 // EffectiveFrom applies equality check predicate on the "effective_from" field. It's identical to EffectiveFromEQ.
@@ -571,69 +576,144 @@ func VersionLTE(v int) predicate.Addon {
 	return predicate.Addon(sql.FieldLTE(FieldVersion, v))
 }
 
-// CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldEQ(FieldCurrency, v))
+// CurrencyCodeEQ applies the EQ predicate on the "currency_code" field.
+func CurrencyCodeEQ(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEQ(FieldCurrencyCode, v))
 }
 
-// CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldNEQ(FieldCurrency, v))
+// CurrencyCodeNEQ applies the NEQ predicate on the "currency_code" field.
+func CurrencyCodeNEQ(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldNEQ(FieldCurrencyCode, v))
 }
 
-// CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...string) predicate.Addon {
-	return predicate.Addon(sql.FieldIn(FieldCurrency, vs...))
+// CurrencyCodeIn applies the In predicate on the "currency_code" field.
+func CurrencyCodeIn(vs ...string) predicate.Addon {
+	return predicate.Addon(sql.FieldIn(FieldCurrencyCode, vs...))
 }
 
-// CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...string) predicate.Addon {
-	return predicate.Addon(sql.FieldNotIn(FieldCurrency, vs...))
+// CurrencyCodeNotIn applies the NotIn predicate on the "currency_code" field.
+func CurrencyCodeNotIn(vs ...string) predicate.Addon {
+	return predicate.Addon(sql.FieldNotIn(FieldCurrencyCode, vs...))
 }
 
-// CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldGT(FieldCurrency, v))
+// CurrencyCodeGT applies the GT predicate on the "currency_code" field.
+func CurrencyCodeGT(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldGT(FieldCurrencyCode, v))
 }
 
-// CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldGTE(FieldCurrency, v))
+// CurrencyCodeGTE applies the GTE predicate on the "currency_code" field.
+func CurrencyCodeGTE(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldGTE(FieldCurrencyCode, v))
 }
 
-// CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldLT(FieldCurrency, v))
+// CurrencyCodeLT applies the LT predicate on the "currency_code" field.
+func CurrencyCodeLT(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldLT(FieldCurrencyCode, v))
 }
 
-// CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldLTE(FieldCurrency, v))
+// CurrencyCodeLTE applies the LTE predicate on the "currency_code" field.
+func CurrencyCodeLTE(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldLTE(FieldCurrencyCode, v))
 }
 
-// CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldContains(FieldCurrency, v))
+// CurrencyCodeContains applies the Contains predicate on the "currency_code" field.
+func CurrencyCodeContains(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldContains(FieldCurrencyCode, v))
 }
 
-// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldHasPrefix(FieldCurrency, v))
+// CurrencyCodeHasPrefix applies the HasPrefix predicate on the "currency_code" field.
+func CurrencyCodeHasPrefix(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldHasPrefix(FieldCurrencyCode, v))
 }
 
-// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldHasSuffix(FieldCurrency, v))
+// CurrencyCodeHasSuffix applies the HasSuffix predicate on the "currency_code" field.
+func CurrencyCodeHasSuffix(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldHasSuffix(FieldCurrencyCode, v))
 }
 
-// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldEqualFold(FieldCurrency, v))
+// CurrencyCodeEqualFold applies the EqualFold predicate on the "currency_code" field.
+func CurrencyCodeEqualFold(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEqualFold(FieldCurrencyCode, v))
 }
 
-// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v string) predicate.Addon {
-	return predicate.Addon(sql.FieldContainsFold(FieldCurrency, v))
+// CurrencyCodeContainsFold applies the ContainsFold predicate on the "currency_code" field.
+func CurrencyCodeContainsFold(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldContainsFold(FieldCurrencyCode, v))
+}
+
+// CustomCurrencyIDEQ applies the EQ predicate on the "custom_currency_id" field.
+func CustomCurrencyIDEQ(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEQ(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDNEQ applies the NEQ predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNEQ(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldNEQ(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDIn applies the In predicate on the "custom_currency_id" field.
+func CustomCurrencyIDIn(vs ...string) predicate.Addon {
+	return predicate.Addon(sql.FieldIn(FieldCustomCurrencyID, vs...))
+}
+
+// CustomCurrencyIDNotIn applies the NotIn predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNotIn(vs ...string) predicate.Addon {
+	return predicate.Addon(sql.FieldNotIn(FieldCustomCurrencyID, vs...))
+}
+
+// CustomCurrencyIDGT applies the GT predicate on the "custom_currency_id" field.
+func CustomCurrencyIDGT(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldGT(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDGTE applies the GTE predicate on the "custom_currency_id" field.
+func CustomCurrencyIDGTE(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldGTE(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDLT applies the LT predicate on the "custom_currency_id" field.
+func CustomCurrencyIDLT(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldLT(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDLTE applies the LTE predicate on the "custom_currency_id" field.
+func CustomCurrencyIDLTE(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldLTE(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDContains applies the Contains predicate on the "custom_currency_id" field.
+func CustomCurrencyIDContains(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldContains(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDHasPrefix applies the HasPrefix predicate on the "custom_currency_id" field.
+func CustomCurrencyIDHasPrefix(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldHasPrefix(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDHasSuffix applies the HasSuffix predicate on the "custom_currency_id" field.
+func CustomCurrencyIDHasSuffix(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldHasSuffix(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDIsNil applies the IsNil predicate on the "custom_currency_id" field.
+func CustomCurrencyIDIsNil() predicate.Addon {
+	return predicate.Addon(sql.FieldIsNull(FieldCustomCurrencyID))
+}
+
+// CustomCurrencyIDNotNil applies the NotNil predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNotNil() predicate.Addon {
+	return predicate.Addon(sql.FieldNotNull(FieldCustomCurrencyID))
+}
+
+// CustomCurrencyIDEqualFold applies the EqualFold predicate on the "custom_currency_id" field.
+func CustomCurrencyIDEqualFold(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEqualFold(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDContainsFold applies the ContainsFold predicate on the "custom_currency_id" field.
+func CustomCurrencyIDContainsFold(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldContainsFold(FieldCustomCurrencyID, v))
 }
 
 // InstanceTypeEQ applies the EQ predicate on the "instance_type" field.
@@ -837,6 +917,29 @@ func HasSubscriptionAddons() predicate.Addon {
 func HasSubscriptionAddonsWith(preds ...predicate.SubscriptionAddon) predicate.Addon {
 	return predicate.Addon(func(s *sql.Selector) {
 		step := newSubscriptionAddonsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCustomCurrency applies the HasEdge predicate on the "custom_currency" edge.
+func HasCustomCurrency() predicate.Addon {
+	return predicate.Addon(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CustomCurrencyTable, CustomCurrencyColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCustomCurrencyWith applies the HasEdge predicate on the "custom_currency" edge with a given conditions (other predicates).
+func HasCustomCurrencyWith(preds ...predicate.CustomCurrency) predicate.Addon {
+	return predicate.Addon(func(s *sql.Selector) {
+		step := newCustomCurrencyStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

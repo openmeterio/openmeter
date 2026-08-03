@@ -3,8 +3,6 @@ package billing
 import (
 	"context"
 
-	"github.com/alpacahq/alpacadecimal"
-
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -19,7 +17,6 @@ type Adapter interface {
 	InvoiceAdapter
 	GatheringInvoiceAdapter
 	StandardInvoiceAdapter
-	SequenceAdapter
 	InvoiceAppAdapter
 	CustomerSynchronizationAdapter
 	SchemaLevelAdapter
@@ -79,6 +76,8 @@ type InvoiceAdapter interface {
 type StandardInvoiceAdapter interface {
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceAdapterInput) (StandardInvoice, error)
+	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]StandardInvoice, error)
+	CountStandardInvoicesPendingAdvancement(ctx context.Context, input CountStandardInvoicesPendingAdvancementInput) (int64, error)
 }
 
 type GatheringInvoiceAdapter interface {
@@ -97,10 +96,6 @@ type InvoiceSplitLineGroupAdapter interface {
 	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
 	GetSplitLineGroup(ctx context.Context, input GetSplitLineGroupInput) (SplitLineHierarchy, error)
 	GetSplitLineGroupHeaders(ctx context.Context, input GetSplitLineGroupHeadersInput) (SplitLineGroupHeaders, error)
-}
-
-type SequenceAdapter interface {
-	NextSequenceNumber(ctx context.Context, input NextSequenceNumberInput) (alpacadecimal.Decimal, error)
 }
 
 type InvoiceAppAdapter interface {

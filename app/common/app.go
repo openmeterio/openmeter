@@ -96,8 +96,8 @@ func NewAppSandboxFactory(
 	billing BillingRegistry,
 ) (*appsandbox.Factory, error) {
 	factory, err := appsandbox.NewFactory(appsandbox.Config{
-		AppService:     appService,
-		BillingService: billing.Billing,
+		AppService:      appService,
+		SequenceService: billing.Sequence,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize app sandbox factory: %w", err)
@@ -146,7 +146,7 @@ func NewAppCustomInvoicingService(logger *slog.Logger, db *entdb.Client, appsCon
 	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
 		AppService:             appService,
 		CustomInvoicingService: service,
-		BillingService:         billingRegistry.Billing,
+		SequenceService:        billingRegistry.Sequence,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appcustominvoicing factory: %w", err)

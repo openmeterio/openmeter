@@ -38,8 +38,10 @@ const (
 	FieldStatus = "status"
 	// FieldUniqueReferenceID holds the string denoting the unique_reference_id field in the database.
 	FieldUniqueReferenceID = "unique_reference_id"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
+	// FieldFiatCurrencyCode holds the string denoting the fiat_currency_code field in the database.
+	FieldFiatCurrencyCode = "currency"
+	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
+	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
@@ -86,12 +88,18 @@ const (
 	FieldStatusDetailed = "status_detailed"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
+	// FieldVoidedAt holds the string denoting the voided_at field in the database.
+	FieldVoidedAt = "voided_at"
+	// FieldCostBasisID holds the string denoting the cost_basis_id field in the database.
+	FieldCostBasisID = "cost_basis_id"
 	// EdgeExternalPayment holds the string denoting the external_payment edge name in mutations.
 	EdgeExternalPayment = "external_payment"
 	// EdgeInvoicedPayment holds the string denoting the invoiced_payment edge name in mutations.
 	EdgeInvoicedPayment = "invoiced_payment"
 	// EdgeCreditGrant holds the string denoting the credit_grant edge name in mutations.
 	EdgeCreditGrant = "credit_grant"
+	// EdgeCostBasis holds the string denoting the cost_basis edge name in mutations.
+	EdgeCostBasis = "cost_basis"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
@@ -104,6 +112,8 @@ const (
 	EdgeCustomer = "customer"
 	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
 	EdgeTaxCode = "tax_code"
+	// EdgeCustomCurrency holds the string denoting the custom_currency edge name in mutations.
+	EdgeCustomCurrency = "custom_currency"
 	// Table holds the table name of the chargecreditpurchase in the database.
 	Table = "charge_credit_purchases"
 	// ExternalPaymentTable is the table that holds the external_payment relation/edge.
@@ -127,6 +137,13 @@ const (
 	CreditGrantInverseTable = "charge_credit_purchase_credit_grants"
 	// CreditGrantColumn is the table column denoting the credit_grant relation/edge.
 	CreditGrantColumn = "charge_id"
+	// CostBasisTable is the table that holds the cost_basis relation/edge.
+	CostBasisTable = "charge_credit_purchases"
+	// CostBasisInverseTable is the table name for the ChargeCreditPurchaseCostBasis entity.
+	// It exists in this package in order to avoid circular dependency with the "chargecreditpurchasecostbasis" package.
+	CostBasisInverseTable = "charge_credit_purchase_cost_bases"
+	// CostBasisColumn is the table column denoting the cost_basis relation/edge.
+	CostBasisColumn = "cost_basis_id"
 	// ChargeTable is the table that holds the charge relation/edge.
 	ChargeTable = "charges"
 	// ChargeInverseTable is the table name for the Charge entity.
@@ -169,6 +186,13 @@ const (
 	TaxCodeInverseTable = "tax_codes"
 	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
 	TaxCodeColumn = "tax_code_id"
+	// CustomCurrencyTable is the table that holds the custom_currency relation/edge.
+	CustomCurrencyTable = "charge_credit_purchases"
+	// CustomCurrencyInverseTable is the table name for the CustomCurrency entity.
+	// It exists in this package in order to avoid circular dependency with the "customcurrency" package.
+	CustomCurrencyInverseTable = "custom_currencies"
+	// CustomCurrencyColumn is the table column denoting the custom_currency relation/edge.
+	CustomCurrencyColumn = "custom_currency_id"
 )
 
 // Columns holds all SQL columns for chargecreditpurchase fields.
@@ -183,7 +207,8 @@ var Columns = []string{
 	FieldFullServicePeriodTo,
 	FieldStatus,
 	FieldUniqueReferenceID,
-	FieldCurrency,
+	FieldFiatCurrencyCode,
+	FieldCustomCurrencyID,
 	FieldManagedBy,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
@@ -207,6 +232,8 @@ var Columns = []string{
 	FieldSettlement,
 	FieldStatusDetailed,
 	FieldKey,
+	FieldVoidedAt,
+	FieldCostBasisID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -222,8 +249,10 @@ func ValidColumn(column string) bool {
 var (
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
+	// FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	FiatCurrencyCodeValidator func(string) error
+	// CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	CustomCurrencyIDValidator func(string) error
 	// TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
 	TaxCodeIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -335,9 +364,14 @@ func ByUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUniqueReferenceID, opts...).ToFunc()
 }
 
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+// ByFiatCurrencyCode orders the results by the fiat_currency_code field.
+func ByFiatCurrencyCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFiatCurrencyCode, opts...).ToFunc()
+}
+
+// ByCustomCurrencyID orders the results by the custom_currency_id field.
+func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomCurrencyID, opts...).ToFunc()
 }
 
 // ByManagedBy orders the results by the managed_by field.
@@ -445,6 +479,16 @@ func ByKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
+// ByVoidedAt orders the results by the voided_at field.
+func ByVoidedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVoidedAt, opts...).ToFunc()
+}
+
+// ByCostBasisID orders the results by the cost_basis_id field.
+func ByCostBasisID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostBasisID, opts...).ToFunc()
+}
+
 // ByExternalPaymentField orders the results by external_payment field.
 func ByExternalPaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -463,6 +507,13 @@ func ByInvoicedPaymentField(field string, opts ...sql.OrderTermOption) OrderOpti
 func ByCreditGrantField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newCreditGrantStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCostBasisField orders the results by cost_basis field.
+func ByCostBasisField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCostBasisStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -507,6 +558,13 @@ func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByCustomCurrencyField orders the results by custom_currency field.
+func ByCustomCurrencyField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomCurrencyStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newExternalPaymentStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -526,6 +584,13 @@ func newCreditGrantStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CreditGrantInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, CreditGrantTable, CreditGrantColumn),
+	)
+}
+func newCostBasisStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CostBasisInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, CostBasisTable, CostBasisColumn),
 	)
 }
 func newChargeStep() *sqlgraph.Step {
@@ -568,5 +633,12 @@ func newTaxCodeStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TaxCodeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+	)
+}
+func newCustomCurrencyStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomCurrencyInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomCurrencyTable, CustomCurrencyColumn),
 	)
 }

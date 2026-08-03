@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -22,10 +23,13 @@ type Service interface {
 type CurrencyService interface {
 	ListCurrencies(ctx context.Context, params ListCurrenciesInput) (pagination.Result[Currency], error)
 	CreateCurrency(ctx context.Context, params CreateCurrencyInput) (Currency, error)
+	GetCurrency(ctx context.Context, params GetCurrencyInput) (Currency, error)
 }
 
 type CostBasisService interface {
 	CreateCostBasis(ctx context.Context, params CreateCostBasisInput) (CostBasis, error)
+	GetCostBasis(ctx context.Context, params GetCostBasisInput) (CostBasis, error)
+	GetCostBasisAt(ctx context.Context, params GetCostBasisAtInput) (CostBasis, error)
 	ListCostBases(ctx context.Context, params ListCostBasesInput) (pagination.Result[CostBasis], error)
 }
 
@@ -47,13 +51,25 @@ func (o OrderBy) Validate() error {
 
 var _ models.Validator = (*ListCurrenciesInput)(nil)
 
+// FilteringOptions controls how sibling currency filters are combined.
+// The default behavior intersects filters; Union combines them with OR.
+// This option is internal to the currencies service until cross-field filter
+// composition is supported by pkg/filter.
+type FilteringOptions struct {
+	Union bool `json:"-"`
+}
+
 type ListCurrenciesInput struct {
 	pagination.Page
+	FilteringOptions
+	CurrencyExpandOptions
 
 	Namespace string `json:"namespace"`
 
-	// FilterType filters currencies by type: "custom" or "fiat". Nil means no filter.
-	FilterType *CurrencyType `json:"filter_type,omitempty"`
+	// CurrencyType filters currencies by type: "custom" or "fiat". Nil means no filter.
+	CurrencyType *currencyx.CurrencyType `json:"currency_type,omitempty"`
+	// ID filters currencies by managed resource ID. Fiat currencies have no ID.
+	ID *filter.FilterString `json:"id,omitempty"`
 	// Code filters currencies by code field. Nil means no filter.
 	Code *filter.FilterString `json:"code,omitempty"`
 
@@ -68,9 +84,15 @@ func (i ListCurrenciesInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	if i.FilterType != nil {
-		if err := i.FilterType.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("filter_type: %w", err))
+	if i.CurrencyType != nil {
+		if err := i.CurrencyType.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("currency_type: %w", err))
+		}
+	}
+
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("id: %w", err))
 		}
 	}
 
@@ -90,10 +112,8 @@ func (i ListCurrenciesInput) Validate() error {
 var _ models.Validator = (*CreateCurrencyInput)(nil)
 
 type CreateCurrencyInput struct {
+	currencyx.CurrencyDetails
 	Namespace string `json:"namespace"`
-	Code      string `json:"code"`
-	Name      string `json:"name"`
-	Symbol    string `json:"symbol"`
 }
 
 func (i CreateCurrencyInput) Validate() error {
@@ -103,16 +123,16 @@ func (i CreateCurrencyInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	if i.Code == "" {
-		errs = append(errs, errors.New("code is required"))
-	}
-
-	if i.Name == "" {
-		errs = append(errs, errors.New("name is required"))
-	}
-
-	if i.Symbol == "" {
-		errs = append(errs, errors.New("symbol is required"))
+	_, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(i.Code).
+		WithName(i.Name).
+		WithPrecision(i.Precision).
+		WithSymbol(i.Symbol).
+		WithDecimalMark(i.DecimalMark).
+		WithThousandsSeparator(i.ThousandsSeparator).
+		Build()
+	if err != nil {
+		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -123,7 +143,7 @@ var _ models.Validator = (*CreateCostBasisInput)(nil)
 type CreateCostBasisInput struct {
 	Namespace     string                `json:"namespace"`
 	CurrencyID    string                `json:"currency_id"`
-	FiatCode      string                `json:"fiat_code"`
+	FiatCode      currencyx.Code        `json:"fiat_code"`
 	Rate          alpacadecimal.Decimal `json:"rate"`
 	EffectiveFrom *time.Time            `json:"effective_from,omitempty"`
 	EffectiveTo   *time.Time            `json:"effective_to,omitempty"`
@@ -151,6 +171,23 @@ func (i CreateCostBasisInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+var _ models.Validator = (*GetCostBasisInput)(nil)
+
+type GetCostBasisInput struct {
+	models.NamespacedID
+	CostBasisExpandOptions
+}
+
+func (i GetCostBasisInput) Validate() error {
+	var errs []error
+
+	if err := i.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 var _ models.Validator = (*ListCostBasesInput)(nil)
 
 type ListCostBasesInput struct {
@@ -160,7 +197,7 @@ type ListCostBasesInput struct {
 	CurrencyID string `json:"currency_id"`
 
 	// FilterFiatCode filters cost bases by fiat currency code. Nil means no filter.
-	FilterFiatCode *string `json:"filter_fiat_code,omitempty"`
+	FilterFiatCode *currencyx.Code `json:"filter_fiat_code,omitempty"`
 }
 
 func (i ListCostBasesInput) Validate() error {
@@ -172,6 +209,66 @@ func (i ListCostBasesInput) Validate() error {
 
 	if i.CurrencyID == "" {
 		errs = append(errs, errors.New("currency_id is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type CostBasisExpandOptions struct {
+	CustomCurrency bool
+}
+
+type CurrencyExpandOptions struct {
+	CostBasis bool
+}
+
+type GetCurrencyInput struct {
+	models.NamespacedID
+	CurrencyExpandOptions
+}
+
+func (i GetCurrencyInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" {
+		errs = append(errs, errors.New("id is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+var _ models.Validator = (*GetCostBasisAtInput)(nil)
+
+type GetCostBasisAtInput struct {
+	Namespace  string         `json:"namespace"`
+	CurrencyID string         `json:"currency_id"`
+	FiatCode   currencyx.Code `json:"fiat_code"`
+	At         time.Time      `json:"at"`
+}
+
+func (i GetCostBasisAtInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CurrencyID == "" {
+		errs = append(errs, errors.New("currency_id is required"))
+	}
+
+	if err := i.FiatCode.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("fiat_code: %w", err))
+	} else if !i.FiatCode.IsFiat() {
+		errs = append(errs, fmt.Errorf("fiat_code %q must be fiat", i.FiatCode))
+	}
+
+	if i.At.IsZero() {
+		errs = append(errs, errors.New("at is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

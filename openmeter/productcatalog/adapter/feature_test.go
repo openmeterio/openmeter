@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/oapi-codegen/nullable"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -362,14 +363,10 @@ func TestCreateFeature(t *testing.T) {
 			m.Lock()
 			defer m.Unlock()
 
-			testdb := testutils.InitPostgresDB(t)
+			testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 			defer testdb.PGDriver.Close()
 			dbClient := testdb.EntDriver.Client()
 			defer dbClient.Close()
-
-			if err := dbClient.Schema.Create(context.Background()); err != nil {
-				t.Fatalf("failed to create schema: %v", err)
-			}
 
 			// Create the meter in the DB so FK constraint is satisfied.
 			_, err := dbClient.Meter.Create().
@@ -395,14 +392,10 @@ func TestCreateFeature(t *testing.T) {
 		m.Lock()
 		defer m.Unlock()
 
-		testdb := testutils.InitPostgresDB(t)
+		testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 		defer testdb.PGDriver.Close()
 		dbClient := testdb.EntDriver.Client()
 		defer dbClient.Close()
-
-		if err := dbClient.Schema.Create(context.Background()); err != nil {
-			t.Fatalf("failed to create schema: %v", err)
-		}
 
 		// Create the meter in the DB so FK constraint is satisfied.
 		_, err := dbClient.Meter.Create().
@@ -791,14 +784,10 @@ func TestUpdateFeature(t *testing.T) {
 			m.Lock()
 			defer m.Unlock()
 
-			testdb := testutils.InitPostgresDB(t)
+			testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 			defer testdb.PGDriver.Close()
 			dbClient := testdb.EntDriver.Client()
 			defer dbClient.Close()
-
-			if err := dbClient.Schema.Create(context.Background()); err != nil {
-				t.Fatalf("failed to create schema: %v", err)
-			}
 
 			// Create the meter in the DB so FK constraint is satisfied.
 			_, err := dbClient.Meter.Create().
@@ -854,14 +843,10 @@ func TestArchiveFeature(t *testing.T) {
 	}
 
 	t.Run("Should allow archiving feature", func(t *testing.T) {
-		testdb := testutils.InitPostgresDB(t)
+		testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 		defer testdb.PGDriver.Close()
 		dbClient := testdb.EntDriver.Client()
 		defer dbClient.Close()
-
-		if err := dbClient.Schema.Create(context.Background()); err != nil {
-			t.Fatalf("failed to create schema: %v", err)
-		}
 
 		ctx := context.Background()
 
@@ -884,6 +869,7 @@ func TestArchiveFeature(t *testing.T) {
 			SetName("default").
 			SetKey("default").
 			SetVersion(1).
+			SetCurrencyCode(currency.USD.String()).
 			SetEffectiveFrom(time.Now()).
 			SetNamespace(testFeature.Namespace).
 			SetBillingCadence("P1M").
@@ -961,14 +947,10 @@ func TestFetchingArchivedFeature(t *testing.T) {
 	}
 
 	t.Run("Should allow archiving feature", func(t *testing.T) {
-		testdb := testutils.InitPostgresDB(t)
+		testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 		defer testdb.PGDriver.Close()
 		dbClient := testdb.EntDriver.Client()
 		defer dbClient.Close()
-
-		if err := dbClient.Schema.Create(context.Background()); err != nil {
-			t.Fatalf("failed to create schema: %v", err)
-		}
 
 		ctx := context.Background()
 

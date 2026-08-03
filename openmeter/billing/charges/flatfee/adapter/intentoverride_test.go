@@ -14,15 +14,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestFlatFeeIntentOverrideAdapter(t *testing.T) {
@@ -42,17 +41,8 @@ type FlatFeeIntentOverrideAdapterSuite struct {
 func (s *FlatFeeIntentOverrideAdapterSuite) SetupSuite() {
 	t := s.T()
 
-	s.testDB = testutils.InitPostgresDB(t)
+	s.testDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	s.dbClient = entdb.NewClient(entdb.Driver(s.testDB.EntDriver.Driver()))
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: s.testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           slog.Default(),
-	})
-	require.NoError(t, err)
-	defer migrator.CloseOrLogError()
-	require.NoError(t, migrator.Up())
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.dbClient,
@@ -312,7 +302,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) createCharge(namespace string) flatf
 					Intent: chargesmeta.Intent{
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
-						Currency:   currencyx.Code("USD"),
+						Currency:   currenciestestutils.NewFiatCurrency(s.T(), "USD"),
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},

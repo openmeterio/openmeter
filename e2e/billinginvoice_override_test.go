@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
@@ -33,9 +33,9 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 	createdFlatFeeAmount := "11"
 	updatedFlatFeeAmount := "6"
 
-	var customer *apiv3.BillingCustomer
-	var plan *apiv3.BillingPlan
-	var subscription *apiv3.BillingSubscription
+	var customer *v3sdk.Customer
+	var plan *v3sdk.Plan
+	var subscription *v3sdk.BillingSubscription
 	var invoice api.Invoice
 	var deleteLine api.InvoiceLine
 	var updateLine api.InvoiceLine
@@ -51,34 +51,34 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		// - a plan is created with three in-arrears flat fees and one usage-based item
 		// then:
 		// - the plan is published and ready for subscription creation
-		status, meter, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+		meter, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
 			Key:         prefix + "_meter",
 			Name:        "Invoice Override Meter " + prefix,
-			Aggregation: apiv3.MeterAggregationCount,
+			Aggregation: v3sdk.MeterAggregationCount,
 			EventType:   prefix + "_event",
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, meter)
 
-		status, meteredFeature, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+		meteredFeature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:   prefix + "_metered_feature",
 			Name:  "Invoice Override Metered Feature " + prefix,
-			Meter: &apiv3.FeatureMeterReference{Id: meter.Id},
+			Meter: &v3sdk.FeatureMeterReferenceInput{ID: meter.ID},
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, meteredFeature)
 
 		phaseKey := "phase_1"
-		status, createdPlan, problem := c.CreatePlan(apiv3.CreatePlanRequest{
+		createdPlan, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
 			Key:              prefix + "_plan",
 			Name:             "Invoice Override Plan " + prefix,
 			Currency:         "USD",
-			BillingCadence:   apiv3.ISO8601Duration("P1M"),
+			BillingCadence:   "P1M",
 			ProRatingEnabled: lo.ToPtr(false),
-			Phases: []apiv3.BillingPlanPhase{{
+			Phases: []v3sdk.PlanPhaseInput{{
 				Key:  phaseKey,
 				Name: "Invoice Override Phase",
-				RateCards: []apiv3.BillingRateCard{
+				RateCards: []v3sdk.RateCardInput{
 					manualOverrideFlatFeeRateCard(flatFeeToDeleteName, "2"),
 					manualOverrideFlatFeeRateCard(flatFeeToUpdateName, "5"),
 					manualOverrideFlatFeeRateCard(flatFeeToKeepName, "7"),
@@ -86,13 +86,13 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 				},
 			}},
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, createdPlan)
 
-		status, plan, problem = c.PublishPlan(createdPlan.Id)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err = c.Plans.Publish(t.Context(), createdPlan.ID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
-		require.Equal(t, apiv3.BillingPlanStatusActive, plan.Status)
+		require.Equal(t, v3sdk.PlanStatusActive, plan.Status)
 	})
 
 	runRequired(t, "creates funded customer and starts subscription", func(t *testing.T) {
@@ -106,71 +106,59 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		// - all subscription-created charges are controlled by OpenMeter
 		require.NotNil(t, plan)
 
-		status, createdCustomer, problem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+		createdCustomer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 			Key:      customerKey,
 			Name:     "Invoice Override Customer " + prefix,
-			Currency: lo.ToPtr(apiv3.CurrencyCode("USD")),
+			Currency: lo.ToPtr("USD"),
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, createdCustomer)
 		customer = createdCustomer
 
-		profile := createNewBillingProfileFromDefault(t, c, prefix, func(profile *apiv3.CreateBillingProfileRequest) {
+		profile := createNewBillingProfileFromDefault(t, c, prefix, func(profile *v3sdk.CreateBillingProfileRequest) {
 			profile.Name = "Invoice Override Manual Approval " + prefix
 			if profile.Workflow.Invoicing == nil {
-				profile.Workflow.Invoicing = &apiv3.BillingWorkflowInvoicingSettings{}
+				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
 			}
 			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(false)
 
-			sendInvoice := apiv3.BillingWorkflowPaymentSettings{}
-			require.NoError(t, sendInvoice.FromBillingWorkflowPaymentSendInvoiceSettings(apiv3.BillingWorkflowPaymentSendInvoiceSettings{
-				CollectionMethod: apiv3.BillingWorkflowPaymentSendInvoiceSettingsCollectionMethodSendInvoice,
+			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
+				CollectionMethod: v3sdk.CollectionMethodSendInvoice,
 			}))
 			profile.Workflow.Payment = &sendInvoice
 		})
-		status, _, problem = c.UpdateCustomerBilling(customer.Id, apiv3.UpsertCustomerBillingDataRequest{
-			BillingProfile: &apiv3.BillingProfileReference{Id: profile.Id},
+		_, err = c.Customers.Billing.Update(t.Context(), customer.ID, v3sdk.UpsertCustomerBillingDataRequest{
+			BillingProfile: &v3sdk.ProfileReference{ID: profile.ID},
 		})
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusOK, err)
 
-		status, _, problem = c.CreateCreditGrant(customer.Id, apiv3.CreateCreditGrantRequest{
+		_, err = c.Customers.Credits.Grants.Create(t.Context(), customer.ID, v3sdk.CreateCreditGrantRequest{
 			Name:          "Invoice Override Promotional Credits " + prefix,
 			Amount:        "100",
-			Currency:      apiv3.CreateCurrencyCode("USD"),
-			FundingMethod: apiv3.BillingCreditFundingMethodNone,
+			Currency:      v3sdk.BillingCurrencyCode("USD"),
+			FundingMethod: v3sdk.CreditFundingMethodNone,
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 
-		status, createdSubscription, problem := c.CreateSubscription(apiv3.BillingSubscriptionCreate{
-			Customer: struct {
-				Id  *apiv3.ULID                `json:"id,omitempty"`
-				Key *apiv3.ExternalResourceKey `json:"key,omitempty"`
-			}{
-				Id: lo.ToPtr(customer.Id),
-			},
-			Plan: struct {
-				Id      *apiv3.ULID        `json:"id,omitempty"`
-				Key     *apiv3.ResourceKey `json:"key,omitempty"`
-				Version *int               `json:"version,omitempty"`
-			}{
-				Id: lo.ToPtr(plan.Id),
-			},
-			SettlementMode: lo.ToPtr(apiv3.BillingSettlementModeCreditThenInvoice),
+		createdSubscription, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
+			Customer:       v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customer.ID)},
+			Plan:           v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(plan.ID)},
+			SettlementMode: lo.ToPtr(v3sdk.SettlementModeCreditThenInvoice),
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, createdSubscription)
 		subscription = createdSubscription
 
 		assert.EventuallyWithT(t, func(collect *assert.CollectT) {
-			charges := listChargesByName(collect, c, customer.Id, []apiv3.BillingChargeStatus{
-				apiv3.BillingChargeStatusCreated,
-				apiv3.BillingChargeStatusActive,
-				apiv3.BillingChargeStatusFinal,
+			charges := listChargesByName(collect, c, customer.ID, []v3sdk.ChargeStatus{
+				v3sdk.ChargeStatusCreated,
+				v3sdk.ChargeStatusActive,
+				v3sdk.ChargeStatusFinal,
 			})
-			assertFlatFeeChargeLifecycleController(collect, charges, flatFeeToDeleteName, apiv3.BillingLifecycleControllerSystem)
-			assertFlatFeeChargeLifecycleController(collect, charges, flatFeeToUpdateName, apiv3.BillingLifecycleControllerSystem)
-			assertFlatFeeChargeLifecycleController(collect, charges, flatFeeToKeepName, apiv3.BillingLifecycleControllerSystem)
-			assertUsageBasedChargeController(collect, charges, usageBasedName, apiv3.BillingLifecycleControllerSystem)
+			assertFlatFeeChargeLifecycleController(collect, charges, flatFeeToDeleteName, v3sdk.LifecycleControllerSystem)
+			assertFlatFeeChargeLifecycleController(collect, charges, flatFeeToUpdateName, v3sdk.LifecycleControllerSystem)
+			assertFlatFeeChargeLifecycleController(collect, charges, flatFeeToKeepName, v3sdk.LifecycleControllerSystem)
+			assertUsageBasedChargeController(collect, charges, usageBasedName, v3sdk.LifecycleControllerSystem)
 		}, time.Minute, time.Second)
 	})
 
@@ -183,12 +171,12 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		// - the invoice is available for manual approval with editable charge-backed lines
 		time.Sleep(2 * time.Second)
 
-		status, canceledSubscription, problem := c.CancelSubscription(subscription.Id, apiv3.BillingSubscriptionCancel{})
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		canceledSubscription, err := c.Subscriptions.Cancel(t.Context(), subscription.ID, v3sdk.SubscriptionCancel{})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, canceledSubscription)
 		subscription = canceledSubscription
 
-		invoice = waitForManualApprovalInvoice(t, v1, customer.Id)
+		invoice = waitForManualApprovalInvoice(t, v1, customer.ID)
 		require.NotNil(t, invoice.Lines)
 		require.NotEmpty(t, *invoice.Lines)
 
@@ -327,34 +315,34 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		require.Equal(t, float64(24), activeInvoiceLinesCreditsApplied(t, linesAfterEdit), "active line-level promotional credits")
 		require.Equal(t, float64(26), invoiceLinesCreditsApplied(t, linesAfterEdit), "all line-level promotional credits including deleted tombstones")
 
-		status, balance, problem := c.GetCustomerCreditBalance(customer.Id)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		balance, err := c.Customers.Credits.Balance.Get(t.Context(), customer.ID, v3sdk.GetCustomerCreditBalanceParams{})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, balance)
 		requireCustomerCreditBalance(t, balance, "USD", 76, 0)
 
-		activeCharges := listChargesByName(t, c, customer.Id, []apiv3.BillingChargeStatus{
-			apiv3.BillingChargeStatusCreated,
-			apiv3.BillingChargeStatusActive,
-			apiv3.BillingChargeStatusFinal,
+		activeCharges := listChargesByName(t, c, customer.ID, []v3sdk.ChargeStatus{
+			v3sdk.ChargeStatusCreated,
+			v3sdk.ChargeStatusActive,
+			v3sdk.ChargeStatusFinal,
 		})
 		requireChargeNames(t, activeCharges, flatFeeToUpdateName, flatFeeToKeepName, createdFlatFeeName, usageBasedName)
-		assertFlatFeeChargeLifecycleController(t, activeCharges, flatFeeToUpdateName, apiv3.BillingLifecycleControllerManual)
+		assertFlatFeeChargeLifecycleController(t, activeCharges, flatFeeToUpdateName, v3sdk.LifecycleControllerManual)
 		requireFlatFeeChargeIntentMatchesLine(t, activeCharges, updatedLineAfterEdit)
 		requireFlatFeeChargeSystemIntentMatchesLine(t, activeCharges, flatFeeToUpdateName, updateLine, updateLineSystemAmount)
-		assertFlatFeeChargeLifecycleController(t, activeCharges, flatFeeToKeepName, apiv3.BillingLifecycleControllerSystem)
+		assertFlatFeeChargeLifecycleController(t, activeCharges, flatFeeToKeepName, v3sdk.LifecycleControllerSystem)
 		requireFlatFeeChargeIntentMatchesLine(t, activeCharges, keepLineAfterEdit)
 		requireFlatFeeChargeHasNoSystemIntent(t, activeCharges, flatFeeToKeepName)
-		assertFlatFeeChargeLifecycleController(t, activeCharges, createdFlatFeeName, apiv3.BillingLifecycleControllerManual)
+		assertFlatFeeChargeLifecycleController(t, activeCharges, createdFlatFeeName, v3sdk.LifecycleControllerManual)
 		requireFlatFeeChargeIntentMatchesLine(t, activeCharges, createdLineAfterEdit)
 		requireFlatFeeChargeHasNoSystemIntent(t, activeCharges, createdFlatFeeName)
-		assertUsageBasedChargeController(t, activeCharges, usageBasedName, apiv3.BillingLifecycleControllerSystem)
+		assertUsageBasedChargeController(t, activeCharges, usageBasedName, v3sdk.LifecycleControllerSystem)
 		requireUsageBasedChargeHasNoSystemIntent(t, activeCharges, usageBasedName)
 
-		deletedCharges := listChargesByName(t, c, customer.Id, []apiv3.BillingChargeStatus{
-			apiv3.BillingChargeStatusDeleted,
+		deletedCharges := listChargesByName(t, c, customer.ID, []v3sdk.ChargeStatus{
+			v3sdk.ChargeStatusDeleted,
 		})
 		requireChargeNames(t, deletedCharges, flatFeeToDeleteName)
-		assertFlatFeeChargeLifecycleController(t, deletedCharges, flatFeeToDeleteName, apiv3.BillingLifecycleControllerManual)
+		assertFlatFeeChargeLifecycleController(t, deletedCharges, flatFeeToDeleteName, v3sdk.LifecycleControllerManual)
 		requireFlatFeeChargeIntentMatchesLine(t, deletedCharges, deletedLineAfterEdit)
 		requireFlatFeeChargeSystemIntentMatchesLine(t, deletedCharges, flatFeeToDeleteName, deleteLine, deleteLineSystemAmount)
 	})
@@ -372,25 +360,27 @@ func runRequired(t *testing.T, name string, fn func(t *testing.T)) {
 // the caller edit the create request before it is persisted. The clone keeps
 // supplier and app wiring from the environment so scenarios can change only the
 // workflow controls relevant to the behavior under test.
-func createNewBillingProfileFromDefault(t *testing.T, c *v3Client, prefix string, edit func(*apiv3.CreateBillingProfileRequest)) apiv3.BillingProfile {
+func createNewBillingProfileFromDefault(t *testing.T, c *v3Client, prefix string, edit func(*v3sdk.CreateBillingProfileRequest)) v3sdk.Profile {
 	t.Helper()
 
-	status, profiles, problem := c.ListBillingProfiles(withPageSize(100))
-	require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+	profiles, err := c.Billing.ListProfiles(t.Context(), v3sdk.ProfileListParams{
+		Page: &v3sdk.PageParams{Size: lo.ToPtr(100)},
+	})
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, profiles)
 
-	defaultIdx := slices.IndexFunc(profiles.Data, func(profile apiv3.BillingProfile) bool {
+	defaultIdx := slices.IndexFunc(profiles.Data, func(profile v3sdk.Profile) bool {
 		return profile.Default
 	})
 	require.NotEqual(t, -1, defaultIdx, "default billing profile is required")
 
 	base := profiles.Data[defaultIdx]
 	supplier := base.Supplier
-	if supplier.Id != nil && *supplier.Id == "" {
-		supplier.Id = nil
+	if supplier.ID != nil && *supplier.ID == "" {
+		supplier.ID = nil
 	}
 
-	request := apiv3.CreateBillingProfileRequest{
+	request := v3sdk.CreateBillingProfileRequest{
 		Name:     "Invoice Override Billing Profile " + prefix,
 		Apps:     base.Apps,
 		Supplier: supplier,
@@ -400,25 +390,21 @@ func createNewBillingProfileFromDefault(t *testing.T, c *v3Client, prefix string
 		edit(&request)
 	}
 
-	status, profile, problem := c.CreateBillingProfile(request)
-	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	profile, err := c.Billing.CreateProfile(t.Context(), request)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, profile)
 
 	return *profile
 }
 
-func manualOverrideFlatFeeRateCard(name string, amount string) apiv3.BillingRateCard {
-	cadence := apiv3.ISO8601Duration("P1M")
-	term := apiv3.BillingPricePaymentTermInArrears
-	price := apiv3.BillingPrice{}
-	if err := price.FromBillingPriceFlat(apiv3.BillingPriceFlat{
-		Type:   apiv3.BillingPriceFlatTypeFlat,
+func manualOverrideFlatFeeRateCard(name string, amount string) v3sdk.RateCardInput {
+	cadence := "P1M"
+	term := v3sdk.PricePaymentTermInArrears
+	price := lo.Must(v3sdk.PriceFromPriceFlat(v3sdk.PriceFlat{
 		Amount: amount,
-	}); err != nil {
-		panic(err)
-	}
+	}))
 
-	return apiv3.BillingRateCard{
+	return v3sdk.RateCardInput{
 		Key:            name,
 		Name:           name,
 		Price:          price,
@@ -427,24 +413,20 @@ func manualOverrideFlatFeeRateCard(name string, amount string) apiv3.BillingRate
 	}
 }
 
-func manualOverrideUnitRateCard(key string, name string, feature apiv3.Feature, amount string) apiv3.BillingRateCard {
-	cadence := apiv3.ISO8601Duration("P1M")
-	term := apiv3.BillingPricePaymentTermInArrears
-	price := apiv3.BillingPrice{}
-	if err := price.FromBillingPriceUnit(apiv3.BillingPriceUnit{
-		Type:   apiv3.BillingPriceUnitTypeUnit,
+func manualOverrideUnitRateCard(key string, name string, feature v3sdk.Feature, amount string) v3sdk.RateCardInput {
+	cadence := "P1M"
+	term := v3sdk.PricePaymentTermInArrears
+	price := lo.Must(v3sdk.PriceFromPriceUnit(v3sdk.PriceUnit{
 		Amount: amount,
-	}); err != nil {
-		panic(err)
-	}
+	}))
 
-	return apiv3.BillingRateCard{
+	return v3sdk.RateCardInput{
 		Key:            key,
 		Name:           name,
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReference{Id: feature.Id},
+		Feature:        &v3sdk.FeatureReference{ID: feature.ID},
 	}
 }
 
@@ -642,36 +624,39 @@ func requireInvoiceLineByName(t *testing.T, lines []api.InvoiceLine, name string
 }
 
 type invoiceOverrideCharge struct {
-	flatFee    *apiv3.BillingChargeFlatFee
-	usageBased *apiv3.BillingChargeUsageBased
+	flatFee    *v3sdk.ChargeFlatFee
+	usageBased *v3sdk.ChargeUsageBased
 }
 
 // listChargesByName groups customer charges by display name while keeping the
 // concrete charge shape available. The override assertions need lifecycle
 // controller ownership from both flat-fee and usage-based charge variants.
-func listChargesByName(t require.TestingT, c *v3Client, customerID string, statuses []apiv3.BillingChargeStatus) map[string]invoiceOverrideCharge {
-	status, charges, problem := c.ListCustomerChargesByStatus(customerID, statuses, withPageSize(100))
-	require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+func listChargesByName(t require.TestingT, c *v3Client, customerID string, statuses []v3sdk.ChargeStatus) map[string]invoiceOverrideCharge {
+	statusValues := lo.Map(statuses, func(status v3sdk.ChargeStatus, _ int) string {
+		return string(status)
+	})
+	charges, err := c.Customers.Charges.List(c.t.Context(), customerID, v3sdk.ChargeListParams{
+		Filter: &v3sdk.ChargeFilter{
+			Status: &v3sdk.StringExactFilter{Oeq: statusValues},
+		},
+		Page: &v3sdk.PageParams{Size: lo.ToPtr(100)},
+	})
+	require.NoError(t, err)
 	require.NotNil(t, charges)
 
 	out := make(map[string]invoiceOverrideCharge, len(charges.Data))
 	for _, charge := range charges.Data {
-		chargeType, err := charge.Discriminator()
-		require.NoError(t, err)
-
-		switch chargeType {
-		case "flat_fee":
-			flatFee, err := charge.AsBillingChargeFlatFee()
+		switch charge.Type {
+		case string(v3sdk.ChargeTypeFlatFee):
+			flatFee, err := charge.AsChargeFlatFee()
 			require.NoError(t, err)
-			flatFeeCopy := flatFee
 			require.NotContains(t, out, flatFee.Name, "duplicate charge name %q", flatFee.Name)
-			out[flatFee.Name] = invoiceOverrideCharge{flatFee: &flatFeeCopy}
-		case "usage_based":
-			usageBased, err := charge.AsBillingChargeUsageBased()
+			out[flatFee.Name] = invoiceOverrideCharge{flatFee: flatFee}
+		case string(v3sdk.ChargeTypeUsageBased):
+			usageBased, err := charge.AsChargeUsageBased()
 			require.NoError(t, err)
-			usageBasedCopy := usageBased
 			require.NotContains(t, out, usageBased.Name, "duplicate charge name %q", usageBased.Name)
-			out[usageBased.Name] = invoiceOverrideCharge{usageBased: &usageBasedCopy}
+			out[usageBased.Name] = invoiceOverrideCharge{usageBased: usageBased}
 		}
 	}
 
@@ -680,13 +665,13 @@ func listChargesByName(t require.TestingT, c *v3Client, customerID string, statu
 
 // LifecycleController reports charge-domain control: manual means an effective
 // override layer owns the customer-facing charge behavior.
-func assertFlatFeeChargeLifecycleController(t require.TestingT, charges map[string]invoiceOverrideCharge, name string, controller apiv3.BillingLifecycleController) {
+func assertFlatFeeChargeLifecycleController(t require.TestingT, charges map[string]invoiceOverrideCharge, name string, controller v3sdk.LifecycleController) {
 	require.Contains(t, charges, name)
 	require.NotNil(t, charges[name].flatFee, "charge %q should be flat-fee", name)
 	assert.Equal(t, controller, charges[name].flatFee.LifecycleController, "charge %q lifecycle controller", name)
 }
 
-func assertUsageBasedChargeController(t require.TestingT, charges map[string]invoiceOverrideCharge, name string, controller apiv3.BillingLifecycleController) {
+func assertUsageBasedChargeController(t require.TestingT, charges map[string]invoiceOverrideCharge, name string, controller v3sdk.LifecycleController) {
 	require.Contains(t, charges, name)
 	require.NotNil(t, charges[name].usageBased, "charge %q should be usage-based", name)
 	assert.Equal(t, controller, charges[name].usageBased.LifecycleController, "charge %q lifecycle controller", name)
@@ -708,9 +693,9 @@ func requireFlatFeeChargeIntentMatchesLine(t *testing.T, charges map[string]invo
 	assert.Equal(t, line.Period.From, charge.ServicePeriod.From, "service period from")
 	assert.Equal(t, line.Period.To, charge.ServicePeriod.To, "service period to")
 
-	price, err := charge.Price.AsBillingPriceFlat()
+	price, err := charge.Price.AsPriceFlat()
 	require.NoError(t, err)
-	assert.Equal(t, apiv3.BillingPriceFlatTypeFlat, price.Type)
+	assert.Equal(t, v3sdk.PriceTypeFlat, price.Type)
 	assert.Equal(t, flatInvoiceLineAmount(t, line), price.Amount)
 }
 
@@ -815,11 +800,11 @@ func requireInvoiceTotals(t *testing.T, expected expectedInvoiceTotals, totals a
 	})
 }
 
-func requireCustomerCreditBalance(t *testing.T, balance *apiv3.BillingCreditBalances, currency string, expectedSettled float64, expectedPending float64) {
+func requireCustomerCreditBalance(t *testing.T, balance *v3sdk.CreditBalances, currency string, expectedSettled float64, expectedPending float64) {
 	t.Helper()
 
-	idx := slices.IndexFunc(balance.Balances, func(item apiv3.CreditBalance) bool {
-		return item.Currency == currency
+	idx := slices.IndexFunc(balance.Balances, func(item v3sdk.CreditBalance) bool {
+		return string(item.Currency) == currency
 	})
 	require.NotEqual(t, -1, idx, "credit balance for %s", currency)
 

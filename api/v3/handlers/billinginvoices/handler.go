@@ -12,6 +12,7 @@ type Handler interface {
 	GetBillingInvoice() GetBillingInvoiceHandler
 	UpdateBillingInvoice() UpdateBillingInvoiceHandler
 	DeleteBillingInvoice() DeleteBillingInvoiceHandler
+	ProgressInvoice(action ProgressAction) ProgressInvoiceHandler
 }
 
 type handler struct {

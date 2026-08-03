@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 func TestV3Addon(t *testing.T) {
@@ -20,39 +20,41 @@ func TestV3Addon(t *testing.T) {
 	var addonID string
 
 	t.Run("Should create an addon in draft status", func(t *testing.T) {
-		status, addon, problem := c.CreateAddon(addonBody)
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		addon, err := c.Addons.Create(t.Context(), addonBody)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, addon)
 
 		assert.Equal(t, addonKey, addon.Key)
-		assert.Equal(t, 1, addon.Version)
-		assert.Equal(t, apiv3.AddonStatusDraft, addon.Status)
+		assert.EqualValues(t, 1, addon.Version)
+		assert.Equal(t, v3sdk.AddonStatusDraft, addon.Status)
 		assert.Nil(t, addon.EffectiveFrom)
 
-		addonID = addon.Id
+		addonID = addon.ID
 	})
 
 	t.Run("Should get the addon", func(t *testing.T) {
 		require.NotEmpty(t, addonID)
 
-		status, addon, problem := c.GetAddon(addonID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		addon, err := c.Addons.Get(t.Context(), addonID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, addon)
 
-		assert.Equal(t, addonID, addon.Id)
-		assert.Equal(t, apiv3.AddonStatusDraft, addon.Status)
+		assert.Equal(t, addonID, addon.ID)
+		assert.Equal(t, v3sdk.AddonStatusDraft, addon.Status)
 	})
 
 	t.Run("Should list addons and find the created addon", func(t *testing.T) {
 		// Bump page size so a shared DB with prior fixtures doesn't push this
 		// freshly-created addon off page 1.
-		status, page, problem := c.ListAddons(withPageSize(1000))
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		page, err := c.Addons.List(t.Context(), v3sdk.AddonListParams{
+			Page: &v3sdk.PageParams{Size: lo.ToPtr(1000)},
+		})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, page)
 
 		found := false
 		for _, a := range page.Data {
-			if a.Id == addonID {
+			if a.ID == addonID {
 				found = true
 				assert.NotEmpty(t, a.Currency)
 				assert.NotEmpty(t, a.Status)
@@ -66,61 +68,61 @@ func TestV3Addon(t *testing.T) {
 	t.Run("Should update the addon", func(t *testing.T) {
 		require.NotEmpty(t, addonID)
 
-		updateBody := apiv3.UpsertAddonRequest{
+		updateBody := v3sdk.UpsertAddonRequest{
 			Name:         "Test V3 Addon Updated",
 			InstanceType: addonBody.InstanceType,
 			RateCards:    addonBody.RateCards,
 		}
 
-		status, addon, problem := c.UpdateAddon(addonID, updateBody)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		addon, err := c.Addons.Update(t.Context(), addonID, updateBody)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, addon)
 
 		assert.Equal(t, "Test V3 Addon Updated", addon.Name)
-		assert.Equal(t, apiv3.AddonStatusDraft, addon.Status)
+		assert.Equal(t, v3sdk.AddonStatusDraft, addon.Status)
 	})
 
 	t.Run("Should publish the addon", func(t *testing.T) {
 		require.NotEmpty(t, addonID)
 
-		status, addon, problem := c.PublishAddon(addonID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		addon, err := c.Addons.Publish(t.Context(), addonID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, addon)
 
-		assert.Equal(t, apiv3.AddonStatusActive, addon.Status)
+		assert.Equal(t, v3sdk.AddonStatusActive, addon.Status)
 		assert.NotNil(t, addon.EffectiveFrom)
 	})
 
 	t.Run("Should not allow deleting an active addon", func(t *testing.T) {
 		require.NotEmpty(t, addonID)
 
-		status, _ := c.DeleteAddon(addonID)
-		assert.Equal(t, http.StatusBadRequest, status)
+		err := c.Addons.Delete(t.Context(), addonID)
+		requireProblem(t, err, http.StatusBadRequest)
 	})
 
 	t.Run("Should archive the published addon", func(t *testing.T) {
 		require.NotEmpty(t, addonID)
 
-		status, addon, problem := c.ArchiveAddon(addonID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		addon, err := c.Addons.Archive(t.Context(), addonID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, addon)
 
-		assert.Equal(t, apiv3.AddonStatusArchived, addon.Status)
+		assert.Equal(t, v3sdk.AddonStatusArchived, addon.Status)
 		assert.NotNil(t, addon.EffectiveTo)
 	})
 
 	t.Run("Should delete an archived addon", func(t *testing.T) {
 		require.NotEmpty(t, addonID)
 
-		status, _ := c.DeleteAddon(addonID)
-		assert.Equal(t, http.StatusNoContent, status)
+		err := c.Addons.Delete(t.Context(), addonID)
+		c.requireStatus(http.StatusNoContent, err)
 	})
 
 	t.Run("Should return deleted_at after deletion", func(t *testing.T) {
 		require.NotEmpty(t, addonID)
 
-		status, addon, problem := c.GetAddon(addonID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		addon, err := c.Addons.Get(t.Context(), addonID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, addon)
 
 		assert.NotNil(t, addon.DeletedAt)
@@ -143,21 +145,21 @@ func TestV3AddonMixedRateCardRoundTrip(t *testing.T) {
 		uniqueKey("sanity_meter"),
 	}
 
-	meters := make([]apiv3.Meter, 0, len(meterKeys))
+	meters := make([]v3sdk.Meter, 0, len(meterKeys))
 
 	for i := range meterKeys {
 		valueProperty := "$.value"
 
-		status, m, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+		m, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
 			Key:           meterKeys[i],
 			Name:          "Test Meter " + meterKeys[i],
-			Aggregation:   apiv3.MeterAggregationSum,
+			Aggregation:   v3sdk.MeterAggregationSum,
 			EventType:     eventTypes[i],
 			ValueProperty: &valueProperty,
 		})
-		require.Equalf(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, m)
-		require.NotEmpty(t, m.Id)
+		require.NotEmpty(t, m.ID)
 
 		meters = append(meters, *m)
 	}
@@ -167,59 +169,59 @@ func TestV3AddonMixedRateCardRoundTrip(t *testing.T) {
 		uniqueKey("mix_graduated"),
 	}
 
-	features := make([]apiv3.Feature, 0, len(featureKeys))
+	features := make([]v3sdk.Feature, 0, len(featureKeys))
 
 	for i := range featureKeys {
-		status, f, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+		f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:  featureKeys[i],
 			Name: "Test Feature " + featureKeys[i],
-			Meter: &apiv3.FeatureMeterReference{
-				Id: meters[i].Id,
+			Meter: &v3sdk.FeatureMeterReferenceInput{
+				ID: meters[i].ID,
 			},
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, f)
-		require.NotEmpty(t, f.Id)
+		require.NotEmpty(t, f.ID)
 
 		features = append(features, *f)
 	}
 
 	flat := validFlatRateCard("mix_flat")
 	unit := validUnitRateCard(features[0])
-	percent := float32(10)
-	unit.Discounts = &apiv3.BillingRateCardDiscounts{Percentage: &percent}
+	percent := float64(10)
+	unit.Discounts = &v3sdk.RateCardDiscounts{Percentage: &percent}
 	graduated := validGraduatedRateCard(features[1])
 
 	body := validAddonRequest("mixed_rc")
-	body.RateCards = []apiv3.BillingRateCard{flat, unit, graduated}
+	body.RateCards = []v3sdk.RateCardInput{flat, unit, graduated}
 
-	status, addon, problem := c.CreateAddon(body)
-	require.Equal(t, http.StatusCreated, status, "create: %+v", problem)
+	addon, err := c.Addons.Create(t.Context(), body)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, addon)
 
-	status, published, problem := c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, status, "publish: %+v", problem)
+	published, err := c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, published)
 
-	status, got, problem := c.GetAddon(addon.Id)
-	require.Equal(t, http.StatusOK, status, "get: %+v", problem)
+	got, err := c.Addons.Get(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, got)
 	require.Len(t, got.RateCards, 3)
 
-	byKey := map[string]apiv3.BillingRateCard{}
+	byKey := map[string]v3sdk.RateCard{}
 	for _, rc := range got.RateCards {
 		byKey[rc.Key] = rc
 	}
 
 	gotFlat, ok := byKey[flat.Key]
 	require.True(t, ok, "flat rate card missing on round-trip")
-	flatPrice, err := gotFlat.Price.AsBillingPriceFlat()
+	flatPrice, err := gotFlat.Price.AsPriceFlat()
 	require.NoError(t, err, "flat price should decode as BillingPriceFlat")
 	assert.Equal(t, "10", flatPrice.Amount)
 
 	gotUnit, ok := byKey[unit.Key]
 	require.True(t, ok, "unit rate card missing on round-trip")
-	unitPrice, err := gotUnit.Price.AsBillingPriceUnit()
+	unitPrice, err := gotUnit.Price.AsPriceUnit()
 	require.NoError(t, err, "unit price should decode as BillingPriceUnit")
 	// Server normalizes decimals (trims trailing zeros): "0.10" → "0.1".
 	assert.Equal(t, "0.1", unitPrice.Amount)
@@ -229,7 +231,7 @@ func TestV3AddonMixedRateCardRoundTrip(t *testing.T) {
 
 	gotGraduated, ok := byKey[graduated.Key]
 	require.True(t, ok, "graduated rate card missing on round-trip")
-	gradPrice, err := gotGraduated.Price.AsBillingPriceGraduated()
+	gradPrice, err := gotGraduated.Price.AsPriceGraduated()
 	require.NoError(t, err, "graduated price should decode as BillingPriceGraduated")
 	assert.Len(t, gradPrice.Tiers, 2, "graduated tiers not preserved")
 }
@@ -242,37 +244,37 @@ func TestV3AddonVersioningAndAutoArchive(t *testing.T) {
 	createBody := validAddonRequest("addon_versioning")
 	sharedKey := createBody.Key
 
-	status, v1, problem := c.CreateAddon(createBody)
-	require.Equal(t, http.StatusCreated, status, "create v1: %+v", problem)
+	v1, err := c.Addons.Create(t.Context(), createBody)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, v1)
-	assert.Equal(t, 1, v1.Version)
+	assert.EqualValues(t, 1, v1.Version)
 
-	status, v1Active, problem := c.PublishAddon(v1.Id)
-	require.Equal(t, http.StatusOK, status, "publish v1: %+v", problem)
+	v1Active, err := c.Addons.Publish(t.Context(), v1.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, v1Active)
-	require.Equal(t, apiv3.AddonStatusActive, v1Active.Status)
+	require.Equal(t, v3sdk.AddonStatusActive, v1Active.Status)
 
 	v2Body := validAddonRequest("addon_versioning_v2")
 	v2Body.Key = sharedKey
 
-	status, v2, problem := c.CreateAddon(v2Body)
-	require.Equal(t, http.StatusCreated, status, "create v2: %+v", problem)
+	v2, err := c.Addons.Create(t.Context(), v2Body)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, v2)
-	assert.Equal(t, 2, v2.Version)
-	assert.Equal(t, apiv3.AddonStatusDraft, v2.Status)
+	assert.EqualValues(t, 2, v2.Version)
+	assert.Equal(t, v3sdk.AddonStatusDraft, v2.Status)
 	assert.Equal(t, sharedKey, v2.Key)
-	assert.NotEqual(t, v1.Id, v2.Id)
+	assert.NotEqual(t, v1.ID, v2.ID)
 
-	status, v2Active, problem := c.PublishAddon(v2.Id)
-	require.Equal(t, http.StatusOK, status, "publish v2: %+v", problem)
+	v2Active, err := c.Addons.Publish(t.Context(), v2.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, v2Active)
-	require.Equal(t, apiv3.AddonStatusActive, v2Active.Status)
+	require.Equal(t, v3sdk.AddonStatusActive, v2Active.Status)
 	require.NotNil(t, v2Active.EffectiveFrom)
 
-	status, v1After, problem := c.GetAddon(v1.Id)
-	require.Equal(t, http.StatusOK, status, "get v1: %+v", problem)
+	v1After, err := c.Addons.Get(t.Context(), v1.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, v1After)
-	assert.Equal(t, apiv3.AddonStatusArchived, v1After.Status)
+	assert.Equal(t, v3sdk.AddonStatusArchived, v1After.Status)
 	require.NotNil(t, v1After.EffectiveTo)
 	assert.True(t, v1After.EffectiveTo.Equal(*v2Active.EffectiveFrom),
 		"v1.EffectiveTo (%s) must equal v2.EffectiveFrom (%s)",
@@ -292,13 +294,13 @@ func TestV3AddonFeatureReferenceResolution(t *testing.T) {
 	const fakeFeatureID = "01HZZ0000000000000000FAKE1"
 
 	rc := validFlatRateCard("feature_ref")
-	rc.Feature = &apiv3.FeatureReference{Id: fakeFeatureID}
+	rc.Feature = &v3sdk.FeatureReference{ID: fakeFeatureID}
 
 	body := validAddonRequest("feature_ref")
-	body.RateCards = []apiv3.BillingRateCard{rc}
+	body.RateCards = []v3sdk.RateCardInput{rc}
 
-	status, _, problem := c.CreateAddon(body)
-	assert.Equal(t, http.StatusBadRequest, status, "%+v", problem)
+	_, err := c.Addons.Create(t.Context(), body)
+	problem := requireProblem(t, err, http.StatusBadRequest)
 	assertValidationCode(t, problem, "rate_card_feature_not_found")
 }
 
@@ -315,8 +317,8 @@ func TestV3AddonPaymentTermPriceCompatibility(t *testing.T) {
 		// validFlatRateCard already uses in_advance.
 		body := validAddonRequest("payment_term_flat")
 
-		status, addon, problem := c.CreateAddon(body)
-		require.Equal(t, http.StatusCreated, status, "%+v", problem)
+		addon, err := c.Addons.Create(t.Context(), body)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, addon)
 	})
 }
@@ -336,45 +338,45 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 
 	meterKey := uniqueKey("single_unit")
 
-	status, m, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+	m, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
 		Key:           meterKey,
 		Name:          "Test Meter " + meterKey,
-		Aggregation:   apiv3.MeterAggregationSum,
+		Aggregation:   v3sdk.MeterAggregationSum,
 		EventType:     uniqueKey("sanity_event"),
 		ValueProperty: lo.ToPtr("$.value"),
 	})
-	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, m)
-	require.NotEmpty(t, m.Id)
+	require.NotEmpty(t, m.ID)
 
 	featureKey := uniqueKey("single_unit")
 
-	status, f, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+	f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 		Key:  featureKey,
 		Name: "Test Feature " + featureKey,
-		Meter: &apiv3.FeatureMeterReference{
-			Id: m.Id,
+		Meter: &v3sdk.FeatureMeterReferenceInput{
+			ID: m.ID,
 		},
 	})
-	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, f)
-	require.NotEmpty(t, f.Id)
+	require.NotEmpty(t, f.ID)
 
 	cases := []struct {
 		name           string
-		instanceType   apiv3.AddonInstanceType
-		rateCard       apiv3.BillingRateCard
+		instanceType   v3sdk.AddonInstanceType
+		rateCard       v3sdk.RateCardInput
 		expectedStatus int
 	}{
 		{
 			name:           "multiple + flat rate card → 201",
-			instanceType:   apiv3.AddonInstanceTypeMultiple,
+			instanceType:   v3sdk.AddonInstanceTypeMultiple,
 			rateCard:       validFlatRateCard("multi_flat"),
 			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "single + unit rate card → 201",
-			instanceType:   apiv3.AddonInstanceTypeSingle,
+			instanceType:   v3sdk.AddonInstanceTypeSingle,
 			rateCard:       validUnitRateCard(*f),
 			expectedStatus: http.StatusCreated,
 		},
@@ -384,10 +386,10 @@ func TestV3AddonInstanceTypePriceCompatibility(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			body := validAddonRequest("instance_type_price")
 			body.InstanceType = tc.instanceType
-			body.RateCards = []apiv3.BillingRateCard{tc.rateCard}
+			body.RateCards = []v3sdk.RateCardInput{tc.rateCard}
 
-			status, addon, problem := c.CreateAddon(body)
-			assert.Equal(t, tc.expectedStatus, status, "problem: %+v", problem)
+			addon, err := c.Addons.Create(t.Context(), body)
+			c.requireStatus(tc.expectedStatus, err)
 			require.NotNil(t, addon)
 		})
 	}

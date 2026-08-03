@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -95,6 +97,10 @@ type RateCardMeta struct {
 	// Price defines the price for the RateCard
 	Price *Price `json:"price"`
 
+	// Currency overrides the containing plan or add-on currency for this rate card.
+	// Nil means the containing resource's currency applies.
+	Currency *currencies.CurrencyReference `json:"currency,omitempty"`
+
 	// Discounts defines a list of discounts for the RateCard
 	Discounts Discounts `json:"discounts,omitempty"`
 
@@ -165,6 +171,10 @@ func (r RateCardMeta) Clone() RateCardMeta {
 		clone.Price = &p
 	}
 
+	if r.Currency != nil {
+		clone.Currency = lo.ToPtr(r.Currency.Clone())
+	}
+
 	clone.Discounts = r.Discounts.Clone()
 
 	if r.UnitConfig != nil {
@@ -208,6 +218,14 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 
 	if (r.Price != nil && v.Price == nil) ||
 		(r.Price == nil && v.Price != nil) {
+		return false
+	}
+
+	if (r.Currency == nil) != (v.Currency == nil) {
+		return false
+	}
+
+	if r.Currency != nil && !r.Currency.Equal(*v.Currency) {
 		return false
 	}
 
@@ -276,6 +294,19 @@ func (r RateCardMeta) Validate() error {
 		}
 	}
 
+	if r.Currency != nil {
+		if r.Price == nil {
+			errs = append(errs, ErrRateCardCurrencyRequiresPrice)
+		}
+
+		if err := r.Currency.Validate(); err != nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("currency")),
+				ErrCurrencyInvalid,
+			))
+		}
+	}
+
 	if r.FeatureKey != nil {
 		if r.Key != *r.FeatureKey {
 			errs = append(errs, ErrRateCardKeyFeatureKeyMismatch)
@@ -305,6 +336,16 @@ func (r RateCardMeta) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// EffectiveCurrency returns the currency in which the rate card's price is
+// denominated after applying its optional override.
+func (r RateCardMeta) EffectiveCurrency(defaultCurrency currencies.CurrencyReference) currencies.CurrencyReference {
+	if r.Currency != nil {
+		return *r.Currency
+	}
+
+	return defaultCurrency
 }
 
 func (r RateCardMeta) IsBillable() bool {
@@ -457,6 +498,27 @@ func (r *FlatFeeRateCard) MarshalJSON() ([]byte, error) {
 	return json.Marshal(serde)
 }
 
+func (r *FlatFeeRateCard) UnmarshalJSON(data []byte) error {
+	serde := struct {
+		RateCardSerde
+		RateCardMeta
+		BillingCadence *datetime.ISODuration `json:"billingCadence"`
+	}{}
+
+	if err := json.Unmarshal(data, &serde); err != nil {
+		return err
+	}
+
+	if serde.Type != r.Type() {
+		return fmt.Errorf("rate card type mismatch: expected %q, got %q", r.Type(), serde.Type)
+	}
+
+	r.RateCardMeta = serde.RateCardMeta
+	r.BillingCadence = serde.BillingCadence
+
+	return nil
+}
+
 var (
 	_ RateCard                                    = (*UsageBasedRateCard)(nil)
 	_ models.CustomValidator[*UsageBasedRateCard] = (*UsageBasedRateCard)(nil)
@@ -592,6 +654,27 @@ func (r *UsageBasedRateCard) MarshalJSON() ([]byte, error) {
 	return json.Marshal(serde)
 }
 
+func (r *UsageBasedRateCard) UnmarshalJSON(data []byte) error {
+	serde := struct {
+		RateCardSerde
+		RateCardMeta
+		BillingCadence datetime.ISODuration `json:"billingCadence"`
+	}{}
+
+	if err := json.Unmarshal(data, &serde); err != nil {
+		return err
+	}
+
+	if serde.Type != r.Type() {
+		return fmt.Errorf("rate card type mismatch: expected %q, got %q", r.Type(), serde.Type)
+	}
+
+	r.RateCardMeta = serde.RateCardMeta
+	r.BillingCadence = serde.BillingCadence
+
+	return nil
+}
+
 var (
 	_ models.Equaler[RateCards]         = (*RateCards)(nil)
 	_ models.CustomValidator[RateCards] = (*RateCards)(nil)
@@ -609,6 +692,20 @@ func (c RateCards) Clone() RateCards {
 
 func (c RateCards) At(idx int) RateCard {
 	return c[idx]
+}
+
+func (c RateCards) HasUnitConfig() bool {
+	return slices.ContainsFunc(c, func(rc RateCard) bool {
+		return rc.AsMeta().UnitConfig != nil
+	})
+}
+
+// HasCurrencyOverride reports whether any rate card explicitly overrides its
+// containing plan or add-on currency.
+func (c RateCards) HasCurrencyOverride() bool {
+	return slices.ContainsFunc(c, func(rc RateCard) bool {
+		return rc.AsMeta().Currency != nil
+	})
 }
 
 func (c RateCards) Billables() RateCards {
@@ -744,6 +841,7 @@ func (r RateCardWithOverlay) Validate() error {
 		ValidateRateCardsHaveCompatibleBillingCadence,
 		ValidateRateCardsHaveCompatibleEntitlementTemplate,
 		ValidateRateCardsHaveCompatibleDiscounts,
+		ValidateRateCardsHaveCompatibleUnitConfig,
 	)
 }
 
@@ -921,6 +1019,23 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 		)
 
 		return models.ErrorWithFieldPrefix(fieldSelector, err)
+	}
+
+	return nil
+})
+
+var ValidateRateCardsHaveCompatibleUnitConfig = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
+
+	if rMeta.UnitConfig != nil && vMeta.UnitConfig != nil && !rMeta.UnitConfig.Equal(vMeta.UnitConfig) {
+		fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
+			WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
+
+		return models.ErrorWithFieldPrefix(fieldSelector, ErrAddonRateCardUnitConfigMismatch)
 	}
 
 	return nil

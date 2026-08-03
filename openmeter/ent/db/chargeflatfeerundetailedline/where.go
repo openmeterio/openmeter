@@ -262,6 +262,16 @@ func CurrencyHasSuffix(v currencyx.Code) predicate.ChargeFlatFeeRunDetailedLine 
 	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldHasSuffix(FieldCurrency, vc))
 }
 
+// CurrencyIsNil applies the IsNil predicate on the "currency" field.
+func CurrencyIsNil() predicate.ChargeFlatFeeRunDetailedLine {
+	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldIsNull(FieldCurrency))
+}
+
+// CurrencyNotNil applies the NotNil predicate on the "currency" field.
+func CurrencyNotNil() predicate.ChargeFlatFeeRunDetailedLine {
+	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNotNull(FieldCurrency))
+}
+
 // CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
 func CurrencyEqualFold(v currencyx.Code) predicate.ChargeFlatFeeRunDetailedLine {
 	vc := string(v)

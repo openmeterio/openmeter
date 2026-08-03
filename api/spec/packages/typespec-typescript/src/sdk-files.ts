@@ -1,9 +1,14 @@
+import type { PaginationInfo } from './pagination.js'
 import type { SdkOperation } from './sdk-operations.js'
-import { namespaceNames } from './sdk-operations.js'
+import {
+  namespaceNames,
+  operationJsDoc,
+  paginationJsDoc,
+} from './sdk-operations.js'
 import type { RequestTypes } from './request-types.js'
 import { toCamelCase } from './casing.js'
 
-function pathExpr(op: SdkOperation): string {
+function pathExpr(op: SdkOperation, source = 'req'): string {
   // Inline the path as a template literal: each `{param}` becomes the
   // URL-encoded request field. Path params are typed as required strings, but
   // that only holds under the TS compiler — a caller on `any`/plain JS, or one
@@ -17,9 +22,22 @@ function pathExpr(op: SdkOperation): string {
     .replace(
       /\{(\w+)\}/g,
       (_, p: string) =>
-        `\${(() => { if (req.${p} === undefined) { throw new Error('missing path parameter: ${p}') } return encodeURIComponent(String(req.${p})) })()}`,
+        `\${(() => { if (${source}.${p} === undefined) { throw new Error('missing path parameter: ${p}') } return encodeURIComponent(String(${source}.${p})) })()}`,
     )
   return `\`${path}\``
+}
+
+function encodedQueryValue(op: SdkOperation, parameter: string): string {
+  const key = toCamelCase(parameter)
+  const codec = op.queryCodecs.find((entry) => entry.parameter === parameter)
+  if (!codec) {
+    return `req.${key}`
+  }
+
+  switch (codec.codec) {
+    case 'sort':
+      return `encodeSort(req.${key}, toSnakeCase)`
+  }
 }
 
 function funcBody(op: SdkOperation): string {
@@ -33,7 +51,9 @@ function funcBody(op: SdkOperation): string {
       ? `req: ${reqType} = {}`
       : `req: ${reqType}`
 
-  const url = hasPath ? pathExpr(op) : `'${op.path.replace(/^\//, '')}'`
+  const url = hasPath
+    ? pathExpr(op, 'pathParams')
+    : `'${op.path.replace(/^\//, '')}'`
 
   const kyOpts: string[] = []
   if (hasQuery) {
@@ -51,6 +71,10 @@ function funcBody(op: SdkOperation): string {
     kyOpts.length > 0 ? `{ ...options, ${kyOpts.join(', ')} }` : 'options'
 
   const lines: string[] = []
+  const doc = operationJsDoc(op, '')
+  if (doc) {
+    lines.push(doc)
+  }
   lines.push(
     `export function ${op.funcName}(`,
     `  client: Client,`,
@@ -72,7 +96,23 @@ function funcBody(op: SdkOperation): string {
   // above it), so a missing required path param throws from within the wrapped
   // callback and surfaces as Result.error, the same as a body/query validation
   // failure — not a synchronous throw out of the func call itself.
-  const preparePath = hasPath ? [`    const path = ${url}`] : []
+  const preparePath = hasPath
+    ? [
+        `    const pathParamsInput = {`,
+        ...op.pathParams.map((p) => `      ${p}: req.${p},`),
+        `    }`,
+        // Preserve the validation-disabled runtime path exactly. In strict mode,
+        // map values such as Date/bigint into their actual transport form first,
+        // then validate the same values that path interpolation will stringify.
+        `    const pathParams = client._options.validate`,
+        `      ? toPathWire(pathParamsInput, schemas.${op.funcName}PathParams)`,
+        `      : pathParamsInput`,
+        `    if (client._options.validate) {`,
+        `      assertValid(schemas.${op.funcName}PathParamsWire, pathParams)`,
+        `    }`,
+        `    const path = ${url}`,
+      ]
+    : []
   // Maps the request body/query object to the wire and, when validation is on,
   // checks the actual snake_case payload against the strict wire schema before
   // sending. Runs inside the request() closure so a failure becomes Result.error,
@@ -88,18 +128,22 @@ function funcBody(op: SdkOperation): string {
     : []
   const prepareQuery = hasQuery
     ? [
-        // The query object is camelCase (sort pre-encoded to its wire string);
+        ...op.queryCodecs.flatMap(({ parameter }) => {
+          const key = toCamelCase(parameter)
+          return [
+            `    if (client._options.validate && req.${key} !== undefined) {`,
+            `      assertValid(schemas.${op.funcName}QueryParams.shape.${key}, req.${key})`,
+            `    }`,
+          ]
+        }),
+        // The query object is camelCase (SDK-coded values pre-encoded);
         // toWire snake-ifies the keys, including typed filter field names, against
         // the query schema. Record keys (label/dimension names) are preserved by
         // the walker.
         `    const query = toWire({`,
         ...op.queryParams.map((p) => {
           const key = toCamelCase(p)
-          // sort.by names a field in the public (camelCase) surface; the server
-          // expects the snake_case field name, so translate the value here.
-          return p === 'sort'
-            ? `      sort: encodeSort(req.sort, toSnakeCase),`
-            : `      ${key}: req.${key},`
+          return `      ${key}: ${encodedQueryValue(op, p)},`
         }),
         `    }, schemas.${op.funcName}QueryParams)`,
         `    if (client._options.validate) {`,
@@ -177,6 +221,9 @@ export function operationsFile(
       `import * as schemas from '../schemas.js'`,
     )
   }
+  if (requestTypes.usesAcceptDateStrings) {
+    imports.push(`import type { AcceptDateStrings } from '../../lib/wire.js'`)
+  }
   const interfaceImports = [...requestTypes.interfaceImports.entries()]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([name, alias]) => (name === alias ? name : `${name} as ${alias}`))
@@ -215,24 +262,30 @@ export function operationsAssertFile(
 
 export function funcsFile(tag: string, ops: SdkOperation[]): string {
   const file = namespaceFile(tag)
-  // toWire maps request bodies and query objects to the wire; fromWire maps JSON
-  // responses back. Both reference per-op schema values, so the schema namespace
-  // is imported whenever either is used.
+  // The request mappers convert bodies, query objects, and path values to their
+  // transport form; fromWire maps JSON responses back. They reference per-op
+  // schema values, so the schema namespace is imported whenever one is used.
   const usesToWire = ops.some((op) => op.hasBody || op.queryParams.length > 0)
+  const usesPathWire = ops.some((op) => op.pathParams.length > 0)
   const usesFromWire = ops.some(
     (op) => op.hasResponse && !op.textResponseContentType,
   )
-  const usesSnake = ops.some((op) => op.hasSort)
-  // assertValid runs (when the validate option is on) for any op with a request
-  // body, query params, or a JSON response.
+  const usesSort = ops.some((op) =>
+    op.queryCodecs.some((codec) => codec.codec === 'sort'),
+  )
+  const usesSnake = usesSort
+  // assertValid runs (when the validate option is on) for any op with request
+  // body/path/query data or a JSON response.
   const usesValidate = ops.some(
     (op) =>
       op.hasBody ||
+      op.pathParams.length > 0 ||
       op.queryParams.length > 0 ||
       (op.hasResponse && !op.textResponseContentType),
   )
   const mapperNames = [
     ...(usesToWire ? ['toWire'] : []),
+    ...(usesPathWire ? ['toPathWire'] : []),
     ...(usesFromWire ? ['fromWire'] : []),
     ...(usesValidate ? ['assertValid'] : []),
     ...(usesSnake ? ['toSnakeCase'] : []),
@@ -242,12 +295,16 @@ export function funcsFile(tag: string, ops: SdkOperation[]): string {
   // Path params are now inlined as template literals, so encodePath is no longer
   // imported; only query ops use the URL serializer and sort encoder.
   const hasAnyQuery = ops.some((op) => op.queryParams.length > 0)
+  const encodingNames = [
+    ...(hasAnyQuery ? ['toURLSearchParams'] : []),
+    ...(usesSort ? ['encodeSort'] : []),
+  ]
   const imports = [
     `import { type Client, http } from '../core.js'`,
     `import { type Result, type RequestOptions } from '../lib/types.js'`,
     `import { request } from '../lib/request.js'`,
-    ...(hasAnyQuery
-      ? [`import { toURLSearchParams, encodeSort } from '../lib/encodings.js'`]
+    ...(encodingNames.length > 0
+      ? [`import { ${encodingNames.join(', ')} } from '../lib/encodings.js'`]
       : []),
     ...(mapperNames.length > 0
       ? [`import { ${mapperNames.join(', ')} } from '../lib/wire.js'`]
@@ -269,18 +326,52 @@ interface FacadeNode {
   children: Map<string, FacadeNode>
 }
 
+function reqOptionalFor(op: SdkOperation): boolean {
+  return op.queryParams.length > 0 && !op.hasBody && op.pathParams.length === 0
+}
+
 function emitMethod(op: SdkOperation): string {
-  const reqOptional =
-    op.queryParams.length > 0 && !op.hasBody && op.pathParams.length === 0
+  const reqOptional = reqOptionalFor(op)
   const reqParam = reqOptional
     ? `request?: ${op.base}Request`
     : `request: ${op.base}Request`
+  const doc = operationJsDoc(op, '  ')
   return [
+    ...(doc ? [doc] : []),
     `  async ${op.methodName}(`,
     `    ${reqParam},`,
     `    options?: RequestOptions,`,
     `  ): Promise<${op.base}Response> {`,
     `    return unwrap(await ${op.funcName}(this._client, request, options))`,
+    `  }`,
+  ].join('\n')
+}
+
+/**
+ * The `<method>All` companion for a paginated list operation: wires the
+ * matching runtime pagination helper (`paginatePages`/`paginateCursor`) to
+ * this operation's func, so it only has to bind `this._client` — the page-
+ * advancing loop itself lives in `lib/paginate.ts`, not here.
+ */
+function emitPaginationMethod(op: SdkOperation, info: PaginationInfo): string {
+  const reqOptional = reqOptionalFor(op)
+  const reqParam = reqOptional
+    ? `request?: ${op.base}Request`
+    : `request: ${op.base}Request`
+  const requestArg = reqOptional ? 'request ?? {}' : 'request'
+  const helper = info.style === 'page' ? 'paginatePages' : 'paginateCursor'
+  const doc = paginationJsDoc(op, '  ')
+  return [
+    ...(doc ? [doc] : []),
+    `  ${op.methodName}All(`,
+    `    ${reqParam},`,
+    `    options?: RequestOptions,`,
+    `  ): AsyncIterable<${info.itemInterface}> {`,
+    `    return ${helper}(`,
+    `      (req, opts) => ${op.funcName}(this._client, req, opts),`,
+    `      ${requestArg},`,
+    `      options,`,
+    `    )`,
     `  }`,
   ].join('\n')
 }
@@ -295,7 +386,12 @@ function emitNode(node: FacadeNode): string[] {
       `  }`,
     ].join('\n')
   })
-  const members = [...node.ops.map(emitMethod), ...getters].join('\n\n')
+  const methods = node.ops.flatMap((op) =>
+    op.pagination
+      ? [emitMethod(op), emitPaginationMethod(op, op.pagination)]
+      : [emitMethod(op)],
+  )
+  const members = [...methods, ...getters].join('\n\n')
 
   const klass = [
     `export class ${node.className} {`,
@@ -309,11 +405,8 @@ function emitNode(node: FacadeNode): string[] {
   return [klass, ...childClasses]
 }
 
-export function facadeFile(tag: string, ops: SdkOperation[]): string {
-  const { class: cls } = namespaceNames(tag)
-  const file = namespaceFile(tag)
-
-  const root: FacadeNode = { className: cls, ops: [], children: new Map() }
+function buildFacadeRoot(className: string, ops: SdkOperation[]): FacadeNode {
+  const root: FacadeNode = { className, ops: [], children: new Map() }
   for (const op of ops) {
     let node = root
     for (const segment of op.nestPath) {
@@ -327,6 +420,49 @@ export function facadeFile(tag: string, ops: SdkOperation[]): string {
     }
     node.ops.push(op)
   }
+  return root
+}
+
+// Pagination helper imports: only the styles the emitted ops actually use,
+// named deterministically (not by Set iteration order) so a second
+// `generate` run byte-matches the first.
+function paginationImportLines(ops: SdkOperation[]): string[] {
+  const paginationHelpers = [
+    ...new Set(ops.map((op) => op.pagination?.style).filter(Boolean)),
+  ].sort()
+  return paginationHelpers.length > 0
+    ? [
+        `import {`,
+        ...paginationHelpers.map((style) =>
+          style === 'page' ? `  paginatePages,` : `  paginateCursor,`,
+        ),
+        `} from '../lib/paginate.js'`,
+      ]
+    : []
+}
+
+function itemInterfaceImportLines(ops: SdkOperation[]): string[] {
+  const itemInterfaces = [
+    ...new Set(
+      ops
+        .map((op) => op.pagination?.itemInterface)
+        .filter((name): name is string => Boolean(name)),
+    ),
+  ].sort()
+  return itemInterfaces.length > 0
+    ? [
+        `import type {`,
+        ...itemInterfaces.map((name) => `  ${name},`),
+        `} from '../models/types.js'`,
+      ]
+    : []
+}
+
+export function facadeFile(tag: string, ops: SdkOperation[]): string {
+  const { class: cls } = namespaceNames(tag)
+  const file = namespaceFile(tag)
+
+  const root = buildFacadeRoot(cls, ops)
 
   const classes = emitNode(root).join('\n\n')
   const funcImports = ops.map((op) => `  ${op.funcName},`).join('\n')
@@ -337,44 +473,135 @@ export function facadeFile(tag: string, ops: SdkOperation[]): string {
   return [
     `import { type Client } from '../core.js'`,
     `import { unwrap, type RequestOptions } from '../lib/types.js'`,
+    ...paginationImportLines(ops),
     `import {`,
     funcImports,
     `} from '../funcs/${file}.js'`,
     `import type {`,
     typeImports,
     `} from '../models/operations/${file}.js'`,
+    ...itemInterfaceImportLines(ops),
     ``,
     classes,
     ``,
   ].join('\n')
 }
 
-export function sdkRootFile(tags: string[]): string {
+/**
+ * The `client.internal.*` surface: one file holding the `Internal` aggregate
+ * plus an `Internal<Group>` facade class per resource that has x-internal
+ * operations. Internal ops share their group's funcs and operation-envelope
+ * modules with the public surface — only the grouped-client entry point is
+ * quarantined, so the audience split is visible at every call site.
+ */
+export function internalFile(
+  groups: Array<{ resource: string; ops: SdkOperation[] }>,
+): string {
+  const roots = groups.map(({ resource, ops }) => ({
+    resource,
+    ops,
+    root: buildFacadeRoot(`Internal${namespaceNames(resource).class}`, ops),
+  }))
+
+  const getters = roots
+    .map(({ resource, root }) => {
+      const { getter } = namespaceNames(resource)
+      return [
+        `  private _${getter}?: ${root.className}`,
+        `  get ${getter}(): ${root.className} {`,
+        `    return (this._${getter} ??= new ${root.className}(this._client))`,
+        `  }`,
+      ].join('\n')
+    })
+    .join('\n\n')
+
+  const internalClass = [
+    `/**`,
+    ` * Operations marked internal in the API definition. They are not part of`,
+    ` * the customer surface: they may require additional permissions, and they`,
+    ` * can change or be removed without notice or semver consideration.`,
+    ` */`,
+    `export class Internal {`,
+    `  constructor(private readonly _client: Client) {}`,
+    ``,
+    getters,
+    `}`,
+  ].join('\n')
+
+  const groupClasses = roots.flatMap(({ root }) => emitNode(root))
+
+  const allOps = groups.flatMap(({ ops }) => ops)
+  const funcImports = roots.map(({ resource, ops }) =>
+    [
+      `import {`,
+      ops.map((op) => `  ${op.funcName},`).join('\n'),
+      `} from '../funcs/${namespaceFile(resource)}.js'`,
+    ].join('\n'),
+  )
+  const typeImports = roots.map(({ resource, ops }) =>
+    [
+      `import type {`,
+      ops
+        .flatMap((op) => [`  ${op.base}Request,`, `  ${op.base}Response,`])
+        .join('\n'),
+      `} from '../models/operations/${namespaceFile(resource)}.js'`,
+    ].join('\n'),
+  )
+
+  return [
+    `import { type Client } from '../core.js'`,
+    `import { unwrap, type RequestOptions } from '../lib/types.js'`,
+    ...paginationImportLines(allOps),
+    ...funcImports,
+    ...typeImports,
+    ...itemInterfaceImportLines(allOps),
+    ``,
+    [internalClass, ...groupClasses].join('\n\n'),
+    ``,
+  ].join('\n')
+}
+
+export function sdkRootFile(tags: string[], hasInternal: boolean): string {
   const imports = [
     `import { Client } from '../core.js'`,
     ...tags.map((tag) => {
       const { class: cls } = namespaceNames(tag)
       return `import { ${cls} } from './${namespaceFile(tag)}.js'`
     }),
+    ...(hasInternal ? [`import { Internal } from './internal.js'`] : []),
   ].join('\n')
 
-  const members = tags
-    .map((tag) => {
-      const { class: cls, getter } = namespaceNames(tag)
-      return [
-        `  private _${getter}?: ${cls}`,
-        `  get ${getter}(): ${cls} {`,
-        `    return (this._${getter} ??= new ${cls}(this))`,
+  const members = tags.map((tag) => {
+    const { class: cls, getter } = namespaceNames(tag)
+    return [
+      `  private _${getter}?: ${cls}`,
+      `  get ${getter}(): ${cls} {`,
+      `    return (this._${getter} ??= new ${cls}(this))`,
+      `  }`,
+    ].join('\n')
+  })
+  if (hasInternal) {
+    members.push(
+      [
+        `  private _internal?: Internal`,
+        `  /**`,
+        `   * Operations marked internal in the API definition. They are not part`,
+        `   * of the customer surface: they may require additional permissions,`,
+        `   * and they can change or be removed without notice or semver`,
+        `   * consideration.`,
+        `   */`,
+        `  get internal(): Internal {`,
+        `    return (this._internal ??= new Internal(this))`,
         `  }`,
-      ].join('\n')
-    })
-    .join('\n\n')
+      ].join('\n'),
+    )
+  }
 
   return [
     imports,
     ``,
     `export class OpenMeter extends Client {`,
-    members,
+    members.join('\n\n'),
     `}`,
     ``,
   ].join('\n')
@@ -387,27 +614,42 @@ export function funcsIndexFile(tags: string[]): string {
   )
 }
 
-export function indexFile(tags: string[], modelTypeNames: string[]): string {
-  const namespaceExports = tags
+export function indexFile(
+  publicTags: string[],
+  allTags: string[],
+  modelTypeNames: string[],
+  operationTypeNames: Set<string>,
+): string {
+  // Facade classes are exported for the public groups only. The internal
+  // aggregate class is deliberately NOT re-exported at the package root: the
+  // surface is reached through `client.internal` (like the nested sub-client
+  // classes), and the name `Internal` is already taken by the error model.
+  // Operation envelope types are exported for every group — internal ops
+  // share their group's operations module with the public surface.
+  const namespaceExports = publicTags
     .map((tag) => {
       const { class: cls } = namespaceNames(tag)
       return `export { ${cls} } from './sdk/${namespaceFile(tag)}.js'`
     })
     .join('\n')
-  const operationTypeExports = tags
+  const operationTypeExports = allTags
     .map(
       (tag) =>
         `export type * from './models/operations/${namespaceFile(tag)}.js'`,
     )
     .join('\n')
 
-  // Domain model types are exported by name rather than via `export type *`. Some
-  // request models (`CreateMeterRequest`, …) are also re-exported as operation
-  // aliases, so a second star would make those names ambiguous (TS2308). An
-  // explicit named re-export shadows the operation stars and resolves to the
-  // identical underlying type, while making every domain type (`Meter`,
-  // `RateCard`, …) importable by name.
-  const uniqueTypeNames = [...new Set(modelTypeNames)]
+  // Domain model types are exported by name rather than via `export type *`,
+  // which would make every operation-alias name ambiguous (TS2308). Model names
+  // an operations module also exports (`CreateMeterRequest`, …) are excluded:
+  // an explicit re-export would silently shadow the operation alias at the
+  // package root, and the two are NOT the same type — the alias adds path
+  // params and AcceptDateStrings widening, and it is what the sdk/funcs
+  // signatures actually accept. Operation names must win; the raw body model
+  // stays reachable through the operations module's own imports and ./zod.
+  const uniqueTypeNames = [...new Set(modelTypeNames)].filter(
+    (name) => !operationTypeNames.has(name),
+  )
   const modelTypeExports = [
     `export type {`,
     ...uniqueTypeNames.map((name) => `  ${name},`),
@@ -419,10 +661,16 @@ export function indexFile(tags: string[], modelTypeNames: string[]): string {
     namespaceExports,
     `export { Client } from './core.js'`,
     `export { HTTPError } from './models/errors.js'`,
-    `export { ValidationError, DepthLimitExceededError } from './lib/wire.js'`,
+    `export { ValidationError, DepthLimitExceededError, UnsafeIntegerError } from './lib/wire.js'`,
+    `export type { AcceptDateStrings, DateString } from './lib/wire.js'`,
+    `export { PaginationLimitExceededError } from './lib/paginate.js'`,
     ``,
     `export { ServerList, Regions } from './lib/config.js'`,
     `export type { SDKOptions, Region, ServerVariables } from './lib/config.js'`,
+    // unwrap/ok/err ship as values: the documented standalone-funcs surface
+    // returns Result, and without unwrap every caller who wants throw-on-error
+    // for one call has to re-implement it.
+    `export { unwrap, ok, err } from './lib/types.js'`,
     `export type { Result, RequestOptions } from './lib/types.js'`,
     ``,
     `export {`,

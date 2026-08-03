@@ -36,6 +36,14 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) SetCurrency(v currencyx.Code) *Cha
 	return _c
 }
 
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_c *ChargeFlatFeeRunDetailedLineCreate) SetNillableCurrency(v *currencyx.Code) *ChargeFlatFeeRunDetailedLineCreate {
+	if v != nil {
+		_c.SetCurrency(*v)
+	}
+	return _c
+}
+
 // SetServicePeriodStart sets the "service_period_start" field.
 func (_c *ChargeFlatFeeRunDetailedLineCreate) SetServicePeriodStart(v time.Time) *ChargeFlatFeeRunDetailedLineCreate {
 	_c.mutation.SetServicePeriodStart(v)
@@ -346,11 +354,8 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeFlatFeeRunDetailedLineCreate) check() error {
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeFlatFeeRunDetailedLine.currency"`)}
-	}
 	if v, ok := _c.mutation.Currency(); ok {
-		if err := chargeflatfeerundetailedline.CurrencyValidator(string(v)); err != nil {
+		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.currency": %w`, err)}
 		}
 	}
@@ -488,7 +493,7 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDet
 	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+		_node.Currency = &value
 	}
 	if value, ok := _c.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldServicePeriodStart, field.TypeTime, value)

@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/google/wire"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -17,6 +18,9 @@ import (
 	chargesworkeradvance "github.com/openmeterio/openmeter/openmeter/billing/charges/worker/advance"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	billingsequence "github.com/openmeterio/openmeter/openmeter/billing/sequence"
+	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
+	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	billingcustomer "github.com/openmeterio/openmeter/openmeter/billing/validators/customer"
 	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/validators/subscription"
@@ -26,6 +30,7 @@ import (
 	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -44,8 +49,9 @@ import (
 // BillingRegistry bundles the billing and charges services. External callers that need
 // billing or charges should depend on BillingRegistry rather than individual services.
 type BillingRegistry struct {
-	Billing billing.Service
-	Charges *ChargesRegistry
+	Billing  billing.Service
+	Sequence billingsequence.Service
+	Charges  *ChargesRegistry
 }
 
 func (r BillingRegistry) ChargesServiceOrNil() charges.Service {
@@ -85,6 +91,25 @@ func BillingAdapter(
 	})
 }
 
+func NewBillingSequenceService(
+	logger *slog.Logger,
+	db *entdb.Client,
+	metricMeter otelmetric.Meter,
+) (billingsequence.Service, error) {
+	adapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
+		Client: db,
+		Logger: logger.With("subsystem", "billing.sequence"),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: adapter,
+		Meter:   metricMeter,
+	})
+}
+
 // newBillingService creates the billing service and registers validators/hooks.
 // Downstream consumers should use BillingRegistry.
 func newBillingService(
@@ -92,6 +117,7 @@ func newBillingService(
 	appService app.Service,
 	billingAdapter billing.Adapter,
 	billingRatingService rating.Service,
+	sequenceService billingsequence.Service,
 	customerService customer.Service,
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
@@ -106,6 +132,7 @@ func newBillingService(
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		SequenceService:              sequenceService,
 		RatingService:                billingRatingService,
 		AppService:                   appService,
 		CustomerService:              customerService,
@@ -135,6 +162,7 @@ func NewBillingRegistry(
 	customerService customer.Service,
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
+	metricMeter otelmetric.Meter,
 	streamingConnector streaming.Connector,
 	eventPublisher eventbus.Publisher,
 	billingConfig config.BillingConfiguration,
@@ -144,6 +172,8 @@ func NewBillingRegistry(
 	creditsConfig config.CreditsConfiguration,
 	tracer trace.Tracer,
 	taxCodeService taxcode.Service,
+	currencyResolver currencies.CurrencyResolver,
+	currenciesService currencies.Service,
 	locker *lockr.Locker,
 	ledgerService ledger.Ledger,
 	balanceQuerier ledger.BalanceQuerier,
@@ -152,11 +182,17 @@ func NewBillingRegistry(
 	breakageService ledgerbreakage.Service,
 	featureGate *featuregate.FeatureGateChecker,
 ) (BillingRegistry, error) {
+	sequenceService, err := NewBillingSequenceService(logger, db, metricMeter)
+	if err != nil {
+		return BillingRegistry{}, err
+	}
+
 	billingService, err := newBillingService(
 		logger,
 		appService,
 		billingAdapter,
 		billingRatingService,
+		sequenceService,
 		customerService,
 		featureConnector,
 		meterService,
@@ -190,6 +226,8 @@ func NewBillingRegistry(
 			accountService,
 			breakageService,
 			taxCodeService,
+			currencyResolver,
+			currenciesService,
 			fsConfig.NamespaceLockdown,
 			creditsConfig,
 			featureGate,
@@ -200,8 +238,9 @@ func NewBillingRegistry(
 	}
 
 	billingRegistry := BillingRegistry{
-		Billing: billingService,
-		Charges: chargesRegistry,
+		Billing:  billingService,
+		Sequence: sequenceService,
+		Charges:  chargesRegistry,
 	}
 
 	// Hook registration

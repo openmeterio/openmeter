@@ -327,7 +327,6 @@ paths:
             minLength: 1
             maxLength: 64
             pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-            x-go-type: string
           x-go-type: string
         - name: includeLatest
           in: query
@@ -7374,7 +7373,6 @@ paths:
             minLength: 1
             maxLength: 64
             pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-            x-go-type: string
           x-go-type: string
       responses:
         '201':
@@ -7523,7 +7521,6 @@ paths:
             minLength: 1
             maxLength: 64
             pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-            x-go-type: string
           x-go-type: string
         - name: includeLatest
           in: query

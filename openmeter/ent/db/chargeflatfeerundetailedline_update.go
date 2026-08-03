@@ -486,6 +486,9 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) sqlSave(ctx context.Context) (_nod
 			}
 		}
 	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(chargeflatfeerundetailedline.FieldCurrency, field.TypeString)
+	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldServicePeriodStart, field.TypeTime, value)
 	}
@@ -1087,6 +1090,9 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) sqlSave(ctx context.Context) (_
 				ps[i](selector)
 			}
 		}
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(chargeflatfeerundetailedline.FieldCurrency, field.TypeString)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldServicePeriodStart, field.TypeTime, value)

@@ -56,7 +56,10 @@ locals {
     local_url = "postgres://postgres:postgres@localhost:5432/postgres?search_path=public&sslmode=disable"
     ci_url = "postgres://postgres:postgres@postgres:5432/postgres?search_path=public&sslmode=disable"
 
-    migration_exlude = ["distributed_locks[type=table]"]
+    migration_exlude = [
+      "distributed_locks[type=table]",
+      "om_migration_backup_*[type=table]",
+    ]
 }
 
 lint {

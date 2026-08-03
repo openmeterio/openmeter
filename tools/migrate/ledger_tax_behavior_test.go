@@ -21,7 +21,7 @@ import (
 //   - The down migration fails loudly instead; callers must downgrade/remove V2
 //     routes before retrying rollback.
 func TestLedgerTaxBehaviorMigrationRollback(t *testing.T) {
-	testDB := testutils.InitPostgresDB(t)
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer testDB.PGDriver.Close()
 
 	migrator, err := migrate.New(migrate.MigrateOptions{

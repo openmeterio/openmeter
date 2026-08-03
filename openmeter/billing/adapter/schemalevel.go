@@ -15,7 +15,7 @@ var _ billing.SchemaLevelAdapter = (*adapter)(nil)
 
 const (
 	invoiceWriteSchemaLevelID      = "write_schema_level"
-	DefaultInvoiceWriteSchemaLevel = 1
+	DefaultInvoiceWriteSchemaLevel = 2
 )
 
 func (a *adapter) GetInvoiceDefaultSchemaLevel(ctx context.Context) (int, error) {

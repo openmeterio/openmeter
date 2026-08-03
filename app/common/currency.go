@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/currencies/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 )
@@ -14,7 +15,10 @@ import (
 var Currency = wire.NewSet(
 	NewCurrencyAdapter,
 	NewCurrencyService,
+	NewCurrencyResolver,
 )
+
+var NewCurrencyResolver = currencyresolver.New
 
 func NewCurrencyAdapter(db *entdb.Client) (currencies.Repository, error) {
 	repo, err := currencyadapter.New(currencyadapter.Config{

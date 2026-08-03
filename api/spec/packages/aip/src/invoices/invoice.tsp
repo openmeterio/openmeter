@@ -2,6 +2,7 @@ import "../shared/index.tsp";
 import "../customers/index.tsp";
 import "../productcatalog/price.tsp";
 import "../productcatalog/ratecard.tsp";
+import "../productcatalog/unitconfig.tsp";
 import "../billing/profile.tsp";
 import "../billing/totals.tsp";
 import "../billing/tax.tsp";
@@ -803,6 +804,14 @@ model InvoiceLineRateCard {
   @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Discounts")
   discounts?: ProductCatalog.Discounts;
+
+  /**
+   * Unit config snapshot applied when this line was billed, converting the raw
+   * metered quantity into the billed quantity. Frozen at billing time; read-only.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Unit config")
+  unit_config?: ProductCatalog.UnitConfig;
 }
 
 /**

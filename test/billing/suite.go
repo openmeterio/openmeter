@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"slices"
 	"testing"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -32,6 +32,9 @@ import (
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	billingsequence "github.com/openmeterio/openmeter/openmeter/billing/sequence"
+	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
+	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -60,7 +63,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type BaseSuite struct {
@@ -71,6 +73,7 @@ type BaseSuite struct {
 
 	BillingAdapter    billing.Adapter
 	BillingService    billing.Service
+	SequenceService   billingsequence.Service
 	InvoiceCalculator *invoicecalc.MockableInvoiceCalculator
 
 	FeatureService         feature.FeatureConnector
@@ -110,39 +113,20 @@ func (b *BaseSuite) GetSubscriptionMixInDependencies() SubscriptionMixInDependen
 	}
 }
 
-type SetupSuiteOptions struct {
-	ForceAtlas bool
-}
-
 func (s *BaseSuite) SetupSuite() {
-	s.setupSuite(SetupSuiteOptions{})
+	s.setupSuite()
 }
 
-func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
+func (s *BaseSuite) setupSuite() {
 	t := s.T()
 	t.Log("setup suite")
 	publisher := eventbus.NewMock(t)
 
-	s.TestDB = testutils.InitPostgresDB(t)
+	s.TestDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 
 	// init db
 	dbClient := db.NewClient(db.Driver(s.TestDB.EntDriver.Driver()))
 	s.DBClient = dbClient
-
-	if !opts.ForceAtlas && os.Getenv("TEST_DISABLE_ATLAS") != "" {
-		s.Require().NoError(dbClient.Schema.Create(context.Background()))
-	} else {
-		migrator, err := migrate.New(migrate.MigrateOptions{
-			ConnectionString: s.TestDB.URL,
-			Migrations:       migrate.OMMigrationsConfig,
-			Logger:           testutils.NewLogger(t),
-		})
-		s.NoError(err)
-
-		defer migrator.CloseOrLogError()
-
-		s.NoError(migrator.Up())
-	}
 
 	// setup invoicing stack
 
@@ -237,9 +221,24 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	})
 	require.NoError(t, err)
 	s.BillingAdapter = billingAdapter
+	require.NoError(t, billingAdapter.SetInvoiceDefaultSchemaLevel(t.Context(), billingadapter.DefaultInvoiceWriteSchemaLevel))
+
+	billingSequenceAdapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
+		Client: dbClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	billingSequenceService, err := billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: billingSequenceAdapter,
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
+	})
+	require.NoError(t, err)
+	s.SequenceService = billingSequenceService
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		SequenceService:              billingSequenceService,
 		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		CustomerService:              s.CustomerService,
 		AppService:                   s.AppService,
@@ -263,8 +262,8 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 
 	// OpenMeter sandbox (registration as side-effect)
 	sandboxApp, err := appsandbox.NewMockableFactory(t, appsandbox.Config{
-		AppService:     appService,
-		BillingService: s.BillingService,
+		AppService:      appService,
+		SequenceService: billingSequenceService,
 	})
 	require.NoError(t, err)
 
@@ -467,7 +466,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: in.Customer.GetID(),
-			Currency: currencyx.Code(currency.USD),
+			Currency: currencyx.FiatCode(currency.USD),
 			Lines: []billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(
 					billing.NewFlatFeeLineInput{
@@ -477,7 +476,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 						ManagedBy:     billing.ManuallyManagedLine,
 						Name:          "Test item1",
 						PerUnitAmount: alpacadecimal.NewFromFloat(100),
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						Metadata: map[string]string{
 							"key": "value",
 						},
@@ -492,7 +491,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 						ManagedBy:     billing.ManuallyManagedLine,
 						Name:          "Test item2",
 						PerUnitAmount: alpacadecimal.NewFromFloat(200),
-						Currency:      currencyx.Code(currency.USD),
+						Currency:      currencyx.FiatCode(currency.USD),
 						Metadata: map[string]string{
 							"key": "value",
 						},
@@ -760,7 +759,7 @@ func (s *BaseSuite) SetupCustomInvoicingApp() appcustominvoicing.Service {
 	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
 		AppService:             s.AppService,
 		CustomInvoicingService: svc,
-		BillingService:         s.BillingService,
+		SequenceService:        s.SequenceService,
 	})
 	s.NoError(err, "failed to create custom invoicing factory")
 
@@ -777,7 +776,7 @@ func (s *BaseSuite) SetupCustomInvoicing(namespace string, opts ...setupCustomIn
 	}
 
 	// Install custom invoicing app
-	customInvoicingApp, err := s.AppService.InstallMarketplaceListing(ctx, app.InstallAppInput{
+	customInvoicingApp, err := s.AppService.InstallApp(ctx, app.InstallAppV3Input{
 		MarketplaceListingID: app.MarketplaceListingID{
 			Type: app.AppTypeCustomInvoicing,
 		},
@@ -788,14 +787,14 @@ func (s *BaseSuite) SetupCustomInvoicing(namespace string, opts ...setupCustomIn
 
 	// Let's set up the custom invoicing config
 	_, err = s.AppService.UpdateApp(ctx, app.UpdateAppInput{
-		AppID:           customInvoicingApp.GetID(),
-		Name:            customInvoicingApp.GetName(),
+		AppID:           customInvoicingApp.App.GetID(),
+		Name:            customInvoicingApp.App.GetName(),
 		AppConfigUpdate: provisionOpts.config,
 	})
 	s.NoError(err, "failed to upsert custom invoicing config")
 
 	return SetupCustomInvoicingResponse{
-		App: customInvoicingApp,
+		App: customInvoicingApp.App,
 	}
 }
 

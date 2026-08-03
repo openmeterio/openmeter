@@ -127,7 +127,7 @@ func (_c *BillingInvoiceLineCreate) SetNillableDescription(v *string) *BillingIn
 }
 
 // SetCurrency sets the "currency" field.
-func (_c *BillingInvoiceLineCreate) SetCurrency(v currencyx.Code) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetCurrency(v currencyx.FiatCode) *BillingInvoiceLineCreate {
 	_c.mutation.SetCurrency(v)
 	return _c
 }

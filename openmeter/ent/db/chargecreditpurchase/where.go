@@ -112,10 +112,15 @@ func UniqueReferenceID(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldUniqueReferenceID, v))
 }
 
-// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCode applies equality check predicate on the "fiat_currency_code" field. It's identical to FiatCurrencyCodeEQ.
+func FiatCurrencyCode(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldFiatCurrencyCode, vc))
+}
+
+// CustomCurrencyID applies equality check predicate on the "custom_currency_id" field. It's identical to CustomCurrencyIDEQ.
+func CustomCurrencyID(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCustomCurrencyID, v))
 }
 
 // SubscriptionID applies equality check predicate on the "subscription_id" field. It's identical to SubscriptionIDEQ.
@@ -201,6 +206,16 @@ func FeatureFilters(v pq.StringArray) predicate.ChargeCreditPurchase {
 // Key applies equality check predicate on the "key" field. It's identical to KeyEQ.
 func Key(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldKey, v))
+}
+
+// VoidedAt applies equality check predicate on the "voided_at" field. It's identical to VoidedAtEQ.
+func VoidedAt(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldVoidedAt, v))
+}
+
+// CostBasisID applies equality check predicate on the "cost_basis_id" field. It's identical to CostBasisIDEQ.
+func CostBasisID(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCostBasisID, v))
 }
 
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
@@ -613,88 +628,173 @@ func UniqueReferenceIDContainsFold(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldUniqueReferenceID, v))
 }
 
-// CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeEQ applies the EQ predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeEQ(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeNEQ applies the NEQ predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeNEQ(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeIn applies the In predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeIn(vs ...currencyx.Code) predicate.ChargeCreditPurchase {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldCurrency, v...))
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldFiatCurrencyCode, v...))
 }
 
-// CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeNotIn applies the NotIn predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeNotIn(vs ...currencyx.Code) predicate.ChargeCreditPurchase {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = string(vs[i])
 	}
-	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldCurrency, v...))
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldFiatCurrencyCode, v...))
 }
 
-// CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeGT applies the GT predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeGT(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeGTE applies the GTE predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeGTE(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeLT applies the LT predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeLT(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeLTE applies the LTE predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeLTE(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeContains applies the Contains predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeContains(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldContains(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldContains(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeHasPrefix applies the HasPrefix predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeHasPrefix(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldHasPrefix(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldHasPrefix(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeHasSuffix applies the HasSuffix predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeHasSuffix(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldHasSuffix(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldHasSuffix(FieldFiatCurrencyCode, vc))
 }
 
-// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v currencyx.Code) predicate.ChargeCreditPurchase {
-	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldEqualFold(FieldCurrency, vc))
+// FiatCurrencyCodeIsNil applies the IsNil predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldFiatCurrencyCode))
 }
 
-// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v currencyx.Code) predicate.ChargeCreditPurchase {
+// FiatCurrencyCodeNotNil applies the NotNil predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldFiatCurrencyCode))
+}
+
+// FiatCurrencyCodeEqualFold applies the EqualFold predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeEqualFold(v currencyx.Code) predicate.ChargeCreditPurchase {
 	vc := string(v)
-	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldCurrency, vc))
+	return predicate.ChargeCreditPurchase(sql.FieldEqualFold(FieldFiatCurrencyCode, vc))
+}
+
+// FiatCurrencyCodeContainsFold applies the ContainsFold predicate on the "fiat_currency_code" field.
+func FiatCurrencyCodeContainsFold(v currencyx.Code) predicate.ChargeCreditPurchase {
+	vc := string(v)
+	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldFiatCurrencyCode, vc))
+}
+
+// CustomCurrencyIDEQ applies the EQ predicate on the "custom_currency_id" field.
+func CustomCurrencyIDEQ(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDNEQ applies the NEQ predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNEQ(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDIn applies the In predicate on the "custom_currency_id" field.
+func CustomCurrencyIDIn(vs ...string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldCustomCurrencyID, vs...))
+}
+
+// CustomCurrencyIDNotIn applies the NotIn predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNotIn(vs ...string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldCustomCurrencyID, vs...))
+}
+
+// CustomCurrencyIDGT applies the GT predicate on the "custom_currency_id" field.
+func CustomCurrencyIDGT(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDGTE applies the GTE predicate on the "custom_currency_id" field.
+func CustomCurrencyIDGTE(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDLT applies the LT predicate on the "custom_currency_id" field.
+func CustomCurrencyIDLT(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDLTE applies the LTE predicate on the "custom_currency_id" field.
+func CustomCurrencyIDLTE(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDContains applies the Contains predicate on the "custom_currency_id" field.
+func CustomCurrencyIDContains(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldContains(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDHasPrefix applies the HasPrefix predicate on the "custom_currency_id" field.
+func CustomCurrencyIDHasPrefix(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldHasPrefix(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDHasSuffix applies the HasSuffix predicate on the "custom_currency_id" field.
+func CustomCurrencyIDHasSuffix(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldHasSuffix(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDIsNil applies the IsNil predicate on the "custom_currency_id" field.
+func CustomCurrencyIDIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldCustomCurrencyID))
+}
+
+// CustomCurrencyIDNotNil applies the NotNil predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldCustomCurrencyID))
+}
+
+// CustomCurrencyIDEqualFold applies the EqualFold predicate on the "custom_currency_id" field.
+func CustomCurrencyIDEqualFold(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEqualFold(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDContainsFold applies the ContainsFold predicate on the "custom_currency_id" field.
+func CustomCurrencyIDContainsFold(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldCustomCurrencyID, v))
 }
 
 // ManagedByEQ applies the EQ predicate on the "managed_by" field.
@@ -1807,6 +1907,131 @@ func KeyContainsFold(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldKey, v))
 }
 
+// VoidedAtEQ applies the EQ predicate on the "voided_at" field.
+func VoidedAtEQ(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldVoidedAt, v))
+}
+
+// VoidedAtNEQ applies the NEQ predicate on the "voided_at" field.
+func VoidedAtNEQ(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldVoidedAt, v))
+}
+
+// VoidedAtIn applies the In predicate on the "voided_at" field.
+func VoidedAtIn(vs ...time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldVoidedAt, vs...))
+}
+
+// VoidedAtNotIn applies the NotIn predicate on the "voided_at" field.
+func VoidedAtNotIn(vs ...time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldVoidedAt, vs...))
+}
+
+// VoidedAtGT applies the GT predicate on the "voided_at" field.
+func VoidedAtGT(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldVoidedAt, v))
+}
+
+// VoidedAtGTE applies the GTE predicate on the "voided_at" field.
+func VoidedAtGTE(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldVoidedAt, v))
+}
+
+// VoidedAtLT applies the LT predicate on the "voided_at" field.
+func VoidedAtLT(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldVoidedAt, v))
+}
+
+// VoidedAtLTE applies the LTE predicate on the "voided_at" field.
+func VoidedAtLTE(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldVoidedAt, v))
+}
+
+// VoidedAtIsNil applies the IsNil predicate on the "voided_at" field.
+func VoidedAtIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldVoidedAt))
+}
+
+// VoidedAtNotNil applies the NotNil predicate on the "voided_at" field.
+func VoidedAtNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldVoidedAt))
+}
+
+// CostBasisIDEQ applies the EQ predicate on the "cost_basis_id" field.
+func CostBasisIDEQ(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCostBasisID, v))
+}
+
+// CostBasisIDNEQ applies the NEQ predicate on the "cost_basis_id" field.
+func CostBasisIDNEQ(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldCostBasisID, v))
+}
+
+// CostBasisIDIn applies the In predicate on the "cost_basis_id" field.
+func CostBasisIDIn(vs ...string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldCostBasisID, vs...))
+}
+
+// CostBasisIDNotIn applies the NotIn predicate on the "cost_basis_id" field.
+func CostBasisIDNotIn(vs ...string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldCostBasisID, vs...))
+}
+
+// CostBasisIDGT applies the GT predicate on the "cost_basis_id" field.
+func CostBasisIDGT(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldCostBasisID, v))
+}
+
+// CostBasisIDGTE applies the GTE predicate on the "cost_basis_id" field.
+func CostBasisIDGTE(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldCostBasisID, v))
+}
+
+// CostBasisIDLT applies the LT predicate on the "cost_basis_id" field.
+func CostBasisIDLT(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldCostBasisID, v))
+}
+
+// CostBasisIDLTE applies the LTE predicate on the "cost_basis_id" field.
+func CostBasisIDLTE(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldCostBasisID, v))
+}
+
+// CostBasisIDContains applies the Contains predicate on the "cost_basis_id" field.
+func CostBasisIDContains(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldContains(FieldCostBasisID, v))
+}
+
+// CostBasisIDHasPrefix applies the HasPrefix predicate on the "cost_basis_id" field.
+func CostBasisIDHasPrefix(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldHasPrefix(FieldCostBasisID, v))
+}
+
+// CostBasisIDHasSuffix applies the HasSuffix predicate on the "cost_basis_id" field.
+func CostBasisIDHasSuffix(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldHasSuffix(FieldCostBasisID, v))
+}
+
+// CostBasisIDIsNil applies the IsNil predicate on the "cost_basis_id" field.
+func CostBasisIDIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldCostBasisID))
+}
+
+// CostBasisIDNotNil applies the NotNil predicate on the "cost_basis_id" field.
+func CostBasisIDNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldCostBasisID))
+}
+
+// CostBasisIDEqualFold applies the EqualFold predicate on the "cost_basis_id" field.
+func CostBasisIDEqualFold(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEqualFold(FieldCostBasisID, v))
+}
+
+// CostBasisIDContainsFold applies the ContainsFold predicate on the "cost_basis_id" field.
+func CostBasisIDContainsFold(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldCostBasisID, v))
+}
+
 // HasExternalPayment applies the HasEdge predicate on the "external_payment" edge.
 func HasExternalPayment() predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
@@ -1868,6 +2093,29 @@ func HasCreditGrant() predicate.ChargeCreditPurchase {
 func HasCreditGrantWith(preds ...predicate.ChargeCreditPurchaseCreditGrant) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
 		step := newCreditGrantStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCostBasis applies the HasEdge predicate on the "cost_basis" edge.
+func HasCostBasis() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, CostBasisTable, CostBasisColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCostBasisWith applies the HasEdge predicate on the "cost_basis" edge with a given conditions (other predicates).
+func HasCostBasisWith(preds ...predicate.ChargeCreditPurchaseCostBasis) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		step := newCostBasisStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -2006,6 +2254,29 @@ func HasTaxCode() predicate.ChargeCreditPurchase {
 func HasTaxCodeWith(preds ...predicate.TaxCode) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
 		step := newTaxCodeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCustomCurrency applies the HasEdge predicate on the "custom_currency" edge.
+func HasCustomCurrency() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CustomCurrencyTable, CustomCurrencyColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCustomCurrencyWith applies the HasEdge predicate on the "custom_currency" edge with a given conditions (other predicates).
+func HasCustomCurrencyWith(preds ...predicate.CustomCurrency) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		step := newCustomCurrencyStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

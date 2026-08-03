@@ -7,7 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -145,6 +147,18 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 			}
 		}
 
+		if err = currencyresolver.ResolveCurrenciesForPlan(ctx, s.currencyResolver.WithNamespace(params.Namespace), &params.Plan); err != nil {
+			return nil, fmt.Errorf("failed to resolve currencies in plan [plan.key=%s]: %w", params.Key, err)
+		}
+
+		if err := params.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid resolved Plan: %w", err)
+		}
+
+		if err := validatePlanCurrencies(params.Plan, params.IgnoreNonCriticalIssues); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
 		p, err := s.adapter.CreatePlan(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Plan: %w", err)
@@ -276,31 +290,15 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		)
 		logger.Debug("updating Plan")
 
-		if params.Phases != nil && len(*params.Phases) > 0 {
-			for idx := range *params.Phases {
-				phaseFieldSelector := models.NewFieldSelectorGroup(
-					models.NewFieldSelector("phases").
-						WithExpression(
-							models.NewFieldAttrValue("key", &(*params.Phases)[idx].Key),
-						),
-				)
-
-				if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
-					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
-						fmt.Errorf("failed to expand features for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
-							params.ID, (*params.Phases)[idx].Key, err))
-				}
-
-				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
-					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
-				}
-			}
-		}
-
 		p, err := s.adapter.GetPlan(ctx, plan.GetPlanInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: params.Namespace,
 				ID:        params.ID,
+			},
+			Expand: plan.ExpandFields{
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
 			},
 		})
 		if err != nil {
@@ -328,9 +326,49 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 		// therefore the EffectivePeriod attribute must be zeroed before updating the Plan.
 		params.EffectivePeriod = productcatalog.EffectivePeriod{}
 
-		// Validate the Plan with changes applied
+		if params.Phases != nil && len(*params.Phases) > 0 {
+			for idx := range *params.Phases {
+				phaseFieldSelector := models.NewFieldSelectorGroup(
+					models.NewFieldSelector("phases").
+						WithExpression(
+							models.NewFieldAttrValue("key", &(*params.Phases)[idx].Key),
+						),
+				)
+
+				if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
+					return nil, models.ErrorWithFieldPrefix(phaseFieldSelector,
+						fmt.Errorf("failed to expand features for ratecards in plan phase [plan.id=%s plan.phase.key=%s]: %w",
+							params.ID, (*params.Phases)[idx].Key, err))
+				}
+
+				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[idx].RateCards); err != nil {
+					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
+				}
+			}
+
+			candidate := pp
+			candidate.Phases = *params.Phases
+			if err = currencyresolver.ResolveCurrenciesForPlan(ctx, s.currencyResolver.WithNamespace(params.Namespace), &candidate); err != nil {
+				return nil, fmt.Errorf("failed to resolve currencies in plan [plan.id=%s]: %w", params.ID, err)
+			}
+			*params.Phases = candidate.Phases
+		}
+
+		// Validate the full candidate only after all authoring currencies have
+		// become stable currency identities.
 		if err = params.ValidateWithPlan(pp); err != nil {
 			return nil, fmt.Errorf("invalid Plan update: %w", err)
+		}
+
+		currencyCandidate := pp
+		if params.SettlementMode != nil {
+			currencyCandidate.SettlementMode = *params.SettlementMode
+		}
+		if params.Phases != nil {
+			currencyCandidate.Phases = *params.Phases
+		}
+		if err = validatePlanCurrencies(currencyCandidate, params.IgnoreNonCriticalIssues); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
 		}
 
 		p, err = s.adapter.UpdatePlan(ctx, params)
@@ -350,6 +388,20 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
+}
+
+func validatePlanCurrencies(plan productcatalog.Plan, ignoreNonCriticalIssues bool) error {
+	err := plan.ValidateWith(productcatalog.ValidatePlanWithCurrencies())
+	issues, conversionErr := models.AsValidationIssues(err)
+	if conversionErr != nil {
+		return err
+	}
+
+	if ignoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
 // PublishPlan
@@ -382,6 +434,9 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			},
 			Expand: plan.ExpandFields{
 				PlanAddons: true, // This is needed for plan add-on validation
+				CustomCurrency: &currencies.CurrencyExpandOptions{
+					CostBasis: true,
+				},
 			},
 		})
 		if err != nil {
@@ -391,6 +446,19 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		//
 		// Validate the plan before publishing it
 		//
+
+		// The v1 API cannot represent unit_config; reject before publishing
+		if params.RejectUnitConfig && p.HasUnitConfig() {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+		if params.RejectUnrepresentableCurrencies {
+			if p.Currency.IsCustom() {
+				return nil, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if p.HasCurrencyOverrides() {
+				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
+		}
 
 		// Check if the plan is already deleted
 
@@ -423,6 +491,12 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 		if err = pp.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid plan [id=%s key=%s version=%d]: %w",
+				p.ID, p.Key, p.Version, err),
+			)
+		}
+
+		if err = pp.ValidateWith(productcatalog.ValidatePlanWithCurrencies()); err != nil {
+			errs = append(errs, fmt.Errorf("invalid plan currencies [id=%s key=%s version=%d]: %w",
 				p.ID, p.Key, p.Version, err),
 			)
 		}
@@ -489,7 +563,9 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 						Namespace: activePlan.Namespace,
 						ID:        activePlan.ID,
 					},
-					EffectiveTo: lo.FromPtr(params.EffectiveFrom),
+					EffectiveTo:                     lo.FromPtr(params.EffectiveFrom),
+					RejectUnitConfig:                params.RejectUnitConfig,
+					RejectUnrepresentableCurrencies: params.RejectUnrepresentableCurrencies,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("failed to archive plan with active status: %w", err)
@@ -550,6 +626,19 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
+		}
+
+		// The v1 API cannot represent unit_config; reject before archiving
+		if params.RejectUnitConfig && p.HasUnitConfig() {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+		if params.RejectUnrepresentableCurrencies {
+			if p.Currency.IsCustom() {
+				return nil, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if p.HasCurrencyOverrides() {
+				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
 		}
 
 		activeStatuses := []productcatalog.PlanStatus{productcatalog.PlanStatusActive}
@@ -689,6 +778,19 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("no versions available for plan to use as source for next draft version"),
 			)
+		}
+
+		// The v1 API cannot represent unit_config; reject before creating the next draft
+		if params.RejectUnitConfig && sourcePlan.HasUnitConfig() {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+		if params.RejectUnrepresentableCurrencies {
+			if sourcePlan.Currency.IsCustom() {
+				return nil, productcatalog.ErrCurrencyNotRepresentable
+			}
+			if sourcePlan.HasCurrencyOverrides() {
+				return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+			}
 		}
 
 		nextPlan, err := s.adapter.CreatePlan(ctx, plan.CreatePlanInput{

@@ -187,7 +187,6 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 			Category:       dbLine.Edges.FlatFeeLine.Category,
 			PaymentTerm:    dbLine.Edges.FlatFeeLine.PaymentTerm,
 			Index:          dbLine.Edges.FlatFeeLine.Index,
-			Currency:       dbLine.Currency,
 			CreditsApplied: creditsApplied,
 			Totals:         totals.FromDB(dbLine),
 			ExternalIDs:    externalid.MapLineExternalIDFromDB(dbLine),

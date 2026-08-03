@@ -19,6 +19,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
@@ -28,6 +30,11 @@ import (
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -51,6 +58,14 @@ type BaseSuite struct {
 
 	Charges                   *service
 	UsageBasedService         usagebased.Service
+	CurrencyService           currencies.Service
+	MetaAdapter               meta.Adapter
+	LineageService            lineage.Service
+	Locker                    *lockr.Locker
+	InvoiceUpdater            invoiceupdater.Updater
+	FlatFeeAdapter            flatfee.Adapter
+	CreditPurchaseAdapter     creditpurchase.Adapter
+	UsageBasedAdapter         usagebased.Adapter
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
 	UsageBasedTestHandler     *usageBasedTestHandler
@@ -68,11 +83,21 @@ func (s *BaseSuite) SetupSuite() {
 		Logger: slog.Default(),
 	})
 	s.NoError(err)
+	s.MetaAdapter = metaAdapter
+
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+	currencyService, err := currencyservice.New(currencyAdapter)
+	s.NoError(err)
+	s.CurrencyService = currencyService
 
 	locker, err := lockr.NewLocker(&lockr.LockerConfig{
 		Logger: slog.Default(),
 	})
 	s.NoError(err)
+	s.Locker = locker
 
 	lineageAdapter, err := lineageadapter.New(lineageadapter.Config{
 		Client: s.DBClient,
@@ -83,6 +108,7 @@ func (s *BaseSuite) SetupSuite() {
 		Adapter: lineageAdapter,
 	})
 	s.NoError(err)
+	s.LineageService = lineageService
 
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      s.DBClient,
@@ -90,6 +116,7 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter: metaAdapter,
 	})
 	s.NoError(err)
+	s.FlatFeeAdapter = flatFeeAdapter
 
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:       flatFeeAdapter,
@@ -98,6 +125,7 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
 		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:    currencyService,
 	})
 	s.NoError(err)
 
@@ -110,6 +138,14 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter: metaAdapter,
 	})
 	s.NoError(err)
+	s.UsageBasedAdapter = usageBasedAdapter
+
+	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
+		BillingService: s.BillingService,
+		Logger:         slog.Default(),
+	})
+	s.NoError(err)
+	s.InvoiceUpdater = invoiceUpdater
 
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
@@ -117,9 +153,11 @@ func (s *BaseSuite) SetupSuite() {
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
+		InvoiceUpdater:          invoiceUpdater,
 		CustomerOverrideService: s.BillingService,
 		FeatureService:          s.FeatureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
+		Currencies:              currencyService,
 		StreamingConnector:      s.MockStreamingConnector,
 	})
 	s.NoError(err)
@@ -134,6 +172,7 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter: metaAdapter,
 	})
 	s.NoError(err)
+	s.CreditPurchaseAdapter = creditPurchaseAdapter
 
 	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
 		Adapter:     creditPurchaseAdapter,
@@ -167,6 +206,9 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	currencyResolver, err := currencyresolver.New(currencyService)
+	s.NoError(err)
+
 	chargesService, err := New(Config{
 		Logger:  slog.Default(),
 		Adapter: chargesAdapter,
@@ -178,8 +220,9 @@ func (s *BaseSuite) SetupSuite() {
 		UsageBasedService:     usageBasedService,
 		RecognizerService:     recognizer.NoopService{},
 
-		BillingService: s.BillingService,
-		TaxCodeService: s.TaxCodeService,
+		BillingService:   s.BillingService,
+		TaxCodeService:   s.TaxCodeService,
+		CurrencyResolver: currencyResolver,
 	})
 	s.NoError(err)
 	s.Charges = chargesService
@@ -194,19 +237,74 @@ func (s *BaseSuite) TearDownTest() {
 	clock.ResetTime()
 }
 
+func (s *BaseSuite) createTestCustomCurrency(ctx context.Context, namespace string) currencies.Currency {
+	s.T().Helper()
+
+	currency, err := s.CurrencyService.CreateCurrency(ctx, currencies.CreateCurrencyInput{
+		Namespace: namespace,
+		CurrencyDetails: currencyx.CurrencyDetails{
+			Code:               "TOKENS",
+			Name:               "Tokens",
+			Symbol:             "T",
+			Precision:          3,
+			DecimalMark:        ".",
+			ThousandsSeparator: ",",
+		},
+	})
+	s.Require().NoError(err)
+
+	return currency
+}
+
+type requireCustomCurrencyOverageLineInput struct {
+	line               *billing.StandardLine
+	expectTokenOverage float64
+	expectCostBasis    float64
+	expectFiatTotals   billingtest.ExpectedTotals
+}
+
+func (s *BaseSuite) requireCustomCurrencyOverageLine(in requireCustomCurrencyOverageLineInput) {
+	s.T().Helper()
+
+	s.Equal(currencyx.FiatCode(USD), in.line.Currency)
+	switch reason := in.line.Annotations[billing.AnnotationKeyReason].(type) {
+	case string:
+		s.Equal(billing.AnnotationValueReasonOverage, reason)
+	case *string:
+		s.Require().NotNil(reason)
+		s.Equal(billing.AnnotationValueReasonOverage, *reason)
+	default:
+		s.Fail("overage reason annotation has an unexpected type")
+	}
+
+	s.Require().NotNil(in.line.UsageBased)
+	s.Require().NotNil(in.line.UsageBased.Price)
+	flatPrice, err := in.line.UsageBased.Price.AsFlat()
+	s.Require().NoError(err)
+	s.Equal(in.expectFiatTotals.Amount, flatPrice.Amount.InexactFloat64())
+
+	s.Require().Len(in.line.DetailedLines, 1)
+	detailedLine := in.line.DetailedLines[0]
+	s.Equal(in.expectTokenOverage, detailedLine.Quantity.InexactFloat64())
+	s.Equal(in.expectCostBasis, detailedLine.PerUnitAmount.InexactFloat64())
+	s.RequireTotals(in.expectFiatTotals, detailedLine.Totals)
+	s.RequireTotals(in.expectFiatTotals, in.line.Totals)
+}
+
 type createMockChargeIntentInput struct {
-	customer          customer.CustomerID
-	currency          currencyx.Code
-	servicePeriod     timeutil.ClosedPeriod
-	price             *productcatalog.Price
-	unitConfig        *productcatalog.UnitConfig
-	featureKey        string
-	name              string
-	settlementMode    productcatalog.SettlementMode
-	managedBy         billing.InvoiceLineManagedBy
-	uniqueReferenceID string
-	taxConfig         productcatalog.TaxCodeConfig
-	proRating         productcatalog.ProRatingConfig
+	customer            customer.CustomerID
+	currency            currencyx.Code
+	servicePeriod       timeutil.ClosedPeriod
+	price               *productcatalog.Price
+	unitConfig          *productcatalog.UnitConfig
+	featureKey          string
+	name                string
+	settlementMode      productcatalog.SettlementMode
+	managedBy           billing.InvoiceLineManagedBy
+	uniqueReferenceID   string
+	taxConfig           productcatalog.TaxCodeConfig
+	proRating           productcatalog.ProRatingConfig
+	percentageDiscounts *billing.PercentageDiscount
 }
 
 func (i *createMockChargeIntentInput) Validate() error {
@@ -254,7 +352,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		ManagedBy:         input.managedBy,
 		UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
 		CustomerID:        input.customer.ID,
-		Currency:          input.currency,
+		Currency:          currenciestestutils.NewFiatCurrency(s.T(), input.currency),
 		TaxConfig:         input.taxConfig,
 	}
 	intentMutableFields := meta.IntentMutableFields{
@@ -276,6 +374,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 				InvoiceAt:             invoiceAt,
 				AmountBeforeProration: price.Amount,
 				ProRating:             input.proRating,
+				PercentageDiscounts:   input.percentageDiscounts.CloneOrNil(),
 			},
 			FeatureKey:     lo.EmptyableToPtr(input.featureKey),
 			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),

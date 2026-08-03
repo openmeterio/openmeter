@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -19,6 +21,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -40,7 +44,6 @@ func TestPlanService(t *testing.T) {
 	})
 
 	// Run database migrations
-	env.DBSchemaMigrate(t)
 
 	// Get new namespace ID
 	namespace := pctestutils.NewTestNamespace(t)
@@ -837,6 +840,219 @@ func TestPlanService(t *testing.T) {
 	})
 }
 
+func TestPlanCustomCurrencyIntegration(t *testing.T) {
+	// given:
+	// - a managed custom currency with a USD cost-basis pair
+	// - a USD plan request with a real price denominated in that custom currency
+	// when:
+	// - the plan is created, published, and loaded again through the plan service
+	// then:
+	// - managed-resource validation, cost-basis validation, Ent persistence, and DB mapping preserve the currency
+	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+	managedCurrency, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"))
+	require.NoError(t, err, "creating managed custom currency must not fail")
+
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: managedCurrency.ID,
+		FiatCode:   currencyx.Code(currency.USD),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err, "creating USD cost basis must not fail")
+
+	customCurrency := managedCurrency.GetCode()
+	month := datetime.MustParseDuration(t, "P1M")
+	input := pctestutils.NewTestPlan(
+		t,
+		namespace,
+		pctestutils.WithPlanKey("custom-currency-integration"),
+		pctestutils.WithPlanPhases(productcatalog.Phase{
+			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+			RateCards: productcatalog.RateCards{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:      "credits",
+						Name:     "Credits",
+						Currency: lo.ToPtr(currencies.NewCurrencyReference(customCurrency)),
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      decimal.NewFromInt(25),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: &month,
+				},
+			},
+		}),
+	)
+
+	created, err := env.Plan.CreatePlan(t.Context(), input)
+	require.NoError(t, err, "creating plan with custom-currency price must not fail")
+
+	_, err = env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        created.ID,
+		},
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(now.Add(time.Minute)),
+		},
+	})
+	require.NoError(t, err, "publishing plan must revalidate the custom currency successfully")
+
+	stored, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        created.ID,
+		},
+	})
+	require.NoError(t, err, "loading persisted plan must not fail")
+	require.Len(t, stored.Phases, 1)
+	require.Len(t, stored.Phases[0].RateCards, 1)
+
+	storedRateCard := stored.Phases[0].RateCards[0].AsMeta()
+	require.NotNil(t, storedRateCard.Price, "the custom currency must qualify a real price")
+	require.NotNil(t, storedRateCard.Currency)
+	require.Equal(t, customCurrency, storedRateCard.Currency.GetCode())
+	require.Equal(t, customCurrency, storedRateCard.EffectiveCurrency(stored.Currency).GetCode())
+}
+
+func TestUpdatePlanValidatesCurrenciesUsingUpdatedSettlementMode(t *testing.T) {
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	t.Run("credit then invoice to credit only skips cost basis validation", func(t *testing.T) {
+		// given:
+		// - a USD credit-then-invoice plan and a custom currency without a USD cost basis
+		namespace := pctestutils.NewTestNamespace(t)
+		custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(
+			namespace,
+			"CREDITS",
+			"Credits",
+			"cr",
+		))
+		require.NoError(t, err)
+
+		created, err := env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(
+			t,
+			namespace,
+			pctestutils.WithPlanKey("invoice-to-credit-only"),
+		))
+		require.NoError(t, err)
+
+		creditOnly := productcatalog.CreditOnlySettlementMode
+		month := datetime.MustParseDuration(t, "P1M")
+		phases := []productcatalog.Phase{{
+			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+			RateCards: productcatalog.RateCards{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:      "credits",
+						Name:     "Credits",
+						Currency: lo.ToPtr(currencies.NewCurrencyReference(custom.GetCode())),
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      decimal.NewFromInt(25),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: &month,
+				},
+			},
+		}}
+
+		// when:
+		// - the update changes the settlement mode and introduces the custom override together
+		updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+			NamespacedID:   created.NamespacedID,
+			SettlementMode: &creditOnly,
+			Phases:         &phases,
+		})
+
+		// then:
+		// - currency validation uses credit_only and the update succeeds without a cost basis
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, updated.SettlementMode)
+		require.Len(t, updated.Phases, 1)
+		require.Len(t, updated.Phases[0].RateCards, 1)
+		override := updated.Phases[0].RateCards[0].AsMeta().Currency
+		require.NotNil(t, override)
+		assert.Equal(t, custom.GetCode(), override.GetCode())
+	})
+
+	t.Run("credit only to credit then invoice requires cost basis", func(t *testing.T) {
+		// given:
+		// - a USD credit-only plan with a custom override that has no USD cost basis
+		namespace := pctestutils.NewTestNamespace(t)
+		custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(
+			namespace,
+			"CREDITS",
+			"Credits",
+			"cr",
+		))
+		require.NoError(t, err)
+
+		month := datetime.MustParseDuration(t, "P1M")
+		created, err := env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(
+			t,
+			namespace,
+			pctestutils.WithPlanKey("credit-only-to-invoice"),
+			func(t *testing.T, plan *productcatalog.Plan) {
+				t.Helper()
+
+				plan.SettlementMode = productcatalog.CreditOnlySettlementMode
+				plan.Phases = []productcatalog.Phase{{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:      "credits",
+								Name:     "Credits",
+								Currency: lo.ToPtr(currencies.NewCurrencyReference(custom.GetCode())),
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      decimal.NewFromInt(25),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: &month,
+						},
+					},
+				}}
+			},
+		))
+		require.NoError(t, err)
+
+		creditThenInvoice := productcatalog.CreditThenInvoiceSettlementMode
+
+		// when:
+		// - only the settlement mode is changed to credit_then_invoice
+		_, err = env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+			NamespacedID:   created.NamespacedID,
+			SettlementMode: &creditThenInvoice,
+		})
+
+		// then:
+		// - the existing custom override is checked under invoice semantics and nothing is persisted
+		issues, conversionErr := models.AsValidationIssues(err)
+		require.NoError(t, conversionErr)
+		require.Contains(t, lo.Map(issues, func(issue models.ValidationIssue, _ int) models.ErrorCode {
+			return issue.Code()
+		}), productcatalog.ErrCodeCurrencyCostBasisNotFound)
+
+		stored, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{
+			NamespacedID: created.NamespacedID,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, stored.SettlementMode)
+	})
+}
+
 func TestListPlansFilters(t *testing.T) {
 	monthPeriod := datetime.MustParseDuration(t, "P1M")
 
@@ -847,8 +1063,6 @@ func TestListPlansFilters(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-
-	env.DBSchemaMigrate(t)
 
 	ns := pctestutils.NewTestNamespace(t)
 
@@ -882,7 +1096,7 @@ func TestListPlansFilters(t *testing.T) {
 				t.Helper()
 
 				p.Name = name
-				p.Currency = cur
+				p.Currency = currencies.NewCurrencyReference(currencyx.Code(cur))
 			},
 		)
 
@@ -1072,6 +1286,194 @@ func TestListPlansFilters(t *testing.T) {
 			})
 
 			assert.ElementsMatch(t, tc.wantKeys, gotKeys)
+		})
+	}
+}
+
+func TestUpdatePlanRateCardCurrencyResolutionUsesLatestActiveIdentity(t *testing.T) {
+	// given:
+	// - a draft plan rate card linked to a managed CREDITS resource
+	// - the currency is archived and replaced by another active currency with the same code
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+	oldCredits, err := env.Currency.CreateCurrency(
+		t.Context(),
+		currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"),
+	)
+	require.NoError(t, err)
+
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: oldCredits.ID,
+		FiatCode:   currencyx.Code(currency.USD),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
+	month := datetime.MustParseDuration(t, "P1M")
+	newRateCard := func() productcatalog.RateCard {
+		return &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:      "credits",
+				Name:     "Credits",
+				Currency: lo.ToPtr(currencies.NewCurrencyReference(oldCredits.GetCode())),
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      decimal.NewFromInt(1),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+			BillingCadence: &month,
+		}
+	}
+
+	created, err := env.Plan.CreatePlan(t.Context(), pctestutils.NewTestPlan(
+		t,
+		namespace,
+		pctestutils.WithPlanKey("latest-active-currency"),
+		pctestutils.WithPlanPhases(productcatalog.Phase{
+			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+			RateCards: productcatalog.RateCards{newRateCard()},
+		}),
+	))
+	require.NoError(t, err)
+	createdCurrency := created.Phases[0].RateCards[0].AsMeta().Currency
+	require.NotNil(t, createdCurrency)
+	require.NotNil(t, createdCurrency.CustomCurrencyID)
+	require.Equal(t, oldCredits.ID, *createdCurrency.CustomCurrencyID)
+
+	_, err = env.Client.CustomCurrency.UpdateOneID(oldCredits.ID).
+		SetDeletedAt(clock.Now()).
+		Save(t.Context())
+	require.NoError(t, err)
+
+	newCredits, err := env.Currency.CreateCurrency(
+		t.Context(),
+		currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"),
+	)
+	require.NoError(t, err)
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: newCredits.ID,
+		FiatCode:   currencyx.Code(currency.USD),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err)
+
+	updatedPhases := []productcatalog.Phase{{
+		PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+		RateCards: productcatalog.RateCards{newRateCard()},
+	}}
+
+	// when:
+	// - the code-only rate card is submitted as a full draft-plan update
+	updated, err := env.Plan.UpdatePlan(t.Context(), plan.UpdatePlanInput{
+		NamespacedID: created.NamespacedID,
+		Phases:       &updatedPhases,
+	})
+
+	// then:
+	// - the code resolves to the currently active managed currency
+	require.NoError(t, err)
+	require.Len(t, updated.Phases, 1)
+	require.Len(t, updated.Phases[0].RateCards, 1)
+	updatedCurrency := updated.Phases[0].RateCards[0].AsMeta().Currency
+	require.NotNil(t, updatedCurrency)
+	require.NotNil(t, updatedCurrency.CustomCurrencyID)
+	require.Equal(t, newCredits.ID, *updatedCurrency.CustomCurrencyID)
+}
+
+func TestUpdatePlanInputRejectsPersistedUnrepresentableFields(t *testing.T) {
+	month := datetime.MustParseDuration(t, "P1M")
+
+	newRateCard := func() *productcatalog.UsageBasedRateCard {
+		featureKey := "usage"
+
+		return &productcatalog.UsageBasedRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:        featureKey,
+				Name:       "Usage",
+				FeatureKey: &featureKey,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: decimal.NewFromInt(1),
+				}),
+			},
+			BillingCadence: month,
+		}
+	}
+
+	tests := []struct {
+		name                            string
+		configurePersisted              func(*productcatalog.Plan, *productcatalog.RateCardMeta)
+		rejectUnitConfig                bool
+		rejectUnrepresentableCurrencies bool
+		expected                        error
+	}{
+		{
+			name: "unit config",
+			configurePersisted: func(_ *productcatalog.Plan, meta *productcatalog.RateCardMeta) {
+				meta.UnitConfig = &productcatalog.UnitConfig{
+					Operation:        productcatalog.UnitConfigOperationDivide,
+					ConversionFactor: decimal.NewFromInt(1000),
+				}
+			},
+			rejectUnitConfig: true,
+			expected:         productcatalog.ErrUnitConfigNotRepresentable,
+		},
+		{
+			name: "currency override",
+			configurePersisted: func(_ *productcatalog.Plan, meta *productcatalog.RateCardMeta) {
+				meta.Currency = lo.ToPtr(currencies.NewCurrencyReference(currencyx.Code("CREDITS")))
+			},
+			rejectUnrepresentableCurrencies: true,
+			expected:                        productcatalog.ErrRateCardCurrencyNotRepresentable,
+		},
+		{
+			name: "custom default currency",
+			configurePersisted: func(plan *productcatalog.Plan, _ *productcatalog.RateCardMeta) {
+				plan.Currency = currencies.NewCurrencyReference(currencyx.Code("CREDITS"))
+			},
+			rejectUnrepresentableCurrencies: true,
+			expected:                        productcatalog.ErrCurrencyNotRepresentable,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given:
+			// - a persisted plan carrying a field the caller cannot represent
+			// - replacement phases which omit that field
+			// when:
+			// - the update is validated against the persisted plan
+			// then:
+			// - validation rejects the operation before the replacement can strip it
+			persistedRateCard := newRateCard()
+			persisted := productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Key:            "plan",
+					Name:           "Plan",
+					Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+					BillingCadence: month,
+				},
+				Phases: []productcatalog.Phase{{
+					PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+					RateCards: productcatalog.RateCards{persistedRateCard},
+				}},
+			}
+			tt.configurePersisted(&persisted, &persistedRateCard.RateCardMeta)
+			replacement := []productcatalog.Phase{{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+				RateCards: productcatalog.RateCards{newRateCard()},
+			}}
+			input := plan.UpdatePlanInput{
+				Phases:                          &replacement,
+				RejectUnitConfig:                tt.rejectUnitConfig,
+				RejectUnrepresentableCurrencies: tt.rejectUnrepresentableCurrencies,
+			}
+
+			err := input.ValidateWithPlan(persisted)
+			require.ErrorIs(t, err, tt.expected)
 		})
 	}
 }

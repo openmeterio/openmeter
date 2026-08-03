@@ -88,7 +88,6 @@ interface MetersOperations {
   /**
    * Update a meter.
    */
-  @extension(Shared.UnstableExtension, true)
   @put
   @operationId("update-meter")
   @summary("Update meter")
@@ -123,7 +122,6 @@ interface MetersQueryOperations {
    * `group_by_dimensions`. The three `customer_*` columns are emitted together only
    * when `customer_id` is in the query's `group_by_dimensions`.
    */
-  @extension(Shared.UnstableExtension, true)
   @post
   @operationId("query-meter")
   @summary("Query meter")
@@ -137,7 +135,6 @@ interface MetersQueryOperations {
     | Common.ErrorResponses;
 
   #suppress "@openmeter/api-spec-aip/operation-summary" "Avoid duplicating the summary in OpenAPI yaml"
-  @extension(Shared.UnstableExtension, true)
   @opExample(
     #{
       returnType: #{

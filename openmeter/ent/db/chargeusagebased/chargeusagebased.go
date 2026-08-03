@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
 const (
@@ -38,8 +39,10 @@ const (
 	FieldStatus = "status"
 	// FieldUniqueReferenceID holds the string denoting the unique_reference_id field in the database.
 	FieldUniqueReferenceID = "unique_reference_id"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
+	// FieldFiatCurrencyCode holds the string denoting the fiat_currency_code field in the database.
+	FieldFiatCurrencyCode = "currency"
+	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
+	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldManagedBy holds the string denoting the managed_by field in the database.
 	FieldManagedBy = "managed_by"
 	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
@@ -90,6 +93,8 @@ const (
 	FieldUnitConfig = "unit_config"
 	// FieldCurrentRealizationRunID holds the string denoting the current_realization_run_id field in the database.
 	FieldCurrentRealizationRunID = "current_realization_run_id"
+	// FieldCostBasisID holds the string denoting the cost_basis_id field in the database.
+	FieldCostBasisID = "cost_basis_id"
 	// FieldStatusDetailed holds the string denoting the status_detailed field in the database.
 	FieldStatusDetailed = "status_detailed"
 	// EdgeRuns holds the string denoting the runs edge name in mutations.
@@ -98,6 +103,8 @@ const (
 	EdgeDetailedLines = "detailed_lines"
 	// EdgeCurrentRun holds the string denoting the current_run edge name in mutations.
 	EdgeCurrentRun = "current_run"
+	// EdgeCostBasis holds the string denoting the cost_basis edge name in mutations.
+	EdgeCostBasis = "cost_basis"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeIntentOverride holds the string denoting the intent_override edge name in mutations.
@@ -114,6 +121,8 @@ const (
 	EdgeFeature = "feature"
 	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
 	EdgeTaxCode = "tax_code"
+	// EdgeCustomCurrency holds the string denoting the custom_currency edge name in mutations.
+	EdgeCustomCurrency = "custom_currency"
 	// Table holds the table name of the chargeusagebased in the database.
 	Table = "charge_usage_based"
 	// RunsTable is the table that holds the runs relation/edge.
@@ -137,6 +146,13 @@ const (
 	CurrentRunInverseTable = "charge_usage_based_runs"
 	// CurrentRunColumn is the table column denoting the current_run relation/edge.
 	CurrentRunColumn = "current_realization_run_id"
+	// CostBasisTable is the table that holds the cost_basis relation/edge.
+	CostBasisTable = "charge_usage_based"
+	// CostBasisInverseTable is the table name for the ChargeUsageBasedCostBasis entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedcostbasis" package.
+	CostBasisInverseTable = "charge_usage_based_cost_bases"
+	// CostBasisColumn is the table column denoting the cost_basis relation/edge.
+	CostBasisColumn = "cost_basis_id"
 	// ChargeTable is the table that holds the charge relation/edge.
 	ChargeTable = "charges"
 	// ChargeInverseTable is the table name for the Charge entity.
@@ -193,6 +209,13 @@ const (
 	TaxCodeInverseTable = "tax_codes"
 	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
 	TaxCodeColumn = "tax_code_id"
+	// CustomCurrencyTable is the table that holds the custom_currency relation/edge.
+	CustomCurrencyTable = "charge_usage_based"
+	// CustomCurrencyInverseTable is the table name for the CustomCurrency entity.
+	// It exists in this package in order to avoid circular dependency with the "customcurrency" package.
+	CustomCurrencyInverseTable = "custom_currencies"
+	// CustomCurrencyColumn is the table column denoting the custom_currency relation/edge.
+	CustomCurrencyColumn = "custom_currency_id"
 )
 
 // Columns holds all SQL columns for chargeusagebased fields.
@@ -207,7 +230,8 @@ var Columns = []string{
 	FieldFullServicePeriodTo,
 	FieldStatus,
 	FieldUniqueReferenceID,
-	FieldCurrency,
+	FieldFiatCurrencyCode,
+	FieldCustomCurrencyID,
 	FieldManagedBy,
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
@@ -233,6 +257,7 @@ var Columns = []string{
 	FieldPrice,
 	FieldUnitConfig,
 	FieldCurrentRealizationRunID,
+	FieldCostBasisID,
 	FieldStatusDetailed,
 }
 
@@ -249,8 +274,10 @@ func ValidColumn(column string) bool {
 var (
 	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	CustomerIDValidator func(string) error
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
+	// FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
+	FiatCurrencyCodeValidator func(string) error
+	// CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
+	CustomCurrencyIDValidator func(string) error
 	// TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
 	TaxCodeIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -271,7 +298,7 @@ var (
 	ValueScanner struct {
 		Discounts  field.TypeValueScanner[*billing.Discounts]
 		Price      field.TypeValueScanner[*productcatalog.Price]
-		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
+		UnitConfig field.TypeValueScanner[*unitconfig.UnitConfig]
 	}
 )
 
@@ -328,7 +355,7 @@ func RatingEngineValidator(re usagebased.RatingEngine) error {
 // StatusDetailedValidator is a validator for the "status_detailed" field enum values. It is called by the builders before save.
 func StatusDetailedValidator(sd usagebased.Status) error {
 	switch sd {
-	case "created", "active", "active.partial_invoice.started", "active.partial_invoice.waiting_for_collection", "active.partial_invoice.processing", "active.partial_invoice.issuing", "active.partial_invoice.completed", "active.final_realization.started", "active.final_realization.waiting_for_collection", "active.final_realization.processing", "active.final_realization.issuing", "active.final_realization.completed", "active.awaiting_payment_settlement", "final", "deleted":
+	case "created", "active", "active.realization.started", "active.realization.waiting_for_collection", "active.realization.processing", "active.realization.issuing", "active.realization.completed", "active.awaiting_payment_settlement", "final", "deleted":
 		return nil
 	default:
 		return fmt.Errorf("chargeusagebased: invalid enum value for status_detailed field: %q", sd)
@@ -388,9 +415,14 @@ func ByUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUniqueReferenceID, opts...).ToFunc()
 }
 
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+// ByFiatCurrencyCode orders the results by the fiat_currency_code field.
+func ByFiatCurrencyCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFiatCurrencyCode, opts...).ToFunc()
+}
+
+// ByCustomCurrencyID orders the results by the custom_currency_id field.
+func ByCustomCurrencyID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomCurrencyID, opts...).ToFunc()
 }
 
 // ByManagedBy orders the results by the managed_by field.
@@ -508,6 +540,11 @@ func ByCurrentRealizationRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrentRealizationRunID, opts...).ToFunc()
 }
 
+// ByCostBasisID orders the results by the cost_basis_id field.
+func ByCostBasisID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostBasisID, opts...).ToFunc()
+}
+
 // ByStatusDetailed orders the results by the status_detailed field.
 func ByStatusDetailed(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatusDetailed, opts...).ToFunc()
@@ -545,6 +582,13 @@ func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 func ByCurrentRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newCurrentRunStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCostBasisField orders the results by cost_basis field.
+func ByCostBasisField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCostBasisStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -603,6 +647,13 @@ func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByCustomCurrencyField orders the results by custom_currency field.
+func ByCustomCurrencyField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomCurrencyStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newRunsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -622,6 +673,13 @@ func newCurrentRunStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CurrentRunInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, false, CurrentRunTable, CurrentRunColumn),
+	)
+}
+func newCostBasisStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CostBasisInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, CostBasisTable, CostBasisColumn),
 	)
 }
 func newChargeStep() *sqlgraph.Step {
@@ -678,5 +736,12 @@ func newTaxCodeStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TaxCodeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+	)
+}
+func newCustomCurrencyStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomCurrencyInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomCurrencyTable, CustomCurrencyColumn),
 	)
 }

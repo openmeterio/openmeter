@@ -5,6 +5,10 @@ import {
   getInvoice,
   updateInvoice,
   deleteInvoice,
+  advanceInvoice,
+  approveInvoice,
+  retryInvoice,
+  snapshotQuantitiesInvoice,
 } from '../funcs/invoices.js'
 import type {
   ListInvoicesRequest,
@@ -15,6 +19,14 @@ import type {
   UpdateInvoiceResponse,
   DeleteInvoiceRequest,
   DeleteInvoiceResponse,
+  AdvanceInvoiceRequest,
+  AdvanceInvoiceResponse,
+  ApproveInvoiceRequest,
+  ApproveInvoiceResponse,
+  RetryInvoiceRequest,
+  RetryInvoiceResponse,
+  SnapshotQuantitiesInvoiceRequest,
+  SnapshotQuantitiesInvoiceResponse,
 } from '../models/operations/invoices.js'
 
 export class Invoices {
@@ -46,5 +58,35 @@ export class Invoices {
     options?: RequestOptions,
   ): Promise<DeleteInvoiceResponse> {
     return unwrap(await deleteInvoice(this._client, request, options))
+  }
+
+  async advance(
+    request: AdvanceInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<AdvanceInvoiceResponse> {
+    return unwrap(await advanceInvoice(this._client, request, options))
+  }
+
+  async approve(
+    request: ApproveInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<ApproveInvoiceResponse> {
+    return unwrap(await approveInvoice(this._client, request, options))
+  }
+
+  async retry(
+    request: RetryInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<RetryInvoiceResponse> {
+    return unwrap(await retryInvoice(this._client, request, options))
+  }
+
+  async snapshotQuantities(
+    request: SnapshotQuantitiesInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<SnapshotQuantitiesInvoiceResponse> {
+    return unwrap(
+      await snapshotQuantitiesInvoice(this._client, request, options),
+    )
   }
 }

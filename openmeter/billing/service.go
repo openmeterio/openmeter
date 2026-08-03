@@ -17,7 +17,6 @@ type Service interface {
 	InvoiceService
 	GatheringInvoiceService
 	StandardInvoiceService
-	SequenceService
 	LockableService
 
 	InvoiceAppService
@@ -114,6 +113,8 @@ type StandardInvoiceService interface {
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 	// ListStandardInvoices lists standard invoices
 	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
+	// ListStandardInvoicesPendingAdvancement lists standard invoices due for automatic advancement.
+	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]StandardInvoice, error)
 	// CreateStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
 	CreateStandardInvoiceFromGatheringLines(ctx context.Context, input CreateStandardInvoiceFromGatheringLinesInput) (*StandardInvoice, error)
 	// RegisterStandardInvoiceHooks registers hooks for standard invoice lifecycle events
@@ -129,10 +130,6 @@ type GatheringInvoiceService interface {
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) (GatheringInvoice, error)
 	DeleteGatheringInvoice(ctx context.Context, input DeleteInvoiceInput) (GatheringInvoice, error)
 	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
-}
-
-type SequenceService interface {
-	GenerateInvoiceSequenceNumber(ctx context.Context, in SequenceGenerationInput, def SequenceDefinition) (string, error)
 }
 
 type InvoiceAppService interface {

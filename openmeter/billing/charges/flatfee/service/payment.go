@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -29,7 +27,8 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 			return err
 		}
 
-		if run.NoFiatTransactionRequired {
+		fiatAmount := lineWithHeader.Line.Totals.Total
+		if run.NoFiatTransactionRequired || fiatAmount.IsZero() {
 			return nil
 		}
 
@@ -39,16 +38,12 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 				WithAttrs(run.Payment.ErrorAttributes())
 		}
 
-		paymentTotal, err := getPaymentTotal(run)
-		if err != nil {
-			return err
-		}
-
 		eventAt := clock.Now()
 		ledgerTransactionGroupReference, err := s.handler.OnPaymentAuthorized(ctx, flatfee.OnPaymentAuthorizedInput{
-			Charge:  charge,
-			EventAt: eventAt,
-			Amount:  paymentTotal,
+			Charge:     charge,
+			Run:        run,
+			EventAt:    eventAt,
+			FiatAmount: fiatAmount,
 		})
 		if err != nil {
 			return err
@@ -60,7 +55,7 @@ func (s *service) postInvoicePaymentAuthorized(ctx context.Context, charge flatf
 			InvoiceID: lineWithHeader.Invoice.ID,
 			Base: payment.Base{
 				ServicePeriod: run.ServicePeriod,
-				Amount:        lineWithHeader.Line.Totals.Total,
+				FiatAmount:    fiatAmount,
 				Authorized: &ledgertransaction.TimedGroupReference{
 					GroupReference: ledgertransaction.GroupReference{
 						TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
@@ -94,7 +89,8 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 			return err
 		}
 
-		if run.NoFiatTransactionRequired {
+		fiatAmount := lineWithHeader.Line.Totals.Total
+		if run.NoFiatTransactionRequired || fiatAmount.IsZero() {
 			return nil
 		}
 
@@ -112,16 +108,12 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 			return payment.ErrPaymentAlreadySettled.WithAttrs(charge.ErrorAttributes())
 		}
 
-		paymentTotal, err := getPaymentTotal(run)
-		if err != nil {
-			return err
-		}
-
 		eventAt := clock.Now()
 		ledgerTransactionGroupReference, err := s.handler.OnPaymentSettled(ctx, flatfee.OnPaymentSettledInput{
-			Charge:  charge,
-			EventAt: eventAt,
-			Amount:  paymentTotal,
+			Charge:     charge,
+			Run:        run,
+			EventAt:    eventAt,
+			FiatAmount: fiatAmount,
 		})
 		if err != nil {
 			return err
@@ -143,23 +135,6 @@ func (s *service) postInvoicePaymentSettled(ctx context.Context, charge flatfee.
 
 		return nil
 	})
-}
-
-func getPaymentTotal(run flatfee.RealizationRun) (alpacadecimal.Decimal, error) {
-	if run.NoFiatTransactionRequired {
-		return alpacadecimal.Decimal{}, fmt.Errorf("fiat payment total is not required for no-fiat run[%s]", run.ID.ID)
-	}
-
-	if run.AccruedUsage == nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("accrued invoice usage is required for run[%s]", run.ID.ID)
-	}
-
-	amount := run.AccruedUsage.Totals.Total
-	if amount.IsZero() {
-		return alpacadecimal.Decimal{}, fmt.Errorf("non-zero accrued invoice usage total is required for fiat-backed run[%s]", run.ID.ID)
-	}
-
-	return amount, nil
 }
 
 func validatePaymentRunForLine(charge flatfee.Charge, run flatfee.RealizationRun, lineWithHeader billing.StandardLineWithInvoiceHeader) error {

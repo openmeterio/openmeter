@@ -62,7 +62,7 @@ func (a *adapter) CreateCurrentRun(ctx context.Context, input flatfee.CreateCurr
 			return flatfee.RealizationRunBase{}, fmt.Errorf("setting flat fee current run [charge_id=%s, run_id=%s]: %w", dbCharge.ID, dbRun.ID, err)
 		}
 
-		return mapRealizationRunBaseFromDB(dbRun), nil
+		return fromDBRunBase(dbRun), nil
 	})
 }
 
@@ -121,7 +121,7 @@ func (a *adapter) UpdateRealizationRun(ctx context.Context, input flatfee.Update
 			return flatfee.RealizationRunBase{}, fmt.Errorf("updating flat fee realization run [run_id=%s]: %w", input.ID.ID, err)
 		}
 
-		return mapRealizationRunBaseFromDB(dbRun), nil
+		return fromDBRunBase(dbRun), nil
 	})
 }
 

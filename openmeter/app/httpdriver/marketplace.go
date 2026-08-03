@@ -9,8 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -95,7 +93,7 @@ type (
 )
 
 type MarketplaceAppAPIKeyInstallRequest struct {
-	app.InstallAppWithAPIKeyInput
+	app.InstallAppV3Input
 	CreateBillingProfile bool
 }
 
@@ -115,14 +113,11 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			req := MarketplaceAppAPIKeyInstallRequest{
-				InstallAppWithAPIKeyInput: app.InstallAppWithAPIKeyInput{
-					InstallAppInput: app.InstallAppInput{
-						MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
-						Namespace:            namespace,
-						Name:                 lo.FromPtr(body.Name),
-					},
-
-					APIKey: body.ApiKey,
+				InstallAppV3Input: app.InstallAppV3Input{
+					MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
+					Namespace:            namespace,
+					Name:                 lo.FromPtr(body.Name),
+					APIKey:               lo.ToPtr(body.ApiKey),
 				},
 				CreateBillingProfile: lo.FromPtrOr(body.CreateBillingProfile, true),
 			}
@@ -135,28 +130,21 @@ func (h *handler) MarketplaceAppAPIKeyInstall() MarketplaceAppAPIKeyInstallHandl
 			}
 
 			// Install app
-			installedApp, err := h.service.InstallMarketplaceListingWithAPIKey(ctx, request.InstallAppWithAPIKeyInput)
+			installedApp, err := h.service.InstallApp(ctx, request.InstallAppV3Input)
 			if err != nil {
 				return resp, err
 			}
 
-			// Create billing profile if requested
-			if request.CreateBillingProfile {
-				defaultForCapabilityTypes, err := h.createBillingProfile(ctx, installedApp)
-				if err != nil {
-					return resp, fmt.Errorf("create billing profile: %w", err)
-				}
-
-				resp.DefaultForCapabilityTypes = defaultForCapabilityTypes
-			}
-
 			// Map app to API
-			apiApp, err := MapAppToAPI(installedApp)
+			apiApp, err := MapAppToAPI(installedApp.App)
 			if err != nil {
 				return resp, fmt.Errorf("failed to map app to API: %w", err)
 			}
 
 			resp.App = apiApp
+			resp.DefaultForCapabilityTypes = lo.Map(installedApp.DefaultCapabilies, func(c app.CapabilityType, _ int) api.AppCapabilityType {
+				return api.AppCapabilityType(c)
+			})
 
 			return resp, nil
 		},
@@ -174,7 +162,7 @@ type (
 )
 
 type MarketplaceAppInstallRequest struct {
-	app.InstallAppInput
+	app.InstallAppV3Input
 	CreateBillingProfile bool
 }
 
@@ -194,7 +182,7 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 			}
 
 			req := MarketplaceAppInstallRequest{
-				InstallAppInput: app.InstallAppInput{
+				InstallAppV3Input: app.InstallAppV3Input{
 					MarketplaceListingID: app.MarketplaceListingID{Type: app.AppType(appType)},
 					Namespace:            namespace,
 					Name:                 lo.FromPtr(body.Name),
@@ -210,28 +198,21 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 			}
 
 			// Install app
-			installedApp, err := h.service.InstallMarketplaceListing(ctx, request.InstallAppInput)
+			installedApp, err := h.service.InstallApp(ctx, request.InstallAppV3Input)
 			if err != nil {
 				return resp, err
 			}
 
-			// Create billing profile if requested
-			if request.CreateBillingProfile {
-				defaultForCapabilityTypes, err := h.createBillingProfile(ctx, installedApp)
-				if err != nil {
-					return resp, fmt.Errorf("create billing profile: %w", err)
-				}
-
-				resp.DefaultForCapabilityTypes = defaultForCapabilityTypes
-			}
-
 			// Map app to API
-			apiApp, err := MapAppToAPI(installedApp)
+			apiApp, err := MapAppToAPI(installedApp.App)
 			if err != nil {
 				return resp, fmt.Errorf("failed to map app to API: %w", err)
 			}
 
 			resp.App = apiApp
+			resp.DefaultForCapabilityTypes = lo.Map(installedApp.DefaultCapabilies, func(c app.CapabilityType, _ int) api.AppCapabilityType {
+				return api.AppCapabilityType(c)
+			})
 
 			return resp, nil
 		},
@@ -241,86 +222,6 @@ func (h *handler) MarketplaceAppInstall() MarketplaceAppInstallHandler {
 			httptransport.WithOperationName("marketplaceAppInstall"),
 		)...,
 	)
-}
-
-// Create a billing profile for the app if requested
-func (h *handler) createBillingProfile(ctx context.Context, installedApp app.App) ([]api.AppCapabilityType, error) {
-	switch installedApp.GetType() {
-	case app.AppTypeStripe:
-		return h.makeStripeDefaultBillingApp(ctx, installedApp)
-	case app.AppTypeSandbox:
-		namespace := installedApp.GetID().Namespace
-		if err := h.billingService.ProvisionDefaultBillingProfile(ctx, namespace); err != nil {
-			return nil, fmt.Errorf("provision default billing profile: %w", err)
-		}
-		return []api.AppCapabilityType{
-			api.AppCapabilityType(app.CapabilityTypeCalculateTax),
-			api.AppCapabilityType(app.CapabilityTypeInvoiceCustomers),
-			api.AppCapabilityType(app.CapabilityTypeCollectPayments),
-		}, nil
-	case app.AppTypeCustomInvoicing:
-		// TODO: Implement custom invoicing billing profile creation
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("unknown app type: %s", installedApp.GetType())
-	}
-}
-
-// Make Stripe app the default billing app if current one is Sandbox app
-func (h *handler) makeStripeDefaultBillingApp(ctx context.Context, stripeApp app.App) ([]api.AppCapabilityType, error) {
-	defaultForCapabilityTypes := []api.AppCapabilityType{}
-
-	appID := stripeApp.GetID()
-
-	// Check if it's a Stripe app
-	if stripeApp.GetType() != app.AppTypeStripe {
-		return defaultForCapabilityTypes, fmt.Errorf("app is not a stripe app: %s", appID.ID)
-	}
-
-	// Check if the default billing profile is a sandbox app type
-	defaultBillingProfile, err := h.billingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
-		Namespace: appID.Namespace,
-	})
-	if err != nil {
-		return defaultForCapabilityTypes, fmt.Errorf("failed to get default billing profile: %w", err)
-	}
-
-	// Set default billing profile if the current default is the sandbox
-	setDefaultBillingProfile := defaultBillingProfile != nil && defaultBillingProfile.Apps != nil && defaultBillingProfile.Apps.Invoicing.GetType() == app.AppTypeSandbox
-
-	// Get supplier contract from stripe app
-	supplierContract, err := h.stripeAppService.GetSupplierContact(ctx, appstripe.GetSupplierContactInput{
-		AppID: appID,
-	})
-	if err != nil {
-		return defaultForCapabilityTypes, fmt.Errorf("failed to get supplier contract for stripe app %s: %w", appID.ID, err)
-	}
-
-	// Create new default billing profile
-	_, err = h.billingService.CreateProfile(ctx, billing.CreateProfileInput{
-		Namespace:      appID.Namespace,
-		Name:           "Stripe Billing Profile",
-		Description:    lo.ToPtr("Stripe Billing Profile, created automatically"),
-		Default:        setDefaultBillingProfile,
-		Supplier:       supplierContract,
-		WorkflowConfig: billing.DefaultWorkflowConfig,
-		Apps: billing.ProfileAppReferences{
-			Tax:       appID,
-			Invoicing: appID,
-			Payment:   appID,
-		},
-	})
-	if err != nil {
-		return defaultForCapabilityTypes, fmt.Errorf("failed to create billing profile for stripe app %s: %w", appID.ID, err)
-	}
-
-	defaultForCapabilityTypes = []api.AppCapabilityType{
-		api.AppCapabilityType(app.CapabilityTypeCalculateTax),
-		api.AppCapabilityType(app.CapabilityTypeInvoiceCustomers),
-		api.AppCapabilityType(app.CapabilityTypeCollectPayments),
-	}
-
-	return defaultForCapabilityTypes, nil
 }
 
 // Map marketplace listing to API

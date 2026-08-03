@@ -425,11 +425,10 @@ model CustomSubscriptionChange {
  * Plan input for custom subscription creation (without key and version).
  */
 @friendlyName("CustomPlanInput")
-model CustomPlanInput
-  extends OmitProperties<
-    TypeSpec.Rest.Resource.ResourceCreateModel<Plan>,
-    "key" | "version"
-  > {}
+model CustomPlanInput extends OmitProperties<
+  TypeSpec.Rest.Resource.ResourceCreateModel<Plan>,
+  "key" | "version"
+> {}
 
 /**
  * Create subscription based on plan.

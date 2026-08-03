@@ -34,7 +34,6 @@ func makeTestSeeds() []taxcode.SeedEntry {
 func TestNamespaceHandler(t *testing.T) {
 	env := taxcodetestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 
 	makeHandler := func(t *testing.T, seeds []taxcode.SeedEntry) *taxcode.NamespaceHandler {
 		t.Helper()

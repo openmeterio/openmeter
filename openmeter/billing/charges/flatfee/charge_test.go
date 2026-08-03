@@ -5,15 +5,258 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestIntentValidateCostBasis(t *testing.T) {
+	ns := ulid.Make().String()
+	customCurrency := newCustomCurrency(t, ns)
+	fiatCurrency := currenciestestutils.NewFiatCurrency(t, "USD")
+	validCostBasis := newManualCostBasisIntent(t)
+	invalidCostBasis := costbasis.Intent{}
+
+	tests := []struct {
+		name           string
+		currency       currencies.Currency
+		settlementMode productcatalog.SettlementMode
+		costBasis      *costbasis.Intent
+		wantErr        string
+	}{
+		{
+			name:           "custom currency with credit then invoice requires cost basis",
+			currency:       customCurrency,
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			wantErr:        "cost basis is required",
+		},
+		{
+			name:           "custom currency with credit then invoice accepts valid cost basis",
+			currency:       customCurrency,
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			costBasis:      &validCostBasis,
+		},
+		{
+			name:           "custom currency with credit then invoice validates cost basis",
+			currency:       customCurrency,
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			costBasis:      &invalidCostBasis,
+			wantErr:        "cost basis",
+		},
+		{
+			name:           "custom currency with credit only does not require cost basis",
+			currency:       customCurrency,
+			settlementMode: productcatalog.CreditOnlySettlementMode,
+		},
+		{
+			name:           "custom currency with credit only rejects cost basis",
+			currency:       customCurrency,
+			settlementMode: productcatalog.CreditOnlySettlementMode,
+			costBasis:      &validCostBasis,
+			wantErr:        "cost basis must not be set",
+		},
+		{
+			name:           "fiat currency with credit then invoice does not require cost basis",
+			currency:       fiatCurrency,
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+		},
+		{
+			name:           "fiat currency with credit then invoice rejects cost basis",
+			currency:       fiatCurrency,
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			costBasis:      &validCostBasis,
+			wantErr:        "cost basis must not be set",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			intent := newValidIntent(t, tt.currency, tt.settlementMode)
+			intent.CostBasis = tt.costBasis
+
+			validations := []struct {
+				name string
+				err  error
+			}{
+				{name: "intent", err: intent.Validate()},
+				{name: "overridable intent", err: intent.AsOverridableIntent().Validate()},
+			}
+
+			for _, validation := range validations {
+				t.Run(validation.name, func(t *testing.T) {
+					if tt.wantErr == "" {
+						require.NoError(t, validation.err)
+						return
+					}
+
+					require.ErrorContains(t, validation.err, tt.wantErr)
+				})
+			}
+		})
+	}
+}
+
+func TestOverridableIntentPreservesCostBasis(t *testing.T) {
+	ns := ulid.Make().String()
+	intent := newValidIntent(t, newCustomCurrency(t, ns), productcatalog.CreditThenInvoiceSettlementMode)
+	costBasis := newManualCostBasisIntent(t)
+	intent.CostBasis = &costBasis
+
+	overridable := intent.AsOverridableIntent()
+	requireManualCostBasisIntent(t, overridable.GetCostBasisIntent())
+	requireManualCostBasisIntent(t, overridable.GetBaseIntent().CostBasis)
+	requireManualCostBasisIntent(t, overridable.GetEffectiveIntent().CostBasis)
+
+	baseIntent, err := overridable.GetIntentForTarget(meta.ChangeTargetBase)
+	require.NoError(t, err)
+	requireManualCostBasisIntent(t, baseIntent.CostBasis)
+
+	overrideLayer := intent.IntentMutableFields.Clone()
+	overrideLayer.Name = "override"
+	overridable = NewOverridableIntent(intent, &overrideLayer)
+
+	overrideIntent, err := overridable.GetIntentForTarget(meta.ChangeTargetOverride)
+	require.NoError(t, err)
+	requireManualCostBasisIntent(t, overrideIntent.CostBasis)
+
+	returnedCostBasis := overridable.GetCostBasisIntent()
+	*returnedCostBasis = costbasis.NewIntent(costbasis.DynamicIntent{
+		FiatCurrency: newFiatCurrency(t, "EUR"),
+	})
+	requireManualCostBasisIntent(t, overridable.GetCostBasisIntent())
+}
+
+func TestChargeGetRateableIntentUsesEffectiveIntent(t *testing.T) {
+	intent := newValidIntent(t, currenciestestutils.NewFiatCurrency(t, "USD"), productcatalog.CreditThenInvoiceSettlementMode)
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC),
+	}
+	override := intent.IntentMutableFields.Clone()
+	override.Name = "overridden flat fee"
+	override.ServicePeriod = servicePeriod
+	override.AmountBeforeProration = alpacadecimal.NewFromFloat(42.123)
+	override.PercentageDiscounts = &billing.PercentageDiscount{
+		PercentageDiscount: productcatalog.PercentageDiscount{
+			Percentage: models.NewPercentage(10),
+		},
+		CorrelationID: "discount-1",
+	}
+
+	charge := Charge{
+		ChargeBase: ChargeBase{
+			Intent: NewOverridableIntent(intent, &override),
+		},
+	}
+
+	rateableIntent, err := charge.GetRateableIntent()
+	require.NoError(t, err)
+	require.Equal(t, "overridden flat fee", rateableIntent.Name)
+	require.Equal(t, servicePeriod, rateableIntent.ServicePeriod)
+	require.Equal(t, float64(42.12), rateableIntent.AmountAfterProration.InexactFloat64())
+	require.Equal(t, "discount-1", rateableIntent.PercentageDiscounts.CorrelationID)
+
+	firstPrice := rateableIntent.GetPrice()
+	secondPrice := rateableIntent.GetPrice()
+	require.NotSame(t, firstPrice, secondPrice)
+
+	discounts := rateableIntent.GetRateCardDiscounts()
+	require.NotNil(t, discounts.Percentage)
+	discounts.Percentage.CorrelationID = "mutated"
+	require.Equal(t, "discount-1", rateableIntent.PercentageDiscounts.CorrelationID)
+}
+
+func newCustomCurrency(t testing.TB, namespace string) currencies.Currency {
+	t.Helper()
+
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(currencyx.Code("TOKENS")).
+		WithName("Tokens").
+		Build()
+	require.NoError(t, err)
+
+	return currencies.Currency{
+		ManagedModel: models.ManagedModel{},
+		NamespacedID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        ulid.Make().String(),
+		},
+		Currency:  currency,
+		CostBasis: nil,
+	}
+}
+
+func newValidIntent(t testing.TB, currency currencies.Currency, settlementMode productcatalog.SettlementMode) Intent {
+	t.Helper()
+
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	return Intent{
+		Intent: meta.Intent{
+			ManagedBy:  "system",
+			CustomerID: "customer-1",
+			Currency:   currency,
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: "tax-code-1",
+			},
+		},
+		IntentMutableFields: IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "flat fee",
+				ServicePeriod:     period,
+				FullServicePeriod: period,
+				BillingPeriod:     period,
+			},
+			InvoiceAt:             period.From,
+			PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+			AmountBeforeProration: alpacadecimal.NewFromInt(100),
+		},
+		SettlementMode: settlementMode,
+	}
+}
+
+func newManualCostBasisIntent(t testing.TB) costbasis.Intent {
+	t.Helper()
+
+	return costbasis.NewIntent(costbasis.ManualIntent{
+		FiatCurrency: newFiatCurrency(t, "USD"),
+		Rate:         alpacadecimal.NewFromInt(2),
+	})
+}
+
+func newFiatCurrency(t testing.TB, code currencyx.Code) *currencyx.FiatCurrency {
+	t.Helper()
+
+	fiatCurrency, err := currencyx.NewFiatCurrency(code)
+	require.NoError(t, err)
+
+	return fiatCurrency
+}
+
+func requireManualCostBasisIntent(t testing.TB, intent *costbasis.Intent) {
+	t.Helper()
+	require.NotNil(t, intent)
+	require.Equal(t, costbasis.ModeManual, intent.Kind())
+
+	manualIntent, err := intent.AsManual()
+	require.NoError(t, err)
+	require.Equal(t, float64(2), manualIntent.Rate.InexactFloat64())
+	require.Equal(t, currencyx.Code("USD"), manualIntent.FiatCurrency.Details().Code)
+}
 
 func TestCalculateAmountAfterProration(t *testing.T) {
 	// 2026-01-01 to 2026-02-01 (full month)
@@ -38,7 +281,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 		return Intent{
 			Intent: meta.Intent{
 				CustomerID: "cust-1",
-				Currency:   currencyx.Code("USD"),
+				Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
 				ManagedBy:  "system",
 			},
 			IntentMutableFields: IntentMutableFields{
@@ -135,7 +378,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 
 	t.Run("JPY rounds to zero decimal places", func(t *testing.T) {
 		intent := baseIntent()
-		intent.Currency = currencyx.Code("JPY")
+		intent.Currency = currenciestestutils.NewFiatCurrency(t, "JPY")
 		intent.AmountBeforeProration = alpacadecimal.NewFromInt(1000)
 		// 10 days out of 31 = 1000 * 10/31 = 322.580... rounded to 323 for JPY
 		tenDaysEnd := datetime.MustParseTimeInLocation(t, "2026-01-11T00:00:00Z", time.UTC).AsTime()
@@ -166,7 +409,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 
 	t.Run("invalid currency returns error", func(t *testing.T) {
 		intent := baseIntent()
-		intent.Currency = currencyx.Code("INVALID")
+		intent.Currency = currencies.Currency{}
 
 		_, err := intent.CalculateAmountAfterProration()
 		require.Error(t, err)

@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
@@ -23,18 +24,17 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
 
 	fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
-		Currency:       currencyx.Code("USD"),
+		Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 		CostBasis:      lo.ToPtr(mustDecimal(t, "0.70")),
 		CreditPriority: lo.ToPtr(1),
 	})
 	counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeWash, ledger.Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 	})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
@@ -71,7 +71,7 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		Filters: ledger.Filters{
 			AccountID: &accountID,
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID},
@@ -88,7 +88,7 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		Filters: ledger.Filters{
 			AccountID: &accountID,
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			},
 		},
 		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
@@ -104,7 +104,7 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 		Filters: ledger.Filters{
 			AccountID: &accountID,
 			Route: ledger.RouteFilter{
-				Currency: currencyx.Code("USD"),
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 			},
 		},
 		GroupBy: []string{
@@ -145,6 +145,162 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	requireBalanceBucketAmounts(t, asOfBalances, map[string]float64{
 		sourceChargeKey(&sourceCharge1): 150,
 	})
+}
+
+func TestRepo_GetBalanceBuckets_HydratesCostBasisCurrency(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	// given:
+	// - an ACME FBO balance whose V3 route is qualified by USD
+	// when:
+	// - balance buckets hydrate the posting address from SQL
+	// then:
+	// - the route retains USD and can be reused by ledger collection
+	ctx := t.Context()
+	namespace := testNamespace()
+	costBasis := mustDecimal(t, "0.25")
+	sourceCurrency := currencyx.Code("USD")
+	customCurrency := currencyx.Code("ACME")
+	customCurrencyReference := mustCustomCurrencyReference(t, customCurrency, "test-custom-currency-acme", 2)
+	fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
+		Currency:          customCurrencyReference,
+		CostBasisCurrency: &sourceCurrency,
+		CostBasis:         &costBasis,
+		CreditPriority:    lo.ToPtr(1),
+	})
+	counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeBrokerage, ledger.Route{
+		Currency:          customCurrencyReference,
+		CostBasisCurrency: &sourceCurrency,
+		CostBasis:         &costBasis,
+	})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		provenanceEntryInput(t, fbo, alpacadecimal.NewFromInt(100), nil, nil),
+		provenanceEntryInput(t, counterpart, alpacadecimal.NewFromInt(-100), nil, nil),
+	}))
+	require.NoError(t, err)
+
+	accountID := fbo.AccountID
+	buckets, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			AccountID: &accountID,
+			Route: ledger.RouteFilter{
+				Currency:          customCurrencyReference,
+				CostBasisCurrency: mo.Some(&sourceCurrency),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, buckets, 1)
+
+	route := buckets[0].Address.Route().Route()
+	require.Equal(t, customCurrency, route.Currency.Code)
+	require.Equal(t, &sourceCurrency, route.CostBasisCurrency)
+	require.NotNil(t, route.CostBasis)
+	require.Equal(t, costBasis.InexactFloat64(), route.CostBasis.InexactFloat64())
+}
+
+func TestRepo_GetBalanceBuckets_DistinctManagedCurrenciesSameCodeDoNotMerge(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+
+	// given:
+	// - two managed custom currencies that both use the bare code "ACME"
+	//   but have distinct managed IDs (a customer could hold
+	//   FBO balances in two differently-managed "ACME" currencies)
+	// - both FBO sub-accounts are provisioned under the SAME account, so
+	//   exact CurrencyReference identity keeps them separate
+	// when:
+	// - each currency is funded with a different amount
+	// then:
+	// - GetBalanceBuckets scoped by one exact reference excludes the other
+	ctx := t.Context()
+	namespace := testNamespace()
+	customCurrency := currencyx.Code("ACME")
+	alpha := mustCustomCurrencyReference(t, customCurrency, "custom-currency-alpha", 2)
+	beta := mustCustomCurrencyReference(t, customCurrency, "custom-currency-beta", 2)
+
+	acc, err := env.accountRepo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
+		Namespace: namespace,
+		Type:      ledger.AccountTypeCustomerFBO,
+	})
+	require.NoError(t, err)
+
+	alphaFBO, err := env.accountRepo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: acc.ID.ID,
+		Route: ledger.Route{
+			Currency:       alpha,
+			CreditPriority: lo.ToPtr(1),
+		},
+	})
+	require.NoError(t, err)
+
+	betaFBO, err := env.accountRepo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: acc.ID.ID,
+		Route: ledger.Route{
+			Currency:       beta,
+			CreditPriority: lo.ToPtr(1),
+		},
+	})
+	require.NoError(t, err)
+
+	alphaCounterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerReceivable, ledger.Route{
+		Currency: alpha,
+	})
+	betaCounterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerReceivable, ledger.Route{
+		Currency: beta,
+	})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		provenanceEntryInput(t, alphaFBO, alpacadecimal.NewFromInt(100), nil, nil),
+		provenanceEntryInput(t, alphaCounterpart, alpacadecimal.NewFromInt(-100), nil, nil),
+		provenanceEntryInput(t, betaFBO, alpacadecimal.NewFromInt(30), nil, nil),
+		provenanceEntryInput(t, betaCounterpart, alpacadecimal.NewFromInt(-30), nil, nil),
+	}))
+	require.NoError(t, err)
+
+	buckets, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			AccountID: &acc.ID.ID,
+			Route: ledger.RouteFilter{
+				Currency: alpha,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, buckets, 1)
+	require.True(t, buckets[0].Address.Route().Route().Currency.Equal(alpha))
+	require.Equal(t, 100.0, buckets[0].SettledAmount.InexactFloat64())
+}
+
+func mustCustomCurrencyReference(t *testing.T, code currencyx.Code, id string, precision int) currencies.CurrencyReference {
+	t.Helper()
+
+	reference, err := currencies.ParseCurrencyReference([]byte(fmt.Sprintf("custom|v1|%s|%s|%d", code, id, precision)))
+	require.NoError(t, err)
+
+	return reference
 }
 
 func provenanceEntryInput(t *testing.T, sub *ledgeraccount.SubAccountData, amount alpacadecimal.Decimal, sourceChargeID, spendChargeID *string) *transactionstestutils.AnyEntryInput {

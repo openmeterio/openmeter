@@ -30,6 +30,8 @@ const (
 	EdgeSubAccounts = "sub_accounts"
 	// EdgeSubAccountRoutes holds the string denoting the sub_account_routes edge name in mutations.
 	EdgeSubAccountRoutes = "sub_account_routes"
+	// EdgeCustomerAccounts holds the string denoting the customer_accounts edge name in mutations.
+	EdgeCustomerAccounts = "customer_accounts"
 	// Table holds the table name of the ledgeraccount in the database.
 	Table = "ledger_accounts"
 	// SubAccountsTable is the table that holds the sub_accounts relation/edge.
@@ -46,6 +48,13 @@ const (
 	SubAccountRoutesInverseTable = "ledger_sub_account_routes"
 	// SubAccountRoutesColumn is the table column denoting the sub_account_routes relation/edge.
 	SubAccountRoutesColumn = "account_id"
+	// CustomerAccountsTable is the table that holds the customer_accounts relation/edge.
+	CustomerAccountsTable = "ledger_customer_accounts"
+	// CustomerAccountsInverseTable is the table name for the LedgerCustomerAccount entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgercustomeraccount" package.
+	CustomerAccountsInverseTable = "ledger_customer_accounts"
+	// CustomerAccountsColumn is the table column denoting the customer_accounts relation/edge.
+	CustomerAccountsColumn = "account_id"
 )
 
 // Columns holds all SQL columns for ledgeraccount fields.
@@ -142,6 +151,20 @@ func BySubAccountRoutes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newSubAccountRoutesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByCustomerAccountsCount orders the results by customer_accounts count.
+func ByCustomerAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCustomerAccountsStep(), opts...)
+	}
+}
+
+// ByCustomerAccounts orders the results by customer_accounts terms.
+func ByCustomerAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomerAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSubAccountsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -154,5 +177,12 @@ func newSubAccountRoutesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubAccountRoutesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubAccountRoutesTable, SubAccountRoutesColumn),
+	)
+}
+func newCustomerAccountsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomerAccountsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CustomerAccountsTable, CustomerAccountsColumn),
 	)
 }

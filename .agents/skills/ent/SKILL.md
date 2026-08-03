@@ -1,7 +1,6 @@
 ---
 name: ent
 description: Work with Ent ORM schemas and generated code. Use when modifying ent schemas, debugging ent query issues, or dealing with Postgres type mappings.
-user-invocable: false
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 ---
 

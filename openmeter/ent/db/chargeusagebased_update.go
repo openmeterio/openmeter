@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -341,7 +342,7 @@ func (_u *ChargeUsageBasedUpdate) SetPrice(v *productcatalog.Price) *ChargeUsage
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *ChargeUsageBasedUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpdate {
+func (_u *ChargeUsageBasedUpdate) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedUpdate {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }
@@ -655,6 +656,9 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargeusagebased.FieldUniqueReferenceID, field.TypeString)
+	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(chargeusagebased.FieldFiatCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)
@@ -1266,7 +1270,7 @@ func (_u *ChargeUsageBasedUpdateOne) SetPrice(v *productcatalog.Price) *ChargeUs
 }
 
 // SetUnitConfig sets the "unit_config" field.
-func (_u *ChargeUsageBasedUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpdateOne {
+func (_u *ChargeUsageBasedUpdateOne) SetUnitConfig(v *unitconfig.UnitConfig) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetUnitConfig(v)
 	return _u
 }
@@ -1610,6 +1614,9 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargeusagebased.FieldUniqueReferenceID, field.TypeString)
+	}
+	if _u.mutation.FiatCurrencyCodeCleared() {
+		_spec.ClearField(chargeusagebased.FieldFiatCurrencyCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)

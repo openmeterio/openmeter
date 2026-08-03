@@ -923,7 +923,7 @@ func FromAnnotations(annotations models.Annotations) *api.Annotations {
 		return nil
 	}
 
-	return lo.ToPtr((api.Annotations)(annotations))
+	return lo.ToPtr(api.Annotations(annotations))
 }
 
 func FromValidationErrors(issues models.ValidationIssues) *[]api.ValidationError {

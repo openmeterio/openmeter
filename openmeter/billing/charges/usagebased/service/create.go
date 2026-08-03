@@ -8,9 +8,10 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -27,8 +28,23 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
+		now := clock.Now().UTC()
 		createIntents, err := slicesx.MapWithErr(input.Intents, func(intent usagebased.Intent) (usagebased.CreateIntent, error) {
 			chargeIntent := intent.Normalized()
+
+			var resolvedCostBasis *costbasis.State
+			if chargeIntent.CostBasis != nil {
+				var err error
+
+				resolvedCostBasis, err = s.costbasisResolver.ResolveInitialState(ctx, costbasis.ResolveInitialStateInput{
+					CurrencyID: chargeIntent.Currency.NamespacedID,
+					Intent:     *chargeIntent.CostBasis,
+					ResolvedAt: now,
+				})
+				if err != nil {
+					return usagebased.CreateIntent{}, fmt.Errorf("resolving cost basis: %w", err)
+				}
+			}
 
 			featureMeter, err := input.FeatureMeters.Get(chargeIntent.FeatureKey, false)
 			if err != nil {
@@ -36,10 +52,11 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			}
 
 			return usagebased.CreateIntent{
-				Intent:       chargeIntent.AsOverridableIntent(),
-				Annotations:  chargeIntent.Annotations,
-				FeatureID:    featureMeter.Feature.ID,
-				RatingEngine: s.rater.GetPreferredRatingEngineFor(chargeIntent),
+				Intent:            chargeIntent.AsOverridableIntent(),
+				Annotations:       chargeIntent.Annotations,
+				FeatureID:         featureMeter.Feature.ID,
+				RatingEngine:      s.rater.GetPreferredRatingEngineFor(chargeIntent),
+				ResolvedCostBasis: resolvedCostBasis,
 			}, nil
 		})
 		if err != nil {
@@ -50,20 +67,6 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 		charges, err := s.adapter.CreateCharges(ctx, usagebased.CreateChargesInput{
 			Namespace: input.Namespace,
 			Intents:   createIntents,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		err = s.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
-			Namespace: input.Namespace,
-			Type:      meta.ChargeTypeUsageBased,
-			Charges: lo.Map(charges, func(charge usagebased.Charge, idx int) meta.IDWithUniqueReferenceID {
-				return meta.IDWithUniqueReferenceID{
-					ID:                charge.ID,
-					UniqueReferenceID: charge.Intent.GetUniqueReferenceID(),
-				}
-			}),
 		})
 		if err != nil {
 			return nil, err
@@ -103,6 +106,24 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		return usagebased.ChargeWithGatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
 
+	if intent.Currency.IsCustom() {
+		// TODO: This should be a different typed gathering line, but for now we don't have that.
+		if clonedAnnotations == nil {
+			clonedAnnotations = models.Annotations{}
+		}
+		clonedAnnotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonOveragePlaceholder)
+	}
+
+	var unitConfig *productcatalog.UnitConfig
+	if intent.UnitConfig != nil {
+		unitConfig = lo.ToPtr(intent.UnitConfig.Clone())
+	}
+
+	invoiceCurrency, err := charge.GetInvoiceCurrency()
+	if err != nil {
+		return usagebased.ChargeWithGatheringLine{}, fmt.Errorf("getting invoice currency: %w", err)
+	}
+
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -117,8 +138,9 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 
 			Price:      intent.Price,
 			FeatureKey: intent.FeatureKey,
+			UnitConfig: unitConfig,
 
-			Currency:      intent.Currency,
+			Currency:      invoiceCurrency,
 			ServicePeriod: servicePeriod,
 			InvoiceAt:     invoiceAt,
 

@@ -13,6 +13,7 @@ import (
 	chargesusagebased "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -295,7 +296,7 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusage
 		Intent: chargesmeta.Intent{
 			ManagedBy:         billing.SubscriptionManagedLine,
 			CustomerID:        target.Subscription.CustomerId,
-			Currency:          target.CurrencyCalculator.CurrencyCode(),
+			Currency:          target.Currency,
 			UniqueReferenceID: ptr("existing-charge"),
 			TaxConfig: productcatalog.TaxCodeConfig{
 				TaxCodeID: "tax-code-id",
@@ -323,8 +324,7 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusage
 func newChargePatchTestTarget(t *testing.T, settlementMode productcatalog.SettlementMode, rateCard productcatalog.RateCard) targetstate.StateItem {
 	t.Helper()
 
-	currencyCalculator, err := currencyx.Code("USD").Calculator()
-	require.NoError(t, err)
+	cur := currenciestestutils.NewFiatCurrency(t, "USD")
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -372,7 +372,7 @@ func newChargePatchTestTarget(t *testing.T, settlementMode productcatalog.Settle
 			FullServicePeriod: fullServicePeriod,
 			BillingPeriod:     billingPeriod,
 		},
-		CurrencyCalculator: currencyCalculator,
+		Currency: cur,
 		Subscription: subscription.Subscription{
 			NamespacedID: models.NamespacedID{
 				Namespace: "namespace",

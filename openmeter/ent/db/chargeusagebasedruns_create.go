@@ -171,6 +171,20 @@ func (_c *ChargeUsageBasedRunsCreate) SetDetailedLinesPresent(v bool) *ChargeUsa
 	return _c
 }
 
+// SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
+func (_c *ChargeUsageBasedRunsCreate) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetDetailedLinesIncludeCreditAllocations(v)
+	return _c
+}
+
+// SetNillableDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableDetailedLinesIncludeCreditAllocations(v *bool) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetDetailedLinesIncludeCreditAllocations(*v)
+	}
+	return _c
+}
+
 // SetLineID sets the "line_id" field.
 func (_c *ChargeUsageBasedRunsCreate) SetLineID(v string) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetLineID(v)
@@ -405,6 +419,10 @@ func (_c *ChargeUsageBasedRunsCreate) defaults() {
 		v := chargeusagebasedruns.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.DetailedLinesIncludeCreditAllocations(); !ok {
+		v := chargeusagebasedruns.DefaultDetailedLinesIncludeCreditAllocations
+		_c.mutation.SetDetailedLinesIncludeCreditAllocations(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargeusagebasedruns.DefaultID()
 		_c.mutation.SetID(v)
@@ -486,6 +504,9 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	}
 	if _, ok := _c.mutation.DetailedLinesPresent(); !ok {
 		return &ValidationError{Name: "detailed_lines_present", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.detailed_lines_present"`)}
+	}
+	if _, ok := _c.mutation.DetailedLinesIncludeCreditAllocations(); !ok {
+		return &ValidationError{Name: "detailed_lines_include_credit_allocations", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.detailed_lines_include_credit_allocations"`)}
 	}
 	if v, ok := _c.mutation.LineID(); ok {
 		if err := chargeusagebasedruns.LineIDValidator(v); err != nil {
@@ -612,6 +633,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 	if value, ok := _c.mutation.DetailedLinesPresent(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesPresent, field.TypeBool, value)
 		_node.DetailedLinesPresent = value
+	}
+	if value, ok := _c.mutation.DetailedLinesIncludeCreditAllocations(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations, field.TypeBool, value)
+		_node.DetailedLinesIncludeCreditAllocations = value
 	}
 	if value, ok := _c.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeteredQuantity, field.TypeOther, value)
@@ -983,6 +1008,18 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateDetailedLinesPresent() *ChargeUsageBa
 	return u
 }
 
+// SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
+func (u *ChargeUsageBasedRunsUpsert) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations, v)
+	return u
+}
+
+// UpdateDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateDetailedLinesIncludeCreditAllocations() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations)
+	return u
+}
+
 // SetLineID sets the "line_id" field.
 func (u *ChargeUsageBasedRunsUpsert) SetLineID(v string) *ChargeUsageBasedRunsUpsert {
 	u.Set(chargeusagebasedruns.FieldLineID, v)
@@ -1280,6 +1317,20 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetDetailedLinesPresent(v bool) *ChargeU
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateDetailedLinesPresent() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateDetailedLinesPresent()
+	})
+}
+
+// SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetDetailedLinesIncludeCreditAllocations(v)
+	})
+}
+
+// UpdateDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateDetailedLinesIncludeCreditAllocations() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateDetailedLinesIncludeCreditAllocations()
 	})
 }
 
@@ -1754,6 +1805,20 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetDetailedLinesPresent(v bool) *Charge
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateDetailedLinesPresent() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateDetailedLinesPresent()
+	})
+}
+
+// SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetDetailedLinesIncludeCreditAllocations(v)
+	})
+}
+
+// UpdateDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateDetailedLinesIncludeCreditAllocations() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateDetailedLinesIncludeCreditAllocations()
 	})
 }
 

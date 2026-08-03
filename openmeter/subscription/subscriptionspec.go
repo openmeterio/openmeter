@@ -203,6 +203,12 @@ func (s *SubscriptionSpec) HasMeteredBillables() bool {
 	})
 }
 
+func (s *SubscriptionSpec) HasUnitConfig() bool {
+	return lo.SomeBy(lo.Values(s.Phases), func(p *SubscriptionPhaseSpec) bool {
+		return p.HasUnitConfig()
+	})
+}
+
 // For a phase in an Aligned subscription, there's a single aligned BillingPeriod for all items in that phase.
 // The period starts with the phase and iterates every subscription.BillingCadence duration, but can be reanchored to the time of an edit.
 func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.ClosedPeriod, error) {
@@ -476,6 +482,12 @@ func (s SubscriptionPhaseSpec) HasEntitlements() bool {
 func (s SubscriptionPhaseSpec) HasMeteredBillables() bool {
 	return lo.SomeBy(lo.Flatten(lo.Values(s.ItemsByKey)), func(item *SubscriptionItemSpec) bool {
 		return item.RateCard.AsMeta().Price != nil && item.RateCard.AsMeta().Price.Type() != productcatalog.FlatPriceType
+	})
+}
+
+func (s SubscriptionPhaseSpec) HasUnitConfig() bool {
+	return lo.SomeBy(lo.Flatten(lo.Values(s.ItemsByKey)), func(item *SubscriptionItemSpec) bool {
+		return item.RateCard.AsMeta().UnitConfig != nil
 	})
 }
 
@@ -974,6 +986,18 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 			return def, true, fmt.Errorf("failed to get measure usage from time: %w", err)
 		}
 		scheduleInput.MeasureUsageFrom = mu
+
+		// Snapshot the rate card's UnitConfig onto the entitlement so balance checks
+		// interpret the quota in converted units (OM-400). Cloned so the entitlement
+		// keeps an independent copy; validated while the typed value is in hand so a
+		// malformed config is rejected at write.
+		if meta.UnitConfig != nil {
+			if err := meta.UnitConfig.Validate(); err != nil {
+				return def, true, fmt.Errorf("invalid unit config for item %s: %w", s.ItemKey, err)
+			}
+
+			scheduleInput.UnitConfig = lo.ToPtr(meta.UnitConfig.Clone())
+		}
 	default:
 		return def, true, fmt.Errorf("unsupported entitlement type %s", t)
 	}

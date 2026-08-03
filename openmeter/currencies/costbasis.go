@@ -3,17 +3,25 @@ package currencies
 import (
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
-
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type CostBasis struct {
 	models.ManagedModel
 	models.NamespacedID
-	CurrencyID    string                `json:"currency_id"`
-	FiatCode      string                `json:"fiat_code"`
-	Rate          alpacadecimal.Decimal `json:"rate"`
-	EffectiveFrom time.Time             `json:"effective_from"`
-	EffectiveTo   *time.Time            `json:"effective_to,omitempty"`
+	currencyx.CostBasis
+
+	CurrencyID string `json:"currency_id"`
+
+	// CustomCurrency is included only if the CostBasis is expanded
+	CustomCurrency *Currency `json:"-"`
+}
+
+// IsEffectiveAt reports whether the cost basis can be used at the provided
+// time. EffectiveFrom is inclusive and EffectiveTo is exclusive.
+func (c CostBasis) IsEffectiveAt(at time.Time) bool {
+	return !c.EffectiveFrom.After(at) &&
+		(c.EffectiveTo == nil || c.EffectiveTo.After(at)) &&
+		(c.DeletedAt == nil || c.DeletedAt.After(at))
 }

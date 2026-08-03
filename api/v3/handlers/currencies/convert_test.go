@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -33,18 +34,20 @@ func TestToAPIBillingCostBasisExposesIDAndEffectiveTo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ToAPIBillingCostBasis(currencies.CostBasis{
+				ManagedModel: models.ManagedModel{
+					CreatedAt: createdAt,
+				},
 				NamespacedID: models.NamespacedID{
 					ID:        "01K00000000000000000000000",
 					Namespace: "test",
 				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: createdAt,
+				CurrencyID: "01J00000000000000000000000",
+				CostBasis: currencyx.CostBasis{
+					FiatCode:      "USD",
+					Rate:          alpacadecimal.RequireFromString("0.5"),
+					EffectiveFrom: effectiveFrom,
+					EffectiveTo:   tt.effectiveTo,
 				},
-				CurrencyID:    "01J00000000000000000000000",
-				FiatCode:      "USD",
-				Rate:          alpacadecimal.RequireFromString("0.5"),
-				EffectiveFrom: effectiveFrom,
-				EffectiveTo:   tt.effectiveTo,
 			})
 
 			require.Equal(t, "01K00000000000000000000000", got.Id)

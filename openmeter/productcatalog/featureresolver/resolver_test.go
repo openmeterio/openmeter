@@ -24,7 +24,6 @@ func Test_NamespacedFeatureResolver(t *testing.T) {
 	})
 
 	// Run database migrations
-	env.DBSchemaMigrate(t)
 
 	// Get new namespace ID
 	namespace := pctestutils.NewTestNamespace(t)

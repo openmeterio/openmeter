@@ -8,10 +8,13 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -53,8 +56,33 @@ func (l DetailedLine) Validate() error {
 
 type DetailedLines []DetailedLine
 
+type UpsertRunDetailedLinesInput struct {
+	ChargeID meta.ChargeID
+	RunID    RealizationRunID
+
+	DetailedLines                         DetailedLines
+	DetailedLinesIncludeCreditAllocations bool
+}
+
+func (i UpsertRunDetailedLinesInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if err := i.RunID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run ID: %w", err))
+	}
+
+	if err := i.DetailedLines.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("detailed lines: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 func NewDetailedLinesFromBilling(
-	intent Intent,
 	defaultServicePeriod timeutil.ClosedPeriod,
 	lines billingrating.DetailedLines,
 ) DetailedLines {
@@ -77,7 +105,6 @@ func NewDetailedLinesFromBilling(
 				}),
 				ServicePeriod:          period,
 				Index:                  lo.ToPtr(idx),
-				Currency:               intent.Currency,
 				ChildUniqueReferenceID: line.ChildUniqueReferenceID,
 				PaymentTerm:            lo.CoalesceOrEmpty(line.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 				PerUnitAmount:          line.PerUnitAmount,
@@ -93,6 +120,34 @@ func NewDetailedLinesFromBilling(
 func (l DetailedLines) Clone() DetailedLines {
 	return lo.Map(l, func(dl DetailedLine, _ int) DetailedLine {
 		return dl.Clone()
+	})
+}
+
+func (l DetailedLines) mapBase(fn func(stddetailedline.Bases) (stddetailedline.Bases, error)) (DetailedLines, error) {
+	out := l.Clone()
+	bases, err := fn(lo.Map(out, func(line DetailedLine, _ int) stddetailedline.Base {
+		return line.Base
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	for idx := range out {
+		out[idx].Base = bases[idx]
+	}
+
+	return out, nil
+}
+
+// WithCreditsApplied returns a cloned run-detail snapshot with the authoritative
+// run credit realizations applied. Existing applications are reversed first, so
+// rebuilding a persisted credit-then-invoice snapshot is retry-safe.
+func (l DetailedLines) WithCreditsApplied(
+	creditsApplied creditsapplied.CreditsApplied,
+	currency currencyx.Currency,
+) (DetailedLines, error) {
+	return l.mapBase(func(bases stddetailedline.Bases) (stddetailedline.Bases, error) {
+		return bases.WithCreditsApplied(creditsApplied, currency)
 	})
 }
 

@@ -35,6 +35,7 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotat
 		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
 		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
 		productcatalog.ValidateRateCardsHaveCompatibleDiscounts,
+		productcatalog.ValidateRateCardsHaveCompatibleUnitConfig,
 	); err != nil {
 		return err
 	}
@@ -47,7 +48,10 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotat
 		if aMeta.Price != nil {
 			switch {
 			case tMeta.Price == nil:
+				// UnitConfig travels with Price here: it's meaningless without the price
+				// it converts, and the target has none of its own to preserve.
 				m.Price = aMeta.Price
+				m.UnitConfig = aMeta.UnitConfig
 			case tMeta.Price.Type() == productcatalog.FlatPriceType:
 				tFlat, _ := tMeta.Price.AsFlat()
 				aFlat, _ := aMeta.Price.AsFlat()
@@ -125,6 +129,8 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
 		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
 		productcatalog.ValidateRateCardsHaveCompatibleDiscounts,
+		// No unit_config compatibility check here (as with price): restore is teardown and never
+		// reapplies it, so gating on it could strand a removable addon if the target's config drifted.
 	); err != nil {
 		return err
 	}
@@ -152,7 +158,9 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 					PaymentTerm: tFlat.PaymentTerm,
 				})
 			case instanceType == productcatalog.AddonInstanceTypeSingle:
+				// Clear UnitConfig with Price: it can't outlive the price it converts.
 				m.Price = nil
+				m.UnitConfig = nil
 			default:
 				return m, fmt.Errorf("not supported price type: %s", tMeta.Price.Type())
 			}

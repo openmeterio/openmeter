@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/governance"
@@ -161,7 +162,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	repository, err := common.NewTaxCodeAdapter(logger, client)
+	repository, err := common.NewCurrencyAdapter(client)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -171,7 +172,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	taxcodeService, err := common.NewTaxCodeService(logger, repository)
+	currenciesService, err := common.NewCurrencyService(repository)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -181,7 +182,37 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	addonService, err := common.NewAddonService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
+	currencyResolver, err := currencyresolver.New(currenciesService)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	taxcodeRepository, err := common.NewTaxCodeAdapter(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	taxcodeService, err := common.NewTaxCodeService(logger, taxcodeRepository)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	addonService, err := common.NewAddonService(logger, client, featureResolver, currencyResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -295,7 +326,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	planService, err := common.NewPlanService(logger, client, featureResolver, taxcodeService, eventbusPublisher)
+	planService, err := common.NewPlanService(logger, client, featureResolver, currencyResolver, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -357,7 +388,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	gate := featuregate.NewNoop()
 	featureGateConfiguration := conf.FeatureGate
 	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
-	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -481,28 +512,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	currenciesRepository, err := common.NewCurrencyAdapter(client)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	currenciesService, err := common.NewCurrencyService(currenciesRepository)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
 	llmcostService, err := common.NewLLMCostService(logger, client)
 	if err != nil {
 		cleanup7()
@@ -525,7 +534,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	creditgrantService, err := common.NewCreditGrantService(billingRegistry, customerService)
+	creditvoidService, err := common.NewCreditVoidService(creditsConfiguration, client, ledger, balanceQuerier, accountResolver, accountService, breakageService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -536,7 +545,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	customerbalanceService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, balanceQuerier, accountResolver, accountService, billingRegistry, breakageService)
+	creditgrantService, err := common.NewCreditGrantService(client, billingRegistry, customerService, creditvoidService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	customerbalanceService, err := common.NewCustomerBalanceService(creditsConfiguration, ledger, balanceQuerier, accountResolver, accountService, billingRegistry, breakageService, creditvoidService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -764,7 +784,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	taxCodeConfiguration := conf.TaxCode
-	taxcodeNamespaceHandler, err := common.NewTaxCodeNamespaceHandler(logger, taxcodeService, repository, taxCodeConfiguration)
+	taxcodeNamespaceHandler, err := common.NewTaxCodeNamespaceHandler(logger, taxcodeService, taxcodeRepository, taxCodeConfiguration)
 	if err != nil {
 		cleanup8()
 		cleanup7()

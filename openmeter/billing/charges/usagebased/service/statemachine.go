@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
@@ -18,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type stateMachine struct {
@@ -31,7 +33,8 @@ type stateMachine struct {
 
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
+	CostBasisResolver  costbasis.Resolver
 }
 
 type StateMachine = chargestatemachine.StateMachine[usagebased.Charge]
@@ -44,7 +47,8 @@ type StateMachineConfig struct {
 	Logger             *slog.Logger
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
+	CostBasisResolver  costbasis.Resolver
 }
 
 func (c StateMachineConfig) Validate() error {
@@ -78,8 +82,18 @@ func (c StateMachineConfig) Validate() error {
 		errs = append(errs, errors.New("feature meter is required"))
 	}
 
-	if err := c.CurrencyCalculator.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
+	if c.CurrencyCalculator == nil {
+		return fmt.Errorf("currency calculator is required")
+	}
+
+	if c.CurrencyCalculator != nil {
+		if err := c.CurrencyCalculator.Validate(); err != nil {
+			return fmt.Errorf("currency calculator: %w", err)
+		}
+	}
+
+	if c.CostBasisResolver == nil {
+		errs = append(errs, errors.New("cost basis resolver is required"))
 	}
 
 	return errors.Join(errs...)
@@ -98,6 +112,7 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 		CustomerOverride:   config.CustomerOverride,
 		FeatureMeter:       config.FeatureMeter,
 		CurrencyCalculator: config.CurrencyCalculator,
+		CostBasisResolver:  config.CostBasisResolver,
 	}
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
@@ -125,7 +140,7 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 
 // mutateIntentLayer mutates the requested intent layer, creating a new override
 // layer first when the target is override and the charge has no override yet.
-func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.ChangeTarget, editFn func(*usagebased.IntentMutableFields)) error {
+func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.ChangeTarget, editFn func(*usagebased.IntentMutableFields) error) error {
 	switch target {
 	case meta.ChangeTargetBase:
 		if err := s.Charge.Intent.Mutate(meta.ChangeTargetBase, editFn); err != nil {
@@ -141,7 +156,10 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 		}
 
 		overrideFields := s.Charge.Intent.GetEffectiveIntent().IntentMutableFields
-		editFn(&overrideFields)
+		if err := editFn(&overrideFields); err != nil {
+			return err
+		}
+
 		overrideFields = overrideFields.Normalized()
 		if err := overrideFields.Validate(); err != nil {
 			return fmt.Errorf("validating override intent: %w", err)
@@ -155,6 +173,22 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 		s.Charge.ChargeBase = base
 	default:
 		return fmt.Errorf("invalid change target: %s", target)
+	}
+
+	return nil
+}
+
+// rejectHiddenIntentTarget prevents lifecycle state machines from processing a
+// hidden source intent. When an override layer exists, the override is the
+// active customer-facing charge: it owns status transitions, realization runs,
+// credit corrections, and invoice patches. Subscription-owned base/source
+// changes must be applied before state-machine dispatch by service-level
+// reconciliation, not interpreted as lifecycle events.
+func (s *stateMachine) rejectHiddenIntentTarget(target meta.ChangeTarget) error {
+	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("cannot mutate hidden base intent while override intent is active"),
+		)
 	}
 
 	return nil

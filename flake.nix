@@ -5,6 +5,11 @@
     devenv.url = "github:cachix/devenv";
     git-hooks.url = "github:cachix/git-hooks.nix";
     pre-commit-hooks.follows = "git-hooks";
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+    };
   };
 
   outputs = inputs@{ flake-parts, ... }:
@@ -20,9 +25,7 @@
           inherit system;
 
           overlays = [
-            (final: prev: {
-              atlasx = self'.packages.atlasx;
-            })
+            inputs.llm-agents.overlays.shared-nixpkgs
           ];
         };
 
@@ -80,13 +83,13 @@
               # Check actual version via:
               # $ pkg-config --modversion rdkafka++
               # Getting sha256 hash for git ref:
-              # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.14.1 | jq -r '.sha256')"
+              # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.15.0 | jq -r '.sha256')"
               (rdkafka.overrideAttrs (_: rec {
                 src = fetchFromGitHub {
                   owner = "confluentinc";
                   repo = "librdkafka";
-                  rev = "v2.14.2";
-                  sha256 = "sha256-G7DPiTYjm+8cMA9la88Erl5qHy/8I4j+SJK1rlAtgPA=";
+                  rev = "v2.15.0";
+                  sha256 = "sha256-WW64fwh0xR4lEVwmrv00tP9mo6b49aCNgLLH/P0YS8k=";
                 };
               }))
 
@@ -96,6 +99,7 @@
 
               golangci-lint
               goreleaser
+              gotestsum
               air
 
               curl
@@ -122,14 +126,12 @@
               (writeShellScriptBin "spectral" ''
                 exec ${pkgs.pnpm}/bin/pnpm dlx @stoplight/spectral-cli@6.16.0 "$@"
               '')
-              (writeShellScriptBin "codegraph" ''
-                exec ${pkgs.pnpm}/bin/pnpm dlx @colbymchenry/codegraph@1.2.0 "$@"
-              '')
+              self'.packages.codegraph
 
               # python
               poetry
 
-              atlasx
+              self'.packages.atlasx
 
               just
               semver-tool
@@ -171,48 +173,11 @@
         };
 
         packages = {
-          atlasx =
-            let
-              systemMappings = {
-                x86_64-linux = "linux-amd64";
-                x86_64-darwin = "darwin-amd64";
-                aarch64-darwin = "darwin-arm64";
-                aarch64-linux = "linux-arm64";
-              };
-              # nix hash convert --hash-algo sha256 --to sri SHA256SUM
-              hashMappings = {
-                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-linux-amd64-v'"${VERSION}"'.sha256')"
-                x86_64-linux = "sha256-2IquGGpV5Yk8MY87Ecg4ozcq302sHi/TvH0rVZRMV5c=";
-                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-darwin-amd64-v'"${VERSION}"'.sha256')"
-                x86_64-darwin = "sha256-yMvFQ32wVAXpzXEN+hC8nTkr+2eqoWBhT92JqXBUusQ=";
-                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-darwin-arm64-v'"${VERSION}"'.sha256')"
-                aarch64-darwin = "sha256-mP7mg4RyqdL5D5FFNEna6aWs/cEsNq/vrmdiX78/EP0=";
-                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-linux-arm64-v'"${VERSION}"'.sha256')"
-                aarch64-linux = "sha256-u4oioIzNmmy5PwoWIFt7vrBn3X/sH2AifGh9jek9YIg=";
-              };
-            in
-            pkgs.stdenv.mkDerivation rec {
-              pname = "atlasx";
-              version = "0.36.0";
-
-              src = pkgs.fetchurl {
-                # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
-                url = "https://release.ariga.io/atlas/atlas-${systemMappings."${pkgs.stdenv.hostPlatform.system}"}-v${version}";
-                hash = hashMappings."${pkgs.stdenv.hostPlatform.system}";
-              };
-
-              unpackPhase = ''
-                cp $src atlas
-              '';
-
-              installPhase = ''
-                mkdir -p $out/bin
-                cp atlas $out/bin/atlas
-                chmod +x $out/bin/atlas
-              '';
-
-            };
-        };
+          # CodeGraph 1.5.0 aborts while indexing on macOS with Node 24.
+          codegraph = pkgs.llm-agents.codegraph.override {
+            buildNpmPackage = pkgs.buildNpmPackage.override { nodejs = pkgs.nodejs_22; };
+          };
+        } // import ./custom-packages.nix { inherit pkgs; };
       };
     };
 }

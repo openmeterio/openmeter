@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -102,7 +103,7 @@ func TestValidateEntryIdentityKey(t *testing.T) {
 	spendChargeID := "01JBCDEFG0123456789ABCDEFG"
 	collectionSource := "0"
 	address := testEntryIdentityAddress(t, ledger.AccountTypeCustomerFBO, "subaccount", ledger.Route{
-		Currency: currencyx.Code("USD"),
+		Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
 	})
 	identityKey, _ := ledger.EntryIdentityParts{
 		CollectionSource: &collectionSource,

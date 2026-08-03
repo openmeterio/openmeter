@@ -1,0 +1,2691 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index c853fc76bc197895a33089180e44778d8c1f096b..038ffe1a361f9ef2f0abfbe4d3837af8007c0751 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -29,14 +29,12 @@
+ 
+ - [#9879](https://github.com/microsoft/typespec/pull/9879) Add the missing export in index for extensible-enum in csharp
+ 
+-
+ ## 0.16.0
+ 
+ ### Bump dependencies
+ 
+ - [#9446](https://github.com/microsoft/typespec/pull/9446) Upgrade dependencies
+ 
+-
+ ## 0.15.0
+ 
+ ### Features
+@@ -49,7 +47,6 @@
+ - [#9202](https://github.com/microsoft/typespec/pull/9202) Update to alloy 0.22
+ - [#9223](https://github.com/microsoft/typespec/pull/9223) Upgrade dependencies
+ 
+-
+ ## 0.14.0
+ 
+ No changes, version bump only.
+diff --git a/dist/src/python/builtins.d.ts b/dist/src/python/builtins.d.ts
+index b606d701237d65bd003cdf1beeca0421730a085f..e2708c78e9e9d5dffff2811871b98573ec091cca 100644
+--- a/dist/src/python/builtins.d.ts
++++ b/dist/src/python/builtins.d.ts
+@@ -9,6 +9,6 @@ export declare const decimalModule: import("@alloy-js/python").ModuleRefkeys<{
+     readonly ".": ["Decimal"];
+ }> & SymbolCreator;
+ export declare const typingModule: import("@alloy-js/python").ModuleRefkeys<{
+-    readonly ".": ["Any", "Callable", "Generic", "Literal", "Never", "Optional", "Protocol", "TypeAlias", "TypeVar"];
++    readonly ".": ["Annotated", "Any", "Callable", "ClassVar", "Generic", "Literal", "Never", "Optional", "Protocol", "TypeAlias", "TypeVar", "Union"];
+ }> & SymbolCreator;
+ //# sourceMappingURL=builtins.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/python/builtins.d.ts.map b/dist/src/python/builtins.d.ts.map
+index 77f3751529672a519c76fb4fb15f027163e341d4..2ddf0d01a73168f04de072610371df75070259ae 100644
+--- a/dist/src/python/builtins.d.ts.map
++++ b/dist/src/python/builtins.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"builtins.d.ts","sourceRoot":"","sources":["../../../src/python/builtins.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,gBAAgB,CAAC;AAMpD,eAAO,MAAM,SAAS;;kBAKpB,CAAC;AAEH,eAAO,MAAM,cAAc;;kBAKzB,CAAC;AAEH,eAAO,MAAM,aAAa;;kBAKxB,CAAC;AAEH,eAAO,MAAM,YAAY;;kBAevB,CAAC"}
+\ No newline at end of file
++{"version":3,"file":"builtins.d.ts","sourceRoot":"","sources":["../../../src/python/builtins.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,gBAAgB,CAAC;AAMpD,eAAO,MAAM,SAAS;;kBAKpB,CAAC;AAEH,eAAO,MAAM,cAAc;;kBAKzB,CAAC;AAEH,eAAO,MAAM,aAAa;;kBAKxB,CAAC;AAEH,eAAO,MAAM,YAAY;;kBAkBvB,CAAC"}
+\ No newline at end of file
+diff --git a/dist/src/python/builtins.js b/dist/src/python/builtins.js
+index 18aee6974abb2bbbbcbce5d3cf40bec8d2069688..473e4fe48c15a5311fb8a0f5d1534fad4cfe82e6 100644
+--- a/dist/src/python/builtins.js
++++ b/dist/src/python/builtins.js
+@@ -23,7 +23,7 @@ export const decimalModule = createModule({
+ export const typingModule = createModule({
+   name: "typing",
+   descriptor: {
+-    ".": ["Any", "Callable", "Generic", "Literal", "Never", "Optional", "Protocol", "TypeAlias", "TypeVar"]
++    ".": ["Annotated", "Any", "Callable", "ClassVar", "Generic", "Literal", "Never", "Optional", "Protocol", "TypeAlias", "TypeVar", "Union"]
+   }
+ });
+ //# sourceMappingURL=builtins.js.map
+\ No newline at end of file
+diff --git a/dist/src/python/builtins.js.map b/dist/src/python/builtins.js.map
+index 8483e22a0f6ffb067e3a7dfaddb488aeaff9d3e0..0c75f18d25e845b52b0090b94fce543949872dbd 100644
+--- a/dist/src/python/builtins.js.map
++++ b/dist/src/python/builtins.js.map
+@@ -1 +1 @@
+-{"version":3,"names":["createModule","abcModule","name","descriptor","datetimeModule","decimalModule","typingModule"],"sources":["../../../src/python/builtins.ts"],"sourcesContent":[null],"mappings":"AACA,SAASA,YAAY,QAAQ,kBAAkB;;AAE/C;;AAGA,OAAO,MAAMC,SAAS,GAAGD,YAAY,CAAC;EACpCE,IAAI,EAAE,KAAK;EACXC,UAAU,EAAE;IACV,GAAG,EAAE,CAAC,KAAK;EACb;AACF,CAAC,CAAC;AAEF,OAAO,MAAMC,cAAc,GAAGJ,YAAY,CAAC;EACzCE,IAAI,EAAE,UAAU;EAChBC,UAAU,EAAE;IACV,GAAG,EAAE,CAAC,UAAU,EAAE,MAAM,EAAE,MAAM,EAAE,WAAW,EAAE,UAAU;EAC3D;AACF,CAAC,CAAC;AAEF,OAAO,MAAME,aAAa,GAAGL,YAAY,CAAC;EACxCE,IAAI,EAAE,SAAS;EACfC,UAAU,EAAE;IACV,GAAG,EAAE,CAAC,SAAS;EACjB;AACF,CAAC,CAAC;AAEF,OAAO,MAAMG,YAAY,GAAGN,YAAY,CAAC;EACvCE,IAAI,EAAE,QAAQ;EACdC,UAAU,EAAE;IACV,GAAG,EAAE,CACH,KAAK,EACL,UAAU,EACV,SAAS,EACT,SAAS,EACT,OAAO,EACP,UAAU,EACV,UAAU,EACV,WAAW,EACX,SAAS;EAEb;AACF,CAAC,CAAC","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":["createModule","abcModule","name","descriptor","datetimeModule","decimalModule","typingModule"],"sources":["../../../src/python/builtins.ts"],"sourcesContent":[null],"mappings":"AACA,SAASA,YAAY,QAAQ,kBAAkB;;AAE/C;;AAGA,OAAO,MAAMC,SAAS,GAAGD,YAAY,CAAC;EACpCE,IAAI,EAAE,KAAK;EACXC,UAAU,EAAE;IACV,GAAG,EAAE,CAAC,KAAK;EACb;AACF,CAAC,CAAC;AAEF,OAAO,MAAMC,cAAc,GAAGJ,YAAY,CAAC;EACzCE,IAAI,EAAE,UAAU;EAChBC,UAAU,EAAE;IACV,GAAG,EAAE,CAAC,UAAU,EAAE,MAAM,EAAE,MAAM,EAAE,WAAW,EAAE,UAAU;EAC3D;AACF,CAAC,CAAC;AAEF,OAAO,MAAME,aAAa,GAAGL,YAAY,CAAC;EACxCE,IAAI,EAAE,SAAS;EACfC,UAAU,EAAE;IACV,GAAG,EAAE,CAAC,SAAS;EACjB;AACF,CAAC,CAAC;AAEF,OAAO,MAAMG,YAAY,GAAGN,YAAY,CAAC;EACvCE,IAAI,EAAE,QAAQ;EACdC,UAAU,EAAE;IACV,GAAG,EAAE,CACH,WAAW,EACX,KAAK,EACL,UAAU,EACV,UAAU,EACV,SAAS,EACT,SAAS,EACT,OAAO,EACP,UAAU,EACV,UAAU,EACV,WAAW,EACX,SAAS,EACT,OAAO;EAEX;AACF,CAAC,CAAC","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/class-method.d.ts b/dist/src/python/components/class-declaration/class-method.d.ts
+index 7ae5ba9e73328f36135b1d63caefcfd6ad339e4f..d14b32854a724a37e0aa6b9a3517449ba7cedc4c 100644
+--- a/dist/src/python/components/class-declaration/class-method.d.ts
++++ b/dist/src/python/components/class-declaration/class-method.d.ts
+@@ -9,10 +9,13 @@ export interface MethodPropsWithType extends Omit<py.MethodDeclarationBaseProps,
+     doc?: Children;
+     methodType?: "method" | "class" | "static";
+     abstract?: boolean;
++    decorators?: Children[];
+     /** If true, parameters replaces operation parameters instead of adding to them as keyword-only */
+     replaceParameters?: boolean;
+ }
+-export type MethodProps = MethodPropsWithType | py.MethodDeclarationBaseProps;
++export type MethodProps = MethodPropsWithType | (py.MethodDeclarationBaseProps & {
++    decorators?: Children[];
++});
+ /**
+  * A Python class method. Pass the `type` prop to create the
+  * method by converting from a TypeSpec Operation. Any other props
+diff --git a/dist/src/python/components/class-declaration/class-method.d.ts.map b/dist/src/python/components/class-declaration/class-method.d.ts.map
+index d561866fdd05c556a2ae98670582f9af05b468f7..15ce643129d696f6f43b9e711ebe338302d2e9f0 100644
+--- a/dist/src/python/components/class-declaration/class-method.d.ts.map
++++ b/dist/src/python/components/class-declaration/class-method.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"class-method.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/class-declaration/class-method.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,QAAQ,EAAyC,MAAM,gBAAgB,CAAC;AACtF,OAAO,KAAK,EAAE,MAAM,kBAAkB,CAAC;AACvC,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,oBAAoB,CAAC;AAMpD,eAAO,MAAM,aAAa,sFAAsE,CAAC;AACjG,eAAO,MAAM,cAAc,wIAAyB,CAAC;AAErD,MAAM,WAAW,mBAAoB,SAAQ,IAAI,CAAC,EAAE,CAAC,0BAA0B,EAAE,MAAM,CAAC;IACtF,IAAI,EAAE,SAAS,CAAC;IAChB,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,GAAG,CAAC,EAAE,QAAQ,CAAC;IACf,UAAU,CAAC,EAAE,QAAQ,GAAG,OAAO,GAAG,QAAQ,CAAC;IAC3C,QAAQ,CAAC,EAAE,OAAO,CAAC;IACnB,kGAAkG;IAClG,iBAAiB,CAAC,EAAE,OAAO,CAAC;CAC7B;AAED,MAAM,MAAM,WAAW,GAAG,mBAAmB,GAAG,EAAE,CAAC,0BAA0B,CAAC;AAa9E;;;;GAIG;AACH,wBAAgB,MAAM,CAAC,KAAK,EAAE,QAAQ,CAAC,WAAW,CAAC,YAyDlD"}
+\ No newline at end of file
++{"version":3,"file":"class-method.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/class-declaration/class-method.tsx"],"names":[],"mappings":"AAAA,OAAO,EAA8C,KAAK,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAC3F,OAAO,KAAK,EAAE,MAAM,kBAAkB,CAAC;AACvC,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,oBAAoB,CAAC;AAMpD,eAAO,MAAM,aAAa,sFAAsE,CAAC;AACjG,eAAO,MAAM,cAAc,wIAAyB,CAAC;AAErD,MAAM,WAAW,mBAAoB,SAAQ,IAAI,CAAC,EAAE,CAAC,0BAA0B,EAAE,MAAM,CAAC;IACtF,IAAI,EAAE,SAAS,CAAC;IAChB,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,GAAG,CAAC,EAAE,QAAQ,CAAC;IACf,UAAU,CAAC,EAAE,QAAQ,GAAG,OAAO,GAAG,QAAQ,CAAC;IAC3C,QAAQ,CAAC,EAAE,OAAO,CAAC;IACnB,UAAU,CAAC,EAAE,QAAQ,EAAE,CAAC;IACxB,kGAAkG;IAClG,iBAAiB,CAAC,EAAE,OAAO,CAAC;CAC7B;AAED,MAAM,MAAM,WAAW,GACrB,mBAAmB,GAAG,CAAC,EAAE,CAAC,0BAA0B,GAAG;IAAE,UAAU,CAAC,EAAE,QAAQ,EAAE,CAAA;CAAE,CAAC,CAAC;AAatF;;;;GAIG;AACH,wBAAgB,MAAM,CAAC,KAAK,EAAE,QAAQ,CAAC,WAAW,CAAC,YA2ElD"}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/class-method.js b/dist/src/python/components/class-declaration/class-method.js
+index 803feaff9798102abf68be47db23319b6271daaf..bba676111d3de412973274ff0a5580877c6cf71e 100644
+--- a/dist/src/python/components/class-declaration/class-method.js
++++ b/dist/src/python/components/class-declaration/class-method.js
+@@ -1,5 +1,5 @@
+-import { createComponent as _$createComponent, mergeProps as _$mergeProps } from "@alloy-js/core/jsx-runtime";
+-import { createContext, splitProps, useContext } from "@alloy-js/core";
++import { createComponent as _$createComponent, createIntrinsic as _$createIntrinsic, mergeProps as _$mergeProps } from "@alloy-js/core/jsx-runtime";
++import { createContext, For, splitProps, useContext } from "@alloy-js/core";
+ import * as py from "@alloy-js/python";
+ import { useTsp } from "../../../core/index.js";
+ import { buildParameterDescriptors, getReturnType } from "../../utils/operation.js";
+@@ -43,18 +43,28 @@ export function Method(props) {
+     const explicit = props.abstract;
+     return explicit ?? (!isTypeSpecTyped ? false : undefined);
+   })();
++  const decorators = props.decorators;
++  const decoratorsBlock = decorators ? _$createComponent(For, {
++    each: decorators,
++    skipFalsy: true,
++    children: decorator => [decorator, _$createIntrinsic("hbr", {})]
++  }) : undefined;
+ 
+   /**
+    * If the method does not come from the Typespec class declaration, return a standard Python method declaration.
+    * Have in mind that, with that, we lose some of the TypeSpec class declaration overrides.
+    */
+   if (!isTypeSpecTyped) {
+-    return _$createComponent(MethodComponent, _$mergeProps(props, {
++    const {
++      decorators: _decorators,
++      ...methodProps
++    } = props;
++    return [decoratorsBlock, _$createComponent(MethodComponent, _$mergeProps(methodProps, {
+       doc: docElement,
+       abstract: abstractFlag
+-    }));
++    }))];
+   }
+-  const [efProps, updateProps, forwardProps] = splitProps(props, ["type"], ["returnType", "parameters"]);
++  const [efProps, updateProps, forwardProps] = splitProps(props, ["type", "decorators"], ["returnType", "parameters"]);
+   const name = props.name ?? py.usePythonNamePolicy().getName(efProps.type.name, "function");
+   const returnType = props.returnType ?? _$createComponent(TypeExpression, {
+     get type() {
+@@ -65,7 +75,7 @@ export function Method(props) {
+     params: props.parameters,
+     replaceParameters: props.replaceParameters
+   });
+-  return [_$createComponent(MethodComponent, _$mergeProps(forwardProps, updateProps, {
++  return [decoratorsBlock, _$createComponent(MethodComponent, _$mergeProps(forwardProps, updateProps, {
+     name: name,
+     returnType: returnType,
+     parameters: allParameters,
+diff --git a/dist/src/python/components/class-declaration/class-method.js.map b/dist/src/python/components/class-declaration/class-method.js.map
+index 0fea6427355bef173d034f7f918d4729f6dc008a..35a356e9efc8fd78e05af2351d497cfacb035798 100644
+--- a/dist/src/python/components/class-declaration/class-method.js.map
++++ b/dist/src/python/components/class-declaration/class-method.js.map
+@@ -1 +1 @@
+-{"version":3,"names":["createContext","splitProps","useContext","py","useTsp","buildParameterDescriptors","getReturnType","DocElement","TypeExpression","MethodContext","undefined","MethodProvider","Provider","getResolvedMethodType","props","ctxMethodType","propMethodType","methodType","Method","$","isTypeSpecTyped","type","docSource","doc","getDoc","docElement","_$createComponent","component","MethodDoc","resolvedMethodType","MethodComponent","StaticMethodDeclaration","ClassMethodDeclaration","MethodDeclaration","abstractFlag","explicit","abstract","_$mergeProps","efProps","updateProps","forwardProps","name","usePythonNamePolicy","getName","returnType","allParameters","parameters","params","replaceParameters"],"sources":["../../../../../src/python/components/class-declaration/class-method.tsx"],"sourcesContent":[null],"mappings":"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","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":["createContext","For","splitProps","useContext","py","useTsp","buildParameterDescriptors","getReturnType","DocElement","TypeExpression","MethodContext","undefined","MethodProvider","Provider","getResolvedMethodType","props","ctxMethodType","propMethodType","methodType","Method","$","isTypeSpecTyped","type","docSource","doc","getDoc","docElement","_$createComponent","component","MethodDoc","resolvedMethodType","MethodComponent","StaticMethodDeclaration","ClassMethodDeclaration","MethodDeclaration","abstractFlag","explicit","abstract","decorators","decoratorsBlock","each","skipFalsy","children","decorator","_$createIntrinsic","_decorators","methodProps","_$mergeProps","efProps","updateProps","forwardProps","name","usePythonNamePolicy","getName","returnType","allParameters","parameters","params","replaceParameters"],"sources":["../../../../../src/python/components/class-declaration/class-method.tsx"],"sourcesContent":[null],"mappings":"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","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/index.d.ts b/dist/src/python/components/class-declaration/index.d.ts
+index a301fcfe2c914527ada0a992728ae592eee944f0..2d1547371435de845d4ca1ef3d44f7cc75ee78b4 100644
+--- a/dist/src/python/components/class-declaration/index.d.ts
++++ b/dist/src/python/components/class-declaration/index.d.ts
+@@ -4,4 +4,6 @@ export * from "./class-declaration.js";
+ export * from "./class-member.js";
+ export * from "./class-method.js";
+ export * from "./primitive-initializer.js";
++export * from "./pydantic-class-declaration.js";
++export * from "./pydantic-decorators.js";
+ //# sourceMappingURL=index.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/index.d.ts.map b/dist/src/python/components/class-declaration/index.d.ts.map
+index c959252f495c925b8c8714061ab8bd96d017c173..e4850abe1dbdf6f36ae5f03e56959508ddbae349 100644
+--- a/dist/src/python/components/class-declaration/index.d.ts.map
++++ b/dist/src/python/components/class-declaration/index.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/class-declaration/index.ts"],"names":[],"mappings":"AAAA,cAAc,kBAAkB,CAAC;AACjC,cAAc,iBAAiB,CAAC;AAChC,cAAc,wBAAwB,CAAC;AACvC,cAAc,mBAAmB,CAAC;AAClC,cAAc,mBAAmB,CAAC;AAClC,cAAc,4BAA4B,CAAC"}
+\ No newline at end of file
++{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/class-declaration/index.ts"],"names":[],"mappings":"AAAA,cAAc,kBAAkB,CAAC;AACjC,cAAc,iBAAiB,CAAC;AAChC,cAAc,wBAAwB,CAAC;AACvC,cAAc,mBAAmB,CAAC;AAClC,cAAc,mBAAmB,CAAC;AAClC,cAAc,4BAA4B,CAAC;AAC3C,cAAc,iCAAiC,CAAC;AAChD,cAAc,0BAA0B,CAAC"}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/index.js b/dist/src/python/components/class-declaration/index.js
+index e3f393c953c185de7d443c45253a490f9c90ccc2..3d3da9a978c1186f788041d67c91dc8452e10283 100644
+--- a/dist/src/python/components/class-declaration/index.js
++++ b/dist/src/python/components/class-declaration/index.js
+@@ -4,4 +4,6 @@ export * from "./class-declaration.js";
+ export * from "./class-member.js";
+ export * from "./class-method.js";
+ export * from "./primitive-initializer.js";
++export * from "./pydantic-class-declaration.js";
++export * from "./pydantic-decorators.js";
+ //# sourceMappingURL=index.js.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/index.js.map b/dist/src/python/components/class-declaration/index.js.map
+index 6e684b60f6b87addf56bfccead1f9273fa93246c..43346177cce9776baed6622230ea692ad4f208b3 100644
+--- a/dist/src/python/components/class-declaration/index.js.map
++++ b/dist/src/python/components/class-declaration/index.js.map
+@@ -1 +1 @@
+-{"version":3,"names":[],"sources":["../../../../../src/python/components/class-declaration/index.ts"],"sourcesContent":[null],"mappings":"AAAA,cAAc,kBAAkB;AAChC,cAAc,iBAAiB;AAC/B,cAAc,wBAAwB;AACtC,cAAc,mBAAmB;AACjC,cAAc,mBAAmB;AACjC,cAAc,4BAA4B","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":[],"sources":["../../../../../src/python/components/class-declaration/index.ts"],"sourcesContent":[null],"mappings":"AAAA,cAAc,kBAAkB;AAChC,cAAc,iBAAiB;AAC/B,cAAc,wBAAwB;AACtC,cAAc,mBAAmB;AACjC,cAAc,mBAAmB;AACjC,cAAc,4BAA4B;AAC1C,cAAc,iCAAiC;AAC/C,cAAc,0BAA0B","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-class-declaration.d.ts b/dist/src/python/components/class-declaration/pydantic-class-declaration.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..c283f25f0c948ef73bf7bab427249236aef0817e
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-class-declaration.d.ts
+@@ -0,0 +1,59 @@
++import { type Children } from "@alloy-js/core";
++import * as py from "@alloy-js/python";
++import type { Model } from "@typespec/compiler";
++export interface PydanticModelConfigDictProps {
++    arbitraryTypesAllowed?: boolean;
++    extra?: "allow" | "forbid" | "ignore";
++    fromAttributes?: boolean;
++    frozen?: boolean;
++    populateByName?: boolean;
++    strStripWhitespace?: boolean;
++    strict?: boolean;
++    validateAssignment?: boolean;
++    validateDefault?: boolean;
++}
++export interface PydanticSettingsConfigDictProps {
++    caseSensitive?: boolean;
++    envFile?: string;
++    envFileEncoding?: string;
++    envIgnoreEmpty?: boolean;
++    envNestedDelimiter?: string;
++    envPrefix?: string;
++}
++export interface PydanticClassDeclarationBaseProps extends Omit<py.ClassDeclarationProps, "name"> {
++    name: string;
++    modelConfig?: PydanticModelConfigDictProps;
++    modelConfigExpression?: Children;
++}
++export interface PydanticClassDeclarationPropsWithType extends Omit<PydanticClassDeclarationBaseProps, "name"> {
++    type: Model;
++    name?: string;
++    methodType?: "method" | "class" | "static";
++}
++export type PydanticClassDeclarationProps = PydanticClassDeclarationPropsWithType | PydanticClassDeclarationBaseProps;
++/**
++ * Converts TypeSpec Models to Pydantic classes.
++ */
++export declare function PydanticClassDeclaration(props: PydanticClassDeclarationProps): Children;
++type PydanticSettingsClassDeclarationBaseProps = Omit<PydanticClassDeclarationBaseProps, "bases" | "modelConfig" | "modelConfigExpression">;
++type PydanticSettingsClassDeclarationPropsWithType = Omit<PydanticClassDeclarationPropsWithType, "bases" | "modelConfig" | "modelConfigExpression">;
++export type PydanticSettingsClassDeclarationProps = (PydanticSettingsClassDeclarationBaseProps & {
++    settingsConfig?: PydanticSettingsConfigDictProps;
++    settingsConfigExpression?: Children;
++}) | (PydanticSettingsClassDeclarationPropsWithType & {
++    settingsConfig?: PydanticSettingsConfigDictProps;
++    settingsConfigExpression?: Children;
++});
++/**
++ * Convenience wrapper for classes that inherit from pydantic-settings BaseSettings.
++ */
++export declare function PydanticSettingsClassDeclaration(props: PydanticSettingsClassDeclarationProps): Children;
++export interface PydanticRootModelDeclarationProps extends Omit<py.ClassDeclarationProps, "bases"> {
++    rootType: Children;
++}
++/**
++ * Convenience wrapper for pydantic RootModel[T] declarations.
++ */
++export declare function PydanticRootModelDeclaration(props: PydanticRootModelDeclarationProps): Children;
++export {};
++//# sourceMappingURL=pydantic-class-declaration.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-class-declaration.d.ts.map b/dist/src/python/components/class-declaration/pydantic-class-declaration.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..96d3fac97322720a5d87a94bb71d54a5a85f48b9
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-class-declaration.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"pydantic-class-declaration.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/class-declaration/pydantic-class-declaration.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAa,KAAK,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAC1D,OAAO,KAAK,EAAE,MAAM,kBAAkB,CAAC;AACvC,OAAO,KAAK,EAAE,KAAK,EAAE,MAAM,oBAAoB,CAAC;AAUhD,MAAM,WAAW,4BAA4B;IAC3C,qBAAqB,CAAC,EAAE,OAAO,CAAC;IAChC,KAAK,CAAC,EAAE,OAAO,GAAG,QAAQ,GAAG,QAAQ,CAAC;IACtC,cAAc,CAAC,EAAE,OAAO,CAAC;IACzB,MAAM,CAAC,EAAE,OAAO,CAAC;IACjB,cAAc,CAAC,EAAE,OAAO,CAAC;IACzB,kBAAkB,CAAC,EAAE,OAAO,CAAC;IAC7B,MAAM,CAAC,EAAE,OAAO,CAAC;IACjB,kBAAkB,CAAC,EAAE,OAAO,CAAC;IAC7B,eAAe,CAAC,EAAE,OAAO,CAAC;CAC3B;AAED,MAAM,WAAW,+BAA+B;IAC9C,aAAa,CAAC,EAAE,OAAO,CAAC;IACxB,OAAO,CAAC,EAAE,MAAM,CAAC;IACjB,eAAe,CAAC,EAAE,MAAM,CAAC;IACzB,cAAc,CAAC,EAAE,OAAO,CAAC;IACzB,kBAAkB,CAAC,EAAE,MAAM,CAAC;IAC5B,SAAS,CAAC,EAAE,MAAM,CAAC;CACpB;AAED,MAAM,WAAW,iCAAkC,SAAQ,IAAI,CAAC,EAAE,CAAC,qBAAqB,EAAE,MAAM,CAAC;IAC/F,IAAI,EAAE,MAAM,CAAC;IACb,WAAW,CAAC,EAAE,4BAA4B,CAAC;IAC3C,qBAAqB,CAAC,EAAE,QAAQ,CAAC;CAClC;AAED,MAAM,WAAW,qCAAsC,SAAQ,IAAI,CACjE,iCAAiC,EACjC,MAAM,CACP;IACC,IAAI,EAAE,KAAK,CAAC;IACZ,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,UAAU,CAAC,EAAE,QAAQ,GAAG,OAAO,GAAG,QAAQ,CAAC;CAC5C;AAED,MAAM,MAAM,6BAA6B,GACvC,qCAAqC,GAAG,iCAAiC,CAAC;AAQ5E;;GAEG;AACH,wBAAgB,wBAAwB,CAAC,KAAK,EAAE,6BAA6B,YAyF5E;AAED,KAAK,yCAAyC,GAAG,IAAI,CACnD,iCAAiC,EACjC,OAAO,GAAG,aAAa,GAAG,uBAAuB,CAClD,CAAC;AAEF,KAAK,6CAA6C,GAAG,IAAI,CACvD,qCAAqC,EACrC,OAAO,GAAG,aAAa,GAAG,uBAAuB,CAClD,CAAC;AAEF,MAAM,MAAM,qCAAqC,GAC7C,CAAC,yCAAyC,GAAG;IAC3C,cAAc,CAAC,EAAE,+BAA+B,CAAC;IACjD,wBAAwB,CAAC,EAAE,QAAQ,CAAC;CACrC,CAAC,GACF,CAAC,6CAA6C,GAAG;IAC/C,cAAc,CAAC,EAAE,+BAA+B,CAAC;IACjD,wBAAwB,CAAC,EAAE,QAAQ,CAAC;CACrC,CAAC,CAAC;AAEP;;GAEG;AACH,wBAAgB,gCAAgC,CAAC,KAAK,EAAE,qCAAqC,YAuC5F;AAED,MAAM,WAAW,iCAAkC,SAAQ,IAAI,CAAC,EAAE,CAAC,qBAAqB,EAAE,OAAO,CAAC;IAChG,QAAQ,EAAE,QAAQ,CAAC;CACpB;AAED;;GAEG;AACH,wBAAgB,4BAA4B,CAAC,KAAK,EAAE,iCAAiC,YAQpF"}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-class-declaration.js b/dist/src/python/components/class-declaration/pydantic-class-declaration.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..2886640d8f40c6f256e978f4eda64b718c3d762b
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-class-declaration.js
+@@ -0,0 +1,159 @@
++import { memo as _$memo, createIntrinsic as _$createIntrinsic, createComponent as _$createComponent, mergeProps as _$mergeProps } from "@alloy-js/core/jsx-runtime";
++import { code, For } from "@alloy-js/core";
++import * as py from "@alloy-js/python";
++import { useTsp } from "../../../core/context/tsp-context.js";
++import { reportDiagnostic } from "../../../lib.js";
++import { declarationRefkeys } from "../../utils/refkey.js";
++import { DocElement } from "../doc-element/doc-element.js";
++import { ClassBases } from "./class-bases.js";
++import { ClassDeclaration } from "./class-declaration.js";
++import { ClassMember } from "./class-member.js";
++import { MethodProvider } from "./class-method.js";
++function isTypedPydanticClassDeclarationProps(props) {
++  return "type" in props;
++}
++
++/**
++ * Converts TypeSpec Models to Pydantic classes.
++ */
++export function PydanticClassDeclaration(props) {
++  const {
++    $
++  } = useTsp();
++  const configEntries = [];
++  if (props.modelConfig && props.modelConfigExpression === undefined) {
++    for (const key of Object.keys(props.modelConfig)) {
++      const value = props.modelConfig[key];
++      if (value !== undefined) {
++        configEntries.push([toSnakeCase(key), value]);
++      }
++    }
++  }
++  const hasStructuredModelConfig = props.modelConfigExpression === undefined && configEntries.length > 0;
++  const hasExpressionModelConfig = props.modelConfigExpression !== undefined;
++  const configLine = hasExpressionModelConfig ? ["model_config = ", _$memo(() => props.modelConfigExpression), _$createIntrinsic("hbr", {})] : hasStructuredModelConfig ? ["model_config = ", _$memo(() => py.pydanticModule["."].ConfigDict), "(", _$createComponent(For, {
++    each: configEntries,
++    comma: true,
++    space: true,
++    children: ([k, v]) => [k, "=", _$createComponent(py.Atom, {
++      jsValue: v
++    })]
++  }), ")", _$createIntrinsic("hbr", {})] : undefined;
++  if (!isTypedPydanticClassDeclarationProps(props)) {
++    return _$createComponent(ClassDeclaration, _$mergeProps(props, {
++      get bases() {
++        return props.bases ?? [py.pydanticModule["."].BaseModel];
++      },
++      get children() {
++        return [configLine, _$memo(() => props.children)];
++      }
++    }));
++  }
++  const docSource = props.doc ?? $.type.getDoc(props.type);
++  const docElement = docSource ? _$createComponent(DocElement, {
++    doc: docSource,
++    component: py.ClassDoc
++  }) : undefined;
++  const namePolicy = py.usePythonNamePolicy();
++  let name = props.name ?? props.type.name;
++  if (!name) {
++    reportDiagnostic($.program, {
++      code: "type-declaration-missing-name",
++      target: props.type
++    });
++  }
++  name = namePolicy.getName(name, "class");
++
++  // Pydantic models currently don't support anonymous additional properties.
++  const additionalPropsRecord = $.model.getAdditionalPropertiesRecord(props.type);
++  if (additionalPropsRecord) {
++    throw new Error("Models with additional properties (Record[…]) are not supported");
++  }
++  const modelMembers = Array.from($.model.getProperties(props.type).values());
++  const refkeys = declarationRefkeys(props.refkey, props.type);
++  const bases = ClassBases({
++    type: props.type,
++    bases: props.bases
++  });
++  const resolvedBases = props.bases === undefined && bases.length === 0 ? [py.pydanticModule["."].BaseModel] : bases;
++  return _$createComponent(MethodProvider, {
++    get value() {
++      return props.methodType;
++    },
++    get children() {
++      return _$createComponent(py.ClassDeclaration, _$mergeProps({
++        doc: docElement,
++        name: name,
++        refkey: refkeys
++      }, () => resolvedBases.length ? {
++        bases: resolvedBases
++      } : {}, {
++        get children() {
++          return [configLine, _$createComponent(For, {
++            each: modelMembers,
++            line: true,
++            children: typeMember => _$createComponent(ClassMember, {
++              type: typeMember,
++              get methodType() {
++                return props.methodType;
++              }
++            })
++          }), [_$memo(() => props.children)]];
++        }
++      }));
++    }
++  });
++}
++/**
++ * Convenience wrapper for classes that inherit from pydantic-settings BaseSettings.
++ */
++export function PydanticSettingsClassDeclaration(props) {
++  const {
++    settingsConfig,
++    settingsConfigExpression,
++    ...classProps
++  } = props;
++  const configEntries = [];
++  if (settingsConfig && settingsConfigExpression === undefined) {
++    for (const key of Object.keys(settingsConfig)) {
++      const value = settingsConfig[key];
++      if (value !== undefined) {
++        configEntries.push([toSnakeCase(key), value]);
++      }
++    }
++  }
++  const hasStructuredConfig = settingsConfigExpression === undefined && configEntries.length > 0;
++  const hasExpressionConfig = settingsConfigExpression !== undefined;
++  const modelConfigExpression = hasExpressionConfig ? settingsConfigExpression : hasStructuredConfig ? [_$memo(() => py.pydanticSettingsModule["."].SettingsConfigDict), "(", _$createComponent(For, {
++    each: configEntries,
++    comma: true,
++    space: true,
++    children: ([k, v]) => [k, "=", _$createComponent(py.Atom, {
++      jsValue: v
++    })]
++  }), ")"] : undefined;
++  return _$createComponent(PydanticClassDeclaration, _$mergeProps(classProps, {
++    get bases() {
++      return [py.pydanticSettingsModule["."].BaseSettings];
++    },
++    modelConfigExpression: modelConfigExpression
++  }));
++}
++/**
++ * Convenience wrapper for pydantic RootModel[T] declarations.
++ */
++export function PydanticRootModelDeclaration(props) {
++  const {
++    rootType,
++    ...classProps
++  } = props;
++  return _$createComponent(py.ClassDeclaration, _$mergeProps(classProps, {
++    get bases() {
++      return [code`${py.pydanticModule["."].RootModel}[${rootType}]`];
++    }
++  }));
++}
++function toSnakeCase(value) {
++  return value.replaceAll(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
++}
++//# sourceMappingURL=pydantic-class-declaration.js.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-class-declaration.js.map b/dist/src/python/components/class-declaration/pydantic-class-declaration.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..552fb602de8f2af73c03fa5b2ba9415564e5409e
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-class-declaration.js.map
+@@ -0,0 +1 @@
++{"version":3,"names":["code","For","py","useTsp","reportDiagnostic","declarationRefkeys","DocElement","ClassBases","ClassDeclaration","ClassMember","MethodProvider","isTypedPydanticClassDeclarationProps","props","PydanticClassDeclaration","$","configEntries","modelConfig","modelConfigExpression","undefined","key","Object","keys","value","push","toSnakeCase","hasStructuredModelConfig","length","hasExpressionModelConfig","configLine","_$memo","_$createIntrinsic","pydanticModule","ConfigDict","_$createComponent","each","comma","space","children","k","v","Atom","jsValue","_$mergeProps","bases","BaseModel","docSource","doc","type","getDoc","docElement","component","ClassDoc","namePolicy","usePythonNamePolicy","name","program","target","getName","additionalPropsRecord","model","getAdditionalPropertiesRecord","Error","modelMembers","Array","from","getProperties","values","refkeys","refkey","resolvedBases","methodType","line","typeMember","PydanticSettingsClassDeclaration","settingsConfig","settingsConfigExpression","classProps","hasStructuredConfig","hasExpressionConfig","pydanticSettingsModule","SettingsConfigDict","BaseSettings","PydanticRootModelDeclaration","rootType","RootModel","replaceAll","toLowerCase"],"sources":["../../../../../src/python/components/class-declaration/pydantic-class-declaration.tsx"],"sourcesContent":[null],"mappings":"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","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-class-declaration.test.d.ts b/dist/src/python/components/class-declaration/pydantic-class-declaration.test.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..4f5d361893cac8b7074d75a23b4b022b4f93f681
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-class-declaration.test.d.ts
+@@ -0,0 +1,2 @@
++export {};
++//# sourceMappingURL=pydantic-class-declaration.test.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-class-declaration.test.d.ts.map b/dist/src/python/components/class-declaration/pydantic-class-declaration.test.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..8475be73609081a142c1a038ad5fbb2355a961d6
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-class-declaration.test.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"pydantic-class-declaration.test.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/class-declaration/pydantic-class-declaration.test.tsx"],"names":[],"mappings":""}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-class-declaration.test.js b/dist/src/python/components/class-declaration/pydantic-class-declaration.test.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..468dd20992927c6a620ccb0b01b3f4fbac8e7b72
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-class-declaration.test.js
+@@ -0,0 +1,145 @@
++import { createComponent as _$createComponent } from "@alloy-js/core/jsx-runtime";
++import { Tester } from "#test/test-host.js";
++import { code } from "@alloy-js/core";
++import * as py from "@alloy-js/python";
++import { t } from "@typespec/compiler/testing";
++import { describe, expect, it } from "vitest";
++import { getOutput } from "../../test-utils.js";
++import { ClassDeclaration } from "./class-declaration.js";
++import { Method } from "./class-method.js";
++import { PydanticClassDeclaration, PydanticRootModelDeclaration, PydanticSettingsClassDeclaration } from "./pydantic-class-declaration.js";
++describe("Python PydanticClassDeclaration", () => {
++  it("creates a pydantic class from a model", async () => {
++    const {
++      program,
++      User
++    } = await Tester.compile(t.code`
++      model ${t.model("User")} {
++        id: string;
++      }
++    `);
++    expect(getOutput(program, [_$createComponent(PydanticClassDeclaration, {
++      type: User
++    })])).toRenderTo(`
++      from pydantic import BaseModel
++
++
++      class User(BaseModel):
++          id: str
++
++    `);
++  });
++  it("emits model_config from structured modelConfig", async () => {
++    const {
++      program,
++      User
++    } = await Tester.compile(t.code`
++      model ${t.model("User")} {
++        id: string;
++      }
++    `);
++    expect(getOutput(program, [_$createComponent(PydanticClassDeclaration, {
++      type: User,
++      modelConfig: {
++        frozen: true,
++        extra: "forbid",
++        validateAssignment: true
++      }
++    })])).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import ConfigDict
++
++
++      class User(BaseModel):
++          model_config = ConfigDict(frozen=True, extra="forbid", validate_assignment=True)
++          id: str
++
++    `);
++  });
++  it("places pydantic validator decorators above @classmethod", async () => {
++    const {
++      program,
++      stripName
++    } = await Tester.compile(t.code`@test op ${t.op("stripName")}(value: string): string;`);
++    expect(getOutput(program, [_$createComponent(PydanticClassDeclaration, {
++      name: "User",
++      get children() {
++        return _$createComponent(Method, {
++          type: stripName,
++          methodType: "class",
++          get decorators() {
++            return [code`@${py.pydanticModule["."].field_validator}("name", mode="before")`];
++          }
++        });
++      }
++    })])).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import field_validator
++
++
++      class User(BaseModel):
++          @field_validator("name", mode="before")
++          @classmethod
++          def strip_name(cls, value: str) -> str:
++              pass
++
++
++    `);
++  });
++  it("supports BaseSettings via pydantic_settings module", async () => {
++    const {
++      program
++    } = await Tester.compile(``);
++    expect(getOutput(program, [_$createComponent(ClassDeclaration, {
++      name: "AppSettings",
++      get bases() {
++        return [py.pydanticSettingsModule["."].BaseSettings];
++      }
++    })])).toRenderTo(`
++      from pydantic_settings import BaseSettings
++
++
++      class AppSettings(BaseSettings):
++          pass
++
++    `);
++  });
++  it("creates a settings class with SettingsConfigDict", async () => {
++    const {
++      program
++    } = await Tester.compile(``);
++    expect(getOutput(program, [_$createComponent(PydanticSettingsClassDeclaration, {
++      name: "AppSettings",
++      settingsConfig: {
++        envPrefix: "APP_",
++        envFile: ".env"
++      }
++    })])).toRenderTo(`
++      from pydantic_settings import BaseSettings
++      from pydantic_settings import SettingsConfigDict
++
++
++      class AppSettings(BaseSettings):
++          model_config = SettingsConfigDict(env_prefix="APP_", env_file=".env")
++
++
++    `);
++  });
++  it("creates a RootModel declaration from a root type", async () => {
++    const {
++      program
++    } = await Tester.compile(``);
++    expect(getOutput(program, [_$createComponent(PydanticRootModelDeclaration, {
++      name: "TagList",
++      rootType: code`list[str]`
++    })])).toRenderTo(`
++      from pydantic import RootModel
++
++
++      class TagList(RootModel[list[str]]):
++          pass
++
++    `);
++  });
++});
++//# sourceMappingURL=pydantic-class-declaration.test.js.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-class-declaration.test.js.map b/dist/src/python/components/class-declaration/pydantic-class-declaration.test.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..9ee7a90a5bfb1fec25839c12b17c68fdec05a9d2
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-class-declaration.test.js.map
+@@ -0,0 +1 @@
++{"version":3,"names":["Tester","code","py","t","describe","expect","it","getOutput","ClassDeclaration","Method","PydanticClassDeclaration","PydanticRootModelDeclaration","PydanticSettingsClassDeclaration","program","User","compile","model","_$createComponent","type","toRenderTo","modelConfig","frozen","extra","validateAssignment","stripName","op","name","children","methodType","decorators","pydanticModule","field_validator","bases","pydanticSettingsModule","BaseSettings","settingsConfig","envPrefix","envFile","rootType"],"sources":["../../../../../src/python/components/class-declaration/pydantic-class-declaration.test.tsx"],"sourcesContent":[null],"mappings":";AAAA,SAASA,MAAM,QAAQ,oBAAoB;AAC3C,SAASC,IAAI,QAAQ,gBAAgB;AACrC,OAAO,KAAKC,EAAE,MAAM,kBAAkB;AACtC,SAASC,CAAC,QAAQ,4BAA4B;AAC9C,SAASC,QAAQ,EAAEC,MAAM,EAAEC,EAAE,QAAQ,QAAQ;AAC7C,SAASC,SAAS,QAAQ,qBAAqB;AAC/C,SAASC,gBAAgB,QAAQ,wBAAwB;AACzD,SAASC,MAAM,QAAQ,mBAAmB;AAC1C,SACEC,wBAAwB,EACxBC,4BAA4B,EAC5BC,gCAAgC,QAC3B,iCAAiC;AAExCR,QAAQ,CAAC,iCAAiC,EAAE,MAAM;EAChDE,EAAE,CAAC,uCAAuC,EAAE,YAAY;IACtD,MAAM;MAAEO,OAAO;MAAEC;IAAK,CAAC,GAAG,MAAMd,MAAM,CAACe,OAAO,CAACZ,CAAC,CAACF,IAAI;AACzD,cAAcE,CAAC,CAACa,KAAK,CAAC,MAAM,CAAC;AAC7B;AACA;AACA,KAAK,CAAC;IAEFX,MAAM,CAACE,SAAS,CAACM,OAAO,EAAE,CAAAI,iBAAA,CAAEP,wBAAwB;MAACQ,IAAI,EAAEJ;IAAI,GAAK,CAAC,CAAC,CAACK,UAAU,CAAC;AACtF;AACA;AACA;AACA;AACA;AACA;AACA,KAAK,CAAC;EACJ,CAAC,CAAC;EAEFb,EAAE,CAAC,gDAAgD,EAAE,YAAY;IAC/D,MAAM;MAAEO,OAAO;MAAEC;IAAK,CAAC,GAAG,MAAMd,MAAM,CAACe,OAAO,CAACZ,CAAC,CAACF,IAAI;AACzD,cAAcE,CAAC,CAACa,KAAK,CAAC,MAAM,CAAC;AAC7B;AACA;AACA,KAAK,CAAC;IAEFX,MAAM,CACJE,SAAS,CAACM,OAAO,EAAE,CAAAI,iBAAA,CAChBP,wBAAwB;MACvBQ,IAAI,EAAEJ,IAAI;MACVM,WAAW,EAAE;QAAEC,MAAM,EAAE,IAAI;QAAEC,KAAK,EAAE,QAAQ;QAAEC,kBAAkB,EAAE;MAAK;IAAC,GAE3E,CACH,CAAC,CAACJ,UAAU,CAAC;AACjB;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA,KAAK,CAAC;EACJ,CAAC,CAAC;EAEFb,EAAE,CAAC,yDAAyD,EAAE,YAAY;IACxE,MAAM;MAAEO,OAAO;MAAEW;IAAU,CAAC,GAAG,MAAMxB,MAAM,CAACe,OAAO,CACjDZ,CAAC,CAACF,IAAI,YAAYE,CAAC,CAACsB,EAAE,CAAC,WAAW,CAAC,0BACrC,CAAC;IAEDpB,MAAM,CACJE,SAAS,CAACM,OAAO,EAAE,CAAAI,iBAAA,CAChBP,wBAAwB;MAACgB,IAAI;MAAA,IAAAC,SAAA;QAAA,OAAAV,iBAAA,CAC3BR,MAAM;UACLS,IAAI,EAAEM,SAAS;UACfI,UAAU;UAAA,IACVC,UAAUA,CAAA;YAAA,OAAE,CAAC5B,IAAI,IAAIC,EAAE,CAAC4B,cAAc,CAAC,GAAG,CAAC,CAACC,eAAe,yBAAyB,CAAC;UAAA;QAAA;MAAA;IAAA,GAG1F,CACH,CAAC,CAACZ,UAAU,CAAC;AACjB;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA,KAAK,CAAC;EACJ,CAAC,CAAC;EAEFb,EAAE,CAAC,oDAAoD,EAAE,YAAY;IACnE,MAAM;MAAEO;IAAQ,CAAC,GAAG,MAAMb,MAAM,CAACe,OAAO,CAAC,EAAE,CAAC;IAE5CV,MAAM,CACJE,SAAS,CAACM,OAAO,EAAE,CAAAI,iBAAA,CAChBT,gBAAgB;MACfkB,IAAI;MAAA,IACJM,KAAKA,CAAA;QAAA,OAAE,CAAC9B,EAAE,CAAC+B,sBAAsB,CAAC,GAAG,CAAC,CAACC,YAAY,CAAC;MAAA;IAAA,GAEvD,CACH,CAAC,CAACf,UAAU,CAAC;AACjB;AACA;AACA;AACA;AACA;AACA;AACA,KAAK,CAAC;EACJ,CAAC,CAAC;EAEFb,EAAE,CAAC,kDAAkD,EAAE,YAAY;IACjE,MAAM;MAAEO;IAAQ,CAAC,GAAG,MAAMb,MAAM,CAACe,OAAO,CAAC,EAAE,CAAC;IAE5CV,MAAM,CACJE,SAAS,CAACM,OAAO,EAAE,CAAAI,iBAAA,CAChBL,gCAAgC;MAC/Bc,IAAI;MACJS,cAAc,EAAE;QAAEC,SAAS,EAAE,MAAM;QAAEC,OAAO,EAAE;MAAO;IAAC,GAEzD,CACH,CAAC,CAAClB,UAAU,CAAC;AACjB;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA,KAAK,CAAC;EACJ,CAAC,CAAC;EAEFb,EAAE,CAAC,kDAAkD,EAAE,YAAY;IACjE,MAAM;MAAEO;IAAQ,CAAC,GAAG,MAAMb,MAAM,CAACe,OAAO,CAAC,EAAE,CAAC;IAE5CV,MAAM,CACJE,SAAS,CAACM,OAAO,EAAE,CAAAI,iBAAA,CAChBN,4BAA4B;MAACe,IAAI;MAAWY,QAAQ,EAAErC,IAAI;IAAW,GACvE,CACH,CAAC,CAACkB,UAAU,CAAC;AACjB;AACA;AACA;AACA;AACA;AACA;AACA,KAAK,CAAC;EACJ,CAAC,CAAC;AACJ,CAAC,CAAC","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-decorators.d.ts b/dist/src/python/components/class-declaration/pydantic-decorators.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..9058e0571ea2d490514d2d1aa151faf09b8425c2
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-decorators.d.ts
+@@ -0,0 +1,31 @@
++import { type Children } from "@alloy-js/core";
++export type PydanticValidationMode = "before" | "after" | "plain" | "wrap";
++export interface PydanticFieldValidatorOptions {
++    mode?: PydanticValidationMode;
++    checkFields?: boolean;
++}
++export interface PydanticModelValidatorOptions {
++    mode?: Exclude<PydanticValidationMode, "plain">;
++}
++export interface PydanticFieldSerializerOptions {
++    mode?: "plain" | "wrap";
++    returnType?: string;
++    whenUsed?: "always" | "unless-none" | "json" | "json-unless-none";
++}
++/**
++ * Build a `@field_validator(...)` decorator for method `decorators`.
++ */
++export declare function fieldValidatorDecorator(fields: string | string[], options?: PydanticFieldValidatorOptions): Children;
++/**
++ * Build a `@model_validator(...)` decorator for method `decorators`.
++ */
++export declare function modelValidatorDecorator(options?: PydanticModelValidatorOptions): Children;
++/**
++ * Build a `@field_serializer(...)` decorator for method `decorators`.
++ */
++export declare function fieldSerializerDecorator(fields: string | string[], options?: PydanticFieldSerializerOptions): Children;
++/**
++ * Build a `@computed_field` decorator for method `decorators`.
++ */
++export declare function computedFieldDecorator(): Children;
++//# sourceMappingURL=pydantic-decorators.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-decorators.d.ts.map b/dist/src/python/components/class-declaration/pydantic-decorators.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..ef5b4841829b38cca41828b9423479e36b5f12c8
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-decorators.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"pydantic-decorators.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/class-declaration/pydantic-decorators.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAQ,KAAK,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAGrD,MAAM,MAAM,sBAAsB,GAAG,QAAQ,GAAG,OAAO,GAAG,OAAO,GAAG,MAAM,CAAC;AAE3E,MAAM,WAAW,6BAA6B;IAC5C,IAAI,CAAC,EAAE,sBAAsB,CAAC;IAC9B,WAAW,CAAC,EAAE,OAAO,CAAC;CACvB;AAED,MAAM,WAAW,6BAA6B;IAC5C,IAAI,CAAC,EAAE,OAAO,CAAC,sBAAsB,EAAE,OAAO,CAAC,CAAC;CACjD;AAED,MAAM,WAAW,8BAA8B;IAC7C,IAAI,CAAC,EAAE,OAAO,GAAG,MAAM,CAAC;IACxB,UAAU,CAAC,EAAE,MAAM,CAAC;IACpB,QAAQ,CAAC,EAAE,QAAQ,GAAG,aAAa,GAAG,MAAM,GAAG,kBAAkB,CAAC;CACnE;AAED;;GAEG;AACH,wBAAgB,uBAAuB,CACrC,MAAM,EAAE,MAAM,GAAG,MAAM,EAAE,EACzB,OAAO,GAAE,6BAAkC,GAC1C,QAAQ,CAOV;AAED;;GAEG;AACH,wBAAgB,uBAAuB,CAAC,OAAO,GAAE,6BAAkC,GAAG,QAAQ,CAI7F;AAED;;GAEG;AACH,wBAAgB,wBAAwB,CACtC,MAAM,EAAE,MAAM,GAAG,MAAM,EAAE,EACzB,OAAO,GAAE,8BAAmC,GAC3C,QAAQ,CAQV;AAED;;GAEG;AACH,wBAAgB,sBAAsB,IAAI,QAAQ,CAEjD"}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-decorators.js b/dist/src/python/components/class-declaration/pydantic-decorators.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..56f2718c3122691788d972c4c1845fef42404922
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-decorators.js
+@@ -0,0 +1,41 @@
++import { code } from "@alloy-js/core";
++import * as py from "@alloy-js/python";
++/**
++ * Build a `@field_validator(...)` decorator for method `decorators`.
++ */
++export function fieldValidatorDecorator(fields, options = {}) {
++  const values = Array.isArray(fields) ? fields : [fields];
++  const args = values.map(x => JSON.stringify(x));
++  if (options.mode !== undefined) args.push(`mode=${JSON.stringify(options.mode)}`);
++  if (options.checkFields !== undefined) args.push(`check_fields=${options.checkFields}`);
++  return code`@${py.pydanticModule["."].field_validator}(${args.join(", ")})`;
++}
++
++/**
++ * Build a `@model_validator(...)` decorator for method `decorators`.
++ */
++export function modelValidatorDecorator(options = {}) {
++  const args = [];
++  if (options.mode !== undefined) args.push(`mode=${JSON.stringify(options.mode)}`);
++  return code`@${py.pydanticModule["."].model_validator}(${args.join(", ")})`;
++}
++
++/**
++ * Build a `@field_serializer(...)` decorator for method `decorators`.
++ */
++export function fieldSerializerDecorator(fields, options = {}) {
++  const values = Array.isArray(fields) ? fields : [fields];
++  const args = values.map(x => JSON.stringify(x));
++  if (options.mode !== undefined) args.push(`mode=${JSON.stringify(options.mode)}`);
++  if (options.returnType !== undefined) args.push(`return_type=${options.returnType}`);
++  if (options.whenUsed !== undefined) args.push(`when_used=${JSON.stringify(options.whenUsed)}`);
++  return code`@${py.pydanticModule["."].field_serializer}(${args.join(", ")})`;
++}
++
++/**
++ * Build a `@computed_field` decorator for method `decorators`.
++ */
++export function computedFieldDecorator() {
++  return code`@${py.pydanticModule["."].computed_field}`;
++}
++//# sourceMappingURL=pydantic-decorators.js.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-decorators.js.map b/dist/src/python/components/class-declaration/pydantic-decorators.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..45745799f2e279e171d445a788eea529eecfc4e0
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-decorators.js.map
+@@ -0,0 +1 @@
++{"version":3,"names":["code","py","fieldValidatorDecorator","fields","options","values","Array","isArray","args","map","x","JSON","stringify","mode","undefined","push","checkFields","pydanticModule","field_validator","join","modelValidatorDecorator","model_validator","fieldSerializerDecorator","returnType","whenUsed","field_serializer","computedFieldDecorator","computed_field"],"sources":["../../../../../src/python/components/class-declaration/pydantic-decorators.tsx"],"sourcesContent":[null],"mappings":"AAAA,SAASA,IAAI,QAAuB,gBAAgB;AACpD,OAAO,KAAKC,EAAE,MAAM,kBAAkB;AAmBtC;AACA;AACA;AACA,OAAO,SAASC,uBAAuBA,CACrCC,MAAyB,EACzBC,OAAsC,GAAG,CAAC,CAAC,EACjC;EACV,MAAMC,MAAM,GAAGC,KAAK,CAACC,OAAO,CAACJ,MAAM,CAAC,GAAGA,MAAM,GAAG,CAACA,MAAM,CAAC;EACxD,MAAMK,IAAI,GAAGH,MAAM,CAACI,GAAG,CAAEC,CAAC,IAAKC,IAAI,CAACC,SAAS,CAACF,CAAC,CAAC,CAAC;EACjD,IAAIN,OAAO,CAACS,IAAI,KAAKC,SAAS,EAAEN,IAAI,CAACO,IAAI,CAAC,QAAQJ,IAAI,CAACC,SAAS,CAACR,OAAO,CAACS,IAAI,CAAC,EAAE,CAAC;EACjF,IAAIT,OAAO,CAACY,WAAW,KAAKF,SAAS,EAAEN,IAAI,CAACO,IAAI,CAAC,gBAAgBX,OAAO,CAACY,WAAW,EAAE,CAAC;EAEvF,OAAOhB,IAAI,IAAIC,EAAE,CAACgB,cAAc,CAAC,GAAG,CAAC,CAACC,eAAe,IAAIV,IAAI,CAACW,IAAI,CAAC,IAAI,CAAC,GAAG;AAC7E;;AAEA;AACA;AACA;AACA,OAAO,SAASC,uBAAuBA,CAAChB,OAAsC,GAAG,CAAC,CAAC,EAAY;EAC7F,MAAMI,IAAc,GAAG,EAAE;EACzB,IAAIJ,OAAO,CAACS,IAAI,KAAKC,SAAS,EAAEN,IAAI,CAACO,IAAI,CAAC,QAAQJ,IAAI,CAACC,SAAS,CAACR,OAAO,CAACS,IAAI,CAAC,EAAE,CAAC;EACjF,OAAOb,IAAI,IAAIC,EAAE,CAACgB,cAAc,CAAC,GAAG,CAAC,CAACI,eAAe,IAAIb,IAAI,CAACW,IAAI,CAAC,IAAI,CAAC,GAAG;AAC7E;;AAEA;AACA;AACA;AACA,OAAO,SAASG,wBAAwBA,CACtCnB,MAAyB,EACzBC,OAAuC,GAAG,CAAC,CAAC,EAClC;EACV,MAAMC,MAAM,GAAGC,KAAK,CAACC,OAAO,CAACJ,MAAM,CAAC,GAAGA,MAAM,GAAG,CAACA,MAAM,CAAC;EACxD,MAAMK,IAAI,GAAGH,MAAM,CAACI,GAAG,CAAEC,CAAC,IAAKC,IAAI,CAACC,SAAS,CAACF,CAAC,CAAC,CAAC;EACjD,IAAIN,OAAO,CAACS,IAAI,KAAKC,SAAS,EAAEN,IAAI,CAACO,IAAI,CAAC,QAAQJ,IAAI,CAACC,SAAS,CAACR,OAAO,CAACS,IAAI,CAAC,EAAE,CAAC;EACjF,IAAIT,OAAO,CAACmB,UAAU,KAAKT,SAAS,EAAEN,IAAI,CAACO,IAAI,CAAC,eAAeX,OAAO,CAACmB,UAAU,EAAE,CAAC;EACpF,IAAInB,OAAO,CAACoB,QAAQ,KAAKV,SAAS,EAAEN,IAAI,CAACO,IAAI,CAAC,aAAaJ,IAAI,CAACC,SAAS,CAACR,OAAO,CAACoB,QAAQ,CAAC,EAAE,CAAC;EAE9F,OAAOxB,IAAI,IAAIC,EAAE,CAACgB,cAAc,CAAC,GAAG,CAAC,CAACQ,gBAAgB,IAAIjB,IAAI,CAACW,IAAI,CAAC,IAAI,CAAC,GAAG;AAC9E;;AAEA;AACA;AACA;AACA,OAAO,SAASO,sBAAsBA,CAAA,EAAa;EACjD,OAAO1B,IAAI,IAAIC,EAAE,CAACgB,cAAc,CAAC,GAAG,CAAC,CAACU,cAAc,EAAE;AACxD","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-decorators.test.d.ts b/dist/src/python/components/class-declaration/pydantic-decorators.test.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..7aff35334a9cb4d9620169e1330b57050a26adae
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-decorators.test.d.ts
+@@ -0,0 +1,2 @@
++export {};
++//# sourceMappingURL=pydantic-decorators.test.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-decorators.test.d.ts.map b/dist/src/python/components/class-declaration/pydantic-decorators.test.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..c124ef64131d47864d9b8d30b56c3d205c0bc17c
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-decorators.test.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"pydantic-decorators.test.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/class-declaration/pydantic-decorators.test.tsx"],"names":[],"mappings":""}
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-decorators.test.js b/dist/src/python/components/class-declaration/pydantic-decorators.test.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..bbe74053c68240b2d390352de0eaec56b5346403
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-decorators.test.js
+@@ -0,0 +1,117 @@
++import { createComponent as _$createComponent } from "@alloy-js/core/jsx-runtime";
++import { Tester } from "#test/test-host.js";
++import { t } from "@typespec/compiler/testing";
++import { describe, expect, it } from "vitest";
++import { getOutput } from "../../test-utils.js";
++import { Method } from "./class-method.js";
++import { PydanticClassDeclaration } from "./pydantic-class-declaration.js";
++import { computedFieldDecorator, fieldSerializerDecorator, fieldValidatorDecorator, modelValidatorDecorator } from "./pydantic-decorators.js";
++describe("Python pydantic decorator helpers", () => {
++  it("builds @field_validator decorator with mode", async () => {
++    const {
++      program,
++      normalizeName
++    } = await Tester.compile(t.code`@test op ${t.op("normalizeName")}(value: string): string;`);
++    expect(getOutput(program, [_$createComponent(PydanticClassDeclaration, {
++      name: "User",
++      get children() {
++        return _$createComponent(Method, {
++          type: normalizeName,
++          methodType: "class",
++          get decorators() {
++            return [fieldValidatorDecorator("name", {
++              mode: "before"
++            })];
++          }
++        });
++      }
++    })])).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import field_validator
++
++
++      class User(BaseModel):
++          @field_validator("name", mode="before")
++          @classmethod
++          def normalize_name(cls, value: str) -> str:
++              pass
++
++
++    `);
++  });
++  it("builds @model_validator decorator for class methods", async () => {
++    const {
++      program,
++      checkModel
++    } = await Tester.compile(t.code`@test op ${t.op("checkModel")}(value: string): string;`);
++    expect(getOutput(program, [_$createComponent(PydanticClassDeclaration, {
++      name: "User",
++      get children() {
++        return _$createComponent(Method, {
++          type: checkModel,
++          methodType: "class",
++          get decorators() {
++            return [modelValidatorDecorator({
++              mode: "after"
++            })];
++          }
++        });
++      }
++    })])).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import model_validator
++
++
++      class User(BaseModel):
++          @model_validator(mode="after")
++          @classmethod
++          def check_model(cls, value: str) -> str:
++              pass
++
++
++    `);
++  });
++  it("builds serializer and computed field decorators", async () => {
++    const {
++      program
++    } = await Tester.compile(``);
++    expect(getOutput(program, [_$createComponent(PydanticClassDeclaration, {
++      name: "User",
++      get children() {
++        return [_$createComponent(Method, {
++          name: "serializeName",
++          methodType: "method",
++          returnType: "str",
++          get decorators() {
++            return [fieldSerializerDecorator("name", {
++              whenUsed: "json"
++            })];
++          }
++        }), _$createComponent(Method, {
++          name: "displayName",
++          methodType: "method",
++          returnType: "str",
++          get decorators() {
++            return [computedFieldDecorator()];
++          }
++        })];
++      }
++    })])).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import computed_field
++      from pydantic import field_serializer
++
++
++      class User(BaseModel):
++          @field_serializer("name", when_used="json")
++          def serialize_name(self) -> str:
++              pass
++          @computed_field
++          def display_name(self) -> str:
++              pass
++
++
++    `);
++  });
++});
++//# sourceMappingURL=pydantic-decorators.test.js.map
+\ No newline at end of file
+diff --git a/dist/src/python/components/class-declaration/pydantic-decorators.test.js.map b/dist/src/python/components/class-declaration/pydantic-decorators.test.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..5c7e07ad3d42551032a5985560c9b40867dbc41d
+--- /dev/null
++++ b/dist/src/python/components/class-declaration/pydantic-decorators.test.js.map
+@@ -0,0 +1 @@
++{"version":3,"names":["Tester","t","describe","expect","it","getOutput","Method","PydanticClassDeclaration","computedFieldDecorator","fieldSerializerDecorator","fieldValidatorDecorator","modelValidatorDecorator","program","normalizeName","compile","code","op","_$createComponent","name","children","type","methodType","decorators","mode","toRenderTo","checkModel","returnType","whenUsed"],"sources":["../../../../../src/python/components/class-declaration/pydantic-decorators.test.tsx"],"sourcesContent":[null],"mappings":"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","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/python/components/function-declaration/function-declaration.d.ts.map b/dist/src/python/components/function-declaration/function-declaration.d.ts.map
+index 0035c56bd70deaf9eaeae8dac2a60330fb7a95c0..1c8b83c9809bede1377c69184b81564aaea5f846 100644
+--- a/dist/src/python/components/function-declaration/function-declaration.d.ts.map
++++ b/dist/src/python/components/function-declaration/function-declaration.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"function-declaration.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/function-declaration/function-declaration.tsx"],"names":[],"mappings":"AAGA,OAAO,KAAK,EAAE,MAAM,kBAAkB,CAAC;AACvC,OAAO,KAAK,EAAE,KAAK,EAAE,SAAS,EAAE,MAAM,oBAAoB,CAAC;AAI3D,MAAM,WAAW,gCAAiC,SAAQ,IAAI,CAC5D,EAAE,CAAC,wBAAwB,EAC3B,MAAM,CACP;IACC,IAAI,EAAE,SAAS,CAAC;IAChB,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,eAAe,CAAC,EAAE,KAAK,CAAC;IACxB,kGAAkG;IAClG,iBAAiB,CAAC,EAAE,OAAO,CAAC;CAC7B;AAED,MAAM,MAAM,wBAAwB,GAChC,gCAAgC,GAChC,EAAE,CAAC,wBAAwB,CAAC;AAEhC;;;;;;;;;;;GAWG;AACH,wBAAgB,mBAAmB,CAAC,KAAK,EAAE,wBAAwB,qCAgDlE"}
+\ No newline at end of file
++{"version":3,"file":"function-declaration.d.ts","sourceRoot":"","sources":["../../../../../src/python/components/function-declaration/function-declaration.tsx"],"names":[],"mappings":"AAGA,OAAO,KAAK,EAAE,MAAM,kBAAkB,CAAC;AACvC,OAAO,KAAK,EAAE,KAAK,EAAE,SAAS,EAAE,MAAM,oBAAoB,CAAC;AAI3D,MAAM,WAAW,gCAAiC,SAAQ,IAAI,CAC5D,EAAE,CAAC,wBAAwB,EAC3B,MAAM,CACP;IACC,IAAI,EAAE,SAAS,CAAC;IAChB,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,eAAe,CAAC,EAAE,KAAK,CAAC;IACxB,kGAAkG;IAClG,iBAAiB,CAAC,EAAE,OAAO,CAAC;CAC7B;AAED,MAAM,MAAM,wBAAwB,GAClC,gCAAgC,GAAG,EAAE,CAAC,wBAAwB,CAAC;AAEjE;;;;;;;;;;;GAWG;AACH,wBAAgB,mBAAmB,CAAC,KAAK,EAAE,wBAAwB,qCAgDlE"}
+\ No newline at end of file
+diff --git a/dist/src/python/components/function-declaration/function-declaration.js.map b/dist/src/python/components/function-declaration/function-declaration.js.map
+index 0ae8d803653a6b6805a55db30255a380f6ad623e..83481fe4f3f8398d4f900260714c363c12189660 100644
+--- a/dist/src/python/components/function-declaration/function-declaration.js.map
++++ b/dist/src/python/components/function-declaration/function-declaration.js.map
+@@ -1 +1 @@
+-{"version":3,"names":["useTsp","buildParameterDescriptors","declarationRefkeys","py","DocElement","TypeExpression","FunctionDeclaration","props","$","isTypedFunctionDeclarationProps","_$createComponent","refkeys","refkey","type","name","usePythonNamePolicy","getName","returnType","allParameters","parametersModel","parameters","params","replaceParameters","docSource","doc","getDoc","docElement","component","FunctionDoc","undefined","_$createIntrinsic","async","children"],"sources":["../../../../../src/python/components/function-declaration/function-declaration.tsx"],"sourcesContent":[null],"mappings":";AAAA,SAASA,MAAM,QAAQ,gBAAgB;AACvC,SAASC,yBAAyB,QAAQ,4BAA4B;AACtE,SAASC,kBAAkB,QAAQ,yBAAyB;AAC5D,OAAO,KAAKC,EAAE,MAAM,kBAAkB;AAEtC,SAASC,UAAU,QAAQ,+BAA+B;AAC1D,SAASC,cAAc,QAAQ,uCAAuC;AAiBtE;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA,OAAO,SAASC,mBAAmBA,CAACC,KAA+B,EAAE;EACnE,MAAM;IAAEC;EAAE,CAAC,GAAGR,MAAM,CAAC,CAAC;EAEtB,IAAI,CAACS,+BAA+B,CAACF,KAAK,CAAC,EAAE;IAC3C,OAAAG,iBAAA,CAAQP,EAAE,CAACG,mBAAmB,EAAKC,KAAK;EAC1C;EAEA,MAAMI,OAAO,GAAGT,kBAAkB,CAACK,KAAK,CAACK,MAAM,EAAEL,KAAK,CAACM,IAAI,CAAC;EAE5D,MAAMC,IAAI,GAAGP,KAAK,CAACO,IAAI,GACnBP,KAAK,CAACO,IAAI,GACVX,EAAE,CAACY,mBAAmB,CAAC,CAAC,CAACC,OAAO,CAACT,KAAK,CAACM,IAAI,CAACC,IAAI,EAAE,UAAU,CAAC;EAEjE,MAAMG,UAAU,GAAGV,KAAK,CAACU,UAAU,IAAAP,iBAAA,CAAKL,cAAc;IAAA,IAACQ,IAAIA,CAAA;MAAA,OAAEN,KAAK,CAACM,IAAI,CAACI,UAAU;IAAA;EAAA,EAAI;EACtF,IAAIC,aAA8D;EAClE,IAAIX,KAAK,CAACY,eAAe,EAAE;IACzB;IACA;IACAD,aAAa,GAAGjB,yBAAyB,CAACM,KAAK,CAACY,eAAe,CAAC,IAAI,EAAE;EACxE,CAAC,MAAM;IACLD,aAAa,GAAGjB,yBAAyB,CAACM,KAAK,CAACM,IAAI,CAACO,UAAU,EAAE;MAC/DC,MAAM,EAAEd,KAAK,CAACa,UAAU;MACxBE,iBAAiB,EAAEf,KAAK,CAACe;IAC3B,CAAC,CAAC;EACJ;EACA,MAAMC,SAAS,GAAGhB,KAAK,CAACiB,GAAG,IAAIhB,CAAC,CAACK,IAAI,CAACY,MAAM,CAAClB,KAAK,CAACM,IAAI,CAAC;EACxD,MAAMa,UAAU,GAAGH,SAAS,GAAAb,iBAAA,CACzBN,UAAU;IAACoB,GAAG,EAAED,SAAS;IAAEI,SAAS,EAAExB,EAAE,CAACyB;EAAW,KACnDC,SAAS;EACb,MAAML,GAAG,GAAGE,UAAU,IAEjBA,UAAU,EAAAI,iBAAA,eAGXD,SAAS;EAEb,OAAAnB,iBAAA,CACGP,EAAE,CAACG,mBAAmB;IACrBkB,GAAG,EAAEA,GAAG;IACRZ,MAAM,EAAED,OAAO;IACfG,IAAI,EAAEA,IAAI;IAAA,IACViB,KAAKA,CAAA;MAAA,OAAExB,KAAK,CAACwB,KAAK;IAAA;IAClBd,UAAU,EAAEA,UAAU;IACtBG,UAAU,EAAEF,aAAa;IAAA,IAAAc,SAAA;MAAA,OAExBzB,KAAK,CAACyB,QAAQ;IAAA;EAAA;AAGrB;AAEA,SAASvB,+BAA+BA,CACtCF,KAA+B,EACY;EAC3C,OAAO,MAAM,IAAIA,KAAK;AACxB","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":["useTsp","buildParameterDescriptors","declarationRefkeys","py","DocElement","TypeExpression","FunctionDeclaration","props","$","isTypedFunctionDeclarationProps","_$createComponent","refkeys","refkey","type","name","usePythonNamePolicy","getName","returnType","allParameters","parametersModel","parameters","params","replaceParameters","docSource","doc","getDoc","docElement","component","FunctionDoc","undefined","_$createIntrinsic","async","children"],"sources":["../../../../../src/python/components/function-declaration/function-declaration.tsx"],"sourcesContent":[null],"mappings":";AAAA,SAASA,MAAM,QAAQ,gBAAgB;AACvC,SAASC,yBAAyB,QAAQ,4BAA4B;AACtE,SAASC,kBAAkB,QAAQ,yBAAyB;AAC5D,OAAO,KAAKC,EAAE,MAAM,kBAAkB;AAEtC,SAASC,UAAU,QAAQ,+BAA+B;AAC1D,SAASC,cAAc,QAAQ,uCAAuC;AAgBtE;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA;AACA,OAAO,SAASC,mBAAmBA,CAACC,KAA+B,EAAE;EACnE,MAAM;IAAEC;EAAE,CAAC,GAAGR,MAAM,CAAC,CAAC;EAEtB,IAAI,CAACS,+BAA+B,CAACF,KAAK,CAAC,EAAE;IAC3C,OAAAG,iBAAA,CAAQP,EAAE,CAACG,mBAAmB,EAAKC,KAAK;EAC1C;EAEA,MAAMI,OAAO,GAAGT,kBAAkB,CAACK,KAAK,CAACK,MAAM,EAAEL,KAAK,CAACM,IAAI,CAAC;EAE5D,MAAMC,IAAI,GAAGP,KAAK,CAACO,IAAI,GACnBP,KAAK,CAACO,IAAI,GACVX,EAAE,CAACY,mBAAmB,CAAC,CAAC,CAACC,OAAO,CAACT,KAAK,CAACM,IAAI,CAACC,IAAI,EAAE,UAAU,CAAC;EAEjE,MAAMG,UAAU,GAAGV,KAAK,CAACU,UAAU,IAAAP,iBAAA,CAAKL,cAAc;IAAA,IAACQ,IAAIA,CAAA;MAAA,OAAEN,KAAK,CAACM,IAAI,CAACI,UAAU;IAAA;EAAA,EAAI;EACtF,IAAIC,aAA8D;EAClE,IAAIX,KAAK,CAACY,eAAe,EAAE;IACzB;IACA;IACAD,aAAa,GAAGjB,yBAAyB,CAACM,KAAK,CAACY,eAAe,CAAC,IAAI,EAAE;EACxE,CAAC,MAAM;IACLD,aAAa,GAAGjB,yBAAyB,CAACM,KAAK,CAACM,IAAI,CAACO,UAAU,EAAE;MAC/DC,MAAM,EAAEd,KAAK,CAACa,UAAU;MACxBE,iBAAiB,EAAEf,KAAK,CAACe;IAC3B,CAAC,CAAC;EACJ;EACA,MAAMC,SAAS,GAAGhB,KAAK,CAACiB,GAAG,IAAIhB,CAAC,CAACK,IAAI,CAACY,MAAM,CAAClB,KAAK,CAACM,IAAI,CAAC;EACxD,MAAMa,UAAU,GAAGH,SAAS,GAAAb,iBAAA,CACzBN,UAAU;IAACoB,GAAG,EAAED,SAAS;IAAEI,SAAS,EAAExB,EAAE,CAACyB;EAAW,KACnDC,SAAS;EACb,MAAML,GAAG,GAAGE,UAAU,IAEjBA,UAAU,EAAAI,iBAAA,eAGXD,SAAS;EAEb,OAAAnB,iBAAA,CACGP,EAAE,CAACG,mBAAmB;IACrBkB,GAAG,EAAEA,GAAG;IACRZ,MAAM,EAAED,OAAO;IACfG,IAAI,EAAEA,IAAI;IAAA,IACViB,KAAKA,CAAA;MAAA,OAAExB,KAAK,CAACwB,KAAK;IAAA;IAClBd,UAAU,EAAEA,UAAU;IACtBG,UAAU,EAAEF,aAAa;IAAA,IAAAc,SAAA;MAAA,OAExBzB,KAAK,CAACyB,QAAQ;IAAA;EAAA;AAGrB;AAEA,SAASvB,+BAA+BA,CACtCF,KAA+B,EACY;EAC3C,OAAO,MAAM,IAAIA,KAAK;AACxB","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/python/test-utils.d.ts.map b/dist/src/python/test-utils.d.ts.map
+index 62d6b2b11cd7463138ae486a9818098f8c77d797..f623ec428a7968fe4cc36f9ad0cc1ecfb4545fa0 100644
+--- a/dist/src/python/test-utils.d.ts.map
++++ b/dist/src/python/test-utils.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"test-utils.d.ts","sourceRoot":"","sources":["../../../src/python/test-utils.tsx"],"names":[],"mappings":"AACA,OAAO,EAAE,KAAK,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAE/C,OAAO,KAAK,EAAE,OAAO,EAAE,MAAM,oBAAoB,CAAC;AAGlD,eAAO,MAAM,aAAa;;;CAGzB,CAAC;AAEF,wBAAgB,SAAS,CAAC,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,QAAQ,EAAE,GAAG,QAAQ,CAmB1E"}
+\ No newline at end of file
++{"version":3,"file":"test-utils.d.ts","sourceRoot":"","sources":["../../../src/python/test-utils.tsx"],"names":[],"mappings":"AACA,OAAO,EAAE,KAAK,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAE/C,OAAO,KAAK,EAAE,OAAO,EAAE,MAAM,oBAAoB,CAAC;AAGlD,eAAO,MAAM,aAAa;;;CAGzB,CAAC;AAEF,wBAAgB,SAAS,CAAC,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,QAAQ,EAAE,GAAG,QAAQ,CAqB1E"}
+\ No newline at end of file
+diff --git a/dist/src/python/test-utils.js b/dist/src/python/test-utils.js
+index 1f9ebfda77fe4625b31c85b7315b8d1e0000f2d4..718d4c405f311540d5c117b630421f9510812ed9 100644
+--- a/dist/src/python/test-utils.js
++++ b/dist/src/python/test-utils.js
+@@ -11,7 +11,7 @@ export function getOutput(program, children) {
+   return _$createComponent(Output, {
+     program: program,
+     get externals() {
+-      return [abcModule, datetimeModule, decimalModule, typingModule, py.abcModule, py.dataclassesModule, py.enumModule];
++      return [abcModule, datetimeModule, decimalModule, py.pydanticModule, py.pydanticSettingsModule, typingModule, py.abcModule, py.dataclassesModule, py.enumModule];
+     },
+     namePolicy: policy,
+     get children() {
+diff --git a/dist/src/python/test-utils.js.map b/dist/src/python/test-utils.js.map
+index b12537126282773ae483abcee363d2d5ea3ad340..5c1fd4241ae9fe807a9db2c9a25bc7c362023ea5 100644
+--- a/dist/src/python/test-utils.js.map
++++ b/dist/src/python/test-utils.js.map
+@@ -1 +1 @@
+-{"version":3,"names":["Output","py","abcModule","datetimeModule","decimalModule","typingModule","renderOptions","printWidth","tabWidth","getOutput","program","children","policy","createPythonNamePolicy","_$createComponent","externals","dataclassesModule","enumModule","namePolicy","SourceFile","path"],"sources":["../../../src/python/test-utils.tsx"],"sourcesContent":[null],"mappings":";AAAA,SAASA,MAAM,QAAQ,2BAA2B;AAElD,OAAO,KAAKC,EAAE,MAAM,kBAAkB;AAEtC,SAASC,SAAS,EAAEC,cAAc,EAAEC,aAAa,EAAEC,YAAY,QAAQ,eAAe;AAEtF,OAAO,MAAMC,aAAa,GAAG;EAC3BC,UAAU,EAAE,EAAE;EACdC,QAAQ,EAAE;AACZ,CAAC;AAED,OAAO,SAASC,SAASA,CAACC,OAAgB,EAAEC,QAAoB,EAAY;EAC1E,MAAMC,MAAM,GAAGX,EAAE,CAACY,sBAAsB,CAAC,CAAC;EAC1C,OAAAC,iBAAA,CACGd,MAAM;IACLU,OAAO,EAAEA,OAAO;IAAA,IAChBK,SAASA,CAAA;MAAA,OAAE,CACTb,SAAS,EACTC,cAAc,EACdC,aAAa,EACbC,YAAY,EACZJ,EAAE,CAACC,SAAS,EACZD,EAAE,CAACe,iBAAiB,EACpBf,EAAE,CAACgB,UAAU,CACd;IAAA;IACDC,UAAU,EAAEN,MAAM;IAAA,IAAAD,SAAA;MAAA,OAAAG,iBAAA,CAEjBb,EAAE,CAACkB,UAAU;QAACC,IAAI;QAAAT,QAAA,EAAYA;MAAQ;IAAA;EAAA;AAG7C","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":["Output","py","abcModule","datetimeModule","decimalModule","typingModule","renderOptions","printWidth","tabWidth","getOutput","program","children","policy","createPythonNamePolicy","_$createComponent","externals","pydanticModule","pydanticSettingsModule","dataclassesModule","enumModule","namePolicy","SourceFile","path"],"sources":["../../../src/python/test-utils.tsx"],"sourcesContent":[null],"mappings":";AAAA,SAASA,MAAM,QAAQ,2BAA2B;AAElD,OAAO,KAAKC,EAAE,MAAM,kBAAkB;AAEtC,SAASC,SAAS,EAAEC,cAAc,EAAEC,aAAa,EAAEC,YAAY,QAAQ,eAAe;AAEtF,OAAO,MAAMC,aAAa,GAAG;EAC3BC,UAAU,EAAE,EAAE;EACdC,QAAQ,EAAE;AACZ,CAAC;AAED,OAAO,SAASC,SAASA,CAACC,OAAgB,EAAEC,QAAoB,EAAY;EAC1E,MAAMC,MAAM,GAAGX,EAAE,CAACY,sBAAsB,CAAC,CAAC;EAC1C,OAAAC,iBAAA,CACGd,MAAM;IACLU,OAAO,EAAEA,OAAO;IAAA,IAChBK,SAASA,CAAA;MAAA,OAAE,CACTb,SAAS,EACTC,cAAc,EACdC,aAAa,EACbH,EAAE,CAACe,cAAc,EACjBf,EAAE,CAACgB,sBAAsB,EACzBZ,YAAY,EACZJ,EAAE,CAACC,SAAS,EACZD,EAAE,CAACiB,iBAAiB,EACpBjB,EAAE,CAACkB,UAAU,CACd;IAAA;IACDC,UAAU,EAAER,MAAM;IAAA,IAAAD,SAAA;MAAA,OAAAG,iBAAA,CAEjBb,EAAE,CAACoB,UAAU;QAACC,IAAI;QAAAX,QAAA,EAAYA;MAAQ;IAAA;EAAA;AAG7C","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/testing/index.d.ts.map b/dist/src/testing/index.d.ts.map
+index 75502f89bc976923919b27a3cb9496b600b14ebd..fff99228fe62746b6be69eaa887ba6bec22c4761 100644
+--- a/dist/src/testing/index.d.ts.map
++++ b/dist/src/testing/index.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../src/testing/index.ts"],"names":[],"mappings":"AACA,OAAO,EAAqB,KAAK,mBAAmB,EAAE,MAAM,4BAA4B,CAAC;AAGzF,+EAA+E;AAC/E,eAAO,MAAM,2BAA2B,EAAE,mBAGxC,CAAC;AAEH,cAAc,0BAA0B,CAAC"}
+\ No newline at end of file
++{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../src/testing/index.ts"],"names":[],"mappings":"AACA,OAAO,EAAqB,KAAK,mBAAmB,EAAE,MAAM,4BAA4B,CAAC;AAGzF,+EAA+E;AAE/E,eAAO,MAAM,2BAA2B,EAAE,mBAGxC,CAAC;AAEH,cAAc,0BAA0B,CAAC"}
+\ No newline at end of file
+diff --git a/dist/src/testing/index.js b/dist/src/testing/index.js
+index 859c1b713827951c6c9a84b0f3e22d31f44a9425..ad623c07c8aabf6deafd61431f74d48223b81c76 100644
+--- a/dist/src/testing/index.js
++++ b/dist/src/testing/index.js
+@@ -3,6 +3,7 @@ import { createTestLibrary } from "@typespec/compiler/testing";
+ import { fileURLToPath } from "url";
+ 
+ /** @deprecated Use `createTester` from `@typespec/compiler/testing` instead */
++// eslint-disable-next-line @typescript-eslint/no-deprecated
+ export const EmitterFrameworkTestLibrary = createTestLibrary({
+   name: "@typespec/emitter-framework",
+   packageRoot: resolvePath(fileURLToPath(import.meta.url), "../../../")
+diff --git a/dist/src/testing/index.js.map b/dist/src/testing/index.js.map
+index 5efcd186706668f9611e45ad2e40c65e8e8332e4..b54db35b42d81d3cfe1039f319ddf0f1698b1cb9 100644
+--- a/dist/src/testing/index.js.map
++++ b/dist/src/testing/index.js.map
+@@ -1 +1 @@
+-{"version":3,"names":["resolvePath","createTestLibrary","fileURLToPath","EmitterFrameworkTestLibrary","name","packageRoot","import","meta","url"],"sources":["../../../src/testing/index.ts"],"sourcesContent":[null],"mappings":"AAAA,SAASA,WAAW,QAAQ,oBAAoB;AAChD,SAASC,iBAAiB,QAAkC,4BAA4B;AACxF,SAASC,aAAa,QAAQ,KAAK;;AAEnC;AACA,OAAO,MAAMC,2BAAgD,GAAGF,iBAAiB,CAAC;EAChFG,IAAI,EAAE,6BAA6B;EACnCC,WAAW,EAAEL,WAAW,CAACE,aAAa,CAACI,MAAM,CAACC,IAAI,CAACC,GAAG,CAAC,EAAE,WAAW;AACtE,CAAC,CAAC;AAEF,cAAc,0BAA0B","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":["resolvePath","createTestLibrary","fileURLToPath","EmitterFrameworkTestLibrary","name","packageRoot","import","meta","url"],"sources":["../../../src/testing/index.ts"],"sourcesContent":[null],"mappings":"AAAA,SAASA,WAAW,QAAQ,oBAAoB;AAChD,SAASC,iBAAiB,QAAkC,4BAA4B;AACxF,SAASC,aAAa,QAAQ,KAAK;;AAEnC;AACA;AACA,OAAO,MAAMC,2BAAgD,GAAGF,iBAAiB,CAAC;EAChFG,IAAI,EAAE,6BAA6B;EACnCC,WAAW,EAAEL,WAAW,CAACE,aAAa,CAACI,MAAM,CAACC,IAAI,CAACC,GAAG,CAAC,EAAE,WAAW;AACtE,CAAC,CAAC;AAEF,cAAc,0BAA0B","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/testing/scenario-test/test-host.d.ts b/dist/src/testing/scenario-test/test-host.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..3eb3d085adbca171f2873c874db07d36fe97b225
+--- /dev/null
++++ b/dist/src/testing/scenario-test/test-host.d.ts
+@@ -0,0 +1,8 @@
++import { Diagnostic } from "@typespec/compiler";
++import { TypeSpecTestLibrary } from "@typespec/compiler/testing";
++export interface EmittedFile {
++    path: string;
++    content: string;
++}
++export declare function emitWithDiagnostics(testLibrary: TypeSpecTestLibrary, emitterOutputDir: string, code: string): Promise<[EmittedFile[], readonly Diagnostic[]]>;
++//# sourceMappingURL=test-host.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/testing/scenario-test/test-host.d.ts.map b/dist/src/testing/scenario-test/test-host.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..e0e9f8278dca058648991656afd2be83421e1a69
+--- /dev/null
++++ b/dist/src/testing/scenario-test/test-host.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"test-host.d.ts","sourceRoot":"","sources":["../../../../src/testing/scenario-test/test-host.ts"],"names":[],"mappings":"AAAA,OAAO,EAAmB,UAAU,EAAE,MAAM,oBAAoB,CAAC;AACjE,OAAO,EAKL,mBAAmB,EACpB,MAAM,4BAA4B,CAAC;AAKpC,MAAM,WAAW,WAAW;IAC1B,IAAI,EAAE,MAAM,CAAC;IACb,OAAO,EAAE,MAAM,CAAC;CACjB;AA4BD,wBAAsB,mBAAmB,CACvC,WAAW,EAAE,mBAAmB,EAChC,gBAAgB,EAAE,MAAM,EACxB,IAAI,EAAE,MAAM,GACX,OAAO,CAAC,CAAC,WAAW,EAAE,EAAE,SAAS,UAAU,EAAE,CAAC,CAAC,CAOjD"}
+\ No newline at end of file
+diff --git a/dist/src/testing/scenario-test/test-host.js b/dist/src/testing/scenario-test/test-host.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..84f8a99ebb72de279032276bf5df47d59a22dd71
+--- /dev/null
++++ b/dist/src/testing/scenario-test/test-host.js
+@@ -0,0 +1,49 @@
++import { createTestHost, createTestWrapper } from "@typespec/compiler/testing";
++import { HttpTestLibrary } from "@typespec/http/testing";
++import { RestTestLibrary } from "@typespec/rest/testing";
++import { join, relative } from "path";
++async function createEmitterTestRunner(testLibrary, options = {}) {
++  const libraries = options.testHostConfig?.libraries ?? [testLibrary, HttpTestLibrary, RestTestLibrary];
++  const host = await createTestHost({
++    libraries
++  });
++  return createTestWrapper(host, {
++    autoImports: options.autoImports ?? ["@typespec/http", "@typespec/rest"],
++    autoUsings: options.autoUsings ?? ["TypeSpec.Http", "TypeSpec.Rest"],
++    compilerOptions: options.compilerOptions ?? {
++      noEmit: false,
++      emit: [testLibrary.name]
++    }
++  });
++}
++export async function emitWithDiagnostics(testLibrary, emitterOutputDir, code) {
++  const runner = await createEmitterTestRunner(testLibrary);
++  await runner.compileAndDiagnose(code, {
++    outputDir: "tsp-output"
++  });
++  const result = await readFilesRecursively(emitterOutputDir, emitterOutputDir, runner);
++  return [result, runner.program.diagnostics];
++}
++async function readFilesRecursively(currentDir, emitterOutputDir, runner) {
++  const entries = await runner.program.host.readDir(currentDir);
++  const result = [];
++  for (const entry of entries) {
++    const fullPath = join(currentDir, entry);
++    const stat = await runner.program.host.stat(fullPath);
++    if (stat.isDirectory()) {
++      // Recursively read files in the directory
++      const nestedFiles = await readFilesRecursively(fullPath, emitterOutputDir, runner);
++      result.push(...nestedFiles);
++    } else if (stat.isFile()) {
++      // Read the file
++      // Read the file and store it with a relative path
++      const relativePath = relative(emitterOutputDir, fullPath);
++      const fileContent = await runner.program.host.readFile(fullPath);
++      result.push({
++        path: relativePath,
++        content: fileContent.text
++      });
++    }
++  }
++  return result;
++}
+\ No newline at end of file
+diff --git a/dist/src/testing/scenario-test/test-host.js.map b/dist/src/testing/scenario-test/test-host.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..193f3d165cb95eedace961b9d020501aa55928c6
+--- /dev/null
++++ b/dist/src/testing/scenario-test/test-host.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"test-host.js","names":["createTestHost","createTestWrapper","HttpTestLibrary","RestTestLibrary","join","relative","createEmitterTestRunner","testLibrary","options","libraries","testHostConfig","host","autoImports","autoUsings","compilerOptions","noEmit","emit","name","emitWithDiagnostics","emitterOutputDir","code","runner","compileAndDiagnose","outputDir","result","readFilesRecursively","program","diagnostics","currentDir","entries","readDir","entry","fullPath","stat","isDirectory","nestedFiles","push","isFile","relativePath","fileContent","readFile","path","content","text"],"sources":["../../../../src/testing/scenario-test/test-host.ts"],"sourcesContent":[null],"mappings":"AACA,SAEEA,cAAc,EACdC,iBAAiB,QAGZ,4BAA4B;AACnC,SAASC,eAAe,QAAQ,wBAAwB;AACxD,SAASC,eAAe,QAAQ,wBAAwB;AACxD,SAASC,IAAI,EAAEC,QAAQ,QAAQ,MAAM;AAOrC,eAAeC,uBAAuBA,CACpCC,WAAgC,EAChCC,OAKC,GAAG,CAAC,CAAC,EACN;EACA,MAAMC,SAAS,GAAGD,OAAO,CAACE,cAAc,EAAED,SAAS,IAAI,CACrDF,WAAW,EACXL,eAAe,EACfC,eAAe,CAChB;EACD,MAAMQ,IAAI,GAAG,MAAMX,cAAc,CAAC;IAAES;EAAU,CAAC,CAAC;EAEhD,OAAOR,iBAAiB,CAACU,IAAI,EAAE;IAC7BC,WAAW,EAAEJ,OAAO,CAACI,WAAW,IAAI,CAAC,gBAAgB,EAAE,gBAAgB,CAAC;IACxEC,UAAU,EAAEL,OAAO,CAACK,UAAU,IAAI,CAAC,eAAe,EAAE,eAAe,CAAC;IACpEC,eAAe,EAAEN,OAAO,CAACM,eAAe,IAAI;MAC1CC,MAAM,EAAE,KAAK;MACbC,IAAI,EAAE,CAACT,WAAW,CAACU,IAAI;IACzB;EACF,CAAC,CAAC;AACJ;AAEA,OAAO,eAAeC,mBAAmBA,CACvCX,WAAgC,EAChCY,gBAAwB,EACxBC,IAAY,EACqC;EACjD,MAAMC,MAAM,GAAG,MAAMf,uBAAuB,CAACC,WAAW,CAAC;EACzD,MAAMc,MAAM,CAACC,kBAAkB,CAACF,IAAI,EAAE;IACpCG,SAAS,EAAE;EACb,CAAC,CAAC;EACF,MAAMC,MAAM,GAAG,MAAMC,oBAAoB,CAACN,gBAAgB,EAAEA,gBAAgB,EAAEE,MAAM,CAAC;EACrF,OAAO,CAACG,MAAM,EAAEH,MAAM,CAACK,OAAO,CAACC,WAAW,CAAC;AAC7C;AAEA,eAAeF,oBAAoBA,CACjCG,UAAkB,EAClBT,gBAAwB,EACxBE,MAAuB,EACC;EACxB,MAAMQ,OAAO,GAAG,MAAMR,MAAM,CAACK,OAAO,CAACf,IAAI,CAACmB,OAAO,CAACF,UAAU,CAAC;EAC7D,MAAMJ,MAAqB,GAAG,EAAE;EAEhC,KAAK,MAAMO,KAAK,IAAIF,OAAO,EAAE;IAC3B,MAAMG,QAAQ,GAAG5B,IAAI,CAACwB,UAAU,EAAEG,KAAK,CAAC;IACxC,MAAME,IAAI,GAAG,MAAMZ,MAAM,CAACK,OAAO,CAACf,IAAI,CAACsB,IAAI,CAACD,QAAQ,CAAC;IAErD,IAAIC,IAAI,CAACC,WAAW,CAAC,CAAC,EAAE;MACtB;MACA,MAAMC,WAAW,GAAG,MAAMV,oBAAoB,CAACO,QAAQ,EAAEb,gBAAgB,EAAEE,MAAM,CAAC;MAClFG,MAAM,CAACY,IAAI,CAAC,GAAGD,WAAW,CAAC;IAC7B,CAAC,MAAM,IAAIF,IAAI,CAACI,MAAM,CAAC,CAAC,EAAE;MACxB;MACA;MACA,MAAMC,YAAY,GAAGjC,QAAQ,CAACc,gBAAgB,EAAEa,QAAQ,CAAC;MACzD,MAAMO,WAAW,GAAG,MAAMlB,MAAM,CAACK,OAAO,CAACf,IAAI,CAAC6B,QAAQ,CAACR,QAAQ,CAAC;MAChER,MAAM,CAACY,IAAI,CAAC;QAAEK,IAAI,EAAEH,YAAY;QAAEI,OAAO,EAAEH,WAAW,CAACI;MAAK,CAAC,CAAC;IAChE;EACF;EAEA,OAAOnB,MAAM;AACf","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/function-declaration.d.ts.map b/dist/src/typescript/components/function-declaration.d.ts.map
+index 9f5a1f3405be700301ca398115173c853abbc153..ef785ac13c3278918708d5b19a1e4bf14d044ae6 100644
+--- a/dist/src/typescript/components/function-declaration.d.ts.map
++++ b/dist/src/typescript/components/function-declaration.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"function-declaration.d.ts","sourceRoot":"","sources":["../../../../src/typescript/components/function-declaration.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,MAAM,sBAAsB,CAAC;AAC3C,OAAO,KAAK,EAAE,KAAK,EAAE,SAAS,EAAE,MAAM,oBAAoB,CAAC;AAM3D,MAAM,WAAW,gCAAiC,SAAQ,IAAI,CAC5D,EAAE,CAAC,wBAAwB,EAC3B,MAAM,CACP;IACC,IAAI,EAAE,SAAS,CAAC;IAChB,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,cAAc,CAAC,EAAE,SAAS,GAAG,QAAQ,GAAG,SAAS,CAAC;CACnD;AAED,MAAM,MAAM,wBAAwB,GAChC,gCAAgC,GAChC,EAAE,CAAC,wBAAwB,CAAC;AAEhC;;;;GAIG;AACH,wBAAgB,mBAAmB,CAAC,KAAK,EAAE,wBAAwB,qCAsClE;yBAtCe,mBAAmB;4BA+CyB,uBAAuB;;AAPnF,MAAM,WAAW,4BAA6B,SAAQ,IAAI,CAAC,EAAE,CAAC,wBAAwB,EAAE,MAAM,CAAC;IAC7F,IAAI,EAAE,KAAK,CAAC;IACZ,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AAED,MAAM,MAAM,uBAAuB,GAAG,4BAA4B,GAAG,EAAE,CAAC,uBAAuB,CAAC"}
+\ No newline at end of file
++{"version":3,"file":"function-declaration.d.ts","sourceRoot":"","sources":["../../../../src/typescript/components/function-declaration.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,MAAM,sBAAsB,CAAC;AAC3C,OAAO,KAAK,EAAE,KAAK,EAAE,SAAS,EAAE,MAAM,oBAAoB,CAAC;AAM3D,MAAM,WAAW,gCAAiC,SAAQ,IAAI,CAC5D,EAAE,CAAC,wBAAwB,EAC3B,MAAM,CACP;IACC,IAAI,EAAE,SAAS,CAAC;IAChB,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,cAAc,CAAC,EAAE,SAAS,GAAG,QAAQ,GAAG,SAAS,CAAC;CACnD;AAED,MAAM,MAAM,wBAAwB,GAClC,gCAAgC,GAAG,EAAE,CAAC,wBAAwB,CAAC;AAEjE;;;;GAIG;AACH,wBAAgB,mBAAmB,CAAC,KAAK,EAAE,wBAAwB,qCAsClE;yBAtCe,mBAAmB;4BA+CyB,uBAAuB;;AAPnF,MAAM,WAAW,4BAA6B,SAAQ,IAAI,CAAC,EAAE,CAAC,wBAAwB,EAAE,MAAM,CAAC;IAC7F,IAAI,EAAE,KAAK,CAAC;IACZ,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AAED,MAAM,MAAM,uBAAuB,GAAG,4BAA4B,GAAG,EAAE,CAAC,uBAAuB,CAAC"}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/function-declaration.js.map b/dist/src/typescript/components/function-declaration.js.map
+index 539c9867e140791aa8177777e2cc956fa8e0642b..da4b330c528a3f2a3dcfc590a611ddc86ec543cc 100644
+--- a/dist/src/typescript/components/function-declaration.js.map
++++ b/dist/src/typescript/components/function-declaration.js.map
+@@ -1 +1 @@
+-{"version":3,"names":["ts","useTsp","buildParameterDescriptors","getReturnType","declarationRefkeys","TypeExpression","FunctionDeclaration","props","$","isTypedFunctionDeclarationProps","_$createComponent","refkeys","refkey","type","name","useTSNamePolicy","getName","reservedFunctionKeywords","has","returnType","allParameters","parameters","params","mode","parametersMode","doc","getDoc","async","default","export","kind","children","Parameters","isTypedFunctionParametersProps","parameterDescriptors","Set"],"sources":["../../../../src/typescript/components/function-declaration.tsx"],"sourcesContent":[null],"mappings":";AAAA,OAAO,KAAKA,EAAE,MAAM,sBAAsB;AAE1C,SAASC,MAAM,QAAQ,qBAAqB;AAC5C,SAASC,yBAAyB,EAAEC,aAAa,QAAQ,uBAAuB;AAChF,SAASC,kBAAkB,QAAQ,oBAAoB;AACvD,SAASC,cAAc,QAAQ,sBAAsB;AAerD;AACA;AACA;AACA;AACA;AACA,OAAO,SAASC,mBAAmBA,CAACC,KAA+B,EAAE;EACnE,MAAM;IAAEC;EAAE,CAAC,GAAGP,MAAM,CAAC,CAAC;EAEtB,IAAI,CAACQ,+BAA+B,CAACF,KAAK,CAAC,EAAE;IAC3C,OAAAG,iBAAA,CAAQV,EAAE,CAACM,mBAAmB,EAAKC,KAAK;EAC1C;EAEA,MAAMI,OAAO,GAAGP,kBAAkB,CAACG,KAAK,CAACK,MAAM,EAAEL,KAAK,CAACM,IAAI,CAAC;EAE5D,IAAIC,IAAI,GAAGP,KAAK,CAACO,IAAI,GAAGP,KAAK,CAACO,IAAI,GAAGd,EAAE,CAACe,eAAe,CAAC,CAAC,CAACC,OAAO,CAACT,KAAK,CAACM,IAAI,CAACC,IAAI,EAAE,UAAU,CAAC;;EAE9F;EACA;EACA,IAAIG,wBAAwB,CAACC,GAAG,CAACJ,IAAI,CAAC,EAAE;IACtCA,IAAI,GAAG,GAAGA,IAAI,GAAG;EACnB;EAEA,MAAMK,UAAU,GAAGZ,KAAK,CAACY,UAAU,IAAAT,iBAAA,CAAKL,cAAc;IAAA,IAACQ,IAAIA,CAAA;MAAA,OAAEV,aAAa,CAACI,KAAK,CAACM,IAAI,CAAC;IAAA;EAAA,EAAI;EAC1F,MAAMO,aAAa,GAAGlB,yBAAyB,CAACK,KAAK,CAACM,IAAI,CAACQ,UAAU,EAAE;IACrEC,MAAM,EAAEf,KAAK,CAACc,UAAU;IACxBE,IAAI,EAAEhB,KAAK,CAACiB;EACd,CAAC,CAAC;EACF,MAAMC,GAAG,GAAGlB,KAAK,CAACkB,GAAG,IAAIjB,CAAC,CAACK,IAAI,CAACa,MAAM,CAACnB,KAAK,CAACM,IAAI,CAAC;EAClD,OAAAH,iBAAA,CACGV,EAAE,CAACM,mBAAmB;IACrBmB,GAAG,EAAEA,GAAG;IACRb,MAAM,EAAED,OAAO;IACfG,IAAI,EAAEA,IAAI;IAAA,IACVa,KAAKA,CAAA;MAAA,OAAEpB,KAAK,CAACoB,KAAK;IAAA;IAAA,eAAAC,CAAA;MAAA,OACTrB,KAAK,CAACqB,OAAO;IAAA;IAAA,cAAAC,CAAA;MAAA,OACdtB,KAAK,CAACsB,MAAM;IAAA;IAAA,IACpBC,IAAIA,CAAA;MAAA,OAAEvB,KAAK,CAACuB,IAAI;IAAA;IAChBX,UAAU,EAAEA,UAAU;IACtBE,UAAU,EAAED,aAAa;IAAA,IAAAW,SAAA;MAAA,OAExBxB,KAAK,CAACwB,QAAQ;IAAA;EAAA;AAGrB;AASAzB,mBAAmB,CAAC0B,UAAU,GAAG,SAASA,UAAUA,CAACzB,KAA8B,EAAE;EACnF,IAAI,CAAC0B,8BAA8B,CAAC1B,KAAK,CAAC,EAAE;IAC1C,OAAAG,iBAAA,CAAQV,EAAE,CAACM,mBAAmB,CAAC0B,UAAU,EAAKzB,KAAK;EACrD;EAEA,MAAM2B,oBAAoB,GAAGhC,yBAAyB,CAACK,KAAK,CAACM,IAAI,CAAC;EAClE,OAAAH,iBAAA,CACGV,EAAE,CAACM,mBAAmB,CAAC0B,UAAU;IAACX,UAAU,EAAEa,oBAAoB;IAAA,IAAAH,SAAA;MAAA,OAChExB,KAAK,CAACwB,QAAQ;IAAA;EAAA;AAGrB,CAAC;AAED,SAAStB,+BAA+BA,CACtCF,KAA+B,EACY;EAC3C,OAAO,MAAM,IAAIA,KAAK;AACxB;AAEA,SAAS0B,8BAA8BA,CACrC1B,KAA8B,EACS;EACvC,OAAO,MAAM,IAAIA,KAAK;AACxB;AAEA,MAAMU,wBAAwB,GAAG,IAAIkB,GAAG,CAAC,CACvC,OAAO,EACP,MAAM,EACN,OAAO,EACP,OAAO,EACP,OAAO,EACP,UAAU,EACV,UAAU,EACV,SAAS,EACT,QAAQ,EACR,IAAI,EACJ,MAAM,EACN,MAAM,EACN,QAAQ,EACR,SAAS,EACT,SAAS,EACT,KAAK,EACL,UAAU,EACV,IAAI,EACJ,QAAQ,EACR,IAAI,EACJ,YAAY,EACZ,KAAK,EACL,QAAQ,EACR,OAAO,EACP,QAAQ,EACR,MAAM,EACN,OAAO,EACP,KAAK,EACL,QAAQ,EACR,KAAK,EACL,MAAM,EACN,OAAO,EACP,MAAM,EACN,OAAO,EACP,KAAK,EACL,QAAQ,EACR,YAAY,EACZ,WAAW,EACX,SAAS,EACT,SAAS,EACT,WAAW,EACX,QAAQ,EACR,OAAO,CACR,CAAC","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":["ts","useTsp","buildParameterDescriptors","getReturnType","declarationRefkeys","TypeExpression","FunctionDeclaration","props","$","isTypedFunctionDeclarationProps","_$createComponent","refkeys","refkey","type","name","useTSNamePolicy","getName","reservedFunctionKeywords","has","returnType","allParameters","parameters","params","mode","parametersMode","doc","getDoc","async","default","export","kind","children","Parameters","isTypedFunctionParametersProps","parameterDescriptors","Set"],"sources":["../../../../src/typescript/components/function-declaration.tsx"],"sourcesContent":[null],"mappings":"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","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/interface-declaration.d.ts.map b/dist/src/typescript/components/interface-declaration.d.ts.map
+index d8a616ee2f7897cb122a5398b7741598015d46c8..265141dca656e4ce459bc136730d736c768edf4f 100644
+--- a/dist/src/typescript/components/interface-declaration.d.ts.map
++++ b/dist/src/typescript/components/interface-declaration.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"interface-declaration.d.ts","sourceRoot":"","sources":["../../../../src/typescript/components/interface-declaration.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,QAAQ,EAAgB,MAAM,gBAAgB,CAAC;AAC7D,OAAO,KAAK,EAAE,MAAM,sBAAsB,CAAC;AAC3C,OAAO,EACL,KAAK,SAAS,EAEd,KAAK,KAAK,EAIX,MAAM,oBAAoB,CAAC;AAQ5B,MAAM,WAAW,8BAA+B,SAAQ,IAAI,CAAC,EAAE,CAAC,yBAAyB,EAAE,MAAM,CAAC;IAChG,IAAI,EAAE,KAAK,GAAG,SAAS,CAAC;IACxB,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AAED,MAAM,MAAM,yBAAyB,GACjC,8BAA8B,GAC9B,EAAE,CAAC,yBAAyB,CAAC;AAEjC,wBAAgB,oBAAoB,CAAC,KAAK,EAAE,yBAAyB,YAmCpE;AAQD,MAAM,WAAW,wBAAyB,SAAQ,EAAE,CAAC,wBAAwB;IAC3E,IAAI,EAAE,KAAK,GAAG,SAAS,CAAC;CACzB;AAED,wBAAgB,mBAAmB,CAAC,KAAK,EAAE,wBAAwB,YAMlE"}
+\ No newline at end of file
++{"version":3,"file":"interface-declaration.d.ts","sourceRoot":"","sources":["../../../../src/typescript/components/interface-declaration.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,QAAQ,EAAgB,MAAM,gBAAgB,CAAC;AAC7D,OAAO,KAAK,EAAE,MAAM,sBAAsB,CAAC;AAC3C,OAAO,EACL,KAAK,SAAS,EAEd,KAAK,KAAK,EAIX,MAAM,oBAAoB,CAAC;AAQ5B,MAAM,WAAW,8BAA+B,SAAQ,IAAI,CAAC,EAAE,CAAC,yBAAyB,EAAE,MAAM,CAAC;IAChG,IAAI,EAAE,KAAK,GAAG,SAAS,CAAC;IACxB,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AAED,MAAM,MAAM,yBAAyB,GACnC,8BAA8B,GAAG,EAAE,CAAC,yBAAyB,CAAC;AAEhE,wBAAgB,oBAAoB,CAAC,KAAK,EAAE,yBAAyB,YAmCpE;AAQD,MAAM,WAAW,wBAAyB,SAAQ,EAAE,CAAC,wBAAwB;IAC3E,IAAI,EAAE,KAAK,GAAG,SAAS,CAAC;CACzB;AAED,wBAAgB,mBAAmB,CAAC,KAAK,EAAE,wBAAwB,YAMlE"}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/interface-declaration.js.map b/dist/src/typescript/components/interface-declaration.js.map
+index c06cffcf3a5bebd7aff84f28f4a7767e532add7c..fcbb8d1b28de54626bb12ed35457f22fafdda854 100644
+--- a/dist/src/typescript/components/interface-declaration.js.map
++++ b/dist/src/typescript/components/interface-declaration.js.map
+@@ -1 +1 @@
+-{"version":3,"names":["For","mapJoin","ts","isNeverType","createRekeyableMap","useTsp","reportDiagnostic","declarationRefkeys","efRefkey","InterfaceMember","TypeExpression","InterfaceDeclaration","props","$","isTypedInterfaceDeclarationProps","_$createComponent","namePolicy","useTSNamePolicy","name","type","program","code","target","getName","refkeys","refkey","extendsType","extends","getExtendsType","doc","getDoc","default","export","kind","children","InterfaceBody","InterfaceExpression","model","is","undefined","extending","baseModel","array","push","record","indexType","getIndexType","length","ext","joiner","typeMembers","getProperties","additionalProperties","getAdditionalPropertiesRecord","set","modelProperty","create","optional","operations","validTypeMembers","Array","from","values","filter","member","enderProp","ender","_$mergeProps","each","semicolon","line","typeMember","_$memo"],"sources":["../../../../src/typescript/components/interface-declaration.tsx"],"sourcesContent":[null],"mappings":"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","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":["For","mapJoin","ts","isNeverType","createRekeyableMap","useTsp","reportDiagnostic","declarationRefkeys","efRefkey","InterfaceMember","TypeExpression","InterfaceDeclaration","props","$","isTypedInterfaceDeclarationProps","_$createComponent","namePolicy","useTSNamePolicy","name","type","program","code","target","getName","refkeys","refkey","extendsType","extends","getExtendsType","doc","getDoc","default","export","kind","children","InterfaceBody","InterfaceExpression","model","is","undefined","extending","baseModel","array","push","record","indexType","getIndexType","length","ext","joiner","typeMembers","getProperties","additionalProperties","getAdditionalPropertiesRecord","set","modelProperty","create","optional","operations","validTypeMembers","Array","from","values","filter","member","enderProp","ender","_$mergeProps","each","semicolon","line","typeMember","_$memo"],"sources":["../../../../src/typescript/components/interface-declaration.tsx"],"sourcesContent":[null],"mappings":"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","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/union-declaration.d.ts b/dist/src/typescript/components/union-declaration.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..92ca06f8070564f703de59bb28dfacbf3a26a011
+--- /dev/null
++++ b/dist/src/typescript/components/union-declaration.d.ts
+@@ -0,0 +1,11 @@
++import { Children } from "@alloy-js/core";
++import * as ts from "@alloy-js/typescript";
++import { Enum, Union } from "@typespec/compiler";
++export interface TypedUnionDeclarationProps extends Omit<ts.TypeDeclarationProps, "name"> {
++    type: Union | Enum;
++    doc?: Children;
++    name?: string;
++}
++export type UnionDeclarationProps = TypedUnionDeclarationProps | ts.TypeDeclarationProps;
++export declare function UnionDeclaration(props: UnionDeclarationProps): Children;
++//# sourceMappingURL=union-declaration.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/union-declaration.d.ts.map b/dist/src/typescript/components/union-declaration.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..315f7a5ee95d93fb6f4030a97053fb55eec83189
+--- /dev/null
++++ b/dist/src/typescript/components/union-declaration.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"union-declaration.d.ts","sourceRoot":"","sources":["../../../../src/typescript/components/union-declaration.tsx"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAC1C,OAAO,KAAK,EAAE,MAAM,sBAAsB,CAAC;AAC3C,OAAO,EAAE,IAAI,EAAE,KAAK,EAAE,MAAM,oBAAoB,CAAC;AAMjD,MAAM,WAAW,0BAA2B,SAAQ,IAAI,CAAC,EAAE,CAAC,oBAAoB,EAAE,MAAM,CAAC;IACvF,IAAI,EAAE,KAAK,GAAG,IAAI,CAAC;IACnB,GAAG,CAAC,EAAE,QAAQ,CAAC;IACf,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AAED,MAAM,MAAM,qBAAqB,GAAG,0BAA0B,GAAG,EAAE,CAAC,oBAAoB,CAAC;AAEzF,wBAAgB,gBAAgB,CAAC,KAAK,EAAE,qBAAqB,YAuB5D"}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/union-declaration.js b/dist/src/typescript/components/union-declaration.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..56f674c0d141a831c192c0aa6161620e84463745
+--- /dev/null
++++ b/dist/src/typescript/components/union-declaration.js
+@@ -0,0 +1,49 @@
++import { mergeProps as _$mergeProps, createComponent as _$createComponent } from "@alloy-js/core/jsx-runtime";
++import * as ts from "@alloy-js/typescript";
++import { useTsp } from "../../core/context/tsp-context.js";
++import { reportDiagnostic } from "../../lib.js";
++import { declarationRefkeys } from "../utils/refkey.js";
++import { UnionExpression } from "./union-expression.js";
++export function UnionDeclaration(props) {
++  const {
++    $
++  } = useTsp();
++  if (!isTypedUnionDeclarationProps(props)) {
++    return _$createComponent(ts.TypeDeclaration, _$mergeProps(props, {
++      get children() {
++        return props.children;
++      }
++    }));
++  }
++  const {
++    type,
++    ...coreProps
++  } = props;
++  const refkeys = declarationRefkeys(props.refkey, props.type);
++  const originalName = coreProps.name ?? type.name;
++  if (!originalName || originalName === "") {
++    reportDiagnostic($.program, {
++      code: "type-declaration-missing-name",
++      target: type
++    });
++  }
++  const name = ts.useTSNamePolicy().getName(originalName, "type");
++  const doc = props.doc ?? $.type.getDoc(type);
++  return _$createComponent(ts.TypeDeclaration, _$mergeProps({
++    doc: doc
++  }, props, {
++    name: name,
++    refkey: refkeys,
++    get children() {
++      return _$createComponent(UnionExpression, {
++        type: type,
++        get children() {
++          return coreProps.children;
++        }
++      });
++    }
++  }));
++}
++function isTypedUnionDeclarationProps(props) {
++  return "type" in props;
++}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/union-declaration.js.map b/dist/src/typescript/components/union-declaration.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..0a969d19e2406259b897e188de75e48ecdda64e5
+--- /dev/null
++++ b/dist/src/typescript/components/union-declaration.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"union-declaration.js","names":["refkey","getRefkey","ts","$","reportDiagnostic","UnionExpression","UnionDeclaration","props","isTypedUnionDeclarationProps","_$createComponent","TypeDeclaration","_$mergeProps","children","type","coreProps","originalName","name","program","code","target","useTSNamePolicy","getName"],"sources":["../../../../src/typescript/components/union-declaration.tsx"],"sourcesContent":[null],"mappings":";;AAAA,SAASA,MAAM,IAAIC,SAAS,QAAQ,gBAAgB;AACpD,OAAO,KAAKC,EAAE,MAAM,sBAAsB;AAE1C,SAASC,CAAC,QAAQ,yCAAyC;AAC3D,SAASC,gBAAgB,QAAQ,cAAc;AAC/C,SAASC,eAAe,QAAQ,uBAAuB;AASvD,OAAO,SAASC,gBAAgBA,CAACC,KAA4B,EAAE;EAC7D,IAAI,CAACC,4BAA4B,CAACD,KAAK,CAAC,EAAE;IACxC,OAAAE,iBAAA,CAAQP,EAAE,CAACQ,eAAe,EAAAC,YAAA,CAAKJ,KAAK;MAAA,IAAAK,SAAA;QAAA,OAAGL,KAAK,CAACK,QAAQ;MAAA;IAAA;EACvD;EAEA,MAAM;IAAEC,IAAI;IAAE,GAAGC;EAAU,CAAC,GAAGP,KAAK;EACpC,MAAMP,MAAM,GAAGc,SAAS,CAACd,MAAM,IAAIC,SAAS,CAACY,IAAI,CAAC;EAElD,MAAME,YAAY,GAAGD,SAAS,CAACE,IAAI,IAAIH,IAAI,CAACG,IAAI;EAEhD,IAAI,CAACD,YAAY,IAAIA,YAAY,KAAK,EAAE,EAAE;IACxCX,gBAAgB,CAACD,CAAC,CAACc,OAAO,EAAE;MAAEC,IAAI,EAAE,+BAA+B;MAAEC,MAAM,EAAEN;IAAK,CAAC,CAAC;EACtF;EAEA,MAAMG,IAAI,GAAGd,EAAE,CAACkB,eAAe,CAAC,CAAC,CAACC,OAAO,CAACN,YAAY,EAAG,MAAM,CAAC;EAEhE,OAAAN,iBAAA,CACGP,EAAE,CAACQ,eAAe,EAAAC,YAAA,CAAKJ,KAAK;IAAES,IAAI,EAAEA,IAAI;IAAEhB,MAAM,EAAEA,MAAM;IAAA,IAAAY,SAAA;MAAA,OAAAH,iBAAA,CACtDJ,eAAe;QAACQ,IAAI,EAAEA,IAAI;QAAA,IAAAD,SAAA;UAAA,OAAGE,SAAS,CAACF,QAAQ;QAAA;MAAA;IAAA;EAAA;AAGtD;AAEA,SAASJ,4BAA4BA,CACnCD,KAA4B,EACS;EACrC,OAAO,MAAM,IAAIA,KAAK;AACxB","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/union-expression.d.ts b/dist/src/typescript/components/union-expression.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..e822ee4cb09bc675958178ee4cd3a970feb4f60f
+--- /dev/null
++++ b/dist/src/typescript/components/union-expression.d.ts
+@@ -0,0 +1,9 @@
++import * as ay from "@alloy-js/core";
++import { Children } from "@alloy-js/core";
++import { Enum, Union } from "@typespec/compiler";
++export interface UnionExpressionProps {
++    type: Union | Enum;
++    children?: Children;
++}
++export declare function UnionExpression({ type, children }: UnionExpressionProps): ay.Children;
++//# sourceMappingURL=union-expression.d.ts.map
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/union-expression.d.ts.map b/dist/src/typescript/components/union-expression.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..74eb2733f05b9917439e71170c7fa6fe524f3d0d
+--- /dev/null
++++ b/dist/src/typescript/components/union-expression.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"union-expression.d.ts","sourceRoot":"","sources":["../../../../src/typescript/components/union-expression.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,MAAM,gBAAgB,CAAC;AACrC,OAAO,EAAE,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAE1C,OAAO,EAAkB,IAAI,EAAc,KAAK,EAAgB,MAAM,oBAAoB,CAAC;AAK3F,MAAM,WAAW,oBAAoB;IACnC,IAAI,EAAE,KAAK,GAAG,IAAI,CAAC;IACnB,QAAQ,CAAC,EAAE,QAAQ,CAAC;CACrB;AAED,wBAAgB,eAAe,CAAC,EAAE,IAAI,EAAE,QAAQ,EAAE,EAAE,oBAAoB,eA+CvE"}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/union-expression.js b/dist/src/typescript/components/union-expression.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..cb85123491602a006bc9fc7cf93aa67e12dfe970
+--- /dev/null
++++ b/dist/src/typescript/components/union-expression.js
+@@ -0,0 +1,130 @@
++import { createComponent as _$createComponent, memo as _$memo } from "@alloy-js/core/jsx-runtime";
++import * as ay from "@alloy-js/core";
++import * as ts from "@alloy-js/typescript";
++import { compilerAssert } from "@typespec/compiler";
++import { useTsp } from "../../core/context/tsp-context.js";
++import { efRefkey } from "../utils/refkey.js";
++import { TypeExpression } from "./type-expression.js";
++export function UnionExpression({
++  type,
++  children
++}) {
++  const {
++    $
++  } = useTsp();
++  const items = $.union.is(type) ? type.variants : type.members;
++  const variants = _$createComponent(ay.For, {
++    joiner: " | ",
++    each: items,
++    children: (_, type) => {
++      if ($.enumMember.is(type)) {
++        return _$createComponent(ts.ValueExpression, {
++          get jsValue() {
++            return type.value ?? type.name;
++          }
++        });
++      }
++      const discriminatedUnion = $.union.getDiscriminatedUnion(type.union);
++      switch (discriminatedUnion?.options.envelope) {
++        case "object":
++          return _$createComponent(ObjectEnvelope, {
++            get discriminatorPropertyName() {
++              return discriminatedUnion.options.discriminatorPropertyName;
++            },
++            get envelopePropertyName() {
++              return discriminatedUnion.options.envelopePropertyName;
++            },
++            type: type
++          });
++        case "none":
++          return _$createComponent(NoneEnvelope, {
++            get discriminatorPropertyName() {
++              return discriminatedUnion.options.discriminatorPropertyName;
++            },
++            type: type
++          });
++        default:
++          return _$createComponent(TypeExpression, {
++            get type() {
++              return type.type;
++            }
++          });
++      }
++    }
++  });
++  if (children || Array.isArray(children) && children.length) {
++    return [variants, " ", `| ${children}`];
++  }
++  return variants;
++}
++/**
++ * Renders a discriminated union with "object" envelope style
++ * where model properties are nested inside an envelope
++ */
++function ObjectEnvelope(props) {
++  const {
++    $
++  } = useTsp();
++  const envelope = $.model.create({
++    properties: {
++      [props.discriminatorPropertyName]: $.modelProperty.create({
++        name: props.discriminatorPropertyName,
++        type: $.literal.createString(props.type.name)
++      }),
++      [props.envelopePropertyName]: $.modelProperty.create({
++        name: props.envelopePropertyName,
++        type: props.type.type
++      })
++    }
++  });
++  return _$createComponent(TypeExpression, {
++    type: envelope
++  });
++}
++/**
++ * Renders a discriminated union with "none" envelope style
++ * where discriminator property sits alongside model properties
++ */
++function NoneEnvelope(props) {
++  const {
++    $
++  } = useTsp();
++  compilerAssert($.model.is(props.type.type), "Expected all union variants to be models when using a discriminated union with no envelope");
++
++  // Render anonymous models as a set of properties + the discriminator
++  if ($.model.isExpresion(props.type.type)) {
++    const model = $.model.create({
++      properties: {
++        [props.discriminatorPropertyName]: $.modelProperty.create({
++          name: props.discriminatorPropertyName,
++          type: $.literal.createString(props.type.name)
++        }),
++        ...Object.fromEntries(props.type.type.properties)
++      }
++    });
++    return _$createComponent(TypeExpression, {
++      type: model
++    });
++  }
++  return _$createComponent(ay.List, {
++    joiner: " & ",
++    get children() {
++      return [_$createComponent(ts.ObjectExpression, {
++        get children() {
++          return _$createComponent(ts.ObjectProperty, {
++            get name() {
++              return props.discriminatorPropertyName;
++            },
++            get value() {
++              return _$createComponent(ts.ValueExpression, {
++                get jsValue() {
++                  return props.type.name;
++                }
++              });
++            }
++          });
++        }
++      }), [_$memo(() => efRefkey(props.type.type))]];
++    }
++  });
++}
+\ No newline at end of file
+diff --git a/dist/src/typescript/components/union-expression.js.map b/dist/src/typescript/components/union-expression.js.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..ec294cfd99a52f933451dfd8c44286d6e1127593
+--- /dev/null
++++ b/dist/src/typescript/components/union-expression.js.map
+@@ -0,0 +1 @@
++{"version":3,"file":"union-expression.js","names":["ay","ts","$","TypeExpression","UnionExpression","type","children","items","union","is","variants","members","_$createComponent","For","joiner","each","_","value","enumMember","ValueExpression","jsValue","name","Array","isArray","length"],"sources":["../../../../src/typescript/components/union-expression.tsx"],"sourcesContent":[null],"mappings":";;AAAA,OAAO,KAAKA,EAAE,MAAM,gBAAgB;AAEpC,OAAO,KAAKC,EAAE,MAAM,sBAAsB;AAE1C,SAASC,CAAC,QAAQ,yCAAyC;AAC3D,SAASC,cAAc;AAOvB,OAAO,SAASC,eAAeA,CAAC;EAAEC,IAAI;EAAEC;AAA+B,CAAC,EAAE;EACxE,MAAMC,KAAK,GAAIL,CAAC,CAACM,KAAK,CAACC,EAAE,CAACJ,IAAI,CAAC,GAAGA,IAAI,CAACK,QAAQ,GAAGL,IAAI,CAACM,OAGtD;EAED,MAAMD,QAAQ,GAAAE,iBAAA,CACXZ,EAAE,CAACa,GAAG;IAACC,MAAM,EAAE,KAAK;IAAEC,IAAI,EAAER,KAAK;IAAAD,QAAA,EAC/BA,CAACU,CAAC,EAAEC,KAAK,KAAK;MACb,IAAIf,CAAC,CAACgB,UAAU,CAACT,EAAE,CAACQ,KAAK,CAAC,EAAE;QAC1B,OAAAL,iBAAA,CAAQX,EAAE,CAACkB,eAAe;UAAA,IAACC,OAAOA,CAAA;YAAA,OAAEH,KAAK,CAACA,KAAK,IAAIA,KAAK,CAACI,IAAI;UAAA;QAAA;MAC/D,CAAC,MAAM;QACL,OAAAT,iBAAA,CAAQT,cAAc;UAAA,IAACE,IAAIA,CAAA;YAAA,OAAEY,KAAK,CAACZ,IAAI;UAAA;QAAA;MACzC;IACF;EAAC,EAEJ;EAED,IAAIC,QAAQ,IAAKgB,KAAK,CAACC,OAAO,CAACjB,QAAQ,CAAC,IAAIA,QAAQ,CAACkB,MAAO,EAAE;IAC5D,QAEKd,QAAQ,OAAG,MAAMJ,QAAQ,EAAE;EAGlC;EAEA,OAAOI,QAAQ;AACjB","ignoreList":[]}
+\ No newline at end of file
+diff --git a/dist/test/typescript/components/union-declaration.test.d.ts b/dist/test/typescript/components/union-declaration.test.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..59eb2081a69fddf9b5abd9bfd2329356a3394262
+--- /dev/null
++++ b/dist/test/typescript/components/union-declaration.test.d.ts
+@@ -0,0 +1,2 @@
++export {};
++//# sourceMappingURL=union-declaration.test.d.ts.map
+\ No newline at end of file
+diff --git a/dist/test/typescript/components/union-declaration.test.d.ts.map b/dist/test/typescript/components/union-declaration.test.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..625ea570e98da00a621bdc9420535d4f4a519e88
+--- /dev/null
++++ b/dist/test/typescript/components/union-declaration.test.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"union-declaration.test.d.ts","sourceRoot":"","sources":["../../../../test/typescript/components/union-declaration.test.tsx"],"names":[],"mappings":""}
+\ No newline at end of file
+diff --git a/dist/test/typescript/components/union-declaration.test.js b/dist/test/typescript/components/union-declaration.test.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..0b34ebb6b57686ba6684a43e888ab4e7badef2d4
+--- /dev/null
++++ b/dist/test/typescript/components/union-declaration.test.js
+@@ -0,0 +1,465 @@
++import { createComponent as _$createComponent, createIntrinsic as _$createIntrinsic } from "@alloy-js/core/jsx-runtime";
++import { render } from "@alloy-js/core";
++import { d } from "@alloy-js/core/testing";
++import { SourceFile } from "@alloy-js/typescript";
++import { beforeEach, describe, it } from "vitest";
++import { Output } from "../../../src/core/components/output.js";
++import { UnionDeclaration } from "../../../src/typescript/components/union-declaration.js";
++import { UnionExpression } from "../../../src/typescript/components/union-expression.js";
++import { InterfaceDeclaration } from "../../../src/typescript/index.js";
++import { assertFileContents } from "../../utils.js";
++import { createEmitterFrameworkTestRunner } from "../test-host.js";
++describe("Typescript Union Declaration", () => {
++  let runner;
++  beforeEach(async () => {
++    runner = await createEmitterFrameworkTestRunner();
++  });
++  describe("Union not bound to Typespec Types", () => {
++    it("creates a union declaration", async () => {
++      await runner.compile(``);
++      const res = render(_$createComponent(Output, {
++        get program() {
++          return runner.program;
++        },
++        get children() {
++          return _$createComponent(SourceFile, {
++            path: "test.ts",
++            get children() {
++              return _$createComponent(UnionDeclaration, {
++                name: "MyUnion",
++                children: "\"red\" | \"blue\""
++              });
++            }
++          });
++        }
++      }));
++      assertFileContents(res, d`
++          type MyUnion = "red" | "blue";
++        `);
++    });
++  });
++  describe("Union bound to Typespec Types", () => {
++    describe("Bound to Union", () => {
++      it("creates a union declaration", async () => {
++        const {
++          TestUnion
++        } = await runner.compile(`
++          namespace DemoService;
++          @test union TestUnion {
++            one: "one",
++            two: "two"
++          }
++        `);
++        const res = render(_$createComponent(Output, {
++          get program() {
++            return runner.program;
++          },
++          get children() {
++            return _$createComponent(SourceFile, {
++              path: "test.ts",
++              get children() {
++                return _$createComponent(UnionDeclaration, {
++                  type: TestUnion
++                });
++              }
++            });
++          }
++        }));
++        assertFileContents(res, d`
++            type TestUnion = "one" | "two";
++          `);
++      });
++      it("creates a union declaration with JSDoc", async () => {
++        const {
++          TestUnion
++        } = await runner.compile(`
++          namespace DemoService;
++          /**
++           * Test Union
++           */
++          @test union TestUnion {
++            one: "one",
++            two: "two"
++          }
++        `);
++        const res = render(_$createComponent(Output, {
++          get program() {
++            return runner.program;
++          },
++          get children() {
++            return _$createComponent(SourceFile, {
++              path: "test.ts",
++              get children() {
++                return _$createComponent(UnionDeclaration, {
++                  type: TestUnion
++                });
++              }
++            });
++          }
++        }));
++        assertFileContents(res, d`
++            /**
++             * Test Union
++             */
++            type TestUnion = "one" | "two";
++          `);
++      });
++      it("creates a union declaration with name override", async () => {
++        const {
++          TestUnion
++        } = await runner.compile(`
++          namespace DemoService;
++          @test union TestUnion {
++            one: "one",
++            two: "two"
++          }
++        `);
++        const res = render(_$createComponent(Output, {
++          get program() {
++            return runner.program;
++          },
++          get children() {
++            return _$createComponent(SourceFile, {
++              path: "test.ts",
++              get children() {
++                return _$createComponent(UnionDeclaration, {
++                  "export": true,
++                  type: TestUnion,
++                  name: "MyUnion"
++                });
++              }
++            });
++          }
++        }));
++        assertFileContents(res, d`
++            export type MyUnion = "one" | "two";
++          `);
++      });
++      it("creates a union declaration with extra children", async () => {
++        const {
++          TestUnion
++        } = await runner.compile(`
++          namespace DemoService;
++          @test union TestUnion {
++            one: "one",
++            two: "two"
++          }
++        `);
++        const res = render(_$createComponent(Output, {
++          get program() {
++            return runner.program;
++          },
++          get children() {
++            return _$createComponent(SourceFile, {
++              path: "test.ts",
++              get children() {
++                return _$createComponent(UnionDeclaration, {
++                  type: TestUnion,
++                  children: "\"three\""
++                });
++              }
++            });
++          }
++        }));
++        assertFileContents(res, d`
++            type TestUnion = "one" | "two" | "three";
++          `);
++      });
++      it("renders a union expression", async () => {
++        const {
++          TestUnion
++        } = await runner.compile(`
++          namespace DemoService;
++          @test union TestUnion {
++            one: "one",
++            two: "two"
++          }
++        `);
++        const res = render(_$createComponent(Output, {
++          get program() {
++            return runner.program;
++          },
++          get children() {
++            return _$createComponent(SourceFile, {
++              path: "test.ts",
++              get children() {
++                return ["let x: ", _$createComponent(UnionExpression, {
++                  type: TestUnion
++                }), " = \"one\";"];
++              }
++            });
++          }
++        }));
++        assertFileContents(res, d`
++            let x: "one" | "two" = "one";
++          `);
++      });
++      describe("Discriminated Union", () => {
++        it("renders a discriminated union", async () => {
++          const {
++            TestUnion
++          } = await runner.compile(`
++            namespace DemoService;
++            @discriminated
++            @test union TestUnion {
++              one: { oneItem: true },
++              two: true
++            }
++          `);
++          const res = render(_$createComponent(Output, {
++            get program() {
++              return runner.program;
++            },
++            get children() {
++              return _$createComponent(SourceFile, {
++                path: "test.ts",
++                get children() {
++                  return _$createComponent(UnionDeclaration, {
++                    type: TestUnion
++                  });
++                }
++              });
++            }
++          }));
++          assertFileContents(res, d`
++              type TestUnion = {
++                kind: "one";
++                value: {
++                  oneItem: true;
++                };
++              } | {
++                kind: "two";
++                value: true;
++              };
++          `);
++        });
++      });
++      it("renders a discriminated union with custom properties", async () => {
++        const {
++          TestUnion
++        } = await runner.compile(`
++          namespace DemoService;
++            @discriminated(#{ discriminatorPropertyName: "dataKind", envelopePropertyName: "data" })
++            @test union TestUnion {
++              one: { oneItem: true },
++              two: true
++            }
++          `);
++        const res = render(_$createComponent(Output, {
++          get program() {
++            return runner.program;
++          },
++          get children() {
++            return _$createComponent(SourceFile, {
++              path: "test.ts",
++              get children() {
++                return _$createComponent(UnionDeclaration, {
++                  type: TestUnion
++                });
++              }
++            });
++          }
++        }));
++        assertFileContents(res, d`
++            type TestUnion = {
++              dataKind: "one";
++              data: {
++                oneItem: true;
++              };
++            } | {
++              dataKind: "two";
++              data: true;
++            };
++          `);
++      });
++      it("renders a discriminated union with named models", async () => {
++        const {
++          Pet,
++          Cat,
++          Dog
++        } = await runner.compile(`
++            namespace DemoService;
++            @test model Cat {
++              name: string;
++              meow: boolean;
++            }
++
++            @test model Dog {
++              name: string;
++              bark: boolean;
++            }
++
++            @discriminated
++            @test union Pet {
++              cat: Cat,
++              dog: Dog,
++            }
++          `);
++        const res = render(_$createComponent(Output, {
++          get program() {
++            return runner.program;
++          },
++          get children() {
++            return _$createComponent(SourceFile, {
++              path: "test.ts",
++              get children() {
++                return [_$createComponent(InterfaceDeclaration, {
++                  type: Cat
++                }), _$createIntrinsic("hbr", {}), _$createComponent(InterfaceDeclaration, {
++                  type: Dog
++                }), _$createIntrinsic("hbr", {}), _$createComponent(UnionDeclaration, {
++                  type: Pet
++                })];
++              }
++            });
++          }
++        }));
++        assertFileContents(res, d`
++            interface Cat {
++              name: string;
++              meow: boolean;
++            }
++            interface Dog {
++              name: string;
++              bark: boolean;
++            }
++            type Pet = {
++              kind: "cat";
++              value: Cat;
++            } | {
++              kind: "dog";
++              value: Dog;
++            };
++          `);
++      });
++      describe("Discriminated Union with no envelope", () => {
++        it("renders named discriminated union", async () => {
++          const {
++            Pet,
++            Cat,
++            Dog
++          } = await runner.compile(`
++            namespace DemoService;
++
++            @test model Cat {
++              name: string;
++              meow: boolean;
++            }
++
++            @test model Dog {
++              name: string;
++              bark: boolean;
++            }
++
++            @discriminated(#{ envelope: "none", discriminatorPropertyName: "dataKind" })
++            @test union Pet {
++              cat: Cat,
++              dog: Dog,
++            }
++          `);
++          const res = render(_$createComponent(Output, {
++            get program() {
++              return runner.program;
++            },
++            get children() {
++              return _$createComponent(SourceFile, {
++                path: "test.ts",
++                get children() {
++                  return [_$createComponent(InterfaceDeclaration, {
++                    type: Cat
++                  }), _$createIntrinsic("hbr", {}), _$createComponent(InterfaceDeclaration, {
++                    type: Dog
++                  }), _$createIntrinsic("hbr", {}), _$createComponent(UnionDeclaration, {
++                    type: Pet
++                  })];
++                }
++              });
++            }
++          }));
++          assertFileContents(res, d`
++              interface Cat {
++                name: string;
++                meow: boolean;
++              }
++              interface Dog {
++                name: string;
++                bark: boolean;
++              }
++              type Pet = {
++                dataKind: "cat"
++              } & Cat | {
++                dataKind: "dog"
++              } & Dog;
++            `);
++        });
++        it("renders anonymous discriminated union", async () => {
++          const {
++            TestUnion
++          } = await runner.compile(`
++            namespace DemoService;
++            @discriminated(#{ envelope: "none", discriminatorPropertyName: "dataKind" })
++            @test union TestUnion {
++              one: { oneItem: true },
++              two: { secondItem: false }
++            }
++          `);
++          const res = render(_$createComponent(Output, {
++            get program() {
++              return runner.program;
++            },
++            get children() {
++              return _$createComponent(SourceFile, {
++                path: "test.ts",
++                get children() {
++                  return _$createComponent(UnionDeclaration, {
++                    type: TestUnion
++                  });
++                }
++              });
++            }
++          }));
++          assertFileContents(res, d`
++              type TestUnion = {
++                dataKind: "one";
++                oneItem: true;
++              } | {
++                dataKind: "two";
++                secondItem: false;
++              };
++            `);
++        });
++      });
++    });
++    describe("Bound to Enum", () => {
++      it("creates a union declaration", async () => {
++        const {
++          TestEnum
++        } = await runner.compile(`
++          namespace DemoService;
++          @test enum TestEnum {
++            one: "one",
++            two: "two"
++          }
++        `);
++        const res = render(_$createComponent(Output, {
++          get program() {
++            return runner.program;
++          },
++          get children() {
++            return _$createComponent(SourceFile, {
++              path: "test.ts",
++              get children() {
++                return _$createComponent(UnionDeclaration, {
++                  type: TestEnum
++                });
++              }
++            });
++          }
++        }));
++        assertFileContents(res, d`
++            type TestEnum = "one" | "two";
++          `);
++      });
++    });
++  });
++});
+\ No newline at end of file
+diff --git a/dist/test/typescript/test-host.d.ts b/dist/test/typescript/test-host.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..564c9e155c92670284fca8af91ed4905ea37ac86
+--- /dev/null
++++ b/dist/test/typescript/test-host.d.ts
+@@ -0,0 +1,16 @@
++import type { Program } from "@typespec/compiler";
++export declare function createTypespecCliTestHost(options?: {
++    libraries: "Http"[];
++}): Promise<import("@typespec/compiler/testing").TestHost>;
++export declare function createEmitterFrameworkTestRunner(options?: {
++    autoUsings?: string[];
++}): Promise<import("@typespec/compiler/testing").BasicTestRunner>;
++export declare function getProgram(code: string, options?: {
++    libraries: "Http"[];
++}): Promise<Program>;
++/**
++ * Initializes an empty program in the compiler.
++ * This is useful when you want to initialize the default TypeKits without any code.
++ */
++export declare function initEmptyProgram(): Promise<void>;
++//# sourceMappingURL=test-host.d.ts.map
+\ No newline at end of file
+diff --git a/dist/test/typescript/test-host.d.ts.map b/dist/test/typescript/test-host.d.ts.map
+new file mode 100644
+index 0000000000000000000000000000000000000000..b8fb67515507a2fd29fea126e7f381a4e1ebf33f
+--- /dev/null
++++ b/dist/test/typescript/test-host.d.ts.map
+@@ -0,0 +1 @@
++{"version":3,"file":"test-host.d.ts","sourceRoot":"","sources":["../../../test/typescript/test-host.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,OAAO,EAAE,MAAM,oBAAoB,CAAC;AAQlD,wBAAsB,yBAAyB,CAC7C,OAAO,GAAE;IAAE,SAAS,EAAE,MAAM,EAAE,CAAA;CAAsB,0DASrD;AAED,wBAAsB,gCAAgC,CAAC,OAAO,GAAE;IAAE,UAAU,CAAC,EAAE,MAAM,EAAE,CAAA;CAAO,iEAK7F;AAED,wBAAsB,UAAU,CAC9B,IAAI,EAAE,MAAM,EACZ,OAAO,GAAE;IAAE,SAAS,EAAE,MAAM,EAAE,CAAA;CAAsB,GACnD,OAAO,CAAC,OAAO,CAAC,CAUlB;AAED;;;GAGG;AACH,wBAAsB,gBAAgB,IAAI,OAAO,CAAC,IAAI,CAAC,CAEtD"}
+\ No newline at end of file
+diff --git a/dist/test/typescript/test-host.js b/dist/test/typescript/test-host.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..73a0fc34b57edd56679e5707d897c2aa4660a9bc
+--- /dev/null
++++ b/dist/test/typescript/test-host.js
+@@ -0,0 +1,40 @@
++import { createTestHost, createTestWrapper, expectDiagnosticEmpty } from "@typespec/compiler/testing";
++import { HttpTestLibrary } from "@typespec/http/testing";
++export async function createTypespecCliTestHost(options = {
++  libraries: []
++}) {
++  const libraries = [];
++  if (options.libraries.includes("Http")) {
++    libraries.push(HttpTestLibrary);
++  }
++  return createTestHost({
++    libraries
++  });
++}
++export async function createEmitterFrameworkTestRunner(options = {}) {
++  const host = await createTypespecCliTestHost();
++  return createTestWrapper(host, {
++    autoUsings: options.autoUsings
++  });
++}
++export async function getProgram(code, options = {
++  libraries: []
++}) {
++  const host = await createTypespecCliTestHost(options);
++  const wrapper = createTestWrapper(host, {
++    compilerOptions: {
++      noEmit: true
++    }
++  });
++  const [_, diagnostics] = await wrapper.compileAndDiagnose(code);
++  expectDiagnosticEmpty(diagnostics);
++  return wrapper.program;
++}
++
++/**
++ * Initializes an empty program in the compiler.
++ * This is useful when you want to initialize the default TypeKits without any code.
++ */
++export async function initEmptyProgram() {
++  await getProgram("");
++}
+\ No newline at end of file
+diff --git a/package.json b/package.json
+index f2771577d2ae6186459b40bee277ef9d9dbabed1..90fbbe825e5e32e8dd4f020a179ff51b22b63139 100644
+--- a/package.json
++++ b/package.json
+@@ -59,7 +59,7 @@
+     "@types/node": "^26.0.0",
+     "concurrently": "^10.0.0",
+     "pathe": "^2.0.3",
+-    "prettier": "^3.8.1",
++    "prettier": "^3.9.5",
+     "tree-sitter-c-sharp": "^0.23.1",
+     "tree-sitter-java": "^0.23.5",
+     "tree-sitter-javascript": "^0.25.0",
+diff --git a/package.json.bak b/package.json.bak
+index 62fd56565b35741801948c92f3bb109b458f43ef..d3c610941839c7868291ddd60564b711526b6e29 100644
+--- a/package.json.bak
++++ b/package.json.bak
+@@ -16,8 +16,8 @@
+     "test:ui": "vitest --ui",
+     "test:watch": "vitest -w",
+     "test:ci": "vitest run --coverage --reporter=junit --reporter=default",
+-    "prepack": "tsx ../../eng/tsp-core/scripts/strip-dev-import-exports.ts",
+-    "postpack": "tsx ../../eng/tsp-core/scripts/strip-dev-import-exports.ts --restore",
++    "prepack": "node ../../eng/tsp-core/scripts/strip-dev-import-exports.ts",
++    "postpack": "node ../../eng/tsp-core/scripts/strip-dev-import-exports.ts --restore",
+     "lint": "oxlint . --deny-warnings",
+     "lint:fix": "oxlint . --fix"
+   },
+diff --git a/src/python/builtins.ts b/src/python/builtins.ts
+index 7fc20b4d539d59f9ff1b9e83237b51c36ce261ad..b04fe804782397f22d5880e20951e7741c67c651 100644
+--- a/src/python/builtins.ts
++++ b/src/python/builtins.ts
+@@ -29,8 +29,10 @@ export const typingModule = createModule({
+   name: "typing",
+   descriptor: {
+     ".": [
++      "Annotated",
+       "Any",
+       "Callable",
++      "ClassVar",
+       "Generic",
+       "Literal",
+       "Never",
+@@ -38,6 +40,7 @@ export const typingModule = createModule({
+       "Protocol",
+       "TypeAlias",
+       "TypeVar",
++      "Union",
+     ],
+   },
+ });
+diff --git a/src/python/components/class-declaration/class-method.tsx b/src/python/components/class-declaration/class-method.tsx
+index da717d796943ed0a0de35948a9a9275994a8a024..421da3c6a812301e96da8a4fe56ce2aa11f980c0 100644
+--- a/src/python/components/class-declaration/class-method.tsx
++++ b/src/python/components/class-declaration/class-method.tsx
+@@ -1,4 +1,4 @@
+-import { type Children, createContext, splitProps, useContext } from "@alloy-js/core";
++import { createContext, For, splitProps, useContext, type Children } from "@alloy-js/core";
+ import * as py from "@alloy-js/python";
+ import type { Operation } from "@typespec/compiler";
+ import { useTsp } from "../../../core/index.js";
+@@ -15,11 +15,13 @@ export interface MethodPropsWithType extends Omit<py.MethodDeclarationBaseProps,
+   doc?: Children;
+   methodType?: "method" | "class" | "static";
+   abstract?: boolean;
++  decorators?: Children[];
+   /** If true, parameters replaces operation parameters instead of adding to them as keyword-only */
+   replaceParameters?: boolean;
+ }
+ 
+-export type MethodProps = MethodPropsWithType | py.MethodDeclarationBaseProps;
++export type MethodProps =
++  MethodPropsWithType | (py.MethodDeclarationBaseProps & { decorators?: Children[] });
+ 
+ /**
+  * Get the method component based on the resolved method type.
+@@ -59,18 +61,35 @@ export function Method(props: Readonly<MethodProps>) {
+     const explicit = (props as any).abstract as boolean | undefined;
+     return explicit ?? (!isTypeSpecTyped ? false : undefined);
+   })();
++  const decorators = (props as { decorators?: Children[] }).decorators;
++  const decoratorsBlock = decorators ? (
++    <For each={decorators} skipFalsy>
++      {(decorator) => (
++        <>
++          {decorator}
++          <hbr />
++        </>
++      )}
++    </For>
++  ) : undefined;
+ 
+   /**
+    * If the method does not come from the Typespec class declaration, return a standard Python method declaration.
+    * Have in mind that, with that, we lose some of the TypeSpec class declaration overrides.
+    */
+   if (!isTypeSpecTyped) {
+-    return <MethodComponent {...props} doc={docElement} abstract={abstractFlag} />;
++    const { decorators: _decorators, ...methodProps } = props;
++    return (
++      <>
++        {decoratorsBlock}
++        <MethodComponent {...methodProps} doc={docElement} abstract={abstractFlag} />
++      </>
++    );
+   }
+ 
+   const [efProps, updateProps, forwardProps] = splitProps(
+     props,
+-    ["type"],
++    ["type", "decorators"],
+     ["returnType", "parameters"],
+   );
+ 
+@@ -83,6 +102,7 @@ export function Method(props: Readonly<MethodProps>) {
+ 
+   return (
+     <>
++      {decoratorsBlock}
+       <MethodComponent
+         {...forwardProps}
+         {...updateProps}
+diff --git a/src/python/components/class-declaration/index.ts b/src/python/components/class-declaration/index.ts
+index 19f53a8ea60a52e63cfd629cb941882ba2fe464f..9a307aee4c150341ef7126c210adf8c311d6474f 100644
+--- a/src/python/components/class-declaration/index.ts
++++ b/src/python/components/class-declaration/index.ts
+@@ -4,3 +4,5 @@ export * from "./class-declaration.js";
+ export * from "./class-member.js";
+ export * from "./class-method.js";
+ export * from "./primitive-initializer.js";
++export * from "./pydantic-class-declaration.js";
++export * from "./pydantic-decorators.js";
+diff --git a/src/python/components/class-declaration/pydantic-class-declaration.test.tsx b/src/python/components/class-declaration/pydantic-class-declaration.test.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..7f3687b6436fa9acc5cd69a1608992760e5ec3da
+--- /dev/null
++++ b/src/python/components/class-declaration/pydantic-class-declaration.test.tsx
+@@ -0,0 +1,147 @@
++import { Tester } from "#test/test-host.js";
++import { code } from "@alloy-js/core";
++import * as py from "@alloy-js/python";
++import { t } from "@typespec/compiler/testing";
++import { describe, expect, it } from "vitest";
++import { getOutput } from "../../test-utils.js";
++import { ClassDeclaration } from "./class-declaration.js";
++import { Method } from "./class-method.js";
++import {
++  PydanticClassDeclaration,
++  PydanticRootModelDeclaration,
++  PydanticSettingsClassDeclaration,
++} from "./pydantic-class-declaration.js";
++
++describe("Python PydanticClassDeclaration", () => {
++  it("creates a pydantic class from a model", async () => {
++    const { program, User } = await Tester.compile(t.code`
++      model ${t.model("User")} {
++        id: string;
++      }
++    `);
++
++    expect(getOutput(program, [<PydanticClassDeclaration type={User} />])).toRenderTo(`
++      from pydantic import BaseModel
++
++
++      class User(BaseModel):
++          id: str
++
++    `);
++  });
++
++  it("emits model_config from structured modelConfig", async () => {
++    const { program, User } = await Tester.compile(t.code`
++      model ${t.model("User")} {
++        id: string;
++      }
++    `);
++
++    expect(
++      getOutput(program, [
++        <PydanticClassDeclaration
++          type={User}
++          modelConfig={{ frozen: true, extra: "forbid", validateAssignment: true }}
++        />,
++      ]),
++    ).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import ConfigDict
++
++
++      class User(BaseModel):
++          model_config = ConfigDict(frozen=True, extra="forbid", validate_assignment=True)
++          id: str
++
++    `);
++  });
++
++  it("places pydantic validator decorators above @classmethod", async () => {
++    const { program, stripName } = await Tester.compile(
++      t.code`@test op ${t.op("stripName")}(value: string): string;`,
++    );
++
++    expect(
++      getOutput(program, [
++        <PydanticClassDeclaration name="User">
++          <Method
++            type={stripName}
++            methodType="class"
++            decorators={[code`@${py.pydanticModule["."].field_validator}("name", mode="before")`]}
++          />
++        </PydanticClassDeclaration>,
++      ]),
++    ).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import field_validator
++
++
++      class User(BaseModel):
++          @field_validator("name", mode="before")
++          @classmethod
++          def strip_name(cls, value: str) -> str:
++              pass
++
++
++    `);
++  });
++
++  it("supports BaseSettings via pydantic_settings module", async () => {
++    const { program } = await Tester.compile(``);
++
++    expect(
++      getOutput(program, [
++        <ClassDeclaration
++          name="AppSettings"
++          bases={[py.pydanticSettingsModule["."].BaseSettings]}
++        />,
++      ]),
++    ).toRenderTo(`
++      from pydantic_settings import BaseSettings
++
++
++      class AppSettings(BaseSettings):
++          pass
++
++    `);
++  });
++
++  it("creates a settings class with SettingsConfigDict", async () => {
++    const { program } = await Tester.compile(``);
++
++    expect(
++      getOutput(program, [
++        <PydanticSettingsClassDeclaration
++          name="AppSettings"
++          settingsConfig={{ envPrefix: "APP_", envFile: ".env" }}
++        />,
++      ]),
++    ).toRenderTo(`
++      from pydantic_settings import BaseSettings
++      from pydantic_settings import SettingsConfigDict
++
++
++      class AppSettings(BaseSettings):
++          model_config = SettingsConfigDict(env_prefix="APP_", env_file=".env")
++
++
++    `);
++  });
++
++  it("creates a RootModel declaration from a root type", async () => {
++    const { program } = await Tester.compile(``);
++
++    expect(
++      getOutput(program, [
++        <PydanticRootModelDeclaration name="TagList" rootType={code`list[str]`} />,
++      ]),
++    ).toRenderTo(`
++      from pydantic import RootModel
++
++
++      class TagList(RootModel[list[str]]):
++          pass
++
++    `);
++  });
++});
+diff --git a/src/python/components/class-declaration/pydantic-class-declaration.tsx b/src/python/components/class-declaration/pydantic-class-declaration.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..607a53eed188d6c21f670605850af4e30d3a12d2
+--- /dev/null
++++ b/src/python/components/class-declaration/pydantic-class-declaration.tsx
+@@ -0,0 +1,235 @@
++import { code, For, type Children } from "@alloy-js/core";
++import * as py from "@alloy-js/python";
++import type { Model } from "@typespec/compiler";
++import { useTsp } from "../../../core/context/tsp-context.js";
++import { reportDiagnostic } from "../../../lib.js";
++import { declarationRefkeys } from "../../utils/refkey.js";
++import { DocElement } from "../doc-element/doc-element.js";
++import { ClassBases } from "./class-bases.js";
++import { ClassDeclaration } from "./class-declaration.js";
++import { ClassMember } from "./class-member.js";
++import { MethodProvider } from "./class-method.js";
++
++export interface PydanticModelConfigDictProps {
++  arbitraryTypesAllowed?: boolean;
++  extra?: "allow" | "forbid" | "ignore";
++  fromAttributes?: boolean;
++  frozen?: boolean;
++  populateByName?: boolean;
++  strStripWhitespace?: boolean;
++  strict?: boolean;
++  validateAssignment?: boolean;
++  validateDefault?: boolean;
++}
++
++export interface PydanticSettingsConfigDictProps {
++  caseSensitive?: boolean;
++  envFile?: string;
++  envFileEncoding?: string;
++  envIgnoreEmpty?: boolean;
++  envNestedDelimiter?: string;
++  envPrefix?: string;
++}
++
++export interface PydanticClassDeclarationBaseProps extends Omit<py.ClassDeclarationProps, "name"> {
++  name: string;
++  modelConfig?: PydanticModelConfigDictProps;
++  modelConfigExpression?: Children;
++}
++
++export interface PydanticClassDeclarationPropsWithType extends Omit<
++  PydanticClassDeclarationBaseProps,
++  "name"
++> {
++  type: Model;
++  name?: string;
++  methodType?: "method" | "class" | "static";
++}
++
++export type PydanticClassDeclarationProps =
++  PydanticClassDeclarationPropsWithType | PydanticClassDeclarationBaseProps;
++
++function isTypedPydanticClassDeclarationProps(
++  props: PydanticClassDeclarationProps,
++): props is PydanticClassDeclarationPropsWithType {
++  return "type" in props;
++}
++
++/**
++ * Converts TypeSpec Models to Pydantic classes.
++ */
++export function PydanticClassDeclaration(props: PydanticClassDeclarationProps) {
++  const { $ } = useTsp();
++  const configEntries: Array<[string, unknown]> = [];
++  if (props.modelConfig && props.modelConfigExpression === undefined) {
++    for (const key of Object.keys(props.modelConfig)) {
++      const value = (props.modelConfig as Record<string, unknown>)[key];
++      if (value !== undefined) {
++        configEntries.push([toSnakeCase(key), value]);
++      }
++    }
++  }
++  const hasStructuredModelConfig =
++    props.modelConfigExpression === undefined && configEntries.length > 0;
++  const hasExpressionModelConfig = props.modelConfigExpression !== undefined;
++  const configLine = hasExpressionModelConfig ? (
++    <>
++      {"model_config = "}
++      {props.modelConfigExpression}
++      <hbr />
++    </>
++  ) : hasStructuredModelConfig ? (
++    <>
++      {"model_config = "}
++      {py.pydanticModule["."].ConfigDict}
++      {"("}
++      <For each={configEntries} comma space>
++        {([k, v]) => (
++          <>
++            {k}=<py.Atom jsValue={v as any} />
++          </>
++        )}
++      </For>
++      {")"}
++      <hbr />
++    </>
++  ) : undefined;
++
++  if (!isTypedPydanticClassDeclarationProps(props)) {
++    return (
++      <ClassDeclaration {...props} bases={props.bases ?? [py.pydanticModule["."].BaseModel]}>
++        {configLine}
++        {props.children}
++      </ClassDeclaration>
++    );
++  }
++
++  const docSource = props.doc ?? $.type.getDoc(props.type);
++  const docElement = docSource ? <DocElement doc={docSource} component={py.ClassDoc} /> : undefined;
++  const namePolicy = py.usePythonNamePolicy();
++
++  let name = props.name ?? props.type.name;
++  if (!name) {
++    reportDiagnostic($.program, { code: "type-declaration-missing-name", target: props.type });
++  }
++  name = namePolicy.getName(name, "class");
++
++  // Pydantic models currently don't support anonymous additional properties.
++  const additionalPropsRecord = $.model.getAdditionalPropertiesRecord(props.type);
++  if (additionalPropsRecord) {
++    throw new Error("Models with additional properties (Record[…]) are not supported");
++  }
++  const modelMembers = Array.from($.model.getProperties(props.type).values());
++
++  const refkeys = declarationRefkeys(props.refkey, props.type);
++
++  const bases = ClassBases({
++    type: props.type,
++    bases: props.bases,
++  });
++  const resolvedBases =
++    props.bases === undefined && bases.length === 0 ? [py.pydanticModule["."].BaseModel] : bases;
++
++  return (
++    <MethodProvider value={props.methodType}>
++      <py.ClassDeclaration
++        doc={docElement}
++        name={name}
++        refkey={refkeys}
++        {...(resolvedBases.length ? { bases: resolvedBases } : {})}
++      >
++        {configLine}
++        <For each={modelMembers} line>
++          {(typeMember) => <ClassMember type={typeMember} methodType={props.methodType} />}
++        </For>
++        {/* Allow callers to append custom class content after generated members. */}
++        <>{props.children}</>
++      </py.ClassDeclaration>
++    </MethodProvider>
++  );
++}
++
++type PydanticSettingsClassDeclarationBaseProps = Omit<
++  PydanticClassDeclarationBaseProps,
++  "bases" | "modelConfig" | "modelConfigExpression"
++>;
++
++type PydanticSettingsClassDeclarationPropsWithType = Omit<
++  PydanticClassDeclarationPropsWithType,
++  "bases" | "modelConfig" | "modelConfigExpression"
++>;
++
++export type PydanticSettingsClassDeclarationProps =
++  | (PydanticSettingsClassDeclarationBaseProps & {
++      settingsConfig?: PydanticSettingsConfigDictProps;
++      settingsConfigExpression?: Children;
++    })
++  | (PydanticSettingsClassDeclarationPropsWithType & {
++      settingsConfig?: PydanticSettingsConfigDictProps;
++      settingsConfigExpression?: Children;
++    });
++
++/**
++ * Convenience wrapper for classes that inherit from pydantic-settings BaseSettings.
++ */
++export function PydanticSettingsClassDeclaration(props: PydanticSettingsClassDeclarationProps) {
++  const { settingsConfig, settingsConfigExpression, ...classProps } = props;
++  const configEntries: Array<[string, unknown]> = [];
++  if (settingsConfig && settingsConfigExpression === undefined) {
++    for (const key of Object.keys(settingsConfig)) {
++      const value = (settingsConfig as Record<string, unknown>)[key];
++      if (value !== undefined) {
++        configEntries.push([toSnakeCase(key), value]);
++      }
++    }
++  }
++
++  const hasStructuredConfig = settingsConfigExpression === undefined && configEntries.length > 0;
++  const hasExpressionConfig = settingsConfigExpression !== undefined;
++
++  const modelConfigExpression = hasExpressionConfig ? (
++    settingsConfigExpression
++  ) : hasStructuredConfig ? (
++    <>
++      {py.pydanticSettingsModule["."].SettingsConfigDict}
++      {"("}
++      <For each={configEntries} comma space>
++        {([k, v]) => (
++          <>
++            {k}=<py.Atom jsValue={v as any} />
++          </>
++        )}
++      </For>
++      {")"}
++    </>
++  ) : undefined;
++
++  return (
++    <PydanticClassDeclaration
++      {...classProps}
++      bases={[py.pydanticSettingsModule["."].BaseSettings]}
++      modelConfigExpression={modelConfigExpression}
++    />
++  );
++}
++
++export interface PydanticRootModelDeclarationProps extends Omit<py.ClassDeclarationProps, "bases"> {
++  rootType: Children;
++}
++
++/**
++ * Convenience wrapper for pydantic RootModel[T] declarations.
++ */
++export function PydanticRootModelDeclaration(props: PydanticRootModelDeclarationProps) {
++  const { rootType, ...classProps } = props;
++  return (
++    <py.ClassDeclaration
++      {...classProps}
++      bases={[code`${py.pydanticModule["."].RootModel}[${rootType}]`]}
++    />
++  );
++}
++
++function toSnakeCase(value: string): string {
++  return value.replaceAll(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
++}
+diff --git a/src/python/components/class-declaration/pydantic-decorators.test.tsx b/src/python/components/class-declaration/pydantic-decorators.test.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..0f52e60dadaaabfe336fdb9f23c379da987f0f2e
+--- /dev/null
++++ b/src/python/components/class-declaration/pydantic-decorators.test.tsx
+@@ -0,0 +1,112 @@
++import { Tester } from "#test/test-host.js";
++import { t } from "@typespec/compiler/testing";
++import { describe, expect, it } from "vitest";
++import { getOutput } from "../../test-utils.js";
++import { Method } from "./class-method.js";
++import { PydanticClassDeclaration } from "./pydantic-class-declaration.js";
++import {
++  computedFieldDecorator,
++  fieldSerializerDecorator,
++  fieldValidatorDecorator,
++  modelValidatorDecorator,
++} from "./pydantic-decorators.js";
++
++describe("Python pydantic decorator helpers", () => {
++  it("builds @field_validator decorator with mode", async () => {
++    const { program, normalizeName } = await Tester.compile(
++      t.code`@test op ${t.op("normalizeName")}(value: string): string;`,
++    );
++
++    expect(
++      getOutput(program, [
++        <PydanticClassDeclaration name="User">
++          <Method
++            type={normalizeName}
++            methodType="class"
++            decorators={[fieldValidatorDecorator("name", { mode: "before" })]}
++          />
++        </PydanticClassDeclaration>,
++      ]),
++    ).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import field_validator
++
++
++      class User(BaseModel):
++          @field_validator("name", mode="before")
++          @classmethod
++          def normalize_name(cls, value: str) -> str:
++              pass
++
++
++    `);
++  });
++
++  it("builds @model_validator decorator for class methods", async () => {
++    const { program, checkModel } = await Tester.compile(
++      t.code`@test op ${t.op("checkModel")}(value: string): string;`,
++    );
++
++    expect(
++      getOutput(program, [
++        <PydanticClassDeclaration name="User">
++          <Method
++            type={checkModel}
++            methodType="class"
++            decorators={[modelValidatorDecorator({ mode: "after" })]}
++          />
++        </PydanticClassDeclaration>,
++      ]),
++    ).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import model_validator
++
++
++      class User(BaseModel):
++          @model_validator(mode="after")
++          @classmethod
++          def check_model(cls, value: str) -> str:
++              pass
++
++
++    `);
++  });
++
++  it("builds serializer and computed field decorators", async () => {
++    const { program } = await Tester.compile(``);
++
++    expect(
++      getOutput(program, [
++        <PydanticClassDeclaration name="User">
++          <Method
++            name="serializeName"
++            methodType="method"
++            returnType="str"
++            decorators={[fieldSerializerDecorator("name", { whenUsed: "json" })]}
++          />
++          <Method
++            name="displayName"
++            methodType="method"
++            returnType="str"
++            decorators={[computedFieldDecorator()]}
++          />
++        </PydanticClassDeclaration>,
++      ]),
++    ).toRenderTo(`
++      from pydantic import BaseModel
++      from pydantic import computed_field
++      from pydantic import field_serializer
++
++
++      class User(BaseModel):
++          @field_serializer("name", when_used="json")
++          def serialize_name(self) -> str:
++              pass
++          @computed_field
++          def display_name(self) -> str:
++              pass
++
++
++    `);
++  });
++});
+diff --git a/src/python/components/class-declaration/pydantic-decorators.tsx b/src/python/components/class-declaration/pydantic-decorators.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..3663203debc23063373546895062c14cc7401d81
+--- /dev/null
++++ b/src/python/components/class-declaration/pydantic-decorators.tsx
+@@ -0,0 +1,66 @@
++import { code, type Children } from "@alloy-js/core";
++import * as py from "@alloy-js/python";
++
++export type PydanticValidationMode = "before" | "after" | "plain" | "wrap";
++
++export interface PydanticFieldValidatorOptions {
++  mode?: PydanticValidationMode;
++  checkFields?: boolean;
++}
++
++export interface PydanticModelValidatorOptions {
++  mode?: Exclude<PydanticValidationMode, "plain">;
++}
++
++export interface PydanticFieldSerializerOptions {
++  mode?: "plain" | "wrap";
++  returnType?: string;
++  whenUsed?: "always" | "unless-none" | "json" | "json-unless-none";
++}
++
++/**
++ * Build a `@field_validator(...)` decorator for method `decorators`.
++ */
++export function fieldValidatorDecorator(
++  fields: string | string[],
++  options: PydanticFieldValidatorOptions = {},
++): Children {
++  const values = Array.isArray(fields) ? fields : [fields];
++  const args = values.map((x) => JSON.stringify(x));
++  if (options.mode !== undefined) args.push(`mode=${JSON.stringify(options.mode)}`);
++  if (options.checkFields !== undefined) args.push(`check_fields=${options.checkFields}`);
++
++  return code`@${py.pydanticModule["."].field_validator}(${args.join(", ")})`;
++}
++
++/**
++ * Build a `@model_validator(...)` decorator for method `decorators`.
++ */
++export function modelValidatorDecorator(options: PydanticModelValidatorOptions = {}): Children {
++  const args: string[] = [];
++  if (options.mode !== undefined) args.push(`mode=${JSON.stringify(options.mode)}`);
++  return code`@${py.pydanticModule["."].model_validator}(${args.join(", ")})`;
++}
++
++/**
++ * Build a `@field_serializer(...)` decorator for method `decorators`.
++ */
++export function fieldSerializerDecorator(
++  fields: string | string[],
++  options: PydanticFieldSerializerOptions = {},
++): Children {
++  const values = Array.isArray(fields) ? fields : [fields];
++  const args = values.map((x) => JSON.stringify(x));
++  if (options.mode !== undefined) args.push(`mode=${JSON.stringify(options.mode)}`);
++  if (options.returnType !== undefined) args.push(`return_type=${options.returnType}`);
++  if (options.whenUsed !== undefined) args.push(`when_used=${JSON.stringify(options.whenUsed)}`);
++
++  return code`@${py.pydanticModule["."].field_serializer}(${args.join(", ")})`;
++}
++
++/**
++ * Build a `@computed_field` decorator for method `decorators`.
++ */
++export function computedFieldDecorator(): Children {
++  return code`@${py.pydanticModule["."].computed_field}`;
++}
+diff --git a/src/python/components/function-declaration/function-declaration.tsx b/src/python/components/function-declaration/function-declaration.tsx
+index c77b2b9b5bdd6e7d05a83d67dbf59a1786c4d99b..3ea16b72bef5fdbf4c2f43e79a05c427656e085a 100644
+--- a/src/python/components/function-declaration/function-declaration.tsx
++++ b/src/python/components/function-declaration/function-declaration.tsx
+@@ -18,8 +18,7 @@ export interface FunctionDeclarationPropsWithType extends Omit<
+ }
+ 
+ export type FunctionDeclarationProps =
+-  | FunctionDeclarationPropsWithType
+-  | py.FunctionDeclarationProps;
++  FunctionDeclarationPropsWithType | py.FunctionDeclarationProps;
+ 
+ /**
+  * A Python function declaration. Pass the `type` prop to create the
+diff --git a/src/python/test-utils.tsx b/src/python/test-utils.tsx
+index c94e9f66dfd0b9eec8c175fd671150044abdc561..21ba85af158dc332e7764d0e1dc458e0ffd6f57d 100644
+--- a/src/python/test-utils.tsx
++++ b/src/python/test-utils.tsx
+@@ -18,6 +18,8 @@ export function getOutput(program: Program, children: Children[]): Children {
+         abcModule,
+         datetimeModule,
+         decimalModule,
++        py.pydanticModule,
++        py.pydanticSettingsModule,
+         typingModule,
+         py.abcModule,
+         py.dataclassesModule,
+diff --git a/src/testing/index.ts b/src/testing/index.ts
+index 43822ba40968d575b2fe45a3c4c91588b4963eef..dd44303ec97bffb86f8c5cffff91f88f791bfd94 100644
+--- a/src/testing/index.ts
++++ b/src/testing/index.ts
+@@ -3,6 +3,7 @@ import { createTestLibrary, type TypeSpecTestLibrary } from "@typespec/compiler/
+ import { fileURLToPath } from "url";
+ 
+ /** @deprecated Use `createTester` from `@typespec/compiler/testing` instead */
++// eslint-disable-next-line @typescript-eslint/no-deprecated
+ export const EmitterFrameworkTestLibrary: TypeSpecTestLibrary = createTestLibrary({
+   name: "@typespec/emitter-framework",
+   packageRoot: resolvePath(fileURLToPath(import.meta.url), "../../../"),
+diff --git a/src/typescript/components/function-declaration.tsx b/src/typescript/components/function-declaration.tsx
+index 41917a65e156862bd5070edd33ee3ba7fb46a972..fb22abf49b290fa3a7f11b636b38cb8930fe9133 100644
+--- a/src/typescript/components/function-declaration.tsx
++++ b/src/typescript/components/function-declaration.tsx
+@@ -15,8 +15,7 @@ export interface FunctionDeclarationPropsWithType extends Omit<
+ }
+ 
+ export type FunctionDeclarationProps =
+-  | FunctionDeclarationPropsWithType
+-  | ts.FunctionDeclarationProps;
++  FunctionDeclarationPropsWithType | ts.FunctionDeclarationProps;
+ 
+ /**
+  * A TypeScript function declaration. Pass the `type` prop to create the
+diff --git a/src/typescript/components/interface-declaration.tsx b/src/typescript/components/interface-declaration.tsx
+index cb1cc107919f0ed876a2f9ad786a3d676942f60f..482da309862485fc8c3d6318ed5d542a20e11bf6 100644
+--- a/src/typescript/components/interface-declaration.tsx
++++ b/src/typescript/components/interface-declaration.tsx
+@@ -21,8 +21,7 @@ export interface TypedInterfaceDeclarationProps extends Omit<ts.InterfaceDeclara
+ }
+ 
+ export type InterfaceDeclarationProps =
+-  | TypedInterfaceDeclarationProps
+-  | ts.InterfaceDeclarationProps;
++  TypedInterfaceDeclarationProps | ts.InterfaceDeclarationProps;
+ 
+ export function InterfaceDeclaration(props: InterfaceDeclarationProps) {
+   const { $ } = useTsp();

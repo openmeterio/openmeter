@@ -2,7 +2,7 @@ import type { ModelProperty } from '@typespec/compiler'
 import type { Typekit } from '@typespec/compiler/typekit'
 import { useTsp } from '@typespec/emitter-framework'
 import { ValueExpression } from '@typespec/emitter-framework/typescript'
-import { callPart } from './utils.jsx'
+import { callPart, useWireMode } from './utils.jsx'
 import { usesBigIntBase } from './zodBaseSchema.jsx'
 
 export function zodMemberParts(member?: ModelProperty) {
@@ -11,7 +11,12 @@ export function zodMemberParts(member?: ModelProperty) {
 }
 
 function defaultParts($: Typekit, member?: ModelProperty) {
-  if (!member?.defaultValue) {
+  // Defaults describe the public input convenience, not the JSON payload. The
+  // request mapper reads them from the public schema and materializes required
+  // defaults before validating the wire object. Keeping `.default(...)` in the
+  // wire schema would also make response validation accept a missing required
+  // field even though fromWire deliberately does not fabricate server data.
+  if (useWireMode() || !member?.defaultValue) {
     return []
   }
 

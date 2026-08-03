@@ -11,6 +11,8 @@ import { ZodCustomTypeComponent } from './ZodCustomTypeComponent.jsx'
 
 export interface ZodSchemaProps {
   readonly type: Type
+  /** Overrides the property's value type while preserving its member metadata. */
+  readonly valueType?: Type
   readonly nested?: boolean
 }
 
@@ -34,12 +36,13 @@ export function ZodSchema(props: ZodSchemaProps): Children {
   const { member, type } = $.modelProperty.is(props.type)
     ? { member: props.type, type: props.type.type }
     : { type: props.type, member: undefined }
+  const valueType = props.valueType ?? type
 
-  if (shouldReference($.program, type)) {
+  if (shouldReference($.program, valueType)) {
     return (
-      <ZodCustomTypeComponent type={type} member={member} reference>
+      <ZodCustomTypeComponent type={valueType} member={member} reference>
         <MemberExpression>
-          <MemberExpression.Part refkey={refkey(type, rkSym)} />
+          <MemberExpression.Part refkey={refkey(valueType, rkSym)} />
           {zodMemberParts(member)}
         </MemberExpression>
       </ZodCustomTypeComponent>
@@ -47,12 +50,12 @@ export function ZodSchema(props: ZodSchemaProps): Children {
   }
 
   return (
-    <ZodCustomTypeComponent type={type} member={member} reference>
+    <ZodCustomTypeComponent type={valueType} member={member} reference>
       <MemberExpression>
-        {zodBaseSchemaParts(type)}
-        {zodConstraintsParts(type, member)}
+        {zodBaseSchemaParts(valueType)}
+        {zodConstraintsParts(valueType, member)}
         {zodMemberParts(member)}
-        {zodDescriptionParts(type, member)}
+        {zodDescriptionParts(valueType, member)}
       </MemberExpression>
     </ZodCustomTypeComponent>
   )

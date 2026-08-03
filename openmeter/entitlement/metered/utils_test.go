@@ -105,7 +105,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	}
 
 	// create isolated pg db for tests
-	testdb := testutils.InitPostgresDB(t)
+	testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	dbClient := testdb.EntDriver.Client()
 	pgDriver := testdb.PGDriver
 	entDriver := testdb.EntDriver
@@ -119,10 +119,6 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	m.Lock()
 	defer m.Unlock()
 	// migrate db
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to create schema: %v", err)
-	}
-
 	require.NoError(t, meterAdapter.SetDBClient(dbClient))
 	require.NoError(t, meterAdapter.ReplaceMeters(context.Background(), testMeters))
 

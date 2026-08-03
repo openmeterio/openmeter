@@ -8,11 +8,13 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -273,6 +275,110 @@ func (e *BillingCustomerOverride) GetTaxBehavior() *productcatalog.TaxBehavior {
 	return e.TaxBehavior
 }
 
+func (e *BillingGatheringInvoiceLine) GetID() string {
+	return e.ID
+}
+
+func (e *BillingGatheringInvoiceLine) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *BillingGatheringInvoiceLine) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *BillingGatheringInvoiceLine) GetMetadata() map[string]string {
+	return e.Metadata
+}
+
+func (e *BillingGatheringInvoiceLine) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *BillingGatheringInvoiceLine) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *BillingGatheringInvoiceLine) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *BillingGatheringInvoiceLine) GetName() string {
+	return e.Name
+}
+
+func (e *BillingGatheringInvoiceLine) GetDescription() *string {
+	return e.Description
+}
+
+func (e *BillingGatheringInvoiceLine) GetCurrency() currencyx.FiatCode {
+	return e.Currency
+}
+
+func (e *BillingGatheringInvoiceLine) GetServicePeriodStart() time.Time {
+	return e.ServicePeriodStart
+}
+
+func (e *BillingGatheringInvoiceLine) GetServicePeriodEnd() time.Time {
+	return e.ServicePeriodEnd
+}
+
+func (e *BillingGatheringInvoiceLine) GetTaxConfig() billing.TaxConfig {
+	return e.TaxConfig
+}
+
+func (e *BillingGatheringInvoiceLine) GetPriceType() productcatalog.PriceType {
+	return e.PriceType
+}
+
+func (e *BillingGatheringInvoiceLine) GetFeatureKey() *string {
+	return e.FeatureKey
+}
+
+func (e *BillingGatheringInvoiceLine) GetPrice() *productcatalog.Price {
+	return e.Price
+}
+
+func (e *BillingGatheringInvoiceLine) GetUnitConfig() *unitconfig.UnitConfig {
+	return e.UnitConfig
+}
+
+func (e *BillingGatheringInvoiceLine) GetRatecardDiscounts() *billing.Discounts {
+	return e.RatecardDiscounts
+}
+
+func (e *BillingGatheringInvoiceLine) GetChildUniqueReferenceID() *string {
+	return e.ChildUniqueReferenceID
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionID() *string {
+	return e.SubscriptionID
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionPhaseID() *string {
+	return e.SubscriptionPhaseID
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionItemID() *string {
+	return e.SubscriptionItemID
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionBillingPeriodFrom() *time.Time {
+	return e.SubscriptionBillingPeriodFrom
+}
+
+func (e *BillingGatheringInvoiceLine) GetSubscriptionBillingPeriodTo() *time.Time {
+	return e.SubscriptionBillingPeriodTo
+}
+
+func (e *BillingGatheringInvoiceLine) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *BillingGatheringInvoiceLine) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
+}
+
 func (e *BillingInvoice) GetID() string {
 	return e.ID
 }
@@ -441,7 +547,7 @@ func (e *BillingInvoiceLine) GetDescription() *string {
 	return e.Description
 }
 
-func (e *BillingInvoiceLine) GetCurrency() currencyx.Code {
+func (e *BillingInvoiceLine) GetCurrency() currencyx.FiatCode {
 	return e.Currency
 }
 
@@ -701,7 +807,7 @@ func (e *BillingStandardInvoiceDetailedLine) GetID() string {
 	return e.ID
 }
 
-func (e *BillingStandardInvoiceDetailedLine) GetCurrency() currencyx.Code {
+func (e *BillingStandardInvoiceDetailedLine) GetCurrency() *currencyx.Code {
 	return e.Currency
 }
 
@@ -925,8 +1031,12 @@ func (e *ChargeCreditPurchase) GetUniqueReferenceID() *string {
 	return e.UniqueReferenceID
 }
 
-func (e *ChargeCreditPurchase) GetCurrency() currencyx.Code {
-	return e.Currency
+func (e *ChargeCreditPurchase) GetFiatCurrencyCode() *currencyx.Code {
+	return e.FiatCurrencyCode
+}
+
+func (e *ChargeCreditPurchase) GetCustomCurrencyID() *string {
+	return e.CustomCurrencyID
 }
 
 func (e *ChargeCreditPurchase) GetManagedBy() billing.InvoiceLineManagedBy {
@@ -989,6 +1099,58 @@ func (e *ChargeCreditPurchase) GetDescription() *string {
 	return e.Description
 }
 
+func (e *ChargeCreditPurchaseCostBasis) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetMode() costbasis.Mode {
+	return e.Mode
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetFiatCurrency() currencyx.FiatCode {
+	return e.FiatCurrency
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetCurrencyCostBasisID() *string {
+	return e.CurrencyCostBasisID
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetResolvedCostBasisID() *string {
+	return e.ResolvedCostBasisID
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetCurrencyID() string {
+	return e.CurrencyID
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetManualRate() *alpacadecimal.Decimal {
+	return e.ManualRate
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetResolvedCostBasis() *alpacadecimal.Decimal {
+	return e.ResolvedCostBasis
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetResolvedAt() *time.Time {
+	return e.ResolvedAt
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeCreditPurchaseCostBasis) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *ChargeCreditPurchaseCreditGrant) GetID() string {
 	return e.ID
 }
@@ -1025,8 +1187,8 @@ func (e *ChargeCreditPurchaseExternalPayment) GetStatus() payment.Status {
 	return e.Status
 }
 
-func (e *ChargeCreditPurchaseExternalPayment) GetAmount() alpacadecimal.Decimal {
-	return e.Amount
+func (e *ChargeCreditPurchaseExternalPayment) GetFiatAmount() alpacadecimal.Decimal {
+	return e.FiatAmount
 }
 
 func (e *ChargeCreditPurchaseExternalPayment) GetAuthorizedTransactionGroupID() *string {
@@ -1089,8 +1251,8 @@ func (e *ChargeCreditPurchaseInvoicedPayment) GetStatus() payment.Status {
 	return e.Status
 }
 
-func (e *ChargeCreditPurchaseInvoicedPayment) GetAmount() alpacadecimal.Decimal {
-	return e.Amount
+func (e *ChargeCreditPurchaseInvoicedPayment) GetFiatAmount() alpacadecimal.Decimal {
+	return e.FiatAmount
 }
 
 func (e *ChargeCreditPurchaseInvoicedPayment) GetAuthorizedTransactionGroupID() *string {
@@ -1169,8 +1331,12 @@ func (e *ChargeFlatFee) GetUniqueReferenceID() *string {
 	return e.UniqueReferenceID
 }
 
-func (e *ChargeFlatFee) GetCurrency() currencyx.Code {
-	return e.Currency
+func (e *ChargeFlatFee) GetFiatCurrencyCode() *currencyx.Code {
+	return e.FiatCurrencyCode
+}
+
+func (e *ChargeFlatFee) GetCustomCurrencyID() *string {
+	return e.CustomCurrencyID
 }
 
 func (e *ChargeFlatFee) GetManagedBy() billing.InvoiceLineManagedBy {
@@ -1231,6 +1397,58 @@ func (e *ChargeFlatFee) GetName() string {
 
 func (e *ChargeFlatFee) GetDescription() *string {
 	return e.Description
+}
+
+func (e *ChargeFlatFeeCostBasis) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeFlatFeeCostBasis) GetMode() costbasis.Mode {
+	return e.Mode
+}
+
+func (e *ChargeFlatFeeCostBasis) GetFiatCurrency() currencyx.FiatCode {
+	return e.FiatCurrency
+}
+
+func (e *ChargeFlatFeeCostBasis) GetCurrencyCostBasisID() *string {
+	return e.CurrencyCostBasisID
+}
+
+func (e *ChargeFlatFeeCostBasis) GetResolvedCostBasisID() *string {
+	return e.ResolvedCostBasisID
+}
+
+func (e *ChargeFlatFeeCostBasis) GetCurrencyID() string {
+	return e.CurrencyID
+}
+
+func (e *ChargeFlatFeeCostBasis) GetManualRate() *alpacadecimal.Decimal {
+	return e.ManualRate
+}
+
+func (e *ChargeFlatFeeCostBasis) GetResolvedCostBasis() *alpacadecimal.Decimal {
+	return e.ResolvedCostBasis
+}
+
+func (e *ChargeFlatFeeCostBasis) GetResolvedAt() *time.Time {
+	return e.ResolvedAt
+}
+
+func (e *ChargeFlatFeeCostBasis) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeFlatFeeCostBasis) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeFlatFeeCostBasis) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeFlatFeeCostBasis) GetDeletedAt() *time.Time {
+	return e.DeletedAt
 }
 
 func (e *ChargeFlatFeeOverride) GetID() string {
@@ -1353,7 +1571,7 @@ func (e *ChargeFlatFeeRunDetailedLine) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeFlatFeeRunDetailedLine) GetCurrency() currencyx.Code {
+func (e *ChargeFlatFeeRunDetailedLine) GetCurrency() *currencyx.Code {
 	return e.Currency
 }
 
@@ -1553,8 +1771,8 @@ func (e *ChargeFlatFeeRunPayment) GetStatus() payment.Status {
 	return e.Status
 }
 
-func (e *ChargeFlatFeeRunPayment) GetAmount() alpacadecimal.Decimal {
-	return e.Amount
+func (e *ChargeFlatFeeRunPayment) GetFiatAmount() alpacadecimal.Decimal {
+	return e.FiatAmount
 }
 
 func (e *ChargeFlatFeeRunPayment) GetAuthorizedTransactionGroupID() *string {
@@ -1633,8 +1851,12 @@ func (e *ChargeUsageBased) GetUniqueReferenceID() *string {
 	return e.UniqueReferenceID
 }
 
-func (e *ChargeUsageBased) GetCurrency() currencyx.Code {
-	return e.Currency
+func (e *ChargeUsageBased) GetFiatCurrencyCode() *currencyx.Code {
+	return e.FiatCurrencyCode
+}
+
+func (e *ChargeUsageBased) GetCustomCurrencyID() *string {
+	return e.CustomCurrencyID
 }
 
 func (e *ChargeUsageBased) GetManagedBy() billing.InvoiceLineManagedBy {
@@ -1695,6 +1917,58 @@ func (e *ChargeUsageBased) GetName() string {
 
 func (e *ChargeUsageBased) GetDescription() *string {
 	return e.Description
+}
+
+func (e *ChargeUsageBasedCostBasis) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedCostBasis) GetMode() costbasis.Mode {
+	return e.Mode
+}
+
+func (e *ChargeUsageBasedCostBasis) GetFiatCurrency() currencyx.FiatCode {
+	return e.FiatCurrency
+}
+
+func (e *ChargeUsageBasedCostBasis) GetCurrencyCostBasisID() *string {
+	return e.CurrencyCostBasisID
+}
+
+func (e *ChargeUsageBasedCostBasis) GetResolvedCostBasisID() *string {
+	return e.ResolvedCostBasisID
+}
+
+func (e *ChargeUsageBasedCostBasis) GetCurrencyID() string {
+	return e.CurrencyID
+}
+
+func (e *ChargeUsageBasedCostBasis) GetManualRate() *alpacadecimal.Decimal {
+	return e.ManualRate
+}
+
+func (e *ChargeUsageBasedCostBasis) GetResolvedCostBasis() *alpacadecimal.Decimal {
+	return e.ResolvedCostBasis
+}
+
+func (e *ChargeUsageBasedCostBasis) GetResolvedAt() *time.Time {
+	return e.ResolvedAt
+}
+
+func (e *ChargeUsageBasedCostBasis) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedCostBasis) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedCostBasis) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedCostBasis) GetDeletedAt() *time.Time {
+	return e.DeletedAt
 }
 
 func (e *ChargeUsageBasedOverride) GetID() string {
@@ -1765,7 +2039,7 @@ func (e *ChargeUsageBasedRunDetailedLine) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeUsageBasedRunDetailedLine) GetCurrency() currencyx.Code {
+func (e *ChargeUsageBasedRunDetailedLine) GetCurrency() *currencyx.Code {
 	return e.Currency
 }
 
@@ -1965,8 +2239,8 @@ func (e *ChargeUsageBasedRunPayment) GetStatus() payment.Status {
 	return e.Status
 }
 
-func (e *ChargeUsageBasedRunPayment) GetAmount() alpacadecimal.Decimal {
-	return e.Amount
+func (e *ChargeUsageBasedRunPayment) GetFiatAmount() alpacadecimal.Decimal {
+	return e.FiatAmount
 }
 
 func (e *ChargeUsageBasedRunPayment) GetAuthorizedTransactionGroupID() *string {
@@ -2310,6 +2584,30 @@ func (e *LedgerBreakageRecord) GetUpdatedAt() time.Time {
 }
 
 func (e *LedgerBreakageRecord) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *LedgerCreditVoidRecord) GetID() string {
+	return e.ID
+}
+
+func (e *LedgerCreditVoidRecord) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerCreditVoidRecord) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *LedgerCreditVoidRecord) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerCreditVoidRecord) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerCreditVoidRecord) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 

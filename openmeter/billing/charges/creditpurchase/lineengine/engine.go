@@ -90,6 +90,10 @@ func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnSta
 	return input.Lines, nil
 }
 
+func (e *Engine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) error {
+	return billing.ErrCannotUpdateChargeManagedLine
+}
+
 func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
 	return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
 }

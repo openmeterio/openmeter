@@ -12,6 +12,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -58,6 +59,21 @@ func (Entitlement) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+		// unit_config snapshots the rate card's UnitConfig at subscription time
+		// (metered entitlements only). The metered grant-owner adapter uses it to
+		// convert usage at balance-check time. Typed jsonb via the shared
+		// UnitConfigValueScanner, matching the rate-card / invoice-line / subscription-
+		// item columns. Immutable: a snapshot set once at create, like
+		// issue_after_reset.
+		field.String("unit_config").
+			GoType(&productcatalog.UnitConfig{}).
+			ValueScanner(UnitConfigValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
 		field.String("usage_period_interval").GoType(datetime.ISODurationString("")).Optional().Nillable().Immutable(),
 		field.Time("usage_period_anchor").Optional().Nillable().Comment("Historically this field had been overwritten with each anchor reset, now we keep the original anchor time and the value is populated from the last reset which is queried dynamically"),
 		// TODO: get rid of current_usage_period in the db and make it calculated
