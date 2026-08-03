@@ -97,14 +97,8 @@ func (t Timeline[T]) Len() int {
 	return len(t.times)
 }
 
-// LastIndexNotAfter returns the index of the last entry at or before at, or -1 when every
-// entry is after at. As the timeline is sorted ascending, that entry is the one in effect
-// at at. Entries sharing a timestamp resolve to the last of the tied group, so the most
-// recently added one wins.
+// LastIndexNotAfter uses binary search, returns -1 when no entry is not after at
 func (t Timeline[T]) LastIndexNotAfter(at time.Time) int {
-	// times is sorted ascending, so "is after at" is false across a prefix and true across
-	// the remainder — the monotonicity sort.Search requires. It yields len(times) when no
-	// entry is after at, which leaves the last index, and 0 when every entry is, giving -1.
 	firstAfter := sort.Search(len(t.times), func(i int) bool {
 		return t.times[i].GetTime().After(at)
 	})

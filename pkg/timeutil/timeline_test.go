@@ -162,9 +162,7 @@ func TestTimelineGetOpenPeriods(t *testing.T) {
 	})
 }
 
-// lastIndexNotAfterLinear is the reverse linear scan that LastIndexNotAfter replaced.
-// It is kept as the differential oracle: the binary search must agree with it for every
-// input, including timelines carrying duplicate timestamps.
+// uses old linear scan implementation for reference
 func lastIndexNotAfterLinear[T any](tl timeutil.Timeline[T], at time.Time) int {
 	for i := tl.Len() - 1; i >= 0; i-- {
 		if !tl.GetAt(i).GetTime().After(at) {
