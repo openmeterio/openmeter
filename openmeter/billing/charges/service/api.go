@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s *service) CreateCustomerCharge(ctx context.Context, input charges.CreateCustomerChargeInput) (charges.Charge, error) {
@@ -22,6 +23,10 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 	})
 	if err != nil {
 		return charges.Charge{}, fmt.Errorf("resolving currency: %w", err)
+	}
+
+	if currency.IsCustom() {
+		return charges.Charge{}, models.NewGenericValidationError(fmt.Errorf("currency: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 
 	intent := meta.Intent{

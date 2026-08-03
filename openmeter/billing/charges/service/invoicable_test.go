@@ -4239,7 +4239,51 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 		customCurrency = s.createTestCustomCurrency(ctx, ns)
 	})
 
-	s.Run("#2 create credits-only flat fee", func() {
+	s.Run("#2 reject custom currency through the customer charge API", func() {
+		// given:
+		// - the same customer and custom currency used by the supported root charge flow below
+		servicePeriod := timeutil.ClosedPeriod{
+			From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+		}
+
+		// when:
+		// - a manual customer charge tries to use that custom currency
+		_, err := s.Charges.CreateCustomerCharge(ctx, charges.CreateCustomerChargeInput{
+			Namespace:    ns,
+			CustomerID:   customerID,
+			CurrencyCode: customCurrency.GetCode(),
+			FlatFee: &charges.CreateCustomerChargeFlatFeeInput{
+				IntentMutableFields: flatfee.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "Unsupported custom currency charge",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+					},
+					InvoiceAt:             servicePeriod.From,
+					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+					AmountBeforeProration: alpacadecimal.NewFromInt(10),
+				},
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+			},
+		})
+
+		// then:
+		// - the API boundary rejects it before the supported root creation path is reached
+		s.Require().Error(err)
+		s.ErrorIs(err, meta.ErrCustomCurrencyNotSupported)
+		s.True(models.IsGenericValidationError(err))
+
+		persisted, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:   ns,
+			CustomerIDs: []string{customerID},
+		})
+		s.Require().NoError(err)
+		s.Empty(persisted.Items)
+	})
+
+	s.Run("#3 create credits-only flat fee through the root service", func() {
 		// given:
 		// - an immediately due flat fee in the custom currency
 		// - mocked ledger allocation and lineage callbacks
@@ -4349,7 +4393,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 		s.Empty(createdCharge.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].CreditsApplied)
 	})
 
-	s.Run("#3 reload persisted charge", func() {
+	s.Run("#4 reload persisted charge", func() {
 		// when:
 		// - the flat-fee charge is loaded again from Postgres
 		// then:
