@@ -175,7 +175,8 @@ type CurrencyCustom struct {
 	Code              string `json:"code"`
 	// An ISO-8601 timestamp representation of the custom currency creation date.
 	CreatedAt time.Time `json:"created_at"`
-	// The list of active cost basis for the custom currency.
+	// The list of active and scheduled cost bases for the custom currency. Expired and
+	// deleted cost bases are excluded.
 	CostBasis []CostBasis `json:"cost_basis,omitempty"`
 }
 
@@ -183,7 +184,7 @@ type CurrencyCustom struct {
 //
 // Values:
 //
-// - `cost_basis`: The currency's currently-active cost basis.
+// - `cost_basis`: The currency's active and scheduled cost basis.
 type CurrencyExpand string
 
 const (

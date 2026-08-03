@@ -20,7 +20,7 @@ enum CurrencyType {
  *
  * Values:
  *
- * - `cost_basis`: The currency's currently-active cost basis.
+ * - `cost_basis`: The currency's active and scheduled cost basis.
  */
 @friendlyName("BillingCurrencyExpand")
 @summary("Currency expands")
@@ -150,7 +150,8 @@ model CurrencyCustom {
   created_at: Shared.DateTime;
 
   /**
-   * The list of active cost basis for the custom currency.
+   * The list of active and scheduled cost bases for the custom currency. Expired and
+   * deleted cost bases are excluded.
    */
   @visibility(Lifecycle.Read)
   cost_basis?: CostBasis[];

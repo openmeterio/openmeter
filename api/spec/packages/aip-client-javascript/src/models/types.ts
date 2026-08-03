@@ -2896,7 +2896,10 @@ export interface CurrencyCustom {
   code: string
   /** An ISO-8601 timestamp representation of the custom currency creation date. */
   createdAt: Date
-  /** The list of active cost basis for the custom currency. */
+  /**
+   * The list of active and scheduled cost bases for the custom currency. Expired and
+   * deleted cost bases are excluded.
+   */
   costBasis?: CostBasis[]
 }
 
