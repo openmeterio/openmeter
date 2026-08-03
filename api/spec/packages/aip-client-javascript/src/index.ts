@@ -55,6 +55,7 @@ export type * from './models/operations/addons.js'
 export type * from './models/operations/planAddons.js'
 export type * from './models/operations/defaults.js'
 export type * from './models/operations/governance.js'
+export type * from './models/operations/notifications.js'
 
 export type {
   Labels,
@@ -213,6 +214,7 @@ export type {
   GovernanceQueryRequest,
   GovernanceFeatureAccessReason,
   GovernanceQueryError,
+  NotificationChannel,
   AppCustomerData,
   UpsertAppCustomerDataRequest,
   CreditAdjustment,
@@ -240,6 +242,7 @@ export type {
   UpdateRateCardTaxConfig,
   ListEventsParamsFilter,
   ListInvoicesParamsFilter,
+  ListNotificationChannelsParamsFilter,
   ResourceFilters,
   FieldFilters,
   IngestedEvent,
@@ -271,6 +274,7 @@ export type {
   InvoiceLineDiscounts,
   UpdateBillingInvoiceWorkflow,
   GovernanceFeatureAccess,
+  NotificationChannelPagePaginatedResponse,
   CustomerData,
   UpsertCustomerBillingDataRequest,
   CreditBalances,
@@ -345,6 +349,7 @@ export type {
   MeterQueryGranularity,
   StringFieldFilterExact,
   PricePaymentTerm,
+  BooleanFieldFilter,
   BillingCurrencyCode,
   CreateCurrencyCode,
   UlidFieldFilter,
@@ -393,11 +398,15 @@ export type {
   UnitConfigInput,
   WorkflowInvoicingSettingsInput,
   GovernanceQueryRequestInput,
+  NotificationChannelInput,
+  CreateNotificationChannelRequestInput,
+  UpdateNotificationChannelRequestInput,
   IngestedEventInput,
   SubscriptionCancelInput,
   InvoiceUsageQuantityDetailInput,
   InvoiceWorkflowInput,
   UpdateBillingInvoiceWorkflowInput,
+  NotificationChannelPagePaginatedResponseInput,
   CreateCreditGrantRequestInput,
   CreditGrantInput,
   WorkflowTaxSettingsInput,

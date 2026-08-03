@@ -31,6 +31,7 @@ import (
 	governancehandler "github.com/openmeterio/openmeter/api/v3/handlers/governance"
 	llmcosthandler "github.com/openmeterio/openmeter/api/v3/handlers/llmcost"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
+	notificationchannelshandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/channels"
 	planshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
@@ -57,6 +58,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -111,6 +113,7 @@ type Config struct {
 	ChargeService               billingcharges.Service
 	CostService                 cost.Service
 	FeatureConnector            feature.FeatureConnector
+	NotificationService         notification.Service
 
 	FeatureGate *featuregate.FeatureGateChecker
 }
@@ -206,6 +209,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("feature connector is required"))
 	}
 
+	if c.NotificationService == nil {
+		errs = append(errs, errors.New("notification service is required"))
+	}
+
 	if c.Credits.Enabled {
 		if c.CustomerBalanceFacade == nil {
 			errs = append(errs, errors.New("customer balance facade is required when credits are enabled"))
@@ -270,6 +277,7 @@ type Server struct {
 	currenciesHandler           currencieshandler.Handler
 	featuresHandler             featureshandler.Handler
 	featureCostHandler          featurecosthandler.Handler
+	notificationChannelsHandler notificationchannelshandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -341,6 +349,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
 	governanceHandler := governancehandler.New(resolveNamespace, config.GovernanceService, httptransport.WithErrorHandler(config.ErrorHandler))
+	notificationChannelsHandler := notificationchannelshandler.New(resolveNamespace, config.NotificationService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var llmcostH llmcosthandler.Handler
 	if config.LLMCostService != nil {
@@ -376,6 +385,7 @@ func NewServer(config *Config) (*Server, error) {
 		featuresHandler:             featuresH,
 		featureCostHandler:          featureCostH,
 		governanceHandler:           governanceHandler,
+		notificationChannelsHandler: notificationChannelsHandler,
 	}, nil
 }
 
