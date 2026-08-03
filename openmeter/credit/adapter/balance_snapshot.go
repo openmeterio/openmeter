@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -47,6 +48,7 @@ func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner models
 				db_balancesnapshot.Namespace(owner.Namespace),
 				db_balancesnapshot.AtLTE(at),
 				db_balancesnapshot.DeletedAtIsNil(),
+				db_balancesnapshot.UsageSnapshotNotNil(),
 			).
 			// in case there were multiple snapshots for the same time return the newest one
 			Order(db_balancesnapshot.ByAt(sql.OrderDesc()), db_balancesnapshot.ByUpdatedAt(sql.OrderDesc())).
@@ -65,22 +67,27 @@ func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner models
 func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedID, balances []balance.Snapshot) error {
 	return entutils.TransactingRepoWithNoValue(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) error {
 		commands := make([]*db.BalanceSnapshotCreate, 0, len(balances))
-		for _, balance := range balances {
+		for _, snapshot := range balances {
+			if snapshot.UsageSnapshot == nil {
+				return fmt.Errorf("cannot save incomplete balance snapshot at %s", snapshot.At)
+			}
+
 			// Keep writing the legacy usage representation for compatibility
 			// with old readers during the rolling migration.
 			command := rep.db.BalanceSnapshot.Create().
 				SetNamespace(owner.Namespace).
 				SetOwnerID(owner.ID).
-				SetBalance(balance.Balance()).
-				SetAt(balance.At).
-				SetGrantBalances(balance.Balances).
-				SetOverage(balance.Overage).
-				SetUsage(&balance.Usage)
+				SetBalance(snapshot.Balance()).
+				SetAt(snapshot.At).
+				SetGrantBalances(snapshot.Balances).
+				SetOverage(snapshot.Overage).
+				SetUsage(&snapshot.Usage).
+				SetUsageSnapshot(snapshot.UsageSnapshot)
 			// Record the conversion regime this snapshot was computed under (OM-400) so
 			// the resume path can refuse to reuse it under a different regime. Pointer
 			// GoType has no SetNillable*, so nil-guard the set (nil = raw).
-			if balance.UnitConfig != nil {
-				command = command.SetUnitConfig(balance.UnitConfig)
+			if snapshot.UnitConfig != nil {
+				command = command.SetUnitConfig(snapshot.UnitConfig)
 			}
 			commands = append(commands, command)
 		}
@@ -95,7 +102,12 @@ func mapBalanceSnapshotEntity(entity *db.BalanceSnapshot) balance.Snapshot {
 		Overage:  entity.Overage,
 		At:       entity.At.In(time.UTC),
 	}
+	if entity.UsageSnapshot != nil {
+		s.UsageSnapshot = entity.UsageSnapshot
+	}
 	if entity.Usage != nil {
+		// Hydrate legacy usage only so subsequent snapshots remain readable by
+		// old binaries during the rolling migration.
 		s.Usage = *entity.Usage
 	}
 	if entity.UnitConfig != nil {

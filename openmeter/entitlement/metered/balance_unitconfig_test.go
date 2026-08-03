@@ -181,11 +181,12 @@ func TestBalanceSnapshotRegimeMismatchRecomputes(t *testing.T) {
 	staleAt := startTime.Add(30 * time.Minute)
 	err = deps.balanceSnapshotService.Save(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, []balance.Snapshot{
 		{
-			At:         staleAt,
-			Balances:   balance.Map{g.ID: 999},
-			Overage:    0,
-			Usage:      balance.SnapshottedUsage{Usage: 0, Since: startTime},
-			UnitConfig: nil,
+			At:            staleAt,
+			Balances:      balance.Map{g.ID: 999},
+			Overage:       0,
+			Usage:         balance.SnapshottedUsage{Usage: 0, Since: startTime},
+			UsageSnapshot: &balance.UsageSnapshot{},
+			UnitConfig:    nil,
 		},
 	})
 	require.NoError(t, err)

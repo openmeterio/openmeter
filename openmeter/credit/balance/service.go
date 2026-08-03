@@ -4,10 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/credit/grant"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SnapshotService interface {
@@ -19,25 +16,16 @@ type SnapshotService interface {
 }
 
 type SnapshotServiceConfig struct {
-	OwnerConnector     grant.OwnerConnector
-	StreamingConnector streaming.Connector
-	Repo               SnapshotRepo
+	Repo SnapshotRepo
 }
 
 type service struct {
-	UsageQuerier UsageQuerier
 	SnapshotServiceConfig
 }
 
 func NewSnapshotService(conf SnapshotServiceConfig) SnapshotService {
 	return &service{
 		SnapshotServiceConfig: conf,
-		// We build a custom UsageQuerier for our usecase here
-		UsageQuerier: NewUsageQuerier(UsageQuerierConfig{
-			StreamingConnector:    conf.StreamingConnector,
-			DescribeOwner:         conf.OwnerConnector.DescribeOwner,
-			GetUsagePeriodStartAt: conf.OwnerConnector.GetUsagePeriodStartAt,
-		}),
 	}
 }
 
@@ -48,33 +36,7 @@ func (s *service) InvalidateAfter(ctx context.Context, owner models.NamespacedID
 }
 
 func (s *service) GetLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time) (Snapshot, error) {
-	res, err := s.Repo.GetLatestValidAt(ctx, owner, at)
-	if err != nil {
-		return Snapshot{}, err
-	}
-
-	// We have to manually fill in the usage data if it wasn't saved
-	if res.Usage.IsZero() {
-		periodStart, err := s.OwnerConnector.GetUsagePeriodStartAt(ctx, owner, res.At)
-		if err != nil {
-			return Snapshot{}, err
-		}
-
-		usage, err := s.UsageQuerier.QueryUsage(ctx, owner, timeutil.ClosedPeriod{
-			From: periodStart,
-			To:   res.At,
-		})
-		if err != nil {
-			return Snapshot{}, err
-		}
-
-		res.Usage = SnapshottedUsage{
-			Usage: usage,
-			Since: periodStart,
-		}
-	}
-
-	return res, nil
+	return s.Repo.GetLatestValidAt(ctx, owner, at)
 }
 
 func (s *service) Save(ctx context.Context, owner models.NamespacedID, balances []Snapshot) error {
