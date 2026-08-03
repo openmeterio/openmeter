@@ -316,6 +316,10 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 			return nil, fmt.Errorf("failed to lock owner %s: %w", ownerID.ID, err)
 		}
 
+		if err := m.BalanceSnapshotService.InvalidateAfter(ctx, ownerID, at); err != nil {
+			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", at, err)
+		}
+
 		// Let's save the snapshot
 		snap, err = m.saveSnapshot(ctx, snapshotParams{
 			grants:     grants,
