@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -82,76 +83,78 @@ func (s *ManageService) CreateMeter(ctx context.Context, input meter.CreateMeter
 
 // DeleteMeter deletes a meter
 func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeterInput) error {
-	// Get the meter
-	getMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-		Namespace: input.Namespace,
-		IDOrSlug:  input.IDOrSlug,
-	})
-	if err != nil {
-		return err
-	}
-
-	// Check if the meter is already deleted
-	if getMeter.DeletedAt != nil {
-		return nil
-	}
-
-	// Validate input with reserved event types
-	if !input.AllowReservedEventTypes {
-		err = s.eventTypeValidator(getMeter.EventType)
+	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+		// Get the meter
+		getMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+			Namespace: input.Namespace,
+			IDOrSlug:  input.IDOrSlug,
+		})
 		if err != nil {
-			return models.NewGenericValidationError(fmt.Errorf("invalid event type: %w", err))
+			return err
 		}
-	}
 
-	// Check if the meter has active features
-	hasFeatures, err := s.adapter.HasActiveFeatureForMeter(ctx, input.Namespace, getMeter.ID)
-	if err != nil {
-		return fmt.Errorf("failed to check if meter has features [namespace=%s, key=%s]: %w",
-			input.Namespace, getMeter.Key, err)
-	}
+		// Check if the meter is already deleted
+		if getMeter.DeletedAt != nil {
+			return nil
+		}
 
-	if hasFeatures {
-		return models.NewGenericConflictError(
-			fmt.Errorf("meter has active features and cannot be deleted"),
-		)
-	}
+		// Validate input with reserved event types
+		if !input.AllowReservedEventTypes {
+			err = s.eventTypeValidator(getMeter.EventType)
+			if err != nil {
+				return models.NewGenericValidationError(fmt.Errorf("invalid event type: %w", err))
+			}
+		}
 
-	// Check if the meter has active entitlements
-	hasEntitlements, err := s.adapter.HasEntitlementForMeter(ctx, getMeter.Namespace, getMeter.ID)
-	if err != nil {
-		return fmt.Errorf("failed to check if meter has entitlements [namespace=%s, key=%s]: %w",
-			input.Namespace, getMeter.Key, err)
-	}
+		// Check if the meter has active features
+		hasFeatures, err := s.adapter.HasActiveFeatureForMeter(ctx, input.Namespace, getMeter.ID)
+		if err != nil {
+			return fmt.Errorf("failed to check if meter has features [namespace=%s, key=%s]: %w",
+				input.Namespace, getMeter.Key, err)
+		}
 
-	if hasEntitlements {
-		return models.NewGenericConflictError(
-			fmt.Errorf("meter has active entitlements and cannot be deleted"),
-		)
-	}
+		if hasFeatures {
+			return models.NewGenericConflictError(
+				fmt.Errorf("meter has active features and cannot be deleted"),
+			)
+		}
 
-	// Delete the meter
-	err = s.adapter.DeleteMeter(ctx, getMeter)
-	if err != nil {
-		return err
-	}
+		// Check if the meter has active entitlements
+		hasEntitlements, err := s.adapter.HasEntitlementForMeter(ctx, getMeter.Namespace, getMeter.ID)
+		if err != nil {
+			return fmt.Errorf("failed to check if meter has entitlements [namespace=%s, key=%s]: %w",
+				input.Namespace, getMeter.Key, err)
+		}
 
-	// Get the deleted meter
-	deletedMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-		Namespace: input.Namespace,
-		IDOrSlug:  input.IDOrSlug,
+		if hasEntitlements {
+			return models.NewGenericConflictError(
+				fmt.Errorf("meter has active entitlements and cannot be deleted"),
+			)
+		}
+
+		// Delete the meter
+		err = s.adapter.DeleteMeter(ctx, getMeter)
+		if err != nil {
+			return err
+		}
+
+		// Get the deleted meter
+		deletedMeter, err := s.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+			Namespace: input.Namespace,
+			IDOrSlug:  input.IDOrSlug,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Publish the meter deleted event
+		meterDeletedEvent := meter.NewMeterDeleteEvent(ctx, &deletedMeter)
+		if err := s.publisher.Publish(ctx, meterDeletedEvent); err != nil {
+			return fmt.Errorf("failed to publish meter deleted event: %w", err)
+		}
+
+		return nil
 	})
-	if err != nil {
-		return err
-	}
-
-	// Publish the meter deleted event
-	meterDeletedEvent := meter.NewMeterDeleteEvent(ctx, &deletedMeter)
-	if err := s.publisher.Publish(ctx, meterDeletedEvent); err != nil {
-		return fmt.Errorf("failed to publish meter deleted event: %w", err)
-	}
-
-	return nil
 }
 
 // UpdateMeter updates a meter
