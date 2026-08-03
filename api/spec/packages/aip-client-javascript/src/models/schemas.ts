@@ -6548,7 +6548,7 @@ export const listCurrenciesQueryParams = z.object({
     .optional()
 
     .describe(
-      'Expand the currencies returned in the response. To include the active and scheduled cost bases add: expand=cost_basis',
+      'Expand the currencies returned in the response. To include the active and scheduled cost basis add: expand=cost_basis',
     ),
 })
 
@@ -13462,7 +13462,7 @@ export const listCurrenciesQueryParamsWire = z.object({
     .optional()
 
     .describe(
-      'Expand the currencies returned in the response. To include the active and scheduled cost bases add: expand=cost_basis',
+      'Expand the currencies returned in the response. To include the active and scheduled cost basis add: expand=cost_basis',
     ),
 })
 
