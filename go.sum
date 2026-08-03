@@ -399,10 +399,10 @@ github.com/redis/go-redis/extra/redisotel/v9 v9.21.0 h1:36qq3rbF2If2CP0zGHHF8o/4
 github.com/redis/go-redis/extra/redisotel/v9 v9.21.0/go.mod h1:7y2cVB/LXXLHqHOO2jCVzBqimIQk1w7Rp9WSpyVY/o8=
 github.com/redis/go-redis/v9 v9.21.0 h1:FPBE4hhbAke+TLmcY3WkpbDffJEomdqPn3HYiqAtL9E=
 github.com/redis/go-redis/v9 v9.21.0/go.mod h1:v/M13XI1PVCDcm01VtPFOADfZtHf8YW3baQf57KlIkA=
-github.com/rickb777/expect v1.3.1 h1:NKj8dYe2x87zS1qeXQNxlJn0kVomAurfPSJ7yCcY5Y4=
-github.com/rickb777/expect v1.3.1/go.mod h1:7BwvmOo4MFlhvMGD8CH/qL4VKnepo7/pzgqGOhv3kGc=
-github.com/rickb777/period v1.0.29 h1:sv5Sl/S6f3wwI5MZX9Y9zTW5toNmPJudM95Q8o5bbzA=
-github.com/rickb777/period v1.0.29/go.mod h1:9TMPqV7gSgEXdS1HCeghYFIRdK2Rbm6T/DdJ9D2Pdbo=
+github.com/rickb777/expect v1.3.2 h1:kJYjVEL7mWF06mckPWAe2j5fiTdfP1/opUwuGbg+V98=
+github.com/rickb777/expect v1.3.2/go.mod h1:PnKIXmYP9Eo+ZhiFoGSQrmyvIgubFw7hD/4SaKo0mdc=
+github.com/rickb777/period v1.0.30 h1:4/Yz1LrJaZDE7m06JL9vBB6Y0rGIQ4+ba3WzO9JrqLU=
+github.com/rickb777/period v1.0.30/go.mod h1:q2LXUGNiFEYObkgQwtPmMFv9q8yQhCb3AYzyoe/sFVM=
 github.com/rickb777/plural/v2 v2.1.0 h1:2TsGzyoTSRnXPsyEV3j2fET9s8nz6ThEXlBXxg6q7vY=
 github.com/rickb777/plural/v2 v2.1.0/go.mod h1:VQ7T01f3Xi9EqnIE0vMBw3351Bj2xWVle4TOccdlB7I=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
