@@ -478,6 +478,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "grant_balances", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "usage", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "usage_snapshot", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "balance", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "overage", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "at", Type: field.TypeTime},
@@ -492,7 +493,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "balance_snapshots_entitlements_balance_snapshot",
-				Columns:    []*schema.Column{BalanceSnapshotsColumns[11]},
+				Columns:    []*schema.Column{BalanceSnapshotsColumns[12]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -506,7 +507,7 @@ var (
 			{
 				Name:    "balancesnapshot_namespace_owner_id_at",
 				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[11], BalanceSnapshotsColumns[9]},
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[12], BalanceSnapshotsColumns[10]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},

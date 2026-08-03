@@ -35,6 +35,8 @@ type BalanceSnapshot struct {
 	GrantBalances balance.Map `json:"grant_balances,omitempty"`
 	// Usage holds the value of the "usage" field.
 	Usage *balance.SnapshottedUsage `json:"usage,omitempty"`
+	// UsageSnapshot holds the value of the "usage_snapshot" field.
+	UsageSnapshot *balance.UsageSnapshot `json:"usage_snapshot,omitempty"`
 	// Balance holds the value of the "balance" field.
 	Balance float64 `json:"balance,omitempty"`
 	// Overage holds the value of the "overage" field.
@@ -74,7 +76,7 @@ func (*BalanceSnapshot) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case balancesnapshot.FieldGrantBalances, balancesnapshot.FieldUsage:
+		case balancesnapshot.FieldGrantBalances, balancesnapshot.FieldUsage, balancesnapshot.FieldUsageSnapshot:
 			values[i] = new([]byte)
 		case balancesnapshot.FieldBalance, balancesnapshot.FieldOverage:
 			values[i] = new(sql.NullFloat64)
@@ -152,6 +154,14 @@ func (_m *BalanceSnapshot) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.Usage); err != nil {
 					return fmt.Errorf("unmarshal field usage: %w", err)
+				}
+			}
+		case balancesnapshot.FieldUsageSnapshot:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field usage_snapshot", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.UsageSnapshot); err != nil {
+					return fmt.Errorf("unmarshal field usage_snapshot: %w", err)
 				}
 			}
 		case balancesnapshot.FieldBalance:
@@ -241,6 +251,9 @@ func (_m *BalanceSnapshot) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("usage=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Usage))
+	builder.WriteString(", ")
+	builder.WriteString("usage_snapshot=")
+	builder.WriteString(fmt.Sprintf("%v", _m.UsageSnapshot))
 	builder.WriteString(", ")
 	builder.WriteString("balance=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Balance))

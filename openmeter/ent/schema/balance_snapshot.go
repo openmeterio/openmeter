@@ -32,7 +32,12 @@ func (BalanceSnapshot) Fields() []ent.Field {
 		field.JSON("grant_balances", balance.Map{}).Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "jsonb",
 		}),
+		// usage stores the legacy Since-relative representation during the
+		// rolling migration to complete usage-period snapshots.
 		field.JSON("usage", &balance.SnapshottedUsage{}).Immutable().Optional().SchemaType(map[string]string{
+			dialect.Postgres: "jsonb",
+		}),
+		field.JSON("usage_snapshot", &balance.UsageSnapshot{}).Immutable().Optional().SchemaType(map[string]string{
 			dialect.Postgres: "jsonb",
 		}),
 		field.Float("balance").Immutable().SchemaType(map[string]string{
