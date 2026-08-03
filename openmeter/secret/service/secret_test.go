@@ -230,7 +230,7 @@ func TestGetAppSecretCaching(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				_, err := service.GetAppSecret(context.Background(), secretID)
+				_, err := service.GetAppSecret(t.Context(), secretID)
 				require.NoError(t, err)
 			}()
 		}
@@ -272,7 +272,7 @@ func TestGetAppSecretCaching(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			_, err := service.GetAppSecret(context.Background(), secretID)
+			_, err := service.GetAppSecret(t.Context(), secretID)
 			require.NoError(t, err)
 		}()
 
@@ -281,7 +281,7 @@ func TestGetAppSecretCaching(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			_, err := service.UpdateAppSecret(context.Background(), secretentity.UpdateAppSecretInput{
+			_, err := service.UpdateAppSecret(t.Context(), secretentity.UpdateAppSecretInput{
 				AppID:    secretID.AppID,
 				SecretID: secretID,
 				Key:      secretID.Key,
@@ -298,7 +298,7 @@ func TestGetAppSecretCaching(t *testing.T) {
 		close(releaseFetch)
 		wg.Wait()
 
-		got, err := service.GetAppSecret(context.Background(), secretID)
+		got, err := service.GetAppSecret(t.Context(), secretID)
 		require.NoError(t, err)
 		require.Equal(t, "whsec_new", got.Value)
 	})
