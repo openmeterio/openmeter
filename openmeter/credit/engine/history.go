@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"time"
 
@@ -16,7 +17,7 @@ type SegmentTerminationReason struct {
 	PriorityChange bool
 	Recurrence     []string // Grant IDs
 	UsageReset     bool
-	// Rollover marks grant balance rollover followed by settlement of preserved overage.
+	// Rollover marks grant balance rollover followed by preserved overage burn.
 	Rollover bool
 }
 
@@ -45,6 +46,30 @@ type GrantUsage struct {
 	TerminationReason GrantUsageTerminationReason
 }
 
+type GrantUsages []GrantUsage
+
+func (u GrantUsages) Sum() alpacadecimal.Decimal {
+	total := alpacadecimal.NewFromFloat(0)
+	for _, usage := range u {
+		total = total.Add(alpacadecimal.NewFromFloat(usage.Usage))
+	}
+
+	return total
+}
+
+func validateStartingSnapshot(snapshot balance.Snapshot) error {
+	if snapshot.UsageSnapshot == nil {
+		return fmt.Errorf("starting snapshot usage snapshot is missing")
+	}
+
+	totalGrantUsage := snapshot.UsageSnapshot.TotalGrantUsage
+	if totalGrantUsage < 0 || math.IsNaN(totalGrantUsage) || math.IsInf(totalGrantUsage, 0) {
+		return fmt.Errorf("starting snapshot total grant usage must be a finite non-negative number, got %v", totalGrantUsage)
+	}
+
+	return nil
+}
+
 // GrantBurnDownHistorySegment represents the smallest segment of grant usage which we store and calculate.
 //
 // A non-rollover segment represents a period of time in which:
@@ -54,7 +79,7 @@ type GrantUsage struct {
 //
 // A rollover segment is an instantaneous reset transition with no metered usage.
 // Its starting balance is the rolled-over grant balance, and its grant usages
-// capture settlement of overage preserved from the previous usage period.
+// capture preserved overage burnt from grants in the new usage period.
 //
 // It is not necessarily the largest such segment.
 type GrantBurnDownHistorySegment struct {
@@ -64,7 +89,7 @@ type GrantBurnDownHistorySegment struct {
 	TotalUsage         float64                  // Total usage of the feature in the Period
 	OverageAtStart     float64                  // Usage beyond what could be burnt down from the grants in the previous segment (if any)
 	Overage            float64                  // Usage beyond what cloud be burnt down from the grants
-	GrantUsages        []GrantUsage             // Grant usages in the segment order by grant priority
+	GrantUsages        GrantUsages              // Grant usages in the segment order by grant priority
 }
 
 // Returns GrantBalanceMap at the end of the segment
@@ -79,6 +104,10 @@ func (s GrantBurnDownHistorySegment) ApplyUsage() balance.Map {
 // NewGrantBurnDownHistory creates a history anchored to startingSnapshot.
 // Segments must continuously cover time beginning at the snapshot.
 func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment, startingSnapshot balance.Snapshot) (GrantBurnDownHistory, error) {
+	if err := validateStartingSnapshot(startingSnapshot); err != nil {
+		return GrantBurnDownHistory{}, err
+	}
+
 	s := make([]GrantBurnDownHistorySegment, len(segments))
 	copy(s, segments)
 
@@ -156,6 +185,8 @@ func (g *GrantBurnDownHistory) getSnapshotAtStartOfSegment(segmentIndex int) bal
 	segment := g.segments[segmentIndex]
 	snapshot := g.startingSnapshot.Clone()
 	snapshot.Usage = g.getUsageInPeriodUntilSegment(segmentIndex)
+	usageSnapshot := g.getUsageSnapshotAtStartOfSegment(segmentIndex)
+	snapshot.UsageSnapshot = &usageSnapshot
 	snapshot.Overage = segment.OverageAtStart
 	snapshot.Balances = segment.BalanceAtStart.Clone()
 	snapshot.At = segment.From
@@ -163,17 +194,28 @@ func (g *GrantBurnDownHistory) getSnapshotAtStartOfSegment(segmentIndex int) bal
 	return snapshot
 }
 
-// GetUsageInPeriodUntilSegment returns the SnapshottedUsage at the start of the given segment
-func (g *GrantBurnDownHistory) GetUsageInPeriodUntilSegment(segmentIndex int) (balance.SnapshottedUsage, error) {
-	if segmentIndex < 0 || segmentIndex >= len(g.segments) {
-		return balance.SnapshottedUsage{}, fmt.Errorf("segment index %d out of bounds", segmentIndex)
+func (g *GrantBurnDownHistory) getUsageSnapshotAtStartOfSegment(segmentIndex int) balance.UsageSnapshot {
+	usageSnapshot := *g.startingSnapshot.UsageSnapshot
+
+	for i := 0; i < segmentIndex; i++ {
+		segment := g.segments[i]
+		if segment.TerminationReasons.UsageReset {
+			usageSnapshot = balance.UsageSnapshot{}
+			continue
+		}
+
+		usageSnapshot.Usage += segment.TotalUsage
+		usageSnapshot.TotalGrantUsage = alpacadecimal.NewFromFloat(usageSnapshot.TotalGrantUsage).
+			Add(segment.GrantUsages.Sum()).
+			InexactFloat64()
 	}
 
-	return g.getUsageInPeriodUntilSegment(segmentIndex), nil
+	return usageSnapshot
 }
 
 func (g *GrantBurnDownHistory) getUsageInPeriodUntilSegment(segmentIndex int) balance.SnapshottedUsage {
-	// Let's find the segment of the last reset before the provided segment
+	// Reconstruct the legacy, Since-relative usage representation while it is
+	// still required for persistence compatibility.
 	lastResetSegmentIndex := -1
 	for i := 0; i < segmentIndex; i++ {
 		if g.segments[i].TerminationReasons.UsageReset {
@@ -181,7 +223,6 @@ func (g *GrantBurnDownHistory) getUsageInPeriodUntilSegment(segmentIndex int) ba
 		}
 	}
 
-	// Now let's build a starting SnapshottedUsage
 	usage := g.startingSnapshot.Usage
 
 	if lastResetSegmentIndex != -1 {
@@ -192,7 +233,6 @@ func (g *GrantBurnDownHistory) getUsageInPeriodUntilSegment(segmentIndex int) ba
 		}
 	}
 
-	// Now we need to add up the usage in all segments between the starting usage and the provided segment
 	for i := lastResetSegmentIndex + 1; i < segmentIndex; i++ {
 		usage.Usage += g.segments[i].TotalUsage
 	}
@@ -243,14 +283,13 @@ func (g GrantBurnDownHistory) TotalGrantUsage() alpacadecimal.Decimal {
 	total := alpacadecimal.NewFromFloat(0)
 
 	for _, seg := range g.segments {
-		for _, usage := range seg.GrantUsages {
-			total = total.Add(alpacadecimal.NewFromFloat(usage.Usage))
-		}
+		total = total.Add(seg.GrantUsages.Sum())
 	}
 
 	return total
 }
 
+// usageAtReset creates the legacy usage representation for a reset boundary.
 func usageAtReset(at time.Time) balance.SnapshottedUsage {
 	return balance.SnapshottedUsage{
 		Since: at,

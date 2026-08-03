@@ -19,7 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
+func TestRunResult_SnapshotUsage(t *testing.T) {
 	t1, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
 	assert.NoError(t, err)
 	meterSlug := "meter-1"
@@ -78,6 +78,7 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -89,7 +90,9 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 				)
 
 				require.NoError(t, err)
-				assert.Equal(t, 100.0, res.TotalAvailableGrantAmountAtLastPeriod())
+				require.NotNil(t, res.Snapshot.UsageSnapshot)
+				assert.Equal(t, 0.0, res.Snapshot.UsageSnapshot.TotalGrantUsage)
+				assert.Equal(t, 100.0, res.Snapshot.UsageSnapshot.TotalGrantUsage+res.Snapshot.Balance())
 			},
 		},
 		{
@@ -113,6 +116,7 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -124,7 +128,9 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 				)
 
 				require.NoError(t, err)
-				assert.Equal(t, 100.0, res.TotalAvailableGrantAmountAtLastPeriod())
+				require.NotNil(t, res.Snapshot.UsageSnapshot)
+				assert.Equal(t, 10.0, res.Snapshot.UsageSnapshot.TotalGrantUsage)
+				assert.Equal(t, 100.0, res.Snapshot.UsageSnapshot.TotalGrantUsage+res.Snapshot.Balance())
 			},
 		},
 		{
@@ -139,16 +145,19 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{},
 						StartingSnapshot: balance.Snapshot{
-							Balances: balance.Map{},
-							Overage:  0,
-							At:       t1,
+							UsageSnapshot: zeroUsageSnapshot(),
+							Balances:      balance.Map{},
+							Overage:       0,
+							At:            t1,
 						},
 						Until: t1.AddDate(0, 0, 1),
 					},
 				)
 
 				require.NoError(t, err)
-				assert.Equal(t, 0.0, res.TotalAvailableGrantAmountAtLastPeriod())
+				require.NotNil(t, res.Snapshot.UsageSnapshot)
+				assert.Equal(t, 0.0, res.Snapshot.UsageSnapshot.TotalGrantUsage)
+				assert.Equal(t, 0.0, res.Snapshot.UsageSnapshot.TotalGrantUsage+res.Snapshot.Balance())
 			},
 		},
 		{
@@ -177,6 +186,7 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -189,7 +199,9 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 				)
 
 				require.NoError(t, err)
-				assert.Equal(t, 0.0, res.TotalAvailableGrantAmountAtLastPeriod())
+				require.NotNil(t, res.Snapshot.UsageSnapshot)
+				assert.Equal(t, 0.0, res.Snapshot.UsageSnapshot.TotalGrantUsage)
+				assert.Equal(t, 0.0, res.Snapshot.UsageSnapshot.TotalGrantUsage+res.Snapshot.Balance())
 			},
 		},
 		{
@@ -216,6 +228,7 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -227,9 +240,12 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 				)
 
 				require.NoError(t, err)
-				assert.Equal(t, 10.0, res.TotalAvailableGrantAmountAtLastPeriod())
+				require.NotNil(t, res.Snapshot.UsageSnapshot)
+				assert.Equal(t, 10.0, res.Snapshot.UsageSnapshot.TotalGrantUsage)
+				totalAvailableGrantAmount := res.Snapshot.UsageSnapshot.TotalGrantUsage + res.Snapshot.Balance()
+				assert.Equal(t, 10.0, totalAvailableGrantAmount)
 				// When we have overage this holds true
-				assert.Equal(t, res.TotalAvailableGrantAmountAtLastPeriod(), res.Snapshot.Balance()+res.Snapshot.Usage.Usage-res.Snapshot.Overage, "balance %s, usage %s, overage %s", res.Snapshot.Balance(), res.Snapshot.Usage.Usage, res.Snapshot.Overage)
+				assert.Equal(t, totalAvailableGrantAmount, res.Snapshot.Balance()+res.Snapshot.Usage.Usage-res.Snapshot.Overage, "balance %s, usage %s, overage %s", res.Snapshot.Balance(), res.Snapshot.Usage.Usage, res.Snapshot.Overage)
 			},
 		},
 		{
@@ -261,6 +277,7 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -272,9 +289,12 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 				)
 
 				require.NoError(t, err)
-				assert.Equal(t, 370.0, res1.TotalAvailableGrantAmountAtLastPeriod())
+				require.NotNil(t, res1.Snapshot.UsageSnapshot)
+				assert.Equal(t, 270.0, res1.Snapshot.UsageSnapshot.TotalGrantUsage)
+				totalAvailableGrantAmount := res1.Snapshot.UsageSnapshot.TotalGrantUsage + res1.Snapshot.Balance()
+				assert.Equal(t, 370.0, totalAvailableGrantAmount)
 				// Should be true cause all usage was covered
-				assert.Equal(t, res1.TotalAvailableGrantAmountAtLastPeriod(), res1.Snapshot.Balance()+res1.Snapshot.Usage.Usage, "balance %s, usage %s", res1.Snapshot.Balance(), res1.Snapshot.Usage.Usage)
+				assert.Equal(t, totalAvailableGrantAmount, res1.Snapshot.Balance()+res1.Snapshot.Usage.Usage, "balance %s, usage %s", res1.Snapshot.Balance(), res1.Snapshot.Usage.Usage)
 
 				res2, err := eng.Run(
 					t.Context(),
@@ -282,6 +302,7 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -294,9 +315,12 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 				)
 
 				require.NoError(t, err)
-				assert.Equal(t, 370.0, res2.TotalAvailableGrantAmountAtLastPeriod())
+				require.NotNil(t, res2.Snapshot.UsageSnapshot)
+				assert.Equal(t, 270.0, res2.Snapshot.UsageSnapshot.TotalGrantUsage)
+				totalAvailableGrantAmount = res2.Snapshot.UsageSnapshot.TotalGrantUsage + res2.Snapshot.Balance()
+				assert.Equal(t, 370.0, totalAvailableGrantAmount)
 				// Should be true cause all usage was covered
-				assert.Equal(t, res2.TotalAvailableGrantAmountAtLastPeriod(), res2.Snapshot.Balance()+res2.Snapshot.Usage.Usage, "balance %s, usage %s", res2.Snapshot.Balance(), res2.Snapshot.Usage.Usage)
+				assert.Equal(t, totalAvailableGrantAmount, res2.Snapshot.Balance()+res2.Snapshot.Usage.Usage, "balance %s, usage %s", res2.Snapshot.Balance(), res2.Snapshot.Usage.Usage)
 
 				res3, err := eng.Run(
 					t.Context(),
@@ -304,6 +328,7 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -316,10 +341,13 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 				)
 
 				require.NoError(t, err)
+				require.NotNil(t, res3.Snapshot.UsageSnapshot)
+				assert.Equal(t, 270.0, res3.Snapshot.UsageSnapshot.TotalGrantUsage)
 				// So we have 270 used + 20 still available in the period
-				assert.Equal(t, 290.0, res3.TotalAvailableGrantAmountAtLastPeriod())
+				totalAvailableGrantAmount = res3.Snapshot.UsageSnapshot.TotalGrantUsage + res3.Snapshot.Balance()
+				assert.Equal(t, 290.0, totalAvailableGrantAmount)
 				// Should be true cause all usage was covered
-				assert.Equal(t, res3.TotalAvailableGrantAmountAtLastPeriod(), res3.Snapshot.Balance()+res3.Snapshot.Usage.Usage, "balance %s, usage %s", res3.Snapshot.Balance(), res3.Snapshot.Usage.Usage)
+				assert.Equal(t, totalAvailableGrantAmount, res3.Snapshot.Balance()+res3.Snapshot.Usage.Usage, "balance %s, usage %s", res3.Snapshot.Balance(), res3.Snapshot.Usage.Usage)
 
 				res4, err := eng.Run(
 					t.Context(),
@@ -327,6 +355,7 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -338,10 +367,13 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 				)
 
 				require.NoError(t, err)
-				// Going an extra day further it's still 280 used up + fresh 100 available as we're on the boundary
-				assert.Equal(t, 370.0, res4.TotalAvailableGrantAmountAtLastPeriod())
+				require.NotNil(t, res4.Snapshot.UsageSnapshot)
+				assert.Equal(t, 270.0, res4.Snapshot.UsageSnapshot.TotalGrantUsage)
+				// Going an extra day further it's still 270 used up + fresh 100 available as we're on the boundary
+				totalAvailableGrantAmount = res4.Snapshot.UsageSnapshot.TotalGrantUsage + res4.Snapshot.Balance()
+				assert.Equal(t, 370.0, totalAvailableGrantAmount)
 				// Should be true cause all usage was covered
-				assert.Equal(t, res4.TotalAvailableGrantAmountAtLastPeriod(), res4.Snapshot.Balance()+res4.Snapshot.Usage.Usage, "balance %s, usage %s", res4.Snapshot.Balance(), res4.Snapshot.Usage.Usage)
+				assert.Equal(t, totalAvailableGrantAmount, res4.Snapshot.Balance()+res4.Snapshot.Usage.Usage, "balance %s, usage %s", res4.Snapshot.Balance(), res4.Snapshot.Usage.Usage)
 			},
 		},
 		{
@@ -365,6 +397,7 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -377,7 +410,9 @@ func TestRunResult_TotalAvailableGrantAmount(t *testing.T) {
 
 				require.NoError(t, err)
 				// We had 100 total grants in current period
-				assert.Equal(t, 100.0, res.TotalAvailableGrantAmountAtLastPeriod())
+				require.NotNil(t, res.Snapshot.UsageSnapshot)
+				assert.Equal(t, 100.0, res.Snapshot.UsageSnapshot.TotalGrantUsage)
+				assert.Equal(t, 100.0, res.Snapshot.UsageSnapshot.TotalGrantUsage+res.Snapshot.Balance())
 				assert.Equal(t, 0.0, res.Snapshot.Balance())
 				assert.Equal(t, 0.0, res.Snapshot.Usage.Usage)
 				assert.Equal(t, 0.0, res.Snapshot.Overage)
