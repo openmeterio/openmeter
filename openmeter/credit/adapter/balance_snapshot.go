@@ -66,6 +66,8 @@ func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedI
 	return entutils.TransactingRepoWithNoValue(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) error {
 		commands := make([]*db.BalanceSnapshotCreate, 0, len(balances))
 		for _, balance := range balances {
+			// Keep writing the legacy usage representation for compatibility
+			// with old readers during the rolling migration.
 			command := rep.db.BalanceSnapshot.Create().
 				SetNamespace(owner.Namespace).
 				SetOwnerID(owner.ID).

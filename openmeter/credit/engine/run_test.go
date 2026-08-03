@@ -72,6 +72,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 100.0,
 							},
@@ -88,6 +89,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 100.0,
 							},
@@ -111,9 +113,10 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{},
 						StartingSnapshot: balance.Snapshot{
-							Balances: balance.Map{},
-							Overage:  0,
-							At:       t1,
+							UsageSnapshot: zeroUsageSnapshot(),
+							Balances:      balance.Map{},
+							Overage:       0,
+							At:            t1,
 						},
 						Until: t1.AddDate(0, 0, 30),
 					})
@@ -146,6 +149,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								grant1.ID: 100.0,
 							},
@@ -172,6 +176,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								grant1.ID: 100.0,
 							},
@@ -196,6 +201,9 @@ func TestEngine(t *testing.T) {
 					Since: prevPeriodStart,
 					Usage: 10.0,
 				}
+				usageSnapshot := &balance.UsageSnapshot{
+					Usage: u.Usage,
+				}
 
 				res, err := eng.Run(
 					context.Background(),
@@ -203,7 +211,8 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{grant1},
 						StartingSnapshot: balance.Snapshot{
-							Usage: u,
+							UsageSnapshot: usageSnapshot,
+							Usage:         u,
 							Balances: balance.Map{
 								grant1.ID: 100.0,
 							},
@@ -215,7 +224,8 @@ func TestEngine(t *testing.T) {
 				)
 				assert.NoError(t, err)
 				assert.Equal(t, balance.Snapshot{
-					Usage: u, // Should pass through the original usage info
+					Usage:         u, // Should pass through the original usage info
+					UsageSnapshot: usageSnapshot,
 					Balances: balance.Map{
 						grant1.ID: 100.0,
 					},
@@ -234,6 +244,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{grant1},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								grant1.ID: 100.0,
 							},
@@ -261,6 +272,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -289,6 +301,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -319,6 +332,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -354,6 +368,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -388,6 +403,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -417,6 +433,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 100.0,
 							},
@@ -449,6 +466,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g.ID: 0.0,
 							},
@@ -490,6 +508,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 100.0,
 								g2.ID: 100.0,
@@ -526,6 +545,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g2, g1},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 100.0,
 								g2.ID: 100.0,
@@ -562,6 +582,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g2, g1},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 100.0,
 								g2.ID: 100.0,
@@ -624,9 +645,10 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: grants,
 						StartingSnapshot: balance.Snapshot{
-							Balances: bm,
-							Overage:  0,
-							At:       t1,
+							UsageSnapshot: zeroUsageSnapshot(),
+							Balances:      bm,
+							Overage:       0,
+							At:            t1,
 						},
 						Until: t1.AddDate(0, 0, 1),
 					})
@@ -660,6 +682,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 100.0,
 							},
@@ -708,6 +731,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 80.0, // due to use before start
 								g2.ID: 100.0,
@@ -759,6 +783,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 80.0, // due to use before start
 								g2.ID: 100.0,
@@ -807,6 +832,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 100.0,
 								g2.ID: 0.0,
@@ -868,6 +894,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1, g2},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 80.0, // due to use before start
 								g2.ID: 100.0,
@@ -936,6 +963,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1, g2, g3},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 80.0, // due to use before start
 								g2.ID: 100.0,
@@ -1036,6 +1064,7 @@ func TestEngine(t *testing.T) {
 						Meter:  mm,
 						Grants: []grant.Grant{g1, g2, g3, g4},
 						StartingSnapshot: balance.Snapshot{
+							UsageSnapshot: zeroUsageSnapshot(),
 							Balances: balance.Map{
 								g1.ID: 50.0,
 								g2.ID: 100.0,
@@ -1055,6 +1084,15 @@ func TestEngine(t *testing.T) {
 				// Let's start with asserting the ending balance
 				// 175 (active total at end) - 10 (last usage value) = 165
 				assert.Equal(t, 165.0, res.Snapshot.Balance(), "received following result %s", string(resJSON))
+
+				// Preserve the existing usage-period accounting semantics: usage and
+				// grant usage accumulate across engine phases, including for LATEST.
+				require.NotNil(t, res.Snapshot.UsageSnapshot)
+				assert.Equal(t, balance.UsageSnapshot{
+					Usage:           25,
+					TotalGrantUsage: 25,
+				}, *res.Snapshot.UsageSnapshot)
+				assert.Equal(t, 190.0, res.Snapshot.UsageSnapshot.TotalGrantUsage+res.Snapshot.Balance())
 
 				// Now let's assert the history
 				// We should have 2 segments: start -> 1h, 1h -> end

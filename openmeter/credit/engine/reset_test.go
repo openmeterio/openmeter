@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
@@ -79,6 +80,7 @@ func TestReset(t *testing.T) {
 				Meter:  meter,
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
+					UsageSnapshot: zeroUsageSnapshot(),
 					Usage: balance.SnapshottedUsage{
 						Since: t1.AddDate(0, 0, -1), // Last "reset time", outside this period, arbitrary
 						Usage: 0.0,
@@ -129,7 +131,7 @@ func TestReset(t *testing.T) {
 		assert.Empty(t, res.History.Segments()[1].GrantUsages)
 		assert.Equal(t, 50.0, res.History.Segments()[1].ApplyUsage().Balance())
 
-		// The final segment starts from the settled rollover balance.
+		// The final segment starts after grant balance rollover and overage burn.
 		assert.False(t, res.History.Segments()[2].TerminationReasons.Rollover)
 		assert.Equal(t, 50.0, res.History.Segments()[2].BalanceAtStart.Balance())
 		assert.Equal(t, 0.0, res.History.Segments()[2].OverageAtStart)
@@ -152,6 +154,7 @@ func TestReset(t *testing.T) {
 				Meter:  meter,
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
+					UsageSnapshot: zeroUsageSnapshot(),
 					Balances: balance.Map{
 						g1.ID: 100.0,
 					},
@@ -169,7 +172,7 @@ func TestReset(t *testing.T) {
 
 		// The grant should be rolled over:
 		assert.Equal(t, 40.0, res.Snapshot.Balances[grant1.ID])
-		assert.Equal(t, 50.0, res.TotalAvailableGrantAmountAtLastPeriod())
+		assert.Equal(t, 50.0, res.Snapshot.UsageSnapshot.TotalGrantUsage+res.Snapshot.Balance())
 
 		// History should have a usage segment before the reset, the rollover
 		// transition, and a usage segment after the reset.
@@ -184,7 +187,7 @@ func TestReset(t *testing.T) {
 		// It should end with a reset
 		assert.True(t, res.History.Segments()[0].TerminationReasons.UsageReset)
 
-		// The rollover transition starts with the rolled balance and settles
+		// The rollover transition starts with the rolled balance and burns
 		// overage preserved from the previous usage period.
 		assert.True(t, res.History.Segments()[1].TerminationReasons.Rollover)
 		assert.Equal(t, t1.Add(time.Hour*5), res.History.Segments()[1].From)
@@ -193,7 +196,7 @@ func TestReset(t *testing.T) {
 		assert.Equal(t, 10.0, res.History.Segments()[1].OverageAtStart)
 		assert.Equal(t, 0.0, res.History.Segments()[1].TotalUsage)
 		assert.Equal(t, 0.0, res.History.Segments()[1].Overage)
-		assert.Equal(t, []engine.GrantUsage{
+		assert.Equal(t, engine.GrantUsages{
 			{
 				GrantID:           g1.ID,
 				Usage:             10.0,
@@ -227,6 +230,9 @@ func TestReset(t *testing.T) {
 				Meter:  meter,
 				Grants: []grant.Grant{grant1, g2},
 				StartingSnapshot: balance.Snapshot{
+					UsageSnapshot: &balance.UsageSnapshot{
+						Usage: u.Usage,
+					},
 					Usage: u,
 					Balances: balance.Map{
 						grant1.ID: 100.0,
@@ -243,6 +249,8 @@ func TestReset(t *testing.T) {
 		// If there was no reset, should extend the starting snapshot with the current usage data
 		assert.Equal(t, 20.0, res.Snapshot.Usage.Usage) // 10 + 10
 		assert.Equal(t, u.Since, res.Snapshot.Usage.Since)
+		require.NotNil(t, res.Snapshot.UsageSnapshot)
+		assert.Equal(t, 20.0, res.Snapshot.UsageSnapshot.Usage)
 
 		// Should have 2 periods, start - g2, g2 - end
 		assert.Equal(t, 2, len(res.History.Segments()))
@@ -266,6 +274,7 @@ func TestReset(t *testing.T) {
 				Meter:  meter,
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
+					UsageSnapshot: zeroUsageSnapshot(),
 					Balances: balance.Map{
 						g1.ID: 100.0,
 					},
@@ -309,6 +318,7 @@ func TestReset(t *testing.T) {
 				Meter:  meter,
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
+					UsageSnapshot: zeroUsageSnapshot(),
 					Balances: balance.Map{
 						g1.ID: 100.0,
 					},
@@ -351,9 +361,10 @@ func TestReset(t *testing.T) {
 				Meter:  meter,
 				Grants: []grant.Grant{g1},
 				StartingSnapshot: balance.Snapshot{
-					Balances: balance.Map{g1.ID: 100.0},
-					Overage:  0,
-					At:       t1,
+					UsageSnapshot: zeroUsageSnapshot(),
+					Balances:      balance.Map{g1.ID: 100.0},
+					Overage:       0,
+					At:            t1,
 				},
 				Until:  t1.AddDate(0, 0, 1),
 				Resets: timeutil.NewSimpleTimeline([]time.Time{t1}),

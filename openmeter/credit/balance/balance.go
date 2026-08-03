@@ -7,7 +7,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 )
 
-func NewStartingMap(grants []grant.Grant, at time.Time) Map {
+// NewStartingSnapshot returns the complete zero-usage snapshot from which
+// measurement starts.
+func NewStartingSnapshot(grants []grant.Grant, at time.Time) Snapshot {
 	balances := make(Map)
 	for _, grant := range grants {
 		if grant.ActiveAt(at) {
@@ -16,7 +18,20 @@ func NewStartingMap(grants []grant.Grant, at time.Time) Map {
 			balances.Set(grant.ID, 0.0)
 		}
 	}
-	return balances
+
+	return Snapshot{
+		Usage: SnapshottedUsage{
+			Since: at,
+			Usage: 0,
+		},
+		UsageSnapshot: &UsageSnapshot{
+			Usage:           0,
+			TotalGrantUsage: 0,
+		},
+		Balances: balances,
+		Overage:  0,
+		At:       at,
+	}
 }
 
 // Represents a point in time balance of grants
@@ -69,11 +84,18 @@ func (g Map) ExactlyForGrants(grants []grant.Grant) bool {
 	return true
 }
 
+// SnapshottedUsage is the legacy usage representation whose value is relative
+// to an explicitly stored starting timestamp.
+//
+// Deprecated: use Snapshot.UsageSnapshot for complete usage-period state.
 type SnapshottedUsage struct {
 	Usage float64   `json:"usage"`
 	Since time.Time `json:"since"`
 }
 
+// IsZero reports whether the legacy usage representation is unset.
+//
+// Deprecated: only use this while reading legacy snapshots.
 func (s SnapshottedUsage) IsZero() bool {
 	return s.Usage == 0.0 && s.Since.IsZero()
 }
@@ -86,6 +108,9 @@ type UsageSnapshot struct {
 }
 
 type Snapshot struct {
+	// Usage is retained for compatibility with the legacy persistence shape.
+	//
+	// Deprecated: use UsageSnapshot for engine calculations.
 	Usage SnapshottedUsage
 	// UsageSnapshot is nil for snapshots created without complete usage-period
 	// state.
@@ -108,6 +133,10 @@ type Snapshot struct {
 func (s Snapshot) Clone() Snapshot {
 	cloned := s
 	cloned.Balances = s.Balances.Clone()
+	if s.UsageSnapshot != nil {
+		usageSnapshot := *s.UsageSnapshot
+		cloned.UsageSnapshot = &usageSnapshot
+	}
 	if s.UnitConfig != nil {
 		unitConfig := s.UnitConfig.Clone()
 		cloned.UnitConfig = &unitConfig

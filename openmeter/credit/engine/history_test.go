@@ -25,8 +25,12 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 		ConversionFactor: alpacadecimal.NewFromInt(2),
 	}
 	startingSnapshot := balance.Snapshot{
-		At:         start,
-		Usage:      usageAtStart,
+		At:    start,
+		Usage: usageAtStart,
+		UsageSnapshot: &balance.UsageSnapshot{
+			Usage:           usageAtStart.Usage,
+			TotalGrantUsage: 6,
+		},
 		UnitConfig: startingUnitConfig,
 	}
 
@@ -70,7 +74,7 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 		assert.Len(t, chunks[0].Segments(), 2)
 		assert.Equal(t, 30.0, chunks[0].TotalGrantUsage().InexactFloat64())
 
-		assertChunkSnapshotAtStart(t, chunks[0], usageAtStart, startingUnitConfig)
+		assertChunkSnapshotAtStart(t, chunks[0], usageAtStart, 6, startingUnitConfig)
 	})
 
 	t.Run("History is chunked after reset segments", func(t *testing.T) {
@@ -88,21 +92,21 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 
 		assert.Len(t, chunks[0].Segments(), 2)
 		assert.Equal(t, 30.0, chunks[0].TotalGrantUsage().InexactFloat64())
-		assertChunkSnapshotAtStart(t, chunks[0], usageAtStart, startingUnitConfig)
+		assertChunkSnapshotAtStart(t, chunks[0], usageAtStart, 6, startingUnitConfig)
 
 		assert.Len(t, chunks[1].Segments(), 2)
 		assert.Equal(t, 70.0, chunks[1].TotalGrantUsage().InexactFloat64())
 		assertChunkSnapshotAtStart(t, chunks[1], balance.SnapshottedUsage{
 			Since: start.Add(2 * time.Hour),
 			Usage: 0,
-		}, startingUnitConfig)
+		}, 0, startingUnitConfig)
 
 		assert.Len(t, chunks[2].Segments(), 1)
 		assert.Equal(t, 50.0, chunks[2].TotalGrantUsage().InexactFloat64())
 		assertChunkSnapshotAtStart(t, chunks[2], balance.SnapshottedUsage{
 			Since: start.Add(4 * time.Hour),
 			Usage: 0,
-		}, startingUnitConfig)
+		}, 0, startingUnitConfig)
 	})
 
 	t.Run("Final reset does not create empty trailing chunk", func(t *testing.T) {
@@ -151,7 +155,14 @@ func TestGrantBurnDownHistory_ChunkByResets(t *testing.T) {
 		assertChunkSnapshotAtStart(t, chunks[1], balance.SnapshottedUsage{
 			Since: resetAt,
 			Usage: 0,
-		}, startingUnitConfig)
+		}, 0, startingUnitConfig)
+
+		snapshotAfterRollover, err := history.GetSnapshotAtStartOfSegment(2)
+		require.NoError(t, err)
+		require.NotNil(t, snapshotAfterRollover.UsageSnapshot)
+		assert.Equal(t, balance.UsageSnapshot{
+			TotalGrantUsage: 5,
+		}, *snapshotAfterRollover.UsageSnapshot)
 	})
 }
 
@@ -175,7 +186,7 @@ func TestGrantBurnDownHistory_RolloverPrecedesUsageAtSameTime(t *testing.T) {
 
 	history, err := engine.NewGrantBurnDownHistory(
 		[]engine.GrantBurnDownHistorySegment{usageSegment, rolloverSegment},
-		balance.Snapshot{At: at},
+		balance.Snapshot{At: at, UsageSnapshot: zeroUsageSnapshot()},
 	)
 	require.NoError(t, err)
 	require.Len(t, history.Segments(), 2)
@@ -186,9 +197,10 @@ func TestGrantBurnDownHistory_RolloverPrecedesUsageAtSameTime(t *testing.T) {
 func TestNewGrantBurnDownHistory_ValidatesAnchorAndContinuity(t *testing.T) {
 	at := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	startingSnapshot := balance.Snapshot{
-		At:       at,
-		Balances: balance.Map{"grant-1": 100},
-		Overage:  5,
+		At:            at,
+		Balances:      balance.Map{"grant-1": 100},
+		Overage:       5,
+		UsageSnapshot: zeroUsageSnapshot(),
 	}
 	first := engine.GrantBurnDownHistorySegment{
 		ClosedPeriod: timeutil.ClosedPeriod{
@@ -218,6 +230,14 @@ func TestNewGrantBurnDownHistory_ValidatesAnchorAndContinuity(t *testing.T) {
 	t.Run("empty history", func(t *testing.T) {
 		_, err := engine.NewGrantBurnDownHistory(nil, startingSnapshot)
 		require.NoError(t, err)
+	})
+
+	t.Run("missing usage snapshot", func(t *testing.T) {
+		invalid := startingSnapshot
+		invalid.UsageSnapshot = nil
+
+		_, err := engine.NewGrantBurnDownHistory(nil, invalid)
+		require.ErrorContains(t, err, "usage snapshot is missing")
 	})
 
 	t.Run("first segment does not start at snapshot", func(t *testing.T) {
@@ -292,6 +312,7 @@ func assertChunkSnapshotAtStart(
 	t *testing.T,
 	history engine.GrantBurnDownHistory,
 	expectedUsage balance.SnapshottedUsage,
+	expectedTotalGrantUsage float64,
 	expectedUnitConfig *unitconfig.UnitConfig,
 ) {
 	t.Helper()
@@ -299,5 +320,10 @@ func assertChunkSnapshotAtStart(
 	snapshot, err := history.GetSnapshotAtStartOfSegment(0)
 	require.NoError(t, err)
 	assert.Equal(t, expectedUsage, snapshot.Usage)
+	require.NotNil(t, snapshot.UsageSnapshot)
+	assert.Equal(t, balance.UsageSnapshot{
+		Usage:           expectedUsage.Usage,
+		TotalGrantUsage: expectedTotalGrantUsage,
+	}, *snapshot.UsageSnapshot)
 	assert.True(t, expectedUnitConfig.Equal(snapshot.UnitConfig))
 }

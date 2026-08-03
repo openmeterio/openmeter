@@ -15,6 +15,10 @@ import (
 )
 
 func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
+	if err := validateStartingSnapshot(params.StartingSnapshot); err != nil {
+		return RunResult{}, err
+	}
+
 	resParams := params.Clone()
 
 	// Let's build the timeline
@@ -47,14 +51,6 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 	periods := timeline.GetClosedPeriods()
 
 	for idx, period := range periods {
-		// Let's reset the snapshot usage information as we're entering a new period (between resets)
-		if idx > 0 {
-			snapshot.Usage = balance.SnapshottedUsage{
-				Since: period.From,
-				Usage: 0.0,
-			}
-		}
-
 		// We need to find the grants that are relevant for this period.
 		// We do this filtering so that history isn't polluted with grants that are irrelevant.
 		relevantGrants := e.filterRelevantGrants(params.Grants, snapshot.Balances, period)
@@ -257,15 +253,25 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		return RunResult{}, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
 
+	totalUsage := history.TotalUsageInHistory()
+	usage := balance.SnapshottedUsage{
+		Since: params.StartingSnapshot.Usage.Since,
+		Usage: params.StartingSnapshot.Usage.Usage + totalUsage,
+	}
+	usageSnapshot := balance.UsageSnapshot{
+		Usage: params.StartingSnapshot.UsageSnapshot.Usage + totalUsage,
+		TotalGrantUsage: alpacadecimal.NewFromFloat(params.StartingSnapshot.UsageSnapshot.TotalGrantUsage).
+			Add(history.TotalGrantUsage()).
+			InexactFloat64(),
+	}
+
 	return RunResult{
 		Snapshot: balance.Snapshot{
-			Balances: balancesAtPhaseStart,
-			Overage:  overage,
-			At:       period.To,
-			Usage: balance.SnapshottedUsage{
-				Since: params.StartingSnapshot.Usage.Since,
-				Usage: params.StartingSnapshot.Usage.Usage + history.TotalUsageInHistory(),
-			},
+			Usage:         usage,
+			UsageSnapshot: &usageSnapshot,
+			Balances:      balancesAtPhaseStart,
+			Overage:       overage,
+			At:            period.To,
 		},
 		History: history,
 	}, nil
@@ -274,9 +280,9 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 // Burns down the grants of the priority sorted list. Manages overage.
 //
 // FIXME: calculations happen on inexact representations as float64, this can lead to rounding errors.
-func (m *engine) burnDownGrants(startingBalances balance.Map, prioritized []grant.Grant, usage float64) (balance.Map, []GrantUsage, float64) {
+func (m *engine) burnDownGrants(startingBalances balance.Map, prioritized []grant.Grant, usage float64) (balance.Map, GrantUsages, float64) {
 	balances := startingBalances.Clone()
-	uses := make([]GrantUsage, 0, len(prioritized))
+	uses := make(GrantUsages, 0, len(prioritized))
 	exactUsage := alpacadecimal.NewFromFloat(usage)
 
 	getFloat := func(d alpacadecimal.Decimal) float64 {
