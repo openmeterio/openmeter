@@ -34,6 +34,7 @@ type TestEnv interface {
 	Customer() customer.Service
 	Fixture() *Fixture
 	Secret() *MockSecretService
+	WebhookSecret() *MockSecretService
 	StripeClient() *StripeClientMock
 	StripeAppClient() *StripeAppClientMock
 	Close() error
@@ -48,6 +49,7 @@ type testEnv struct {
 	customer        customer.Service
 	fixture         *Fixture
 	secret          *MockSecretService
+	webhookSecret   *MockSecretService
 	stripeClient    *StripeClientMock
 	stripeAppClient *StripeAppClientMock
 
@@ -80,6 +82,10 @@ func (n testEnv) Fixture() *Fixture {
 
 func (n testEnv) Secret() *MockSecretService {
 	return n.secret
+}
+
+func (n testEnv) WebhookSecret() *MockSecretService {
+	return n.webhookSecret
 }
 
 func (n testEnv) StripeClient() *StripeClientMock {
@@ -125,6 +131,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create secret service mock: %w", err)
 	}
 
+	webhookSecretService, err := NewMockSecretService()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create webhook secret service mock: %w", err)
+	}
+
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{
 		Client: entClient,
@@ -156,10 +167,11 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	// App Stripe
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
-		Client:          entClient,
-		AppService:      appService,
-		CustomerService: customerService,
-		SecretService:   secretService,
+		Client:               entClient,
+		AppService:           appService,
+		CustomerService:      customerService,
+		SecretService:        secretService,
+		WebhookSecretService: webhookSecretService,
 		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
 			return stripeClientMock, nil
 		},
@@ -211,6 +223,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		customer:        customerService,
 		fixture:         NewFixture(appService, customerService, stripeClientMock, stripeAppClientMock),
 		secret:          secretService,
+		webhookSecret:   webhookSecretService,
 		closerFunc:      closerFunc,
 		stripeClient:    stripeClientMock,
 		stripeAppClient: stripeAppClientMock,

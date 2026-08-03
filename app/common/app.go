@@ -54,13 +54,24 @@ func NewAppService(
 	})
 }
 
-func NewAppStripeService(logger *slog.Logger, db *entdb.Client, appsConfig config.AppsConfiguration, appService app.Service, customerService customer.Service, secretService secret.Service, billingRegistry BillingRegistry, publisher eventbus.Publisher) (appstripe.Service, error) {
+func NewAppStripeService(
+	logger *slog.Logger,
+	db *entdb.Client,
+	appsConfig config.AppsConfiguration,
+	appService app.Service,
+	customerService customer.Service,
+	secretService secret.Service,
+	webhookSecretService appstripe.WebhookSecretService,
+	billingRegistry BillingRegistry,
+	publisher eventbus.Publisher,
+) (appstripe.Service, error) {
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
-		Client:          db,
-		AppService:      appService,
-		CustomerService: customerService,
-		SecretService:   secretService,
-		Logger:          logger,
+		Client:               db,
+		AppService:           appService,
+		CustomerService:      customerService,
+		SecretService:        secretService,
+		WebhookSecretService: webhookSecretService,
+		Logger:               logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create appstripe adapter: %w", err)

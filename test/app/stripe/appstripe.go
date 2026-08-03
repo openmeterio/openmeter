@@ -804,6 +804,39 @@ func (s *AppHandlerTestSuite) TestCreatePortalSession(ctx context.Context, t *te
 	require.True(t, app.IsAppNotFoundError(err), "Create portal session must return app not found error")
 }
 
+func (s *AppHandlerTestSuite) TestGetWebhookSecret(ctx context.Context, t *testing.T) {
+	s.setupNamespace(t)
+
+	// Given a Stripe app whose webhook secret is stored through the regular secret service.
+	testApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)
+	require.NoError(t, err, "setup fixture must not return error")
+
+	secretID := secretentity.NewSecretID(testApp.GetID(), "whsec_123", appstripe.WebhookSecretKey)
+	expected := secretentity.Secret{
+		SecretID: secretID,
+		Value:    "whsec_cached",
+	}
+
+	s.Env.WebhookSecret().EnableMock()
+	defer s.Env.WebhookSecret().DisableMock()
+
+	s.Env.WebhookSecret().
+		On("GetAppSecret", secretID).
+		Return(expected, nil).
+		Once()
+
+	// When the webhook signing secret is resolved.
+	actual, err := s.Env.AppStripe().GetWebhookSecret(ctx, appstripe.GetWebhookSecretInput{
+		AppID: testApp.GetID().ID,
+	})
+
+	// Then the dedicated webhook secret service supplies it instead of the regular service.
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+	s.Env.WebhookSecret().AssertExpectations(t)
+	s.Env.Secret().AssertNotCalled(t, "GetAppSecret", secretID)
+}
+
 // TestUpdateAPIKey tests stripe app behavior when updating the API key
 func (s *AppHandlerTestSuite) TestUpdateAPIKey(ctx context.Context, t *testing.T) {
 	testApp, err := s.Env.Fixture().setupApp(ctx, s.namespace)

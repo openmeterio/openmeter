@@ -17,6 +17,7 @@ func TestAppStripe(t *testing.T) {
 	require.NotNil(t, env.AppStripe())
 	require.NotNil(t, env.Customer())
 	require.NotNil(t, env.Secret())
+	require.NotNil(t, env.WebhookSecret())
 
 	defer func() {
 		if err := env.Close(); err != nil {
@@ -61,6 +62,10 @@ func TestAppStripe(t *testing.T) {
 
 		t.Run("TestCreatePortalSession", func(t *testing.T) {
 			testSuite.TestCreatePortalSession(ctx, t)
+		})
+
+		t.Run("TestGetWebhookSecret", func(t *testing.T) {
+			testSuite.TestGetWebhookSecret(ctx, t)
 		})
 
 		t.Run("TestUpdateAPIKey", func(t *testing.T) {

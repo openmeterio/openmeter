@@ -270,7 +270,7 @@ func (a *adapter) GetWebhookSecret(ctx context.Context, input appstripe.GetWebho
 			ID:        stripeApp.ID,
 		}
 
-		secret, err := a.secretService.GetAppSecret(ctx, secretentity.NewSecretID(appID, stripeApp.WebhookSecret, appstripe.WebhookSecretKey))
+		secret, err := a.webhookSecretService.GetAppSecret(ctx, secretentity.NewSecretID(appID, stripeApp.WebhookSecret, appstripe.WebhookSecretKey))
 		if err != nil {
 			return secretentity.Secret{}, fmt.Errorf("failed to get webhook secret: %w", err)
 		}
