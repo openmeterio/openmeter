@@ -155,6 +155,7 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
 			Charge: charge,
 			Run:    previewResult.Run,
+			Stage:  standardLinePopulationStageGatheringPreview,
 		}); err != nil {
 			return nil, fmt.Errorf("populating gathering preview line[%s] from run: %w", stdLine.ID, err)
 		}
@@ -256,6 +257,7 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
 			Charge: charge,
 			Run:    currentRun,
+			Stage:  standardLinePopulationStageInvoiceCreated,
 		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
@@ -302,14 +304,18 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 		}
 
 		charge := stateMachine.GetCharge()
-		currentRun, err := charge.GetCurrentRealizationRun()
+		// Advancement can finalize a zero-fiat-amount overage and clear the
+		// current run before the collected line is mapped. The line ID remains
+		// the stable association for both current and completed runs.
+		currentRun, err := charge.Realizations.GetByLineID(stdLine.ID)
 		if err != nil {
-			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("getting realization run for charge[%s] and line[%s]: %w", charge.ID, stdLine.ID, err)
 		}
 
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
 			Charge: charge,
 			Run:    currentRun,
+			Stage:  standardLinePopulationStageCollectionCompleted,
 		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
@@ -517,6 +523,7 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, standardInvoi
 	if err := populateStandardLineFromRun(&standardLine, populateStandardLineFromRunInput{
 		Charge: charge,
 		Run:    currentRun,
+		Stage:  standardLinePopulationStageManualAttachment,
 	}); err != nil {
 		return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 	}
@@ -750,6 +757,18 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 		charge, ok := chargesByID[*stdLine.ChargeID]
 		if !ok {
 			return fmt.Errorf("usage based charge[%s] not found for deleted standard line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		run, err := charge.Realizations.GetByLineID(stdLine.ID)
+		if err != nil {
+			return fmt.Errorf("getting realization run for deleted usage based standard line[%s]: %w", stdLine.ID, err)
+		}
+
+		// Collection deletes only the presentation line for a zero-fiat-amount
+		// overage. Its run, credits, and line reference remain durable billing
+		// history and must not enter mutable-line cleanup.
+		if isZeroFiatAmountOverageRun(charge, run) {
+			continue
 		}
 
 		charge, err = e.deleteMutableStandardLineRealization(ctx, charge, input.Invoice, stdLine)

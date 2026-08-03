@@ -14,15 +14,73 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func TestZeroFiatAmountOverageRunCanResumeCompletionAfterPersistence(t *testing.T) {
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	intent := newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod).GetBaseIntent()
+	customCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode("TOKENS").
+		WithName("Tokens").
+		WithPrecision(2).
+		Build()
+	require.NoError(t, err)
+	intent.Intent.Currency = currencies.Currency{
+		NamespacedID: models.NamespacedID{
+			Namespace: "namespace",
+			ID:        "currency-id",
+		},
+		Currency: customCurrency,
+	}
+
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			Intent: usagebased.NewOverridableIntent(intent, nil),
+		},
+	}
+	run := usagebased.RealizationRun{
+		RealizationRunBase: usagebased.RealizationRunBase{
+			ID: usagebased.RealizationRunID{
+				Namespace: "namespace",
+				ID:        "run-id",
+			},
+			Type:                      usagebased.RealizationRunTypeFinalRealization,
+			ServicePeriodTo:           servicePeriod.To,
+			NoFiatTransactionRequired: true,
+		},
+	}
+	charge.Status = usagebased.StatusActiveRealizationProcessing
+	charge.Realizations = usagebased.RealizationRuns{run}
+	currentRunID := run.ID.ID
+	charge.State.CurrentRealizationRunID = &currentRunID
+
+	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+	canFire, err := machine.CanFire(t.Context(), meta.TriggerNext)
+	require.NoError(t, err)
+	require.True(t, canFire)
+
+	charge.State.CurrentRealizationRunID = nil
+	machine = newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+	canFire, err = machine.CanFire(t.Context(), meta.TriggerNext)
+	require.NoError(t, err)
+	require.False(t, canFire)
+	require.True(t, machine.HasTerminalCompletedRealizationWithoutCurrentRun())
+	require.True(t, areAllRealizationRunsSettled(charge))
+}
+
 func TestUnsupportedExtendOperation(t *testing.T) {
 	for _, status := range []usagebased.Status{
 		usagebased.StatusActiveRealizationIssuing,
+		usagebased.StatusActiveRealizationZeroFiatAmountOverageCompleted,
 		usagebased.StatusActiveRealizationCompleted,
 	} {
 		t.Run(string(status), func(t *testing.T) {
@@ -50,6 +108,7 @@ func TestUnsupportedExtendOperation(t *testing.T) {
 func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *testing.T) {
 	for _, status := range []usagebased.Status{
 		usagebased.StatusActiveRealizationIssuing,
+		usagebased.StatusActiveRealizationZeroFiatAmountOverageCompleted,
 		usagebased.StatusActiveRealizationCompleted,
 	} {
 		t.Run(string(status), func(t *testing.T) {
@@ -80,6 +139,7 @@ func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *te
 func TestUnsupportedShrinkOperation(t *testing.T) {
 	for _, status := range []usagebased.Status{
 		usagebased.StatusActiveRealizationIssuing,
+		usagebased.StatusActiveRealizationZeroFiatAmountOverageCompleted,
 		usagebased.StatusActiveRealizationCompleted,
 		usagebased.StatusDeleted,
 	} {
@@ -108,6 +168,7 @@ func TestUnsupportedShrinkOperation(t *testing.T) {
 func TestUnsupportedShrinkOperationIsConfiguredForImmutableBoundaries(t *testing.T) {
 	for _, status := range []usagebased.Status{
 		usagebased.StatusActiveRealizationIssuing,
+		usagebased.StatusActiveRealizationZeroFiatAmountOverageCompleted,
 		usagebased.StatusActiveRealizationCompleted,
 		usagebased.StatusDeleted,
 	} {

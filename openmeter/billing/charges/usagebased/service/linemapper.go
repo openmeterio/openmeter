@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,9 +17,33 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+type standardLinePopulationStage string
+
+const (
+	standardLinePopulationStageGatheringPreview    standardLinePopulationStage = "gathering_preview"
+	standardLinePopulationStageInvoiceCreated      standardLinePopulationStage = "invoice_created"
+	standardLinePopulationStageCollectionCompleted standardLinePopulationStage = "collection_completed"
+	standardLinePopulationStageManualAttachment    standardLinePopulationStage = "manual_attachment"
+)
+
+func (s standardLinePopulationStage) Validate() error {
+	switch s {
+	case standardLinePopulationStageGatheringPreview,
+		standardLinePopulationStageInvoiceCreated,
+		standardLinePopulationStageCollectionCompleted,
+		standardLinePopulationStageManualAttachment:
+		return nil
+	case "":
+		return fmt.Errorf("standard line population stage is required")
+	default:
+		return fmt.Errorf("invalid standard line population stage: %q", s)
+	}
+}
 
 func intentFromManualCreatedLine(
 	ctx context.Context,
@@ -127,9 +152,24 @@ func intentFromManualCreatedLine(
 type populateStandardLineFromRunInput struct {
 	Charge usagebased.Charge
 	Run    usagebased.RealizationRun
+	Stage  standardLinePopulationStage
+}
+
+func (i populateStandardLineFromRunInput) Validate() error {
+	var errs []error
+
+	if err := i.Stage.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateStandardLineFromRunInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
 	if stdLine.UsageBased == nil {
 		stdLine.UsageBased = &billing.UsageBasedLine{}
 	}
@@ -280,6 +320,12 @@ func populateCustomCurrencyOverageFromRun(
 			stdLine.Totals.Total.String(),
 			fiatOverage.Amount.String(),
 		)
+	}
+
+	if (input.Stage == standardLinePopulationStageGatheringPreview ||
+		input.Stage == standardLinePopulationStageCollectionCompleted) &&
+		isZeroFiatAmountOverageRun(charge, run) {
+		stdLine.DeletedAt = lo.ToPtr(clock.Now())
 	}
 
 	return nil
