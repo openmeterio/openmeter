@@ -3,6 +3,7 @@ package secretservice_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -23,6 +24,7 @@ type countingAdapter struct {
 	getCalls atomic.Int64
 	getErr   error
 	value    string
+	onGet    func()
 }
 
 func (a *countingAdapter) CreateAppSecret(_ context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error) {
@@ -35,6 +37,10 @@ func (a *countingAdapter) UpdateAppSecret(_ context.Context, input secretentity.
 
 func (a *countingAdapter) GetAppSecret(_ context.Context, input secretentity.GetAppSecretInput) (secretentity.Secret, error) {
 	a.getCalls.Add(1)
+
+	if a.onGet != nil {
+		a.onGet()
+	}
 
 	if a.getErr != nil {
 		return secretentity.Secret{}, a.getErr
@@ -51,6 +57,30 @@ func newTestSecretID() secretentity.SecretID {
 	appID := app.AppID{Namespace: "test-namespace", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"}
 
 	return secretentity.NewSecretID(appID, "stripe_webhook_secret", "webhook_secret")
+}
+
+func TestConfigValidate(t *testing.T) {
+	adapter := &countingAdapter{value: "whsec_1"}
+
+	t.Run("a negative cache size is rejected", func(t *testing.T) {
+		_, err := secretservice.New(secretservice.Config{Adapter: adapter, CacheSize: -1})
+		require.Error(t, err)
+		require.True(t, models.IsGenericValidationError(err))
+	})
+
+	t.Run("a negative cache ttl is rejected", func(t *testing.T) {
+		_, err := secretservice.New(secretservice.Config{Adapter: adapter, CacheTTL: -time.Second})
+		require.Error(t, err)
+		require.True(t, models.IsGenericValidationError(err))
+	})
+
+	t.Run("every invalid field is reported", func(t *testing.T) {
+		_, err := secretservice.New(secretservice.Config{CacheSize: -1, CacheTTL: -time.Second})
+		require.Error(t, err)
+		require.ErrorContains(t, err, "adapter is required")
+		require.ErrorContains(t, err, "cache size must not be negative")
+		require.ErrorContains(t, err, "cache ttl must not be negative")
+	})
 }
 
 func TestGetAppSecretCaching(t *testing.T) {
@@ -137,6 +167,66 @@ func TestGetAppSecretCaching(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "whsec_2", got.Value)
 		require.Equal(t, int64(2), adapter.getCalls.Load())
+	})
+
+	t.Run("the cache size bounds how many secrets stay cached", func(t *testing.T) {
+		adapter := &countingAdapter{value: "whsec_1"}
+		service, err := secretservice.New(secretservice.Config{Adapter: adapter, CacheSize: 1})
+		require.NoError(t, err)
+
+		appID := app.AppID{Namespace: "test-namespace", ID: "01ARZ3NDEKTSV4RRFFQ69G5FAV"}
+		first := secretentity.NewSecretID(appID, "stripe_webhook_secret", "webhook_secret")
+		second := secretentity.NewSecretID(appID, "stripe_api_key", "api_key")
+
+		_, err = service.GetAppSecret(t.Context(), first)
+		require.NoError(t, err)
+
+		_, err = service.GetAppSecret(t.Context(), second)
+		require.NoError(t, err)
+
+		_, err = service.GetAppSecret(t.Context(), first)
+		require.NoError(t, err)
+
+		require.Equal(t, int64(3), adapter.getCalls.Load())
+	})
+
+	t.Run("concurrent reads of the same secret reach the store once", func(t *testing.T) {
+		release := make(chan struct{})
+		started := make(chan struct{}, 1)
+
+		adapter := &countingAdapter{value: "whsec_1"}
+		adapter.onGet = func() {
+			select {
+			case started <- struct{}{}:
+			default:
+			}
+
+			<-release
+		}
+
+		service, err := secretservice.New(secretservice.Config{Adapter: adapter})
+		require.NoError(t, err)
+
+		secretID := newTestSecretID()
+
+		var wg sync.WaitGroup
+
+		for range 8 {
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+
+				_, err := service.GetAppSecret(context.Background(), secretID)
+				require.NoError(t, err)
+			}()
+		}
+
+		<-started
+		close(release)
+		wg.Wait()
+
+		require.Equal(t, int64(1), adapter.getCalls.Load())
 	})
 
 	t.Run("deleting a secret evicts the cached value", func(t *testing.T) {

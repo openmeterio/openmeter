@@ -28,6 +28,10 @@ func (s *Service) UpdateAppSecret(ctx context.Context, input secretentity.Update
 		)
 	}
 
+	lock := s.lockFor(input.SecretID)
+	lock.Lock()
+	defer lock.Unlock()
+
 	defer s.cache.Remove(input.SecretID)
 
 	return s.adapter.UpdateAppSecret(ctx, input)
@@ -39,6 +43,10 @@ func (s *Service) GetAppSecret(ctx context.Context, input secretentity.GetAppSec
 			fmt.Errorf("error get app secret: %w", err),
 		)
 	}
+
+	lock := s.lockFor(input)
+	lock.Lock()
+	defer lock.Unlock()
 
 	secret, err := s.cache.Get(ctx, input)
 	if err != nil {
@@ -56,6 +64,10 @@ func (s *Service) DeleteAppSecret(ctx context.Context, input secretentity.Delete
 			fmt.Errorf("error delete app secret: %w", err),
 		)
 	}
+
+	lock := s.lockFor(input)
+	lock.Lock()
+	defer lock.Unlock()
 
 	defer s.cache.Remove(input)
 
