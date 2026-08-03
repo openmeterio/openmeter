@@ -53,8 +53,38 @@ func TestEdit(t *testing.T) {
 				sub, err := deps.Service.Create(ctx, deps.Customer.Namespace, spec)
 				require.Nil(t, err)
 
+				before, err := deps.Service.GetView(ctx, sub.NamespacedID)
+				require.NoError(t, err)
+
 				_, err = deps.Service.Update(ctx, sub.NamespacedID, spec)
 				require.Nil(t, err)
+
+				after, err := deps.Service.GetView(ctx, sub.NamespacedID)
+				require.NoError(t, err)
+				require.Len(t, after.Phases, len(before.Phases))
+
+				for phaseIdx, beforePhase := range before.Phases {
+					afterPhase := after.Phases[phaseIdx]
+					require.Equal(t, beforePhase.SubscriptionPhase.ID, afterPhase.SubscriptionPhase.ID)
+
+					for itemKey, beforeItems := range beforePhase.ItemsByKey {
+						afterItems := afterPhase.ItemsByKey[itemKey]
+						require.Len(t, afterItems, len(beforeItems))
+
+						for itemIdx, beforeItem := range beforeItems {
+							afterItem := afterItems[itemIdx]
+							require.Equal(t, beforeItem.SubscriptionItem.ID, afterItem.SubscriptionItem.ID)
+
+							if beforeItem.Entitlement == nil {
+								require.Nil(t, afterItem.Entitlement)
+								continue
+							}
+
+							require.NotNil(t, afterItem.Entitlement)
+							require.Equal(t, beforeItem.Entitlement.Entitlement.ID, afterItem.Entitlement.Entitlement.ID)
+						}
+					}
+				}
 			},
 		},
 		{

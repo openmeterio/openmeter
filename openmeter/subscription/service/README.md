@@ -24,17 +24,17 @@ updated subscription graph.
 
 ## Reconciliation model
 
-An update compares the current `SubscriptionView` with the complete target
-spec. Materialization proceeds in three passes:
-
-1. remove phases and item versions that disappeared or whose persisted shape
-   no longer matches the target
-2. recreate changed phases and item versions that still exist in the target
-3. create phases and item versions that are new to the target
+An update indexes the current `SubscriptionView` and complete target spec by
+logical path. Phase, item-version, and entitlement nodes compare their own
+materialized shape and produce an ordered archive/create plan. Archives run
+from derived resources toward their parents; creates run from parents toward
+derived resources so generated references are available when needed.
 
 Phase keys identify logical phases. Within a phase, item key and slice position
 identify a logical item version. When a phase changes, its items are
-rematerialized with it.
+rematerialized with it. Items and their derived entitlements are also one
+replacement group because the persisted item references the generated
+entitlement ID.
 
 Changed rows are deleted and recreated rather than updated field by field.
 Their database IDs—and the IDs of entitlements derived from them—are therefore

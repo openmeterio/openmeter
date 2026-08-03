@@ -160,7 +160,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 				return def, fmt.Errorf("failed to get phase cadence: %w", err)
 			}
 
-			if _, err := s.createPhase(ctx, *cus, *phase, sub, phaseCadence); err != nil {
+			if _, err := s.createPhaseWithChildren(ctx, *cus, *phase, sub, phaseCadence); err != nil {
 				return def, err
 			}
 		}
@@ -277,7 +277,7 @@ func (s *service) Delete(ctx context.Context, subscriptionID models.NamespacedID
 	return transaction.RunWithNoValue(ctx, s.TransactionManager, func(ctx context.Context) error {
 		// First, let's delete all phases
 		for _, phase := range view.Phases {
-			if err := s.deletePhase(ctx, phase); err != nil {
+			if err := s.deletePhaseWithChildren(ctx, phase); err != nil {
 				return fmt.Errorf("failed to delete phase: %w", err)
 			}
 		}
