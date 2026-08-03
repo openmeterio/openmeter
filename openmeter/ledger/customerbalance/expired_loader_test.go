@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"

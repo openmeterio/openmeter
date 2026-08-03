@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -331,23 +332,23 @@ func (s Settlement) GetCostBasis() (alpacadecimal.Decimal, error) {
 // GetCurrency returns the fiat currency real money settles in. Promotional
 // settlements never move real money, so they return an empty currency rather
 // than an error.
-func (s Settlement) GetCurrency() (currencyx.FiatCode, error) {
+func (s Settlement) GetCurrency() (*currencyx.FiatCode, error) {
 	switch s.t {
 	case SettlementTypeInvoice:
 		if s.invoice == nil {
-			return "", fmt.Errorf("invoice is nil")
+			return nil, fmt.Errorf("invoice is nil")
 		}
 
-		return s.invoice.Currency, nil
+		return lo.ToPtr(s.invoice.Currency), nil
 	case SettlementTypeExternal:
 		if s.external == nil {
-			return "", fmt.Errorf("external is nil")
+			return nil, fmt.Errorf("external is nil")
 		}
 
-		return s.external.Currency, nil
+		return &s.external.Currency, nil
 	case SettlementTypePromotional:
-		return "", nil
+		return nil, nil
 	default:
-		return "", fmt.Errorf("invalid settlement type: %s", s.t)
+		return nil, fmt.Errorf("invalid settlement type: %s", s.t)
 	}
 }

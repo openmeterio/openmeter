@@ -34,7 +34,7 @@ import (
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
-	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"

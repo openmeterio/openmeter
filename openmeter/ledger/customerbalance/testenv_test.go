@@ -32,7 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
-	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"

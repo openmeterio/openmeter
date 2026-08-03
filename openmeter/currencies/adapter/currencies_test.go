@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	currenciestestenvutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/env"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customcurrencydb "github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -20,7 +21,7 @@ import (
 )
 
 func TestListCustomCurrenciesFiltersCurrencyType(t *testing.T) {
-	env := currenciestestutils.NewTestEnv(t)
+	env := currenciestestenvutils.NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
 	})
@@ -81,7 +82,7 @@ func TestListCustomCurrenciesFiltersCurrencyType(t *testing.T) {
 }
 
 func TestCostBasisEagerLoaders(t *testing.T) {
-	env := currenciestestutils.NewTestEnv(t)
+	env := currenciestestenvutils.NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
 	})
@@ -376,7 +377,7 @@ func TestCostBasisEagerLoaders(t *testing.T) {
 
 func loadCostBasisIDs(
 	t *testing.T,
-	env *currenciestestutils.TestEnv,
+	env *currenciestestenvutils.TestEnv,
 	currencyID string,
 	eagerLoad func(*entdb.CustomCurrencyQuery) *entdb.CustomCurrencyQuery,
 ) []string {
@@ -397,7 +398,7 @@ func loadCostBasisIDs(
 }
 
 func TestGetCostBasisAt(t *testing.T) {
-	env := currenciestestutils.NewTestEnv(t)
+	env := currenciestestenvutils.NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
 	})

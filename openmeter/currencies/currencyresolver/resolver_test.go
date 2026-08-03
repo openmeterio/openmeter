@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/currencies/currencyresolver"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	currenciestestenvutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/env"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,7 +21,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestCurrencyResolver(t *testing.T) {
-	env := currenciestestutils.NewTestEnv(t)
+	env := currenciestestenvutils.NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
 	})

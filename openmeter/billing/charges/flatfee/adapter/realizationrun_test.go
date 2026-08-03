@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
-	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"

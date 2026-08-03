@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
+	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"

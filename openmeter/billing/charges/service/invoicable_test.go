@@ -29,7 +29,7 @@ import (
 	billingtotals "github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
