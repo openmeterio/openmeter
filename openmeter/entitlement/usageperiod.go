@@ -67,8 +67,8 @@ type timedRecurrenceSerde struct {
 }
 
 func (u UsagePeriod) MarshalJSON() ([]byte, error) {
-	timedRecurrences := make([]timedRecurrenceSerde, len(u.recs.GetTimes()))
-	for i := range u.recs.GetTimes() {
+	timedRecurrences := make([]timedRecurrenceSerde, u.recs.Len())
+	for i := range u.recs.Len() {
 		timed := u.recs.GetAt(i)
 		timedRecurrences[i] = timedRecurrenceSerde{
 			Value: timed.GetValue(),
@@ -99,12 +99,12 @@ func (u UsagePeriod) Validate() error {
 	var errs []error
 
 	// Let's validate that we do have some recurrences
-	if len(u.recs.GetTimes()) == 0 {
+	if u.recs.Len() == 0 {
 		errs = append(errs, errors.New("UsagePeriod must have at least one recurrence"))
 	}
 
 	hour := datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)
-	for i := range u.recs.GetTimes() {
+	for i := range u.recs.Len() {
 		rec := u.recs.GetAt(i).GetValue()
 
 		// Let's validate the recurrence
@@ -126,7 +126,7 @@ func (u *UsagePeriod) GetOriginalValueAsUsagePeriodInput() *UsagePeriodInput {
 		return nil
 	}
 
-	if len(u.recs.GetTimes()) == 0 {
+	if u.recs.Len() == 0 {
 		return nil
 	}
 
@@ -138,11 +138,11 @@ func (u *UsagePeriod) GetOriginalValueAsUsagePeriodInput() *UsagePeriodInput {
 }
 
 func (u UsagePeriod) Equal(other UsagePeriod) bool {
-	if len(u.recs.GetTimes()) != len(other.recs.GetTimes()) {
+	if u.recs.Len() != other.recs.Len() {
 		return false
 	}
 
-	for i := range u.recs.GetTimes() {
+	for i := range u.recs.Len() {
 		if !u.recs.GetAt(i).Equal(other.recs.GetAt(i)) {
 			return false
 		}
@@ -173,7 +173,7 @@ func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (timeutil.ClosedPeriod, er
 	}
 
 	// Let's truncate the end
-	if idx < len(u.recs.GetTimes())-1 {
+	if idx < u.recs.Len()-1 {
 		next := u.recs.GetAt(idx + 1)
 		if next.GetTime().Before(fullPer.To) {
 			fullPer.To = next.GetTime()
@@ -198,7 +198,7 @@ func (u UsagePeriod) GetResetTimelineInclusive(inPeriod timeutil.ClosedPeriod) (
 
 	at := inPeriod.From
 
-	for i := firstPerIdx; i <= len(u.recs.GetTimes())-1; i++ {
+	for i := firstPerIdx; i <= u.recs.Len()-1; i++ {
 		rec := u.recs.GetAt(i)
 
 		// We're surely outside the period
@@ -209,7 +209,7 @@ func (u UsagePeriod) GetResetTimelineInclusive(inPeriod timeutil.ClosedPeriod) (
 		// We need to generate all the programmatic reset times for the current recurrence
 		limit := inPeriod.To
 
-		if i < len(u.recs.GetTimes())-1 {
+		if i < u.recs.Len()-1 {
 			next := u.recs.GetAt(i + 1)
 			if next.GetTime().Before(limit) {
 				limit = next.GetTime()
@@ -250,15 +250,13 @@ func (u UsagePeriod) GetResetTimelineInclusive(inPeriod timeutil.ClosedPeriod) (
 }
 
 func (u UsagePeriod) GetUsagePeriodInputAt(at time.Time) (UsagePeriodInput, int, error) {
-	// we'll iterate through all recurrences in the timed order (newest to oldest)
-	// we want ot return the first which is not after the at time (as that will be effective)
-	for i := len(u.recs.GetTimes()) - 1; i >= 0; i-- {
-		rec := u.recs.GetAt(i)
-		if !rec.GetTime().After(at) {
-			return timeutil.AsTimed(func(r timeutil.Recurrence) time.Time {
-				return rec.GetTime()
-			})(rec.GetValue()), i, nil
-		}
+	// The effective recurrence is the last one starting at or before at. This is on the
+	// hot path of the reset timeline walk, which calls it once per usage period, so it
+	// must stay sublinear and allocation-free in the entitlement's recurrence count.
+	if idx := u.recs.LastIndexNotAfter(at); idx >= 0 {
+		rec := u.recs.GetAt(idx)
+
+		return NewStartingUsagePeriodInput(rec.GetValue(), rec.GetTime()), idx, nil
 	}
 	// if we don't find any we simply return the last (oldest)
 

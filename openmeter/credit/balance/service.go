@@ -34,15 +34,8 @@ func NewSnapshotService(conf SnapshotServiceConfig) SnapshotService {
 		SnapshotServiceConfig: conf,
 		// We build a custom UsageQuerier for our usecase here
 		UsageQuerier: NewUsageQuerier(UsageQuerierConfig{
-			StreamingConnector: conf.StreamingConnector,
-			DescribeOwner:      conf.OwnerConnector.DescribeOwner,
-			GetDefaultParams: func(ctx context.Context, ownerID models.NamespacedID) (streaming.QueryParams, error) {
-				owner, err := conf.OwnerConnector.DescribeOwner(ctx, ownerID)
-				if err != nil {
-					return streaming.QueryParams{}, err
-				}
-				return owner.DefaultQueryParams, nil
-			},
+			StreamingConnector:    conf.StreamingConnector,
+			DescribeOwner:         conf.OwnerConnector.DescribeOwner,
 			GetUsagePeriodStartAt: conf.OwnerConnector.GetUsagePeriodStartAt,
 		}),
 	}

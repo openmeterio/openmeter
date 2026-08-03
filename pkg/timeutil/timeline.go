@@ -3,6 +3,7 @@ package timeutil
 import (
 	"reflect"
 	"slices"
+	"sort"
 	"time"
 )
 
@@ -89,6 +90,20 @@ func (t Timeline[T]) GetTimes() []time.Time {
 		times[i] = t.GetTime()
 	}
 	return times
+}
+
+// Len returns the number of entries in the timeline.
+func (t Timeline[T]) Len() int {
+	return len(t.times)
+}
+
+// LastIndexNotAfter uses binary search, returns -1 when no entry is not after at
+func (t Timeline[T]) LastIndexNotAfter(at time.Time) int {
+	firstAfter := sort.Search(len(t.times), func(i int) bool {
+		return t.times[i].GetTime().After(at)
+	})
+
+	return firstAfter - 1
 }
 
 func (t Timeline[T]) GetAt(idx int) Timed[T] {

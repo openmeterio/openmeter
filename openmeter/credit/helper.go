@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -149,12 +148,6 @@ func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineF
 				return grant.Owner{}, fmt.Errorf("expected owner %s, got %s", params.owner.NamespacedID.ID, id.ID)
 			}
 			return params.owner, nil
-		},
-		GetDefaultParams: func(ctx context.Context, oID models.NamespacedID) (streaming.QueryParams, error) {
-			if oID != params.owner.NamespacedID {
-				return streaming.QueryParams{}, fmt.Errorf("expected owner %s, got %s", params.owner.NamespacedID.ID, oID.ID)
-			}
-			return params.owner.DefaultQueryParams, nil
 		},
 		GetUsagePeriodStartAt: func(_ context.Context, _ models.NamespacedID, at time.Time) (time.Time, error) {
 			for _, period := range periodCache {

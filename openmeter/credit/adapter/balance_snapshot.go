@@ -28,7 +28,12 @@ func NewPostgresBalanceSnapshotRepo(db *db.Client) *balanceSnapshotRepo {
 func (b *balanceSnapshotRepo) InvalidateAfter(ctx context.Context, owner models.NamespacedID, at time.Time) error {
 	return entutils.TransactingRepoWithNoValue(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) error {
 		return rep.db.BalanceSnapshot.Update().
-			Where(db_balancesnapshot.OwnerID(owner.ID), db_balancesnapshot.Namespace(owner.Namespace), db_balancesnapshot.AtGT(at)).
+			Where(
+				db_balancesnapshot.OwnerID(owner.ID),
+				db_balancesnapshot.Namespace(owner.Namespace),
+				db_balancesnapshot.AtGT(at),
+				db_balancesnapshot.DeletedAtIsNil(),
+			).
 			SetDeletedAt(clock.Now()).
 			Exec(ctx)
 	})
