@@ -248,8 +248,15 @@ func TestResetEntitlementUsage(t *testing.T) {
 		{
 			name: "Should invalidate snapshots after the reset time",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
-				ctx := context.Background()
+				ctx := t.Context()
 				startTime := getAnchor(t)
+
+				// given:
+				// - a balance snapshot exists after the requested reset time
+				// when:
+				// - usage is reset with a backdated effective time
+				// then:
+				// - the later snapshot is invalidated and the reset snapshot becomes the latest valid one
 
 				randName := testutils.NameGenerator.Generate()
 
@@ -317,7 +324,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 						At: resetTime,
 					})
 
-				assert.NoError(t, err)
+				require.NoError(t, err)
+
+				snap, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
+				require.NoError(t, err)
+				assert.Equal(t, resetTime, snap.At)
 			},
 		},
 		{
