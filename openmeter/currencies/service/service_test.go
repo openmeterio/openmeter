@@ -324,7 +324,7 @@ func TestCurrenciesService(t *testing.T) {
 
 					t.Run("Get", func(t *testing.T) {
 						// when:
-						// - the custom currency is retrieved with cost bases expanded
+						// - the custom currency is retrieved with its active and scheduled cost bases expanded
 						result, err := env.Service.GetCurrency(t.Context(), currencies.GetCurrencyInput{
 							NamespacedID: createdCurrency.NamespacedID,
 							CurrencyExpandOptions: currencies.CurrencyExpandOptions{
@@ -333,15 +333,16 @@ func TestCurrenciesService(t *testing.T) {
 						})
 
 						// then:
-						// - all non-deleted history is returned, including expired and scheduled entries
+						// - active and scheduled cost bases are returned, but expired and deleted ones are excluded
 						require.NoError(t, err)
 						require.NotNil(t, result.CostBasis)
-						require.Len(t, *result.CostBasis, 4)
+						require.Len(t, *result.CostBasis, 3)
 
 						costBasisIDs := lo.Map(*result.CostBasis, func(item currencies.CostBasis, _ int) string {
 							return item.ID
 						})
-						assert.ElementsMatch(t, []string{usd.ID, eur.ID, futureUSD.ID, expired.ID}, costBasisIDs)
+						assert.ElementsMatch(t, []string{usd.ID, eur.ID, futureUSD.ID}, costBasisIDs)
+						assert.NotContains(t, costBasisIDs, expired.ID)
 						assert.NotContains(t, costBasisIDs, deleted.ID)
 					})
 
