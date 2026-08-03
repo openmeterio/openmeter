@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/wire"
 
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
@@ -13,6 +14,7 @@ import (
 
 var Secret = wire.NewSet(
 	wire.Bind(new(secret.Service), new(*secretservice.Service)),
+	wire.Bind(new(appstripe.WebhookSecretService), new(*secretservice.Service)),
 
 	NewUnsafeSecretService,
 )

@@ -2,6 +2,8 @@ package commonhttp_test
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -47,4 +49,38 @@ func TestHandleIssueIfHTTPStatusKnown(t *testing.T) {
 		require.Contains(t, issue, "severity")
 		require.Len(t, issue, 3)
 	})
+}
+
+func TestGenericErrorEncoderStatusMapping(t *testing.T) {
+	tests := []struct {
+		name           string
+		err            error
+		expectedStatus int
+	}{
+		{
+			name:           "secret store failure is a failed dependency, not an internal error",
+			err:            fmt.Errorf("failed to get webhook secret: %w", models.NewGenericStatusFailedDependencyError(errors.New("status-code=429 rate limit exceeded"))),
+			expectedStatus: http.StatusFailedDependency,
+		},
+		{
+			name:           "oversized payload is a request entity too large",
+			err:            models.NewGenericRequestEntityTooLargeError(errors.New("http: request body too large")),
+			expectedStatus: http.StatusRequestEntityTooLarge,
+		},
+		{
+			name:           "a more specific error wrapped by a failed dependency keeps its own status",
+			err:            models.NewGenericStatusFailedDependencyError(models.NewGenericNotFoundError(errors.New("secret is gone"))),
+			expectedStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			writer := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/", nil)
+
+			require.True(t, commonhttp.GenericErrorEncoder()(t.Context(), test.err, writer, request))
+			require.Equal(t, test.expectedStatus, writer.Code)
+		})
+	}
 }

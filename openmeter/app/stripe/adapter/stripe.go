@@ -270,7 +270,7 @@ func (a *adapter) GetWebhookSecret(ctx context.Context, input appstripe.GetWebho
 			ID:        stripeApp.ID,
 		}
 
-		secret, err := a.secretService.GetAppSecret(ctx, secretentity.NewSecretID(appID, stripeApp.WebhookSecret, appstripe.WebhookSecretKey))
+		secret, err := a.webhookSecretService.GetAppSecret(ctx, secretentity.NewSecretID(appID, stripeApp.WebhookSecret, appstripe.WebhookSecretKey))
 		if err != nil {
 			return secretentity.Secret{}, fmt.Errorf("failed to get webhook secret: %w", err)
 		}
@@ -306,6 +306,8 @@ func (a *adapter) SetCustomerDefaultPaymentMethod(ctx context.Context, input app
 					fmt.Sprintf("stripe customer has no data for stripe app: %s", input.StripeCustomerID),
 				)
 			}
+
+			return appstripe.SetCustomerDefaultPaymentMethodOutput{}, fmt.Errorf("failed to get stripe app customer: %w", err)
 		}
 
 		customerID := customer.CustomerID{

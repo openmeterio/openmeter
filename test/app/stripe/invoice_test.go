@@ -89,10 +89,11 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 
 	// App Stripe
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
-		Client:          s.DBClient,
-		AppService:      s.AppService,
-		CustomerService: s.CustomerService,
-		SecretService:   secretService,
+		Client:               s.DBClient,
+		AppService:           s.AppService,
+		CustomerService:      s.CustomerService,
+		SecretService:        secretService,
+		WebhookSecretService: secretService,
 		StripeClientFactory: func(config stripeclient.StripeClientConfig) (stripeclient.StripeClient, error) {
 			return stripeClient, nil
 		},

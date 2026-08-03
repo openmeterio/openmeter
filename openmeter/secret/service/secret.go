@@ -38,7 +38,14 @@ func (s *Service) GetAppSecret(ctx context.Context, input secretentity.GetAppSec
 		)
 	}
 
-	return s.adapter.GetAppSecret(ctx, input)
+	secret, err := s.adapter.GetAppSecret(ctx, input)
+	if err != nil {
+		return secretentity.Secret{}, models.NewGenericStatusFailedDependencyError(
+			fmt.Errorf("error get app secret: %w", err),
+		)
+	}
+
+	return secret, nil
 }
 
 func (s *Service) DeleteAppSecret(ctx context.Context, input secretentity.DeleteAppSecretInput) error {

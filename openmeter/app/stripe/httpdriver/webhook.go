@@ -3,7 +3,9 @@ package httpdriver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -21,9 +23,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+const appStripeWebhookMaxBodyBytes = int64(512 * 1024)
+
 type AppStripeWebhookParams struct {
-	AppID   string
-	Payload []byte
+	AppID string
 }
 
 type AppStripeWebhookRequest struct {
@@ -44,6 +47,18 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 			// We only know the namespace from the app id. Which we trust because
 			// we validate the payload signature with the app's webhook secret.
 
+			payload, err := io.ReadAll(http.MaxBytesReader(nil, r.Body, appStripeWebhookMaxBodyBytes))
+			if err != nil {
+				err = fmt.Errorf("cannot read payload: %w", err)
+
+				var maxBytesErr *http.MaxBytesError
+				if errors.As(err, &maxBytesErr) {
+					return AppStripeWebhookRequest{}, models.NewGenericRequestEntityTooLargeError(err)
+				}
+
+				return AppStripeWebhookRequest{}, err
+			}
+
 			// Get the webhook secret for the app
 			secret, err := h.service.GetWebhookSecret(ctx, appstripe.GetWebhookSecretInput{
 				AppID: params.AppID,
@@ -53,7 +68,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 			}
 
 			// Validate the webhook event
-			event, err := webhook.ConstructEventWithTolerance(params.Payload, r.Header.Get("Stripe-Signature"), secret.Value, time.Hour*10000)
+			event, err := webhook.ConstructEventWithTolerance(payload, r.Header.Get("Stripe-Signature"), secret.Value, time.Hour*10000)
 			if err != nil {
 				return AppStripeWebhookRequest{}, models.NewGenericValidationError(
 					fmt.Errorf("failed to construct webhook event: %w", err),

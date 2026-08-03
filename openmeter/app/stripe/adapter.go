@@ -7,8 +7,16 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
+
+// WebhookSecretService resolves the signing secret used to authenticate incoming Stripe webhooks.
+// It is separate from the app's general secret service so deployments can apply read-specific
+// behavior, such as caching, to the high-volume webhook path.
+type WebhookSecretService interface {
+	GetAppSecret(ctx context.Context, input secretentity.GetAppSecretInput) (secretentity.Secret, error)
+}
 
 type Adapter interface {
 	AppStripeAdapter
