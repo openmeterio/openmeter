@@ -22,6 +22,7 @@ type Config struct {
 	AppService             app.Service
 	CustomerService        customer.Service
 	SecretService          secret.Service
+	WebhookSecretService   appstripe.WebhookSecretService
 	StripeClientFactory    stripeclient.StripeClientFactory
 	StripeAppClientFactory stripeclient.StripeAppClientFactory
 	Logger                 *slog.Logger
@@ -42,6 +43,10 @@ func (c Config) Validate() error {
 
 	if c.SecretService == nil {
 		return errors.New("secret service is required")
+	}
+
+	if c.WebhookSecretService == nil {
+		return errors.New("webhook secret service is required")
 	}
 
 	if c.Logger == nil {
@@ -75,6 +80,7 @@ func New(config Config) (appstripe.Adapter, error) {
 		appService:             config.AppService,
 		customerService:        config.CustomerService,
 		secretService:          config.SecretService,
+		webhookSecretService:   config.WebhookSecretService,
 		stripeClientFactory:    stripeClientFactory,
 		stripeAppClientFactory: stripeAppClientFactory,
 	}
@@ -92,6 +98,7 @@ type adapter struct {
 	appService             app.Service
 	customerService        customer.Service
 	secretService          secret.Service
+	webhookSecretService   appstripe.WebhookSecretService
 	stripeAppClientFactory stripeclient.StripeAppClientFactory
 	stripeClientFactory    stripeclient.StripeClientFactory
 }
@@ -114,6 +121,7 @@ func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 		appService:             a.appService,
 		customerService:        a.customerService,
 		secretService:          a.secretService,
+		webhookSecretService:   a.webhookSecretService,
 		stripeClientFactory:    a.stripeClientFactory,
 		stripeAppClientFactory: a.stripeAppClientFactory,
 	}
