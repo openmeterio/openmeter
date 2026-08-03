@@ -91,27 +91,29 @@ func (a *Adapter) GetMeterByIDOrSlug(ctx context.Context, input meter.GetMeterIn
 		return meter.Meter{}, models.NewGenericValidationError(err)
 	}
 
-	entity, err := a.db.Meter.Query().
-		Where(meterdb.NamespaceEQ(input.Namespace)).
-		Where(meterdb.Or(
-			meterdb.ID(input.IDOrSlug),
-			meterdb.And(meterdb.Key(input.IDOrSlug), meterdb.DeletedAtIsNil()),
-		)).
-		First(ctx)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return meter.Meter{}, meter.NewMeterNotFoundError(input.IDOrSlug)
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *Adapter) (meter.Meter, error) {
+		entity, err := repo.db.Meter.Query().
+			Where(meterdb.NamespaceEQ(input.Namespace)).
+			Where(meterdb.Or(
+				meterdb.ID(input.IDOrSlug),
+				meterdb.And(meterdb.Key(input.IDOrSlug), meterdb.DeletedAtIsNil()),
+			)).
+			First(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return meter.Meter{}, meter.NewMeterNotFoundError(input.IDOrSlug)
+			}
+
+			return meter.Meter{}, fmt.Errorf("failed to get meter by ID or slug: %w", err)
 		}
 
-		return meter.Meter{}, fmt.Errorf("failed to get meter by ID or slug: %w", err)
-	}
+		m, err := MapFromEntityFactory(entity)
+		if err != nil {
+			return m, fmt.Errorf("failed to map meter: %w", err)
+		}
 
-	m, err := MapFromEntityFactory(entity)
-	if err != nil {
-		return m, fmt.Errorf("failed to map meter: %w", err)
-	}
-
-	return m, nil
+		return m, nil
+	})
 }
 
 // MapFromEntityFactory creates a function that maps a meter db entity to a meter model.
