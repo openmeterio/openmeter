@@ -130,7 +130,7 @@ require (
 
 require (
 	cloud.google.com/go v0.123.0 // indirect
-	github.com/ClickHouse/ch-go v0.73.0
+	github.com/ClickHouse/ch-go v0.74.0
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/andybalholm/brotli v1.2.1 // indirect
