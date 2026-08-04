@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -54,13 +55,20 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("calculating amount after proration: %w", err)
 			}
 
+			featureRef, err := chargeIntent.GetFeatureRef()
+			if err != nil {
+				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("getting feature ref: %w", err)
+			}
 			var featureID *string
-			if chargeIntent.FeatureKey != nil && *chargeIntent.FeatureKey != "" {
-				featureMeter, err := input.FeatureMeters.Get(*chargeIntent.FeatureKey, false)
+			if featureRef != nil {
+				featureMeter, err := feature.ResolveByRef(input.FeatureMeters, *featureRef, false)
 				if err != nil {
-					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolve flat fee feature for key %s: %w", *chargeIntent.FeatureKey, err)
+					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolve flat fee feature %+v: %w", *featureRef, err)
 				}
 				featureID = lo.ToPtr(featureMeter.Feature.ID)
+				// note: we must set the feature key on the intent, because no other place is setting it
+				// and we want to persist it
+				chargeIntent.FeatureKey = lo.ToPtr(featureMeter.Feature.Key)
 			}
 
 			return flatfee.IntentWithInitialStatus{

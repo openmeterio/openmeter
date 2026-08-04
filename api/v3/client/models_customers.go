@@ -614,6 +614,8 @@ type ChargeFlatFee struct {
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge, when applicable.
 	FeatureKey *string `json:"feature_key,omitempty"`
+	// The feature ID associated with the charge.
+	FeatureID *string `json:"feature_id,omitempty"`
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount after proration of the charge.
@@ -787,6 +789,8 @@ type ChargeUsageBased struct {
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge.
 	FeatureKey string `json:"feature_key"`
+	// The feature ID associated with the charge.
+	FeatureID string `json:"feature_id"`
 	// Aggregated booked and realtime totals for the charge.
 	Totals ChargeTotals `json:"totals"`
 	// The price of the charge.
@@ -875,8 +879,8 @@ type CreateChargeFlatFeeRequest struct {
 	PaymentTerm PricePaymentTerm `json:"payment_term"`
 	// The discounts applied to the charge.
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
-	// The feature associated with the charge, when applicable.
-	FeatureKey *string `json:"feature_key,omitempty"`
+	// The feature ID associated with the charge.
+	FeatureID *string `json:"feature_id,omitempty"`
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount before proration of the charge.
@@ -995,8 +999,8 @@ type CreateChargeUsageBasedRequest struct {
 	TaxConfig *TaxConfig `json:"tax_config,omitempty"`
 	// Discounts applied to the usage-based charge.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
-	// The feature associated with the charge.
-	FeatureKey string `json:"feature_key"`
+	// The feature ID associated with the charge.
+	FeatureID string `json:"feature_id"`
 	// The price of the charge.
 	Price Price `json:"price"`
 	// The full, unprorated service period of the charge.

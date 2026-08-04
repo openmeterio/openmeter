@@ -53,6 +53,19 @@ func (f FeatureMeterCollection) GetByID(featureID string, requireMeter bool) (Fe
 	return featureMeter, nil
 }
 
+func ResolveByRef(fm FeatureMeters, r ref.IDOrKey, requireMeter bool) (FeatureMeter, error) {
+	switch {
+	case r.Key != "" && r.ID != "":
+		return FeatureMeter{}, fmt.Errorf("feature reference must have either key or ID, not both")
+	case r.Key != "":
+		return fm.Get(r.Key, requireMeter)
+	case r.ID != "":
+		return fm.GetByID(r.ID, requireMeter)
+	default:
+		return FeatureMeter{}, fmt.Errorf("feature reference must have either key or ID")
+	}
+}
+
 func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace string, featureRefs ...ref.IDOrKey) (FeatureMeters, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")

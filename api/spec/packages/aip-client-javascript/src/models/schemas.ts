@@ -4469,10 +4469,10 @@ export const createChargeFlatFeeRequest = z
     taxConfig: taxConfig.optional(),
     paymentTerm: pricePaymentTerm,
     discounts: chargeFlatFeeDiscounts.optional(),
-    featureKey: z
+    featureId: z
       .string()
       .optional()
-      .describe('The feature associated with the charge, when applicable.'),
+      .describe('The feature ID associated with the charge.'),
     prorationConfiguration: rateCardProrationConfiguration,
     amountBeforeProration: currencyAmount,
     fullServicePeriod: closedPeriod.optional(),
@@ -5122,6 +5122,10 @@ export const chargeFlatFee = z
       .string()
       .optional()
       .describe('The feature associated with the charge, when applicable.'),
+    featureId: z
+      .string()
+      .optional()
+      .describe('The feature ID associated with the charge.'),
     prorationConfiguration: rateCardProrationConfiguration,
     amountAfterProration: currencyAmount,
     price: price,
@@ -5185,7 +5189,9 @@ export const createChargeUsageBasedRequest = z
     settlementMode: settlementMode,
     taxConfig: taxConfig.optional(),
     discounts: rateCardDiscounts.optional(),
-    featureKey: z.string().describe('The feature associated with the charge.'),
+    featureId: z
+      .string()
+      .describe('The feature ID associated with the charge.'),
     price: price,
     fullServicePeriod: closedPeriod.optional(),
     billingPeriod: closedPeriod.optional(),
@@ -5321,6 +5327,9 @@ export const chargeUsageBased = z
     taxConfig: taxConfig.optional(),
     discounts: rateCardDiscounts.optional(),
     featureKey: z.string().describe('The feature associated with the charge.'),
+    featureId: z
+      .string()
+      .describe('The feature ID associated with the charge.'),
     totals: chargeTotals,
     price: price,
     systemIntent: chargeUsageBasedSystemIntent.optional(),
@@ -11332,10 +11341,10 @@ export const createChargeFlatFeeRequestWire = z
     tax_config: taxConfigWire.optional(),
     payment_term: pricePaymentTermWire,
     discounts: chargeFlatFeeDiscountsWire.optional(),
-    feature_key: z
+    feature_id: z
       .string()
       .optional()
-      .describe('The feature associated with the charge, when applicable.'),
+      .describe('The feature ID associated with the charge.'),
     proration_configuration: rateCardProrationConfigurationWire,
     amount_before_proration: currencyAmountWire,
     full_service_period: closedPeriodWire.optional(),
@@ -11987,6 +11996,10 @@ export const chargeFlatFeeWire = z
       .string()
       .optional()
       .describe('The feature associated with the charge, when applicable.'),
+    feature_id: z
+      .string()
+      .optional()
+      .describe('The feature ID associated with the charge.'),
     proration_configuration: rateCardProrationConfigurationWire,
     amount_after_proration: currencyAmountWire,
     price: priceWire,
@@ -12050,7 +12063,9 @@ export const createChargeUsageBasedRequestWire = z
     settlement_mode: settlementModeWire,
     tax_config: taxConfigWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
-    feature_key: z.string().describe('The feature associated with the charge.'),
+    feature_id: z
+      .string()
+      .describe('The feature ID associated with the charge.'),
     price: priceWire,
     full_service_period: closedPeriodWire.optional(),
     billing_period: closedPeriodWire.optional(),
@@ -12186,6 +12201,9 @@ export const chargeUsageBasedWire = z
     tax_config: taxConfigWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
     feature_key: z.string().describe('The feature associated with the charge.'),
+    feature_id: z
+      .string()
+      .describe('The feature ID associated with the charge.'),
     totals: chargeTotalsWire,
     price: priceWire,
     system_intent: chargeUsageBasedSystemIntentWire.optional(),

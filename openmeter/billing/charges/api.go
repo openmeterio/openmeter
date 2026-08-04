@@ -38,13 +38,13 @@ type CreateCustomerChargeInput struct {
 
 type CreateCustomerChargeFlatFeeInput struct {
 	IntentMutableFields flatfee.IntentMutableFields
-	FeatureKey          *string
+	FeatureID           *string
 	SettlementMode      productcatalog.SettlementMode
 }
 
 type CreateCustomerChargeUsageBasedInput struct {
 	IntentMutableFields usagebased.IntentMutableFields
-	FeatureKey          string
+	FeatureID           string
 	SettlementMode      productcatalog.SettlementMode
 }
 

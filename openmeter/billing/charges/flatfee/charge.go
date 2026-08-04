@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -164,6 +165,7 @@ type Intent struct {
 	IntentMutableFields `json:"intentMutableFields"`
 	SettlementMode      productcatalog.SettlementMode `json:"settlementMode"`
 	FeatureKey          *string                       `json:"featureKey,omitempty"`
+	FeatureID           *string                       `json:"featureId,omitempty"`
 	CostBasis           *costbasis.Intent             `json:"costBasis,omitempty"`
 }
 
@@ -204,6 +206,19 @@ func (i Intent) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i Intent) GetFeatureRef() (*ref.IDOrKey, error) {
+	switch {
+	case i.FeatureID != nil && i.FeatureKey != nil:
+		return nil, errors.New("both feature ID and feature key are set; only one must be set")
+	case i.FeatureID != nil && *i.FeatureID != "":
+		return &ref.IDOrKey{ID: *i.FeatureID}, nil
+	case i.FeatureKey != nil && *i.FeatureKey != "":
+		return &ref.IDOrKey{Key: *i.FeatureKey}, nil
+	default:
+		return nil, nil
+	}
 }
 
 func validateCostBasis(currency currencies.Currency, settlementMode productcatalog.SettlementMode, intent *costbasis.Intent) error {
