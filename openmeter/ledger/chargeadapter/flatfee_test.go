@@ -1234,6 +1234,7 @@ func (e *flatFeeHandlerTestEnv) transactionGroupEntries(t *testing.T, groupID st
 		).
 		All(t.Context())
 	require.NoError(t, err)
+	require.NotEmpty(t, entries)
 
 	return entries
 }
