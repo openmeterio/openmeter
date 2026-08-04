@@ -351,7 +351,7 @@ func TestCollectEarningsRecognitionCurrencies(t *testing.T) {
 	custom := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
 
 	costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
-		FiatCurrency: lo.Must(currencyx.NewFiatCurrency("USD")),
+		FiatCurrency: lo.Must(currencyx.NewFiatCurrency("EUR")),
 		Rate:         alpacadecimal.NewFromFloat(0.25),
 	})
 

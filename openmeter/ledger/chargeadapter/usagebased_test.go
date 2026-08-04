@@ -935,6 +935,7 @@ func (e *usageBasedHandlerTestEnv) transactionGroupEntries(t *testing.T, groupID
 		).
 		All(t.Context())
 	require.NoError(t, err)
+	require.NotEmpty(t, entries)
 
 	return entries
 }
