@@ -56,7 +56,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9
 	github.com/redis/go-redis/extra/redisotel/v9 v9.21.0
 	github.com/redis/go-redis/v9 v9.21.0
-	github.com/rickb777/period v1.0.29
+	github.com/rickb777/period v1.0.30
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/samber/lo v1.53.0
 	github.com/samber/mo v1.17.0
