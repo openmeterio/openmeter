@@ -313,7 +313,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 			}
 
 			whereExpr := stringFilterWhereExpr(column, filterString)
-			query = query.Where(query.Var(whereExpr))
+			if whereExpr != nil {
+				query = query.Where(query.Var(whereExpr))
+			}
 		}
 	}
 
@@ -404,15 +406,23 @@ func stringFilterWhereExpr(field sqlbuilder.Builder, f filter.FilterString) sqlb
 	case f.Or != nil:
 		return joinStringFilterWhereExprs(field, *f.Or, " OR ")
 	default:
-		return sqlbuilder.Buildf("")
+		return nil
 	}
 }
 
 func joinStringFilterWhereExprs(field sqlbuilder.Builder, filters []filter.FilterString, separator string) sqlbuilder.Builder {
-	format := "(" + strings.Join(lo.RepeatBy(len(filters), func(_ int) string { return "%v" }), separator) + ")"
-	args := lo.Map(filters, func(f filter.FilterString, _ int) any {
-		return stringFilterWhereExpr(field, f)
-	})
+	args := make([]any, 0, len(filters))
+	for _, filter := range filters {
+		if expr := stringFilterWhereExpr(field, filter); expr != nil {
+			args = append(args, expr)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	format := "(" + strings.Join(lo.RepeatBy(len(args), func(_ int) string { return "%v" }), separator) + ")"
 
 	return sqlbuilder.Buildf(format, args...)
 }

@@ -857,6 +857,75 @@ func TestQueryMeter(t *testing.T) {
 	}
 }
 
+func TestQueryMeterOmitsEmptyLogicalFilterExpressions(t *testing.T) {
+	baseSQL := "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, count(*) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?"
+	equalValue := "group-value"
+	emptyAnd := []filter.FilterString{}
+	emptyOr := []filter.FilterString{}
+	mixedAnd := []filter.FilterString{
+		{
+			Or: &[]filter.FilterString{
+				{},
+				{Eq: &equalValue},
+			},
+		},
+		{And: &emptyAnd},
+		{},
+	}
+
+	tests := []struct {
+		name     string
+		filter   filter.FilterString
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			name:     "empty and",
+			filter:   filter.FilterString{And: &emptyAnd},
+			wantSQL:  baseSQL,
+			wantArgs: []interface{}{"my_namespace", "event1"},
+		},
+		{
+			name:     "empty or",
+			filter:   filter.FilterString{Or: &emptyOr},
+			wantSQL:  baseSQL,
+			wantArgs: []interface{}{"my_namespace", "event1"},
+		},
+		{
+			name:     "nested mixed operands",
+			filter:   filter.FilterString{And: &mixedAnd},
+			wantSQL:  baseSQL + " AND ((JSON_VALUE(om_events.data, ?) = ?))",
+			wantArgs: []interface{}{"my_namespace", "event1", "$.group", "group-value"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			query := queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:         "meter1",
+					EventType:   "event1",
+					Aggregation: meter.MeterAggregationCount,
+					GroupBy: map[string]string{
+						"group": "$.group",
+					},
+				},
+				FilterGroupBy: map[string]filter.FilterString{
+					"group": tt.filter,
+				},
+			}
+
+			gotSQL, gotArgs, err := query.toSQL()
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantSQL, gotSQL)
+			assert.Equal(t, tt.wantArgs, gotArgs)
+		})
+	}
+}
+
 func TestQueryMeterBindsJSONPaths(t *testing.T) {
 	valuePath := "$.value'), (SELECT sleep(3)), ('"
 	groupPath := "$.group'), (SELECT sleep(3)), ('"
