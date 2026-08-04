@@ -91,6 +91,12 @@ func (_c *BalanceSnapshotCreate) SetUsage(v *balance.SnapshottedUsage) *BalanceS
 	return _c
 }
 
+// SetUsageSnapshot sets the "usage_snapshot" field.
+func (_c *BalanceSnapshotCreate) SetUsageSnapshot(v *balance.UsageSnapshot) *BalanceSnapshotCreate {
+	_c.mutation.SetUsageSnapshot(v)
+	return _c
+}
+
 // SetBalance sets the "balance" field.
 func (_c *BalanceSnapshotCreate) SetBalance(v float64) *BalanceSnapshotCreate {
 	_c.mutation.SetBalance(v)
@@ -264,6 +270,10 @@ func (_c *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.Creat
 		_spec.SetField(balancesnapshot.FieldUsage, field.TypeJSON, value)
 		_node.Usage = value
 	}
+	if value, ok := _c.mutation.UsageSnapshot(); ok {
+		_spec.SetField(balancesnapshot.FieldUsageSnapshot, field.TypeJSON, value)
+		_node.UsageSnapshot = value
+	}
 	if value, ok := _c.mutation.Balance(); ok {
 		_spec.SetField(balancesnapshot.FieldBalance, field.TypeFloat64, value)
 		_node.Balance = value
@@ -408,6 +418,9 @@ func (u *BalanceSnapshotUpsertOne) UpdateNewValues() *BalanceSnapshotUpsertOne {
 		}
 		if _, exists := u.create.mutation.Usage(); exists {
 			s.SetIgnore(balancesnapshot.FieldUsage)
+		}
+		if _, exists := u.create.mutation.UsageSnapshot(); exists {
+			s.SetIgnore(balancesnapshot.FieldUsageSnapshot)
 		}
 		if _, exists := u.create.mutation.Balance(); exists {
 			s.SetIgnore(balancesnapshot.FieldBalance)
@@ -680,6 +693,9 @@ func (u *BalanceSnapshotUpsertBulk) UpdateNewValues() *BalanceSnapshotUpsertBulk
 			}
 			if _, exists := b.mutation.Usage(); exists {
 				s.SetIgnore(balancesnapshot.FieldUsage)
+			}
+			if _, exists := b.mutation.UsageSnapshot(); exists {
+				s.SetIgnore(balancesnapshot.FieldUsageSnapshot)
 			}
 			if _, exists := b.mutation.Balance(); exists {
 				s.SetIgnore(balancesnapshot.FieldBalance)

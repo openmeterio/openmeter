@@ -127,6 +127,9 @@ func (_u *BalanceSnapshotUpdate) sqlSave(ctx context.Context) (_node int, err er
 	if _u.mutation.UsageCleared() {
 		_spec.ClearField(balancesnapshot.FieldUsage, field.TypeJSON)
 	}
+	if _u.mutation.UsageSnapshotCleared() {
+		_spec.ClearField(balancesnapshot.FieldUsageSnapshot, field.TypeJSON)
+	}
 	if _u.mutation.UnitConfigCleared() {
 		_spec.ClearField(balancesnapshot.FieldUnitConfig, field.TypeString)
 	}
@@ -278,6 +281,9 @@ func (_u *BalanceSnapshotUpdateOne) sqlSave(ctx context.Context) (_node *Balance
 	}
 	if _u.mutation.UsageCleared() {
 		_spec.ClearField(balancesnapshot.FieldUsage, field.TypeJSON)
+	}
+	if _u.mutation.UsageSnapshotCleared() {
+		_spec.ClearField(balancesnapshot.FieldUsageSnapshot, field.TypeJSON)
 	}
 	if _u.mutation.UnitConfigCleared() {
 		_spec.ClearField(balancesnapshot.FieldUnitConfig, field.TypeString)

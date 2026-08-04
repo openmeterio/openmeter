@@ -365,6 +365,16 @@ func UsageNotNil() predicate.BalanceSnapshot {
 	return predicate.BalanceSnapshot(sql.FieldNotNull(FieldUsage))
 }
 
+// UsageSnapshotIsNil applies the IsNil predicate on the "usage_snapshot" field.
+func UsageSnapshotIsNil() predicate.BalanceSnapshot {
+	return predicate.BalanceSnapshot(sql.FieldIsNull(FieldUsageSnapshot))
+}
+
+// UsageSnapshotNotNil applies the NotNil predicate on the "usage_snapshot" field.
+func UsageSnapshotNotNil() predicate.BalanceSnapshot {
+	return predicate.BalanceSnapshot(sql.FieldNotNull(FieldUsageSnapshot))
+}
+
 // BalanceEQ applies the EQ predicate on the "balance" field.
 func BalanceEQ(v float64) predicate.BalanceSnapshot {
 	return predicate.BalanceSnapshot(sql.FieldEQ(FieldBalance, v))

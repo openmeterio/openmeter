@@ -451,7 +451,7 @@ func init() {
 	// balancesnapshot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	balancesnapshot.UpdateDefaultUpdatedAt = balancesnapshotDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// balancesnapshotDescUnitConfig is the schema descriptor for unit_config field.
-	balancesnapshotDescUnitConfig := balancesnapshotFields[6].Descriptor()
+	balancesnapshotDescUnitConfig := balancesnapshotFields[7].Descriptor()
 	balancesnapshot.ValueScanner.UnitConfig = balancesnapshotDescUnitConfig.ValueScanner.(field.TypeValueScanner[*unitconfig.UnitConfig])
 	billingcustomerlockMixin := schema.BillingCustomerLock{}.Mixin()
 	billingcustomerlockMixinFields0 := billingcustomerlockMixin[0].Fields()

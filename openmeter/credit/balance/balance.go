@@ -78,8 +78,19 @@ func (s SnapshottedUsage) IsZero() bool {
 	return s.Usage == 0.0 && s.Since.IsZero()
 }
 
+// UsageSnapshot is the cumulative usage state for the usage period containing
+// the snapshot.
+type UsageSnapshot struct {
+	Usage           float64 `json:"usage"`
+	TotalGrantUsage float64 `json:"totalGrantUsage"`
+}
+
 type Snapshot struct {
-	Usage    SnapshottedUsage
+	Usage SnapshottedUsage
+	// UsageSnapshot is nil for snapshots created without complete usage-period
+	// state.
+	UsageSnapshot *UsageSnapshot
+
 	Balances Map
 	Overage  float64
 	At       time.Time
