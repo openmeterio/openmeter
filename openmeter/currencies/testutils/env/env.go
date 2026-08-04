@@ -1,4 +1,4 @@
-package testutils
+package env
 
 import (
 	"log/slog"

@@ -462,11 +462,17 @@ func settlementPaymentCurrency(
 	if err != nil {
 		return "", fmt.Errorf("get settlement currency: %w", err)
 	}
-	if settlementCurrency == "" {
+	if settlementCurrency == nil {
 		return "", fmt.Errorf("settlement currency is required for a custom currency purchase")
 	}
 
-	return currencyx.Code(settlementCurrency), nil
+	sc := lo.FromPtr(settlementCurrency)
+
+	if err := sc.Validate(); err != nil {
+		return "", fmt.Errorf("settlement currency is invalid: %w", err)
+	}
+
+	return currencyx.Code(sc), nil
 }
 
 // settlementCostBasisCurrency returns the fiat currency a custom-currency
@@ -481,11 +487,11 @@ func settlementCostBasisCurrency(currency currencies.Currency, settlement charge
 	if err != nil {
 		return nil, fmt.Errorf("get settlement currency: %w", err)
 	}
-	if settlementCurrency == "" {
+	if settlementCurrency == nil {
 		return nil, nil
 	}
 
-	return lo.ToPtr(currencyx.Code(settlementCurrency)), nil
+	return lo.ToPtr(currencyx.Code(lo.FromPtr(settlementCurrency))), nil
 }
 
 // advanceAttribution is the posting plan for one slice of existing advance

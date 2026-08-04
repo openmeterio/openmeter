@@ -170,39 +170,57 @@ func (r CurrencyReference) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func ParseCurrencyReference(value []byte) (CurrencyReference, error) {
+// UnmarshalJSON preserves the public object representation after implementing
+// encoding.TextUnmarshaler for the ledger currency dimension.
+func (r *CurrencyReference) UnmarshalJSON(value []byte) error {
+	type currencyReference CurrencyReference
+
+	var reference currencyReference
+	if err := json.Unmarshal(value, &reference); err != nil {
+		return err
+	}
+
+	*r = CurrencyReference(reference)
+
+	return nil
+}
+
+// UnmarshalText parses a persisted currency reference and replaces the
+// receiver only after the complete value has been validated.
+func (r *CurrencyReference) UnmarshalText(value []byte) error {
 	serialized := string(value)
 	segments := strings.Split(serialized, currencyReferenceSerializationDelimiter)
 	if len(segments) == 1 {
 		reference := NewCurrencyReference(currencyx.Code(serialized))
 		if err := reference.Validate(); err != nil {
-			return CurrencyReference{}, err
+			return err
 		}
 		if !reference.IsFiat() {
-			return CurrencyReference{}, errors.New("custom currency reference snapshot is required")
+			return errors.New("custom currency reference snapshot is required")
 		}
 
-		return reference, nil
+		*r = reference
+		return nil
 	}
 
 	if len(segments) != 5 || segments[0] != "custom" {
-		return CurrencyReference{}, fmt.Errorf("invalid currency reference %q", serialized)
+		return fmt.Errorf("invalid currency reference %q", serialized)
 	}
 	if segments[1] != currencyReferenceSerializationVersionV1 {
-		return CurrencyReference{}, fmt.Errorf("unsupported currency reference version %q", segments[1])
+		return fmt.Errorf("unsupported currency reference version %q", segments[1])
 	}
 
 	code := currencyx.Code(segments[2])
 	if !code.IsCustom() {
-		return CurrencyReference{}, fmt.Errorf("custom currency reference requires a custom currency code: %q", code)
+		return fmt.Errorf("custom currency reference requires a custom currency code: %q", code)
 	}
 	if segments[3] == "" {
-		return CurrencyReference{}, errors.New("custom currency id is required")
+		return errors.New("custom currency id is required")
 	}
 
 	precision, err := strconv.ParseUint(segments[4], 10, 32)
 	if err != nil {
-		return CurrencyReference{}, fmt.Errorf("invalid custom currency precision %q: %w", segments[4], err)
+		return fmt.Errorf("invalid custom currency precision %q: %w", segments[4], err)
 	}
 
 	resolved, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
@@ -211,7 +229,7 @@ func ParseCurrencyReference(value []byte) (CurrencyReference, error) {
 		WithPrecision(uint32(precision)).
 		Build()
 	if err != nil {
-		return CurrencyReference{}, fmt.Errorf("build custom currency snapshot: %w", err)
+		return fmt.Errorf("build custom currency snapshot: %w", err)
 	}
 
 	currency := Currency{
@@ -219,7 +237,17 @@ func ParseCurrencyReference(value []byte) (CurrencyReference, error) {
 		Currency:     resolved,
 	}
 
-	return currency.Reference(), nil
+	*r = currency.Reference()
+	return nil
+}
+
+func ParseCurrencyReference(value []byte) (CurrencyReference, error) {
+	var reference CurrencyReference
+	if err := reference.UnmarshalText(value); err != nil {
+		return CurrencyReference{}, err
+	}
+
+	return reference, nil
 }
 
 func (r CurrencyReference) Validate() error {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
-	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/currency"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -32,7 +31,7 @@ func TestCurrencyValidate(t *testing.T) {
 	})
 
 	t.Run("valid currency", func(t *testing.T) {
-		currency := currencytestutils.NewFiatCurrency(t, "USD")
+		currency := currenciestestutils.NewFiatCurrency(t, "USD")
 
 		require.NoError(t, currency.Validate())
 	})
@@ -44,7 +43,7 @@ func TestCurrencyGetCode(t *testing.T) {
 	})
 
 	t.Run("returns currency code", func(t *testing.T) {
-		currency := currencytestutils.NewFiatCurrency(t, "USD")
+		currency := currenciestestutils.NewFiatCurrency(t, "USD")
 
 		require.Equal(t, currencyx.Code("USD"), currency.GetCode())
 	})
@@ -139,10 +138,14 @@ func TestCurrencyReferenceSerialization(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, reference.Equal(parsed))
 		require.True(t, parsed.IsResolved())
+
+		var unmarshaled currencies.CurrencyReference
+		require.NoError(t, unmarshaled.UnmarshalText(serialized))
+		require.True(t, reference.Equal(unmarshaled))
 	})
 
 	t.Run("custom", func(t *testing.T) {
-		custom := currencytestutils.NewCustomCurrency(t, "CRED:ITS", 2)
+		custom := currenciestestutils.NewCustomCurrency(t, "CRED:ITS", 2)
 		reference := custom.Reference()
 
 		serialized, err := reference.MarshalText()
@@ -156,6 +159,17 @@ func TestCurrencyReferenceSerialization(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, reference.Equal(parsed))
 		require.True(t, parsed.IsResolved())
+
+		var unmarshaled currencies.CurrencyReference
+		require.NoError(t, unmarshaled.UnmarshalText(serialized))
+		require.True(t, reference.Equal(unmarshaled))
+		require.True(t, unmarshaled.IsResolved())
+
+		referenceCurrency, ok := reference.CustomCurrency()
+		require.True(t, ok)
+		unmarshaledCurrency, ok := unmarshaled.CustomCurrency()
+		require.True(t, ok)
+		require.Equal(t, referenceCurrency.Details().Precision, unmarshaledCurrency.Details().Precision)
 		require.False(t, parsed.IsCostBasisResolved())
 
 		resolved, ok := parsed.CustomCurrency()
@@ -190,11 +204,16 @@ func TestCurrencyReferenceSerialization(t *testing.T) {
 	})
 
 	t.Run("json representation remains an object", func(t *testing.T) {
-		custom := currencytestutils.NewCustomCurrency(t, "CREDITS", 2)
+		custom := currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
 
 		serialized, err := json.Marshal(custom.Reference())
 		require.NoError(t, err)
 		require.JSONEq(t, `{"code":"CREDITS","custom_currency_id":"`+custom.ID+`"}`, string(serialized))
+
+		var unmarshaled currencies.CurrencyReference
+		require.NoError(t, json.Unmarshal(serialized, &unmarshaled))
+		require.True(t, custom.Reference().Equal(unmarshaled))
+		require.False(t, unmarshaled.IsResolved())
 	})
 }
 

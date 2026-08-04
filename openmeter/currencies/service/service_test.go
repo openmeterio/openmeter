@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	currenciestestenvutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils/env"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -24,7 +25,7 @@ func TestCurrenciesService(t *testing.T) {
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
-	env := currenciestestutils.NewTestEnv(t)
+	env := currenciestestenvutils.NewTestEnv(t)
 	t.Cleanup(func() {
 		env.Close(t)
 	})
