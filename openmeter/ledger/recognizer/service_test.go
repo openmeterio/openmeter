@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
@@ -214,7 +215,7 @@ func TestRecognizeEarnings_DeterministicAllocationAndSegmentTransition(t *testin
 	lineages, err := env.lineage.LoadLineagesByCustomer(t.Context(), lineage.LoadLineagesByCustomerInput{
 		Namespace:  env.Namespace,
 		CustomerID: env.CustomerID.ID,
-		Currency:   env.Currency,
+		Currency:   currencies.NewCurrencyReference(env.Currency),
 	})
 	require.NoError(t, err)
 

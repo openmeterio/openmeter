@@ -268,18 +268,29 @@ func costBasisKey(costBasis *alpacadecimal.Decimal) string {
 	return costBasis.String()
 }
 
-// TransferCustomerFBOAdvanceToAccruedTemplate moves value from the synthetic advance-backed
-// customer FBO route into the matching accrued route.
+// TransferCustomerFBOAdvanceToAccruedTemplate moves value out of a customer FBO
+// route directly into the matching accrued route without going through the
+// prioritized multi-source collection path in the collector package.
+//
+// It has two callers with different cost-basis shapes:
+//   - credit_only's uncovered-shortfall advance: CostBasis and CostBasisCurrency
+//     are nil (the source is not yet attributed to a known rate).
+//   - immediate purchase-and-consumption of custom-currency overage: CostBasis
+//     and CostBasisCurrency are the charge's persisted, already-known rate, and
+//     SourceChargeID is set so the accrued leg keeps purchase provenance
+//     alongside the spend that consumed it.
 type TransferCustomerFBOAdvanceToAccruedTemplate struct {
-	At             time.Time
-	Amount         alpacadecimal.Decimal
-	Currency       currencies.CurrencyReference
-	TaxCode        *string
-	TaxBehavior    *ledger.TaxBehavior
-	CostBasis      *alpacadecimal.Decimal
-	Features       []string
-	SpendChargeID  *string
-	CreditPriority *int
+	At                time.Time
+	Amount            alpacadecimal.Decimal
+	Currency          currencies.CurrencyReference
+	TaxCode           *string
+	TaxBehavior       *ledger.TaxBehavior
+	CostBasisCurrency *currencyx.Code
+	CostBasis         *alpacadecimal.Decimal
+	Features          []string
+	SourceChargeID    *string
+	SpendChargeID     *string
+	CreditPriority    *int
 }
 
 func (t TransferCustomerFBOAdvanceToAccruedTemplate) Validate() error {
@@ -299,6 +310,10 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) Validate() error {
 		if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
 			return fmt.Errorf("cost basis: %w", err)
 		}
+	}
+
+	if err := ledger.ValidateCostBasisCurrency(t.Currency.Code, t.CostBasisCurrency, t.CostBasis); err != nil {
+		return fmt.Errorf("cost basis currency: %w", err)
 	}
 
 	if t.CreditPriority != nil {
@@ -388,20 +403,22 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 	}
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       t.Currency,
-		CostBasis:      t.CostBasis,
-		Features:       t.Features,
-		CreditPriority: priority,
+		Currency:          t.Currency,
+		CostBasisCurrency: t.CostBasisCurrency,
+		CostBasis:         t.CostBasis,
+		Features:          t.Features,
+		CreditPriority:    priority,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get FBO sub-account: %w", err)
 	}
 
 	accrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
-		Currency:    t.Currency,
-		TaxCode:     t.TaxCode,
-		TaxBehavior: t.TaxBehavior,
-		CostBasis:   t.CostBasis,
+		Currency:          t.Currency,
+		CostBasisCurrency: t.CostBasisCurrency,
+		TaxCode:           t.TaxCode,
+		TaxBehavior:       t.TaxBehavior,
+		CostBasis:         t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
@@ -414,14 +431,16 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 				address: fbo.Address(),
 				amount:  t.Amount.Neg(),
 				identity: ledger.EntryIdentityParts{
-					SpendChargeID: t.SpendChargeID,
+					SourceChargeID: t.SourceChargeID,
+					SpendChargeID:  t.SpendChargeID,
 				},
 			},
 			{
 				address: accrued.Address(),
 				amount:  t.Amount,
 				identity: ledger.EntryIdentityParts{
-					SpendChargeID: t.SpendChargeID,
+					SourceChargeID: t.SourceChargeID,
+					SpendChargeID:  t.SpendChargeID,
 				},
 			},
 		},

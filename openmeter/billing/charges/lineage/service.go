@@ -8,10 +8,8 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -32,7 +30,7 @@ type Adapter interface {
 	LoadActiveSegmentsByRealizationID(ctx context.Context, namespace string, realizationIDs []string) (ActiveSegmentsByRealizationID, error)
 	LoadLineagesByCustomer(ctx context.Context, input LoadLineagesByCustomerInput) ([]Lineage, error)
 	LockCorrectionLineages(ctx context.Context, namespace string, realizationIDs []string) ([]Lineage, error)
-	LockAdvanceLineagesForBackfill(ctx context.Context, namespace string, customerID string, currency currencyx.Code) ([]Lineage, error)
+	LockAdvanceLineagesForBackfill(ctx context.Context, namespace string, customerID string, currency currencies.CurrencyReference) ([]Lineage, error)
 	ListActiveSegments(ctx context.Context, input ListActiveSegmentsInput) ([]Segment, error)
 	CloseSegment(ctx context.Context, segmentID string, closedAt time.Time) error
 	CreateSegment(ctx context.Context, input CreateSegmentInput) error
@@ -61,10 +59,6 @@ func (i CreateInitialLineagesInput) Validate() error {
 	}
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
-	}
-
-	if i.Currency.IsCustom() {
-		errs = append(errs, fmt.Errorf("create initial lineages: custom currency: %w", meta.ErrCustomCurrencyNotSupported))
 	}
 
 	if err := i.Realizations.Validate(); err != nil {
@@ -120,9 +114,6 @@ func (i BackfillAdvanceLineageSegmentsInput) Validate() error {
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
-	if i.Currency.IsCustom() {
-		errs = append(errs, fmt.Errorf("advance lineage backfill: %w", meta.ErrCustomCurrencyNotSupported))
-	}
 	if !i.Amount.IsPositive() {
 		errs = append(errs, errors.New("amount must be positive"))
 	}
@@ -136,7 +127,7 @@ func (i BackfillAdvanceLineageSegmentsInput) Validate() error {
 type LoadLineagesByCustomerInput struct {
 	Namespace  string
 	CustomerID string
-	Currency   currencyx.Code
+	Currency   currencies.CurrencyReference
 }
 
 func (i LoadLineagesByCustomerInput) Validate() error {
@@ -159,7 +150,7 @@ type CreateLineagesInput struct {
 	Namespace  string
 	ChargeID   string
 	CustomerID string
-	Currency   currencyx.Code
+	Currency   currencies.CurrencyReference
 	Specs      []creditrealization.InitialLineageSpec
 }
 
@@ -234,7 +225,7 @@ type Lineage struct {
 	ChargeID          string
 	RootRealizationID string
 	CustomerID        string
-	Currency          currencyx.Code
+	Currency          currencies.CurrencyReference
 	OriginKind        creditrealization.LineageOriginKind
 	AdvanceFeatures   []string
 	Segments          []Segment

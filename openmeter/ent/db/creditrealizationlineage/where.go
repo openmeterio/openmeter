@@ -94,6 +94,11 @@ func Currency(v currencyx.Code) predicate.CreditRealizationLineage {
 	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldCurrency, vc))
 }
 
+// CustomCurrencyID applies equality check predicate on the "custom_currency_id" field. It's identical to CustomCurrencyIDEQ.
+func CustomCurrencyID(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldCustomCurrencyID, v))
+}
+
 // AdvanceFeatures applies equality check predicate on the "advance_features" field. It's identical to AdvanceFeaturesEQ.
 func AdvanceFeatures(v pq.StringArray) predicate.CreditRealizationLineage {
 	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldAdvanceFeatures, v))
@@ -446,6 +451,81 @@ func CurrencyEqualFold(v currencyx.Code) predicate.CreditRealizationLineage {
 func CurrencyContainsFold(v currencyx.Code) predicate.CreditRealizationLineage {
 	vc := string(v)
 	return predicate.CreditRealizationLineage(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// CustomCurrencyIDEQ applies the EQ predicate on the "custom_currency_id" field.
+func CustomCurrencyIDEQ(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDNEQ applies the NEQ predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNEQ(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldNEQ(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDIn applies the In predicate on the "custom_currency_id" field.
+func CustomCurrencyIDIn(vs ...string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldIn(FieldCustomCurrencyID, vs...))
+}
+
+// CustomCurrencyIDNotIn applies the NotIn predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNotIn(vs ...string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldNotIn(FieldCustomCurrencyID, vs...))
+}
+
+// CustomCurrencyIDGT applies the GT predicate on the "custom_currency_id" field.
+func CustomCurrencyIDGT(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldGT(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDGTE applies the GTE predicate on the "custom_currency_id" field.
+func CustomCurrencyIDGTE(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldGTE(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDLT applies the LT predicate on the "custom_currency_id" field.
+func CustomCurrencyIDLT(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldLT(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDLTE applies the LTE predicate on the "custom_currency_id" field.
+func CustomCurrencyIDLTE(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldLTE(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDContains applies the Contains predicate on the "custom_currency_id" field.
+func CustomCurrencyIDContains(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldContains(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDHasPrefix applies the HasPrefix predicate on the "custom_currency_id" field.
+func CustomCurrencyIDHasPrefix(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldHasPrefix(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDHasSuffix applies the HasSuffix predicate on the "custom_currency_id" field.
+func CustomCurrencyIDHasSuffix(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldHasSuffix(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDIsNil applies the IsNil predicate on the "custom_currency_id" field.
+func CustomCurrencyIDIsNil() predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldIsNull(FieldCustomCurrencyID))
+}
+
+// CustomCurrencyIDNotNil applies the NotNil predicate on the "custom_currency_id" field.
+func CustomCurrencyIDNotNil() predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldNotNull(FieldCustomCurrencyID))
+}
+
+// CustomCurrencyIDEqualFold applies the EqualFold predicate on the "custom_currency_id" field.
+func CustomCurrencyIDEqualFold(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldEqualFold(FieldCustomCurrencyID, v))
+}
+
+// CustomCurrencyIDContainsFold applies the ContainsFold predicate on the "custom_currency_id" field.
+func CustomCurrencyIDContainsFold(v string) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldContainsFold(FieldCustomCurrencyID, v))
 }
 
 // OriginKindEQ applies the EQ predicate on the "origin_kind" field.

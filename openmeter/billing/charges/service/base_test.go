@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
@@ -25,6 +26,7 @@ import (
 	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
@@ -35,8 +37,13 @@ import (
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
+	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
@@ -54,6 +61,14 @@ type BaseSuite struct {
 	// stack the suite builds. Defaults to false; a derived suite sets it in its own
 	// SetupSuite (before calling BaseSuite.SetupSuite) to exercise unit_config rating.
 	UnitConfigEnabled bool
+
+	// UseRealRecognizer wires a real, ledger-backed recognizer.Service instead of
+	// recognizer.NoopService{}. Defaults to false because most suites in this
+	// package drive charges through mock ledger handlers that never persist real
+	// customer/business ledger accounts; a derived suite that needs to observe
+	// actual recognition behavior sets it in its own SetupSuite (before calling
+	// BaseSuite.SetupSuite).
+	UseRealRecognizer bool
 
 	Charges                   *service
 	UsageBasedService         usagebased.Service
@@ -108,6 +123,24 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 	s.LineageService = lineageService
+
+	var recognizerService recognizer.Service = recognizer.NoopService{}
+	if s.UseRealRecognizer {
+		ledgerDeps, err := ledgertestutils.InitDeps(s.DBClient, slog.Default())
+		s.NoError(err)
+
+		recognizerService, err = recognizer.NewService(recognizer.Config{
+			Ledger: ledgerDeps.HistoricalLedger,
+			Dependencies: transactions.ResolverDependencies{
+				AccountService: ledgerDeps.ResolversService,
+				AccountCatalog: ledgerDeps.AccountService,
+				BalanceQuerier: ledgerDeps.HistoricalLedger,
+			},
+			Lineage:            lineageService,
+			TransactionManager: enttx.NewCreator(s.DBClient),
+		})
+		s.NoError(err)
+	}
 
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      s.DBClient,
@@ -212,7 +245,7 @@ func (s *BaseSuite) SetupSuite() {
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
 		UsageBasedService:     usageBasedService,
-		RecognizerService:     recognizer.NoopService{},
+		RecognizerService:     recognizerService,
 
 		BillingService:   s.BillingService,
 		TaxCodeService:   s.TaxCodeService,
@@ -439,6 +472,82 @@ func (s *BaseSuite) grantPromotionalCredits(ctx context.Context, customerID cust
 	s.Len(res, 1)
 
 	return res
+}
+
+func (s *BaseSuite) newFiatCurrency(code currencyx.Code) *currencyx.FiatCurrency {
+	s.T().Helper()
+
+	fiatCurrency, err := currencyx.NewFiatCurrency(code)
+	s.Require().NoError(err)
+
+	return fiatCurrency
+}
+
+func (s *BaseSuite) newUsageBasedIntent(
+	customerID string,
+	currency currencies.Currency,
+	taxCodeID string,
+	uniqueReferenceID string,
+	featureKey string,
+	settlementMode productcatalog.SettlementMode,
+	costBasis *costbasis.Intent,
+) usagebased.Intent {
+	s.T().Helper()
+
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	return usagebased.Intent{
+		Intent: meta.Intent{
+			ManagedBy:         billing.ManuallyManagedLine,
+			CustomerID:        customerID,
+			Currency:          currency,
+			TaxConfig:         productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID},
+			UniqueReferenceID: lo.ToPtr(uniqueReferenceID),
+		},
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              uniqueReferenceID,
+				ServicePeriod:     period,
+				FullServicePeriod: period,
+				BillingPeriod:     period,
+			},
+			InvoiceAt: period.To,
+			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(1),
+			}),
+		},
+		SettlementMode: settlementMode,
+		FeatureKey:     featureKey,
+		CostBasis:      costBasis,
+	}
+}
+
+func (s *BaseSuite) createFeatureMeters(ctx context.Context, namespace, key string) featurepkg.FeatureMeterCollection {
+	s.T().Helper()
+
+	testMeter := newTestMeter(namespace, key+"-meter")
+	s.Require().NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{testMeter}))
+
+	feature, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      key,
+		Key:       key,
+		MeterID:   lo.ToPtr(testMeter.ID),
+	})
+	s.Require().NoError(err)
+
+	featureMeter := featurepkg.FeatureMeter{
+		Feature: feature,
+		Meter:   &testMeter,
+	}
+
+	return featurepkg.FeatureMeterCollection{
+		ByKey: map[string]featurepkg.FeatureMeter{feature.Key: featureMeter},
+		ByID:  map[string]featurepkg.FeatureMeter{feature.ID: featureMeter},
+	}
 }
 
 func (s *BaseSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {

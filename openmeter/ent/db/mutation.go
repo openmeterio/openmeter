@@ -80073,6 +80073,7 @@ type CreditRealizationLineageMutation struct {
 	root_realization_id *string
 	customer_id         *string
 	currency            *currencyx.Code
+	custom_currency_id  *string
 	origin_kind         *creditrealization.LineageOriginKind
 	advance_features    *pq.StringArray
 	created_at          *time.Time
@@ -80371,6 +80372,55 @@ func (m *CreditRealizationLineageMutation) ResetCurrency() {
 	m.currency = nil
 }
 
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (m *CreditRealizationLineageMutation) SetCustomCurrencyID(s string) {
+	m.custom_currency_id = &s
+}
+
+// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
+func (m *CreditRealizationLineageMutation) CustomCurrencyID() (r string, exists bool) {
+	v := m.custom_currency_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldCustomCurrencyID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
+	}
+	return oldValue.CustomCurrencyID, nil
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (m *CreditRealizationLineageMutation) ClearCustomCurrencyID() {
+	m.custom_currency_id = nil
+	m.clearedFields[creditrealizationlineage.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyIDCleared returns if the "custom_currency_id" field was cleared in this mutation.
+func (m *CreditRealizationLineageMutation) CustomCurrencyIDCleared() bool {
+	_, ok := m.clearedFields[creditrealizationlineage.FieldCustomCurrencyID]
+	return ok
+}
+
+// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
+func (m *CreditRealizationLineageMutation) ResetCustomCurrencyID() {
+	m.custom_currency_id = nil
+	delete(m.clearedFields, creditrealizationlineage.FieldCustomCurrencyID)
+}
+
 // SetOriginKind sets the "origin_kind" field.
 func (m *CreditRealizationLineageMutation) SetOriginKind(cok creditrealization.LineageOriginKind) {
 	m.origin_kind = &cok
@@ -80607,7 +80657,7 @@ func (m *CreditRealizationLineageMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CreditRealizationLineageMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.namespace != nil {
 		fields = append(fields, creditrealizationlineage.FieldNamespace)
 	}
@@ -80622,6 +80672,9 @@ func (m *CreditRealizationLineageMutation) Fields() []string {
 	}
 	if m.currency != nil {
 		fields = append(fields, creditrealizationlineage.FieldCurrency)
+	}
+	if m.custom_currency_id != nil {
+		fields = append(fields, creditrealizationlineage.FieldCustomCurrencyID)
 	}
 	if m.origin_kind != nil {
 		fields = append(fields, creditrealizationlineage.FieldOriginKind)
@@ -80650,6 +80703,8 @@ func (m *CreditRealizationLineageMutation) Field(name string) (ent.Value, bool) 
 		return m.CustomerID()
 	case creditrealizationlineage.FieldCurrency:
 		return m.Currency()
+	case creditrealizationlineage.FieldCustomCurrencyID:
+		return m.CustomCurrencyID()
 	case creditrealizationlineage.FieldOriginKind:
 		return m.OriginKind()
 	case creditrealizationlineage.FieldAdvanceFeatures:
@@ -80675,6 +80730,8 @@ func (m *CreditRealizationLineageMutation) OldField(ctx context.Context, name st
 		return m.OldCustomerID(ctx)
 	case creditrealizationlineage.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case creditrealizationlineage.FieldCustomCurrencyID:
+		return m.OldCustomCurrencyID(ctx)
 	case creditrealizationlineage.FieldOriginKind:
 		return m.OldOriginKind(ctx)
 	case creditrealizationlineage.FieldAdvanceFeatures:
@@ -80724,6 +80781,13 @@ func (m *CreditRealizationLineageMutation) SetField(name string, value ent.Value
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
+		return nil
+	case creditrealizationlineage.FieldCustomCurrencyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyID(v)
 		return nil
 	case creditrealizationlineage.FieldOriginKind:
 		v, ok := value.(creditrealization.LineageOriginKind)
@@ -80776,6 +80840,9 @@ func (m *CreditRealizationLineageMutation) AddField(name string, value ent.Value
 // mutation.
 func (m *CreditRealizationLineageMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(creditrealizationlineage.FieldCustomCurrencyID) {
+		fields = append(fields, creditrealizationlineage.FieldCustomCurrencyID)
+	}
 	if m.FieldCleared(creditrealizationlineage.FieldAdvanceFeatures) {
 		fields = append(fields, creditrealizationlineage.FieldAdvanceFeatures)
 	}
@@ -80793,6 +80860,9 @@ func (m *CreditRealizationLineageMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *CreditRealizationLineageMutation) ClearField(name string) error {
 	switch name {
+	case creditrealizationlineage.FieldCustomCurrencyID:
+		m.ClearCustomCurrencyID()
+		return nil
 	case creditrealizationlineage.FieldAdvanceFeatures:
 		m.ClearAdvanceFeatures()
 		return nil
@@ -80818,6 +80888,9 @@ func (m *CreditRealizationLineageMutation) ResetField(name string) error {
 		return nil
 	case creditrealizationlineage.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case creditrealizationlineage.FieldCustomCurrencyID:
+		m.ResetCustomCurrencyID()
 		return nil
 	case creditrealizationlineage.FieldOriginKind:
 		m.ResetOriginKind()

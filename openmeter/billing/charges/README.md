@@ -195,7 +195,44 @@ separate settlement facts. A zero converted overage controls line omission and
 invoice bypass. A zero required transaction controls payment handling and does
 not by itself remove an otherwise billable line from the invoice.
 
-This is a charge-domain contract, not end-to-end support: current ledger-backed
-charge adapters reject custom currencies. Enabling them spans ledger route
-identity and persistence, charge realization, settlement rounding, corrections,
-balance queries, and historical migration.
+Ledger-backed charge adapters implement this boundary directly:
+
+- credit allocation and correction stay in the custom currency end to end
+  ([`credit_only`](#settlement-semantics) never leaves it)
+- `OnCustomCurrencyOverageAccrued` calls the charge-side conversion once to
+  get the authoritative rounded fiat amount, then books the overage exactly
+  like a credit purchase immediately consumed by the same charge: it
+  purchases the uncovered custom amount at the charge's persisted cost basis,
+  consumes that purchase through the identical route so it never becomes
+  spendable customer balance, and converts the resulting custom-currency
+  receivable into that fiat amount as the open invoice receivable - all in
+  one atomic transaction group. It never re-resolves a cost basis or performs
+  a second, independent FX conversion. Ledger history keeps the native
+  amount, cost basis, and fiat provenance on the accrued leg even though the
+  invoice and payment lifecycle are fiat-only.
+- the accrual group keeps the consumed amount on the native accrued route and
+  creates the authoritative fiat open receivable; invoice, authorization, and
+  settlement reuse that fiat amount and currency on the charge's persisted
+  cost-basis route rather than a fixed cost basis of 1. No spendable
+  custom-currency balance or open custom-currency receivable survives accrual
+- credit realization lineage tracks a managed currency's code plus its
+  namespace-scoped currency ID, not the display code alone, so two managed
+  currencies that reuse a code (e.g. after one is soft-deleted) never share
+  or contaminate each other's lineage. The mechanism itself - advance,
+  backfill, earnings-recognized segment transitions - is currency agnostic
+  and applies to custom currencies the same way it does to fiat.
+- `AdvanceCharges` recognizes earnings in the currency each charge actually
+  settles in: fiat charges recognize in their own currency, and custom
+  `credit_then_invoice` charges recognize in their resolved invoice fiat
+  currency (the recognizer never sees the native custom currency for them).
+  Custom `credit_only` has no invoice-fiat side and no accounting design yet
+  for recognizing native custom-currency consumption as revenue, so it is
+  omitted from recognition entirely rather than erroring or being mapped to
+  an invented currency; this is a deliberate, currently-open boundary, not an
+  oversight.
+
+Known limitation: converting the uncovered custom-currency overage can round
+to a zero fiat amount. The charge layer does not yet delete the resulting
+empty overage invoice line in every case (see the skipped cases in
+`usagebased_test.go`'s custom-currency lifecycle table); until that lands,
+zero-fiat-overage handling is incomplete, not implemented.
