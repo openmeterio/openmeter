@@ -258,6 +258,10 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 			Add(history.TotalGrantUsage()).
 			InexactFloat64(),
 	}
+	unitConfig := params.StartingSnapshot.UnitConfig
+	if unitConfig != nil {
+		unitConfig = lo.ToPtr(unitConfig.Clone())
+	}
 
 	return RunResult{
 		Snapshot: balance.Snapshot{
@@ -266,6 +270,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 			Balances:      balancesAtPhaseStart,
 			Overage:       overage,
 			At:            period.To,
+			UnitConfig:    unitConfig,
 		},
 		History: history,
 	}, nil

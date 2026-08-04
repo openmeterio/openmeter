@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -303,4 +305,51 @@ func TestEnginePreservesUsageSnapshotWhenResumingAfterRollover(t *testing.T) {
 		TotalGrantUsage: 15,
 	}, *resumedRun.Snapshot.UsageSnapshot)
 	assert.Equal(t, singleRun.Snapshot, resumedRun.Snapshot)
+}
+
+func TestEnginePreservesUnitConfig(t *testing.T) {
+	start := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	resetAt := start.Add(time.Hour)
+
+	tests := []struct {
+		name   string
+		resets timeutil.SimpleTimeline
+	}{
+		{
+			name: "within a usage period",
+		},
+		{
+			name:   "across a reset",
+			resets: timeutil.NewSimpleTimeline([]time.Time{resetAt}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			displayUnit := "requests"
+			startingUnitConfig := &unitconfig.UnitConfig{
+				Operation:        unitconfig.UnitConfigOperationDivide,
+				ConversionFactor: alpacadecimal.NewFromInt(1000),
+				DisplayUnit:      &displayUnit,
+			}
+			startingSnapshot := balance.NewStartingSnapshot(nil, start)
+			startingSnapshot.UnitConfig = startingUnitConfig
+			eng := engine.NewEngine(engine.EngineConfig{
+				QueryUsage: func(_ context.Context, _, _ time.Time) (float64, error) {
+					return 0, nil
+				},
+			})
+
+			result, err := eng.Run(t.Context(), engine.RunParams{
+				StartingSnapshot: startingSnapshot,
+				Until:            start.Add(2 * time.Hour),
+				Resets:           tt.resets,
+			})
+			require.NoError(t, err)
+			require.NotNil(t, result.Snapshot.UnitConfig)
+			assert.True(t, startingUnitConfig.Equal(result.Snapshot.UnitConfig))
+			assert.NotSame(t, startingUnitConfig, result.Snapshot.UnitConfig)
+			assert.NotSame(t, startingUnitConfig.DisplayUnit, result.Snapshot.UnitConfig.DisplayUnit)
+		})
+	}
 }

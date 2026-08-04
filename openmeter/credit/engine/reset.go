@@ -5,6 +5,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -53,12 +55,18 @@ func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior gra
 		balances, grantUsages, overage = e.burnDownGrants(rolledOver, prioritizedGrants, startingOverage)
 	}
 
+	unitConfig := snap.UnitConfig
+	if unitConfig != nil {
+		unitConfig = lo.ToPtr(unitConfig.Clone())
+	}
+
 	// The reset snapshot is the point-in-time balance after grant balance
 	// rollover and preserved overage burn.
 	resetSnapshot := balance.Snapshot{
-		At:       at,
-		Balances: balances,
-		Overage:  overage,
+		At:         at,
+		Balances:   balances,
+		Overage:    overage,
+		UnitConfig: unitConfig,
 		Usage: balance.SnapshottedUsage{
 			Since: at,
 			Usage: 0,
