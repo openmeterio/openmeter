@@ -109,6 +109,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	tableName := getTableName(d.Database, d.EventsTableName)
 	getColumn := columnFactory(d.EventsTableName)
 	timeColumn := getColumn("time")
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 
 	var selectColumns, groupByColumns []string
 
@@ -207,19 +208,19 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	case meterpkg.MeterAggregationCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("%s(*) AS value", sqlAggregation))
 	case meterpkg.MeterAggregationUniqueCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(nullIf(JSON_VALUE(%s, '%s'), 'null')) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(nullIf(JSON_VALUE(%s, %s), 'null')) AS value", sqlAggregation, getColumn("data"), query.Var(*d.Meter.ValueProperty)))
 	case meterpkg.MeterAggregationLatest:
 		if d.EnableDecimalPrecision {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, '%s'), 'null'), 19), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, %s), 'null'), 19), %s) AS value", sqlAggregation, getColumn("data"), query.Var(*d.Meter.ValueProperty), timeColumn))
 		} else {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, %s)), null), %s) AS value", sqlAggregation, getColumn("data"), query.Var(*d.Meter.ValueProperty), timeColumn))
 		}
 	default:
 		if d.EnableDecimalPrecision {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, '%s'), 'null'), 19)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, %s), 'null'), 19)) AS value", sqlAggregation, getColumn("data"), query.Var(*d.Meter.ValueProperty)))
 		} else {
 			// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, %s)), null)) AS value", sqlAggregation, getColumn("data"), query.Var(*d.Meter.ValueProperty)))
 		}
 	}
 
@@ -239,14 +240,13 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 		// Group by columns need to be parsed from the JSON data
 		groupByColumn := sqlbuilder.Escape(groupByKey)
-		groupByJSONPath := escapeJSONPathLiteral(d.Meter.GroupBy[groupByKey])
-		selectColumn := fmt.Sprintf("JSON_VALUE(%s, '%s') as %s", getColumn("data"), groupByJSONPath, groupByColumn)
+		groupByJSONPath := query.Var(d.Meter.GroupBy[groupByKey])
+		selectColumn := fmt.Sprintf("JSON_VALUE(%s, %s) as %s", getColumn("data"), groupByJSONPath, groupByColumn)
 
 		selectColumns = append(selectColumns, selectColumn)
 		groupByColumns = append(groupByColumns, groupByColumn)
 	}
 
-	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select(selectColumns...)
 	query.From(tableName)
 
@@ -298,22 +298,22 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 				)
 			}
 
-			// Determine the column name
-			column := fmt.Sprintf("JSON_VALUE(%s, '%s')", dataColumn, escapeJSONPathLiteral(groupByJSONPath))
+			// Determine the column expression. Build the JSON_VALUE call as a nested
+			// builder so both the JSONPath and filter values remain query parameters.
+			column := sqlbuilder.Buildf("JSON_VALUE(%s, %v)", sqlbuilder.Raw(dataColumn), groupByJSONPath)
 
 			// Subject is a special case
 			if groupByKey == "subject" {
-				column = "subject"
+				column = sqlbuilder.Buildf("%s", sqlbuilder.Raw("subject"))
 			}
 
 			// Customer ID is a special case
 			if groupByKey == "customer_id" {
-				column = "customer_id"
+				column = sqlbuilder.Buildf("%s", sqlbuilder.Raw("customer_id"))
 			}
 
-			// Use the filter's SelectWhereExpr method to generate the WHERE clause
-			whereExpr := filterString.SelectWhereExpr(column, query)
-			query = query.Where(whereExpr)
+			whereExpr := stringFilterWhereExpr(column, filterString)
+			query = query.Where(query.Var(whereExpr))
 		}
 	}
 
@@ -359,6 +359,62 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	}
 
 	return sql, args, nil
+}
+
+// stringFilterWhereExpr builds a string filter around a SQL expression while
+// preserving parameters owned by that expression. FilterString.SelectWhereExpr
+// accepts a raw field string, which cannot carry a nested JSONPath parameter.
+func stringFilterWhereExpr(field sqlbuilder.Builder, f filter.FilterString) sqlbuilder.Builder {
+	switch {
+	case f.Eq != nil:
+		return sqlbuilder.Buildf("%v = %v", field, *f.Eq)
+	case f.Ne != nil:
+		return sqlbuilder.Buildf("%v <> %v", field, *f.Ne)
+	case f.Exists != nil:
+		if *f.Exists {
+			return sqlbuilder.Buildf("%v IS NOT NULL", field)
+		}
+		return sqlbuilder.Buildf("%v IS NULL", field)
+	case f.In != nil:
+		return sqlbuilder.Buildf("%v IN (%v)", field, *f.In)
+	case f.Nin != nil:
+		return sqlbuilder.Buildf("%v NOT IN (%v)", field, *f.Nin)
+	case f.Like != nil:
+		return sqlbuilder.Buildf("%v LIKE %v", field, *f.Like)
+	case f.Nlike != nil:
+		return sqlbuilder.Buildf("%v NOT LIKE %v", field, *f.Nlike)
+	case f.Ilike != nil:
+		return sqlbuilder.Buildf("LOWER(%v) LIKE LOWER(%v)", field, *f.Ilike)
+	case f.Nilike != nil:
+		return sqlbuilder.Buildf("LOWER(%v) NOT LIKE LOWER(%v)", field, *f.Nilike)
+	case f.Contains != nil:
+		return sqlbuilder.Buildf("LOWER(%v) LIKE LOWER(%v)", field, filter.ContainsPattern(*f.Contains))
+	case f.Ncontains != nil:
+		return sqlbuilder.Buildf("LOWER(%v) NOT LIKE LOWER(%v)", field, filter.ContainsPattern(*f.Ncontains))
+	case f.Gt != nil:
+		return sqlbuilder.Buildf("%v > %v", field, *f.Gt)
+	case f.Gte != nil:
+		return sqlbuilder.Buildf("%v >= %v", field, *f.Gte)
+	case f.Lt != nil:
+		return sqlbuilder.Buildf("%v < %v", field, *f.Lt)
+	case f.Lte != nil:
+		return sqlbuilder.Buildf("%v <= %v", field, *f.Lte)
+	case f.And != nil:
+		return joinStringFilterWhereExprs(field, *f.And, " AND ")
+	case f.Or != nil:
+		return joinStringFilterWhereExprs(field, *f.Or, " OR ")
+	default:
+		return sqlbuilder.Buildf("")
+	}
+}
+
+func joinStringFilterWhereExprs(field sqlbuilder.Builder, filters []filter.FilterString, separator string) sqlbuilder.Builder {
+	format := "(" + strings.Join(lo.RepeatBy(len(filters), func(_ int) string { return "%v" }), separator) + ")"
+	args := lo.Map(filters, func(f filter.FilterString, _ int) any {
+		return stringFilterWhereExpr(field, f)
+	})
+
+	return sqlbuilder.Buildf(format, args...)
 }
 
 // whereByOrderedColumns applies the where clause to the query for columns that are ordered by the event table.
@@ -479,31 +535,4 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 	}
 
 	return values, nil
-}
-
-// escapeJSONPathLiteral escapes a string so it can be safely embedded
-// inside a single-quoted ClickHouse string literal (i.e. '…').
-//
-// It handles backslashes, single quotes, and double quotes.
-func escapeJSONPathLiteral(s string) string {
-	var sb strings.Builder
-	// Reserve approximate capacity
-	sb.Grow(len(s) * 2)
-
-	for _, r := range s {
-		switch r {
-		case '\\':
-			sb.WriteString(`\\`)
-		case '\'':
-			// Use backslash-escape for single quote (\' ), or you could also use ''
-			sb.WriteString(`\'`)
-		case '"':
-			// Escape double quotes (optional, depending on JSON path syntax)
-			sb.WriteString(`\"`)
-		default:
-			// For other runes, just write them
-			sb.WriteRune(r)
-		}
-	}
-	return sb.String()
 }
