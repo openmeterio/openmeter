@@ -56,19 +56,19 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 	// The purchase is immediately and fully consumed by the same charge: no
 	// spendable custom-currency FBO balance and no open custom receivable survive.
 	fboSubAccount := env.customFBOSubAccountForFlatFee(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)
-	require.True(t, env.sumBalance(t, fboSubAccount).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.customOpenReceivableSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
+	require.Equal(t, 0.0, env.sumBalance(t, fboSubAccount).InexactFloat64())
+	require.Equal(t, 0.0, env.sumBalance(t, env.customOpenReceivableSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
 
 	// The consumed amount is accrued natively, preserving cost basis and fiat provenance.
 	accruedSubAccount := env.customAccruedSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, &costBasis)
-	require.True(t, env.sumBalance(t, accruedSubAccount).Equal(alpacadecimal.NewFromInt(40)))
+	require.Equal(t, 40.0, env.sumBalance(t, accruedSubAccount).InexactFloat64())
 
 	// The already-agreed, rounded fiat amount becomes the open invoice receivable.
-	require.True(t, env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(-10)))
+	require.Equal(t, -10.0, env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
 
 	// Brokerage carries the exact fiat and native legs of the conversion.
-	require.True(t, env.sumBalance(t, env.fiatBrokerageSubAccountForFlatFee(t, settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(10)))
-	require.True(t, env.sumBalance(t, env.customBrokerageSubAccountForFlatFee(t, customCurrencyIdentity, settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(-40)))
+	require.Equal(t, 10.0, env.sumBalance(t, env.fiatBrokerageSubAccountForFlatFee(t, settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, -40.0, env.sumBalance(t, env.customBrokerageSubAccountForFlatFee(t, customCurrencyIdentity, settlementCurrency, costBasis)).InexactFloat64())
 
 	// The atomic group uses the same economic steps as a paid credit purchase,
 	// with the purchased credit consumed immediately before its receivable is
@@ -220,8 +220,8 @@ func TestOnFlatFeeCustomCurrencyPaymentLifecycle(t *testing.T) {
 		require.Nil(t, entry.SpendChargeID)
 	}
 
-	require.True(t, env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.ReceivableSubAccountWithCostBasisAndStatus(t, &costBasis, ledger.TransactionAuthorizationStatusAuthorized)).Equal(alpacadecimal.NewFromInt(-10)))
+	require.Equal(t, 0.0, env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
+	require.Equal(t, -10.0, env.sumBalance(t, env.ReceivableSubAccountWithCostBasisAndStatus(t, &costBasis, ledger.TransactionAuthorizationStatusAuthorized)).InexactFloat64())
 
 	settleRef, err := env.handler.OnPaymentSettled(t.Context(), flatfee.OnPaymentSettledInput{
 		Charge:     charge,
@@ -237,15 +237,15 @@ func TestOnFlatFeeCustomCurrencyPaymentLifecycle(t *testing.T) {
 		require.Nil(t, entry.SpendChargeID)
 	}
 
-	require.True(t, env.sumBalance(t, env.ReceivableSubAccountWithCostBasisAndStatus(t, &costBasis, ledger.TransactionAuthorizationStatusAuthorized)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.WashSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(-10)))
+	require.Equal(t, 0.0, env.sumBalance(t, env.ReceivableSubAccountWithCostBasisAndStatus(t, &costBasis, ledger.TransactionAuthorizationStatusAuthorized)).InexactFloat64())
+	require.Equal(t, -10.0, env.sumBalance(t, env.WashSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
 
 	// Authorization and settlement never touch the custom-currency side: FBO
 	// stays empty, the custom receivable stays closed, and the purchased
 	// credit that was consumed at accrual time remains the only trace.
-	require.True(t, env.sumBalance(t, env.customFBOSubAccountForFlatFee(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.customOpenReceivableSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.customAccruedSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, &costBasis)).Equal(alpacadecimal.NewFromInt(40)))
+	require.Equal(t, 0.0, env.sumBalance(t, env.customFBOSubAccountForFlatFee(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, 0.0, env.sumBalance(t, env.customOpenReceivableSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, 40.0, env.sumBalance(t, env.customAccruedSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, &costBasis)).InexactFloat64())
 }
 
 // newCustomCurrencyCreditThenInvoiceCharge builds a credit_then_invoice charge
