@@ -43,7 +43,6 @@ func allocateStateMachine() *InvoiceStateMachine {
 	out := &InvoiceStateMachine{}
 
 	// TODO[OM-979]: Tax is not captured here for now, as it would require the DB schema too
-	// TODO[OM-988]: Delete invoice is not implemented yet
 
 	stateMachine := stateless.NewStateMachineWithExternalStorage(
 		func(ctx context.Context) (stateless.State, error) {
