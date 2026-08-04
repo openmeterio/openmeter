@@ -466,7 +466,13 @@ func settlementPaymentCurrency(
 		return "", fmt.Errorf("settlement currency is required for a custom currency purchase")
 	}
 
-	return currencyx.Code(lo.FromPtr(settlementCurrency)), nil
+	sc := lo.FromPtr(settlementCurrency)
+
+	if err := sc.Validate(); err != nil {
+		return "", fmt.Errorf("settlement currency is invalid: %w", err)
+	}
+
+	return currencyx.Code(sc), nil
 }
 
 // settlementCostBasisCurrency returns the fiat currency a custom-currency
