@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -9,21 +8,16 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	dbchargeusagebasedcostbasis "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestUsageBasedCostBasisCreate(t *testing.T) {
@@ -412,7 +406,6 @@ func (s *UsageBasedCostBasisCreateSuite) countCostBases(namespace string) int {
 
 	return count
 }
-
 func (s *UsageBasedCostBasisCreateSuite) createFeatureMeters(ctx context.Context, namespace, key string) billingfeaturemeter.FeatureMeterCollection {
 	s.T().Helper()
 

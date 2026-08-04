@@ -58,6 +58,20 @@ func (_c *CreditRealizationLineageCreate) SetCurrency(v currencyx.Code) *CreditR
 	return _c
 }
 
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (_c *CreditRealizationLineageCreate) SetCustomCurrencyID(v string) *CreditRealizationLineageCreate {
+	_c.mutation.SetCustomCurrencyID(v)
+	return _c
+}
+
+// SetNillableCustomCurrencyID sets the "custom_currency_id" field if the given value is not nil.
+func (_c *CreditRealizationLineageCreate) SetNillableCustomCurrencyID(v *string) *CreditRealizationLineageCreate {
+	if v != nil {
+		_c.SetCustomCurrencyID(*v)
+	}
+	return _c
+}
+
 // SetOriginKind sets the "origin_kind" field.
 func (_c *CreditRealizationLineageCreate) SetOriginKind(v creditrealization.LineageOriginKind) *CreditRealizationLineageCreate {
 	_c.mutation.SetOriginKind(v)
@@ -205,6 +219,11 @@ func (_c *CreditRealizationLineageCreate) check() error {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineage.currency": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.CustomCurrencyID(); ok {
+		if err := creditrealizationlineage.CustomCurrencyIDValidator(v); err != nil {
+			return &ValidationError{Name: "custom_currency_id", err: fmt.Errorf(`db: validator failed for field "CreditRealizationLineage.custom_currency_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.OriginKind(); !ok {
 		return &ValidationError{Name: "origin_kind", err: errors.New(`db: missing required field "CreditRealizationLineage.origin_kind"`)}
 	}
@@ -270,6 +289,10 @@ func (_c *CreditRealizationLineageCreate) createSpec() (*CreditRealizationLineag
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(creditrealizationlineage.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := _c.mutation.CustomCurrencyID(); ok {
+		_spec.SetField(creditrealizationlineage.FieldCustomCurrencyID, field.TypeString, value)
+		_node.CustomCurrencyID = &value
 	}
 	if value, ok := _c.mutation.OriginKind(); ok {
 		_spec.SetField(creditrealizationlineage.FieldOriginKind, field.TypeEnum, value)
@@ -399,6 +422,9 @@ func (u *CreditRealizationLineageUpsertOne) UpdateNewValues() *CreditRealization
 		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(creditrealizationlineage.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
+			s.SetIgnore(creditrealizationlineage.FieldCustomCurrencyID)
 		}
 		if _, exists := u.create.mutation.OriginKind(); exists {
 			s.SetIgnore(creditrealizationlineage.FieldOriginKind)
@@ -637,6 +663,9 @@ func (u *CreditRealizationLineageUpsertBulk) UpdateNewValues() *CreditRealizatio
 			}
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(creditrealizationlineage.FieldCurrency)
+			}
+			if _, exists := b.mutation.CustomCurrencyID(); exists {
+				s.SetIgnore(creditrealizationlineage.FieldCustomCurrencyID)
 			}
 			if _, exists := b.mutation.OriginKind(); exists {
 				s.SetIgnore(creditrealizationlineage.FieldOriginKind)

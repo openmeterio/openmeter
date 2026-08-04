@@ -11,10 +11,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineagesegment"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -73,7 +74,8 @@ func (a *adapter) CreateLineages(ctx context.Context, input lineage.CreateLineag
 				SetChargeID(input.ChargeID).
 				SetRootRealizationID(spec.RootRealizationID).
 				SetCustomerID(input.CustomerID).
-				SetCurrency(input.Currency).
+				SetCurrency(input.Currency.Code).
+				SetNillableCustomCurrencyID(input.Currency.CustomCurrencyID).
 				SetOriginKind(spec.OriginKind).
 				SetAdvanceFeatures(pq.StringArray(spec.AdvanceFeatures)),
 			)
@@ -101,7 +103,7 @@ func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.Load
 			Where(
 				creditrealizationlineage.Namespace(input.Namespace),
 				creditrealizationlineage.CustomerIDEQ(input.CustomerID),
-				creditrealizationlineage.CurrencyEQ(input.Currency),
+				currencyIdentityPredicate(input.Currency),
 			).
 			WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {
 				q.Where(creditrealizationlineagesegment.ClosedAtIsNil()).
@@ -115,6 +117,24 @@ func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.Load
 
 		return lo.Map(lineages, mapLineage), nil
 	})
+}
+
+// currencyIdentityPredicate matches a lineage's persisted currency identity:
+// the display code plus, for custom currencies, the exact managed currency
+// ID. Distinct managed currencies can reuse a code (e.g. after one is
+// soft-deleted), so matching on code alone would conflate their lineages.
+func currencyIdentityPredicate(ref currencies.CurrencyReference) predicate.CreditRealizationLineage {
+	if ref.CustomCurrencyID == nil {
+		return creditrealizationlineage.And(
+			creditrealizationlineage.CurrencyEQ(ref.Code),
+			creditrealizationlineage.CustomCurrencyIDIsNil(),
+		)
+	}
+
+	return creditrealizationlineage.And(
+		creditrealizationlineage.CurrencyEQ(ref.Code),
+		creditrealizationlineage.CustomCurrencyIDEQ(*ref.CustomCurrencyID),
+	)
 }
 
 func (a *adapter) LockCorrectionLineages(ctx context.Context, namespace string, realizationIDs []string) ([]lineage.Lineage, error) {
@@ -143,7 +163,7 @@ func (a *adapter) LockCorrectionLineages(ctx context.Context, namespace string, 
 	})
 }
 
-func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace string, customerID string, currency currencyx.Code) ([]lineage.Lineage, error) {
+func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace string, customerID string, currency currencies.CurrencyReference) ([]lineage.Lineage, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]lineage.Lineage, error) {
 		if _, err := entutils.GetDriverFromContext(ctx); err != nil {
 			return nil, fmt.Errorf("lock advance lineages for backfill must be called in a transaction: %w", err)
@@ -153,7 +173,7 @@ func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace 
 			Where(
 				creditrealizationlineage.Namespace(namespace),
 				creditrealizationlineage.CustomerIDEQ(customerID),
-				creditrealizationlineage.CurrencyEQ(currency),
+				currencyIdentityPredicate(currency),
 				creditrealizationlineage.HasSegmentsWith(
 					creditrealizationlineagesegment.ClosedAtIsNil(),
 					creditrealizationlineagesegment.StateEQ(creditrealization.LineageSegmentStateAdvanceUncovered),
@@ -172,7 +192,7 @@ func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace 
 				ChargeID:          entry.ChargeID,
 				RootRealizationID: entry.RootRealizationID,
 				CustomerID:        entry.CustomerID,
-				Currency:          entry.Currency,
+				Currency:          currencies.CurrencyReference{Code: entry.Currency, CustomCurrencyID: entry.CustomCurrencyID},
 				OriginKind:        entry.OriginKind,
 				AdvanceFeatures:   []string(entry.AdvanceFeatures),
 			}
@@ -242,7 +262,7 @@ func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 		ChargeID:          entry.ChargeID,
 		RootRealizationID: entry.RootRealizationID,
 		CustomerID:        entry.CustomerID,
-		Currency:          entry.Currency,
+		Currency:          currencies.CurrencyReference{Code: entry.Currency, CustomCurrencyID: entry.CustomCurrencyID},
 		OriginKind:        entry.OriginKind,
 		AdvanceFeatures:   []string(entry.AdvanceFeatures),
 		Segments: lo.Map(entry.Edges.Segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) lineage.Segment {

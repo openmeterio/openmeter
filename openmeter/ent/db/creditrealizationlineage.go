@@ -31,6 +31,8 @@ type CreditRealizationLineage struct {
 	CustomerID string `json:"customer_id,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
+	// CustomCurrencyID holds the value of the "custom_currency_id" field.
+	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// OriginKind holds the value of the "origin_kind" field.
 	OriginKind creditrealization.LineageOriginKind `json:"origin_kind,omitempty"`
 	// AdvanceFeatures holds the value of the "advance_features" field.
@@ -81,7 +83,7 @@ func (*CreditRealizationLineage) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case creditrealizationlineage.FieldAdvanceFeatures:
 			values[i] = new(pq.StringArray)
-		case creditrealizationlineage.FieldID, creditrealizationlineage.FieldNamespace, creditrealizationlineage.FieldChargeID, creditrealizationlineage.FieldRootRealizationID, creditrealizationlineage.FieldCustomerID, creditrealizationlineage.FieldCurrency, creditrealizationlineage.FieldOriginKind:
+		case creditrealizationlineage.FieldID, creditrealizationlineage.FieldNamespace, creditrealizationlineage.FieldChargeID, creditrealizationlineage.FieldRootRealizationID, creditrealizationlineage.FieldCustomerID, creditrealizationlineage.FieldCurrency, creditrealizationlineage.FieldCustomCurrencyID, creditrealizationlineage.FieldOriginKind:
 			values[i] = new(sql.NullString)
 		case creditrealizationlineage.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -135,6 +137,13 @@ func (_m *CreditRealizationLineage) assignValues(columns []string, values []any)
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = currencyx.Code(value.String)
+			}
+		case creditrealizationlineage.FieldCustomCurrencyID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_currency_id", values[i])
+			} else if value.Valid {
+				_m.CustomCurrencyID = new(string)
+				*_m.CustomCurrencyID = value.String
 			}
 		case creditrealizationlineage.FieldOriginKind:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -214,6 +223,11 @@ func (_m *CreditRealizationLineage) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	builder.WriteString(", ")
+	if v := _m.CustomCurrencyID; v != nil {
+		builder.WriteString("custom_currency_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("origin_kind=")
 	builder.WriteString(fmt.Sprintf("%v", _m.OriginKind))
