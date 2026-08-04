@@ -177,7 +177,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftReadyToIssue).
-		Permit(billing.TriggerNext, billing.StandardInvoiceStatusIssuingSyncing).
+		PermitDynamic(billing.TriggerNext, out.resolveStateAfterDraftReadyToIssue).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating)
 
@@ -212,7 +212,10 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleteSyncing).
 		Permit(billing.TriggerNext, billing.StandardInvoiceStatusDeleted).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDeleteFailed).
-		OnActive(out.syncDeletedInvoice)
+		OnActive(statelessx.AllOf(
+			out.ensureEmptyInvoiceDeletionPrepared,
+			out.syncDeletedInvoice,
+		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleteFailed).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress)
@@ -870,6 +873,36 @@ func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
 		}
 
 		return nil, app.DeleteStandardInvoice(ctx, clonedInvoice)
+	})
+}
+
+func (m *InvoiceStateMachine) resolveStateAfterDraftReadyToIssue(_ context.Context, _ ...any) (stateless.State, error) {
+	if m.Invoice.Lines.IsPresent() && m.Invoice.Lines.NonDeletedLineCount() == 0 {
+		return billing.StandardInvoiceStatusDeleteSyncing, nil
+	}
+
+	return billing.StandardInvoiceStatusIssuingSyncing, nil
+}
+
+// ensureEmptyInvoiceDeletionPrepared starts a system deletion when issuing
+// discovers that every invoice line has already been deleted. Explicit
+// deletions have already been prepared in delete.in_progress and require no
+// further work.
+func (m *InvoiceStateMachine) ensureEmptyInvoiceDeletionPrepared(ctx context.Context) error {
+	if m.Invoice.DeletedAt != nil {
+		return nil
+	}
+
+	if !m.Invoice.Lines.IsPresent() {
+		return errors.New("invoice lines must be expanded before preparing empty invoice deletion")
+	}
+
+	if m.Invoice.Lines.NonDeletedLineCount() != 0 {
+		return errors.New("cannot prepare empty invoice deletion: invoice has non-deleted lines")
+	}
+
+	return m.deleteInvoice(ctx, billing.DeleteInvoiceTriggerInput{
+		Source: billing.ChangeSourceSystem,
 	})
 }
 

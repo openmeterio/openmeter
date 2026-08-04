@@ -475,6 +475,24 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				}
 
 				var err error
+				if test.expectLineDeleted {
+					mockApp := s.SandboxApp.EnableMock(s.T())
+					defer s.SandboxApp.DisableMock()
+					mockApp.OnDeleteStandardInvoice(nil)
+
+					invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+					s.Require().NoError(err)
+					s.Equal(billing.StandardInvoiceStatusDeleted, invoice.Status)
+					s.NotNil(invoice.DeletedAt)
+					s.Equal(billing.ChangeSourceSystem, invoice.DeletionSource)
+					s.Nil(invoice.IssuedAt)
+					s.Equal(1, mockApp.DeleteInvoiceCallCount())
+					s.Zero(mockApp.FinalizeInvoiceCallCount())
+					mockApp.AssertExpectations(s.T())
+
+					return
+				}
+
 				invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 				s.Require().NoError(err)
 				s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
@@ -525,11 +543,20 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 					Expand:  billing.StandardInvoiceExpandAll,
 				})
 				s.Require().NoError(err)
+				expectedInvoiceStatus := billing.StandardInvoiceStatusPaid
+				if test.expectLineDeleted {
+					expectedInvoiceStatus = billing.StandardInvoiceStatusDeleted
+				}
+				s.Equal(expectedInvoiceStatus, activeInvoice.Status)
 				s.Equal(currencyx.FiatCode(USD), activeInvoice.Currency)
 				s.RequireTotals(test.expectInvoiceTotals, activeInvoice.Totals)
 				if test.expectLineDeleted {
+					s.NotNil(activeInvoice.DeletedAt)
+					s.Equal(billing.ChangeSourceSystem, activeInvoice.DeletionSource)
+					s.Nil(activeInvoice.IssuedAt)
 					s.Empty(activeInvoice.Lines.OrEmpty())
 				} else {
+					s.Nil(activeInvoice.DeletedAt)
 					s.Require().Len(activeInvoice.Lines.OrEmpty(), 1)
 				}
 
@@ -550,9 +577,10 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 						line:             line,
 						expectFiatTotals: test.expectInvoiceTotals,
 					})
-
-					// TODO: delete the standard invoice when zero overage removes its only line.
-					s.Nil(invoiceWithDeletedLines.DeletedAt)
+					s.NotNil(invoiceWithDeletedLines.DeletedAt)
+					s.Equal(billing.StandardInvoiceStatusDeleted, invoiceWithDeletedLines.Status)
+					s.Equal(billing.ChangeSourceSystem, invoiceWithDeletedLines.DeletionSource)
+					s.Nil(invoiceWithDeletedLines.IssuedAt)
 				} else {
 					s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
 						line:               line,
