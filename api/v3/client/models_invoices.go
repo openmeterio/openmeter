@@ -471,6 +471,10 @@ type InvoiceStandardLine struct {
 	//
 	// Present when line has individual details.
 	DetailedLines []InvoiceDetailedLine `json:"detailed_lines"`
+	// Usage quantity details for this line when UnitConfig is in effect.
+	//
+	// Read-only; omitted for lines without unit conversion.
+	UsageQuantityDetail *InvoiceUsageQuantityDetail `json:"usage_quantity_detail,omitempty"`
 	// Reference to the charge associated with this line item.
 	Charge *ChargeReference `json:"charge,omitempty"`
 }
@@ -525,6 +529,19 @@ func (value InvoiceType) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Usage quantity details on an invoice line item when UnitConfig is in effect.
+//
+// Provides the full audit trail from raw meter output to the invoiced amount.
+type InvoiceUsageQuantityDetail struct {
+	// The raw quantity as reported by the meter (native units).
+	RawQuantity Numeric `json:"raw_quantity"`
+	// The net billed quantity for this line in converted units, after rounding and any
+	// usage discounts.
+	InvoicedQuantity Numeric `json:"invoiced_quantity"`
+	// The display unit label (e.g., "GB", "hours", "M tokens").
+	DisplayUnit *string `json:"display_unit,omitempty"`
 }
 
 // A validation issue found during invoice processing.

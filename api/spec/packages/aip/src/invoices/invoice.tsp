@@ -765,6 +765,15 @@ model InvoiceStandardLine {
   detailed_lines: InvoiceDetailedLine[];
 
   /**
+   * Usage quantity details for this line when UnitConfig is in effect.
+   *
+   * Read-only; omitted for lines without unit conversion.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Usage quantity detail")
+  usage_quantity_detail?: ProductCatalog.InvoiceUsageQuantityDetail;
+
+  /**
    * Reference to the charge associated with this line item.
    */
   @visibility(Lifecycle.Read)

@@ -127,18 +127,11 @@ model InvoiceUsageQuantityDetail {
   raw_quantity: Shared.Numeric;
 
   /**
-   * The precise decimal value after applying the conversion operation and factor,
-   * before rounding.
+   * The net billed quantity for this line in converted units, after rounding and any
+   * usage discounts.
    */
   @visibility(Lifecycle.Read)
-  @summary("Converted quantity (precise)")
-  converted_quantity: Shared.Numeric;
-
-  /**
-   * The quantity after rounding, used for pricing.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Invoiced quantity (rounded)")
+  @summary("Invoiced quantity")
   invoiced_quantity: Shared.Numeric;
 
   /**
@@ -147,12 +140,4 @@ model InvoiceUsageQuantityDetail {
   @visibility(Lifecycle.Read)
   @summary("Display unit")
   display_unit?: string;
-
-  /**
-   * Snapshot of the UnitConfig that was in effect at billing time. Ensures
-   * historical invoices reflect the config that was actually applied.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Applied unit config snapshot")
-  applied_unit_config: UnitConfig;
 }

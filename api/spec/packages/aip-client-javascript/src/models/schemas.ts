@@ -1640,6 +1640,21 @@ export const invoiceLineCreditsApplied = z
   })
   .describe('A credit allocation applied to an invoice line item.')
 
+export const invoiceUsageQuantityDetail = z
+  .object({
+    rawQuantity: numeric,
+    invoicedQuantity: numeric,
+    displayUnit: z
+      .string()
+      .optional()
+
+      .describe('The display unit label (e.g., "GB", "hours", "M tokens").'),
+  })
+
+  .describe(
+    'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
+  )
+
 export const updatePriceFlat = z
   .object({
     type: z.literal('flat').describe('The type of the price.'),
@@ -4068,23 +4083,6 @@ export const createSubscriptionAddonRequest = z
   })
   .describe('SubscriptionAddon create request.')
 
-export const invoiceUsageQuantityDetail = z
-  .object({
-    rawQuantity: numeric,
-    convertedQuantity: numeric,
-    invoicedQuantity: numeric,
-    displayUnit: z
-      .string()
-      .optional()
-
-      .describe('The display unit label (e.g., "GB", "hours", "M tokens").'),
-    appliedUnitConfig: unitConfig,
-  })
-
-  .describe(
-    'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
-  )
-
 export const createTaxCodeRequest = z
   .object({
     name: z
@@ -5510,6 +5508,7 @@ export const invoiceStandardLine = z
       .describe(
         'Detailed sub-lines that this line has been broken down into. Present when line has individual details.',
       ),
+    usageQuantityDetail: invoiceUsageQuantityDetail.optional(),
     charge: chargeReference.optional(),
   })
 
@@ -8525,6 +8524,21 @@ export const invoiceLineCreditsAppliedWire = z
   })
   .describe('A credit allocation applied to an invoice line item.')
 
+export const invoiceUsageQuantityDetailWire = z
+  .strictObject({
+    raw_quantity: numericWire,
+    invoiced_quantity: numericWire,
+    display_unit: z
+      .string()
+      .optional()
+
+      .describe('The display unit label (e.g., "GB", "hours", "M tokens").'),
+  })
+
+  .describe(
+    'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
+  )
+
 export const updatePriceFlatWire = z
   .strictObject({
     type: z.literal('flat').describe('The type of the price.'),
@@ -10935,23 +10949,6 @@ export const createSubscriptionAddonRequestWire = z
   })
   .describe('SubscriptionAddon create request.')
 
-export const invoiceUsageQuantityDetailWire = z
-  .strictObject({
-    raw_quantity: numericWire,
-    converted_quantity: numericWire,
-    invoiced_quantity: numericWire,
-    display_unit: z
-      .string()
-      .optional()
-
-      .describe('The display unit label (e.g., "GB", "hours", "M tokens").'),
-    applied_unit_config: unitConfigWire,
-  })
-
-  .describe(
-    'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
-  )
-
 export const createTaxCodeRequestWire = z
   .strictObject({
     name: z
@@ -12383,6 +12380,7 @@ export const invoiceStandardLineWire = z
       .describe(
         'Detailed sub-lines that this line has been broken down into. Present when line has individual details.',
       ),
+    usage_quantity_detail: invoiceUsageQuantityDetailWire.optional(),
     charge: chargeReferenceWire.optional(),
   })
 
