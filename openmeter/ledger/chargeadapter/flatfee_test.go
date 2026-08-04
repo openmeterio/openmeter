@@ -1,6 +1,7 @@
 package chargeadapter_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +20,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -525,6 +528,11 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
 		}
+		for _, entry := range env.transactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
+		}
 	})
 
 	t.Run("credit_then_invoice mixed FBO and receivable only authorizes receivable", func(t *testing.T) {
@@ -654,6 +662,11 @@ func TestOnFlatFeePaymentSettled(t *testing.T) {
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
+		}
+		for _, entry := range env.transactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
 		}
 	})
 
@@ -1189,6 +1202,53 @@ func (e *flatFeeHandlerTestEnv) transactionGroupAnnotations(t *testing.T, groupI
 	return group.Annotations
 }
 
+func (e *flatFeeHandlerTestEnv) transactionGroupEntries(t *testing.T, groupID string) []*entdb.LedgerEntry {
+	t.Helper()
+
+	ledgerTransactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, ledgerTransactions)
+
+	transactionIDs := make([]string, 0, len(ledgerTransactions))
+	for _, transaction := range ledgerTransactions {
+		transactionIDs = append(transactionIDs, transaction.ID)
+	}
+
+	entries, err := e.DB.LedgerEntry.Query().
+		Where(
+			ledgerentrydb.Namespace(e.Namespace),
+			ledgerentrydb.TransactionIDIn(transactionIDs...),
+		).
+		Order(
+			ledgerentrydb.ByCreatedAt(),
+			ledgerentrydb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+
+	return entries
+}
+
+func (e *flatFeeHandlerTestEnv) entriesForSubAccount(entries []*entdb.LedgerEntry, subAccount ledger.SubAccount) []*entdb.LedgerEntry {
+	out := make([]*entdb.LedgerEntry, 0, len(entries))
+	for _, entry := range entries {
+		if entry.SubAccountID == subAccount.Address().SubAccountID() {
+			out = append(out, entry)
+		}
+	}
+
+	return out
+}
+
 func (e *flatFeeHandlerTestEnv) transactionBookedAtTimes(t *testing.T, groupID string) []time.Time {
 	t.Helper()
 
@@ -1208,6 +1268,29 @@ func (e *flatFeeHandlerTestEnv) transactionBookedAtTimes(t *testing.T, groupID s
 	out := make([]time.Time, 0, len(transactions))
 	for _, tx := range transactions {
 		out = append(out, tx.BookedAt)
+	}
+
+	return out
+}
+
+func (e *flatFeeHandlerTestEnv) transactionAnnotations(t *testing.T, groupID string) []models.Annotations {
+	t.Helper()
+
+	transactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+
+	out := make([]models.Annotations, 0, len(transactions))
+	for _, tx := range transactions {
+		out = append(out, tx.Annotations)
 	}
 
 	return out

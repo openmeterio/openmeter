@@ -6,6 +6,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
@@ -16,4 +17,19 @@ func settledBalanceForSubAccount(ctx context.Context, querier ledger.BalanceQuer
 	}
 
 	return balance, nil
+}
+
+// invoicePaymentIdentity keeps ordinary invoiced charges attributed as spend,
+// while custom-currency overage follows its credit-purchase invoice line and
+// attributes the fiat payment lifecycle to the synthetic credit source.
+func invoicePaymentIdentity(chargeID string, chargeCurrency currencies.Currency) ledger.EntryIdentityParts {
+	if chargeCurrency.IsCustom() {
+		return ledger.EntryIdentityParts{
+			SourceChargeID: &chargeID,
+		}
+	}
+
+	return ledger.EntryIdentityParts{
+		SpendChargeID: &chargeID,
+	}
 }
