@@ -209,8 +209,14 @@ func TestQueryEventsTableV2_ToSQL(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "WITH map('customer1-key', 'customer1-id', 'customer1-subject1', 'customer1-id', 'customer1-subject2', 'customer1-id', 'customer2-key', 'customer2-id', 'customer2-subject1', 'customer2-id', 'customer2-subject2', 'customer2-id') as subject_to_customer_id SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id, subject_to_customer_id[om_events.subject] AS customer_id FROM openmeter.om_events WHERE namespace = ? AND openmeter.om_events.subject IN (?) ORDER BY time DESC, store_row_id DESC LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", []string{"customer1-key", "customer1-subject1", "customer1-subject2", "customer2-key", "customer2-subject1", "customer2-subject2"}, 100},
+			wantSQL: "SELECT id, type, subject, source, time, data, ingested_at, stored_at, store_row_id, mapFromArrays(?, ?)[om_events.subject] AS customer_id FROM openmeter.om_events WHERE namespace = ? AND openmeter.om_events.subject IN (?) ORDER BY time DESC, store_row_id DESC LIMIT ?",
+			wantArgs: []interface{}{
+				[]string{"customer1-key", "customer1-subject1", "customer1-subject2", "customer2-key", "customer2-subject1", "customer2-subject2"},
+				[]string{"customer1-id", "customer1-id", "customer1-id", "customer2-id", "customer2-id", "customer2-id"},
+				"my_namespace",
+				[]string{"customer1-key", "customer1-subject1", "customer1-subject2", "customer2-key", "customer2-subject1", "customer2-subject2"},
+				100,
+			},
 		},
 	}
 
