@@ -344,6 +344,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		SubscriptionPhaseRepo: subPhaseRepo,
 		SubscriptionItemRepo:  subItemRepo,
 		CustomerService:       customerService,
+		CurrencyResolver:      currencyResolver,
 		EntitlementAdapter:    entitlementAdapter,
 		FeatureService:        entitlementRegistry.Feature,
 		TransactionManager:    subItemRepo,

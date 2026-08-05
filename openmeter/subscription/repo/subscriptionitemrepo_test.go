@@ -125,6 +125,49 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 	createInput.Description = customItems[0].RateCard.AsMeta().Description
 	createInput.EntitlementID = nil
 
+	unresolvedInput := createInput
+	unresolvedInput.RateCard = createInput.RateCard.Clone()
+	unresolvedCurrencyID := managedCurrency.ID
+	require.NoError(t, unresolvedInput.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.Currency = &currencies.CurrencyReference{
+			Code:             managedCurrency.GetCode(),
+			CustomCurrencyID: &unresolvedCurrencyID,
+		}
+		return meta, nil
+	}))
+	_, err = deps.ItemRepo.Create(t.Context(), unresolvedInput)
+	require.ErrorContains(t, err, "must be resolved before persistence")
+
+	foreignCurrency, err := deps.CurrencyService.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+		Namespace: "subscription-item-currency-persistence-other",
+		CurrencyDetails: currencyx.CurrencyDetails{
+			Code:               "TOKENS",
+			Name:               "Tokens",
+			Symbol:             "tok",
+			Precision:          0,
+			DecimalMark:        ".",
+			ThousandsSeparator: ",",
+		},
+	})
+	require.NoError(t, err)
+
+	foreignInput := createInput
+	foreignInput.RateCard = createInput.RateCard.Clone()
+	foreignReference := foreignCurrency.Reference()
+	require.NoError(t, foreignInput.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.Currency = &foreignReference
+		return meta, nil
+	}))
+	_, err = deps.ItemRepo.Create(t.Context(), foreignInput)
+	require.ErrorContains(t, err, "custom currency namespace mismatch")
+
+	createInput.RateCard = createInput.RateCard.Clone()
+	resolvedReference := managedCurrency.Reference()
+	require.NoError(t, createInput.RateCard.ChangeMeta(func(meta productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		meta.Currency = &resolvedReference
+		return meta, nil
+	}))
+
 	created, err := deps.ItemRepo.Create(t.Context(), createInput)
 	require.NoError(t, err)
 	createdCurrency := created.RateCard.AsMeta().Currency

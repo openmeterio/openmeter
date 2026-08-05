@@ -14,7 +14,8 @@ artifacts asynchronously.
 - The workflow layer decides the product operation, resolves its timing, and
   constructs a complete target spec.
 - The subscription service validates lifecycle rules, runs command hooks,
-  materializes the target spec, and publishes the resulting subscription event.
+  resolves item currencies, materializes the target spec, and publishes the
+  resulting subscription event.
 - The materializer owns subscription phases, items, and their entitlement
   scheduling. It does not create invoice lines, charges, or ledger entries.
 
@@ -51,5 +52,8 @@ annotations intended for correlation, not persisted child IDs.
   transaction.
 - The materializer receives a complete desired state. It does not interpret
   the user's patch sequence or decide command timing.
+- Custom item currencies must be resolved by the service before persistence;
+  the materializer verifies that their managed identity belongs to the item
+  namespace without loading currency state itself.
 - Events are published from the materialized view. Downstream consumers should
   derive work from that committed view and tolerate delivery retries.

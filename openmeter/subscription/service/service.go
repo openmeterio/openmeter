@@ -29,8 +29,9 @@ type ServiceConfig struct {
 	SubscriptionPhaseRepo subscription.SubscriptionPhaseRepository
 	SubscriptionItemRepo  subscription.SubscriptionItemRepository
 	// connectors
-	CustomerService customer.Service
-	FeatureService  feature.FeatureConnector
+	CustomerService  customer.Service
+	FeatureService   feature.FeatureConnector
+	CurrencyResolver currencies.CurrencyResolver
 	// adapters
 	EntitlementAdapter subscription.EntitlementAdapter
 	// framework
@@ -45,6 +46,10 @@ type ServiceConfig struct {
 }
 
 func New(conf ServiceConfig) (subscription.Service, error) {
+	if conf.CurrencyResolver == nil {
+		return nil, errors.New("currency resolver is required")
+	}
+
 	svc := &service{
 		ServiceConfig: conf,
 	}
@@ -103,8 +108,8 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 	ctx = subscription.NewSubscriptionOperationContext(ctx)
 
 	def := subscription.Subscription{}
-	if err := spec.MaterializeRateCardCurrencies(currencies.NewCurrencyReference(spec.Currency)); err != nil {
-		return def, fmt.Errorf("failed to materialize subscription item currencies: %w", err)
+	if err := s.prepareSpecCurrencies(ctx, namespace, &spec); err != nil {
+		return def, err
 	}
 
 	// Fetch the customer & validate the customer
@@ -201,8 +206,8 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 	ctx = subscription.NewSubscriptionOperationContext(ctx)
 
 	var def subscription.Subscription
-	if err := newSpec.MaterializeRateCardCurrencies(currencies.NewCurrencyReference(newSpec.Currency)); err != nil {
-		return def, fmt.Errorf("failed to materialize subscription item currencies: %w", err)
+	if err := s.prepareSpecCurrencies(ctx, subscriptionID.Namespace, &newSpec); err != nil {
+		return def, err
 	}
 
 	// Get the full view
@@ -226,7 +231,7 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			return def, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		subs, err := s.sync(ctx, view, newSpec)
+		subs, err := s.syncPrepared(ctx, view, newSpec)
 		if err != nil {
 			return subs, err
 		}

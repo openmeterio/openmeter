@@ -166,8 +166,9 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		SubscriptionPhaseRepo: subscriptionrepo.NewSubscriptionPhaseRepo(deps.DBClient),
 		SubscriptionItemRepo:  subsItemRepo,
 		// connectors
-		CustomerService: deps.CustomerService,
-		FeatureService:  deps.FeatureService,
+		CustomerService:  deps.CustomerService,
+		FeatureService:   deps.FeatureService,
+		CurrencyResolver: currencyResolver,
 		// adapters
 		EntitlementAdapter: subscriptionentitlementadatapter.NewSubscriptionEntitlementAdapter(
 			s.EntitlementConnector,

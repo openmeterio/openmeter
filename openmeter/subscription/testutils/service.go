@@ -223,6 +223,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		SubscriptionPhaseRepo: subPhaseRepo,
 		SubscriptionItemRepo:  subItemRepo,
 		CustomerService:       customerService,
+		CurrencyResolver:      currencyResolver,
 		EntitlementAdapter:    entitlementAdapter,
 		FeatureService:        entitlementRegistry.Feature,
 		TransactionManager:    subItemRepo,
