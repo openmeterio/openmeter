@@ -146,53 +146,20 @@ func (f FilterString) IsEmpty() bool {
 	return isEmptyFilter(f)
 }
 
-// SelectWhereExpr converts the filter to a SQL WHERE expression.
+// SelectWhereExpr converts the filter to a SQL WHERE expression. It wraps
+// SelectWhereExprBuilder for a plain-string field.
 func (f FilterString) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
-	switch {
-	case f.Eq != nil:
-		return q.EQ(field, *f.Eq)
-	case f.Ne != nil:
-		return q.NE(field, *f.Ne)
-	case f.Exists != nil:
-		if *f.Exists {
-			return q.IsNotNull(field)
-		}
-		return q.IsNull(field)
-	case f.In != nil:
-		return q.In(field, *f.In)
-	case f.Nin != nil:
-		return q.NotIn(field, *f.Nin)
-	case f.Like != nil:
-		return q.Like(field, *f.Like)
-	case f.Nlike != nil:
-		return q.NotLike(field, *f.Nlike)
-	case f.Ilike != nil:
-		return q.ILike(field, *f.Ilike)
-	case f.Nilike != nil:
-		return q.NotILike(field, *f.Nilike)
-	case f.Contains != nil:
-		return q.ILike(field, ContainsPattern(*f.Contains))
-	case f.Ncontains != nil:
-		return q.NotILike(field, ContainsPattern(*f.Ncontains))
-	case f.Gt != nil:
-		return q.GT(field, *f.Gt)
-	case f.Gte != nil:
-		return q.GTE(field, *f.Gte)
-	case f.Lt != nil:
-		return q.LT(field, *f.Lt)
-	case f.Lte != nil:
-		return q.LTE(field, *f.Lte)
-	case f.And != nil:
-		return q.And(lo.Map(*f.And, func(filter FilterString, _ int) string {
-			return filter.SelectWhereExpr(field, q)
-		})...)
-	case f.Or != nil:
-		return q.Or(lo.Map(*f.Or, func(filter FilterString, _ int) string {
-			return filter.SelectWhereExpr(field, q)
-		})...)
-	default:
+	// An empty field would render as a dangling operator; go-sqlbuilder guards this too.
+	if field == "" {
 		return ""
 	}
+
+	expr := f.SelectWhereExprBuilder(sqlbuilder.Buildf("%v", sqlbuilder.Raw(field)))
+	if expr == nil {
+		return ""
+	}
+
+	return q.Var(expr)
 }
 
 // Select converts the filter to an Ent selector predicate.

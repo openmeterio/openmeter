@@ -312,7 +312,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 				column = sqlbuilder.Buildf("%s", sqlbuilder.Raw("customer_id"))
 			}
 
-			whereExpr := stringFilterWhereExpr(column, filterString)
+			whereExpr := filterString.SelectWhereExprBuilder(column)
 			if whereExpr != nil {
 				query = query.Where(query.Var(whereExpr))
 			}
@@ -361,70 +361,6 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	}
 
 	return sql, args, nil
-}
-
-// stringFilterWhereExpr builds a string filter around a SQL expression while
-// preserving parameters owned by that expression. FilterString.SelectWhereExpr
-// accepts a raw field string, which cannot carry a nested JSONPath parameter.
-func stringFilterWhereExpr(field sqlbuilder.Builder, f filter.FilterString) sqlbuilder.Builder {
-	switch {
-	case f.Eq != nil:
-		return sqlbuilder.Buildf("%v = %v", field, *f.Eq)
-	case f.Ne != nil:
-		return sqlbuilder.Buildf("%v <> %v", field, *f.Ne)
-	case f.Exists != nil:
-		if *f.Exists {
-			return sqlbuilder.Buildf("%v IS NOT NULL", field)
-		}
-		return sqlbuilder.Buildf("%v IS NULL", field)
-	case f.In != nil:
-		return sqlbuilder.Buildf("%v IN (%v)", field, *f.In)
-	case f.Nin != nil:
-		return sqlbuilder.Buildf("%v NOT IN (%v)", field, *f.Nin)
-	case f.Like != nil:
-		return sqlbuilder.Buildf("%v LIKE %v", field, *f.Like)
-	case f.Nlike != nil:
-		return sqlbuilder.Buildf("%v NOT LIKE %v", field, *f.Nlike)
-	case f.Ilike != nil:
-		return sqlbuilder.Buildf("LOWER(%v) LIKE LOWER(%v)", field, *f.Ilike)
-	case f.Nilike != nil:
-		return sqlbuilder.Buildf("LOWER(%v) NOT LIKE LOWER(%v)", field, *f.Nilike)
-	case f.Contains != nil:
-		return sqlbuilder.Buildf("LOWER(%v) LIKE LOWER(%v)", field, filter.ContainsPattern(*f.Contains))
-	case f.Ncontains != nil:
-		return sqlbuilder.Buildf("LOWER(%v) NOT LIKE LOWER(%v)", field, filter.ContainsPattern(*f.Ncontains))
-	case f.Gt != nil:
-		return sqlbuilder.Buildf("%v > %v", field, *f.Gt)
-	case f.Gte != nil:
-		return sqlbuilder.Buildf("%v >= %v", field, *f.Gte)
-	case f.Lt != nil:
-		return sqlbuilder.Buildf("%v < %v", field, *f.Lt)
-	case f.Lte != nil:
-		return sqlbuilder.Buildf("%v <= %v", field, *f.Lte)
-	case f.And != nil:
-		return joinStringFilterWhereExprs(field, *f.And, " AND ")
-	case f.Or != nil:
-		return joinStringFilterWhereExprs(field, *f.Or, " OR ")
-	default:
-		return nil
-	}
-}
-
-func joinStringFilterWhereExprs(field sqlbuilder.Builder, filters []filter.FilterString, separator string) sqlbuilder.Builder {
-	args := make([]any, 0, len(filters))
-	for _, filter := range filters {
-		if expr := stringFilterWhereExpr(field, filter); expr != nil {
-			args = append(args, expr)
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	format := "(" + strings.Join(lo.RepeatBy(len(args), func(_ int) string { return "%v" }), separator) + ")"
-
-	return sqlbuilder.Buildf(format, args...)
 }
 
 // whereByOrderedColumns applies the where clause to the query for columns that are ordered by the event table.
