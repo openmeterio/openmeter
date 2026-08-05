@@ -171,21 +171,6 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) ClearAnnotations() *Charge
 	return _u
 }
 
-// AddCorrectionIDs adds the "corrections" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
-func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) AddCorrectionIDs(ids ...string) *ChargeUsageBasedRunCreditAllocationsUpdate {
-	_u.mutation.AddCorrectionIDs(ids...)
-	return _u
-}
-
-// AddCorrections adds the "corrections" edges to the ChargeUsageBasedRunCreditAllocations entity.
-func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) AddCorrections(v ...*ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddCorrectionIDs(ids...)
-}
-
 // SetAllocationID sets the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity by ID.
 func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) SetAllocationID(id string) *ChargeUsageBasedRunCreditAllocationsUpdate {
 	_u.mutation.SetAllocationID(id)
@@ -205,9 +190,30 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) SetAllocation(v *ChargeUsa
 	return _u.SetAllocationID(v.ID)
 }
 
+// AddCorrectionIDs adds the "corrections" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) AddCorrectionIDs(ids ...string) *ChargeUsageBasedRunCreditAllocationsUpdate {
+	_u.mutation.AddCorrectionIDs(ids...)
+	return _u
+}
+
+// AddCorrections adds the "corrections" edges to the ChargeUsageBasedRunCreditAllocations entity.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) AddCorrections(v ...*ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCorrectionIDs(ids...)
+}
+
 // Mutation returns the ChargeUsageBasedRunCreditAllocationsMutation object of the builder.
 func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) Mutation() *ChargeUsageBasedRunCreditAllocationsMutation {
 	return _u.mutation
+}
+
+// ClearAllocation clears the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) ClearAllocation() *ChargeUsageBasedRunCreditAllocationsUpdate {
+	_u.mutation.ClearAllocation()
+	return _u
 }
 
 // ClearCorrections clears all "corrections" edges to the ChargeUsageBasedRunCreditAllocations entity.
@@ -229,12 +235,6 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) RemoveCorrections(v ...*Ch
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCorrectionIDs(ids...)
-}
-
-// ClearAllocation clears the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity.
-func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) ClearAllocation() *ChargeUsageBasedRunCreditAllocationsUpdate {
-	_u.mutation.ClearAllocation()
-	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -339,6 +339,35 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) sqlSave(ctx context.Contex
 	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(chargeusagebasedruncreditallocations.FieldAnnotations, field.TypeJSON)
 	}
+	if _u.mutation.AllocationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebasedruncreditallocations.AllocationTable,
+			Columns: []string{chargeusagebasedruncreditallocations.AllocationColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AllocationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebasedruncreditallocations.AllocationTable,
+			Columns: []string{chargeusagebasedruncreditallocations.AllocationColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.CorrectionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -374,35 +403,6 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdate) sqlSave(ctx context.Contex
 			Inverse: true,
 			Table:   chargeusagebasedruncreditallocations.CorrectionsTable,
 			Columns: []string{chargeusagebasedruncreditallocations.CorrectionsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.AllocationCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   chargeusagebasedruncreditallocations.AllocationTable,
-			Columns: []string{chargeusagebasedruncreditallocations.AllocationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.AllocationIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   chargeusagebasedruncreditallocations.AllocationTable,
-			Columns: []string{chargeusagebasedruncreditallocations.AllocationColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
@@ -574,21 +574,6 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) ClearAnnotations() *Cha
 	return _u
 }
 
-// AddCorrectionIDs adds the "corrections" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
-func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) AddCorrectionIDs(ids ...string) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
-	_u.mutation.AddCorrectionIDs(ids...)
-	return _u
-}
-
-// AddCorrections adds the "corrections" edges to the ChargeUsageBasedRunCreditAllocations entity.
-func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) AddCorrections(v ...*ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddCorrectionIDs(ids...)
-}
-
 // SetAllocationID sets the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity by ID.
 func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetAllocationID(id string) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
 	_u.mutation.SetAllocationID(id)
@@ -608,9 +593,30 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetAllocation(v *Charge
 	return _u.SetAllocationID(v.ID)
 }
 
+// AddCorrectionIDs adds the "corrections" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) AddCorrectionIDs(ids ...string) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	_u.mutation.AddCorrectionIDs(ids...)
+	return _u
+}
+
+// AddCorrections adds the "corrections" edges to the ChargeUsageBasedRunCreditAllocations entity.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) AddCorrections(v ...*ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCorrectionIDs(ids...)
+}
+
 // Mutation returns the ChargeUsageBasedRunCreditAllocationsMutation object of the builder.
 func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) Mutation() *ChargeUsageBasedRunCreditAllocationsMutation {
 	return _u.mutation
+}
+
+// ClearAllocation clears the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity.
+func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) ClearAllocation() *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	_u.mutation.ClearAllocation()
+	return _u
 }
 
 // ClearCorrections clears all "corrections" edges to the ChargeUsageBasedRunCreditAllocations entity.
@@ -632,12 +638,6 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) RemoveCorrections(v ...
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCorrectionIDs(ids...)
-}
-
-// ClearAllocation clears the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity.
-func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) ClearAllocation() *ChargeUsageBasedRunCreditAllocationsUpdateOne {
-	_u.mutation.ClearAllocation()
-	return _u
 }
 
 // Where appends a list predicates to the ChargeUsageBasedRunCreditAllocationsUpdate builder.
@@ -772,6 +772,35 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) sqlSave(ctx context.Con
 	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(chargeusagebasedruncreditallocations.FieldAnnotations, field.TypeJSON)
 	}
+	if _u.mutation.AllocationCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebasedruncreditallocations.AllocationTable,
+			Columns: []string{chargeusagebasedruncreditallocations.AllocationColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AllocationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebasedruncreditallocations.AllocationTable,
+			Columns: []string{chargeusagebasedruncreditallocations.AllocationColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.CorrectionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -807,35 +836,6 @@ func (_u *ChargeUsageBasedRunCreditAllocationsUpdateOne) sqlSave(ctx context.Con
 			Inverse: true,
 			Table:   chargeusagebasedruncreditallocations.CorrectionsTable,
 			Columns: []string{chargeusagebasedruncreditallocations.CorrectionsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.AllocationCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   chargeusagebasedruncreditallocations.AllocationTable,
-			Columns: []string{chargeusagebasedruncreditallocations.AllocationColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.AllocationIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: false,
-			Table:   chargeusagebasedruncreditallocations.AllocationTable,
-			Columns: []string{chargeusagebasedruncreditallocations.AllocationColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),

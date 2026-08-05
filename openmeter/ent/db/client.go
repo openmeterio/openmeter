@@ -54,6 +54,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
@@ -61,6 +62,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
@@ -188,6 +190,8 @@ type Client struct {
 	ChargeFlatFeeRunDetailedLine *ChargeFlatFeeRunDetailedLineClient
 	// ChargeFlatFeeRunInvoicedUsage is the client for interacting with the ChargeFlatFeeRunInvoicedUsage builders.
 	ChargeFlatFeeRunInvoicedUsage *ChargeFlatFeeRunInvoicedUsageClient
+	// ChargeFlatFeeRunOverageCreditAllocations is the client for interacting with the ChargeFlatFeeRunOverageCreditAllocations builders.
+	ChargeFlatFeeRunOverageCreditAllocations *ChargeFlatFeeRunOverageCreditAllocationsClient
 	// ChargeFlatFeeRunPayment is the client for interacting with the ChargeFlatFeeRunPayment builders.
 	ChargeFlatFeeRunPayment *ChargeFlatFeeRunPaymentClient
 	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
@@ -202,6 +206,8 @@ type Client struct {
 	ChargeUsageBasedRunDetailedLine *ChargeUsageBasedRunDetailedLineClient
 	// ChargeUsageBasedRunInvoicedUsage is the client for interacting with the ChargeUsageBasedRunInvoicedUsage builders.
 	ChargeUsageBasedRunInvoicedUsage *ChargeUsageBasedRunInvoicedUsageClient
+	// ChargeUsageBasedRunOverageCreditAllocations is the client for interacting with the ChargeUsageBasedRunOverageCreditAllocations builders.
+	ChargeUsageBasedRunOverageCreditAllocations *ChargeUsageBasedRunOverageCreditAllocationsClient
 	// ChargeUsageBasedRunPayment is the client for interacting with the ChargeUsageBasedRunPayment builders.
 	ChargeUsageBasedRunPayment *ChargeUsageBasedRunPaymentClient
 	// ChargeUsageBasedRuns is the client for interacting with the ChargeUsageBasedRuns builders.
@@ -334,6 +340,7 @@ func (c *Client) init() {
 	c.ChargeFlatFeeRunCreditAllocations = NewChargeFlatFeeRunCreditAllocationsClient(c.config)
 	c.ChargeFlatFeeRunDetailedLine = NewChargeFlatFeeRunDetailedLineClient(c.config)
 	c.ChargeFlatFeeRunInvoicedUsage = NewChargeFlatFeeRunInvoicedUsageClient(c.config)
+	c.ChargeFlatFeeRunOverageCreditAllocations = NewChargeFlatFeeRunOverageCreditAllocationsClient(c.config)
 	c.ChargeFlatFeeRunPayment = NewChargeFlatFeeRunPaymentClient(c.config)
 	c.ChargeUsageBased = NewChargeUsageBasedClient(c.config)
 	c.ChargeUsageBasedCostBasis = NewChargeUsageBasedCostBasisClient(c.config)
@@ -341,6 +348,7 @@ func (c *Client) init() {
 	c.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(c.config)
 	c.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(c.config)
 	c.ChargeUsageBasedRunInvoicedUsage = NewChargeUsageBasedRunInvoicedUsageClient(c.config)
+	c.ChargeUsageBasedRunOverageCreditAllocations = NewChargeUsageBasedRunOverageCreditAllocationsClient(c.config)
 	c.ChargeUsageBasedRunPayment = NewChargeUsageBasedRunPaymentClient(c.config)
 	c.ChargeUsageBasedRuns = NewChargeUsageBasedRunsClient(c.config)
 	c.ChargesSearchV1 = NewChargesSearchV1Client(c.config)
@@ -513,6 +521,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChargeFlatFeeRunCreditAllocations:                NewChargeFlatFeeRunCreditAllocationsClient(cfg),
 		ChargeFlatFeeRunDetailedLine:                     NewChargeFlatFeeRunDetailedLineClient(cfg),
 		ChargeFlatFeeRunInvoicedUsage:                    NewChargeFlatFeeRunInvoicedUsageClient(cfg),
+		ChargeFlatFeeRunOverageCreditAllocations:         NewChargeFlatFeeRunOverageCreditAllocationsClient(cfg),
 		ChargeFlatFeeRunPayment:                          NewChargeFlatFeeRunPaymentClient(cfg),
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
 		ChargeUsageBasedCostBasis:                        NewChargeUsageBasedCostBasisClient(cfg),
@@ -520,6 +529,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChargeUsageBasedRunCreditAllocations:             NewChargeUsageBasedRunCreditAllocationsClient(cfg),
 		ChargeUsageBasedRunDetailedLine:                  NewChargeUsageBasedRunDetailedLineClient(cfg),
 		ChargeUsageBasedRunInvoicedUsage:                 NewChargeUsageBasedRunInvoicedUsageClient(cfg),
+		ChargeUsageBasedRunOverageCreditAllocations:      NewChargeUsageBasedRunOverageCreditAllocationsClient(cfg),
 		ChargeUsageBasedRunPayment:                       NewChargeUsageBasedRunPaymentClient(cfg),
 		ChargeUsageBasedRuns:                             NewChargeUsageBasedRunsClient(cfg),
 		ChargesSearchV1:                                  NewChargesSearchV1Client(cfg),
@@ -619,6 +629,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChargeFlatFeeRunCreditAllocations:                NewChargeFlatFeeRunCreditAllocationsClient(cfg),
 		ChargeFlatFeeRunDetailedLine:                     NewChargeFlatFeeRunDetailedLineClient(cfg),
 		ChargeFlatFeeRunInvoicedUsage:                    NewChargeFlatFeeRunInvoicedUsageClient(cfg),
+		ChargeFlatFeeRunOverageCreditAllocations:         NewChargeFlatFeeRunOverageCreditAllocationsClient(cfg),
 		ChargeFlatFeeRunPayment:                          NewChargeFlatFeeRunPaymentClient(cfg),
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
 		ChargeUsageBasedCostBasis:                        NewChargeUsageBasedCostBasisClient(cfg),
@@ -626,6 +637,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChargeUsageBasedRunCreditAllocations:             NewChargeUsageBasedRunCreditAllocationsClient(cfg),
 		ChargeUsageBasedRunDetailedLine:                  NewChargeUsageBasedRunDetailedLineClient(cfg),
 		ChargeUsageBasedRunInvoicedUsage:                 NewChargeUsageBasedRunInvoicedUsageClient(cfg),
+		ChargeUsageBasedRunOverageCreditAllocations:      NewChargeUsageBasedRunOverageCreditAllocationsClient(cfg),
 		ChargeUsageBasedRunPayment:                       NewChargeUsageBasedRunPaymentClient(cfg),
 		ChargeUsageBasedRuns:                             NewChargeUsageBasedRunsClient(cfg),
 		ChargesSearchV1:                                  NewChargesSearchV1Client(cfg),
@@ -712,10 +724,11 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ChargeCreditPurchaseInvoicedPayment, c.ChargeFlatFee,
 		c.ChargeFlatFeeCostBasis, c.ChargeFlatFeeOverride, c.ChargeFlatFeeRun,
 		c.ChargeFlatFeeRunCreditAllocations, c.ChargeFlatFeeRunDetailedLine,
-		c.ChargeFlatFeeRunInvoicedUsage, c.ChargeFlatFeeRunPayment, c.ChargeUsageBased,
-		c.ChargeUsageBasedCostBasis, c.ChargeUsageBasedOverride,
-		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunDetailedLine,
-		c.ChargeUsageBasedRunInvoicedUsage, c.ChargeUsageBasedRunPayment,
+		c.ChargeFlatFeeRunInvoicedUsage, c.ChargeFlatFeeRunOverageCreditAllocations,
+		c.ChargeFlatFeeRunPayment, c.ChargeUsageBased, c.ChargeUsageBasedCostBasis,
+		c.ChargeUsageBasedOverride, c.ChargeUsageBasedRunCreditAllocations,
+		c.ChargeUsageBasedRunDetailedLine, c.ChargeUsageBasedRunInvoicedUsage,
+		c.ChargeUsageBasedRunOverageCreditAllocations, c.ChargeUsageBasedRunPayment,
 		c.ChargeUsageBasedRuns, c.CreditRealizationLineage,
 		c.CreditRealizationLineageSegment, c.CurrencyCostBasis, c.CustomCurrency,
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
@@ -753,10 +766,11 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChargeCreditPurchaseInvoicedPayment, c.ChargeFlatFee,
 		c.ChargeFlatFeeCostBasis, c.ChargeFlatFeeOverride, c.ChargeFlatFeeRun,
 		c.ChargeFlatFeeRunCreditAllocations, c.ChargeFlatFeeRunDetailedLine,
-		c.ChargeFlatFeeRunInvoicedUsage, c.ChargeFlatFeeRunPayment, c.ChargeUsageBased,
-		c.ChargeUsageBasedCostBasis, c.ChargeUsageBasedOverride,
-		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunDetailedLine,
-		c.ChargeUsageBasedRunInvoicedUsage, c.ChargeUsageBasedRunPayment,
+		c.ChargeFlatFeeRunInvoicedUsage, c.ChargeFlatFeeRunOverageCreditAllocations,
+		c.ChargeFlatFeeRunPayment, c.ChargeUsageBased, c.ChargeUsageBasedCostBasis,
+		c.ChargeUsageBasedOverride, c.ChargeUsageBasedRunCreditAllocations,
+		c.ChargeUsageBasedRunDetailedLine, c.ChargeUsageBasedRunInvoicedUsage,
+		c.ChargeUsageBasedRunOverageCreditAllocations, c.ChargeUsageBasedRunPayment,
 		c.ChargeUsageBasedRuns, c.ChargesSearchV1, c.CreditRealizationLineage,
 		c.CreditRealizationLineageSegment, c.CurrencyCostBasis, c.CustomCurrency,
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
@@ -855,6 +869,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeFlatFeeRunDetailedLine.mutate(ctx, m)
 	case *ChargeFlatFeeRunInvoicedUsageMutation:
 		return c.ChargeFlatFeeRunInvoicedUsage.mutate(ctx, m)
+	case *ChargeFlatFeeRunOverageCreditAllocationsMutation:
+		return c.ChargeFlatFeeRunOverageCreditAllocations.mutate(ctx, m)
 	case *ChargeFlatFeeRunPaymentMutation:
 		return c.ChargeFlatFeeRunPayment.mutate(ctx, m)
 	case *ChargeUsageBasedMutation:
@@ -869,6 +885,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeUsageBasedRunDetailedLine.mutate(ctx, m)
 	case *ChargeUsageBasedRunInvoicedUsageMutation:
 		return c.ChargeUsageBasedRunInvoicedUsage.mutate(ctx, m)
+	case *ChargeUsageBasedRunOverageCreditAllocationsMutation:
+		return c.ChargeUsageBasedRunOverageCreditAllocations.mutate(ctx, m)
 	case *ChargeUsageBasedRunPaymentMutation:
 		return c.ChargeUsageBasedRunPayment.mutate(ctx, m)
 	case *ChargeUsageBasedRunsMutation:
@@ -3925,6 +3943,22 @@ func (c *BillingInvoiceLineClient) QueryChargeFlatFeeRunCreditAllocations(_m *Bi
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
 			sqlgraph.To(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.ChargeFlatFeeRunCreditAllocationsTable, billinginvoiceline.ChargeFlatFeeRunCreditAllocationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargeFlatFeeRunOverageCreditAllocations queries the charge_flat_fee_run_overage_credit_allocations edge of a BillingInvoiceLine.
+func (c *BillingInvoiceLineClient) QueryChargeFlatFeeRunOverageCreditAllocations(_m *BillingInvoiceLine) *ChargeFlatFeeRunOverageCreditAllocationsQuery {
+	query := (&ChargeFlatFeeRunOverageCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
+			sqlgraph.To(chargeflatfeerunoveragecreditallocations.Table, chargeflatfeerunoveragecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsTable, billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -7877,6 +7911,22 @@ func (c *ChargeFlatFeeRunClient) QueryCreditAllocations(_m *ChargeFlatFeeRun) *C
 	return query
 }
 
+// QueryFiatOverageCreditAllocations queries the fiat_overage_credit_allocations edge of a ChargeFlatFeeRun.
+func (c *ChargeFlatFeeRunClient) QueryFiatOverageCreditAllocations(_m *ChargeFlatFeeRun) *ChargeFlatFeeRunOverageCreditAllocationsQuery {
+	query := (&ChargeFlatFeeRunOverageCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeerun.Table, chargeflatfeerun.FieldID, id),
+			sqlgraph.To(chargeflatfeerunoveragecreditallocations.Table, chargeflatfeerunoveragecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeflatfeerun.FiatOverageCreditAllocationsTable, chargeflatfeerun.FiatOverageCreditAllocationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryDetailedLines queries the detailed_lines edge of a ChargeFlatFeeRun.
 func (c *ChargeFlatFeeRunClient) QueryDetailedLines(_m *ChargeFlatFeeRun) *ChargeFlatFeeRunDetailedLineQuery {
 	query := (&ChargeFlatFeeRunDetailedLineClient{config: c.config}).Query()
@@ -8058,22 +8108,6 @@ func (c *ChargeFlatFeeRunCreditAllocationsClient) GetX(ctx context.Context, id s
 	return obj
 }
 
-// QueryCorrections queries the corrections edge of a ChargeFlatFeeRunCreditAllocations.
-func (c *ChargeFlatFeeRunCreditAllocationsClient) QueryCorrections(_m *ChargeFlatFeeRunCreditAllocations) *ChargeFlatFeeRunCreditAllocationsQuery {
-	query := (&ChargeFlatFeeRunCreditAllocationsClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID, id),
-			sqlgraph.To(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, chargeflatfeeruncreditallocations.CorrectionsTable, chargeflatfeeruncreditallocations.CorrectionsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryAllocation queries the allocation edge of a ChargeFlatFeeRunCreditAllocations.
 func (c *ChargeFlatFeeRunCreditAllocationsClient) QueryAllocation(_m *ChargeFlatFeeRunCreditAllocations) *ChargeFlatFeeRunCreditAllocationsQuery {
 	query := (&ChargeFlatFeeRunCreditAllocationsClient{config: c.config}).Query()
@@ -8083,6 +8117,22 @@ func (c *ChargeFlatFeeRunCreditAllocationsClient) QueryAllocation(_m *ChargeFlat
 			sqlgraph.From(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID, id),
 			sqlgraph.To(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfeeruncreditallocations.AllocationTable, chargeflatfeeruncreditallocations.AllocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCorrections queries the corrections edge of a ChargeFlatFeeRunCreditAllocations.
+func (c *ChargeFlatFeeRunCreditAllocationsClient) QueryCorrections(_m *ChargeFlatFeeRunCreditAllocations) *ChargeFlatFeeRunCreditAllocationsQuery {
+	query := (&ChargeFlatFeeRunCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID, id),
+			sqlgraph.To(chargeflatfeeruncreditallocations.Table, chargeflatfeeruncreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, chargeflatfeeruncreditallocations.CorrectionsTable, chargeflatfeeruncreditallocations.CorrectionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -8442,6 +8492,203 @@ func (c *ChargeFlatFeeRunInvoicedUsageClient) mutate(ctx context.Context, m *Cha
 		return (&ChargeFlatFeeRunInvoicedUsageDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeFlatFeeRunInvoicedUsage mutation op: %q", m.Op())
+	}
+}
+
+// ChargeFlatFeeRunOverageCreditAllocationsClient is a client for the ChargeFlatFeeRunOverageCreditAllocations schema.
+type ChargeFlatFeeRunOverageCreditAllocationsClient struct {
+	config
+}
+
+// NewChargeFlatFeeRunOverageCreditAllocationsClient returns a client for the ChargeFlatFeeRunOverageCreditAllocations from the given config.
+func NewChargeFlatFeeRunOverageCreditAllocationsClient(c config) *ChargeFlatFeeRunOverageCreditAllocationsClient {
+	return &ChargeFlatFeeRunOverageCreditAllocationsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeflatfeerunoveragecreditallocations.Hooks(f(g(h())))`.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) Use(hooks ...Hook) {
+	c.hooks.ChargeFlatFeeRunOverageCreditAllocations = append(c.hooks.ChargeFlatFeeRunOverageCreditAllocations, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeflatfeerunoveragecreditallocations.Intercept(f(g(h())))`.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeFlatFeeRunOverageCreditAllocations = append(c.inters.ChargeFlatFeeRunOverageCreditAllocations, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeFlatFeeRunOverageCreditAllocations entity.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) Create() *ChargeFlatFeeRunOverageCreditAllocationsCreate {
+	mutation := newChargeFlatFeeRunOverageCreditAllocationsMutation(c.config, OpCreate)
+	return &ChargeFlatFeeRunOverageCreditAllocationsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeFlatFeeRunOverageCreditAllocations entities.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) CreateBulk(builders ...*ChargeFlatFeeRunOverageCreditAllocationsCreate) *ChargeFlatFeeRunOverageCreditAllocationsCreateBulk {
+	return &ChargeFlatFeeRunOverageCreditAllocationsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) MapCreateBulk(slice any, setFunc func(*ChargeFlatFeeRunOverageCreditAllocationsCreate, int)) *ChargeFlatFeeRunOverageCreditAllocationsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeFlatFeeRunOverageCreditAllocationsCreateBulk{err: fmt.Errorf("calling to ChargeFlatFeeRunOverageCreditAllocationsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeFlatFeeRunOverageCreditAllocationsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeFlatFeeRunOverageCreditAllocationsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeFlatFeeRunOverageCreditAllocations.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) Update() *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
+	mutation := newChargeFlatFeeRunOverageCreditAllocationsMutation(c.config, OpUpdate)
+	return &ChargeFlatFeeRunOverageCreditAllocationsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) UpdateOne(_m *ChargeFlatFeeRunOverageCreditAllocations) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
+	mutation := newChargeFlatFeeRunOverageCreditAllocationsMutation(c.config, OpUpdateOne, withChargeFlatFeeRunOverageCreditAllocations(_m))
+	return &ChargeFlatFeeRunOverageCreditAllocationsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) UpdateOneID(id string) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
+	mutation := newChargeFlatFeeRunOverageCreditAllocationsMutation(c.config, OpUpdateOne, withChargeFlatFeeRunOverageCreditAllocationsID(id))
+	return &ChargeFlatFeeRunOverageCreditAllocationsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeFlatFeeRunOverageCreditAllocations.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) Delete() *ChargeFlatFeeRunOverageCreditAllocationsDelete {
+	mutation := newChargeFlatFeeRunOverageCreditAllocationsMutation(c.config, OpDelete)
+	return &ChargeFlatFeeRunOverageCreditAllocationsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) DeleteOne(_m *ChargeFlatFeeRunOverageCreditAllocations) *ChargeFlatFeeRunOverageCreditAllocationsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) DeleteOneID(id string) *ChargeFlatFeeRunOverageCreditAllocationsDeleteOne {
+	builder := c.Delete().Where(chargeflatfeerunoveragecreditallocations.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeFlatFeeRunOverageCreditAllocationsDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeFlatFeeRunOverageCreditAllocations.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) Query() *ChargeFlatFeeRunOverageCreditAllocationsQuery {
+	return &ChargeFlatFeeRunOverageCreditAllocationsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeFlatFeeRunOverageCreditAllocations},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeFlatFeeRunOverageCreditAllocations entity by its id.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) Get(ctx context.Context, id string) (*ChargeFlatFeeRunOverageCreditAllocations, error) {
+	return c.Query().Where(chargeflatfeerunoveragecreditallocations.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) GetX(ctx context.Context, id string) *ChargeFlatFeeRunOverageCreditAllocations {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAllocation queries the allocation edge of a ChargeFlatFeeRunOverageCreditAllocations.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) QueryAllocation(_m *ChargeFlatFeeRunOverageCreditAllocations) *ChargeFlatFeeRunOverageCreditAllocationsQuery {
+	query := (&ChargeFlatFeeRunOverageCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeerunoveragecreditallocations.Table, chargeflatfeerunoveragecreditallocations.FieldID, id),
+			sqlgraph.To(chargeflatfeerunoveragecreditallocations.Table, chargeflatfeerunoveragecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeflatfeerunoveragecreditallocations.AllocationTable, chargeflatfeerunoveragecreditallocations.AllocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCorrections queries the corrections edge of a ChargeFlatFeeRunOverageCreditAllocations.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) QueryCorrections(_m *ChargeFlatFeeRunOverageCreditAllocations) *ChargeFlatFeeRunOverageCreditAllocationsQuery {
+	query := (&ChargeFlatFeeRunOverageCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeerunoveragecreditallocations.Table, chargeflatfeerunoveragecreditallocations.FieldID, id),
+			sqlgraph.To(chargeflatfeerunoveragecreditallocations.Table, chargeflatfeerunoveragecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, chargeflatfeerunoveragecreditallocations.CorrectionsTable, chargeflatfeerunoveragecreditallocations.CorrectionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRun queries the run edge of a ChargeFlatFeeRunOverageCreditAllocations.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) QueryRun(_m *ChargeFlatFeeRunOverageCreditAllocations) *ChargeFlatFeeRunQuery {
+	query := (&ChargeFlatFeeRunClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeerunoveragecreditallocations.Table, chargeflatfeerunoveragecreditallocations.FieldID, id),
+			sqlgraph.To(chargeflatfeerun.Table, chargeflatfeerun.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfeerunoveragecreditallocations.RunTable, chargeflatfeerunoveragecreditallocations.RunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceLine queries the billing_invoice_line edge of a ChargeFlatFeeRunOverageCreditAllocations.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) QueryBillingInvoiceLine(_m *ChargeFlatFeeRunOverageCreditAllocations) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfeerunoveragecreditallocations.Table, chargeflatfeerunoveragecreditallocations.FieldID, id),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfeerunoveragecreditallocations.BillingInvoiceLineTable, chargeflatfeerunoveragecreditallocations.BillingInvoiceLineColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) Hooks() []Hook {
+	return c.hooks.ChargeFlatFeeRunOverageCreditAllocations
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) Interceptors() []Interceptor {
+	return c.inters.ChargeFlatFeeRunOverageCreditAllocations
+}
+
+func (c *ChargeFlatFeeRunOverageCreditAllocationsClient) mutate(ctx context.Context, m *ChargeFlatFeeRunOverageCreditAllocationsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeFlatFeeRunOverageCreditAllocationsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeFlatFeeRunOverageCreditAllocationsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeFlatFeeRunOverageCreditAllocationsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeFlatFeeRunOverageCreditAllocationsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeFlatFeeRunOverageCreditAllocations mutation op: %q", m.Op())
 	}
 }
 
@@ -9405,22 +9652,6 @@ func (c *ChargeUsageBasedRunCreditAllocationsClient) GetX(ctx context.Context, i
 	return obj
 }
 
-// QueryCorrections queries the corrections edge of a ChargeUsageBasedRunCreditAllocations.
-func (c *ChargeUsageBasedRunCreditAllocationsClient) QueryCorrections(_m *ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsQuery {
-	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID, id),
-			sqlgraph.To(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, chargeusagebasedruncreditallocations.CorrectionsTable, chargeusagebasedruncreditallocations.CorrectionsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryAllocation queries the allocation edge of a ChargeUsageBasedRunCreditAllocations.
 func (c *ChargeUsageBasedRunCreditAllocationsClient) QueryAllocation(_m *ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsQuery {
 	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: c.config}).Query()
@@ -9430,6 +9661,22 @@ func (c *ChargeUsageBasedRunCreditAllocationsClient) QueryAllocation(_m *ChargeU
 			sqlgraph.From(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID, id),
 			sqlgraph.To(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebasedruncreditallocations.AllocationTable, chargeusagebasedruncreditallocations.AllocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCorrections queries the corrections edge of a ChargeUsageBasedRunCreditAllocations.
+func (c *ChargeUsageBasedRunCreditAllocationsClient) QueryCorrections(_m *ChargeUsageBasedRunCreditAllocations) *ChargeUsageBasedRunCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID, id),
+			sqlgraph.To(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, chargeusagebasedruncreditallocations.CorrectionsTable, chargeusagebasedruncreditallocations.CorrectionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -9808,6 +10055,187 @@ func (c *ChargeUsageBasedRunInvoicedUsageClient) mutate(ctx context.Context, m *
 	}
 }
 
+// ChargeUsageBasedRunOverageCreditAllocationsClient is a client for the ChargeUsageBasedRunOverageCreditAllocations schema.
+type ChargeUsageBasedRunOverageCreditAllocationsClient struct {
+	config
+}
+
+// NewChargeUsageBasedRunOverageCreditAllocationsClient returns a client for the ChargeUsageBasedRunOverageCreditAllocations from the given config.
+func NewChargeUsageBasedRunOverageCreditAllocationsClient(c config) *ChargeUsageBasedRunOverageCreditAllocationsClient {
+	return &ChargeUsageBasedRunOverageCreditAllocationsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeusagebasedrunoveragecreditallocations.Hooks(f(g(h())))`.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) Use(hooks ...Hook) {
+	c.hooks.ChargeUsageBasedRunOverageCreditAllocations = append(c.hooks.ChargeUsageBasedRunOverageCreditAllocations, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeusagebasedrunoveragecreditallocations.Intercept(f(g(h())))`.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeUsageBasedRunOverageCreditAllocations = append(c.inters.ChargeUsageBasedRunOverageCreditAllocations, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeUsageBasedRunOverageCreditAllocations entity.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) Create() *ChargeUsageBasedRunOverageCreditAllocationsCreate {
+	mutation := newChargeUsageBasedRunOverageCreditAllocationsMutation(c.config, OpCreate)
+	return &ChargeUsageBasedRunOverageCreditAllocationsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeUsageBasedRunOverageCreditAllocations entities.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) CreateBulk(builders ...*ChargeUsageBasedRunOverageCreditAllocationsCreate) *ChargeUsageBasedRunOverageCreditAllocationsCreateBulk {
+	return &ChargeUsageBasedRunOverageCreditAllocationsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) MapCreateBulk(slice any, setFunc func(*ChargeUsageBasedRunOverageCreditAllocationsCreate, int)) *ChargeUsageBasedRunOverageCreditAllocationsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeUsageBasedRunOverageCreditAllocationsCreateBulk{err: fmt.Errorf("calling to ChargeUsageBasedRunOverageCreditAllocationsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeUsageBasedRunOverageCreditAllocationsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeUsageBasedRunOverageCreditAllocationsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeUsageBasedRunOverageCreditAllocations.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) Update() *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
+	mutation := newChargeUsageBasedRunOverageCreditAllocationsMutation(c.config, OpUpdate)
+	return &ChargeUsageBasedRunOverageCreditAllocationsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) UpdateOne(_m *ChargeUsageBasedRunOverageCreditAllocations) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
+	mutation := newChargeUsageBasedRunOverageCreditAllocationsMutation(c.config, OpUpdateOne, withChargeUsageBasedRunOverageCreditAllocations(_m))
+	return &ChargeUsageBasedRunOverageCreditAllocationsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) UpdateOneID(id string) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
+	mutation := newChargeUsageBasedRunOverageCreditAllocationsMutation(c.config, OpUpdateOne, withChargeUsageBasedRunOverageCreditAllocationsID(id))
+	return &ChargeUsageBasedRunOverageCreditAllocationsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeUsageBasedRunOverageCreditAllocations.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) Delete() *ChargeUsageBasedRunOverageCreditAllocationsDelete {
+	mutation := newChargeUsageBasedRunOverageCreditAllocationsMutation(c.config, OpDelete)
+	return &ChargeUsageBasedRunOverageCreditAllocationsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) DeleteOne(_m *ChargeUsageBasedRunOverageCreditAllocations) *ChargeUsageBasedRunOverageCreditAllocationsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) DeleteOneID(id string) *ChargeUsageBasedRunOverageCreditAllocationsDeleteOne {
+	builder := c.Delete().Where(chargeusagebasedrunoveragecreditallocations.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeUsageBasedRunOverageCreditAllocationsDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeUsageBasedRunOverageCreditAllocations.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) Query() *ChargeUsageBasedRunOverageCreditAllocationsQuery {
+	return &ChargeUsageBasedRunOverageCreditAllocationsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeUsageBasedRunOverageCreditAllocations},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeUsageBasedRunOverageCreditAllocations entity by its id.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) Get(ctx context.Context, id string) (*ChargeUsageBasedRunOverageCreditAllocations, error) {
+	return c.Query().Where(chargeusagebasedrunoveragecreditallocations.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) GetX(ctx context.Context, id string) *ChargeUsageBasedRunOverageCreditAllocations {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAllocation queries the allocation edge of a ChargeUsageBasedRunOverageCreditAllocations.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) QueryAllocation(_m *ChargeUsageBasedRunOverageCreditAllocations) *ChargeUsageBasedRunOverageCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunOverageCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrunoveragecreditallocations.Table, chargeusagebasedrunoveragecreditallocations.FieldID, id),
+			sqlgraph.To(chargeusagebasedrunoveragecreditallocations.Table, chargeusagebasedrunoveragecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebasedrunoveragecreditallocations.AllocationTable, chargeusagebasedrunoveragecreditallocations.AllocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCorrections queries the corrections edge of a ChargeUsageBasedRunOverageCreditAllocations.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) QueryCorrections(_m *ChargeUsageBasedRunOverageCreditAllocations) *ChargeUsageBasedRunOverageCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunOverageCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrunoveragecreditallocations.Table, chargeusagebasedrunoveragecreditallocations.FieldID, id),
+			sqlgraph.To(chargeusagebasedrunoveragecreditallocations.Table, chargeusagebasedrunoveragecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, chargeusagebasedrunoveragecreditallocations.CorrectionsTable, chargeusagebasedrunoveragecreditallocations.CorrectionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRun queries the run edge of a ChargeUsageBasedRunOverageCreditAllocations.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) QueryRun(_m *ChargeUsageBasedRunOverageCreditAllocations) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrunoveragecreditallocations.Table, chargeusagebasedrunoveragecreditallocations.FieldID, id),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrunoveragecreditallocations.RunTable, chargeusagebasedrunoveragecreditallocations.RunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) Hooks() []Hook {
+	return c.hooks.ChargeUsageBasedRunOverageCreditAllocations
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) Interceptors() []Interceptor {
+	return c.inters.ChargeUsageBasedRunOverageCreditAllocations
+}
+
+func (c *ChargeUsageBasedRunOverageCreditAllocationsClient) mutate(ctx context.Context, m *ChargeUsageBasedRunOverageCreditAllocationsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeUsageBasedRunOverageCreditAllocationsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeUsageBasedRunOverageCreditAllocationsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeUsageBasedRunOverageCreditAllocationsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeUsageBasedRunOverageCreditAllocationsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeUsageBasedRunOverageCreditAllocations mutation op: %q", m.Op())
+	}
+}
+
 // ChargeUsageBasedRunPaymentClient is a client for the ChargeUsageBasedRunPayment schema.
 type ChargeUsageBasedRunPaymentClient struct {
 	config
@@ -10138,6 +10566,22 @@ func (c *ChargeUsageBasedRunsClient) QueryCreditAllocations(_m *ChargeUsageBased
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
 			sqlgraph.To(chargeusagebasedruncreditallocations.Table, chargeusagebasedruncreditallocations.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.CreditAllocationsTable, chargeusagebasedruns.CreditAllocationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFiatOverageCreditAllocations queries the fiat_overage_credit_allocations edge of a ChargeUsageBasedRuns.
+func (c *ChargeUsageBasedRunsClient) QueryFiatOverageCreditAllocations(_m *ChargeUsageBasedRuns) *ChargeUsageBasedRunOverageCreditAllocationsQuery {
+	query := (&ChargeUsageBasedRunOverageCreditAllocationsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
+			sqlgraph.To(chargeusagebasedrunoveragecreditallocations.Table, chargeusagebasedrunoveragecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedruns.FiatOverageCreditAllocationsTable, chargeusagebasedruns.FiatOverageCreditAllocationsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -17559,9 +18003,10 @@ type (
 		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee, ChargeFlatFeeCostBasis,
 		ChargeFlatFeeOverride, ChargeFlatFeeRun, ChargeFlatFeeRunCreditAllocations,
 		ChargeFlatFeeRunDetailedLine, ChargeFlatFeeRunInvoicedUsage,
-		ChargeFlatFeeRunPayment, ChargeUsageBased, ChargeUsageBasedCostBasis,
-		ChargeUsageBasedOverride, ChargeUsageBasedRunCreditAllocations,
-		ChargeUsageBasedRunDetailedLine, ChargeUsageBasedRunInvoicedUsage,
+		ChargeFlatFeeRunOverageCreditAllocations, ChargeFlatFeeRunPayment,
+		ChargeUsageBased, ChargeUsageBasedCostBasis, ChargeUsageBasedOverride,
+		ChargeUsageBasedRunCreditAllocations, ChargeUsageBasedRunDetailedLine,
+		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunOverageCreditAllocations,
 		ChargeUsageBasedRunPayment, ChargeUsageBasedRuns, CreditRealizationLineage,
 		CreditRealizationLineageSegment, CurrencyCostBasis, CustomCurrency, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, LedgerAccount,
@@ -17588,9 +18033,10 @@ type (
 		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee, ChargeFlatFeeCostBasis,
 		ChargeFlatFeeOverride, ChargeFlatFeeRun, ChargeFlatFeeRunCreditAllocations,
 		ChargeFlatFeeRunDetailedLine, ChargeFlatFeeRunInvoicedUsage,
-		ChargeFlatFeeRunPayment, ChargeUsageBased, ChargeUsageBasedCostBasis,
-		ChargeUsageBasedOverride, ChargeUsageBasedRunCreditAllocations,
-		ChargeUsageBasedRunDetailedLine, ChargeUsageBasedRunInvoicedUsage,
+		ChargeFlatFeeRunOverageCreditAllocations, ChargeFlatFeeRunPayment,
+		ChargeUsageBased, ChargeUsageBasedCostBasis, ChargeUsageBasedOverride,
+		ChargeUsageBasedRunCreditAllocations, ChargeUsageBasedRunDetailedLine,
+		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunOverageCreditAllocations,
 		ChargeUsageBasedRunPayment, ChargeUsageBasedRuns, ChargesSearchV1,
 		CreditRealizationLineage, CreditRealizationLineageSegment, CurrencyCostBasis,
 		CustomCurrency, Customer, CustomerSubjects, Entitlement, Feature, Grant,

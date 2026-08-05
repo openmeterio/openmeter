@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -311,6 +312,21 @@ func (_u *ChargeUsageBasedRunsUpdate) AddCreditAllocations(v ...*ChargeUsageBase
 	return _u.AddCreditAllocationIDs(ids...)
 }
 
+// AddFiatOverageCreditAllocationIDs adds the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRunOverageCreditAllocations entity by IDs.
+func (_u *ChargeUsageBasedRunsUpdate) AddFiatOverageCreditAllocationIDs(ids ...string) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.AddFiatOverageCreditAllocationIDs(ids...)
+	return _u
+}
+
+// AddFiatOverageCreditAllocations adds the "fiat_overage_credit_allocations" edges to the ChargeUsageBasedRunOverageCreditAllocations entity.
+func (_u *ChargeUsageBasedRunsUpdate) AddFiatOverageCreditAllocations(v ...*ChargeUsageBasedRunOverageCreditAllocations) *ChargeUsageBasedRunsUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFiatOverageCreditAllocationIDs(ids...)
+}
+
 // AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
 func (_u *ChargeUsageBasedRunsUpdate) AddDetailedLineIDs(ids ...string) *ChargeUsageBasedRunsUpdate {
 	_u.mutation.AddDetailedLineIDs(ids...)
@@ -409,6 +425,27 @@ func (_u *ChargeUsageBasedRunsUpdate) RemoveCreditAllocations(v ...*ChargeUsageB
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCreditAllocationIDs(ids...)
+}
+
+// ClearFiatOverageCreditAllocations clears all "fiat_overage_credit_allocations" edges to the ChargeUsageBasedRunOverageCreditAllocations entity.
+func (_u *ChargeUsageBasedRunsUpdate) ClearFiatOverageCreditAllocations() *ChargeUsageBasedRunsUpdate {
+	_u.mutation.ClearFiatOverageCreditAllocations()
+	return _u
+}
+
+// RemoveFiatOverageCreditAllocationIDs removes the "fiat_overage_credit_allocations" edge to ChargeUsageBasedRunOverageCreditAllocations entities by IDs.
+func (_u *ChargeUsageBasedRunsUpdate) RemoveFiatOverageCreditAllocationIDs(ids ...string) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.RemoveFiatOverageCreditAllocationIDs(ids...)
+	return _u
+}
+
+// RemoveFiatOverageCreditAllocations removes "fiat_overage_credit_allocations" edges to ChargeUsageBasedRunOverageCreditAllocations entities.
+func (_u *ChargeUsageBasedRunsUpdate) RemoveFiatOverageCreditAllocations(v ...*ChargeUsageBasedRunOverageCreditAllocations) *ChargeUsageBasedRunsUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFiatOverageCreditAllocationIDs(ids...)
 }
 
 // ClearDetailedLines clears all "detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
@@ -652,6 +689,51 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FiatOverageCreditAllocationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.FiatOverageCreditAllocationsTable,
+			Columns: []string{chargeusagebasedruns.FiatOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrunoveragecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFiatOverageCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.FiatOverageCreditAllocationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.FiatOverageCreditAllocationsTable,
+			Columns: []string{chargeusagebasedruns.FiatOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrunoveragecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FiatOverageCreditAllocationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.FiatOverageCreditAllocationsTable,
+			Columns: []string{chargeusagebasedruns.FiatOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrunoveragecreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1103,6 +1185,21 @@ func (_u *ChargeUsageBasedRunsUpdateOne) AddCreditAllocations(v ...*ChargeUsageB
 	return _u.AddCreditAllocationIDs(ids...)
 }
 
+// AddFiatOverageCreditAllocationIDs adds the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRunOverageCreditAllocations entity by IDs.
+func (_u *ChargeUsageBasedRunsUpdateOne) AddFiatOverageCreditAllocationIDs(ids ...string) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.AddFiatOverageCreditAllocationIDs(ids...)
+	return _u
+}
+
+// AddFiatOverageCreditAllocations adds the "fiat_overage_credit_allocations" edges to the ChargeUsageBasedRunOverageCreditAllocations entity.
+func (_u *ChargeUsageBasedRunsUpdateOne) AddFiatOverageCreditAllocations(v ...*ChargeUsageBasedRunOverageCreditAllocations) *ChargeUsageBasedRunsUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFiatOverageCreditAllocationIDs(ids...)
+}
+
 // AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
 func (_u *ChargeUsageBasedRunsUpdateOne) AddDetailedLineIDs(ids ...string) *ChargeUsageBasedRunsUpdateOne {
 	_u.mutation.AddDetailedLineIDs(ids...)
@@ -1201,6 +1298,27 @@ func (_u *ChargeUsageBasedRunsUpdateOne) RemoveCreditAllocations(v ...*ChargeUsa
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCreditAllocationIDs(ids...)
+}
+
+// ClearFiatOverageCreditAllocations clears all "fiat_overage_credit_allocations" edges to the ChargeUsageBasedRunOverageCreditAllocations entity.
+func (_u *ChargeUsageBasedRunsUpdateOne) ClearFiatOverageCreditAllocations() *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.ClearFiatOverageCreditAllocations()
+	return _u
+}
+
+// RemoveFiatOverageCreditAllocationIDs removes the "fiat_overage_credit_allocations" edge to ChargeUsageBasedRunOverageCreditAllocations entities by IDs.
+func (_u *ChargeUsageBasedRunsUpdateOne) RemoveFiatOverageCreditAllocationIDs(ids ...string) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.RemoveFiatOverageCreditAllocationIDs(ids...)
+	return _u
+}
+
+// RemoveFiatOverageCreditAllocations removes "fiat_overage_credit_allocations" edges to ChargeUsageBasedRunOverageCreditAllocations entities.
+func (_u *ChargeUsageBasedRunsUpdateOne) RemoveFiatOverageCreditAllocations(v ...*ChargeUsageBasedRunOverageCreditAllocations) *ChargeUsageBasedRunsUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFiatOverageCreditAllocationIDs(ids...)
 }
 
 // ClearDetailedLines clears all "detailed_lines" edges to the ChargeUsageBasedRunDetailedLine entity.
@@ -1474,6 +1592,51 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FiatOverageCreditAllocationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.FiatOverageCreditAllocationsTable,
+			Columns: []string{chargeusagebasedruns.FiatOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrunoveragecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFiatOverageCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.FiatOverageCreditAllocationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.FiatOverageCreditAllocationsTable,
+			Columns: []string{chargeusagebasedruns.FiatOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrunoveragecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FiatOverageCreditAllocationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedruns.FiatOverageCreditAllocationsTable,
+			Columns: []string{chargeusagebasedruns.FiatOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrunoveragecreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

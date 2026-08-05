@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -643,6 +644,21 @@ func (_c *BillingInvoiceLineCreate) AddChargeFlatFeeRunCreditAllocations(v ...*C
 		ids[i] = v[i].ID
 	}
 	return _c.AddChargeFlatFeeRunCreditAllocationIDs(ids...)
+}
+
+// AddChargeFlatFeeRunOverageCreditAllocationIDs adds the "charge_flat_fee_run_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by IDs.
+func (_c *BillingInvoiceLineCreate) AddChargeFlatFeeRunOverageCreditAllocationIDs(ids ...string) *BillingInvoiceLineCreate {
+	_c.mutation.AddChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
+	return _c
+}
+
+// AddChargeFlatFeeRunOverageCreditAllocations adds the "charge_flat_fee_run_overage_credit_allocations" edges to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (_c *BillingInvoiceLineCreate) AddChargeFlatFeeRunOverageCreditAllocations(v ...*ChargeFlatFeeRunOverageCreditAllocations) *BillingInvoiceLineCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
 }
 
 // SetChargeFlatFeeRunsID sets the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by ID.
@@ -1303,6 +1319,22 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeFlatFeeRunOverageCreditAllocationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunoveragecreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

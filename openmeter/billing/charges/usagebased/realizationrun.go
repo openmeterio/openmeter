@@ -285,9 +285,10 @@ type RealizationRun struct {
 	RealizationRunBase
 
 	// Realizations
-	CreditsAllocated creditrealization.Realizations `json:"creditsAllocated"`
-	InvoiceUsage     *invoicedusage.AccruedUsage    `json:"invoicedUsage"`
-	Payment          *payment.Invoiced              `json:"payment"`
+	CreditsAllocated              creditrealization.Realizations `json:"creditsAllocated"`
+	FiatOverageCreditRealizations creditrealization.Realizations `json:"fiatOverageCreditRealizations"`
+	InvoiceUsage                  *invoicedusage.AccruedUsage    `json:"invoicedUsage"`
+	Payment                       *payment.Invoiced              `json:"payment"`
 	// DetailedLines excludes taxes. Credit-then-invoice runs include credit
 	// allocations, while credits-only runs retain their gross rated details.
 	DetailedLines mo.Option[DetailedLines] `json:"detailedLines,omitzero"`
@@ -302,6 +303,10 @@ func (r RealizationRun) Validate() error {
 
 	if err := r.CreditsAllocated.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("credits allocated: %w", err))
+	}
+
+	if err := r.FiatOverageCreditRealizations.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("fiat overage credit realizations: %w", err))
 	}
 
 	if r.InvoiceUsage != nil {

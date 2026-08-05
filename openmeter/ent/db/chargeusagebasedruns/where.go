@@ -1297,6 +1297,29 @@ func HasCreditAllocationsWith(preds ...predicate.ChargeUsageBasedRunCreditAlloca
 	})
 }
 
+// HasFiatOverageCreditAllocations applies the HasEdge predicate on the "fiat_overage_credit_allocations" edge.
+func HasFiatOverageCreditAllocations() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, FiatOverageCreditAllocationsTable, FiatOverageCreditAllocationsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFiatOverageCreditAllocationsWith applies the HasEdge predicate on the "fiat_overage_credit_allocations" edge with a given conditions (other predicates).
+func HasFiatOverageCreditAllocationsWith(preds ...predicate.ChargeUsageBasedRunOverageCreditAllocations) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := newFiatOverageCreditAllocationsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasDetailedLines applies the HasEdge predicate on the "detailed_lines" edge.
 func HasDetailedLines() predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {

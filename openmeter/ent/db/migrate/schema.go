@@ -2550,7 +2550,7 @@ var (
 				OnDelete:   schema.Cascade,
 			},
 			{
-				Symbol:     "charge_flat_fee_run_credit_allocations_charge_flat_fee_run_credit_allocations_allocation",
+				Symbol:     "charge_flat_fee_run_credit_allocations_charge_flat_fee_run_cred",
 				Columns:    []*schema.Column{ChargeFlatFeeRunCreditAllocationsColumns[14]},
 				RefColumns: []*schema.Column{ChargeFlatFeeRunCreditAllocationsColumns[0]},
 				OnDelete:   schema.SetNull,
@@ -2725,6 +2725,72 @@ var (
 				Name:    "chargeflatfeeruninvoicedusage_namespace_run_id",
 				Unique:  true,
 				Columns: []*schema.Column{ChargeFlatFeeRunInvoicedUsagesColumns[4], ChargeFlatFeeRunInvoicedUsagesColumns[17]},
+			},
+		},
+	}
+	// ChargeFlatFeeRunOverageCreditAllocationsColumns holds the columns for the "charge_flat_fee_run_overage_credit_allocations" table.
+	ChargeFlatFeeRunOverageCreditAllocationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "sort_hint", Type: field.TypeInt},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"allocation", "correction"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "corrects_realization_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeFlatFeeRunOverageCreditAllocationsTable holds the schema information for the "charge_flat_fee_run_overage_credit_allocations" table.
+	ChargeFlatFeeRunOverageCreditAllocationsTable = &schema.Table{
+		Name:       "charge_flat_fee_run_overage_credit_allocations",
+		Columns:    ChargeFlatFeeRunOverageCreditAllocationsColumns,
+		PrimaryKey: []*schema.Column{ChargeFlatFeeRunOverageCreditAllocationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_line_charge_ff_overage_credit_alloc",
+				Columns:    []*schema.Column{ChargeFlatFeeRunOverageCreditAllocationsColumns[12]},
+				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_ff_overage_credit_alloc_run",
+				Columns:    []*schema.Column{ChargeFlatFeeRunOverageCreditAllocationsColumns[13]},
+				RefColumns: []*schema.Column{ChargeFlatFeeRunsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "charge_ff_overage_credit_alloc_correction",
+				Columns:    []*schema.Column{ChargeFlatFeeRunOverageCreditAllocationsColumns[14]},
+				RefColumns: []*schema.Column{ChargeFlatFeeRunOverageCreditAllocationsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeflatfeerunoveragecreditallocations_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeeRunOverageCreditAllocationsColumns[7]},
+			},
+			{
+				Name:    "chargeflatfeerunoveragecreditallocations_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeFlatFeeRunOverageCreditAllocationsColumns[0]},
+			},
+			{
+				Name:    "chargeflatfeerunoveragecreditallocations_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeeRunOverageCreditAllocationsColumns[11]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
 			},
 		},
 	}
@@ -3093,7 +3159,7 @@ var (
 		PrimaryKey: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "charge_usage_based_run_credit_allocations_charge_usage_based_run_credit_allocations_allocation",
+				Symbol:     "charge_usage_based_run_credit_allocations_charge_usage_based_ru",
 				Columns:    []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[13]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[0]},
 				OnDelete:   schema.SetNull,
@@ -3283,6 +3349,66 @@ var (
 				Name:    "chargeusagebasedruninvoicedusage_annotations",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeUsageBasedRunInvoicedUsagesColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+		},
+	}
+	// ChargeUsageBasedRunOverageCreditAllocationsColumns holds the columns for the "charge_usage_based_run_overage_credit_allocations" table.
+	ChargeUsageBasedRunOverageCreditAllocationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "sort_hint", Type: field.TypeInt},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"allocation", "correction"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "corrects_realization_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedRunOverageCreditAllocationsTable holds the schema information for the "charge_usage_based_run_overage_credit_allocations" table.
+	ChargeUsageBasedRunOverageCreditAllocationsTable = &schema.Table{
+		Name:       "charge_usage_based_run_overage_credit_allocations",
+		Columns:    ChargeUsageBasedRunOverageCreditAllocationsColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedRunOverageCreditAllocationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_ub_overage_credit_alloc_correction",
+				Columns:    []*schema.Column{ChargeUsageBasedRunOverageCreditAllocationsColumns[13]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRunOverageCreditAllocationsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_ub_overage_credit_alloc_run",
+				Columns:    []*schema.Column{ChargeUsageBasedRunOverageCreditAllocationsColumns[14]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedrunoveragecreditallocations_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunOverageCreditAllocationsColumns[8]},
+			},
+			{
+				Name:    "chargeusagebasedrunoveragecreditallocations_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRunOverageCreditAllocationsColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedrunoveragecreditallocations_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunOverageCreditAllocationsColumns[12]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -5937,6 +6063,7 @@ var (
 		ChargeFlatFeeRunCreditAllocationsTable,
 		ChargeFlatFeeRunDetailedLinesTable,
 		ChargeFlatFeeRunInvoicedUsagesTable,
+		ChargeFlatFeeRunOverageCreditAllocationsTable,
 		ChargeFlatFeeRunPaymentsTable,
 		ChargeUsageBasedTable,
 		ChargeUsageBasedCostBasesTable,
@@ -5944,6 +6071,7 @@ var (
 		ChargeUsageBasedRunCreditAllocationsTable,
 		ChargeUsageBasedRunDetailedLineTable,
 		ChargeUsageBasedRunInvoicedUsagesTable,
+		ChargeUsageBasedRunOverageCreditAllocationsTable,
 		ChargeUsageBasedRunPaymentsTable,
 		ChargeUsageBasedRunsTable,
 		CreditRealizationLineagesTable,
@@ -6133,6 +6261,9 @@ func init() {
 		"child_unique_reference_id_not_empty": "child_unique_reference_id <> ''",
 	}
 	ChargeFlatFeeRunInvoicedUsagesTable.ForeignKeys[0].RefTable = ChargeFlatFeeRunsTable
+	ChargeFlatFeeRunOverageCreditAllocationsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
+	ChargeFlatFeeRunOverageCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeFlatFeeRunsTable
+	ChargeFlatFeeRunOverageCreditAllocationsTable.ForeignKeys[2].RefTable = ChargeFlatFeeRunOverageCreditAllocationsTable
 	ChargeFlatFeeRunPaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeFlatFeeRunPaymentsTable.ForeignKeys[1].RefTable = ChargeFlatFeeRunsTable
 	ChargeUsageBasedTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
@@ -6176,6 +6307,8 @@ func init() {
 		"child_unique_reference_id_not_empty": "child_unique_reference_id <> ''",
 	}
 	ChargeUsageBasedRunInvoicedUsagesTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
+	ChargeUsageBasedRunOverageCreditAllocationsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunOverageCreditAllocationsTable
+	ChargeUsageBasedRunOverageCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	ChargeUsageBasedRunsTable.ForeignKeys[1].RefTable = BillingInvoiceLinesTable

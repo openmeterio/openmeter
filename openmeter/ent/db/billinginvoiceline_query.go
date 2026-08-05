@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -37,31 +38,32 @@ import (
 // BillingInvoiceLineQuery is the builder for querying BillingInvoiceLine entities.
 type BillingInvoiceLineQuery struct {
 	config
-	ctx                                     *QueryContext
-	order                                   []billinginvoiceline.OrderOption
-	inters                                  []Interceptor
-	predicates                              []predicate.BillingInvoiceLine
-	withBillingInvoice                      *BillingInvoiceQuery
-	withSplitLineGroup                      *BillingInvoiceSplitLineGroupQuery
-	withFlatFeeLine                         *BillingInvoiceFlatFeeLineConfigQuery
-	withUsageBasedLine                      *BillingInvoiceUsageBasedLineConfigQuery
-	withParentLine                          *BillingInvoiceLineQuery
-	withDetailedLines                       *BillingInvoiceLineQuery
-	withDetailedLinesV2                     *BillingStandardInvoiceDetailedLineQuery
-	withLineUsageDiscounts                  *BillingInvoiceLineUsageDiscountQuery
-	withLineAmountDiscounts                 *BillingInvoiceLineDiscountQuery
-	withSubscription                        *SubscriptionQuery
-	withSubscriptionPhase                   *SubscriptionPhaseQuery
-	withSubscriptionItem                    *SubscriptionItemQuery
-	withCharge                              *ChargeQuery
-	withChargeFlatFeeRunPayment             *ChargeFlatFeeRunPaymentQuery
-	withChargeFlatFeeRunCreditAllocations   *ChargeFlatFeeRunCreditAllocationsQuery
-	withChargeFlatFeeRuns                   *ChargeFlatFeeRunQuery
-	withChargeUsageBasedRun                 *ChargeUsageBasedRunsQuery
-	withChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPaymentQuery
-	withTaxCode                             *TaxCodeQuery
-	withFKs                                 bool
-	modifiers                               []func(*sql.Selector)
+	ctx                                          *QueryContext
+	order                                        []billinginvoiceline.OrderOption
+	inters                                       []Interceptor
+	predicates                                   []predicate.BillingInvoiceLine
+	withBillingInvoice                           *BillingInvoiceQuery
+	withSplitLineGroup                           *BillingInvoiceSplitLineGroupQuery
+	withFlatFeeLine                              *BillingInvoiceFlatFeeLineConfigQuery
+	withUsageBasedLine                           *BillingInvoiceUsageBasedLineConfigQuery
+	withParentLine                               *BillingInvoiceLineQuery
+	withDetailedLines                            *BillingInvoiceLineQuery
+	withDetailedLinesV2                          *BillingStandardInvoiceDetailedLineQuery
+	withLineUsageDiscounts                       *BillingInvoiceLineUsageDiscountQuery
+	withLineAmountDiscounts                      *BillingInvoiceLineDiscountQuery
+	withSubscription                             *SubscriptionQuery
+	withSubscriptionPhase                        *SubscriptionPhaseQuery
+	withSubscriptionItem                         *SubscriptionItemQuery
+	withCharge                                   *ChargeQuery
+	withChargeFlatFeeRunPayment                  *ChargeFlatFeeRunPaymentQuery
+	withChargeFlatFeeRunCreditAllocations        *ChargeFlatFeeRunCreditAllocationsQuery
+	withChargeFlatFeeRunOverageCreditAllocations *ChargeFlatFeeRunOverageCreditAllocationsQuery
+	withChargeFlatFeeRuns                        *ChargeFlatFeeRunQuery
+	withChargeUsageBasedRun                      *ChargeUsageBasedRunsQuery
+	withChargeCreditPurchaseInvoicedPayment      *ChargeCreditPurchaseInvoicedPaymentQuery
+	withTaxCode                                  *TaxCodeQuery
+	withFKs                                      bool
+	modifiers                                    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -428,6 +430,28 @@ func (_q *BillingInvoiceLineQuery) QueryChargeFlatFeeRunCreditAllocations() *Cha
 	return query
 }
 
+// QueryChargeFlatFeeRunOverageCreditAllocations chains the current query on the "charge_flat_fee_run_overage_credit_allocations" edge.
+func (_q *BillingInvoiceLineQuery) QueryChargeFlatFeeRunOverageCreditAllocations() *ChargeFlatFeeRunOverageCreditAllocationsQuery {
+	query := (&ChargeFlatFeeRunOverageCreditAllocationsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(chargeflatfeerunoveragecreditallocations.Table, chargeflatfeerunoveragecreditallocations.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsTable, billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // QueryChargeFlatFeeRuns chains the current query on the "charge_flat_fee_runs" edge.
 func (_q *BillingInvoiceLineQuery) QueryChargeFlatFeeRuns() *ChargeFlatFeeRunQuery {
 	query := (&ChargeFlatFeeRunClient{config: _q.config}).Query()
@@ -703,30 +727,31 @@ func (_q *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		return nil
 	}
 	return &BillingInvoiceLineQuery{
-		config:                                  _q.config,
-		ctx:                                     _q.ctx.Clone(),
-		order:                                   append([]billinginvoiceline.OrderOption{}, _q.order...),
-		inters:                                  append([]Interceptor{}, _q.inters...),
-		predicates:                              append([]predicate.BillingInvoiceLine{}, _q.predicates...),
-		withBillingInvoice:                      _q.withBillingInvoice.Clone(),
-		withSplitLineGroup:                      _q.withSplitLineGroup.Clone(),
-		withFlatFeeLine:                         _q.withFlatFeeLine.Clone(),
-		withUsageBasedLine:                      _q.withUsageBasedLine.Clone(),
-		withParentLine:                          _q.withParentLine.Clone(),
-		withDetailedLines:                       _q.withDetailedLines.Clone(),
-		withDetailedLinesV2:                     _q.withDetailedLinesV2.Clone(),
-		withLineUsageDiscounts:                  _q.withLineUsageDiscounts.Clone(),
-		withLineAmountDiscounts:                 _q.withLineAmountDiscounts.Clone(),
-		withSubscription:                        _q.withSubscription.Clone(),
-		withSubscriptionPhase:                   _q.withSubscriptionPhase.Clone(),
-		withSubscriptionItem:                    _q.withSubscriptionItem.Clone(),
-		withCharge:                              _q.withCharge.Clone(),
-		withChargeFlatFeeRunPayment:             _q.withChargeFlatFeeRunPayment.Clone(),
-		withChargeFlatFeeRunCreditAllocations:   _q.withChargeFlatFeeRunCreditAllocations.Clone(),
-		withChargeFlatFeeRuns:                   _q.withChargeFlatFeeRuns.Clone(),
-		withChargeUsageBasedRun:                 _q.withChargeUsageBasedRun.Clone(),
-		withChargeCreditPurchaseInvoicedPayment: _q.withChargeCreditPurchaseInvoicedPayment.Clone(),
-		withTaxCode:                             _q.withTaxCode.Clone(),
+		config:                                _q.config,
+		ctx:                                   _q.ctx.Clone(),
+		order:                                 append([]billinginvoiceline.OrderOption{}, _q.order...),
+		inters:                                append([]Interceptor{}, _q.inters...),
+		predicates:                            append([]predicate.BillingInvoiceLine{}, _q.predicates...),
+		withBillingInvoice:                    _q.withBillingInvoice.Clone(),
+		withSplitLineGroup:                    _q.withSplitLineGroup.Clone(),
+		withFlatFeeLine:                       _q.withFlatFeeLine.Clone(),
+		withUsageBasedLine:                    _q.withUsageBasedLine.Clone(),
+		withParentLine:                        _q.withParentLine.Clone(),
+		withDetailedLines:                     _q.withDetailedLines.Clone(),
+		withDetailedLinesV2:                   _q.withDetailedLinesV2.Clone(),
+		withLineUsageDiscounts:                _q.withLineUsageDiscounts.Clone(),
+		withLineAmountDiscounts:               _q.withLineAmountDiscounts.Clone(),
+		withSubscription:                      _q.withSubscription.Clone(),
+		withSubscriptionPhase:                 _q.withSubscriptionPhase.Clone(),
+		withSubscriptionItem:                  _q.withSubscriptionItem.Clone(),
+		withCharge:                            _q.withCharge.Clone(),
+		withChargeFlatFeeRunPayment:           _q.withChargeFlatFeeRunPayment.Clone(),
+		withChargeFlatFeeRunCreditAllocations: _q.withChargeFlatFeeRunCreditAllocations.Clone(),
+		withChargeFlatFeeRunOverageCreditAllocations: _q.withChargeFlatFeeRunOverageCreditAllocations.Clone(),
+		withChargeFlatFeeRuns:                        _q.withChargeFlatFeeRuns.Clone(),
+		withChargeUsageBasedRun:                      _q.withChargeUsageBasedRun.Clone(),
+		withChargeCreditPurchaseInvoicedPayment:      _q.withChargeCreditPurchaseInvoicedPayment.Clone(),
+		withTaxCode:                                  _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -898,6 +923,17 @@ func (_q *BillingInvoiceLineQuery) WithChargeFlatFeeRunCreditAllocations(opts ..
 	return _q
 }
 
+// WithChargeFlatFeeRunOverageCreditAllocations tells the query-builder to eager-load the nodes that are connected to
+// the "charge_flat_fee_run_overage_credit_allocations" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceLineQuery) WithChargeFlatFeeRunOverageCreditAllocations(opts ...func(*ChargeFlatFeeRunOverageCreditAllocationsQuery)) *BillingInvoiceLineQuery {
+	query := (&ChargeFlatFeeRunOverageCreditAllocationsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargeFlatFeeRunOverageCreditAllocations = query
+	return _q
+}
+
 // WithChargeFlatFeeRuns tells the query-builder to eager-load the nodes that are connected to
 // the "charge_flat_fee_runs" edge. The optional arguments are used to configure the query builder of the edge.
 func (_q *BillingInvoiceLineQuery) WithChargeFlatFeeRuns(opts ...func(*ChargeFlatFeeRunQuery)) *BillingInvoiceLineQuery {
@@ -1021,7 +1057,7 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [19]bool{
+		loadedTypes = [20]bool{
 			_q.withBillingInvoice != nil,
 			_q.withSplitLineGroup != nil,
 			_q.withFlatFeeLine != nil,
@@ -1037,6 +1073,7 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			_q.withCharge != nil,
 			_q.withChargeFlatFeeRunPayment != nil,
 			_q.withChargeFlatFeeRunCreditAllocations != nil,
+			_q.withChargeFlatFeeRunOverageCreditAllocations != nil,
 			_q.withChargeFlatFeeRuns != nil,
 			_q.withChargeUsageBasedRun != nil,
 			_q.withChargeCreditPurchaseInvoicedPayment != nil,
@@ -1173,6 +1210,17 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			},
 			func(n *BillingInvoiceLine, e *ChargeFlatFeeRunCreditAllocations) {
 				n.Edges.ChargeFlatFeeRunCreditAllocations = append(n.Edges.ChargeFlatFeeRunCreditAllocations, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargeFlatFeeRunOverageCreditAllocations; query != nil {
+		if err := _q.loadChargeFlatFeeRunOverageCreditAllocations(ctx, query, nodes,
+			func(n *BillingInvoiceLine) {
+				n.Edges.ChargeFlatFeeRunOverageCreditAllocations = []*ChargeFlatFeeRunOverageCreditAllocations{}
+			},
+			func(n *BillingInvoiceLine, e *ChargeFlatFeeRunOverageCreditAllocations) {
+				n.Edges.ChargeFlatFeeRunOverageCreditAllocations = append(n.Edges.ChargeFlatFeeRunOverageCreditAllocations, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -1657,6 +1705,39 @@ func (_q *BillingInvoiceLineQuery) loadChargeFlatFeeRunCreditAllocations(ctx con
 	}
 	query.Where(predicate.ChargeFlatFeeRunCreditAllocations(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(billinginvoiceline.ChargeFlatFeeRunCreditAllocationsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.LineID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "line_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "line_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceLineQuery) loadChargeFlatFeeRunOverageCreditAllocations(ctx context.Context, query *ChargeFlatFeeRunOverageCreditAllocationsQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *ChargeFlatFeeRunOverageCreditAllocations)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoiceLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfeerunoveragecreditallocations.FieldLineID)
+	}
+	query.Where(predicate.ChargeFlatFeeRunOverageCreditAllocations(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

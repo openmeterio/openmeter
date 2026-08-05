@@ -416,6 +416,9 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 		edge.To("credit_allocations", ChargeUsageBasedRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ub_run_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("fiat_overage_credit_allocations", ChargeUsageBasedRunOverageCreditAllocations.Type).
+			StorageKey(edge.Symbol("charge_ub_overage_credit_alloc_run")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("detailed_lines", ChargeUsageBasedRunDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("corrected_detailed_lines", ChargeUsageBasedRunDetailedLine.Type).
@@ -517,7 +520,8 @@ type ChargeUsageBasedRunCreditAllocations struct {
 func (ChargeUsageBasedRunCreditAllocations) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		creditrealization.Mixin{
-			SelfReferenceType: ChargeUsageBasedRunCreditAllocations.Type,
+			SelfReferenceType:   ChargeUsageBasedRunCreditAllocations.Type,
+			SelfReferenceSymbol: "charge_usage_based_run_credit_allocations_charge_usage_based_ru",
 		},
 	}
 }
@@ -536,6 +540,40 @@ func (ChargeUsageBasedRunCreditAllocations) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("run", ChargeUsageBasedRuns.Type).
 			Ref("credit_allocations").
+			Field("run_id").
+			Unique().
+			Required().
+			Immutable(),
+	}
+}
+
+type ChargeUsageBasedRunOverageCreditAllocations struct {
+	ent.Schema
+}
+
+func (ChargeUsageBasedRunOverageCreditAllocations) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		creditrealization.Mixin{
+			SelfReferenceType:   ChargeUsageBasedRunOverageCreditAllocations.Type,
+			SelfReferenceSymbol: "charge_ub_overage_credit_alloc_correction",
+		},
+	}
+}
+
+func (ChargeUsageBasedRunOverageCreditAllocations) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+	}
+}
+
+func (ChargeUsageBasedRunOverageCreditAllocations) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("run", ChargeUsageBasedRuns.Type).
+			Ref("fiat_overage_credit_allocations").
 			Field("run_id").
 			Unique().
 			Required().

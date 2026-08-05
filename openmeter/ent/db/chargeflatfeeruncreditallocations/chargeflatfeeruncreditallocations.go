@@ -44,24 +44,24 @@ const (
 	FieldAnnotations = "annotations"
 	// FieldRunID holds the string denoting the run_id field in the database.
 	FieldRunID = "run_id"
-	// EdgeCorrections holds the string denoting the corrections edge name in mutations.
-	EdgeCorrections = "corrections"
 	// EdgeAllocation holds the string denoting the allocation edge name in mutations.
 	EdgeAllocation = "allocation"
+	// EdgeCorrections holds the string denoting the corrections edge name in mutations.
+	EdgeCorrections = "corrections"
 	// EdgeRun holds the string denoting the run edge name in mutations.
 	EdgeRun = "run"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
 	EdgeBillingInvoiceLine = "billing_invoice_line"
 	// Table holds the table name of the chargeflatfeeruncreditallocations in the database.
 	Table = "charge_flat_fee_run_credit_allocations"
-	// CorrectionsTable is the table that holds the corrections relation/edge.
-	CorrectionsTable = "charge_flat_fee_run_credit_allocations"
-	// CorrectionsColumn is the table column denoting the corrections relation/edge.
-	CorrectionsColumn = "corrects_realization_id"
 	// AllocationTable is the table that holds the allocation relation/edge.
 	AllocationTable = "charge_flat_fee_run_credit_allocations"
 	// AllocationColumn is the table column denoting the allocation relation/edge.
 	AllocationColumn = "corrects_realization_id"
+	// CorrectionsTable is the table that holds the corrections relation/edge.
+	CorrectionsTable = "charge_flat_fee_run_credit_allocations"
+	// CorrectionsColumn is the table column denoting the corrections relation/edge.
+	CorrectionsColumn = "corrects_realization_id"
 	// RunTable is the table that holds the run relation/edge.
 	RunTable = "charge_flat_fee_run_credit_allocations"
 	// RunInverseTable is the table name for the ChargeFlatFeeRun entity.
@@ -209,6 +209,13 @@ func ByRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRunID, opts...).ToFunc()
 }
 
+// ByAllocationField orders the results by allocation field.
+func ByAllocationField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAllocationStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByCorrectionsCount orders the results by corrections count.
 func ByCorrectionsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -220,13 +227,6 @@ func ByCorrectionsCount(opts ...sql.OrderTermOption) OrderOption {
 func ByCorrections(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newCorrectionsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByAllocationField orders the results by allocation field.
-func ByAllocationField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAllocationStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -243,18 +243,18 @@ func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderO
 		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLineStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newCorrectionsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(Table, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, true, CorrectionsTable, CorrectionsColumn),
-	)
-}
 func newAllocationStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, false, AllocationTable, AllocationColumn),
+	)
+}
+func newCorrectionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, true, CorrectionsTable, CorrectionsColumn),
 	)
 }
 func newRunStep() *sqlgraph.Step {

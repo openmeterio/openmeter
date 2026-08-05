@@ -64,8 +64,11 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) createCreditAllocations(ctx context.Context, charge flatfee.Charge, runID flatfee.RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error) {
-	realizations, err := s.adapter.CreateCreditAllocations(ctx, runID, creditAllocations)
+func (s *Service) createChargeCurrencyCreditRealizations(ctx context.Context, charge flatfee.Charge, runID flatfee.RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error) {
+	realizations, err := s.adapter.CreateChargeCurrencyCreditRealizations(ctx, flatfee.CreateCreditRealizationsInput{
+		RunID:              runID,
+		CreditRealizations: creditAllocations,
+	})
 	if err != nil {
 		return creditrealization.Realizations{}, err
 	}

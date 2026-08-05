@@ -52,6 +52,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -60,6 +61,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
@@ -203,6 +205,7 @@ func checkColumn(t, c string) error {
 			chargeflatfeeruncreditallocations.Table:                chargeflatfeeruncreditallocations.ValidColumn,
 			chargeflatfeerundetailedline.Table:                     chargeflatfeerundetailedline.ValidColumn,
 			chargeflatfeeruninvoicedusage.Table:                    chargeflatfeeruninvoicedusage.ValidColumn,
+			chargeflatfeerunoveragecreditallocations.Table:         chargeflatfeerunoveragecreditallocations.ValidColumn,
 			chargeflatfeerunpayment.Table:                          chargeflatfeerunpayment.ValidColumn,
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
 			chargeusagebasedcostbasis.Table:                        chargeusagebasedcostbasis.ValidColumn,
@@ -210,6 +213,7 @@ func checkColumn(t, c string) error {
 			chargeusagebasedruncreditallocations.Table:             chargeusagebasedruncreditallocations.ValidColumn,
 			chargeusagebasedrundetailedline.Table:                  chargeusagebasedrundetailedline.ValidColumn,
 			chargeusagebasedruninvoicedusage.Table:                 chargeusagebasedruninvoicedusage.ValidColumn,
+			chargeusagebasedrunoveragecreditallocations.Table:      chargeusagebasedrunoveragecreditallocations.ValidColumn,
 			chargeusagebasedrunpayment.Table:                       chargeusagebasedrunpayment.ValidColumn,
 			chargeusagebasedruns.Table:                             chargeusagebasedruns.ValidColumn,
 			chargessearchv1.Table:                                  chargessearchv1.ValidColumn,

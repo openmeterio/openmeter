@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -841,6 +842,21 @@ func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeRunCreditAllocations(v ...*C
 	return _u.AddChargeFlatFeeRunCreditAllocationIDs(ids...)
 }
 
+// AddChargeFlatFeeRunOverageCreditAllocationIDs adds the "charge_flat_fee_run_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by IDs.
+func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeRunOverageCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdate {
+	_u.mutation.AddChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
+	return _u
+}
+
+// AddChargeFlatFeeRunOverageCreditAllocations adds the "charge_flat_fee_run_overage_credit_allocations" edges to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeRunOverageCreditAllocations(v ...*ChargeFlatFeeRunOverageCreditAllocations) *BillingInvoiceLineUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
+}
+
 // SetChargeFlatFeeRunsID sets the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by ID.
 func (_u *BillingInvoiceLineUpdate) SetChargeFlatFeeRunsID(id string) *BillingInvoiceLineUpdate {
 	_u.mutation.SetChargeFlatFeeRunsID(id)
@@ -1071,6 +1087,27 @@ func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeRunCreditAllocations(v ..
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeFlatFeeRunCreditAllocationIDs(ids...)
+}
+
+// ClearChargeFlatFeeRunOverageCreditAllocations clears all "charge_flat_fee_run_overage_credit_allocations" edges to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (_u *BillingInvoiceLineUpdate) ClearChargeFlatFeeRunOverageCreditAllocations() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearChargeFlatFeeRunOverageCreditAllocations()
+	return _u
+}
+
+// RemoveChargeFlatFeeRunOverageCreditAllocationIDs removes the "charge_flat_fee_run_overage_credit_allocations" edge to ChargeFlatFeeRunOverageCreditAllocations entities by IDs.
+func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeRunOverageCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdate {
+	_u.mutation.RemoveChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
+	return _u
+}
+
+// RemoveChargeFlatFeeRunOverageCreditAllocations removes "charge_flat_fee_run_overage_credit_allocations" edges to ChargeFlatFeeRunOverageCreditAllocations entities.
+func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeRunOverageCreditAllocations(v ...*ChargeFlatFeeRunOverageCreditAllocations) *BillingInvoiceLineUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
 }
 
 // ClearChargeFlatFeeRuns clears the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity.
@@ -1836,6 +1873,51 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeFlatFeeRunOverageCreditAllocationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunoveragecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeFlatFeeRunOverageCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunOverageCreditAllocationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunoveragecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeFlatFeeRunOverageCreditAllocationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunoveragecreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2770,6 +2852,21 @@ func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeRunCreditAllocations(v ..
 	return _u.AddChargeFlatFeeRunCreditAllocationIDs(ids...)
 }
 
+// AddChargeFlatFeeRunOverageCreditAllocationIDs adds the "charge_flat_fee_run_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by IDs.
+func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeRunOverageCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.AddChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
+	return _u
+}
+
+// AddChargeFlatFeeRunOverageCreditAllocations adds the "charge_flat_fee_run_overage_credit_allocations" edges to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeRunOverageCreditAllocations(v ...*ChargeFlatFeeRunOverageCreditAllocations) *BillingInvoiceLineUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
+}
+
 // SetChargeFlatFeeRunsID sets the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by ID.
 func (_u *BillingInvoiceLineUpdateOne) SetChargeFlatFeeRunsID(id string) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetChargeFlatFeeRunsID(id)
@@ -3000,6 +3097,27 @@ func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeRunCreditAllocations(v
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeFlatFeeRunCreditAllocationIDs(ids...)
+}
+
+// ClearChargeFlatFeeRunOverageCreditAllocations clears all "charge_flat_fee_run_overage_credit_allocations" edges to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (_u *BillingInvoiceLineUpdateOne) ClearChargeFlatFeeRunOverageCreditAllocations() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearChargeFlatFeeRunOverageCreditAllocations()
+	return _u
+}
+
+// RemoveChargeFlatFeeRunOverageCreditAllocationIDs removes the "charge_flat_fee_run_overage_credit_allocations" edge to ChargeFlatFeeRunOverageCreditAllocations entities by IDs.
+func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeRunOverageCreditAllocationIDs(ids ...string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.RemoveChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
+	return _u
+}
+
+// RemoveChargeFlatFeeRunOverageCreditAllocations removes "charge_flat_fee_run_overage_credit_allocations" edges to ChargeFlatFeeRunOverageCreditAllocations entities.
+func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeRunOverageCreditAllocations(v ...*ChargeFlatFeeRunOverageCreditAllocations) *BillingInvoiceLineUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeFlatFeeRunOverageCreditAllocationIDs(ids...)
 }
 
 // ClearChargeFlatFeeRuns clears the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity.
@@ -3795,6 +3913,51 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeFlatFeeRunOverageCreditAllocationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunoveragecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeFlatFeeRunOverageCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeRunOverageCreditAllocationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunoveragecreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeFlatFeeRunOverageCreditAllocationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsTable,
+			Columns: []string{billinginvoiceline.ChargeFlatFeeRunOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunoveragecreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

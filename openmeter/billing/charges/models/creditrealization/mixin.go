@@ -20,7 +20,8 @@ import (
 type Mixin struct {
 	entutils.RecursiveMixin[mixinBase]
 
-	SelfReferenceType any
+	SelfReferenceType   any
+	SelfReferenceSymbol string
 }
 
 type mixinBase struct {
@@ -83,15 +84,14 @@ func (mixinBase) Edges() []ent.Edge {
 
 func (m Mixin) Edges() []ent.Edge {
 	edges := m.RecursiveMixin.Edges()
-	if m.SelfReferenceType == nil {
-		return edges
-	}
 
 	return slices.Concat(edges, []ent.Edge{
 		edge.To("allocation", m.SelfReferenceType).
 			Field("corrects_realization_id").
 			Unique().
-			From("corrections"),
+			StorageKey(edge.Symbol(m.SelfReferenceSymbol)),
+		edge.From("corrections", m.SelfReferenceType).
+			Ref("allocation"),
 	})
 }
 
@@ -145,7 +145,7 @@ type Getter interface {
 	GetCorrectsRealizationID() *string
 }
 
-func MapFromDB(dbEntity Getter) Realization {
+func FromDBRealization(dbEntity Getter) Realization {
 	return Realization{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: dbEntity.GetNamespace(),
@@ -170,4 +170,21 @@ func MapFromDB(dbEntity Getter) Realization {
 		},
 		SortHint: dbEntity.GetSortHint(),
 	}
+}
+
+func FromDBRealizations[T Getter](dbEntities []T) Realizations {
+	realizations := make(Realizations, 0, len(dbEntities))
+	for _, dbEntity := range dbEntities {
+		realizations = append(realizations, FromDBRealization(dbEntity))
+	}
+
+	return realizations
+}
+
+func FromDBRealizationsOrErr[T Getter](dbEntities []T, err error) (Realizations, error) {
+	if err != nil {
+		return nil, err
+	}
+
+	return FromDBRealizations(dbEntities), nil
 }

@@ -129,7 +129,7 @@ func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealiz
 		}
 
 		if len(corrections) > 0 {
-			realizations, err := s.createRunCreditRealizations(ctx, in.Charge, in.Run.ID, corrections)
+			realizations, err := s.createChargeCurrencyCreditRealizations(ctx, in.Charge, in.Run.ID, corrections)
 			if err != nil {
 				return ReconcileCreditRealizationsResult{}, fmt.Errorf("create credit corrections: %w", err)
 			}
@@ -207,7 +207,7 @@ func (s *Service) CorrectAllCredits(ctx context.Context, in CorrectAllCreditReal
 
 	result := CorrectAllCreditRealizationsResult{}
 	if len(corrections) > 0 {
-		realizations, err := s.createRunCreditRealizations(ctx, in.Charge, in.Run.ID, corrections)
+		realizations, err := s.createChargeCurrencyCreditRealizations(ctx, in.Charge, in.Run.ID, corrections)
 		if err != nil {
 			return CorrectAllCreditRealizationsResult{}, fmt.Errorf("create credit corrections for run %s: %w", in.Run.ID.ID, err)
 		}

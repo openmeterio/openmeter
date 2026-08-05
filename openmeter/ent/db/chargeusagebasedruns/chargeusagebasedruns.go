@@ -74,6 +74,8 @@ const (
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
+	// EdgeFiatOverageCreditAllocations holds the string denoting the fiat_overage_credit_allocations edge name in mutations.
+	EdgeFiatOverageCreditAllocations = "fiat_overage_credit_allocations"
 	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
 	EdgeDetailedLines = "detailed_lines"
 	// EdgeCorrectedDetailedLines holds the string denoting the corrected_detailed_lines edge name in mutations.
@@ -119,6 +121,13 @@ const (
 	CreditAllocationsInverseTable = "charge_usage_based_run_credit_allocations"
 	// CreditAllocationsColumn is the table column denoting the credit_allocations relation/edge.
 	CreditAllocationsColumn = "run_id"
+	// FiatOverageCreditAllocationsTable is the table that holds the fiat_overage_credit_allocations relation/edge.
+	FiatOverageCreditAllocationsTable = "charge_usage_based_run_overage_credit_allocations"
+	// FiatOverageCreditAllocationsInverseTable is the table name for the ChargeUsageBasedRunOverageCreditAllocations entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrunoveragecreditallocations" package.
+	FiatOverageCreditAllocationsInverseTable = "charge_usage_based_run_overage_credit_allocations"
+	// FiatOverageCreditAllocationsColumn is the table column denoting the fiat_overage_credit_allocations relation/edge.
+	FiatOverageCreditAllocationsColumn = "run_id"
 	// DetailedLinesTable is the table that holds the detailed_lines relation/edge.
 	DetailedLinesTable = "charge_usage_based_run_detailed_line"
 	// DetailedLinesInverseTable is the table name for the ChargeUsageBasedRunDetailedLine entity.
@@ -399,6 +408,20 @@ func ByCreditAllocations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption
 	}
 }
 
+// ByFiatOverageCreditAllocationsCount orders the results by fiat_overage_credit_allocations count.
+func ByFiatOverageCreditAllocationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFiatOverageCreditAllocationsStep(), opts...)
+	}
+}
+
+// ByFiatOverageCreditAllocations orders the results by fiat_overage_credit_allocations terms.
+func ByFiatOverageCreditAllocations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFiatOverageCreditAllocationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByDetailedLinesCount orders the results by detailed_lines count.
 func ByDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -473,6 +496,13 @@ func newCreditAllocationsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CreditAllocationsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, CreditAllocationsTable, CreditAllocationsColumn),
+	)
+}
+func newFiatOverageCreditAllocationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FiatOverageCreditAllocationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, FiatOverageCreditAllocationsTable, FiatOverageCreditAllocationsColumn),
 	)
 }
 func newDetailedLinesStep() *sqlgraph.Step {

@@ -133,6 +133,8 @@ const (
 	EdgeChargeFlatFeeRunPayment = "charge_flat_fee_run_payment"
 	// EdgeChargeFlatFeeRunCreditAllocations holds the string denoting the charge_flat_fee_run_credit_allocations edge name in mutations.
 	EdgeChargeFlatFeeRunCreditAllocations = "charge_flat_fee_run_credit_allocations"
+	// EdgeChargeFlatFeeRunOverageCreditAllocations holds the string denoting the charge_flat_fee_run_overage_credit_allocations edge name in mutations.
+	EdgeChargeFlatFeeRunOverageCreditAllocations = "charge_flat_fee_run_overage_credit_allocations"
 	// EdgeChargeFlatFeeRuns holds the string denoting the charge_flat_fee_runs edge name in mutations.
 	EdgeChargeFlatFeeRuns = "charge_flat_fee_runs"
 	// EdgeChargeUsageBasedRun holds the string denoting the charge_usage_based_run edge name in mutations.
@@ -242,6 +244,13 @@ const (
 	ChargeFlatFeeRunCreditAllocationsInverseTable = "charge_flat_fee_run_credit_allocations"
 	// ChargeFlatFeeRunCreditAllocationsColumn is the table column denoting the charge_flat_fee_run_credit_allocations relation/edge.
 	ChargeFlatFeeRunCreditAllocationsColumn = "line_id"
+	// ChargeFlatFeeRunOverageCreditAllocationsTable is the table that holds the charge_flat_fee_run_overage_credit_allocations relation/edge.
+	ChargeFlatFeeRunOverageCreditAllocationsTable = "charge_flat_fee_run_overage_credit_allocations"
+	// ChargeFlatFeeRunOverageCreditAllocationsInverseTable is the table name for the ChargeFlatFeeRunOverageCreditAllocations entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeerunoveragecreditallocations" package.
+	ChargeFlatFeeRunOverageCreditAllocationsInverseTable = "charge_flat_fee_run_overage_credit_allocations"
+	// ChargeFlatFeeRunOverageCreditAllocationsColumn is the table column denoting the charge_flat_fee_run_overage_credit_allocations relation/edge.
+	ChargeFlatFeeRunOverageCreditAllocationsColumn = "line_id"
 	// ChargeFlatFeeRunsTable is the table that holds the charge_flat_fee_runs relation/edge.
 	ChargeFlatFeeRunsTable = "charge_flat_fee_runs"
 	// ChargeFlatFeeRunsInverseTable is the table name for the ChargeFlatFeeRun entity.
@@ -756,6 +765,20 @@ func ByChargeFlatFeeRunCreditAllocations(term sql.OrderTerm, terms ...sql.OrderT
 	}
 }
 
+// ByChargeFlatFeeRunOverageCreditAllocationsCount orders the results by charge_flat_fee_run_overage_credit_allocations count.
+func ByChargeFlatFeeRunOverageCreditAllocationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargeFlatFeeRunOverageCreditAllocationsStep(), opts...)
+	}
+}
+
+// ByChargeFlatFeeRunOverageCreditAllocations orders the results by charge_flat_fee_run_overage_credit_allocations terms.
+func ByChargeFlatFeeRunOverageCreditAllocations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeRunOverageCreditAllocationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByChargeFlatFeeRunsField orders the results by charge_flat_fee_runs field.
 func ByChargeFlatFeeRunsField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -886,6 +909,13 @@ func newChargeFlatFeeRunCreditAllocationsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeFlatFeeRunCreditAllocationsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunCreditAllocationsTable, ChargeFlatFeeRunCreditAllocationsColumn),
+	)
+}
+func newChargeFlatFeeRunOverageCreditAllocationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeFlatFeeRunOverageCreditAllocationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunOverageCreditAllocationsTable, ChargeFlatFeeRunOverageCreditAllocationsColumn),
 	)
 }
 func newChargeFlatFeeRunsStep() *sqlgraph.Step {

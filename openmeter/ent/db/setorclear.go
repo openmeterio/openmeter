@@ -3394,6 +3394,62 @@ func (u *ChargeFlatFeeRunInvoicedUsageUpdateOne) SetOrClearAnnotations(value *mo
 	return u.SetAnnotations(*value)
 }
 
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetOrClearLineID(value *string) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetOrClearCorrectsRealizationID(value *string) *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearCorrectsRealizationID()
+	}
+	return u.SetCorrectsRealizationID(*value)
+}
+
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetOrClearCorrectsRealizationID(value *string) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearCorrectsRealizationID()
+	}
+	return u.SetCorrectsRealizationID(*value)
+}
+
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
 func (u *ChargeFlatFeeRunPaymentUpdate) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeFlatFeeRunPaymentUpdate {
 	if value == nil {
 		return u.ClearAuthorizedTransactionGroupID()
@@ -3990,6 +4046,62 @@ func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearAnnotations(value *mo
 }
 
 func (u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetOrClearLineID(value *string) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetOrClearCorrectsRealizationID(value *string) *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearCorrectsRealizationID()
+	}
+	return u.SetCorrectsRealizationID(*value)
+}
+
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetOrClearCorrectsRealizationID(value *string) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearCorrectsRealizationID()
+	}
+	return u.SetCorrectsRealizationID(*value)
+}
+
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
 	if value == nil {
 		return u.ClearAnnotations()
 	}

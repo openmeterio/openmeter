@@ -62,7 +62,27 @@ type ChargeRunAdapter interface {
 }
 
 type ChargeCreditAllocationAdapter interface {
-	CreateCreditAllocations(ctx context.Context, runID RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error)
+	CreateChargeCurrencyCreditRealizations(ctx context.Context, input CreateCreditRealizationsInput) (creditrealization.Realizations, error)
+	CreateFiatOverageCreditRealizations(ctx context.Context, input CreateCreditRealizationsInput) (creditrealization.Realizations, error)
+}
+
+type CreateCreditRealizationsInput struct {
+	RunID              RealizationRunID
+	CreditRealizations creditrealization.CreateInputs
+}
+
+func (i CreateCreditRealizationsInput) Validate() error {
+	var errs []error
+
+	if err := i.RunID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run ID: %w", err))
+	}
+
+	if err := i.CreditRealizations.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("credit realizations: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ChargePaymentAdapter interface {

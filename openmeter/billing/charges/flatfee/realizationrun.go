@@ -208,9 +208,10 @@ func (r RealizationRunBase) Validate() error {
 type RealizationRun struct {
 	RealizationRunBase
 
-	CreditRealizations creditrealization.Realizations `json:"creditRealizations"`
-	AccruedUsage       *invoicedusage.AccruedUsage    `json:"accruedUsage"`
-	Payment            *payment.Invoiced              `json:"payment"`
+	CreditRealizations            creditrealization.Realizations `json:"creditRealizations"`
+	FiatOverageCreditRealizations creditrealization.Realizations `json:"fiatOverageCreditRealizations"`
+	AccruedUsage                  *invoicedusage.AccruedUsage    `json:"accruedUsage"`
+	Payment                       *payment.Invoiced              `json:"payment"`
 	// DetailedLines include discounts; credits are applied for credit_then_invoice but not for credit_only.
 	DetailedLines mo.Option[DetailedLines] `json:"detailedLines,omitzero"`
 }
@@ -224,6 +225,10 @@ func (r RealizationRun) Validate() error {
 
 	if err := r.CreditRealizations.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("credit realizations: %w", err))
+	}
+
+	if err := r.FiatOverageCreditRealizations.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("fiat overage credit realizations: %w", err))
 	}
 
 	if r.AccruedUsage != nil {

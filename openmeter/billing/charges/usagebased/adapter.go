@@ -2,6 +2,8 @@ package usagebased
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
@@ -9,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Adapter interface {
@@ -45,7 +48,27 @@ type RealizationRunAdapter interface {
 }
 
 type RealizationRunCreditAllocationAdapter interface {
-	CreateRunCreditRealization(ctx context.Context, runID RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error)
+	CreateChargeCurrencyCreditRealizations(ctx context.Context, input CreateCreditRealizationsInput) (creditrealization.Realizations, error)
+	CreateFiatOverageCreditRealizations(ctx context.Context, input CreateCreditRealizationsInput) (creditrealization.Realizations, error)
+}
+
+type CreateCreditRealizationsInput struct {
+	RunID              RealizationRunID
+	CreditRealizations creditrealization.CreateInputs
+}
+
+func (i CreateCreditRealizationsInput) Validate() error {
+	var errs []error
+
+	if err := i.RunID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("run ID: %w", err))
+	}
+
+	if err := i.CreditRealizations.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("credit realizations: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type RealizationRunInvoiceUsageAdapter interface {

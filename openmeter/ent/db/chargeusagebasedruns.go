@@ -91,6 +91,8 @@ type ChargeUsageBasedRunsEdges struct {
 	BillingInvoice *BillingInvoice `json:"billing_invoice,omitempty"`
 	// CreditAllocations holds the value of the credit_allocations edge.
 	CreditAllocations []*ChargeUsageBasedRunCreditAllocations `json:"credit_allocations,omitempty"`
+	// FiatOverageCreditAllocations holds the value of the fiat_overage_credit_allocations edge.
+	FiatOverageCreditAllocations []*ChargeUsageBasedRunOverageCreditAllocations `json:"fiat_overage_credit_allocations,omitempty"`
 	// DetailedLines holds the value of the detailed_lines edge.
 	DetailedLines []*ChargeUsageBasedRunDetailedLine `json:"detailed_lines,omitempty"`
 	// CorrectedDetailedLines holds the value of the corrected_detailed_lines edge.
@@ -101,7 +103,7 @@ type ChargeUsageBasedRunsEdges struct {
 	Payment *ChargeUsageBasedRunPayment `json:"payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [10]bool
 }
 
 // UsageBasedOrErr returns the UsageBased value or an error if the edge
@@ -157,10 +159,19 @@ func (e ChargeUsageBasedRunsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBased
 	return nil, &NotLoadedError{edge: "credit_allocations"}
 }
 
+// FiatOverageCreditAllocationsOrErr returns the FiatOverageCreditAllocations value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeUsageBasedRunsEdges) FiatOverageCreditAllocationsOrErr() ([]*ChargeUsageBasedRunOverageCreditAllocations, error) {
+	if e.loadedTypes[5] {
+		return e.FiatOverageCreditAllocations, nil
+	}
+	return nil, &NotLoadedError{edge: "fiat_overage_credit_allocations"}
+}
+
 // DetailedLinesOrErr returns the DetailedLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRunsEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedRunDetailedLine, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.DetailedLines, nil
 	}
 	return nil, &NotLoadedError{edge: "detailed_lines"}
@@ -169,7 +180,7 @@ func (e ChargeUsageBasedRunsEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedRunD
 // CorrectedDetailedLinesOrErr returns the CorrectedDetailedLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRunsEdges) CorrectedDetailedLinesOrErr() ([]*ChargeUsageBasedRunDetailedLine, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.CorrectedDetailedLines, nil
 	}
 	return nil, &NotLoadedError{edge: "corrected_detailed_lines"}
@@ -180,7 +191,7 @@ func (e ChargeUsageBasedRunsEdges) CorrectedDetailedLinesOrErr() ([]*ChargeUsage
 func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInvoicedUsage, error) {
 	if e.InvoicedUsage != nil {
 		return e.InvoicedUsage, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: chargeusagebasedruninvoicedusage.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoiced_usage"}
@@ -191,7 +202,7 @@ func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInv
 func (e ChargeUsageBasedRunsEdges) PaymentOrErr() (*ChargeUsageBasedRunPayment, error) {
 	if e.Payment != nil {
 		return e.Payment, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: chargeusagebasedrunpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment"}
@@ -414,6 +425,11 @@ func (_m *ChargeUsageBasedRuns) QueryBillingInvoice() *BillingInvoiceQuery {
 // QueryCreditAllocations queries the "credit_allocations" edge of the ChargeUsageBasedRuns entity.
 func (_m *ChargeUsageBasedRuns) QueryCreditAllocations() *ChargeUsageBasedRunCreditAllocationsQuery {
 	return NewChargeUsageBasedRunsClient(_m.config).QueryCreditAllocations(_m)
+}
+
+// QueryFiatOverageCreditAllocations queries the "fiat_overage_credit_allocations" edge of the ChargeUsageBasedRuns entity.
+func (_m *ChargeUsageBasedRuns) QueryFiatOverageCreditAllocations() *ChargeUsageBasedRunOverageCreditAllocationsQuery {
+	return NewChargeUsageBasedRunsClient(_m.config).QueryFiatOverageCreditAllocations(_m)
 }
 
 // QueryDetailedLines queries the "detailed_lines" edge of the ChargeUsageBasedRuns entity.

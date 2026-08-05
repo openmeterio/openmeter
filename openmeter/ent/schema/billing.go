@@ -578,6 +578,8 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 		edge.To("charge_flat_fee_run_payment", ChargeFlatFeeRunPayment.Type).
 			Unique(),
 		edge.To("charge_flat_fee_run_credit_allocations", ChargeFlatFeeRunCreditAllocations.Type),
+		edge.To("charge_flat_fee_run_overage_credit_allocations", ChargeFlatFeeRunOverageCreditAllocations.Type).
+			StorageKey(edge.Symbol("billing_line_charge_ff_overage_credit_alloc")),
 		edge.To("charge_flat_fee_runs", ChargeFlatFeeRun.Type).
 			Unique(),
 		edge.To("charge_usage_based_run", ChargeUsageBasedRuns.Type).

@@ -266,6 +266,9 @@ type ChargeFlatFeeRunDetailedLine func(*sql.Selector)
 // ChargeFlatFeeRunInvoicedUsage is the predicate function for chargeflatfeeruninvoicedusage builders.
 type ChargeFlatFeeRunInvoicedUsage func(*sql.Selector)
 
+// ChargeFlatFeeRunOverageCreditAllocations is the predicate function for chargeflatfeerunoveragecreditallocations builders.
+type ChargeFlatFeeRunOverageCreditAllocations func(*sql.Selector)
+
 // ChargeFlatFeeRunPayment is the predicate function for chargeflatfeerunpayment builders.
 type ChargeFlatFeeRunPayment func(*sql.Selector)
 
@@ -308,6 +311,9 @@ type ChargeUsageBasedRunDetailedLine func(*sql.Selector)
 
 // ChargeUsageBasedRunInvoicedUsage is the predicate function for chargeusagebasedruninvoicedusage builders.
 type ChargeUsageBasedRunInvoicedUsage func(*sql.Selector)
+
+// ChargeUsageBasedRunOverageCreditAllocations is the predicate function for chargeusagebasedrunoveragecreditallocations builders.
+type ChargeUsageBasedRunOverageCreditAllocations func(*sql.Selector)
 
 // ChargeUsageBasedRunPayment is the predicate function for chargeusagebasedrunpayment builders.
 type ChargeUsageBasedRunPayment func(*sql.Selector)

@@ -161,6 +161,8 @@ type BillingInvoiceLineEdges struct {
 	ChargeFlatFeeRunPayment *ChargeFlatFeeRunPayment `json:"charge_flat_fee_run_payment,omitempty"`
 	// ChargeFlatFeeRunCreditAllocations holds the value of the charge_flat_fee_run_credit_allocations edge.
 	ChargeFlatFeeRunCreditAllocations []*ChargeFlatFeeRunCreditAllocations `json:"charge_flat_fee_run_credit_allocations,omitempty"`
+	// ChargeFlatFeeRunOverageCreditAllocations holds the value of the charge_flat_fee_run_overage_credit_allocations edge.
+	ChargeFlatFeeRunOverageCreditAllocations []*ChargeFlatFeeRunOverageCreditAllocations `json:"charge_flat_fee_run_overage_credit_allocations,omitempty"`
 	// ChargeFlatFeeRuns holds the value of the charge_flat_fee_runs edge.
 	ChargeFlatFeeRuns *ChargeFlatFeeRun `json:"charge_flat_fee_runs,omitempty"`
 	// ChargeUsageBasedRun holds the value of the charge_usage_based_run edge.
@@ -171,7 +173,7 @@ type BillingInvoiceLineEdges struct {
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [19]bool
+	loadedTypes [20]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -329,12 +331,21 @@ func (e BillingInvoiceLineEdges) ChargeFlatFeeRunCreditAllocationsOrErr() ([]*Ch
 	return nil, &NotLoadedError{edge: "charge_flat_fee_run_credit_allocations"}
 }
 
+// ChargeFlatFeeRunOverageCreditAllocationsOrErr returns the ChargeFlatFeeRunOverageCreditAllocations value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceLineEdges) ChargeFlatFeeRunOverageCreditAllocationsOrErr() ([]*ChargeFlatFeeRunOverageCreditAllocations, error) {
+	if e.loadedTypes[15] {
+		return e.ChargeFlatFeeRunOverageCreditAllocations, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_flat_fee_run_overage_credit_allocations"}
+}
+
 // ChargeFlatFeeRunsOrErr returns the ChargeFlatFeeRuns value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e BillingInvoiceLineEdges) ChargeFlatFeeRunsOrErr() (*ChargeFlatFeeRun, error) {
 	if e.ChargeFlatFeeRuns != nil {
 		return e.ChargeFlatFeeRuns, nil
-	} else if e.loadedTypes[15] {
+	} else if e.loadedTypes[16] {
 		return nil, &NotFoundError{label: chargeflatfeerun.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge_flat_fee_runs"}
@@ -345,7 +356,7 @@ func (e BillingInvoiceLineEdges) ChargeFlatFeeRunsOrErr() (*ChargeFlatFeeRun, er
 func (e BillingInvoiceLineEdges) ChargeUsageBasedRunOrErr() (*ChargeUsageBasedRuns, error) {
 	if e.ChargeUsageBasedRun != nil {
 		return e.ChargeUsageBasedRun, nil
-	} else if e.loadedTypes[16] {
+	} else if e.loadedTypes[17] {
 		return nil, &NotFoundError{label: chargeusagebasedruns.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge_usage_based_run"}
@@ -356,7 +367,7 @@ func (e BillingInvoiceLineEdges) ChargeUsageBasedRunOrErr() (*ChargeUsageBasedRu
 func (e BillingInvoiceLineEdges) ChargeCreditPurchaseInvoicedPaymentOrErr() (*ChargeCreditPurchaseInvoicedPayment, error) {
 	if e.ChargeCreditPurchaseInvoicedPayment != nil {
 		return e.ChargeCreditPurchaseInvoicedPayment, nil
-	} else if e.loadedTypes[17] {
+	} else if e.loadedTypes[18] {
 		return nil, &NotFoundError{label: chargecreditpurchaseinvoicedpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge_credit_purchase_invoiced_payment"}
@@ -367,7 +378,7 @@ func (e BillingInvoiceLineEdges) ChargeCreditPurchaseInvoicedPaymentOrErr() (*Ch
 func (e BillingInvoiceLineEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[18] {
+	} else if e.loadedTypes[19] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -791,6 +802,11 @@ func (_m *BillingInvoiceLine) QueryChargeFlatFeeRunPayment() *ChargeFlatFeeRunPa
 // QueryChargeFlatFeeRunCreditAllocations queries the "charge_flat_fee_run_credit_allocations" edge of the BillingInvoiceLine entity.
 func (_m *BillingInvoiceLine) QueryChargeFlatFeeRunCreditAllocations() *ChargeFlatFeeRunCreditAllocationsQuery {
 	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeeRunCreditAllocations(_m)
+}
+
+// QueryChargeFlatFeeRunOverageCreditAllocations queries the "charge_flat_fee_run_overage_credit_allocations" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeFlatFeeRunOverageCreditAllocations() *ChargeFlatFeeRunOverageCreditAllocationsQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeeRunOverageCreditAllocations(_m)
 }
 
 // QueryChargeFlatFeeRuns queries the "charge_flat_fee_runs" edge of the BillingInvoiceLine entity.

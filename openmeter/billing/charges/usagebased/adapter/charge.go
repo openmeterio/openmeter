@@ -393,6 +393,7 @@ func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *
 			}
 
 			runs.WithCreditAllocations().
+				WithFiatOverageCreditAllocations().
 				WithInvoicedUsage().
 				WithPayment()
 		},

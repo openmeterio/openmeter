@@ -58,10 +58,10 @@ type ChargeUsageBasedRunCreditAllocations struct {
 
 // ChargeUsageBasedRunCreditAllocationsEdges holds the relations/edges for other nodes in the graph.
 type ChargeUsageBasedRunCreditAllocationsEdges struct {
-	// Corrections holds the value of the corrections edge.
-	Corrections []*ChargeUsageBasedRunCreditAllocations `json:"corrections,omitempty"`
 	// Allocation holds the value of the allocation edge.
 	Allocation *ChargeUsageBasedRunCreditAllocations `json:"allocation,omitempty"`
+	// Corrections holds the value of the corrections edge.
+	Corrections []*ChargeUsageBasedRunCreditAllocations `json:"corrections,omitempty"`
 	// Run holds the value of the run edge.
 	Run *ChargeUsageBasedRuns `json:"run,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -69,24 +69,24 @@ type ChargeUsageBasedRunCreditAllocationsEdges struct {
 	loadedTypes [3]bool
 }
 
-// CorrectionsOrErr returns the Corrections value or an error if the edge
-// was not loaded in eager-loading.
-func (e ChargeUsageBasedRunCreditAllocationsEdges) CorrectionsOrErr() ([]*ChargeUsageBasedRunCreditAllocations, error) {
-	if e.loadedTypes[0] {
-		return e.Corrections, nil
-	}
-	return nil, &NotLoadedError{edge: "corrections"}
-}
-
 // AllocationOrErr returns the Allocation value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeUsageBasedRunCreditAllocationsEdges) AllocationOrErr() (*ChargeUsageBasedRunCreditAllocations, error) {
 	if e.Allocation != nil {
 		return e.Allocation, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: chargeusagebasedruncreditallocations.Label}
 	}
 	return nil, &NotLoadedError{edge: "allocation"}
+}
+
+// CorrectionsOrErr returns the Corrections value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeUsageBasedRunCreditAllocationsEdges) CorrectionsOrErr() ([]*ChargeUsageBasedRunCreditAllocations, error) {
+	if e.loadedTypes[1] {
+		return e.Corrections, nil
+	}
+	return nil, &NotLoadedError{edge: "corrections"}
 }
 
 // RunOrErr returns the Run value or an error if the edge
@@ -238,14 +238,14 @@ func (_m *ChargeUsageBasedRunCreditAllocations) Value(name string) (ent.Value, e
 	return _m.selectValues.Get(name)
 }
 
-// QueryCorrections queries the "corrections" edge of the ChargeUsageBasedRunCreditAllocations entity.
-func (_m *ChargeUsageBasedRunCreditAllocations) QueryCorrections() *ChargeUsageBasedRunCreditAllocationsQuery {
-	return NewChargeUsageBasedRunCreditAllocationsClient(_m.config).QueryCorrections(_m)
-}
-
 // QueryAllocation queries the "allocation" edge of the ChargeUsageBasedRunCreditAllocations entity.
 func (_m *ChargeUsageBasedRunCreditAllocations) QueryAllocation() *ChargeUsageBasedRunCreditAllocationsQuery {
 	return NewChargeUsageBasedRunCreditAllocationsClient(_m.config).QueryAllocation(_m)
+}
+
+// QueryCorrections queries the "corrections" edge of the ChargeUsageBasedRunCreditAllocations entity.
+func (_m *ChargeUsageBasedRunCreditAllocations) QueryCorrections() *ChargeUsageBasedRunCreditAllocationsQuery {
+	return NewChargeUsageBasedRunCreditAllocationsClient(_m.config).QueryCorrections(_m)
 }
 
 // QueryRun queries the "run" edge of the ChargeUsageBasedRunCreditAllocations entity.

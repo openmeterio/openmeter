@@ -802,29 +802,6 @@ func RunIDContainsFold(v string) predicate.ChargeFlatFeeRunCreditAllocations {
 	return predicate.ChargeFlatFeeRunCreditAllocations(sql.FieldContainsFold(FieldRunID, v))
 }
 
-// HasCorrections applies the HasEdge predicate on the "corrections" edge.
-func HasCorrections() predicate.ChargeFlatFeeRunCreditAllocations {
-	return predicate.ChargeFlatFeeRunCreditAllocations(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, CorrectionsTable, CorrectionsColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasCorrectionsWith applies the HasEdge predicate on the "corrections" edge with a given conditions (other predicates).
-func HasCorrectionsWith(preds ...predicate.ChargeFlatFeeRunCreditAllocations) predicate.ChargeFlatFeeRunCreditAllocations {
-	return predicate.ChargeFlatFeeRunCreditAllocations(func(s *sql.Selector) {
-		step := newCorrectionsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasAllocation applies the HasEdge predicate on the "allocation" edge.
 func HasAllocation() predicate.ChargeFlatFeeRunCreditAllocations {
 	return predicate.ChargeFlatFeeRunCreditAllocations(func(s *sql.Selector) {
@@ -840,6 +817,29 @@ func HasAllocation() predicate.ChargeFlatFeeRunCreditAllocations {
 func HasAllocationWith(preds ...predicate.ChargeFlatFeeRunCreditAllocations) predicate.ChargeFlatFeeRunCreditAllocations {
 	return predicate.ChargeFlatFeeRunCreditAllocations(func(s *sql.Selector) {
 		step := newAllocationStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCorrections applies the HasEdge predicate on the "corrections" edge.
+func HasCorrections() predicate.ChargeFlatFeeRunCreditAllocations {
+	return predicate.ChargeFlatFeeRunCreditAllocations(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, CorrectionsTable, CorrectionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCorrectionsWith applies the HasEdge predicate on the "corrections" edge with a given conditions (other predicates).
+func HasCorrectionsWith(preds ...predicate.ChargeFlatFeeRunCreditAllocations) predicate.ChargeFlatFeeRunCreditAllocations {
+	return predicate.ChargeFlatFeeRunCreditAllocations(func(s *sql.Selector) {
+		step := newCorrectionsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

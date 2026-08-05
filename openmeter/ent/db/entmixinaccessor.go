@@ -1747,6 +1747,62 @@ func (e *ChargeFlatFeeRunInvoicedUsage) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetLineID() *string {
+	return e.LineID
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetLedgerTransactionGroupID() string {
+	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetSortHint() int {
+	return e.SortHint
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetType() creditrealization.Type {
+	return e.Type
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetCorrectsRealizationID() *string {
+	return e.CorrectsRealizationID
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
 func (e *ChargeFlatFeeRunPayment) GetID() string {
 	return e.ID
 }
@@ -2213,6 +2269,62 @@ func (e *ChargeUsageBasedRunInvoicedUsage) GetCreditsTotal() alpacadecimal.Decim
 
 func (e *ChargeUsageBasedRunInvoicedUsage) GetTotal() alpacadecimal.Decimal {
 	return e.Total
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetLineID() *string {
+	return e.LineID
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetLedgerTransactionGroupID() string {
+	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetSortHint() int {
+	return e.SortHint
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetType() creditrealization.Type {
+	return e.Type
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetCorrectsRealizationID() *string {
+	return e.CorrectsRealizationID
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetAnnotations() models.Annotations {
+	return e.Annotations
 }
 
 func (e *ChargeUsageBasedRunPayment) GetID() string {
