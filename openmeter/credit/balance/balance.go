@@ -112,7 +112,7 @@ type Snapshot struct {
 	//
 	// Deprecated: use UsageSnapshot for engine calculations.
 	Usage SnapshottedUsage
-  
+
 	// UsageSnapshot is nil for snapshots created without complete usage-period
 	// state.
 	UsageSnapshot *UsageSnapshot

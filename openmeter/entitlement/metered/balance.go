@@ -59,7 +59,22 @@ type BalanceHistoryParams struct {
 	WindowTimeZone time.Location
 }
 
+type entitlementBalanceCalculationMode uint8
+
+const (
+	legacyEntitlementBalanceCalculation entitlementBalanceCalculationMode = iota
+	completeEntitlementBalanceCalculation
+)
+
 func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
+	return e.getEntitlementBalance(ctx, entitlementID, at, legacyEntitlementBalanceCalculation)
+}
+
+func (e *connector) GetEntitlementBalanceWithCompleteSnapshots(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
+	return e.getEntitlementBalance(ctx, entitlementID, at, completeEntitlementBalanceCalculation)
+}
+
+func (e *connector) getEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time, mode entitlementBalanceCalculationMode) (*EntitlementBalance, error) {
 	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetEntitlementBalance", trace.WithAttributes(
 		attribute.String("entitlement_id", entitlementID.ID),
 		attribute.String("at", at.Format(time.RFC3339)),
@@ -85,7 +100,15 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	}
 
 	// Let's calculate balance since the last snapshot
-	res, err := e.balanceConnector.GetBalanceAt(ctx, nsOwner, at)
+	var res engine.RunResult
+	switch mode {
+	case legacyEntitlementBalanceCalculation:
+		res, err = e.balanceConnector.GetBalanceAt(ctx, nsOwner, at)
+	case completeEntitlementBalanceCalculation:
+		res, err = e.balanceConnector.GetBalanceAtWithCompleteSnapshots(ctx, nsOwner, at)
+	default:
+		return nil, fmt.Errorf("unsupported entitlement balance calculation mode %d", mode)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get balance since snapshot: %w", err)
 	}
@@ -95,12 +118,26 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		grantBalances[grantID] = balance
 	}
 
+	var usageInPeriod float64
+	var totalAvailableGrantAmount float64
+	switch mode {
+	case legacyEntitlementBalanceCalculation:
+		usageInPeriod = res.Snapshot.Usage.Usage
+		totalAvailableGrantAmount = res.TotalAvailableGrantAmountAtLastPeriod()
+	case completeEntitlementBalanceCalculation:
+		if res.Snapshot.UsageSnapshot == nil {
+			return nil, fmt.Errorf("complete balance calculation returned an incomplete snapshot")
+		}
+		usageInPeriod = res.Snapshot.UsageSnapshot.Usage
+		totalAvailableGrantAmount = res.Snapshot.UsageSnapshot.TotalGrantUsage + res.Snapshot.Balance()
+	}
+
 	return &EntitlementBalance{
 		EntitlementID:             entitlementID.ID,
 		Balance:                   res.Snapshot.Balance(),
-		UsageInPeriod:             res.Snapshot.UsageSnapshot.Usage,
+		UsageInPeriod:             usageInPeriod,
 		Overage:                   res.Snapshot.Overage,
-		TotalAvailableGrantAmount: res.Snapshot.UsageSnapshot.TotalGrantUsage + res.Snapshot.Balance(),
+		TotalAvailableGrantAmount: totalAvailableGrantAmount,
 		GrantBalances:             grantBalances,
 		StartOfPeriod:             startOfPeriod,
 	}, nil

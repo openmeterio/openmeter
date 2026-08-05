@@ -287,7 +287,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 								Since: startTime,
 								Usage: 0,
 							},
-							UsageSnapshot: &balance.UsageSnapshot{},
 							Balances: balance.Map{
 								g1.ID: 1000,
 							},
@@ -307,7 +306,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 						Since: startTime,
 						Usage: 0,
 					},
-					UsageSnapshot: &balance.UsageSnapshot{},
 					Balances: balance.Map{
 						g1.ID: 1000,
 					},
@@ -333,7 +331,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 						Since: queryTime, // querytime is the start of a UsagePeriod, so this snapshot will be at the start of the usage period
 						Usage: 0,         // And at a reset time the usage is 0
 					},
-					UsageSnapshot: &balance.UsageSnapshot{},
 					Balances: balance.Map{
 						g1.ID: 800,
 					},
@@ -399,7 +396,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 								Since: startTime,
 								Usage: 0,
 							},
-							UsageSnapshot: &balance.UsageSnapshot{},
 							Balances: balance.Map{
 								g1.ID: 1000,
 							},
@@ -419,7 +415,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 						Since: startTime,
 						Usage: 0,
 					},
-					UsageSnapshot: &balance.UsageSnapshot{},
 					Balances: balance.Map{
 						g1.ID: 1000,
 					},
@@ -445,7 +440,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 						Since: startTime.AddDate(0, 0, 9), // will create a snapshot at the start of the usage period
 						Usage: 0,                          // And at a reset time the usage is 0
 					},
-					UsageSnapshot: &balance.UsageSnapshot{},
 					Balances: balance.Map{
 						g1.ID: 800,
 					},
@@ -530,7 +524,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 						Since: datetime.NewDateTime(anchor).AddDateNoOverflow(0, 2, 0).Time, // Will create a snapshot at the last history breakpoint outside 7 day grace period (which is the last reset time)
 						Usage: 0,                                                            // And at a reset time the usage is 0
 					},
-					UsageSnapshot: &balance.UsageSnapshot{},
 					Balances: balance.Map{
 						g1.ID: 800,
 					},
@@ -666,7 +659,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 								Since: startTime,
 								Usage: 0,
 							},
-							UsageSnapshot: &balance.UsageSnapshot{},
 							Balances: balance.Map{
 								g1.ID: 1000,
 							},
@@ -709,7 +701,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 						Since: startTime,
 						Usage: 0,
 					},
-					UsageSnapshot: &balance.UsageSnapshot{},
 					Balances: balance.Map{
 						g1.ID: 1000,
 					},
@@ -734,10 +725,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 					Usage: balance.SnapshottedUsage{
 						Since: startTime.AddDate(0, 1, 0), // The programmatic reset time
 						Usage: 200,                        // Total usage in second period so far
-					},
-					UsageSnapshot: &balance.UsageSnapshot{
-						Usage:           200,
-						TotalGrantUsage: 200,
 					},
 					Balances: balance.Map{
 						g1.ID: 600,
@@ -798,7 +785,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 					ctx,
 					owner, []balance.Snapshot{
 						{
-							UsageSnapshot: &balance.UsageSnapshot{},
 							Balances: balance.Map{
 								g1.ID: 1000,
 							},

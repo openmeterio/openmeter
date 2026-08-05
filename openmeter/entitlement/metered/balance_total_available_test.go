@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	db_balancesnapshot "github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -19,7 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestGetEntitlementBalanceTotalAvailableGrantAmountAfterSnapshot(t *testing.T) {
+func TestEntitlementBalanceCalculationModesAfterSnapshot(t *testing.T) {
 	connector, deps := setupConnector(t)
 	defer deps.Teardown()
 
@@ -75,7 +76,7 @@ func TestGetEntitlementBalanceTotalAvailableGrantAmountAfterSnapshot(t *testing.
 	// - 200 usage already consumed from a 1000-unit grant in the current period
 	// - a persisted mid-period snapshot carrying the cumulative usage and remaining balance
 	deps.streamingConnector.AddSimpleEvent(meterSlug, 200, periodStart.Add(time.Minute))
-	err = deps.balanceSnapshotService.Save(ctx, models.NamespacedID{
+	err = deps.balanceSnapshotService.SaveComplete(ctx, models.NamespacedID{
 		Namespace: namespace,
 		ID:        ent.ID,
 	}, []balance.Snapshot{
@@ -96,30 +97,61 @@ func TestGetEntitlementBalanceTotalAvailableGrantAmountAfterSnapshot(t *testing.
 
 	// when: another 100 usage is consumed after the snapshot
 	deps.streamingConnector.AddSimpleEvent(meterSlug, 100, snapshotAt.Add(time.Minute))
-	entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{
+	owner := models.NamespacedID{
 		Namespace: namespace,
 		ID:        ent.ID,
-	}, queryAt)
+	}
+	value, err := connector.GetValue(ctx, ent, queryAt)
 	require.NoError(t, err)
+	legacyBalance, ok := value.(*meteredentitlement.MeteredEntitlementValue)
+	require.True(t, ok)
 
-	// then: the period values must remain internally consistent regardless of snapshotting
-	require.Equal(t, 300.0, entBalance.UsageInPeriod)
-	require.Equal(t, 700.0, entBalance.Balance)
-	require.Equal(t, 0.0, entBalance.Overage)
-	require.Equal(t, 1000.0, entBalance.TotalAvailableGrantAmount)
+	// then: the application-facing calculation retains the legacy,
+	// snapshot-relative total during the migration.
+	require.Equal(t, 300.0, legacyBalance.UsageInPeriod)
+	require.Equal(t, 700.0, legacyBalance.Balance)
+	require.Equal(t, 0.0, legacyBalance.Overage)
+	require.Equal(t, 800.0, legacyBalance.TotalAvailableGrantAmount)
+
+	completeBalance, err := connector.GetEntitlementBalanceWithCompleteSnapshots(ctx, owner, queryAt)
+	require.NoError(t, err)
+	require.Equal(t, 300.0, completeBalance.UsageInPeriod)
+	require.Equal(t, 700.0, completeBalance.Balance)
+	require.Equal(t, 0.0, completeBalance.Overage)
+	require.Equal(t, 1000.0, completeBalance.TotalAvailableGrantAmount)
+
+	legacyResult, err := deps.balanceConnector.GetBalanceAt(ctx, owner, queryAt)
+	require.NoError(t, err)
+	require.Nil(t, legacyResult.Snapshot.UsageSnapshot)
+
+	completeResult, err := deps.balanceConnector.GetBalanceAtWithCompleteSnapshots(ctx, owner, queryAt)
+	require.NoError(t, err)
+	require.NotNil(t, completeResult.Snapshot.UsageSnapshot)
 }
 
-func TestBalanceSnapshotPersistenceRequiresUsageSnapshot(t *testing.T) {
+func TestCompleteBalanceSnapshotPersistenceRequiresUsageSnapshot(t *testing.T) {
 	_, deps := setupConnector(t)
 	defer deps.Teardown()
 
-	err := deps.balanceSnapshotService.Save(t.Context(), models.NamespacedID{
-		Namespace: namespace,
-		ID:        "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-	}, []balance.Snapshot{{
-		At:       getAnchor(t),
-		Balances: balance.Map{"grant-1": 800},
-	}})
+	ctx := t.Context()
+	owner := createBalanceSnapshotOwner(t, deps, getAnchor(t))
+	legacySnapshot := balance.Snapshot{
+		At:            getAnchor(t),
+		Balances:      balance.Map{"grant-1": 800},
+		UsageSnapshot: &balance.UsageSnapshot{Usage: 200, TotalGrantUsage: 200},
+	}
+
+	err := deps.balanceSnapshotService.Save(ctx, owner, []balance.Snapshot{legacySnapshot})
+	require.NoError(t, err)
+
+	savedLegacySnapshot, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, legacySnapshot.At)
+	require.NoError(t, err)
+	require.Nil(t, savedLegacySnapshot.UsageSnapshot)
+
+	incompleteSnapshot := legacySnapshot.Clone()
+	incompleteSnapshot.At = incompleteSnapshot.At.Add(time.Minute)
+	incompleteSnapshot.UsageSnapshot = nil
+	err = deps.balanceSnapshotService.SaveComplete(ctx, owner, []balance.Snapshot{incompleteSnapshot})
 	require.ErrorContains(t, err, "cannot save incomplete balance snapshot")
 }
 
@@ -145,24 +177,25 @@ func TestBalanceSnapshotSelectionDuringUsageSnapshotMigration(t *testing.T) {
 		},
 	}
 
-	err := deps.balanceSnapshotService.Save(ctx, owner, []balance.Snapshot{completeSnapshot})
+	err := deps.balanceSnapshotService.SaveComplete(ctx, owner, []balance.Snapshot{completeSnapshot})
 	require.NoError(t, err)
 
-	_, err = deps.dbClient.BalanceSnapshot.Create().
-		SetNamespace(owner.Namespace).
-		SetOwnerID(owner.ID).
-		SetAt(legacySnapshotAt).
-		SetBalance(700).
-		SetGrantBalances(balance.Map{"grant-1": 700}).
-		SetOverage(0).
-		SetUsage(&balance.SnapshottedUsage{
+	legacySnapshot := balance.Snapshot{
+		At:       legacySnapshotAt,
+		Balances: balance.Map{"grant-1": 700},
+		Usage: balance.SnapshottedUsage{
 			Since: periodStart,
 			Usage: 300,
-		}).
-		Save(ctx)
+		},
+	}
+	err = deps.balanceSnapshotService.Save(ctx, owner, []balance.Snapshot{legacySnapshot})
 	require.NoError(t, err)
 
 	selectedSnapshot, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, legacySnapshotAt)
+	require.NoError(t, err)
+	require.Equal(t, legacySnapshot, selectedSnapshot)
+
+	selectedSnapshot, err = deps.balanceSnapshotService.GetLatestValidCompleteAt(ctx, owner, legacySnapshotAt)
 	require.NoError(t, err)
 	require.Equal(t, completeSnapshot, selectedSnapshot)
 
@@ -175,7 +208,11 @@ func TestBalanceSnapshotSelectionDuringUsageSnapshotMigration(t *testing.T) {
 		Exec(ctx)
 	require.NoError(t, err)
 
-	_, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, legacySnapshotAt)
+	selectedSnapshot, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, legacySnapshotAt)
+	require.NoError(t, err)
+	require.Equal(t, legacySnapshot, selectedSnapshot)
+
+	_, err = deps.balanceSnapshotService.GetLatestValidCompleteAt(ctx, owner, legacySnapshotAt)
 	var noSavedSnapshot *balance.NoSavedBalanceForOwnerError
 	require.ErrorAs(t, err, &noSavedSnapshot)
 }
@@ -226,7 +263,7 @@ func TestBalanceSnapshotVersionsAreIndependent(t *testing.T) {
 		},
 	}
 
-	err := deps.balanceSnapshotService.Save(ctx, owner, []balance.Snapshot{snapshotA, snapshotB, snapshotC})
+	err := deps.balanceSnapshotService.SaveComplete(ctx, owner, []balance.Snapshot{snapshotA, snapshotB, snapshotC})
 	require.NoError(t, err)
 
 	_, err = deps.dbClient.BalanceSnapshot.Delete().
@@ -238,7 +275,7 @@ func TestBalanceSnapshotVersionsAreIndependent(t *testing.T) {
 		Exec(ctx)
 	require.NoError(t, err)
 
-	selectedSnapshot, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryAt)
+	selectedSnapshot, err := deps.balanceSnapshotService.GetLatestValidCompleteAt(ctx, owner, queryAt)
 	require.NoError(t, err)
 	require.Equal(t, snapshotC, selectedSnapshot)
 
@@ -251,16 +288,78 @@ func TestBalanceSnapshotVersionsAreIndependent(t *testing.T) {
 		Exec(ctx)
 	require.NoError(t, err)
 
-	selectedSnapshot, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryAt)
+	selectedSnapshot, err = deps.balanceSnapshotService.GetLatestValidCompleteAt(ctx, owner, queryAt)
 	require.NoError(t, err)
 	require.Equal(t, snapshotC, selectedSnapshot)
 
-	err = deps.balanceSnapshotService.Save(ctx, owner, []balance.Snapshot{snapshotB})
+	err = deps.balanceSnapshotService.SaveComplete(ctx, owner, []balance.Snapshot{snapshotB})
 	require.NoError(t, err)
 
-	selectedSnapshot, err = deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryAt)
+	selectedSnapshot, err = deps.balanceSnapshotService.GetLatestValidCompleteAt(ctx, owner, queryAt)
 	require.NoError(t, err)
 	require.Equal(t, snapshotC, selectedSnapshot)
+}
+
+func TestCompleteCalculationCreatesUsageSnapshotWithoutChangingLegacySelection(t *testing.T) {
+	connector, deps := setupConnector(t)
+	defer deps.Teardown()
+
+	ctx := t.Context()
+	periodStart := getAnchor(t)
+	breakpointAt := periodStart.Add(time.Hour)
+	legacySnapshotAt := breakpointAt.Add(time.Hour)
+	queryAt := periodStart.AddDate(0, 0, 10)
+	owner := createBalanceSnapshotOwner(t, deps, periodStart)
+
+	firstGrant, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+		OwnerID:     owner.ID,
+		Namespace:   owner.Namespace,
+		Amount:      1000,
+		Priority:    1,
+		EffectiveAt: periodStart,
+		ExpiresAt:   lo.ToPtr(periodStart.AddDate(1, 0, 0)),
+	})
+	require.NoError(t, err)
+	secondGrant, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+		OwnerID:     owner.ID,
+		Namespace:   owner.Namespace,
+		Amount:      100,
+		Priority:    2,
+		EffectiveAt: breakpointAt,
+		ExpiresAt:   lo.ToPtr(periodStart.AddDate(1, 0, 0)),
+	})
+	require.NoError(t, err)
+
+	deps.streamingConnector.AddSimpleEvent(meterSlug, 200, periodStart.Add(time.Minute))
+	deps.streamingConnector.AddSimpleEvent(meterSlug, 100, legacySnapshotAt.Add(time.Minute))
+
+	legacySnapshot := balance.Snapshot{
+		At: legacySnapshotAt,
+		Balances: balance.Map{
+			firstGrant.ID:  700,
+			secondGrant.ID: 100,
+		},
+		Usage: balance.SnapshottedUsage{
+			Since: periodStart,
+			Usage: 300,
+		},
+	}
+	require.NoError(t, deps.balanceSnapshotService.Save(ctx, owner, []balance.Snapshot{legacySnapshot}))
+
+	_, err = connector.GetEntitlementBalanceWithCompleteSnapshots(ctx, owner, queryAt)
+	require.NoError(t, err)
+
+	selectedLegacySnapshot, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryAt)
+	require.NoError(t, err)
+	require.Equal(t, legacySnapshot, selectedLegacySnapshot)
+
+	completeSnapshot, err := deps.balanceSnapshotService.GetLatestValidCompleteAt(ctx, owner, queryAt)
+	require.NoError(t, err)
+	require.Equal(t, breakpointAt, completeSnapshot.At)
+	require.Equal(t, balance.UsageSnapshot{
+		Usage:           200,
+		TotalGrantUsage: 200,
+	}, *completeSnapshot.UsageSnapshot)
 }
 
 func createBalanceSnapshotOwner(t *testing.T, deps *dependencies, at time.Time) models.NamespacedID {

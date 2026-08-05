@@ -35,6 +35,7 @@ type Connector interface {
 	entitlement.SubTypeConnector
 
 	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error)
+	GetEntitlementBalanceWithCompleteSnapshots(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error)
 	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error)
 	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, params ResetEntitlementUsageParams) (balanceAfterReset *EntitlementBalance, err error)
 

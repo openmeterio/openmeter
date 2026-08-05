@@ -24,10 +24,24 @@ import (
 // GetLastValidSnapshotAt fetches the last valid snapshot for an owner.
 // If no usable snapshot exists returns a default snapshot for measurement start to recalculate the entire history.
 func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
+	return m.getLastValidSnapshotAt(ctx, owner, at, legacyBalanceCalculation)
+}
+
+func (m *connector) getLastValidSnapshotAt(ctx context.Context, owner models.NamespacedID, at time.Time, mode balanceCalculationMode) (balance.Snapshot, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.GetLastValidSnapshotAt", cTrace.WithOwner(owner), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
-	bal, err := m.BalanceSnapshotService.GetLatestValidAt(ctx, owner, at)
+	var bal balance.Snapshot
+	var err error
+	switch mode {
+	case legacyBalanceCalculation:
+		bal, err = m.BalanceSnapshotService.GetLatestValidAt(ctx, owner, at)
+	case completeBalanceCalculation:
+		bal, err = m.BalanceSnapshotService.GetLatestValidCompleteAt(ctx, owner, at)
+	default:
+		return balance.Snapshot{}, fmt.Errorf("unsupported balance calculation mode %d", mode)
+	}
+
 	if err != nil {
 		if _, ok := lo.ErrorsAs[*balance.NoSavedBalanceForOwnerError](err); ok {
 			// if no snapshot is found we have to calculate from start of time on all grants and usage
@@ -57,6 +71,31 @@ func (m *connector) GetLastValidSnapshotAt(ctx context.Context, owner models.Nam
 		return m.startOfMeasurementSnapshot(ctx, owner, at)
 	}
 
+	if mode == legacyBalanceCalculation && bal.Usage.IsZero() {
+		periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, owner, bal.At)
+		if err != nil {
+			return balance.Snapshot{}, err
+		}
+
+		usageQuerier := balance.NewUsageQuerier(balance.UsageQuerierConfig{
+			StreamingConnector:    m.StreamingConnector,
+			DescribeOwner:         m.OwnerConnector.DescribeOwner,
+			GetUsagePeriodStartAt: m.OwnerConnector.GetUsagePeriodStartAt,
+		})
+		usage, err := usageQuerier.QueryUsage(ctx, owner, timeutil.ClosedPeriod{
+			From: periodStart,
+			To:   bal.At,
+		})
+		if err != nil {
+			return balance.Snapshot{}, err
+		}
+
+		bal.Usage = balance.SnapshottedUsage{
+			Usage: usage,
+			Since: periodStart,
+		}
+	}
+
 	return bal, nil
 }
 
@@ -79,11 +118,20 @@ func (m *connector) startOfMeasurementSnapshot(ctx context.Context, owner models
 	return balance.NewStartingSnapshot(grants, startOfMeasurement), nil
 }
 
-func (m *connector) runEngineInSpan(ctx context.Context, eng engine.Engine, runParams engine.RunParams) (engine.RunResult, error) {
+func (m *connector) runEngineInSpan(ctx context.Context, eng engine.Engine, runParams engine.RunParams, mode balanceCalculationMode) (engine.RunResult, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.runEngine", cTrace.WithEngineParams(runParams))
 	defer span.End()
 
-	res, err := eng.Run(ctx, runParams)
+	var res engine.RunResult
+	var err error
+	switch mode {
+	case legacyBalanceCalculation:
+		res, err = eng.RunLegacy(ctx, runParams)
+	case completeBalanceCalculation:
+		res, err = eng.Run(ctx, runParams)
+	default:
+		return engine.RunResult{}, fmt.Errorf("unsupported balance calculation mode %d", mode)
+	}
 
 	// Let's annotate the span with the calculated history periods so we understand the engine's execution
 	// We can do it even if we got an error, worst case scenario we'll have an empty list of periods.
@@ -190,6 +238,9 @@ type snapshotParams struct {
 	// unitConfig is the owner's current conversion regime, stamped onto the saved
 	// snapshot so the resume path can detect a later regime change (OM-400). Nil = raw.
 	unitConfig *unitconfig.UnitConfig
+	// calculationMode determines whether the saved snapshot is legacy-compatible
+	// state or a complete independently resumable checkpoint.
+	calculationMode balanceCalculationMode
 }
 
 // It is assumed that there are no snapshots persisted during the length of the history (as engine.Run starts with a snapshot that should be the last valid snapshot)
@@ -252,7 +303,17 @@ func (m *connector) saveSnapshot(ctx context.Context, params snapshotParams, sna
 	// if the owner's unit_config later changes (OM-400).
 	snap.UnitConfig = params.unitConfig
 
-	if err := m.BalanceSnapshotService.Save(ctx, params.owner, []balance.Snapshot{snap}); err != nil {
+	var err error
+	switch params.calculationMode {
+	case legacyBalanceCalculation:
+		snap.UsageSnapshot = nil
+		err = m.BalanceSnapshotService.Save(ctx, params.owner, []balance.Snapshot{snap})
+	case completeBalanceCalculation:
+		err = m.BalanceSnapshotService.SaveComplete(ctx, params.owner, []balance.Snapshot{snap})
+	default:
+		return snap, fmt.Errorf("unsupported balance calculation mode %d", params.calculationMode)
+	}
+	if err != nil {
 		return snap, fmt.Errorf("failed to save snapshot: %w", err)
 	}
 
