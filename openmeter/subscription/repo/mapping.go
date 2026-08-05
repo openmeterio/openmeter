@@ -153,6 +153,14 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 			if err != nil {
 				return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: %w", err)
 			}
+			if customCurrency.Namespace != item.Namespace {
+				return subscription.SubscriptionItem{}, fmt.Errorf(
+					"invalid subscription item currency: namespace mismatch [subscription_item.namespace=%s currency.namespace=%s currency.id=%s]",
+					item.Namespace,
+					customCurrency.Namespace,
+					customCurrency.ID,
+				)
+			}
 
 			reference, err = reference.WithCurrency(&customCurrency)
 			if err != nil {
