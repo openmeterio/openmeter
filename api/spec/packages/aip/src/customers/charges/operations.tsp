@@ -46,7 +46,7 @@ model ListCustomerChargesParamsFilter {
    * Filter charges by the start of their service period.
    *
    * Combine with `service_period_to` to match charges whose service period overlaps
-   * a given window: `filter[service_period_to][gt]=<from>` together with
+   * a given window: `filter[service_period_to][gte]=<from>` together with
    * `filter[service_period_from][lt]=<to>` returns charges whose service period
    * intersects `[from, to)`.
    */

@@ -560,6 +560,11 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		}
 	}
 
+	var featureID *string
+	if flatFee.Feature != nil {
+		featureID = &flatFee.Feature.Id
+	}
+
 	return billingcharges.CreateCustomerChargeInput{
 		Namespace:         namespace,
 		CustomerID:        customerID,
@@ -582,7 +587,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 				ProRating:             proRating,
 				AmountBeforeProration: amountBeforeProration,
 			},
-			FeatureID:      flatFee.FeatureId,
+			FeatureID:      featureID,
 			SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
 		},
 	}, nil
@@ -648,7 +653,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 				Price:     *price,
 				Discounts: discounts,
 			},
-			FeatureID:      usageBasedFee.FeatureId,
+			FeatureID:      usageBasedFee.Feature.Id,
 			SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
 		},
 	}, nil

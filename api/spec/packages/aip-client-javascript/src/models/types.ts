@@ -891,13 +891,6 @@ export interface CreditGrantInvoiceReference {
 export interface BillingCustomerReference {
   /** The ID of the customer. */
   id: string
-  /**
-   * The display name of the customer.
-   *
-   * Only populated where the referencing endpoint documents a `customer` expand that
-   * resolves it.
-   */
-  name?: string
 }
 
 /**
@@ -2884,7 +2877,7 @@ export interface ListChargesParamsFilter {
    * Filter charges by the start of their service period.
    *
    * Combine with `service_period_to` to match charges whose service period overlaps
-   * a given window: `filter[service_period_to][gt]=<from>` together with
+   * a given window: `filter[service_period_to][gte]=<from>` together with
    * `filter[service_period_from][lt]=<to>` returns charges whose service period
    * intersects `[from, to)`.
    */
@@ -3874,8 +3867,6 @@ export interface CreateChargeFlatFeeRequest {
   discounts?: ChargeFlatFeeDiscounts
   /** The feature associated with the charge, when applicable. */
   feature?: ChargeFeature
-  /** The feature ID associated with the charge. */
-  featureId?: string
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
   /** The amount before proration of the charge. */
@@ -4681,8 +4672,6 @@ export interface CreateChargeUsageBasedRequest {
   discounts?: RateCardDiscounts
   /** The feature associated with the charge. */
   feature: ChargeFeature
-  /** The feature ID associated with the charge. */
-  featureId: string
   /** The price of the charge. */
   price: Price
   /** The full, unprorated service period of the charge. */
@@ -4861,8 +4850,6 @@ export interface ChargeFlatFee {
   discounts?: ChargeFlatFeeDiscounts
   /** The feature associated with the charge, when applicable. */
   feature?: ChargeFeature
-  /** The feature ID associated with the charge. */
-  featureId?: string
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
   /** The amount after proration of the charge. */
@@ -4988,8 +4975,6 @@ export interface ChargeUsageBased {
   discounts?: RateCardDiscounts
   /** The feature associated with the charge. */
   feature: ChargeFeature
-  /** The feature ID associated with the charge. */
-  featureId: string
   /** Aggregated booked and realtime totals for the charge. */
   totals: ChargeTotals
   /**

@@ -476,11 +476,6 @@ type AppStripeCreateCustomerPortalSessionResult struct {
 type BillingCustomerReference struct {
 	// The ID of the customer.
 	ID string `json:"id"`
-	// The display name of the customer.
-	//
-	// Only populated where the referencing endpoint documents a `customer` expand that
-	// resolves it.
-	Name *string `json:"name,omitempty"`
 }
 
 // Customer charge.
@@ -643,8 +638,6 @@ type ChargeFlatFee struct {
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge, when applicable.
 	Feature *ChargeFeature `json:"feature,omitempty"`
-	// The feature ID associated with the charge.
-	FeatureID *string `json:"feature_id,omitempty"`
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount after proration of the charge.
@@ -1137,8 +1130,6 @@ type ChargeUsageBased struct {
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge.
 	Feature ChargeFeature `json:"feature"`
-	// The feature ID associated with the charge.
-	FeatureID string `json:"feature_id"`
 	// Aggregated booked and realtime totals for the charge.
 	Totals ChargeTotals `json:"totals"`
 	// The metered usage quantity of the charge for its full service period.
@@ -1250,8 +1241,6 @@ type CreateChargeFlatFeeRequest struct {
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge, when applicable.
 	Feature *ChargeFeature `json:"feature,omitempty"`
-	// The feature ID associated with the charge.
-	FeatureID *string `json:"feature_id,omitempty"`
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount before proration of the charge.
@@ -1372,8 +1361,6 @@ type CreateChargeUsageBasedRequest struct {
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge.
 	Feature ChargeFeature `json:"feature"`
-	// The feature ID associated with the charge.
-	FeatureID string `json:"feature_id"`
 	// The price of the charge.
 	Price Price `json:"price"`
 	// The full, unprorated service period of the charge.

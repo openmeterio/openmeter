@@ -1895,13 +1895,6 @@ export const creditGrantInvoiceReference = z
 export const billingCustomerReference = z
   .object({
     id: ulid,
-    name: z
-      .string()
-      .optional()
-
-      .describe(
-        'The display name of the customer. Only populated where the referencing endpoint documents a `customer` expand that resolves it.',
-      ),
   })
   .describe('Customer reference.')
 
@@ -4680,10 +4673,6 @@ export const createChargeFlatFeeRequest = z
     paymentTerm: pricePaymentTerm,
     discounts: chargeFlatFeeDiscounts.optional(),
     feature: chargeFeature.optional(),
-    featureId: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
     prorationConfiguration: rateCardProrationConfiguration,
     amountBeforeProration: currencyAmount,
     fullServicePeriod: closedPeriod.optional(),
@@ -5391,9 +5380,6 @@ export const createChargeUsageBasedRequest = z
     taxConfig: taxConfig.optional(),
     discounts: rateCardDiscounts.optional(),
     feature: chargeFeature,
-    featureId: z
-      .string()
-      .describe('The feature ID associated with the charge.'),
     price: price,
     fullServicePeriod: closedPeriod.optional(),
     billingPeriod: closedPeriod.optional(),
@@ -5503,10 +5489,6 @@ export const chargeFlatFee = z
     paymentTerm: pricePaymentTerm,
     discounts: chargeFlatFeeDiscounts.optional(),
     feature: chargeFeature.optional(),
-    featureId: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
     prorationConfiguration: rateCardProrationConfiguration,
     amountAfterProration: currencyAmount,
     price: price,
@@ -5588,9 +5570,6 @@ export const chargeUsageBased = z
     outstanding: chargeOutstanding.optional(),
     discounts: rateCardDiscounts.optional(),
     feature: chargeFeature,
-    featureId: z
-      .string()
-      .describe('The feature ID associated with the charge.'),
     totals: chargeTotals,
     usage: numeric.optional(),
     price: price,
@@ -9042,13 +9021,6 @@ export const creditGrantInvoiceReferenceWire = z
 export const billingCustomerReferenceWire = z
   .strictObject({
     id: ulidWire,
-    name: z
-      .string()
-      .optional()
-
-      .describe(
-        'The display name of the customer. Only populated where the referencing endpoint documents a `customer` expand that resolves it.',
-      ),
   })
   .describe('Customer reference.')
 
@@ -11814,10 +11786,6 @@ export const createChargeFlatFeeRequestWire = z
     payment_term: pricePaymentTermWire,
     discounts: chargeFlatFeeDiscountsWire.optional(),
     feature: chargeFeatureWire.optional(),
-    feature_id: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
     proration_configuration: rateCardProrationConfigurationWire,
     amount_before_proration: currencyAmountWire,
     full_service_period: closedPeriodWire.optional(),
@@ -12527,9 +12495,6 @@ export const createChargeUsageBasedRequestWire = z
     tax_config: taxConfigWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
     feature: chargeFeatureWire,
-    feature_id: z
-      .string()
-      .describe('The feature ID associated with the charge.'),
     price: priceWire,
     full_service_period: closedPeriodWire.optional(),
     billing_period: closedPeriodWire.optional(),
@@ -12639,10 +12604,6 @@ export const chargeFlatFeeWire = z
     payment_term: pricePaymentTermWire,
     discounts: chargeFlatFeeDiscountsWire.optional(),
     feature: chargeFeatureWire.optional(),
-    feature_id: z
-      .string()
-      .optional()
-      .describe('The feature ID associated with the charge.'),
     proration_configuration: rateCardProrationConfigurationWire,
     amount_after_proration: currencyAmountWire,
     price: priceWire,
@@ -12724,9 +12685,6 @@ export const chargeUsageBasedWire = z
     outstanding: chargeOutstandingWire.optional(),
     discounts: rateCardDiscountsWire.optional(),
     feature: chargeFeatureWire,
-    feature_id: z
-      .string()
-      .describe('The feature ID associated with the charge.'),
     totals: chargeTotalsWire,
     usage: numericWire.optional(),
     price: priceWire,

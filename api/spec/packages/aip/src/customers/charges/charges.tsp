@@ -5,6 +5,8 @@ import "../customer.tsp";
 
 namespace Customers;
 
+using TypeSpec.OpenAPI;
+
 /**
  * Type of a charge.
  *
@@ -52,7 +54,7 @@ model ChargeFeature {
   /**
    * The ID of the feature.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Feature ID")
   id: Shared.ULID;
 
@@ -61,7 +63,7 @@ model ChargeFeature {
    *
    * Requires the `feature` expand.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read)
   @summary("Feature key")
   key?: string;
 
@@ -655,13 +657,6 @@ model ChargeFlatFee {
   feature?: ChargeFeature;
 
   /**
-   * The feature ID associated with the charge.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  @summary("Feature id")
-  feature_id?: string;
-
-  /**
    * The proration configuration of the charge.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
@@ -748,15 +743,6 @@ model ChargeUsageBased {
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Feature")
   feature: ChargeFeature;
-
-  /**
-   * The feature ID associated with the charge.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  @summary("Feature id")
-  feature_id: string;
-
-  // Status fields
 
   /**
    * Aggregated booked and realtime totals for the charge.

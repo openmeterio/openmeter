@@ -4761,7 +4761,6 @@ components:
             - $ref: '#/components/schemas/ULID'
           description: The ID of the feature.
           title: Feature ID
-          readOnly: true
         key:
           type: string
           description: |-
@@ -4769,6 +4768,7 @@ components:
 
             Requires the `feature` expand.
           title: Feature key
+          readOnly: true
         name:
           type: string
           description: |-
@@ -4958,10 +4958,6 @@ components:
             - $ref: '#/components/schemas/BillingChargeFeature'
           description: The feature associated with the charge, when applicable.
           title: Feature
-        feature_id:
-          type: string
-          description: The feature ID associated with the charge.
-          title: Feature id
         proration_configuration:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
@@ -5613,7 +5609,6 @@ components:
         - settlement_mode
         - realizations
         - feature
-        - feature_id
         - totals
         - price
       properties:
@@ -5762,10 +5757,6 @@ components:
             - $ref: '#/components/schemas/BillingChargeFeature'
           description: The feature associated with the charge.
           title: Feature
-        feature_id:
-          type: string
-          description: The feature ID associated with the charge.
-          title: Feature id
         totals:
           allOf:
             - $ref: '#/components/schemas/BillingChargeTotals'
@@ -6645,15 +6636,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/ULID'
           description: The ID of the customer.
-        name:
-          type: string
-          description: |-
-            The display name of the customer.
-
-            Only populated where the referencing endpoint documents a `customer` expand that
-            resolves it.
-          title: Customer name
-          readOnly: true
       additionalProperties: false
       description: Customer reference.
     BillingCustomerStripeCreateCheckoutSessionRequest:
@@ -9911,10 +9893,6 @@ components:
             - $ref: '#/components/schemas/BillingChargeFeature'
           description: The feature associated with the charge, when applicable.
           title: Feature
-        feature_id:
-          type: string
-          description: The feature ID associated with the charge.
-          title: Feature id
         proration_configuration:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
@@ -9959,7 +9937,6 @@ components:
         - service_period
         - settlement_mode
         - feature
-        - feature_id
         - price
       properties:
         name:
@@ -10024,10 +10001,6 @@ components:
             - $ref: '#/components/schemas/BillingChargeFeature'
           description: The feature associated with the charge.
           title: Feature
-        feature_id:
-          type: string
-          description: The feature ID associated with the charge.
-          title: Feature id
         price:
           allOf:
             - $ref: '#/components/schemas/BillingPrice'
@@ -11508,7 +11481,7 @@ components:
             Filter charges by the start of their service period.
 
             Combine with `service_period_to` to match charges whose service period overlaps
-            a given window: `filter[service_period_to][gt]=<from>` together with
+            a given window: `filter[service_period_to][gte]=<from>` together with
             `filter[service_period_from][lt]=<to>` returns charges whose service period
             intersects `[from, to)`.
         service_period_to:
