@@ -239,9 +239,21 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		}
 
 		// Group by columns need to be parsed from the JSON data
+		groupByJSONPath, ok := d.Meter.GroupBy[groupByKey]
+		if !ok {
+			return "", nil, models.NewGenericValidationError(
+				fmt.Errorf("meter does not have group by: %s", groupByKey),
+			)
+		}
+
+		// The key lands in identifier position (alias + GROUP BY) and cannot be bound,
+		// so validate it rather than trusting sqlbuilder.Escape, which only doubles '$'.
+		if err := meterpkg.ValidateGroupByKey(groupByKey); err != nil {
+			return "", nil, models.NewGenericValidationError(err)
+		}
+
 		groupByColumn := sqlbuilder.Escape(groupByKey)
-		groupByJSONPath := query.Var(d.Meter.GroupBy[groupByKey])
-		selectColumn := fmt.Sprintf("JSON_VALUE(%s, %s) as %s", getColumn("data"), groupByJSONPath, groupByColumn)
+		selectColumn := fmt.Sprintf("JSON_VALUE(%s, %s) as %s", getColumn("data"), query.Var(groupByJSONPath), groupByColumn)
 
 		selectColumns = append(selectColumns, selectColumn)
 		groupByColumns = append(groupByColumns, groupByColumn)

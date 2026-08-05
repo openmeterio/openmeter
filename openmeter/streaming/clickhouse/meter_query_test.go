@@ -958,3 +958,53 @@ func TestQueryMeterBindsJSONPaths(t *testing.T) {
 		gotArgs,
 	)
 }
+
+// The group-by key reaches identifier position and cannot be bound. Meter validation
+// blocks such keys at write time; this guards a queryMeter from an untrusted source.
+func TestQueryMeterRejectsInvalidGroupByKey(t *testing.T) {
+	tests := []struct {
+		name  string
+		query queryMeter
+	}{
+		{
+			name: "group by key not present on the meter",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:         "meter1",
+					EventType:   "event1",
+					Aggregation: meter.MeterAggregationCount,
+				},
+				GroupBy: []string{"unknown"},
+			},
+		},
+		{
+			name: "group by key is not a safe identifier",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:         "meter1",
+					EventType:   "event1",
+					Aggregation: meter.MeterAggregationCount,
+					GroupBy: map[string]string{
+						"g) FROM system.numbers --": "$.value",
+					},
+				},
+				GroupBy: []string{"g) FROM system.numbers --"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotSQL, _, err := tt.query.toSQL()
+
+			assert.Error(t, err)
+			assert.Empty(t, gotSQL)
+		})
+	}
+}

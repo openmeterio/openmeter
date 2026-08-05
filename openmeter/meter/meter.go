@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -298,8 +297,8 @@ func validateMeterAggregation(valueProperty *string, aggregation MeterAggregatio
 			return errors.New("meter value property cannot be empty when the aggregation is not count")
 		}
 
-		if !strings.HasPrefix(*valueProperty, "$") {
-			return errors.New("meter value property must start with $")
+		if err := validateJSONPath(*valueProperty); err != nil {
+			return fmt.Errorf("meter value property is invalid: %w", err)
 		}
 	}
 
@@ -309,24 +308,15 @@ func validateMeterAggregation(valueProperty *string, aggregation MeterAggregatio
 // validateMeterGroupBy validates the group by values
 func validateMeterGroupBy(valueProperty *string, groupBy map[string]string) error {
 	for key, value := range groupBy {
-		if !strings.HasPrefix(value, "$") {
-			return fmt.Errorf("meter group by value must start with $ for key %s", key)
+		if err := ValidateGroupByKey(key); err != nil {
+			return err
 		}
-		if strings.TrimSpace(key) == "" {
-			return fmt.Errorf("meter group by key cannot be empty")
-		}
-		if !groupByKeyRegExp.MatchString(key) {
-			return fmt.Errorf("meter group by key %s is invalid, only alphanumeric and underscore characters are allowed", key)
+		if err := validateJSONPath(value); err != nil {
+			return fmt.Errorf("meter group by value is invalid for key %s: %w", key, err)
 		}
 		if valueProperty != nil && value == *valueProperty {
 			return fmt.Errorf("meter group by value %s cannot be the same as value property", key)
 		}
-		// keys must be unique
-		seen := make(map[string]struct{}, len(groupBy))
-		if _, ok := seen[key]; ok {
-			return fmt.Errorf("meter group by key %s is not unique", key)
-		}
-		seen[key] = struct{}{}
 	}
 
 	return nil
