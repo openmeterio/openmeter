@@ -13,6 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -257,4 +259,122 @@ func (e *IntegrationEnv) SumBalance(t *testing.T, subAccount ledger.SubAccount) 
 	require.NoError(t, err)
 
 	return sum
+}
+
+// TransactionGroupEntries returns every ledger entry posted by the
+// transactions in a committed group, ordered by creation.
+func (e *IntegrationEnv) TransactionGroupEntries(t *testing.T, groupID string) []*entdb.LedgerEntry {
+	t.Helper()
+
+	ledgerTransactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, ledgerTransactions)
+
+	transactionIDs := make([]string, 0, len(ledgerTransactions))
+	for _, transaction := range ledgerTransactions {
+		transactionIDs = append(transactionIDs, transaction.ID)
+	}
+
+	entries, err := e.DB.LedgerEntry.Query().
+		Where(
+			ledgerentrydb.Namespace(e.Namespace),
+			ledgerentrydb.TransactionIDIn(transactionIDs...),
+		).
+		Order(
+			ledgerentrydb.ByCreatedAt(),
+			ledgerentrydb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, entries)
+
+	return entries
+}
+
+// EntriesForSubAccount filters a set of ledger entries down to the ones
+// posted against a specific sub-account.
+func (e *IntegrationEnv) EntriesForSubAccount(entries []*entdb.LedgerEntry, subAccount ledger.SubAccount) []*entdb.LedgerEntry {
+	out := make([]*entdb.LedgerEntry, 0, len(entries))
+	for _, entry := range entries {
+		if entry.SubAccountID == subAccount.Address().SubAccountID() {
+			out = append(out, entry)
+		}
+	}
+
+	return out
+}
+
+// FBOSubAccountForCurrency is the explicit-currency counterpart of
+// FBOSubAccount, for tests that operate on a currency other than the env's
+// own (e.g. a custom currency alongside its fiat cost-basis currency).
+func (e *IntegrationEnv) FBOSubAccountForCurrency(t *testing.T, currency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:          currency,
+		CostBasisCurrency: costBasisCurrency,
+		CostBasis:         &costBasis,
+		CreditPriority:    ledger.DefaultCustomerFBOPriority,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
+// AccruedSubAccountForCurrency is the explicit-currency counterpart of
+// AccruedSubAccountWithCostBasisAndTaxCode.
+func (e *IntegrationEnv) AccruedSubAccountForCurrency(t *testing.T, currency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis *alpacadecimal.Decimal, taxCode *string) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:          currency,
+		CostBasisCurrency: costBasisCurrency,
+		TaxCode:           taxCode,
+		CostBasis:         costBasis,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
+// ReceivableSubAccountForCurrency is the explicit-currency, open-status
+// counterpart of ReceivableSubAccountWithCostBasis.
+func (e *IntegrationEnv) ReceivableSubAccountForCurrency(t *testing.T, currency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
+		Currency:                       currency,
+		CostBasisCurrency:              costBasisCurrency,
+		CostBasis:                      &costBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
+// BrokerageSubAccountForCurrency is the explicit-currency counterpart of
+// BrokerageSubAccount. Passing a nil costBasisCurrency serves a fiat
+// brokerage route; passing the fiat cost-basis currency alongside a custom
+// currency reference serves that custom currency's brokerage route.
+func (e *IntegrationEnv) BrokerageSubAccountForCurrency(t *testing.T, currency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:          currency,
+		CostBasisCurrency: costBasisCurrency,
+		CostBasis:         &costBasis,
+	})
+	require.NoError(t, err)
+
+	return subAccount
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -122,7 +121,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get invoice currency: %w", err)
 	}
 
-	costBasis, err := usageBasedInvoiceCostBasis(input.Charge)
+	costBasis, err := resolveInvoiceCostBasis(input.Charge)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", err)
 	}
@@ -324,7 +323,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get invoice currency: %w", err)
 	}
 
-	costBasis, err := usageBasedInvoiceCostBasis(input.Charge)
+	costBasis, err := resolveInvoiceCostBasis(input.Charge)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)
 	}
@@ -447,23 +446,4 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Cont
 		Corrections:                  input.Corrections,
 		LineageSegmentsByRealization: input.LineageSegmentsByRealization,
 	})
-}
-
-// usageBasedInvoiceCostBasis returns the cost-basis route the invoice payment
-// lifecycle must authorize and settle against. Fiat charges always settle at
-// par (cost basis 1). Custom-currency charges settle at the same persisted
-// rate the overage accrual already converted through: the fiat receivable
-// created by OnCustomCurrencyOverageAccrued lives on that rate's route, not
-// on the par route, so payment authorization/settlement must reference it
-// rather than re-resolving or recomputing a rate.
-func usageBasedInvoiceCostBasis(charge usagebased.Charge) (*alpacadecimal.Decimal, error) {
-	if !charge.Intent.GetCurrency().IsCustom() {
-		return invoiceCostBasis, nil
-	}
-
-	if charge.State.ResolvedCostBasis == nil {
-		return nil, fmt.Errorf("custom currency charge is missing a resolved cost basis")
-	}
-
-	return &charge.State.ResolvedCostBasis.CostBasis, nil
 }
