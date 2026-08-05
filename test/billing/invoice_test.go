@@ -1416,6 +1416,228 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 	}
 }
 
+func (s *InvoicingTestSuite) TestEmptyInvoiceIsDeletedInsteadOfIssued() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("empty-invoice-deleted-when-issuing")
+
+	// Given a manual-approval invoice whose only line has been deleted.
+	invoice := s.createManualApprovalInvoice(ctx, namespace, billing.Discounts{})
+	invoice = s.deleteAllInvoiceLinesBySystem(ctx, invoice)
+
+	s.Require().NotNil(invoice.StatusDetails.AvailableActions.Approve)
+	s.Equal(
+		billing.StandardInvoiceStatusDeleted,
+		invoice.StatusDetails.AvailableActions.Approve.ResultingState,
+	)
+
+	activeInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	s.Empty(activeInvoice.Lines.OrEmpty())
+
+	invoiceWithDeletedLines, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll.With(billing.StandardInvoiceExpandDeletedLines),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoiceWithDeletedLines.Lines.OrEmpty(), 1)
+	s.NotNil(invoiceWithDeletedLines.Lines.OrEmpty()[0].DeletedAt)
+
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+	mockApp.OnDeleteStandardInvoice(nil)
+
+	// When the invoice is approved and issuing begins.
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+
+	// Then billing system-deletes the invoice and synchronizes the app deletion.
+	s.Equal(billing.StandardInvoiceStatusDeleted, invoice.Status)
+	s.NotNil(invoice.DeletedAt)
+	s.Equal(billing.ChangeSourceSystem, invoice.DeletionSource)
+	s.Nil(invoice.IssuedAt)
+	s.Empty(invoice.ValidationIssues)
+	s.Equal(1, mockApp.DeleteInvoiceCallCount())
+	s.Zero(mockApp.FinalizeInvoiceCallCount())
+	mockApp.AssertExpectations(s.T())
+
+	activeInvoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDeleted, activeInvoice.Status)
+	s.Empty(activeInvoice.Lines.OrEmpty())
+
+	invoiceWithDeletedLines, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll.With(billing.StandardInvoiceExpandDeletedLines),
+	})
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDeleted, invoiceWithDeletedLines.Status)
+	s.Require().Len(invoiceWithDeletedLines.Lines.OrEmpty(), 1)
+	s.NotNil(invoiceWithDeletedLines.Lines.OrEmpty()[0].DeletedAt)
+}
+
+func (s *InvoicingTestSuite) TestEmptyInvoiceDeletionFailureCanBeRetried() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("empty-invoice-deletion-failure")
+
+	// Given an empty invoice whose invoicing app rejects deletion.
+	invoice := s.createManualApprovalInvoice(ctx, namespace, billing.Discounts{})
+	invoice = s.deleteAllInvoiceLinesBySystem(ctx, invoice)
+
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+	deleteErr := billing.NewValidationError("delete-failed", "invoice cannot be deleted")
+	mockApp.OnDeleteStandardInvoice(deleteErr)
+
+	// When approval starts issuing and attempts the automatic deletion.
+	invoice, err := s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+
+	// Then the invoice records a retryable deletion failure without being issued.
+	s.Equal(billing.StandardInvoiceStatusDeleteFailed, invoice.Status)
+	s.Require().NotNil(invoice.DeletedAt)
+	deletedAt := *invoice.DeletedAt
+	s.Equal(billing.ChangeSourceSystem, invoice.DeletionSource)
+	s.Nil(invoice.IssuedAt)
+	s.Require().Len(invoice.ValidationIssues, 1)
+	s.Equal(deleteErr.Code, invoice.ValidationIssues[0].Code)
+	s.Equal(deleteErr.Message, invoice.ValidationIssues[0].Message)
+	s.Equal("app.sandbox.invoiceCustomers.delete", string(invoice.ValidationIssues[0].Component))
+	s.Equal(1, mockApp.DeleteInvoiceCallCount())
+	s.Zero(mockApp.FinalizeInvoiceCallCount())
+
+	mockApp.Reset(s.T())
+	mockApp.OnDeleteStandardInvoice(nil)
+
+	// When deletion is retried after the app recovers.
+	invoice, err = s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+		Invoice:        invoice.GetInvoiceID(),
+		DeletionSource: billing.ChangeSourceSystem,
+	})
+	s.Require().NoError(err)
+
+	// Then the invoice reaches deleted without replacing its deletion timestamp.
+	s.Equal(billing.StandardInvoiceStatusDeleted, invoice.Status)
+	s.Require().NotNil(invoice.DeletedAt)
+	s.Equal(deletedAt, *invoice.DeletedAt)
+	s.Equal(billing.ChangeSourceSystem, invoice.DeletionSource)
+	s.Empty(invoice.ValidationIssues)
+	s.Equal(1, mockApp.DeleteInvoiceCallCount())
+	s.Zero(mockApp.FinalizeInvoiceCallCount())
+	mockApp.AssertExpectations(s.T())
+}
+
+func (s *InvoicingTestSuite) TestZeroTotalInvoiceWithActiveLineIsIssued() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("zero-total-invoice-with-active-line")
+
+	// Given an invoice with an active line discounted to a zero monetary total.
+	invoice := s.createManualApprovalInvoice(ctx, namespace, billing.Discounts{
+		Percentage: &billing.PercentageDiscount{
+			PercentageDiscount: productcatalog.PercentageDiscount{
+				Percentage: models.NewPercentage(100),
+			},
+		},
+	})
+	s.Zero(invoice.Totals.Total.InexactFloat64())
+	s.Require().Len(invoice.Lines.OrEmpty(), 1)
+	s.Nil(invoice.Lines.OrEmpty()[0].DeletedAt)
+
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+	mockApp.OnFinalizeStandardInvoice(nil)
+
+	// When the invoice is approved and issuing begins.
+	invoice, err := s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+
+	// Then the active line keeps the invoice on the normal issuing path.
+	s.NotEqual(billing.StandardInvoiceStatusDeleted, invoice.Status)
+	s.Nil(invoice.DeletedAt)
+	s.NotNil(invoice.IssuedAt)
+	s.Zero(mockApp.DeleteInvoiceCallCount())
+	s.Equal(1, mockApp.FinalizeInvoiceCallCount())
+	mockApp.AssertExpectations(s.T())
+}
+
+func (s *InvoicingTestSuite) createManualApprovalInvoice(
+	ctx context.Context,
+	namespace string,
+	discounts billing.Discounts,
+) billing.StandardInvoice {
+	s.T().Helper()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithManualApproval())
+	customerEntity := s.CreateTestCustomer(namespace, "test-customer")
+
+	now := clock.Now().UTC()
+	period := timeutil.ClosedPeriod{
+		From: now.Add(-2 * time.Hour),
+		To:   now.Add(-time.Hour),
+	}
+
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customerEntity.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: []billing.GatheringLine{
+			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				Namespace:         namespace,
+				Period:            period,
+				InvoiceAt:         now.Add(-time.Second),
+				ManagedBy:         billing.ManuallyManagedLine,
+				Name:              "Test item",
+				PerUnitAmount:     alpacadecimal.NewFromInt(100),
+				Currency:          currencyx.FiatCode(currency.USD),
+				PaymentTerm:       productcatalog.InArrearsPaymentTerm,
+				RateCardDiscounts: discounts,
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(pendingLines.Lines, 1)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: customerEntity.GetID(),
+		AsOf:     lo.ToPtr(now),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoices[0].Status)
+	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+
+	return invoices[0]
+}
+
+func (s *InvoicingTestSuite) deleteAllInvoiceLinesBySystem(
+	ctx context.Context,
+	invoice billing.StandardInvoice,
+) billing.StandardInvoice {
+	s.T().Helper()
+
+	updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceSystem,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			for _, line := range invoice.Lines.OrEmpty() {
+				line.DeletedAt = lo.ToPtr(clock.Now())
+			}
+
+			return nil
+		},
+		IncludeDeletedLines: true,
+	})
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, updatedInvoice.Status)
+
+	return updatedInvoice
+}
+
 func (s *InvoicingTestSuite) TestBillingProfileChange() {
 	namespace := "ns-billing-profile-default-change"
 	ctx := context.Background()

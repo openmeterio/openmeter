@@ -30,10 +30,10 @@ type MockApp struct {
 	upsertInvoiceCalled   bool
 
 	finalizeInvoiceResponse mo.Option[*billing.FinalizeStandardInvoiceResult]
-	finalizeInvoiceCalled   bool
+	finalizeInvoiceCalls    int
 
 	deleteInvoiceResponse mo.Option[error]
-	deleteInvoiceCalled   bool
+	deleteInvoiceCalls    int
 }
 
 func NewMockApp(_ *testing.T) *MockApp {
@@ -91,7 +91,7 @@ func (m *MockApp) OnUpsertStandardInvoice(cb InvoiceUpsertCallback) {
 }
 
 func (m *MockApp) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
-	m.finalizeInvoiceCalled = true
+	m.finalizeInvoiceCalls++
 	return m.finalizeInvoiceResponse.MustGet(), nil
 }
 
@@ -99,13 +99,21 @@ func (m *MockApp) OnFinalizeStandardInvoice(result *billing.FinalizeStandardInvo
 	m.finalizeInvoiceResponse = mo.Some(result)
 }
 
+func (m *MockApp) FinalizeInvoiceCallCount() int {
+	return m.finalizeInvoiceCalls
+}
+
 func (m *MockApp) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
-	m.deleteInvoiceCalled = true
+	m.deleteInvoiceCalls++
 	return m.deleteInvoiceResponse.MustGet()
 }
 
 func (m *MockApp) OnDeleteStandardInvoice(err error) {
 	m.deleteInvoiceResponse = mo.Some(err)
+}
+
+func (m *MockApp) DeleteInvoiceCallCount() int {
+	return m.deleteInvoiceCalls
 }
 
 func (m *MockApp) Reset(t *testing.T) {
@@ -123,10 +131,10 @@ func (m *MockApp) Reset(t *testing.T) {
 	m.upsertInvoiceCalled = false
 
 	m.finalizeInvoiceResponse = mo.None[*billing.FinalizeStandardInvoiceResult]()
-	m.finalizeInvoiceCalled = false
+	m.finalizeInvoiceCalls = 0
 
 	m.deleteInvoiceResponse = mo.None[error]()
-	m.deleteInvoiceCalled = false
+	m.deleteInvoiceCalls = 0
 }
 
 func (m *MockApp) AssertExpectations(t *testing.T) {
@@ -144,11 +152,11 @@ func (m *MockApp) AssertExpectations(t *testing.T) {
 		t.Errorf("expected UpsertInvoice to be called")
 	}
 
-	if m.finalizeInvoiceResponse.IsPresent() && !m.finalizeInvoiceCalled {
+	if m.finalizeInvoiceResponse.IsPresent() && m.finalizeInvoiceCalls == 0 {
 		t.Errorf("expected FinalizeInvoice to be called")
 	}
 
-	if m.deleteInvoiceResponse.IsPresent() && !m.deleteInvoiceCalled {
+	if m.deleteInvoiceResponse.IsPresent() && m.deleteInvoiceCalls == 0 {
 		t.Errorf("expected DeleteInvoice to be called")
 	}
 }

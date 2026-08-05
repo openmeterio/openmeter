@@ -90,6 +90,12 @@ The standard invoice state machine coordinates:
 4. approval and issuing
 5. charge booking and payment processing
 
+When issuing starts, a standard invoice with no non-deleted lines is deleted
+instead of finalized. Billing records this as a system deletion, synchronizes
+the deletion with the invoicing app, and skips charge booking and payment. This
+decision is based on line presence rather than monetary totals: a non-deleted
+line with a zero total still follows the normal issuing lifecycle.
+
 Critical validation issues stop advancement. External app and line-engine
 failures leave the invoice in an explicit failed state so the failed step can
 be retried without replaying stable lifecycle states. Issuing and payment

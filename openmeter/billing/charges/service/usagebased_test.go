@@ -647,15 +647,30 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					})
 				}
 
+				if test.expectLineDeleted {
+					mockApp := s.SandboxApp.EnableMock(s.T())
+					defer s.SandboxApp.DisableMock()
+					mockApp.OnDeleteStandardInvoice(nil)
+
+					invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+					s.Require().NoError(err)
+					s.Equal(billing.StandardInvoiceStatusDeleted, invoice.Status)
+					s.NotNil(invoice.DeletedAt)
+					s.Equal(billing.ChangeSourceSystem, invoice.DeletionSource)
+					s.Nil(invoice.IssuedAt)
+					s.Nil(invoice.CollectionAt)
+					s.Equal(1, mockApp.DeleteInvoiceCallCount())
+					s.Zero(mockApp.FinalizeInvoiceCallCount())
+					mockApp.AssertExpectations(s.T())
+
+					return
+				}
+
 				invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 				s.Require().NoError(err)
 				s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
-				if test.expectLineDeleted {
-					s.Nil(invoice.CollectionAt)
-				} else {
-					s.Require().NotNil(invoice.CollectionAt)
-					s.True(realizationVariant.expectedCollectionEnd.Equal(*invoice.CollectionAt))
-				}
+				s.Require().NotNil(invoice.CollectionAt)
+				s.True(realizationVariant.expectedCollectionEnd.Equal(*invoice.CollectionAt))
 			})
 
 			s.Run("reload realized charge and invoice state", func() {
@@ -698,8 +713,16 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					Expand:  billing.StandardInvoiceExpandAll,
 				})
 				s.Require().NoError(err)
+				expectedInvoiceStatus := billing.StandardInvoiceStatusPaid
+				if test.expectLineDeleted {
+					expectedInvoiceStatus = billing.StandardInvoiceStatusDeleted
+				}
+				s.Equal(expectedInvoiceStatus, activeInvoice.Status)
 
 				if test.expectLineDeleted {
+					s.NotNil(activeInvoice.DeletedAt)
+					s.Equal(billing.ChangeSourceSystem, activeInvoice.DeletionSource)
+					s.Nil(activeInvoice.IssuedAt)
 					s.Nil(activeInvoice.CollectionAt)
 					s.Empty(activeInvoice.Lines.OrEmpty())
 
@@ -717,10 +740,12 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 						line:             deletedLine,
 						expectFiatTotals: test.onCollectionComplete.expectInvoiceTotals,
 					})
-
-					// TODO: delete the standard invoice when zero overage removes its only line.
-					s.Nil(invoiceWithDeletedLine.DeletedAt)
+					s.NotNil(invoiceWithDeletedLine.DeletedAt)
+					s.Equal(billing.StandardInvoiceStatusDeleted, invoiceWithDeletedLine.Status)
+					s.Equal(billing.ChangeSourceSystem, invoiceWithDeletedLine.DeletionSource)
+					s.Nil(invoiceWithDeletedLine.IssuedAt)
 				} else {
+					s.Nil(activeInvoice.DeletedAt)
 					s.Require().NotNil(activeInvoice.CollectionAt)
 					s.True(realizationVariant.expectedCollectionEnd.Equal(*activeInvoice.CollectionAt))
 					s.Require().Len(activeInvoice.Lines.OrEmpty(), 1)
