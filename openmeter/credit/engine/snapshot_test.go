@@ -90,6 +90,49 @@ func TestEngineValidatesStartingUsageSnapshot(t *testing.T) {
 	}
 }
 
+func TestLegacyEngineDoesNotExposeCompleteUsageState(t *testing.T) {
+	start := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	resetAt := start.Add(time.Hour)
+	end := resetAt.Add(time.Hour)
+	g := grant.Grant{
+		ID:               "grant-1",
+		Amount:           100,
+		Priority:         1,
+		EffectiveAt:      start,
+		ResetMinRollover: 50,
+		ResetMaxRollover: 50,
+	}
+	eng := engine.NewEngine(engine.EngineConfig{
+		QueryUsage: func(_ context.Context, _, _ time.Time) (float64, error) {
+			return 10, nil
+		},
+	})
+
+	result, err := eng.RunLegacy(t.Context(), engine.RunParams{
+		Meter: meter.Meter{
+			Aggregation: meter.MeterAggregationSum,
+		},
+		Grants: []grant.Grant{g},
+		StartingSnapshot: balance.Snapshot{
+			At:       start,
+			Balances: balance.Map{g.ID: g.Amount},
+			Usage: balance.SnapshottedUsage{
+				Since: start,
+			},
+		},
+		Until:  end,
+		Resets: timeutil.NewSimpleTimeline([]time.Time{resetAt}),
+	})
+	require.NoError(t, err)
+	assert.Nil(t, result.Snapshot.UsageSnapshot)
+
+	for segmentIndex := range result.History.Segments() {
+		snapshot, err := result.History.GetSnapshotAtStartOfSegment(segmentIndex)
+		require.NoError(t, err)
+		assert.Nil(t, snapshot.UsageSnapshot)
+	}
+}
+
 func TestEngineAccumulatesTotalGrantUsageFromSnapshot(t *testing.T) {
 	start := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	startingTotalGrantUsage := 25.0

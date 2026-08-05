@@ -4,6 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -53,12 +56,34 @@ type RunResult struct {
 	RunParams RunParams
 }
 
+// TotalAvailableGrantAmountAtLastPeriod returns the legacy snapshot-relative
+// total used by existing entitlement value calculations.
+func (r RunResult) TotalAvailableGrantAmountAtLastPeriod() float64 {
+	lastUsagePeriodHistory, _ := lo.Last(r.History.ChunkByResets())
+	totalGrantUsage := alpacadecimal.NewFromFloat(0)
+	for _, segment := range lastUsagePeriodHistory.segments {
+		// Rollover usage was not represented in legacy history and therefore
+		// did not contribute to this value.
+		if segment.TerminationReasons.Rollover {
+			continue
+		}
+
+		totalGrantUsage = totalGrantUsage.Add(segment.GrantUsages.Sum())
+	}
+
+	return totalGrantUsage.
+		Add(alpacadecimal.NewFromFloat(r.Snapshot.Balance())).
+		InexactFloat64()
+}
+
 type Engine interface {
 	// Burns down all grants in the defined period by the usage amounts.
 	//
 	// When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 	// If a grant is inactive at the end of the period, it will still be in the output.
 	Run(ctx context.Context, params RunParams) (RunResult, error)
+	// RunLegacy calculates without complete usage-period state.
+	RunLegacy(ctx context.Context, params RunParams) (RunResult, error)
 }
 
 // TODO: should return alpacadecimal instead of float64, its fine to hard depend on it for now

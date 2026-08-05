@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -41,15 +40,27 @@ func (b *balanceSnapshotRepo) InvalidateAfter(ctx context.Context, owner models.
 }
 
 func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
+	return b.getLatestValidAt(ctx, owner, at, false)
+}
+
+func (b *balanceSnapshotRepo) GetLatestValidCompleteAt(ctx context.Context, owner models.NamespacedID, at time.Time) (balance.Snapshot, error) {
+	return b.getLatestValidAt(ctx, owner, at, true)
+}
+
+func (b *balanceSnapshotRepo) getLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time, requireUsageSnapshot bool) (balance.Snapshot, error) {
 	return entutils.TransactingRepo(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) (balance.Snapshot, error) {
-		res, err := rep.db.BalanceSnapshot.Query().
+		query := rep.db.BalanceSnapshot.Query().
 			Where(
 				db_balancesnapshot.OwnerID(owner.ID),
 				db_balancesnapshot.Namespace(owner.Namespace),
 				db_balancesnapshot.AtLTE(at),
 				db_balancesnapshot.DeletedAtIsNil(),
-				db_balancesnapshot.UsageSnapshotNotNil(),
-			).
+			)
+		if requireUsageSnapshot {
+			query = query.Where(db_balancesnapshot.UsageSnapshotNotNil())
+		}
+
+		res, err := query.
 			// in case there were multiple snapshots for the same time return the newest one
 			Order(db_balancesnapshot.ByAt(sql.OrderDesc()), db_balancesnapshot.ByUpdatedAt(sql.OrderDesc())).
 			First(ctx)
@@ -68,12 +79,6 @@ func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedI
 	return entutils.TransactingRepoWithNoValue(ctx, b, func(ctx context.Context, rep *balanceSnapshotRepo) error {
 		commands := make([]*db.BalanceSnapshotCreate, 0, len(balances))
 		for _, snapshot := range balances {
-			if snapshot.UsageSnapshot == nil {
-				return fmt.Errorf("cannot save incomplete balance snapshot at %s", snapshot.At)
-			}
-
-			// Keep writing the legacy usage representation for compatibility
-			// with old readers during the rolling migration.
 			command := rep.db.BalanceSnapshot.Create().
 				SetNamespace(owner.Namespace).
 				SetOwnerID(owner.ID).
@@ -81,8 +86,10 @@ func (b *balanceSnapshotRepo) Save(ctx context.Context, owner models.NamespacedI
 				SetAt(snapshot.At).
 				SetGrantBalances(snapshot.Balances).
 				SetOverage(snapshot.Overage).
-				SetUsage(&snapshot.Usage).
-				SetUsageSnapshot(snapshot.UsageSnapshot)
+				SetUsage(&snapshot.Usage)
+			if snapshot.UsageSnapshot != nil {
+				command = command.SetUsageSnapshot(snapshot.UsageSnapshot)
+			}
 			// Record the conversion regime this snapshot was computed under (OM-400) so
 			// the resume path can refuse to reuse it under a different regime. Pointer
 			// GoType has no SetNillable*, so nil-guard the set (nil = raw).
@@ -106,8 +113,6 @@ func mapBalanceSnapshotEntity(entity *db.BalanceSnapshot) balance.Snapshot {
 		s.UsageSnapshot = entity.UsageSnapshot
 	}
 	if entity.Usage != nil {
-		// Hydrate legacy usage only so subsequent snapshots remain readable by
-		// old binaries during the rolling migration.
 		s.Usage = *entity.Usage
 	}
 	if entity.UnitConfig != nil {

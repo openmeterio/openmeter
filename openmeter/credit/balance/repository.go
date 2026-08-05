@@ -10,8 +10,10 @@ import (
 
 type SnapshotRepo interface {
 	InvalidateAfter(ctx context.Context, owner models.NamespacedID, at time.Time) error
-	// GetLatestValidAt returns the latest complete snapshot.
+	// The returned Snapshot might not have usage data.
 	GetLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time) (Snapshot, error)
+	// GetLatestValidCompleteAt only returns snapshots with complete usage-period state.
+	GetLatestValidCompleteAt(ctx context.Context, owner models.NamespacedID, at time.Time) (Snapshot, error)
 	Save(ctx context.Context, owner models.NamespacedID, balances []Snapshot) error
 }
 

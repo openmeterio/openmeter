@@ -104,8 +104,18 @@ func (s GrantBurnDownHistorySegment) ApplyUsage() balance.Map {
 // NewGrantBurnDownHistory creates a history anchored to startingSnapshot.
 // Segments must continuously cover time beginning at the snapshot.
 func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment, startingSnapshot balance.Snapshot) (GrantBurnDownHistory, error) {
-	if err := validateStartingSnapshot(startingSnapshot); err != nil {
-		return GrantBurnDownHistory{}, err
+	return newGrantBurnDownHistory(segments, startingSnapshot, true)
+}
+
+func newGrantBurnDownHistory(segments []GrantBurnDownHistorySegment, startingSnapshot balance.Snapshot, requireCompleteUsage bool) (GrantBurnDownHistory, error) {
+	if requireCompleteUsage {
+		if err := validateStartingSnapshot(startingSnapshot); err != nil {
+			return GrantBurnDownHistory{}, err
+		}
+	}
+
+	if !requireCompleteUsage && startingSnapshot.UsageSnapshot != nil {
+		return GrantBurnDownHistory{}, fmt.Errorf("legacy history starting snapshot has complete usage-period state")
 	}
 
 	s := make([]GrantBurnDownHistorySegment, len(segments))
@@ -185,8 +195,10 @@ func (g *GrantBurnDownHistory) getSnapshotAtStartOfSegment(segmentIndex int) bal
 	segment := g.segments[segmentIndex]
 	snapshot := g.startingSnapshot.Clone()
 	snapshot.Usage = g.getUsageInPeriodUntilSegment(segmentIndex)
-	usageSnapshot := g.getUsageSnapshotAtStartOfSegment(segmentIndex)
-	snapshot.UsageSnapshot = &usageSnapshot
+	if g.startingSnapshot.UsageSnapshot != nil {
+		usageSnapshot := g.getUsageSnapshotAtStartOfSegment(segmentIndex)
+		snapshot.UsageSnapshot = &usageSnapshot
+	}
 	snapshot.Overage = segment.OverageAtStart
 	snapshot.Balances = segment.BalanceAtStart.Clone()
 	snapshot.At = segment.From

@@ -62,6 +62,13 @@ func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior gra
 		unitConfig = lo.ToPtr(unitConfig.Clone())
 	}
 
+	var usageSnapshot *balance.UsageSnapshot
+	if snap.UsageSnapshot != nil {
+		usageSnapshot = &balance.UsageSnapshot{
+			TotalGrantUsage: grantUsages.Sum().InexactFloat64(),
+		}
+	}
+
 	// The reset snapshot is the point-in-time balance after grant balance
 	// rollover and preserved overage burn.
 	resetSnapshot := balance.Snapshot{
@@ -73,10 +80,7 @@ func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior gra
 			Since: at,
 			Usage: 0,
 		},
-		UsageSnapshot: &balance.UsageSnapshot{
-			Usage:           0,
-			TotalGrantUsage: grantUsages.Sum().InexactFloat64(),
-		},
+		UsageSnapshot: usageSnapshot,
 	}
 
 	// The rollover segment captures the instantaneous transition from rolled-over

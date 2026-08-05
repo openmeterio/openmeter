@@ -24,11 +24,21 @@ type ResetUsageForOwnerParams struct {
 	PreserveOverage bool
 }
 
+type balanceCalculationMode uint8
+
+const (
+	legacyBalanceCalculation balanceCalculationMode = iota
+	completeBalanceCalculation
+)
+
 // Generic connector for balance related operations.
 type BalanceConnector interface {
-	// GetBalanceAt returns the result of the engine.Run at a given time.
+	// GetBalanceAt uses legacy snapshot selection and result semantics.
 	// It tries to minimize execution cost by calculating from the latest valid snapshot, thus the length of the returned history WILL NOT be deterministic.
 	GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error)
+	// GetBalanceAtWithCompleteSnapshots calculates from complete usage snapshots and
+	// persists complete checkpoints for subsequent calculations.
+	GetBalanceAtWithCompleteSnapshots(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error)
 	// GetBalanceForPeriod returns the result of the engine.Run for the provided period.
 	// The returned history will exactly match the provided period.
 	GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (engine.RunResult, error)
@@ -41,7 +51,7 @@ type BalanceConnector interface {
 var _ BalanceConnector = &connector{}
 
 // GetBalanceSinceSnapshot returns the result of the engine.Run since a given snapshot.
-func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
+func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time, mode balanceCalculationMode) (engine.RunResult, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceSinceSnapshot", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
@@ -89,7 +99,7 @@ func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.
 		ResetBehavior:    owner.ResetBehavior,
 		Resets:           resetTimesInclusive.After(period.From),
 		Meter:            owner.Meter,
-	})
+	}, mode)
 	if err != nil {
 		return def, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, at, err)
 	}
@@ -109,11 +119,12 @@ func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	// TODO: it might be the case that we don't save any snapshots as they require a history breakpoint. To solve this,
 	// we should introduce artificial history breakpoints in the engine, but that would result in more streaming.Query calls, so first lets improve the visibility of what's happening.
 	if err := m.snapshotEngineResult(ctx, snapshotParams{
-		grants:     grants,
-		owner:      ownerID,
-		notAfter:   m.getSnapshotNotAfter(periodStart, clock.Now()),
-		meter:      owner.Meter,
-		unitConfig: owner.UnitConfig,
+		grants:          grants,
+		owner:           ownerID,
+		notAfter:        m.getSnapshotNotAfter(periodStart, clock.Now()),
+		meter:           owner.Meter,
+		unitConfig:      owner.UnitConfig,
+		calculationMode: mode,
 	}, result); err != nil {
 		return def, fmt.Errorf("failed to snapshot engine result: %w", err)
 	}
@@ -123,6 +134,14 @@ func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.
 }
 
 func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
+	return m.getBalanceAt(ctx, ownerID, at, legacyBalanceCalculation)
+}
+
+func (m *connector) GetBalanceAtWithCompleteSnapshots(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
+	return m.getBalanceAt(ctx, ownerID, at, completeBalanceCalculation)
+}
+
+func (m *connector) getBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time, mode balanceCalculationMode) (engine.RunResult, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceAt", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
@@ -137,12 +156,12 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 	}
 
 	// get last valid grantbalances
-	snap, err := m.GetLastValidSnapshotAt(ctx, ownerID, at)
+	snap, err := m.getLastValidSnapshotAt(ctx, ownerID, at, mode)
 	if err != nil {
 		return def, err
 	}
 
-	return m.getBalanceSinceSnapshot(ctx, ownerID, snap, at)
+	return m.getBalanceSinceSnapshot(ctx, ownerID, snap, at, mode)
 }
 
 func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (engine.RunResult, error) {
@@ -204,7 +223,7 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 		ResetBehavior:    owner.ResetBehavior,
 		Resets:           resetTimesInclusive.After(snap.At),
 		Meter:            owner.Meter,
-	})
+	}, legacyBalanceCalculation)
 	if err != nil {
 		return def, fmt.Errorf("failed to calculate balance for owner %s at %s: %w", ownerID.ID, period.From, err)
 	}
@@ -303,7 +322,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 		ResetBehavior:    resetBehavior,
 		Resets:           resetTimeline.After(bal.At),
 		Meter:            owner.Meter,
-	})
+	}, legacyBalanceCalculation)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)
 	}
@@ -322,11 +341,12 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 
 		// Let's save the snapshot
 		snap, err = m.saveSnapshot(ctx, snapshotParams{
-			grants:     grants,
-			owner:      ownerID,
-			notAfter:   at,
-			meter:      owner.Meter,
-			unitConfig: owner.UnitConfig,
+			grants:          grants,
+			owner:           ownerID,
+			notAfter:        at,
+			meter:           owner.Meter,
+			unitConfig:      owner.UnitConfig,
+			calculationMode: legacyBalanceCalculation,
 		}, snap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save snapshot: %w", err)

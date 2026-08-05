@@ -19,6 +19,17 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		return RunResult{}, err
 	}
 
+	return e.run(ctx, params)
+}
+
+func (e *engine) RunLegacy(ctx context.Context, params RunParams) (RunResult, error) {
+	params.StartingSnapshot = params.StartingSnapshot.Clone()
+	params.StartingSnapshot.UsageSnapshot = nil
+
+	return e.run(ctx, params)
+}
+
+func (e *engine) run(ctx context.Context, params RunParams) (RunResult, error) {
 	resParams := params.Clone()
 
 	// Let's build the timeline
@@ -88,7 +99,11 @@ func (e *engine) Run(ctx context.Context, params RunParams) (RunResult, error) {
 		}
 	}
 
-	history, err := NewGrantBurnDownHistory(historySegments, params.StartingSnapshot)
+	history, err := newGrantBurnDownHistory(
+		historySegments,
+		params.StartingSnapshot,
+		params.StartingSnapshot.UsageSnapshot != nil,
+	)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
@@ -248,7 +263,8 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		}
 	}
 
-	history, err := NewGrantBurnDownHistory(segments, params.StartingSnapshot)
+	completeUsage := params.StartingSnapshot.UsageSnapshot != nil
+	history, err := newGrantBurnDownHistory(segments, params.StartingSnapshot, completeUsage)
 	if err != nil {
 		return RunResult{}, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
@@ -258,11 +274,14 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 		Since: params.StartingSnapshot.Usage.Since,
 		Usage: params.StartingSnapshot.Usage.Usage + totalUsage,
 	}
-	usageSnapshot := balance.UsageSnapshot{
-		Usage: params.StartingSnapshot.UsageSnapshot.Usage + totalUsage,
-		TotalGrantUsage: alpacadecimal.NewFromFloat(params.StartingSnapshot.UsageSnapshot.TotalGrantUsage).
-			Add(history.TotalGrantUsage()).
-			InexactFloat64(),
+	var usageSnapshot *balance.UsageSnapshot
+	if completeUsage {
+		usageSnapshot = &balance.UsageSnapshot{
+			Usage: params.StartingSnapshot.UsageSnapshot.Usage + totalUsage,
+			TotalGrantUsage: alpacadecimal.NewFromFloat(params.StartingSnapshot.UsageSnapshot.TotalGrantUsage).
+				Add(history.TotalGrantUsage()).
+				InexactFloat64(),
+		}
 	}
 	unitConfig := params.StartingSnapshot.UnitConfig
 	if unitConfig != nil {
@@ -272,7 +291,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 	return RunResult{
 		Snapshot: balance.Snapshot{
 			Usage:         usage,
-			UsageSnapshot: &usageSnapshot,
+			UsageSnapshot: usageSnapshot,
 			Balances:      balancesAtPhaseStart,
 			Overage:       overage,
 			At:            period.To,

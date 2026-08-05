@@ -1145,6 +1145,10 @@ func (n NoopEntitlementBalanceConnector) GetEntitlementBalance(ctx context.Conte
 	return nil, nil
 }
 
+func (n NoopEntitlementBalanceConnector) GetEntitlementBalanceWithCompleteSnapshots(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*meteredentitlement.EntitlementBalance, error) {
+	return nil, nil
+}
+
 func (n NoopEntitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params meteredentitlement.BalanceHistoryParams) ([]meteredentitlement.EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error) {
 	return []meteredentitlement.EntitlementBalanceHistoryWindow{}, engine.GrantBurnDownHistory{}, nil
 }
