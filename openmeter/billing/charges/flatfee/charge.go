@@ -84,6 +84,13 @@ func (c ChargeBase) GetCurrency() currencies.Currency {
 	return c.Intent.GetCurrency()
 }
 
+// GetResolvedCostBasis returns the charge's persisted cost-basis snapshot, or
+// nil if the charge's currency is fiat or the dynamic cost basis has not been
+// resolved yet.
+func (c ChargeBase) GetResolvedCostBasis() *costbasis.State {
+	return c.State.ResolvedCostBasis
+}
+
 func (c ChargeBase) GetInvoiceCurrency() (currencyx.FiatCode, error) {
 	currency := c.GetCurrency()
 	if currency.IsFiat() {

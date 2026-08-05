@@ -39,7 +39,6 @@ import (
 func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 	env := newUsageBasedHandlerTestEnv(t)
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
-	customCurrency := customCurrencyValue.GetCode()
 	customCurrencyIdentity := customCurrencyValue.Reference()
 	settlementCurrency := currencyx.Code("USD")
 	costBasis := alpacadecimal.NewFromFloat(0.25)
@@ -60,20 +59,20 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 
 	// The purchase is immediately and fully consumed by the same charge: no
 	// spendable custom-currency FBO balance and no open custom receivable survive.
-	fboSubAccount := env.customFBOSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)
+	fboSubAccount := env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)
 	require.True(t, env.sumBalance(t, fboSubAccount).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.customOpenReceivableSubAccountForUsageBased(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.ReceivableSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
 
 	// The consumed amount is accrued natively, preserving cost basis and fiat provenance.
-	accruedSubAccount := env.customAccruedSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, &costBasis)
+	accruedSubAccount := env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID))
 	require.True(t, env.sumBalance(t, accruedSubAccount).Equal(alpacadecimal.NewFromInt(40)))
 
 	// The already-agreed, rounded fiat amount becomes the open invoice receivable.
 	require.True(t, env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(-10)))
 
 	// Brokerage carries the exact fiat and native legs of the conversion.
-	require.True(t, env.sumBalance(t, env.fiatBrokerageSubAccountForUsageBased(t, settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(10)))
-	require.True(t, env.sumBalance(t, env.customBrokerageSubAccountForUsageBased(t, customCurrencyIdentity, settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(-40)))
+	require.True(t, env.sumBalance(t, env.BrokerageSubAccountForCurrency(t, currencies.NewCurrencyReference(settlementCurrency), nil, costBasis)).Equal(alpacadecimal.NewFromInt(10)))
+	require.True(t, env.sumBalance(t, env.BrokerageSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(-40)))
 
 	// The atomic group uses the same economic steps as a paid credit purchase,
 	// with the purchased credit consumed immediately before its receivable is
@@ -93,8 +92,8 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 
 	// Like a real credit purchase, issuance identifies only the credit source.
 	// Consumption adds the spend identity while preserving that source.
-	entries := env.transactionGroupEntries(t, result.TransactionGroup.TransactionGroupID)
-	fboEntries := env.entriesForSubAccount(entries, fboSubAccount)
+	entries := env.TransactionGroupEntries(t, result.TransactionGroup.TransactionGroupID)
+	fboEntries := env.EntriesForSubAccount(entries, fboSubAccount)
 	require.Len(t, fboEntries, 2, "issue and immediate consumption must each post to the custom FBO route")
 	issueEntry := fboEntries[0]
 	consumeEntry := fboEntries[1]
@@ -111,7 +110,7 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued(t *testing.T) {
 	require.NotNil(t, consumeEntry.SpendChargeID)
 	require.Equal(t, charge.ID, strings.TrimSpace(*consumeEntry.SpendChargeID))
 
-	accruedEntries := env.entriesForSubAccount(entries, accruedSubAccount)
+	accruedEntries := env.EntriesForSubAccount(entries, accruedSubAccount)
 	require.Len(t, accruedEntries, 1)
 	require.True(t, accruedEntries[0].Amount.Equal(alpacadecimal.NewFromInt(40)))
 	require.NotNil(t, accruedEntries[0].SourceChargeID)
@@ -206,7 +205,6 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued_UsesPersistedCostBasis(t *test
 func TestOnUsageBasedCustomCurrencyOverageAccrued_ProgressiveRuns(t *testing.T) {
 	env := newUsageBasedHandlerTestEnv(t)
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
-	customCurrency := customCurrencyValue.GetCode()
 	customCurrencyIdentity := customCurrencyValue.Reference()
 	settlementCurrency := currencyx.Code("USD")
 	costBasis := alpacadecimal.NewFromFloat(0.25)
@@ -240,13 +238,13 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued_ProgressiveRuns(t *testing.T) 
 
 	// Both runs purchase-and-consume on the same route: FBO and the open custom
 	// receivable stay at zero cumulatively, never accumulating spendable credit.
-	require.True(t, env.sumBalance(t, env.customFBOSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.customOpenReceivableSubAccountForUsageBased(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.customAccruedSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, &costBasis)).Equal(alpacadecimal.NewFromInt(60)))
+	require.True(t, env.sumBalance(t, env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.ReceivableSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID))).Equal(alpacadecimal.NewFromInt(60)))
 
 	require.True(t, env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(-15)))
-	require.True(t, env.sumBalance(t, env.fiatBrokerageSubAccountForUsageBased(t, settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(15)))
-	require.True(t, env.sumBalance(t, env.customBrokerageSubAccountForUsageBased(t, customCurrencyIdentity, settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(-60)))
+	require.True(t, env.sumBalance(t, env.BrokerageSubAccountForCurrency(t, currencies.NewCurrencyReference(settlementCurrency), nil, costBasis)).Equal(alpacadecimal.NewFromInt(15)))
+	require.True(t, env.sumBalance(t, env.BrokerageSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(-60)))
 }
 
 // TestOnUsageBasedCustomCurrencyPaymentLifecycle exercises accrual, authorization,
@@ -256,7 +254,6 @@ func TestOnUsageBasedCustomCurrencyOverageAccrued_ProgressiveRuns(t *testing.T) 
 func TestOnUsageBasedCustomCurrencyPaymentLifecycle(t *testing.T) {
 	env := newUsageBasedHandlerTestEnv(t)
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
-	customCurrency := customCurrencyValue.GetCode()
 	customCurrencyIdentity := customCurrencyValue.Reference()
 	settlementCurrency := currencyx.Code("USD")
 	costBasis := alpacadecimal.NewFromFloat(0.25)
@@ -284,7 +281,7 @@ func TestOnUsageBasedCustomCurrencyPaymentLifecycle(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, authorizeRef.TransactionGroupID)
-	for _, entry := range env.transactionGroupEntries(t, authorizeRef.TransactionGroupID) {
+	for _, entry := range env.TransactionGroupEntries(t, authorizeRef.TransactionGroupID) {
 		require.NotNil(t, entry.SourceChargeID)
 		require.Equal(t, charge.ID, strings.TrimSpace(*entry.SourceChargeID))
 		require.Nil(t, entry.SpendChargeID)
@@ -301,7 +298,7 @@ func TestOnUsageBasedCustomCurrencyPaymentLifecycle(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, settleRef.TransactionGroupID)
-	for _, entry := range env.transactionGroupEntries(t, settleRef.TransactionGroupID) {
+	for _, entry := range env.TransactionGroupEntries(t, settleRef.TransactionGroupID) {
 		require.NotNil(t, entry.SourceChargeID)
 		require.Equal(t, charge.ID, strings.TrimSpace(*entry.SourceChargeID))
 		require.Nil(t, entry.SpendChargeID)
@@ -313,9 +310,9 @@ func TestOnUsageBasedCustomCurrencyPaymentLifecycle(t *testing.T) {
 	// Authorization and settlement never touch the custom-currency side: FBO
 	// stays empty, the custom receivable stays closed, and the purchased
 	// credit that was consumed at accrual time remains the only trace.
-	require.True(t, env.sumBalance(t, env.customFBOSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.customOpenReceivableSubAccountForUsageBased(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
-	require.True(t, env.sumBalance(t, env.customAccruedSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, &costBasis)).Equal(alpacadecimal.NewFromInt(40)))
+	require.True(t, env.sumBalance(t, env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.ReceivableSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID))).Equal(alpacadecimal.NewFromInt(40)))
 
 	// No custom-currency receivable or payment exposure is ever created for the overage.
 	require.True(t, env.sumBalance(t, env.customReceivableSubAccountForUsageBasedFeature(t, customCurrencyValue.GetCode(), customCurrencyValue.Reference(), "api_requests")).Equal(alpacadecimal.Zero))
@@ -348,8 +345,8 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued_CustomCurrency(t *testing.T) {
 		require.Len(t, realizations, 1)
 		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(30)))
 
-		require.True(t, env.sumBalance(t, env.customFBOSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.customAccruedSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, &costBasis)).Equal(alpacadecimal.NewFromInt(30)))
+		require.True(t, env.sumBalance(t, env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID))).Equal(alpacadecimal.NewFromInt(30)))
 	})
 
 	t.Run("credit_only advances an uncovered custom currency amount", func(t *testing.T) {
@@ -465,8 +462,8 @@ func TestOnUsageBasedCreditThenInvoiceCreditAllocationCorrection_CustomCurrency(
 
 	// The correction only moves 20 ACME back into FBO out of the custom-currency
 	// accrued bucket; it never creates or touches a fiat receivable/accrued/payment route.
-	require.True(t, env.sumBalance(t, env.customFBOSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(20)))
-	require.True(t, env.sumBalance(t, env.customAccruedSubAccountForUsageBased(t, customCurrency, customCurrencyIdentity, &settlementCurrency, &costBasis)).Equal(alpacadecimal.NewFromInt(40)))
+	require.True(t, env.sumBalance(t, env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).Equal(alpacadecimal.NewFromInt(20)))
+	require.True(t, env.sumBalance(t, env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID))).Equal(alpacadecimal.NewFromInt(40)))
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.invoiceAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 }
@@ -728,38 +725,10 @@ func (e *usageBasedHandlerTestEnv) fundCustomFBO(t *testing.T, currency currency
 	require.NoError(t, err)
 }
 
-func (e *usageBasedHandlerTestEnv) customFBOSubAccountForUsageBased(t *testing.T, currency currencyx.Code, customCurrency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:          customCurrency,
-		CostBasisCurrency: costBasisCurrency,
-		CostBasis:         &costBasis,
-		CreditPriority:    ledger.DefaultCustomerFBOPriority,
-	})
-	require.NoError(t, err)
-
-	return subAccount
-}
-
-func (e *usageBasedHandlerTestEnv) customAccruedSubAccountForUsageBased(t *testing.T, currency currencyx.Code, customCurrency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:          customCurrency,
-		CostBasisCurrency: costBasisCurrency,
-		TaxCode:           lo.ToPtr(testChargeTaxCodeID),
-		CostBasis:         costBasis,
-	})
-	require.NoError(t, err)
-
-	return subAccount
-}
-
 func (e *usageBasedHandlerTestEnv) customUnknownAccruedSubAccountForUsageBased(t *testing.T, currency currencyx.Code, customCurrency currencies.CurrencyReference) ledger.SubAccount {
 	t.Helper()
 
-	return e.customAccruedSubAccountForUsageBased(t, currency, customCurrency, nil, nil)
+	return e.AccruedSubAccountForCurrency(t, customCurrency, nil, nil, lo.ToPtr(testChargeTaxCodeID))
 }
 
 func (e *usageBasedHandlerTestEnv) customUnknownFboSubAccountForUsageBased(t *testing.T, currency currencyx.Code, customCurrency currencies.CurrencyReference) ledger.SubAccount {
@@ -782,51 +751,6 @@ func (e *usageBasedHandlerTestEnv) customReceivableSubAccountForUsageBasedFeatur
 		CostBasis:                      nil,
 		Features:                       []string{featureKey},
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
-	})
-	require.NoError(t, err)
-
-	return subAccount
-}
-
-// customOpenReceivableSubAccountForUsageBased is the open custom-currency
-// receivable route a purchase-backed overage issues into and then converts
-// away, at the charge's known cost basis. Unlike
-// customReceivableSubAccountForUsageBasedFeature (credit_only's unknown-cost-
-// basis, feature-scoped advance route), overage purchases are not partitioned
-// by feature.
-func (e *usageBasedHandlerTestEnv) customOpenReceivableSubAccountForUsageBased(t *testing.T, customCurrency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       customCurrency,
-		CostBasisCurrency:              costBasisCurrency,
-		CostBasis:                      &costBasis,
-		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
-	})
-	require.NoError(t, err)
-
-	return subAccount
-}
-
-func (e *usageBasedHandlerTestEnv) fiatBrokerageSubAccountForUsageBased(t *testing.T, currency currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  currencies.NewCurrencyReference(currency),
-		CostBasis: &costBasis,
-	})
-	require.NoError(t, err)
-
-	return subAccount
-}
-
-func (e *usageBasedHandlerTestEnv) customBrokerageSubAccountForUsageBased(t *testing.T, customCurrency currencies.CurrencyReference, costBasisCurrency currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:          customCurrency,
-		CostBasisCurrency: &costBasisCurrency,
-		CostBasis:         &costBasis,
 	})
 	require.NoError(t, err)
 
