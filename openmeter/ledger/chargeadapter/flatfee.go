@@ -288,9 +288,6 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 	}
 
 	intent := input.Charge.Intent
-	if intent.GetCurrency().IsCustom() {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", meta.ErrCustomCurrencyNotSupported)
-	}
 
 	invoiceCurrency, err := input.Charge.GetInvoiceCurrency()
 	if err != nil {
@@ -355,9 +352,6 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 	}
 
 	intent := input.Charge.Intent
-	if intent.GetCurrency().IsCustom() {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", meta.ErrCustomCurrencyNotSupported)
-	}
 
 	invoiceCurrency, err := input.Charge.GetInvoiceCurrency()
 	if err != nil {
