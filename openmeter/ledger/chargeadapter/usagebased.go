@@ -105,6 +105,9 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 	}
 
 	intent := input.Charge.Intent
+	if intent.GetCurrency().IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", meta.ErrCustomCurrencyNotSupported)
+	}
 
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
@@ -182,6 +185,9 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 	}
 
 	intent := input.Charge.Intent
+	if intent.GetCurrency().IsCustom() {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", meta.ErrCustomCurrencyNotSupported)
+	}
 
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
