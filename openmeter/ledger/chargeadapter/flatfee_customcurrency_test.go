@@ -34,7 +34,6 @@ import (
 func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 	env := newFlatFeeHandlerTestEnv(t)
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
-	customCurrency := customCurrencyValue.GetCode()
 	customCurrencyIdentity := customCurrencyValue.Reference()
 	settlementCurrency := currencyx.Code("USD")
 	costBasis := alpacadecimal.NewFromFloat(0.25)
@@ -55,20 +54,20 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 
 	// The purchase is immediately and fully consumed by the same charge: no
 	// spendable custom-currency FBO balance and no open custom receivable survive.
-	fboSubAccount := env.customFBOSubAccountForFlatFee(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)
+	fboSubAccount := env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)
 	require.Equal(t, 0.0, env.sumBalance(t, fboSubAccount).InexactFloat64())
-	require.Equal(t, 0.0, env.sumBalance(t, env.customOpenReceivableSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, 0.0, env.sumBalance(t, env.ReceivableSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
 
 	// The consumed amount is accrued natively, preserving cost basis and fiat provenance.
-	accruedSubAccount := env.customAccruedSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, &costBasis)
+	accruedSubAccount := env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID))
 	require.Equal(t, 40.0, env.sumBalance(t, accruedSubAccount).InexactFloat64())
 
 	// The already-agreed, rounded fiat amount becomes the open invoice receivable.
 	require.Equal(t, -10.0, env.sumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).InexactFloat64())
 
 	// Brokerage carries the exact fiat and native legs of the conversion.
-	require.Equal(t, 10.0, env.sumBalance(t, env.fiatBrokerageSubAccountForFlatFee(t, settlementCurrency, costBasis)).InexactFloat64())
-	require.Equal(t, -40.0, env.sumBalance(t, env.customBrokerageSubAccountForFlatFee(t, customCurrencyIdentity, settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, 10.0, env.sumBalance(t, env.BrokerageSubAccountForCurrency(t, currencies.NewCurrencyReference(settlementCurrency), nil, costBasis)).InexactFloat64())
+	require.Equal(t, -40.0, env.sumBalance(t, env.BrokerageSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
 
 	// The atomic group uses the same economic steps as a paid credit purchase,
 	// with the purchased credit consumed immediately before its receivable is
@@ -88,8 +87,8 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 
 	// Like a real credit purchase, issuance identifies only the credit source.
 	// Consumption adds the spend identity while preserving that source.
-	entries := env.transactionGroupEntries(t, result.TransactionGroup.TransactionGroupID)
-	fboEntries := env.entriesForSubAccount(entries, fboSubAccount)
+	entries := env.TransactionGroupEntries(t, result.TransactionGroup.TransactionGroupID)
+	fboEntries := env.EntriesForSubAccount(entries, fboSubAccount)
 	require.Len(t, fboEntries, 2, "issue and immediate consumption must each post to the custom FBO route")
 	issueEntry := fboEntries[0]
 	consumeEntry := fboEntries[1]
@@ -106,7 +105,7 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 	require.NotNil(t, consumeEntry.SpendChargeID)
 	require.Equal(t, charge.ID, strings.TrimSpace(*consumeEntry.SpendChargeID))
 
-	accruedEntries := env.entriesForSubAccount(entries, accruedSubAccount)
+	accruedEntries := env.EntriesForSubAccount(entries, accruedSubAccount)
 	require.Len(t, accruedEntries, 1)
 	require.True(t, accruedEntries[0].Amount.Equal(alpacadecimal.NewFromInt(40)))
 	require.NotNil(t, accruedEntries[0].SourceChargeID)
@@ -187,7 +186,6 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued_UsesPersistedCostBasis(t *testing
 func TestOnFlatFeeCustomCurrencyPaymentLifecycle(t *testing.T) {
 	env := newFlatFeeHandlerTestEnv(t)
 	customCurrencyValue := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
-	customCurrency := customCurrencyValue.GetCode()
 	customCurrencyIdentity := customCurrencyValue.Reference()
 	settlementCurrency := currencyx.Code("USD")
 	costBasis := alpacadecimal.NewFromFloat(0.25)
@@ -214,7 +212,7 @@ func TestOnFlatFeeCustomCurrencyPaymentLifecycle(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, authorizeRef.TransactionGroupID)
-	for _, entry := range env.transactionGroupEntries(t, authorizeRef.TransactionGroupID) {
+	for _, entry := range env.TransactionGroupEntries(t, authorizeRef.TransactionGroupID) {
 		require.NotNil(t, entry.SourceChargeID)
 		require.Equal(t, charge.ID, strings.TrimSpace(*entry.SourceChargeID))
 		require.Nil(t, entry.SpendChargeID)
@@ -231,7 +229,7 @@ func TestOnFlatFeeCustomCurrencyPaymentLifecycle(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, settleRef.TransactionGroupID)
-	for _, entry := range env.transactionGroupEntries(t, settleRef.TransactionGroupID) {
+	for _, entry := range env.TransactionGroupEntries(t, settleRef.TransactionGroupID) {
 		require.NotNil(t, entry.SourceChargeID)
 		require.Equal(t, charge.ID, strings.TrimSpace(*entry.SourceChargeID))
 		require.Nil(t, entry.SpendChargeID)
@@ -243,9 +241,9 @@ func TestOnFlatFeeCustomCurrencyPaymentLifecycle(t *testing.T) {
 	// Authorization and settlement never touch the custom-currency side: FBO
 	// stays empty, the custom receivable stays closed, and the purchased
 	// credit that was consumed at accrual time remains the only trace.
-	require.Equal(t, 0.0, env.sumBalance(t, env.customFBOSubAccountForFlatFee(t, customCurrency, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
-	require.Equal(t, 0.0, env.sumBalance(t, env.customOpenReceivableSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
-	require.Equal(t, 40.0, env.sumBalance(t, env.customAccruedSubAccountForFlatFee(t, customCurrencyIdentity, &settlementCurrency, &costBasis)).InexactFloat64())
+	require.Equal(t, 0.0, env.sumBalance(t, env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, 0.0, env.sumBalance(t, env.ReceivableSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, 40.0, env.sumBalance(t, env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID))).InexactFloat64())
 }
 
 // newCustomCurrencyCreditThenInvoiceCharge builds a credit_then_invoice charge
@@ -314,79 +312,6 @@ func (e *flatFeeHandlerTestEnv) newCustomCurrencyCreditThenInvoiceCharge(t *test
 			},
 		},
 	}
-}
-
-// customFBOSubAccountForFlatFee is the spendable custom-currency FBO route a
-// purchase-backed overage issues into and then immediately consumes, at the
-// charge's known cost basis.
-func (e *flatFeeHandlerTestEnv) customFBOSubAccountForFlatFee(t *testing.T, currency currencyx.Code, customCurrency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
-		Currency:          customCurrency,
-		CostBasisCurrency: costBasisCurrency,
-		CostBasis:         &costBasis,
-		CreditPriority:    ledger.DefaultCustomerFBOPriority,
-	})
-	require.NoError(t, err)
-
-	return subAccount
-}
-
-// customOpenReceivableSubAccountForFlatFee is the open custom-currency
-// receivable route a purchase-backed overage issues into and then converts
-// away, at the charge's known cost basis.
-func (e *flatFeeHandlerTestEnv) customOpenReceivableSubAccountForFlatFee(t *testing.T, customCurrency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       customCurrency,
-		CostBasisCurrency:              costBasisCurrency,
-		CostBasis:                      &costBasis,
-		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
-	})
-	require.NoError(t, err)
-
-	return subAccount
-}
-
-func (e *flatFeeHandlerTestEnv) customAccruedSubAccountForFlatFee(t *testing.T, customCurrency currencies.CurrencyReference, costBasisCurrency *currencyx.Code, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
-		Currency:          customCurrency,
-		CostBasisCurrency: costBasisCurrency,
-		TaxCode:           lo.ToPtr(testChargeTaxCodeID),
-		CostBasis:         costBasis,
-	})
-	require.NoError(t, err)
-
-	return subAccount
-}
-
-func (e *flatFeeHandlerTestEnv) fiatBrokerageSubAccountForFlatFee(t *testing.T, currency currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  currencies.NewCurrencyReference(currency),
-		CostBasis: &costBasis,
-	})
-	require.NoError(t, err)
-
-	return subAccount
-}
-
-func (e *flatFeeHandlerTestEnv) customBrokerageSubAccountForFlatFee(t *testing.T, customCurrency currencies.CurrencyReference, costBasisCurrency currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
-	t.Helper()
-
-	subAccount, err := e.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:          customCurrency,
-		CostBasisCurrency: &costBasisCurrency,
-		CostBasis:         &costBasis,
-	})
-	require.NoError(t, err)
-
-	return subAccount
 }
 
 func (e *flatFeeHandlerTestEnv) newCustomOverageRun(overageTotals totals.Totals) flatfee.RealizationRun {

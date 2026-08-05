@@ -297,7 +297,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get invoice currency: %w", err)
 	}
 
-	costBasis, err := flatFeeInvoiceCostBasis(input.Charge)
+	costBasis, err := resolveInvoiceCostBasis(input.Charge)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", err)
 	}
@@ -364,7 +364,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get invoice currency: %w", err)
 	}
 
-	costBasis, err := flatFeeInvoiceCostBasis(input.Charge)
+	costBasis, err := resolveInvoiceCostBasis(input.Charge)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)
 	}
@@ -433,22 +433,3 @@ func validateSettlementMode(actual productcatalog.SettlementMode, allowed ...pro
 }
 
 var invoiceCostBasis = lo.ToPtr(alpacadecimal.NewFromInt(1))
-
-// flatFeeInvoiceCostBasis returns the cost-basis route the invoice payment
-// lifecycle must authorize and settle against. Fiat charges always settle at
-// par (cost basis 1). Custom-currency charges settle at the same persisted
-// rate the overage accrual already converted through: the fiat receivable
-// created by OnCustomCurrencyOverageAccrued lives on that rate's route, not
-// on the par route, so payment authorization/settlement must reference it
-// rather than re-resolving or recomputing a rate.
-func flatFeeInvoiceCostBasis(charge flatfee.Charge) (*alpacadecimal.Decimal, error) {
-	if !charge.Intent.GetCurrency().IsCustom() {
-		return invoiceCostBasis, nil
-	}
-
-	if charge.State.ResolvedCostBasis == nil {
-		return nil, fmt.Errorf("custom currency charge is missing a resolved cost basis")
-	}
-
-	return &charge.State.ResolvedCostBasis.CostBasis, nil
-}
