@@ -23,7 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -157,14 +156,12 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			return nil, err
 		}
 
-		featureKeys, err := input.Intents.CollectFeatureKeys()
+		featureRefs, err := input.Intents.CollectFeatureRefs()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("collecting feature refs: %w", err)
 		}
 
-		createFeatureMeters, err := s.featureService.ResolveFeatureMeters(ctx, input.Namespace, lo.Map(featureKeys, func(featureKey string, _ int) ref.IDOrKey {
-			return ref.IDOrKey{Key: featureKey}
-		})...)
+		createFeatureMeters, err := s.featureService.ResolveFeatureMeters(ctx, input.Namespace, featureRefs...)
 		if err != nil {
 			return nil, fmt.Errorf("resolve create feature meters: %w", err)
 		}

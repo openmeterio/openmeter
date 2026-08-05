@@ -254,9 +254,16 @@ model ChargeFlatFee {
   /**
    * The feature associated with the charge, when applicable.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read)
   @summary("Feature key")
   feature_key?: string;
+
+  /**
+   * The feature ID associated with the charge.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @summary("Feature id")
+  feature_id?: string;
 
   /**
    * The proration configuration of the charge.
@@ -339,9 +346,16 @@ model ChargeUsageBased {
   /**
    * The feature associated with the charge.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read)
   @summary("Feature key")
   feature_key: string;
+
+  /**
+   * The feature ID associated with the charge.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @summary("Feature id")
+  feature_id: string;
 
   // Status fields
 

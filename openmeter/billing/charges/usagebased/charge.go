@@ -240,6 +240,7 @@ type Intent struct {
 	IntentMutableFields `json:"intentMutableFields"`
 	SettlementMode      productcatalog.SettlementMode `json:"settlementMode"`
 	FeatureKey          string                        `json:"featureKey"`
+	FeatureID           string                        `json:"featureId"`
 	CostBasis           *costbasis.Intent             `json:"costBasis,omitempty"`
 }
 
@@ -275,8 +276,8 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
 
-	if i.FeatureKey == "" {
-		errs = append(errs, fmt.Errorf("feature key is required"))
+	if i.FeatureID == "" && i.FeatureKey == "" {
+		errs = append(errs, fmt.Errorf("either feature id or feature key is required"))
 	}
 
 	if err := validateCostBasis(i.Currency, i.SettlementMode, i.CostBasis); err != nil {
@@ -284,6 +285,13 @@ func (i Intent) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i Intent) GetFeatureRef() ref.IDOrKey {
+	if i.FeatureID != "" {
+		return ref.IDOrKey{ID: i.FeatureID}
+	}
+	return ref.IDOrKey{Key: i.FeatureKey}
 }
 
 func validateCostBasis(currency currencies.Currency, settlementMode productcatalog.SettlementMode, intent *costbasis.Intent) error {

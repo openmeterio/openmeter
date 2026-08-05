@@ -3687,8 +3687,8 @@ export interface CreateChargeFlatFeeRequest {
   paymentTerm: PricePaymentTerm
   /** The discounts applied to the charge. */
   discounts?: ChargeFlatFeeDiscounts
-  /** The feature associated with the charge, when applicable. */
-  featureKey?: string
+  /** The feature ID associated with the charge. */
+  featureId?: string
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
   /** The amount before proration of the charge. */
@@ -4434,6 +4434,8 @@ export interface ChargeFlatFee {
   discounts?: ChargeFlatFeeDiscounts
   /** The feature associated with the charge, when applicable. */
   featureKey?: string
+  /** The feature ID associated with the charge. */
+  featureId?: string
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
   /** The amount after proration of the charge. */
@@ -4516,8 +4518,8 @@ export interface CreateChargeUsageBasedRequest {
   taxConfig?: TaxConfig
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
-  /** The feature associated with the charge. */
-  featureKey: string
+  /** The feature ID associated with the charge. */
+  featureId: string
   /** The price of the charge. */
   price: Price
   /** The full, unprorated service period of the charge. */
@@ -4726,6 +4728,8 @@ export interface ChargeUsageBased {
   discounts?: RateCardDiscounts
   /** The feature associated with the charge. */
   featureKey: string
+  /** The feature ID associated with the charge. */
+  featureId: string
   /** Aggregated booked and realtime totals for the charge. */
   totals: ChargeTotals
   /** The price of the charge. */

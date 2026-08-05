@@ -43,14 +43,14 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 		chargeIntent = charges.NewChargeIntent(flatfee.Intent{
 			Intent:              intent,
 			IntentMutableFields: input.FlatFee.IntentMutableFields,
-			FeatureKey:          input.FlatFee.FeatureKey,
+			FeatureID:           input.FlatFee.FeatureID,
 			SettlementMode:      input.FlatFee.SettlementMode,
 		})
 	case input.UsageBased != nil:
 		chargeIntent = charges.NewChargeIntent(usagebased.Intent{
 			Intent:              intent,
 			IntentMutableFields: input.UsageBased.IntentMutableFields,
-			FeatureKey:          input.UsageBased.FeatureKey,
+			FeatureID:           input.UsageBased.FeatureID,
 			SettlementMode:      input.UsageBased.SettlementMode,
 		})
 	}

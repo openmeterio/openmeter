@@ -4892,6 +4892,11 @@ components:
           type: string
           description: The feature associated with the charge, when applicable.
           title: Feature key
+          readOnly: true
+        feature_id:
+          type: string
+          description: The feature ID associated with the charge.
+          title: Feature id
         proration_configuration:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
@@ -5094,6 +5099,7 @@ components:
         - billing_period
         - settlement_mode
         - feature_key
+        - feature_id
         - totals
         - price
       properties:
@@ -5225,6 +5231,11 @@ components:
           type: string
           description: The feature associated with the charge.
           title: Feature key
+          readOnly: true
+        feature_id:
+          type: string
+          description: The feature ID associated with the charge.
+          title: Feature id
         totals:
           allOf:
             - $ref: '#/components/schemas/BillingChargeTotals'
@@ -9321,10 +9332,10 @@ components:
             - $ref: '#/components/schemas/BillingChargeFlatFeeDiscounts'
           description: The discounts applied to the charge.
           title: Discounts
-        feature_key:
+        feature_id:
           type: string
-          description: The feature associated with the charge, when applicable.
-          title: Feature key
+          description: The feature ID associated with the charge.
+          title: Feature id
         proration_configuration:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
@@ -9368,7 +9379,7 @@ components:
         - invoice_at
         - service_period
         - settlement_mode
-        - feature_key
+        - feature_id
         - price
       properties:
         name:
@@ -9428,10 +9439,10 @@ components:
             - $ref: '#/components/schemas/BillingRateCardDiscounts'
           description: Discounts applied to the usage-based charge.
           title: Discounts
-        feature_key:
+        feature_id:
           type: string
-          description: The feature associated with the charge.
-          title: Feature key
+          description: The feature ID associated with the charge.
+          title: Feature id
         price:
           allOf:
             - $ref: '#/components/schemas/BillingPrice'

@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -46,10 +47,17 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 				}
 			}
 
-			featureMeter, err := input.FeatureMeters.Get(chargeIntent.FeatureKey, false)
+			featureMeter, err := feature.ResolveByRef(input.FeatureMeters, feature.FeatureMeterRef{
+				IDOrKey:      chargeIntent.GetFeatureRef(),
+				RequireMeter: false,
+			})
 			if err != nil {
-				return usagebased.CreateIntent{}, fmt.Errorf("resolve usage based feature for key %s: %w", chargeIntent.FeatureKey, err)
+				return usagebased.CreateIntent{}, fmt.Errorf("resolve usage based feature for key %+v: %w", chargeIntent.GetFeatureRef(), err)
 			}
+
+			// note: we must set the feature key on the intent, because no other place is setting it
+			// and we want to persist it
+			chargeIntent.FeatureKey = featureMeter.Feature.Key
 
 			return usagebased.CreateIntent{
 				Intent:            chargeIntent.AsOverridableIntent(),
