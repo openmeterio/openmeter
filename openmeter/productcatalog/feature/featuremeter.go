@@ -53,14 +53,19 @@ func (f FeatureMeterCollection) GetByID(featureID string, requireMeter bool) (Fe
 	return featureMeter, nil
 }
 
-func ResolveByRef(fm FeatureMeters, r ref.IDOrKey, requireMeter bool) (FeatureMeter, error) {
+type FeatureMeterRef struct {
+	IDOrKey      ref.IDOrKey
+	RequireMeter bool
+}
+
+func ResolveByRef(fm FeatureMeters, r FeatureMeterRef) (FeatureMeter, error) {
 	switch {
-	case r.Key != "" && r.ID != "":
+	case r.IDOrKey.Key != "" && r.IDOrKey.ID != "":
 		return FeatureMeter{}, fmt.Errorf("feature reference must have either key or ID, not both")
-	case r.Key != "":
-		return fm.Get(r.Key, requireMeter)
-	case r.ID != "":
-		return fm.GetByID(r.ID, requireMeter)
+	case r.IDOrKey.Key != "":
+		return fm.Get(r.IDOrKey.Key, r.RequireMeter)
+	case r.IDOrKey.ID != "":
+		return fm.GetByID(r.IDOrKey.ID, r.RequireMeter)
 	default:
 		return FeatureMeter{}, fmt.Errorf("feature reference must have either key or ID")
 	}

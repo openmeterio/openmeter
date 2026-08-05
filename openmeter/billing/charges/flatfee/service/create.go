@@ -61,7 +61,10 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			}
 			var featureID *string
 			if featureRef != nil {
-				featureMeter, err := feature.ResolveByRef(input.FeatureMeters, *featureRef, false)
+				featureMeter, err := feature.ResolveByRef(input.FeatureMeters, feature.FeatureMeterRef{
+					IDOrKey:      *featureRef,
+					RequireMeter: false,
+				})
 				if err != nil {
 					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolve flat fee feature %+v: %w", *featureRef, err)
 				}

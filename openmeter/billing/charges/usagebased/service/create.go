@@ -47,7 +47,10 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 				}
 			}
 
-			featureMeter, err := feature.ResolveByRef(input.FeatureMeters, chargeIntent.GetFeatureRef(), false)
+			featureMeter, err := feature.ResolveByRef(input.FeatureMeters, feature.FeatureMeterRef{
+				IDOrKey:      chargeIntent.GetFeatureRef(),
+				RequireMeter: false,
+			})
 			if err != nil {
 				return usagebased.CreateIntent{}, fmt.Errorf("resolve usage based feature for key %+v: %w", chargeIntent.GetFeatureRef(), err)
 			}
