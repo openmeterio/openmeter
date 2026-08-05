@@ -85,6 +85,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	// Mock the SQL query and response
 	mockRows1 := NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), []interface{}{
+		"$.value",
 		"test-namespace",
 		"test-event",
 		from.Unix(),
