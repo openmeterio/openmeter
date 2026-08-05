@@ -520,7 +520,7 @@ model ChargeBase<T extends ChargeType> {
    */
   @visibility(Lifecycle.Read)
   @summary("Customer")
-  customer: CustomerReference;
+  customer: ChargesCustomerOrReference;
 
   /**
    * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
@@ -693,6 +693,16 @@ model ChargeFlatFee {
   @visibility(Lifecycle.Read)
   @summary("System intent")
   system_intent?: ChargeFlatFeeSystemIntent;
+}
+
+/**
+ * A customer or a reference to a customer.
+ */
+@oneOf
+@friendlyName("BillingChargesCustomerOrReference")
+union ChargesCustomerOrReference {
+  customer: Customer,
+  ref: CustomerReference,
 }
 
 /**
