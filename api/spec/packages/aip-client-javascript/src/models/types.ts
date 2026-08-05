@@ -4802,7 +4802,7 @@ export interface ChargeFlatFee {
   /** The type of the charge. */
   type: 'flat_fee'
   /** The customer owning the charge. */
-  customer: BillingCustomerReference
+  customer: ChargesCustomerOrReference
   /**
    * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
    * overridden by the API user.
@@ -4929,7 +4929,7 @@ export interface ChargeUsageBased {
   /** The type of the charge. */
   type: 'usage_based'
   /** The customer owning the charge. */
-  customer: BillingCustomerReference
+  customer: ChargesCustomerOrReference
   /**
    * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
    * overridden by the API user.
@@ -5810,6 +5810,9 @@ export type ChargeRealizationDetailedLine =
 
 /** Fiat or custom currency. */
 export type Currency = CurrencyFiat | CurrencyCustom
+
+/** A customer or a reference to a customer. */
+export type ChargesCustomerOrReference = Customer | BillingCustomerReference
 
 /**
  * The alignment for collecting the pending line items into an invoice.

@@ -4764,6 +4764,10 @@ export const customerPagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
+export const chargesCustomerOrReference = z
+  .union([customer, billingCustomerReference])
+  .describe('A customer or a reference to a customer.')
+
 export const party = z
   .object({
     id: z.string().optional().describe('Unique identifier for the party.'),
@@ -5466,7 +5470,7 @@ export const chargeFlatFee = z
     updatedAt: dateTime,
     deletedAt: dateTime.optional(),
     type: z.literal('flat_fee').describe('The type of the charge.'),
-    customer: billingCustomerReference,
+    customer: chargesCustomerOrReference,
     lifecycleController: lifecycleController,
     subscription: subscriptionReference.optional(),
     currency: currencyCode,
@@ -5548,7 +5552,7 @@ export const chargeUsageBased = z
     updatedAt: dateTime,
     deletedAt: dateTime.optional(),
     type: z.literal('usage_based').describe('The type of the charge.'),
-    customer: billingCustomerReference,
+    customer: chargesCustomerOrReference,
     lifecycleController: lifecycleController,
     subscription: subscriptionReference.optional(),
     currency: currencyCode,
@@ -11874,6 +11878,10 @@ export const customerPagePaginatedResponseWire = z
   })
   .describe('Page paginated response.')
 
+export const chargesCustomerOrReferenceWire = z
+  .union([customerWire, billingCustomerReferenceWire])
+  .describe('A customer or a reference to a customer.')
+
 export const partyWire = z
   .strictObject({
     id: z.string().optional().describe('Unique identifier for the party.'),
@@ -12581,7 +12589,7 @@ export const chargeFlatFeeWire = z
     updated_at: dateTimeWire,
     deleted_at: dateTimeWire.optional(),
     type: z.literal('flat_fee').describe('The type of the charge.'),
-    customer: billingCustomerReferenceWire,
+    customer: chargesCustomerOrReferenceWire,
     lifecycle_controller: lifecycleControllerWire,
     subscription: subscriptionReferenceWire.optional(),
     currency: currencyCodeWire,
@@ -12663,7 +12671,7 @@ export const chargeUsageBasedWire = z
     updated_at: dateTimeWire,
     deleted_at: dateTimeWire.optional(),
     type: z.literal('usage_based').describe('The type of the charge.'),
-    customer: billingCustomerReferenceWire,
+    customer: chargesCustomerOrReferenceWire,
     lifecycle_controller: lifecycleControllerWire,
     subscription: subscriptionReferenceWire.optional(),
     currency: currencyCodeWire,

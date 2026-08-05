@@ -407,11 +407,45 @@ describe('wire walker edge cases', () => {
 
   it('renames the object variant of a scalar-or-object union', () => {
     // The realistic non-discriminated shape (a filter field: string | { op }).
-    // The codegen gate guarantees at most one object variant, so it is picked
-    // unambiguously; scalar data flows through the scalar branch unchanged.
+    // Only one option is object-shaped, so it is picked unambiguously; scalar
+    // data flows through the scalar branch unchanged.
     const union = z.union([z.string(), z.object({ fooBar: z.string() })])
     expect(toWire({ fooBar: 'x' }, union)).toEqual({ foo_bar: 'x' })
     expect(toWire('plain', union)).toBe('plain')
+  })
+
+  it('picks the object variant that covers the data in a subset union', () => {
+    // The realistic subset shape (charge.customer: the full customer, or just a
+    // reference to it). The codegen gate guarantees such variants agree on every
+    // key they share, so the pick only decides which keys survive.
+    const union = z.union([
+      z.object({ id: z.string(), fooBar: z.string() }),
+      z.object({ id: z.string() }),
+    ])
+    expect(toWire({ id: 'x', fooBar: 'y' }, union)).toEqual({
+      id: 'x',
+      foo_bar: 'y',
+    })
+    expect(fromWire({ id: 'x', foo_bar: 'y' }, union)).toEqual({
+      id: 'x',
+      fooBar: 'y',
+    })
+    expect(toWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+    expect(fromWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+  })
+
+  it('does not apply a wider variant default to narrow-variant data', () => {
+    // The narrowest shape wins a tie on matched keys, so a required-with-default
+    // field the value never carried is not materialized onto the wire.
+    const union = z.union([
+      z.object({ id: z.string(), kind: z.string().default('full') }),
+      z.object({ id: z.string() }),
+    ])
+    expect(toWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+    expect(toWire({ id: 'x', kind: 'full' }, union)).toEqual({
+      id: 'x',
+      kind: 'full',
+    })
   })
 
   it('fails closed on a discriminated union with an unknown discriminator value', () => {

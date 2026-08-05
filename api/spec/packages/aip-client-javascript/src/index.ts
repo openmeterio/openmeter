@@ -365,6 +365,7 @@ export type {
   FeatureUnitCost,
   ChargeRealizationDetailedLine,
   Currency,
+  ChargesCustomerOrReference,
   WorkflowCollectionAlignment,
   Price,
   UpdatePrice,

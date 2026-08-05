@@ -1,5 +1,6 @@
 import {
   type Model,
+  type ModelProperty,
   type Operation,
   type Program,
   resolveEncodedName,
@@ -10,7 +11,11 @@ import { $ } from '@typespec/compiler/typekit'
 import '@typespec/http/experimental/typekit'
 import { isCasingDerivable, toCamelCase } from './casing.js'
 import { isSuccessStatus } from './http-status.js'
-import { bodyProperties, emitsAsIntersection } from './utils.jsx'
+import {
+  bodyProperties,
+  emitsAsIntersection,
+  publicPropertyName,
+} from './utils.jsx'
 
 /**
  * The JSON wire name of a body property: its `@encodedName("application/json", …)`
@@ -137,12 +142,19 @@ export function assertCasingDerivable(
     const discriminated = tk.union.getDiscriminatedUnion(union)
     if (!discriminated) {
       // A non-discriminated union of two or more object variants has no key the
-      // mapper can use to pick a variant; it would have to guess from the data's
-      // key set at runtime. The mapper deliberately does not — so fail the build,
-      // forcing the union to be `@discriminated` (scalar-vs-object unions are fine,
-      // the mapper distinguishes those by JS type).
-      if (objectVariantCount(program, union) >= 2) {
-        ambiguousUnions.push(union.name ?? '<anonymous union>')
+      // mapper can dispatch on, so it picks the variant that structurally best
+      // matches the data's key set. That pick is only allowed to decide which
+      // keys survive, never how a key is mapped — which holds exactly when the
+      // variants agree on every key they share (`CustomerReference` ⊂
+      // `Customer`). A shared key with two different types makes the pick
+      // load-bearing, so fail the build and force `@discriminated`.
+      // Scalar-vs-object unions are fine either way: the mapper distinguishes
+      // those by JS type.
+      const conflict = conflictingVariantProperty(program, union)
+      if (conflict) {
+        ambiguousUnions.push(
+          `${union.name ?? '<anonymous union>'}: ${conflict}`,
+        )
       }
       continue
     }
@@ -160,9 +172,11 @@ export function assertCasingDerivable(
 
   if (ambiguousUnions.length > 0) {
     throw new Error(
-      `camelCase SDK: ${ambiguousUnions.length} non-discriminated union(s) with ` +
-        `multiple object variants cannot be mapped (the wire mapper cannot pick a ` +
-        `variant). Add @discriminated.\n  ${ambiguousUnions.join('\n  ')}`,
+      `camelCase SDK: ${ambiguousUnions.length} non-discriminated union(s) have ` +
+        `object variants that disagree on a shared property, so the wire mapper ` +
+        `cannot pick a variant. Add @discriminated, or make the variants agree ` +
+        `(one variant's properties being a subset of another's is supported).` +
+        `\n  ${ambiguousUnions.join('\n  ')}`,
     )
   }
 
@@ -174,17 +188,67 @@ export function assertCasingDerivable(
   }
 }
 
-/** The number of a union's variants whose value is an object/model type. */
-function objectVariantCount(program: Program, union: Union): number {
+/**
+ * The first public key two of a union's object variants declare with different
+ * types, described for the build error — or undefined when the variants are
+ * mapping-compatible.
+ *
+ * Variants that only differ in WHICH keys they declare map every key they share
+ * the same way, so whichever one the mapper picks produces the same output for
+ * the keys the data actually carries. That covers the subset case the API relies
+ * on (`BillingCustomerReference` is `BillingCustomer` minus its extra fields).
+ * Two different types under one key is the case the mapper cannot absorb: the
+ * key would map differently depending on the pick.
+ */
+function conflictingVariantProperty(
+  program: Program,
+  union: Union,
+): string | undefined {
   const tk = $(program)
-  let count = 0
+  const byKey = new Map<string, { type: Type; variant: string }>()
   for (const variant of union.variants.values()) {
-    const type = variant.type
-    if (type.kind === 'Model' && !tk.array.is(type) && !tk.record.is(type)) {
-      count++
+    const model = variant.type
+    if (model.kind !== 'Model' || tk.array.is(model) || tk.record.is(model)) {
+      continue
+    }
+    const variantName = model.name || String(variant.name)
+    for (const [key, prop] of effectiveShape(program, model)) {
+      const seen = byKey.get(key)
+      if (!seen) {
+        byKey.set(key, { type: prop.type, variant: variantName })
+        continue
+      }
+      if (seen.type !== prop.type) {
+        return `'${key}' has a different type in ${seen.variant} and ${variantName}`
+      }
     }
   }
-  return count
+  return undefined
+}
+
+/**
+ * A model's mapped properties keyed by their public (camelCase) key, with a
+ * derived model's override shadowing the inherited property — the same shape the
+ * zod schema and the wire mapper see.
+ */
+function effectiveShape(
+  program: Program,
+  model: Model,
+): Map<string, ModelProperty> {
+  const shape = new Map<string, ModelProperty>()
+  for (
+    let current: Model | undefined = model;
+    current;
+    current = current.baseModel
+  ) {
+    for (const prop of bodyProperties(program, current)) {
+      const key = publicPropertyName(program, prop)
+      if (!shape.has(key)) {
+        shape.set(key, prop)
+      }
+    }
+  }
+  return shape
 }
 
 /**

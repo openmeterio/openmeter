@@ -62,13 +62,18 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		}
 	}
 
+	customer, err := ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID())
+	if err != nil {
+		return api.BillingChargeFlatFee{}, err
+	}
+
 	return api.BillingChargeFlatFee{
 		AdvanceAfter:           source.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
 		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:              source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
 		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
-		Customer:               ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
+		Customer:               customer,
 		DeletedAt:              source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:            intent.Description,
 		Discounts:              convertFlatFeeDiscounts(intent.PercentageDiscounts),
@@ -113,12 +118,17 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		return api.BillingChargeUsageBased{}, fmt.Errorf("converting system intent: %w", err)
 	}
 
+	customer, err := ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID())
+	if err != nil {
+		return api.BillingChargeUsageBased{}, err
+	}
+
 	return api.BillingChargeUsageBased{
 		AdvanceAfter:  source.State.AdvanceAfter,
 		BillingPeriod: ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:     source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
 		Currency:      ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
-		Customer:      ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
+		Customer:      customer,
 		DeletedAt:     source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:   intent.Description,
 		Discounts:     convertUsageBasedDiscounts(intent.Discounts),
@@ -404,9 +414,16 @@ func ConvertDecimalToCurrencyAmount(d alpacadecimal.Decimal) api.CurrencyAmount 
 	return api.CurrencyAmount{Amount: d.String()}
 }
 
-// ConvertCustomerIDToReference builds a BillingCustomerReference from a customer ID string.
-func ConvertCustomerIDToReference(id string) api.BillingCustomerReference {
-	return api.BillingCustomerReference{Id: id}
+// ConvertCustomerIDToReference builds a charge's customer union carrying only a
+// reference to the customer. The union's other variant is the inlined customer,
+// which the handler does not resolve yet.
+func ConvertCustomerIDToReference(id string) (api.BillingChargesCustomerOrReference, error) {
+	var customer api.BillingChargesCustomerOrReference
+	if err := customer.FromBillingCustomerReference(api.BillingCustomerReference{Id: id}); err != nil {
+		return customer, fmt.Errorf("converting customer reference: %w", err)
+	}
+
+	return customer, nil
 }
 
 // ConvertProRatingConfigToAPI maps a ProRatingConfig to the API proration configuration.

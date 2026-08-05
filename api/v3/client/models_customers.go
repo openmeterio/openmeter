@@ -598,7 +598,7 @@ type ChargeFlatFee struct {
 	// The type of the charge.
 	Type ChargeType `json:"type"`
 	// The customer owning the charge.
-	Customer BillingCustomerReference `json:"customer"`
+	Customer ChargesCustomerOrReference `json:"customer"`
 	// Indicates whether the charge lifecycle is controlled by OpenMeter or manually
 	// overridden by the API user.
 	LifecycleController LifecycleController `json:"lifecycle_controller"`
@@ -1092,7 +1092,7 @@ type ChargeUsageBased struct {
 	// The type of the charge.
 	Type ChargeType `json:"type"`
 	// The customer owning the charge.
-	Customer BillingCustomerReference `json:"customer"`
+	Customer ChargesCustomerOrReference `json:"customer"`
 	// Indicates whether the charge lifecycle is controlled by OpenMeter or manually
 	// overridden by the API user.
 	LifecycleController LifecycleController `json:"lifecycle_controller"`
@@ -1172,6 +1172,65 @@ type ChargeUsageBasedSystemIntent struct {
 	// The timestamp when the system lifecycle controller intent was deleted. The
 	// effective charge can remain visible while a manual override is active.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+}
+
+// A customer or a reference to a customer.
+//
+// ChargesCustomerOrReference is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the ChargesCustomerOrReferenceFrom* constructors.
+type ChargesCustomerOrReference struct {
+	raw json.RawMessage
+}
+
+func (u *ChargesCustomerOrReference) UnmarshalJSON(data []byte) error {
+	u.raw = append([]byte(nil), data...)
+	return nil
+}
+
+func (u ChargesCustomerOrReference) MarshalJSON() ([]byte, error) {
+	if len(u.raw) == 0 {
+		return []byte("null"), nil
+	}
+	return append([]byte(nil), u.raw...), nil
+}
+
+func (u ChargesCustomerOrReference) AsCustomer() (*Customer, error) {
+	var value Customer
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargesCustomerOrReferenceFromCustomer(value Customer) (ChargesCustomerOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargesCustomerOrReference{}, err
+	}
+	var result ChargesCustomerOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargesCustomerOrReference{}, err
+	}
+	return result, nil
+}
+
+func (u ChargesCustomerOrReference) AsBillingCustomerReference() (*BillingCustomerReference, error) {
+	var value BillingCustomerReference
+	if err := json.Unmarshal(u.raw, &value); err != nil {
+		return nil, err
+	}
+	return &value, nil
+}
+
+func ChargesCustomerOrReferenceFromBillingCustomerReference(value BillingCustomerReference) (ChargesCustomerOrReference, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return ChargesCustomerOrReference{}, err
+	}
+	var result ChargesCustomerOrReference
+	if err := result.UnmarshalJSON(raw); err != nil {
+		return ChargesCustomerOrReference{}, err
+	}
+	return result, nil
 }
 
 // Expands for customer charges.

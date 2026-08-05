@@ -4852,7 +4852,7 @@ components:
           title: Type
         customer:
           allOf:
-            - $ref: '#/components/schemas/BillingCustomerReference'
+            - $ref: '#/components/schemas/BillingChargesCustomerOrReference'
           description: The customer owning the charge.
           title: Customer
           readOnly: true
@@ -5656,7 +5656,7 @@ components:
           title: Type
         customer:
           allOf:
-            - $ref: '#/components/schemas/BillingCustomerReference'
+            - $ref: '#/components/schemas/BillingChargesCustomerOrReference'
           description: The customer owning the charge.
           title: Customer
           readOnly: true
@@ -5862,6 +5862,11 @@ components:
         Usage-based intent fields from the system lifecycle controller shadowed by a
         manual override.
       title: Usage-based system lifecycle controller charge intent
+    BillingChargesCustomerOrReference:
+      oneOf:
+        - $ref: '#/components/schemas/BillingCustomer'
+        - $ref: '#/components/schemas/BillingCustomerReference'
+      description: A customer or a reference to a customer.
     BillingChargesExpand:
       type: string
       enum:
