@@ -51,6 +51,12 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 
 	ownerItems := fiatView.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard2.Key()]
 	require.Len(t, ownerItems, 1)
+	fiatItemRow, err := dbDeps.DBClient.SubscriptionItem.Get(t.Context(), ownerItems[0].SubscriptionItem.ID)
+	require.NoError(t, err)
+	require.NotNil(t, fiatItemRow.Currency)
+	require.Equal(t, "USD", *fiatItemRow.Currency)
+	require.Nil(t, fiatItemRow.CustomCurrencyID)
+
 	unmaterializedInput := ownerItems[0].SubscriptionItem.AsEntityInput()
 	unmaterializedInput.Key = "unmaterialized-priced-rate-card"
 	unmaterializedInput.RateCard = unmaterializedInput.RateCard.Clone()
@@ -121,6 +127,19 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 
 	created, err := deps.ItemRepo.Create(t.Context(), createInput)
 	require.NoError(t, err)
+	createdCurrency := created.RateCard.AsMeta().Currency
+	require.NotNil(t, createdCurrency)
+	require.Equal(t, customCurrency, createdCurrency.GetCode())
+	require.NotNil(t, createdCurrency.CustomCurrencyID)
+	require.Equal(t, managedCurrency.ID, *createdCurrency.CustomCurrencyID)
+	require.False(t, createdCurrency.IsResolved())
+
+	customItemRow, err := dbDeps.DBClient.SubscriptionItem.Get(t.Context(), created.ID)
+	require.NoError(t, err)
+	require.NotNil(t, customItemRow.Currency)
+	require.Equal(t, customCurrency.String(), *customItemRow.Currency)
+	require.NotNil(t, customItemRow.CustomCurrencyID)
+	require.Equal(t, managedCurrency.ID, *customItemRow.CustomCurrencyID)
 
 	reloaded, err := deps.ItemRepo.GetByID(t.Context(), created.NamespacedID)
 	require.NoError(t, err)
@@ -130,4 +149,5 @@ func TestSubscriptionItemCustomCurrencyPersistence(t *testing.T) {
 	require.Equal(t, customCurrency, reloadedCurrency.GetCode())
 	require.NotNil(t, reloadedCurrency.CustomCurrencyID)
 	require.Equal(t, managedCurrency.ID, *reloadedCurrency.CustomCurrencyID)
+	require.False(t, reloadedCurrency.IsResolved())
 }

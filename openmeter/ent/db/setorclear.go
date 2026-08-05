@@ -6194,18 +6194,18 @@ func (u *SubscriptionItemUpdateOne) SetOrClearPrice(value **productcatalog.Price
 	return u.SetPrice(*value)
 }
 
-func (u *SubscriptionItemUpdate) SetOrClearFiatCurrencyCode(value *string) *SubscriptionItemUpdate {
+func (u *SubscriptionItemUpdate) SetOrClearCurrency(value *string) *SubscriptionItemUpdate {
 	if value == nil {
-		return u.ClearFiatCurrencyCode()
+		return u.ClearCurrency()
 	}
-	return u.SetFiatCurrencyCode(*value)
+	return u.SetCurrency(*value)
 }
 
-func (u *SubscriptionItemUpdateOne) SetOrClearFiatCurrencyCode(value *string) *SubscriptionItemUpdateOne {
+func (u *SubscriptionItemUpdateOne) SetOrClearCurrency(value *string) *SubscriptionItemUpdateOne {
 	if value == nil {
-		return u.ClearFiatCurrencyCode()
+		return u.ClearCurrency()
 	}
-	return u.SetFiatCurrencyCode(*value)
+	return u.SetCurrency(*value)
 }
 
 func (u *SubscriptionItemUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *SubscriptionItemUpdate {

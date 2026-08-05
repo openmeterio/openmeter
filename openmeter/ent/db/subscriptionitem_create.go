@@ -279,16 +279,16 @@ func (_c *SubscriptionItemCreate) SetPrice(v *productcatalog.Price) *Subscriptio
 	return _c
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_c *SubscriptionItemCreate) SetFiatCurrencyCode(v string) *SubscriptionItemCreate {
-	_c.mutation.SetFiatCurrencyCode(v)
+// SetCurrency sets the "currency" field.
+func (_c *SubscriptionItemCreate) SetCurrency(v string) *SubscriptionItemCreate {
+	_c.mutation.SetCurrency(v)
 	return _c
 }
 
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_c *SubscriptionItemCreate) SetNillableFiatCurrencyCode(v *string) *SubscriptionItemCreate {
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_c *SubscriptionItemCreate) SetNillableCurrency(v *string) *SubscriptionItemCreate {
 	if v != nil {
-		_c.SetFiatCurrencyCode(*v)
+		_c.SetCurrency(*v)
 	}
 	return _c
 }
@@ -555,9 +555,9 @@ func (_c *SubscriptionItemCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.FiatCurrencyCode(); ok {
-		if err := subscriptionitem.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.fiat_currency_code": %w`, err)}
+	if v, ok := _c.mutation.Currency(); ok {
+		if err := subscriptionitem.CurrencyValidator(v); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.currency": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.CustomCurrencyID(); ok {
@@ -713,9 +713,9 @@ func (_c *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cre
 		_spec.SetField(subscriptionitem.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if value, ok := _c.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(subscriptionitem.FieldFiatCurrencyCode, field.TypeString, value)
-		_node.FiatCurrencyCode = &value
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(subscriptionitem.FieldCurrency, field.TypeString, value)
+		_node.Currency = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)
@@ -1273,21 +1273,21 @@ func (u *SubscriptionItemUpsert) ClearPrice() *SubscriptionItemUpsert {
 	return u
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (u *SubscriptionItemUpsert) SetFiatCurrencyCode(v string) *SubscriptionItemUpsert {
-	u.Set(subscriptionitem.FieldFiatCurrencyCode, v)
+// SetCurrency sets the "currency" field.
+func (u *SubscriptionItemUpsert) SetCurrency(v string) *SubscriptionItemUpsert {
+	u.Set(subscriptionitem.FieldCurrency, v)
 	return u
 }
 
-// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
-func (u *SubscriptionItemUpsert) UpdateFiatCurrencyCode() *SubscriptionItemUpsert {
-	u.SetExcluded(subscriptionitem.FieldFiatCurrencyCode)
+// UpdateCurrency sets the "currency" field to the value that was provided on create.
+func (u *SubscriptionItemUpsert) UpdateCurrency() *SubscriptionItemUpsert {
+	u.SetExcluded(subscriptionitem.FieldCurrency)
 	return u
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (u *SubscriptionItemUpsert) ClearFiatCurrencyCode() *SubscriptionItemUpsert {
-	u.SetNull(subscriptionitem.FieldFiatCurrencyCode)
+// ClearCurrency clears the value of the "currency" field.
+func (u *SubscriptionItemUpsert) ClearCurrency() *SubscriptionItemUpsert {
+	u.SetNull(subscriptionitem.FieldCurrency)
 	return u
 }
 
@@ -1768,24 +1768,24 @@ func (u *SubscriptionItemUpsertOne) ClearPrice() *SubscriptionItemUpsertOne {
 	})
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (u *SubscriptionItemUpsertOne) SetFiatCurrencyCode(v string) *SubscriptionItemUpsertOne {
+// SetCurrency sets the "currency" field.
+func (u *SubscriptionItemUpsertOne) SetCurrency(v string) *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
-		s.SetFiatCurrencyCode(v)
+		s.SetCurrency(v)
 	})
 }
 
-// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
-func (u *SubscriptionItemUpsertOne) UpdateFiatCurrencyCode() *SubscriptionItemUpsertOne {
+// UpdateCurrency sets the "currency" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertOne) UpdateCurrency() *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
-		s.UpdateFiatCurrencyCode()
+		s.UpdateCurrency()
 	})
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (u *SubscriptionItemUpsertOne) ClearFiatCurrencyCode() *SubscriptionItemUpsertOne {
+// ClearCurrency clears the value of the "currency" field.
+func (u *SubscriptionItemUpsertOne) ClearCurrency() *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
-		s.ClearFiatCurrencyCode()
+		s.ClearCurrency()
 	})
 }
 
@@ -2442,24 +2442,24 @@ func (u *SubscriptionItemUpsertBulk) ClearPrice() *SubscriptionItemUpsertBulk {
 	})
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (u *SubscriptionItemUpsertBulk) SetFiatCurrencyCode(v string) *SubscriptionItemUpsertBulk {
+// SetCurrency sets the "currency" field.
+func (u *SubscriptionItemUpsertBulk) SetCurrency(v string) *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
-		s.SetFiatCurrencyCode(v)
+		s.SetCurrency(v)
 	})
 }
 
-// UpdateFiatCurrencyCode sets the "fiat_currency_code" field to the value that was provided on create.
-func (u *SubscriptionItemUpsertBulk) UpdateFiatCurrencyCode() *SubscriptionItemUpsertBulk {
+// UpdateCurrency sets the "currency" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertBulk) UpdateCurrency() *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
-		s.UpdateFiatCurrencyCode()
+		s.UpdateCurrency()
 	})
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (u *SubscriptionItemUpsertBulk) ClearFiatCurrencyCode() *SubscriptionItemUpsertBulk {
+// ClearCurrency clears the value of the "currency" field.
+func (u *SubscriptionItemUpsertBulk) ClearCurrency() *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
-		s.ClearFiatCurrencyCode()
+		s.ClearCurrency()
 	})
 }
 

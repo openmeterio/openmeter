@@ -155,9 +155,9 @@ func BillingCadence(v datetime.ISODurationString) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldBillingCadence, vc))
 }
 
-// FiatCurrencyCode applies equality check predicate on the "fiat_currency_code" field. It's identical to FiatCurrencyCodeEQ.
-func FiatCurrencyCode(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldEQ(FieldFiatCurrencyCode, v))
+// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
+func Currency(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldCurrency, v))
 }
 
 // CustomCurrencyID applies equality check predicate on the "custom_currency_id" field. It's identical to CustomCurrencyIDEQ.
@@ -1337,79 +1337,79 @@ func PriceNotNil() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldNotNull(FieldPrice))
 }
 
-// FiatCurrencyCodeEQ applies the EQ predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeEQ(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldEQ(FieldFiatCurrencyCode, v))
+// CurrencyEQ applies the EQ predicate on the "currency" field.
+func CurrencyEQ(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeNEQ applies the NEQ predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeNEQ(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldNEQ(FieldFiatCurrencyCode, v))
+// CurrencyNEQ applies the NEQ predicate on the "currency" field.
+func CurrencyNEQ(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNEQ(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeIn applies the In predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeIn(vs ...string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldIn(FieldFiatCurrencyCode, vs...))
+// CurrencyIn applies the In predicate on the "currency" field.
+func CurrencyIn(vs ...string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIn(FieldCurrency, vs...))
 }
 
-// FiatCurrencyCodeNotIn applies the NotIn predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeNotIn(vs ...string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldNotIn(FieldFiatCurrencyCode, vs...))
+// CurrencyNotIn applies the NotIn predicate on the "currency" field.
+func CurrencyNotIn(vs ...string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotIn(FieldCurrency, vs...))
 }
 
-// FiatCurrencyCodeGT applies the GT predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeGT(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldGT(FieldFiatCurrencyCode, v))
+// CurrencyGT applies the GT predicate on the "currency" field.
+func CurrencyGT(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldGT(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeGTE applies the GTE predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeGTE(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldGTE(FieldFiatCurrencyCode, v))
+// CurrencyGTE applies the GTE predicate on the "currency" field.
+func CurrencyGTE(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldGTE(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeLT applies the LT predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeLT(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldLT(FieldFiatCurrencyCode, v))
+// CurrencyLT applies the LT predicate on the "currency" field.
+func CurrencyLT(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldLT(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeLTE applies the LTE predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeLTE(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldLTE(FieldFiatCurrencyCode, v))
+// CurrencyLTE applies the LTE predicate on the "currency" field.
+func CurrencyLTE(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldLTE(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeContains applies the Contains predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeContains(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldContains(FieldFiatCurrencyCode, v))
+// CurrencyContains applies the Contains predicate on the "currency" field.
+func CurrencyContains(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldContains(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeHasPrefix applies the HasPrefix predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeHasPrefix(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldHasPrefix(FieldFiatCurrencyCode, v))
+// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
+func CurrencyHasPrefix(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldHasPrefix(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeHasSuffix applies the HasSuffix predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeHasSuffix(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldHasSuffix(FieldFiatCurrencyCode, v))
+// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
+func CurrencyHasSuffix(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldHasSuffix(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeIsNil applies the IsNil predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeIsNil() predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldIsNull(FieldFiatCurrencyCode))
+// CurrencyIsNil applies the IsNil predicate on the "currency" field.
+func CurrencyIsNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIsNull(FieldCurrency))
 }
 
-// FiatCurrencyCodeNotNil applies the NotNil predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeNotNil() predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldNotNull(FieldFiatCurrencyCode))
+// CurrencyNotNil applies the NotNil predicate on the "currency" field.
+func CurrencyNotNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotNull(FieldCurrency))
 }
 
-// FiatCurrencyCodeEqualFold applies the EqualFold predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeEqualFold(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldEqualFold(FieldFiatCurrencyCode, v))
+// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
+func CurrencyEqualFold(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEqualFold(FieldCurrency, v))
 }
 
-// FiatCurrencyCodeContainsFold applies the ContainsFold predicate on the "fiat_currency_code" field.
-func FiatCurrencyCodeContainsFold(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldFiatCurrencyCode, v))
+// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
+func CurrencyContainsFold(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldCurrency, v))
 }
 
 // CustomCurrencyIDEQ applies the EQ predicate on the "custom_currency_id" field.

@@ -78,7 +78,7 @@ func createSubscriptionWithLegacyPricedItemCurrency(t *testing.T, now time.Time)
 	legacyItemID := items[0].SubscriptionItem.ID
 	_, err := dbDeps.DBClient.SubscriptionItem.
 		UpdateOneID(legacyItemID).
-		ClearFiatCurrencyCode().
+		ClearCurrency().
 		Save(t.Context())
 	require.NoError(t, err)
 

@@ -22,8 +22,8 @@ func TestSubscriptionItemCurrencyReferencesMigration(t *testing.T) {
 			{
 				// Populate the last schema where subscription-item currencies were not persisted.
 				// Before: 20260803135655_add_balance_snapshot_usage_snapshot.up.sql
-				// After: 20260805094909_add_subscription_item_currency_references.up.sql
-				// and 20260805095212_add_subscription_item_currency_constraints.up.sql
+				// After: 20260806122617_add_subscription_item_currency_references.up.sql
+				// and 20260806122618_add_subscription_item_currency_constraints.up.sql
 				version:   20260803135655,
 				direction: directionUp,
 				action: func(t *testing.T, db *sql.DB) {
@@ -113,12 +113,13 @@ func TestSubscriptionItemCurrencyReferencesMigration(t *testing.T) {
 			},
 			{
 				// The expand migration must preserve legacy priced rows without backfilling
-				// them, while allowing new writers to store one currency reference.
-				version:   20260805095212,
+				// them, while allowing new writers to store a currency code and optional
+				// managed custom-currency identity.
+				version:   20260806122618,
 				direction: directionUp,
 				action: func(t *testing.T, db *sql.DB) {
 					var (
-						fiatCode       sql.NullString
+						currencyCode   sql.NullString
 						customCurrency sql.NullString
 					)
 
@@ -126,9 +127,9 @@ func TestSubscriptionItemCurrencyReferencesMigration(t *testing.T) {
 						SELECT currency, custom_currency_id
 						FROM subscription_items
 						WHERE id = $1
-					`, legacyItemID.String()).Scan(&fiatCode, &customCurrency)
+					`, legacyItemID.String()).Scan(&currencyCode, &customCurrency)
 					require.NoError(t, err)
-					require.False(t, fiatCode.Valid, "the expand migration must not backfill the legacy item")
+					require.False(t, currencyCode.Valid, "the expand migration must not backfill the legacy item")
 					require.False(t, customCurrency.Valid, "the expand migration must not backfill the legacy item")
 
 					_, err = db.Exec(`
@@ -137,16 +138,33 @@ func TestSubscriptionItemCurrencyReferencesMigration(t *testing.T) {
 					`, namespace, customCurrencyID.String())
 					require.NoError(t, err)
 
-					_, err = db.Exec(`UPDATE subscription_items SET currency = 'USD' WHERE id = $1`, legacyItemID.String())
+					_, err = db.Exec(`UPDATE subscription_items SET currency = 'USD', custom_currency_id = NULL WHERE id = $1`, legacyItemID.String())
 					require.NoError(t, err, "a priced item must allow a fiat currency reference")
 
+					_, err = db.Exec(`UPDATE subscription_items SET currency = 'USD', custom_currency_id = $1 WHERE id = $2`, customCurrencyID.String(), legacyItemID.String())
+					require.Error(t, err, "a fiat currency code cannot carry a custom currency ID")
+
+					_, err = db.Exec(`UPDATE subscription_items SET currency = 'CREDITS', custom_currency_id = NULL WHERE id = $1`, legacyItemID.String())
+					require.Error(t, err, "a custom currency code requires a custom currency ID")
+
 					_, err = db.Exec(`UPDATE subscription_items SET currency = NULL, custom_currency_id = $1 WHERE id = $2`, customCurrencyID.String(), legacyItemID.String())
-					require.NoError(t, err, "a priced item must allow a custom currency reference")
+					require.Error(t, err, "a custom currency ID requires a currency code")
 
-					_, err = db.Exec(`UPDATE subscription_items SET currency = 'USD' WHERE id = $1`, legacyItemID.String())
-					require.Error(t, err, "a priced item cannot carry both fiat and custom currency references")
+					_, err = db.Exec(`UPDATE subscription_items SET currency = 'US', custom_currency_id = NULL WHERE id = $1`, legacyItemID.String())
+					require.Error(t, err, "currency codes shorter than three characters are invalid")
 
-					_, err = db.Exec(`UPDATE subscription_items SET custom_currency_id = NULL, currency = 'USD', price = NULL WHERE id = $1`, legacyItemID.String())
+					_, err = db.Exec(`UPDATE subscription_items SET currency = 'THIS_CUSTOM_CURRENCY_CODE_IS_TOO_LONG', custom_currency_id = $1 WHERE id = $2`, customCurrencyID.String(), legacyItemID.String())
+					require.Error(t, err, "currency codes longer than 24 characters are invalid")
+
+					_, err = db.Exec(`UPDATE subscription_items SET currency = 'CREDITS', custom_currency_id = $1 WHERE id = $2`, customCurrencyID.String(), legacyItemID.String())
+					require.NoError(t, err, "a priced item must store both custom currency code and ID")
+
+					err = db.QueryRow(`SELECT currency, custom_currency_id FROM subscription_items WHERE id = $1`, legacyItemID.String()).Scan(&currencyCode, &customCurrency)
+					require.NoError(t, err)
+					require.Equal(t, "CREDITS", currencyCode.String)
+					require.Equal(t, customCurrencyID.String(), customCurrency.String)
+
+					_, err = db.Exec(`UPDATE subscription_items SET price = NULL WHERE id = $1`, legacyItemID.String())
 					require.Error(t, err, "an unpriced item cannot carry a currency reference")
 
 					var itemCount int
@@ -158,7 +176,7 @@ func TestSubscriptionItemCurrencyReferencesMigration(t *testing.T) {
 			{
 				// Rollback removes only the expanded representation and leaves the legacy
 				// subscription item and its original price intact.
-				version:   20260728103546,
+				version:   20260803135655,
 				direction: directionDown,
 				action: func(t *testing.T, db *sql.DB) {
 					var price string

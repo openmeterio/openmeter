@@ -118,6 +118,9 @@ and phase; do not persist a derived absolute end as independent source truth.
   you its end
 - item slice position is version identity, not quantity
 - subscription, spec, and expanded view must agree on shared top-level facts
+- newly materialized priced items snapshot their effective currency code; custom
+  currencies also retain their managed currency ID, while legacy items may lack
+  this snapshot
 - item and entitlement cadences cannot escape their phase or subscription
 - downstream work must be derived from the committed view and tolerate event
   retries

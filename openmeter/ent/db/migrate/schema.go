@@ -5599,7 +5599,7 @@ var (
 		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 24},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "custom_currency_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -6245,8 +6245,9 @@ func init() {
 	SubscriptionItemsTable.ForeignKeys[3].RefTable = TaxCodesTable
 	SubscriptionItemsTable.Annotation = &entsql.Annotation{}
 	SubscriptionItemsTable.Annotation.Checks = map[string]string{
-		"subscription_item_currency_has_price": "(price IS NOT NULL) OR ((currency IS NULL) AND (custom_currency_id IS NULL))",
-		"subscription_item_currency_reference": "(currency IS NULL) OR (custom_currency_id IS NULL)",
+		"subscription_item_currency_code_length": "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
+		"subscription_item_currency_has_price":   "price IS NOT NULL OR currency IS NULL",
+		"subscription_item_currency_reference":   "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
 	}
 	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable

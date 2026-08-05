@@ -354,23 +354,23 @@ func (_u *SubscriptionItemUpdate) ClearPrice() *SubscriptionItemUpdate {
 	return _u
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_u *SubscriptionItemUpdate) SetFiatCurrencyCode(v string) *SubscriptionItemUpdate {
-	_u.mutation.SetFiatCurrencyCode(v)
+// SetCurrency sets the "currency" field.
+func (_u *SubscriptionItemUpdate) SetCurrency(v string) *SubscriptionItemUpdate {
+	_u.mutation.SetCurrency(v)
 	return _u
 }
 
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_u *SubscriptionItemUpdate) SetNillableFiatCurrencyCode(v *string) *SubscriptionItemUpdate {
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_u *SubscriptionItemUpdate) SetNillableCurrency(v *string) *SubscriptionItemUpdate {
 	if v != nil {
-		_u.SetFiatCurrencyCode(*v)
+		_u.SetCurrency(*v)
 	}
 	return _u
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (_u *SubscriptionItemUpdate) ClearFiatCurrencyCode() *SubscriptionItemUpdate {
-	_u.mutation.ClearFiatCurrencyCode()
+// ClearCurrency clears the value of the "currency" field.
+func (_u *SubscriptionItemUpdate) ClearCurrency() *SubscriptionItemUpdate {
+	_u.mutation.ClearCurrency()
 	return _u
 }
 
@@ -704,9 +704,9 @@ func (_u *SubscriptionItemUpdate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.FiatCurrencyCode(); ok {
-		if err := subscriptionitem.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.fiat_currency_code": %w`, err)}
+	if v, ok := _u.mutation.Currency(); ok {
+		if err := subscriptionitem.CurrencyValidator(v); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.currency": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Discounts(); ok {
@@ -846,11 +846,11 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(subscriptionitem.FieldPrice, field.TypeString)
 	}
-	if value, ok := _u.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(subscriptionitem.FieldFiatCurrencyCode, field.TypeString, value)
+	if value, ok := _u.mutation.Currency(); ok {
+		_spec.SetField(subscriptionitem.FieldCurrency, field.TypeString, value)
 	}
-	if _u.mutation.FiatCurrencyCodeCleared() {
-		_spec.ClearField(subscriptionitem.FieldFiatCurrencyCode, field.TypeString)
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(subscriptionitem.FieldCurrency, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)
@@ -1534,23 +1534,23 @@ func (_u *SubscriptionItemUpdateOne) ClearPrice() *SubscriptionItemUpdateOne {
 	return _u
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (_u *SubscriptionItemUpdateOne) SetFiatCurrencyCode(v string) *SubscriptionItemUpdateOne {
-	_u.mutation.SetFiatCurrencyCode(v)
+// SetCurrency sets the "currency" field.
+func (_u *SubscriptionItemUpdateOne) SetCurrency(v string) *SubscriptionItemUpdateOne {
+	_u.mutation.SetCurrency(v)
 	return _u
 }
 
-// SetNillableFiatCurrencyCode sets the "fiat_currency_code" field if the given value is not nil.
-func (_u *SubscriptionItemUpdateOne) SetNillableFiatCurrencyCode(v *string) *SubscriptionItemUpdateOne {
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_u *SubscriptionItemUpdateOne) SetNillableCurrency(v *string) *SubscriptionItemUpdateOne {
 	if v != nil {
-		_u.SetFiatCurrencyCode(*v)
+		_u.SetCurrency(*v)
 	}
 	return _u
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (_u *SubscriptionItemUpdateOne) ClearFiatCurrencyCode() *SubscriptionItemUpdateOne {
-	_u.mutation.ClearFiatCurrencyCode()
+// ClearCurrency clears the value of the "currency" field.
+func (_u *SubscriptionItemUpdateOne) ClearCurrency() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearCurrency()
 	return _u
 }
 
@@ -1897,9 +1897,9 @@ func (_u *SubscriptionItemUpdateOne) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.FiatCurrencyCode(); ok {
-		if err := subscriptionitem.FiatCurrencyCodeValidator(v); err != nil {
-			return &ValidationError{Name: "fiat_currency_code", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.fiat_currency_code": %w`, err)}
+	if v, ok := _u.mutation.Currency(); ok {
+		if err := subscriptionitem.CurrencyValidator(v); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.currency": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Discounts(); ok {
@@ -2056,11 +2056,11 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(subscriptionitem.FieldPrice, field.TypeString)
 	}
-	if value, ok := _u.mutation.FiatCurrencyCode(); ok {
-		_spec.SetField(subscriptionitem.FieldFiatCurrencyCode, field.TypeString, value)
+	if value, ok := _u.mutation.Currency(); ok {
+		_spec.SetField(subscriptionitem.FieldCurrency, field.TypeString, value)
 	}
-	if _u.mutation.FiatCurrencyCodeCleared() {
-		_spec.ClearField(subscriptionitem.FieldFiatCurrencyCode, field.TypeString)
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(subscriptionitem.FieldCurrency, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)

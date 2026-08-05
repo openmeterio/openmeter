@@ -72,8 +72,8 @@ type SubscriptionItem struct {
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
-	// FiatCurrencyCode holds the value of the "fiat_currency_code" field.
-	FiatCurrencyCode *string `json:"fiat_currency_code,omitempty"`
+	// The code of the fiat or custom currency.
+	Currency *string `json:"currency,omitempty"`
 	// CustomCurrencyID holds the value of the "custom_currency_id" field.
 	CustomCurrencyID *string `json:"custom_currency_id,omitempty"`
 	// Discounts holds the value of the "discounts" field.
@@ -220,7 +220,7 @@ func (*SubscriptionItem) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case subscriptionitem.FieldRestartsBillingPeriod:
 			values[i] = new(sql.NullBool)
-		case subscriptionitem.FieldID, subscriptionitem.FieldNamespace, subscriptionitem.FieldTaxCodeID, subscriptionitem.FieldTaxBehavior, subscriptionitem.FieldPhaseID, subscriptionitem.FieldKey, subscriptionitem.FieldEntitlementID, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, subscriptionitem.FieldName, subscriptionitem.FieldDescription, subscriptionitem.FieldFeatureKey, subscriptionitem.FieldBillingCadence, subscriptionitem.FieldFiatCurrencyCode, subscriptionitem.FieldCustomCurrencyID:
+		case subscriptionitem.FieldID, subscriptionitem.FieldNamespace, subscriptionitem.FieldTaxCodeID, subscriptionitem.FieldTaxBehavior, subscriptionitem.FieldPhaseID, subscriptionitem.FieldKey, subscriptionitem.FieldEntitlementID, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, subscriptionitem.FieldName, subscriptionitem.FieldDescription, subscriptionitem.FieldFeatureKey, subscriptionitem.FieldBillingCadence, subscriptionitem.FieldCurrency, subscriptionitem.FieldCustomCurrencyID:
 			values[i] = new(sql.NullString)
 		case subscriptionitem.FieldCreatedAt, subscriptionitem.FieldUpdatedAt, subscriptionitem.FieldDeletedAt, subscriptionitem.FieldActiveFrom, subscriptionitem.FieldActiveTo:
 			values[i] = new(sql.NullTime)
@@ -408,12 +408,12 @@ func (_m *SubscriptionItem) assignValues(columns []string, values []any) error {
 			} else {
 				_m.Price = value
 			}
-		case subscriptionitem.FieldFiatCurrencyCode:
+		case subscriptionitem.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field fiat_currency_code", values[i])
+				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.FiatCurrencyCode = new(string)
-				*_m.FiatCurrencyCode = value.String
+				_m.Currency = new(string)
+				*_m.Currency = value.String
 			}
 		case subscriptionitem.FieldCustomCurrencyID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -617,8 +617,8 @@ func (_m *SubscriptionItem) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.FiatCurrencyCode; v != nil {
-		builder.WriteString("fiat_currency_code=")
+	if v := _m.Currency; v != nil {
+		builder.WriteString("currency=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

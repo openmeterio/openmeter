@@ -118449,7 +118449,7 @@ type SubscriptionItemMutation struct {
 	tax_config                                   **productcatalog.TaxConfig
 	billing_cadence                              *datetime.ISODurationString
 	price                                        **productcatalog.Price
-	fiat_currency_code                           *string
+	currency                                     *string
 	discounts                                    **productcatalog.Discounts
 	unit_config                                  **unitconfig.UnitConfig
 	clearedFields                                map[string]struct{}
@@ -119624,53 +119624,53 @@ func (m *SubscriptionItemMutation) ResetPrice() {
 	delete(m.clearedFields, subscriptionitem.FieldPrice)
 }
 
-// SetFiatCurrencyCode sets the "fiat_currency_code" field.
-func (m *SubscriptionItemMutation) SetFiatCurrencyCode(s string) {
-	m.fiat_currency_code = &s
+// SetCurrency sets the "currency" field.
+func (m *SubscriptionItemMutation) SetCurrency(s string) {
+	m.currency = &s
 }
 
-// FiatCurrencyCode returns the value of the "fiat_currency_code" field in the mutation.
-func (m *SubscriptionItemMutation) FiatCurrencyCode() (r string, exists bool) {
-	v := m.fiat_currency_code
+// Currency returns the value of the "currency" field in the mutation.
+func (m *SubscriptionItemMutation) Currency() (r string, exists bool) {
+	v := m.currency
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldFiatCurrencyCode returns the old "fiat_currency_code" field's value of the SubscriptionItem entity.
+// OldCurrency returns the old "currency" field's value of the SubscriptionItem entity.
 // If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SubscriptionItemMutation) OldFiatCurrencyCode(ctx context.Context) (v *string, err error) {
+func (m *SubscriptionItemMutation) OldCurrency(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFiatCurrencyCode is only allowed on UpdateOne operations")
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFiatCurrencyCode requires an ID field in the mutation")
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFiatCurrencyCode: %w", err)
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
 	}
-	return oldValue.FiatCurrencyCode, nil
+	return oldValue.Currency, nil
 }
 
-// ClearFiatCurrencyCode clears the value of the "fiat_currency_code" field.
-func (m *SubscriptionItemMutation) ClearFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	m.clearedFields[subscriptionitem.FieldFiatCurrencyCode] = struct{}{}
+// ClearCurrency clears the value of the "currency" field.
+func (m *SubscriptionItemMutation) ClearCurrency() {
+	m.currency = nil
+	m.clearedFields[subscriptionitem.FieldCurrency] = struct{}{}
 }
 
-// FiatCurrencyCodeCleared returns if the "fiat_currency_code" field was cleared in this mutation.
-func (m *SubscriptionItemMutation) FiatCurrencyCodeCleared() bool {
-	_, ok := m.clearedFields[subscriptionitem.FieldFiatCurrencyCode]
+// CurrencyCleared returns if the "currency" field was cleared in this mutation.
+func (m *SubscriptionItemMutation) CurrencyCleared() bool {
+	_, ok := m.clearedFields[subscriptionitem.FieldCurrency]
 	return ok
 }
 
-// ResetFiatCurrencyCode resets all changes to the "fiat_currency_code" field.
-func (m *SubscriptionItemMutation) ResetFiatCurrencyCode() {
-	m.fiat_currency_code = nil
-	delete(m.clearedFields, subscriptionitem.FieldFiatCurrencyCode)
+// ResetCurrency resets all changes to the "currency" field.
+func (m *SubscriptionItemMutation) ResetCurrency() {
+	m.currency = nil
+	delete(m.clearedFields, subscriptionitem.FieldCurrency)
 }
 
 // SetCustomCurrencyID sets the "custom_currency_id" field.
@@ -120356,8 +120356,8 @@ func (m *SubscriptionItemMutation) Fields() []string {
 	if m.price != nil {
 		fields = append(fields, subscriptionitem.FieldPrice)
 	}
-	if m.fiat_currency_code != nil {
-		fields = append(fields, subscriptionitem.FieldFiatCurrencyCode)
+	if m.currency != nil {
+		fields = append(fields, subscriptionitem.FieldCurrency)
 	}
 	if m.custom_currency != nil {
 		fields = append(fields, subscriptionitem.FieldCustomCurrencyID)
@@ -120422,8 +120422,8 @@ func (m *SubscriptionItemMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case subscriptionitem.FieldPrice:
 		return m.Price()
-	case subscriptionitem.FieldFiatCurrencyCode:
-		return m.FiatCurrencyCode()
+	case subscriptionitem.FieldCurrency:
+		return m.Currency()
 	case subscriptionitem.FieldCustomCurrencyID:
 		return m.CustomCurrencyID()
 	case subscriptionitem.FieldDiscounts:
@@ -120485,8 +120485,8 @@ func (m *SubscriptionItemMutation) OldField(ctx context.Context, name string) (e
 		return m.OldBillingCadence(ctx)
 	case subscriptionitem.FieldPrice:
 		return m.OldPrice(ctx)
-	case subscriptionitem.FieldFiatCurrencyCode:
-		return m.OldFiatCurrencyCode(ctx)
+	case subscriptionitem.FieldCurrency:
+		return m.OldCurrency(ctx)
 	case subscriptionitem.FieldCustomCurrencyID:
 		return m.OldCustomCurrencyID(ctx)
 	case subscriptionitem.FieldDiscounts:
@@ -120663,12 +120663,12 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetPrice(v)
 		return nil
-	case subscriptionitem.FieldFiatCurrencyCode:
+	case subscriptionitem.FieldCurrency:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetFiatCurrencyCode(v)
+		m.SetCurrency(v)
 		return nil
 	case subscriptionitem.FieldCustomCurrencyID:
 		v, ok := value.(string)
@@ -120769,8 +120769,8 @@ func (m *SubscriptionItemMutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionitem.FieldPrice) {
 		fields = append(fields, subscriptionitem.FieldPrice)
 	}
-	if m.FieldCleared(subscriptionitem.FieldFiatCurrencyCode) {
-		fields = append(fields, subscriptionitem.FieldFiatCurrencyCode)
+	if m.FieldCleared(subscriptionitem.FieldCurrency) {
+		fields = append(fields, subscriptionitem.FieldCurrency)
 	}
 	if m.FieldCleared(subscriptionitem.FieldCustomCurrencyID) {
 		fields = append(fields, subscriptionitem.FieldCustomCurrencyID)
@@ -120843,8 +120843,8 @@ func (m *SubscriptionItemMutation) ClearField(name string) error {
 	case subscriptionitem.FieldPrice:
 		m.ClearPrice()
 		return nil
-	case subscriptionitem.FieldFiatCurrencyCode:
-		m.ClearFiatCurrencyCode()
+	case subscriptionitem.FieldCurrency:
+		m.ClearCurrency()
 		return nil
 	case subscriptionitem.FieldCustomCurrencyID:
 		m.ClearCustomCurrencyID()
@@ -120932,8 +120932,8 @@ func (m *SubscriptionItemMutation) ResetField(name string) error {
 	case subscriptionitem.FieldPrice:
 		m.ResetPrice()
 		return nil
-	case subscriptionitem.FieldFiatCurrencyCode:
-		m.ResetFiatCurrencyCode()
+	case subscriptionitem.FieldCurrency:
+		m.ResetCurrency()
 		return nil
 	case subscriptionitem.FieldCustomCurrencyID:
 		m.ResetCustomCurrencyID()

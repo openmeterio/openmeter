@@ -3139,19 +3139,19 @@ func init() {
 	// subscriptionitemDescPrice is the schema descriptor for price field.
 	subscriptionitemDescPrice := subscriptionitemFields[15].Descriptor()
 	subscriptionitem.ValueScanner.Price = subscriptionitemDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
-	// subscriptionitemDescFiatCurrencyCode is the schema descriptor for fiat_currency_code field.
-	subscriptionitemDescFiatCurrencyCode := subscriptionitemFields[16].Descriptor()
-	// subscriptionitem.FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
-	subscriptionitem.FiatCurrencyCodeValidator = func() func(string) error {
-		validators := subscriptionitemDescFiatCurrencyCode.Validators
+	// subscriptionitemDescCurrency is the schema descriptor for currency field.
+	subscriptionitemDescCurrency := subscriptionitemFields[16].Descriptor()
+	// subscriptionitem.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	subscriptionitem.CurrencyValidator = func() func(string) error {
+		validators := subscriptionitemDescCurrency.Validators
 		fns := [...]func(string) error{
 			validators[0].(func(string) error),
 			validators[1].(func(string) error),
 			validators[2].(func(string) error),
 		}
-		return func(fiat_currency_code string) error {
+		return func(currency string) error {
 			for _, fn := range fns {
-				if err := fn(fiat_currency_code); err != nil {
+				if err := fn(currency); err != nil {
 					return err
 				}
 			}

@@ -211,13 +211,13 @@ func (SubscriptionItem) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
-		field.String("fiat_currency_code").
-			StorageKey("currency").
+		field.String("currency").
 			NotEmpty().
 			MinLen(3).
-			MaxLen(3).
+			MaxLen(24).
 			Optional().
-			Nillable(),
+			Nillable().
+			Comment("The code of the fiat or custom currency."),
 		field.String("custom_currency_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -281,8 +281,9 @@ func (SubscriptionItem) Edges() []ent.Edge {
 func (SubscriptionItem) Annotations() []entschema.Annotation {
 	return []entschema.Annotation{
 		entsql.Checks(map[string]string{
-			"subscription_item_currency_reference": `(currency IS NULL) OR (custom_currency_id IS NULL)`,
-			"subscription_item_currency_has_price": `(price IS NOT NULL) OR ((currency IS NULL) AND (custom_currency_id IS NULL))`,
+			"subscription_item_currency_code_length": `currency IS NULL OR char_length(currency) BETWEEN 3 AND 24`,
+			"subscription_item_currency_reference":   `(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)`,
+			"subscription_item_currency_has_price":   `price IS NOT NULL OR currency IS NULL`,
 		}),
 	}
 }

@@ -65,8 +65,8 @@ const (
 	FieldBillingCadence = "billing_cadence"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
-	// FieldFiatCurrencyCode holds the string denoting the fiat_currency_code field in the database.
-	FieldFiatCurrencyCode = "currency"
+	// FieldCurrency holds the string denoting the currency field in the database.
+	FieldCurrency = "currency"
 	// FieldCustomCurrencyID holds the string denoting the custom_currency_id field in the database.
 	FieldCustomCurrencyID = "custom_currency_id"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
@@ -193,7 +193,7 @@ var Columns = []string{
 	FieldTaxConfig,
 	FieldBillingCadence,
 	FieldPrice,
-	FieldFiatCurrencyCode,
+	FieldCurrency,
 	FieldCustomCurrencyID,
 	FieldDiscounts,
 	FieldUnitConfig,
@@ -224,8 +224,8 @@ var (
 	KeyValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
-	// FiatCurrencyCodeValidator is a validator for the "fiat_currency_code" field. It is called by the builders before save.
-	FiatCurrencyCodeValidator func(string) error
+	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	CurrencyValidator func(string) error
 	// CustomCurrencyIDValidator is a validator for the "custom_currency_id" field. It is called by the builders before save.
 	CustomCurrencyIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
@@ -369,9 +369,9 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
 }
 
-// ByFiatCurrencyCode orders the results by the fiat_currency_code field.
-func ByFiatCurrencyCode(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFiatCurrencyCode, opts...).ToFunc()
+// ByCurrency orders the results by the currency field.
+func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
 // ByCustomCurrencyID orders the results by the custom_currency_id field.

@@ -45,7 +45,6 @@ func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, input s
 			Where(getItemForSubscriptionAtFilter(input)).
 			WithPhase().
 			WithTaxCode().
-			WithCustomCurrency().
 			All(ctx)
 		if err != nil {
 			return nil, err
@@ -77,7 +76,6 @@ func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input 
 			)).
 			WithPhase().
 			WithTaxCode().
-			WithCustomCurrency().
 			All(ctx)
 		if err != nil {
 			return nil, err
@@ -108,7 +106,6 @@ func (r *subscriptionItemRepo) GetByID(ctx context.Context, id models.Namespaced
 			)).
 			WithPhase().
 			WithTaxCode().
-			WithCustomCurrency().
 			Only(ctx)
 
 		if db.IsNotFound(err) {
@@ -172,10 +169,9 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 				return def, fmt.Errorf("invalid subscription item currency: %w", err)
 			}
 
-			if currencyRef.IsFiat() {
-				code := currencyRef.GetCode().String()
-				cmd.SetFiatCurrencyCode(code)
-			} else {
+			cmd.SetCurrency(currencyRef.GetCode().String())
+
+			if currencyRef.IsCustom() {
 				if currencyRef.CustomCurrencyID == nil {
 					return def, fmt.Errorf("invalid subscription item currency: custom currency %q has no managed resource identity", currencyRef.GetCode())
 				}
