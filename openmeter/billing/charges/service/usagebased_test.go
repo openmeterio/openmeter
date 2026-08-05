@@ -183,7 +183,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 
 	type tc struct {
 		name string
-		skip string
 
 		onRunCreated         runPhase
 		onCollectionComplete runPhase
@@ -251,7 +250,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 		// - the empty overage line is removed and no payment is booked
 		{
 			name: "fully covered by credits",
-			skip: "TODO: delete the custom-currency overage line when credits reduce its fiat total to zero",
 			onRunCreated: runPhase{
 				usageAdded:          5,
 				creditsAllocated:    10,
@@ -262,6 +260,28 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				usageAdded:          0,
 				creditsAllocated:    0,
 				expectRunTotals:     billingtest.ExpectedTotals{Amount: 10, CreditsTotal: 10},
+				expectInvoiceTotals: billingtest.ExpectedTotals{},
+			},
+			expectLineDeleted: true,
+		},
+		// given:
+		// - 0.0005 metered units produce a positive 0.001 TOKENS overage
+		// when:
+		// - the overage is converted using the 0.5 USD cost basis
+		// then:
+		// - the fiat amount rounds to zero, the line is removed, and no payment is booked
+		{
+			name: "fiat overage rounds to zero",
+			onRunCreated: runPhase{
+				usageAdded:          0.0005,
+				creditsAllocated:    0,
+				expectRunTotals:     billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001},
+				expectInvoiceTotals: billingtest.ExpectedTotals{},
+			},
+			onCollectionComplete: runPhase{
+				usageAdded:          0,
+				creditsAllocated:    0,
+				expectRunTotals:     billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001},
 				expectInvoiceTotals: billingtest.ExpectedTotals{},
 			},
 			expectLineDeleted: true,
@@ -318,7 +338,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 		// - credits cover the full amount and the empty overage line is removed
 		{
 			name: "collection usage is fully covered by credits without initial usage",
-			skip: "TODO: delete the custom-currency overage line when collection-time credits cover the full amount",
 			onRunCreated: runPhase{
 				usageAdded:          0,
 				creditsAllocated:    0,
@@ -341,7 +360,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 		// - the empty overage line is removed
 		{
 			name: "no usage deletes the overage line",
-			skip: "TODO: delete the custom-currency overage line when no usage is realized",
 			onRunCreated: runPhase{
 				usageAdded:          0,
 				creditsAllocated:    0,
@@ -397,10 +415,6 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 
 	for _, test := range tests {
 		s.Run(test.name, func() {
-			if test.skip != "" {
-				s.T().Skip(test.skip)
-			}
-
 			ctx := s.T().Context()
 			ns := s.GetUniqueNamespace("charges-service-usage-based-custom-currency-lifecycle")
 
@@ -552,19 +566,42 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 				s.Require().NoError(err)
 				s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
-				s.Require().NotNil(invoice.CollectionAt)
-				s.True(realizationVariant.expectedCollectionEnd.Equal(*invoice.CollectionAt))
+				if test.expectLineDeleted {
+					s.Nil(invoice.CollectionAt)
+				} else {
+					s.Require().NotNil(invoice.CollectionAt)
+					s.True(realizationVariant.expectedCollectionEnd.Equal(*invoice.CollectionAt))
+				}
 
 				charge := s.mustGetUsageBasedChargeByID(chargeID)
-				s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
-				collectedRun, err := charge.GetCurrentRealizationRun()
-				s.Require().NoError(err)
+				expectedStatus := usagebased.StatusActiveRealizationProcessing
+				if test.expectLineDeleted {
+					expectedStatus = realizationVariant.expectedChargeStatusAfterPayment
+				}
+				s.Equal(expectedStatus, charge.Status)
+
+				var collectedRun usagebased.RealizationRun
+				if test.expectLineDeleted {
+					s.Nil(charge.State.CurrentRealizationRunID)
+					var ok bool
+					collectedRun, ok = charge.Realizations.Latest()
+					s.Require().True(ok)
+				} else {
+					var err error
+					collectedRun, err = charge.GetCurrentRealizationRun()
+					s.Require().NoError(err)
+				}
 				s.Equal(realizationVariant.expectedRunType, collectedRun.Type)
 				s.Equal(test.onRunCreated.usageAdded+test.onCollectionComplete.usageAdded, collectedRun.MeteredQuantity.InexactFloat64())
 				s.RequireTotals(test.onCollectionComplete.expectRunTotals, collectedRun.Totals)
 
 				if test.expectLineDeleted {
-					s.Empty(invoice.Lines.OrEmpty())
+					s.Require().Len(invoice.Lines.OrEmpty(), 1)
+					deletedLine := invoice.Lines.OrEmpty()[0]
+					s.requireDeletedCustomCurrencyOverageLine(requireDeletedCustomCurrencyOverageLineInput{
+						line:             deletedLine,
+						expectFiatTotals: test.onCollectionComplete.expectInvoiceTotals,
+					})
 				} else {
 					s.Require().Len(invoice.Lines.OrEmpty(), 1)
 					s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
@@ -613,8 +650,12 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 				s.Require().NoError(err)
 				s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
-				s.Require().NotNil(invoice.CollectionAt)
-				s.True(realizationVariant.expectedCollectionEnd.Equal(*invoice.CollectionAt))
+				if test.expectLineDeleted {
+					s.Nil(invoice.CollectionAt)
+				} else {
+					s.Require().NotNil(invoice.CollectionAt)
+					s.True(realizationVariant.expectedCollectionEnd.Equal(*invoice.CollectionAt))
+				}
 			})
 
 			s.Run("reload realized charge and invoice state", func() {
@@ -625,7 +666,16 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				realizedRun, ok := charge.Realizations.Latest()
 				s.Require().True(ok)
 				s.Equal(realizationVariant.expectedRunType, realizedRun.Type)
-				s.Require().NotNil(realizedRun.InvoiceUsage)
+				s.Equal(
+					test.onCollectionComplete.expectRunTotals.CreditsTotal,
+					realizedRun.CreditsAllocated.Sum().InexactFloat64(),
+				)
+				if test.expectLineDeleted {
+					s.Nil(realizedRun.InvoiceUsage)
+				} else {
+					s.Require().NotNil(realizedRun.InvoiceUsage)
+					s.RequireTotals(test.onCollectionComplete.expectInvoiceTotals, realizedRun.InvoiceUsage.Totals)
+				}
 
 				if test.expectPaymentSettled {
 					s.Equal(1, customCurrencyOverageAccruedInvocations)
@@ -648,10 +698,9 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 					Expand:  billing.StandardInvoiceExpandAll,
 				})
 				s.Require().NoError(err)
-				s.Require().NotNil(activeInvoice.CollectionAt)
-				s.True(realizationVariant.expectedCollectionEnd.Equal(*activeInvoice.CollectionAt))
 
 				if test.expectLineDeleted {
+					s.Nil(activeInvoice.CollectionAt)
 					s.Empty(activeInvoice.Lines.OrEmpty())
 
 					invoiceWithDeletedLine, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
@@ -661,21 +710,19 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 						),
 					})
 					s.Require().NoError(err)
-					s.Require().NotNil(invoiceWithDeletedLine.CollectionAt)
-					s.True(realizationVariant.expectedCollectionEnd.Equal(*invoiceWithDeletedLine.CollectionAt))
+					s.Nil(invoiceWithDeletedLine.CollectionAt)
 					s.Require().Len(invoiceWithDeletedLine.Lines.OrEmpty(), 1)
 					deletedLine := invoiceWithDeletedLine.Lines.OrEmpty()[0]
-					s.Require().NotNil(deletedLine.DeletedAt)
-					s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
-						line:               deletedLine,
-						expectTokenOverage: test.onCollectionComplete.expectRunTotals.Total,
-						expectCostBasis:    0.5,
-						expectFiatTotals:   test.onCollectionComplete.expectInvoiceTotals,
+					s.requireDeletedCustomCurrencyOverageLine(requireDeletedCustomCurrencyOverageLineInput{
+						line:             deletedLine,
+						expectFiatTotals: test.onCollectionComplete.expectInvoiceTotals,
 					})
 
 					// TODO: delete the standard invoice when zero overage removes its only line.
 					s.Nil(invoiceWithDeletedLine.DeletedAt)
 				} else {
+					s.Require().NotNil(activeInvoice.CollectionAt)
+					s.True(realizationVariant.expectedCollectionEnd.Equal(*activeInvoice.CollectionAt))
 					s.Require().Len(activeInvoice.Lines.OrEmpty(), 1)
 					s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
 						line:               activeInvoice.Lines.OrEmpty()[0],
@@ -953,6 +1000,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 				Amount: 2.5,
 				Total:  2.5,
 			},
+			ExpectedLines: 1,
 			ExpectedLineTotals: billingtest.ExpectedTotals{
 				Amount: 2.5,
 				Total:  2.5,

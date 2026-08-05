@@ -87,7 +87,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		Permit(
 			meta.TriggerNext,
 			usagebased.StatusActiveAwaitingPaymentSettlement,
-			statelessx.BoolFn(s.HasTerminalInvoicedRealizationWithoutCurrentRun),
+			statelessx.BoolFn(s.HasTerminalCompletedRealizationWithoutCurrentRun),
 		).
 		Permit(
 			meta.TriggerInvoiceCreated,
@@ -131,6 +131,11 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActiveRealizationProcessing).
 		Permit(
+			meta.TriggerNext,
+			usagebased.StatusActiveRealizationZeroFiatAmountOverageCompleted,
+			statelessx.BoolFn(s.IsCurrentRunZeroFiatAmountOverage),
+		).
+		Permit(
 			meta.TriggerInvoiceIssued,
 			usagebased.StatusActiveRealizationIssuing,
 		).
@@ -138,9 +143,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
-		OnActive(
-			s.SnapshotInvoiceUsage,
-		)
+		OnActive(s.SnapshotInvoiceUsage)
 
 	s.Configure(usagebased.StatusActiveRealizationIssuing).
 		Permit(
@@ -154,6 +157,20 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.UnsupportedShrinkToRealizedPeriodOperation)).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
+
+	// Zero-fiat-amount overages bypass invoice issuance after the run's converted
+	// fiat amount is durable. This state finalizes that run before normal
+	// post-realization routing.
+	s.Configure(usagebased.StatusActiveRealizationZeroFiatAmountOverageCompleted).
+		PermitDynamic(
+			meta.TriggerNext,
+			s.resolveStateAfterRealizationCompleted,
+		).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
+		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
+		OnActive(s.FinalizeZeroFiatAmountOverageRun)
 
 	s.Configure(usagebased.StatusActiveRealizationCompleted).
 		PermitDynamic(
@@ -174,7 +191,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 	// Payment + final
 
 	s.Configure(usagebased.StatusActiveAwaitingPaymentSettlement).
-		Permit(meta.TriggerNext, usagebased.StatusFinal, statelessx.BoolFn(s.AreAllInvoicedRunsSettled)).
+		Permit(meta.TriggerNext, usagebased.StatusFinal, statelessx.BoolFn(s.AreAllRealizationRunsSettled)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
@@ -207,12 +224,12 @@ func (s *CreditThenInvoiceStateMachine) resolveStateAfterRealizationCompleted(_ 
 	return usagebased.StatusActive, nil
 }
 
-// HasTerminalInvoicedRealizationWithoutCurrentRun lets the active state discover
-// a completed invoice-backed realization after manual period changes. Normally
-// the realization branch moves to settlement when it creates the final run; API
-// gathering-line deletes can instead make an existing paid partial run become
-// final while the charge is already back in active.
-func (s *CreditThenInvoiceStateMachine) HasTerminalInvoicedRealizationWithoutCurrentRun() bool {
+// HasTerminalCompletedRealizationWithoutCurrentRun lets the active state
+// discover completed invoice-backed and zero-fiat overage realizations after
+// manual period changes. Normally the realization branch moves to settlement
+// when it creates the final run; API gathering-line deletes can instead make an
+// existing partial run become final while the charge is already back in active.
+func (s *CreditThenInvoiceStateMachine) HasTerminalCompletedRealizationWithoutCurrentRun() bool {
 	if s.Charge.State.CurrentRealizationRunID != nil {
 		return false
 	}
@@ -226,7 +243,7 @@ func (s *CreditThenInvoiceStateMachine) HasTerminalInvoicedRealizationWithoutCur
 		return false
 	}
 
-	if latestRun.InvoiceUsage == nil {
+	if latestRun.InvoiceUsage == nil && !isZeroFiatAmountOverageRun(s.Charge, latestRun) {
 		return false
 	}
 
@@ -652,7 +669,7 @@ func (s *CreditThenInvoiceStateMachine) updateStateAfterShrink(
 		// arrive.
 		chargeWithKeptRuns := s.Charge
 		chargeWithKeptRuns.Realizations = runsToKeep
-		if areAllInvoicedRunsSettled(chargeWithKeptRuns) {
+		if areAllRealizationRunsSettled(chargeWithKeptRuns) {
 			s.Charge.Status = usagebased.StatusFinal
 		} else if s.Charge.Status != usagebased.StatusFinal {
 			s.Charge.Status = usagebased.StatusActiveAwaitingPaymentSettlement
@@ -824,8 +841,8 @@ func isFinalRunInPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedP
 	return meta.NormalizeTimestamp(servicePeriod.To).Equal(meta.NormalizeTimestamp(charge.Intent.GetEffectiveServicePeriod().To))
 }
 
-func (s *CreditThenInvoiceStateMachine) AreAllInvoicedRunsSettled() bool {
-	return areAllInvoicedRunsSettled(s.Charge)
+func (s *CreditThenInvoiceStateMachine) AreAllRealizationRunsSettled() bool {
+	return areAllRealizationRunsSettled(s.Charge)
 }
 
 func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context) error {
@@ -920,6 +937,43 @@ func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context
 	return nil
 }
 
+// IsCurrentRunZeroFiatAmountOverage reports whether the current run can
+// complete without invoice issuance.
+func (s *CreditThenInvoiceStateMachine) IsCurrentRunZeroFiatAmountOverage() bool {
+	if s.Charge.State.CurrentRealizationRunID == nil {
+		return false
+	}
+
+	currentRun, err := s.Charge.Realizations.GetByID(*s.Charge.State.CurrentRealizationRunID)
+	if err != nil {
+		return false
+	}
+
+	return isZeroFiatAmountOverageRun(s.Charge, currentRun)
+}
+
+// FinalizeZeroFiatAmountOverageRun releases the persisted current run while the
+// state machine is in zero-fiat-amount overage completion.
+func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(_ context.Context) error {
+	if s.Charge.State.CurrentRealizationRunID == nil {
+		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
+	}
+
+	currentRun, err := s.Charge.GetCurrentRealizationRun()
+	if err != nil {
+		return fmt.Errorf("get current realization run: %w", err)
+	}
+
+	if !isZeroFiatAmountOverageRun(s.Charge, currentRun) {
+		return fmt.Errorf("current realization run %s is not a zero fiat amount overage", currentRun.ID.ID)
+	}
+
+	s.Charge.State.CurrentRealizationRunID = nil
+	s.Charge.State.AdvanceAfter = nil
+
+	return nil
+}
+
 func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
 	if err := input.Validate(); err != nil {
 		return err
@@ -959,6 +1013,14 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 	s.Charge.ChargeBase = updatedChargeBase
 
 	return nil
+}
+
+// isZeroFiatAmountOverageRun identifies custom-currency overage runs whose
+// converted fiat Amount is zero.
+func isZeroFiatAmountOverageRun(charge usagebased.Charge, run usagebased.RealizationRun) bool {
+	return charge.Intent.GetCurrency().IsCustom() &&
+		charge.Intent.GetSettlementMode() == productcatalog.CreditThenInvoiceSettlementMode &&
+		run.NoFiatTransactionRequired
 }
 
 func getRunForLine(charge usagebased.Charge, lineID string) (usagebased.RealizationRun, error) {

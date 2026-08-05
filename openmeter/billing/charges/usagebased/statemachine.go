@@ -16,12 +16,13 @@ const (
 	// Active status and substates
 	StatusActive Status = Status(meta.ChargeStatusActive)
 
-	StatusActiveRealizationStarted              Status = "active.realization.started"
-	StatusActiveRealizationWaitingForCollection Status = "active.realization.waiting_for_collection"
-	StatusActiveRealizationProcessing           Status = "active.realization.processing"
-	StatusActiveRealizationIssuing              Status = "active.realization.issuing"
-	StatusActiveRealizationCompleted            Status = "active.realization.completed"
-	StatusActiveAwaitingPaymentSettlement       Status = "active.awaiting_payment_settlement"
+	StatusActiveRealizationStarted                        Status = "active.realization.started"
+	StatusActiveRealizationWaitingForCollection           Status = "active.realization.waiting_for_collection"
+	StatusActiveRealizationProcessing                     Status = "active.realization.processing"
+	StatusActiveRealizationIssuing                        Status = "active.realization.issuing"
+	StatusActiveRealizationZeroFiatAmountOverageCompleted Status = "active.realization.zero_fiat_amount_overage_completed"
+	StatusActiveRealizationCompleted                      Status = "active.realization.completed"
+	StatusActiveAwaitingPaymentSettlement                 Status = "active.awaiting_payment_settlement"
 
 	StatusFinal   Status = Status(meta.ChargeStatusFinal)
 	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
@@ -48,6 +49,7 @@ func (Status) Values() []string {
 		string(StatusActiveRealizationWaitingForCollection),
 		string(StatusActiveRealizationProcessing),
 		string(StatusActiveRealizationIssuing),
+		string(StatusActiveRealizationZeroFiatAmountOverageCompleted),
 		string(StatusActiveRealizationCompleted),
 		string(StatusActiveAwaitingPaymentSettlement),
 		string(StatusFinal),

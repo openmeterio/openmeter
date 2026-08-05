@@ -12,17 +12,48 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type standardLinePopulationStage string
+
+const (
+	standardLinePopulationStageGatheringPreview     standardLinePopulationStage = "gathering_preview"
+	standardLinePopulationStageInvoiceCreated       standardLinePopulationStage = "invoice_created"
+	standardLinePopulationStageCollectionCompleted  standardLinePopulationStage = "collection_completed"
+	standardLinePopulationStageManualAttachment     standardLinePopulationStage = "manual_attachment"
+	standardLinePopulationStageIntentReconciliation standardLinePopulationStage = "intent_reconciliation"
+)
+
+func (s standardLinePopulationStage) Validate() error {
+	switch s {
+	case standardLinePopulationStageGatheringPreview,
+		standardLinePopulationStageInvoiceCreated,
+		standardLinePopulationStageCollectionCompleted,
+		standardLinePopulationStageManualAttachment,
+		standardLinePopulationStageIntentReconciliation:
+		return nil
+	case "":
+		return fmt.Errorf("standard line population stage is required")
+	default:
+		return fmt.Errorf("invalid standard line population stage: %q", s)
+	}
+}
+
 type populateFlatFeeStandardLineFromRunInput struct {
 	Charge flatfee.Charge
 	Run    flatfee.RealizationRun
+	Stage  standardLinePopulationStage
 }
 
 func (i populateFlatFeeStandardLineFromRunInput) Validate() error {
 	var errs []error
+
+	if err := i.Stage.Validate(); err != nil {
+		errs = append(errs, err)
+	}
 
 	if err := i.Charge.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
@@ -179,6 +210,12 @@ func populateCustomCurrencyOverageFromRun(
 			stdLine.Totals.Total.String(),
 			fiatOverage.Amount.String(),
 		)
+	}
+
+	if (input.Stage == standardLinePopulationStageGatheringPreview ||
+		input.Stage == standardLinePopulationStageCollectionCompleted) &&
+		isZeroFiatAmountOverageRun(charge, run) {
+		stdLine.DeletedAt = lo.ToPtr(clock.Now())
 	}
 
 	return nil

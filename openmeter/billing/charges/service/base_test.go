@@ -291,6 +291,29 @@ func (s *BaseSuite) requireCustomCurrencyOverageLine(in requireCustomCurrencyOve
 	s.RequireTotals(in.expectFiatTotals, in.line.Totals)
 }
 
+type requireDeletedCustomCurrencyOverageLineInput struct {
+	line             *billing.StandardLine
+	expectFiatTotals billingtest.ExpectedTotals
+}
+
+func (s *BaseSuite) requireDeletedCustomCurrencyOverageLine(in requireDeletedCustomCurrencyOverageLineInput) {
+	s.T().Helper()
+
+	s.Require().NotNil(in.line.DeletedAt)
+	s.Equal(currencyx.FiatCode(USD), in.line.Currency)
+	switch reason := in.line.Annotations[billing.AnnotationKeyReason].(type) {
+	case string:
+		s.Equal(billing.AnnotationValueReasonOverage, reason)
+	case *string:
+		s.Require().NotNil(reason)
+		s.Equal(billing.AnnotationValueReasonOverage, *reason)
+	default:
+		s.Fail("overage reason annotation has an unexpected type")
+	}
+	s.Empty(in.line.DetailedLines)
+	s.RequireTotals(in.expectFiatTotals, in.line.Totals)
+}
+
 type createMockChargeIntentInput struct {
 	customer            customer.CustomerID
 	currency            currencyx.Code

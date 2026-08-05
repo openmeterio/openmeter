@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -120,6 +121,11 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit))
 
 	s.Configure(flatfee.StatusActiveRealizationProcessing).
+		Permit(
+			meta.TriggerNext,
+			flatfee.StatusActiveRealizationZeroFiatAmountOverageCompleted,
+			statelessx.BoolFn(s.IsCurrentRunZeroFiatAmountOverage),
+		).
 		Permit(meta.TriggerInvoiceIssued, flatfee.StatusActiveRealizationIssuing).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
@@ -134,6 +140,17 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.AccrueInvoiceUsage))
+
+	// Zero-fiat-amount overages bypass invoice issuance. This state seals the
+	// persisted current run before the charge completes without payment
+	// settlement.
+	s.Configure(flatfee.StatusActiveRealizationZeroFiatAmountOverageCompleted).
+		Permit(meta.TriggerNext, flatfee.StatusFinal).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
+		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
+		OnActive(s.FinalizeZeroFiatAmountOverageRun)
 
 	s.Configure(flatfee.StatusActiveRealizationCompleted).
 		Permit(meta.TriggerNext, flatfee.StatusActiveAwaitingPaymentSettlement).
@@ -511,6 +528,7 @@ func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, i
 	if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
 		Charge: s.Charge,
 		Run:    result.Run,
+		Stage:  standardLinePopulationStageManualAttachment,
 	}); err != nil {
 		return fmt.Errorf("mapping attached flat-fee run to standard line[%s]: %w", line.ID, err)
 	}
@@ -555,6 +573,54 @@ func (s *CreditThenInvoiceStateMachine) AreAllPaymentsSettled() bool {
 	}
 
 	return run.Payment.Status == payment.StatusSettled
+}
+
+// IsCurrentRunZeroFiatAmountOverage reports whether the current run can
+// complete without invoice issuance.
+func (s *CreditThenInvoiceStateMachine) IsCurrentRunZeroFiatAmountOverage() bool {
+	currentRun := s.Charge.Realizations.CurrentRun
+	if currentRun == nil {
+		return false
+	}
+
+	return isZeroFiatAmountOverageRun(s.Charge, *currentRun)
+}
+
+// FinalizeZeroFiatAmountOverageRun seals the persisted current run while the
+// state machine is in zero-fiat-amount overage completion.
+func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(ctx context.Context) error {
+	currentRun := s.Charge.Realizations.CurrentRun
+	if currentRun == nil {
+		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
+	}
+
+	if !isZeroFiatAmountOverageRun(s.Charge, *currentRun) {
+		return fmt.Errorf("current realization run %s is not a zero fiat amount overage", currentRun.ID.ID)
+	}
+
+	// Mark the run immutable because its deleted line might already belong to an
+	// issued invoice. This is safe because a zero-fiat line cannot yield a credit note, where
+	// the deleted line would be an issue.
+	runBase, err := s.Adapter.UpdateRealizationRun(ctx, flatfee.UpdateRealizationRunInput{
+		ID:        currentRun.ID,
+		Immutable: mo.Some(true),
+	})
+	if err != nil {
+		return fmt.Errorf("mark zero-fiat-amount overage run immutable: %w", err)
+	}
+
+	currentRun.RealizationRunBase = runBase
+	s.Charge.State.AdvanceAfter = nil
+
+	return nil
+}
+
+// isZeroFiatAmountOverageRun identifies custom-currency overage runs whose
+// converted fiat Amount is zero.
+func isZeroFiatAmountOverageRun(charge flatfee.Charge, run flatfee.RealizationRun) bool {
+	return charge.Intent.GetCurrency().IsCustom() &&
+		charge.Intent.GetSettlementMode() == productcatalog.CreditThenInvoiceSettlementMode &&
+		run.NoFiatTransactionRequired
 }
 
 type reconcileInvoicingStateInput struct {
@@ -711,6 +777,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		if err := populateFlatFeeStandardLineFromRun(line, populateFlatFeeStandardLineFromRunInput{
 			Charge: s.Charge,
 			Run:    result.Run,
+			Stage:  standardLinePopulationStageIntentReconciliation,
 		}); err != nil {
 			return fmt.Errorf("mapping reconciled flat-fee run to standard line[%s]: %w", line.ID, err)
 		}

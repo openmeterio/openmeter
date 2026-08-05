@@ -106,7 +106,8 @@ func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testi
 		Charge: usagebased.Charge{
 			Realizations: usagebased.RealizationRuns{priorRun, run},
 		},
-		Run: run,
+		Run:   run,
+		Stage: standardLinePopulationStageInvoiceCreated,
 	})
 	require.NoError(t, err)
 
@@ -178,7 +179,8 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 		Charge: usagebased.Charge{
 			Realizations: usagebased.RealizationRuns{priorRun, run},
 		},
-		Run: run,
+		Run:   run,
+		Stage: standardLinePopulationStageInvoiceCreated,
 	})
 	require.NoError(t, err)
 
@@ -227,9 +229,15 @@ func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing
 		Charge: usagebased.Charge{
 			Realizations: usagebased.RealizationRuns{run},
 		},
-		Run: run,
+		Run:   run,
+		Stage: standardLinePopulationStageInvoiceCreated,
 	})
 	require.ErrorContains(t, err, "detailed lines must be expanded")
+}
+
+func TestPopulateUsageBasedStandardLineFromRunRequiresStage(t *testing.T) {
+	err := populateStandardLineFromRun(&billing.StandardLine{}, populateStandardLineFromRunInput{})
+	require.ErrorContains(t, err, "standard line population stage is required")
 }
 
 func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t *testing.T) {
@@ -330,6 +338,7 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	err = populateStandardLineFromRun(line, populateStandardLineFromRunInput{
 		Charge: charge,
 		Run:    run,
+		Stage:  standardLinePopulationStageInvoiceCreated,
 	})
 	require.NoError(t, err)
 
@@ -352,10 +361,31 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	err = populateStandardLineFromRun(line, populateStandardLineFromRunInput{
 		Charge: charge,
 		Run:    run,
+		Stage:  standardLinePopulationStageInvoiceCreated,
 	})
 	require.NoError(t, err)
 	require.Len(t, line.DetailedLines, 1)
 	require.Equal(t, "existing-overage-id", line.DetailedLines[0].ID)
+	require.Nil(t, line.DeletedAt)
+
+	run.NoFiatTransactionRequired = true
+	run.Totals = totals.Totals{}
+	err = populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Charge: charge,
+		Run:    run,
+		Stage:  standardLinePopulationStageGatheringPreview,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, line.DeletedAt)
+
+	line.DeletedAt = nil
+	err = populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+		Charge: charge,
+		Run:    run,
+		Stage:  standardLinePopulationStageCollectionCompleted,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, line.DeletedAt)
 }
 
 func newUsageBasedStandardLineForTest(period timeutil.ClosedPeriod) *billing.StandardLine {

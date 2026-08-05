@@ -48,7 +48,7 @@ type ChargeAdapter interface {
 
 type ChargeDetailedLineAdapter interface {
 	UpsertDetailedLines(ctx context.Context, runID RealizationRunID, lines DetailedLines) error
-	FetchCurrentRunDetailedLines(ctx context.Context, charge Charge) (Charge, error)
+	FetchDetailedLines(ctx context.Context, charge Charge) (Charge, error)
 }
 
 type ChargeInvoicedUsageAdapter interface {

@@ -228,12 +228,27 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 		Only(ctx)
 	s.Require().NoError(err)
 	s.NotNil(deletedRow.DeletedAt)
+
+	s.Require().NoError(s.adapter.DetachCurrentRun(ctx, charge.GetChargeID()))
+
+	fetchedCharge, err = s.adapter.GetByID(ctx, flatfee.GetByIDInput{
+		ChargeID: charge.GetChargeID(),
+		Expands: chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+			chargesmeta.ExpandDetailedLines,
+		},
+	})
+	s.Require().NoError(err)
+	s.Nil(fetchedCharge.Realizations.CurrentRun)
+	s.Require().Len(fetchedCharge.Realizations.PriorRuns, 1)
+	s.True(fetchedCharge.Realizations.PriorRuns[0].DetailedLines.IsPresent())
+	s.Len(fetchedCharge.Realizations.PriorRuns[0].DetailedLines.OrEmpty(), 2)
 }
 
-func (s *FlatFeeDetailedLineAdapterSuite) TestFetchCurrentRunDetailedLinesRequiresCurrentRun() {
+func (s *FlatFeeDetailedLineAdapterSuite) TestFetchDetailedLinesWithoutRuns() {
 	ctx := s.T().Context()
 
-	_, err := s.adapter.FetchCurrentRunDetailedLines(ctx, flatfee.Charge{
+	charge, err := s.adapter.FetchDetailedLines(ctx, flatfee.Charge{
 		ChargeBase: flatfee.ChargeBase{
 			ManagedResource: chargesmeta.ManagedResource{
 				NamespacedModel: models.NamespacedModel{
@@ -243,7 +258,9 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestFetchCurrentRunDetailedLinesRequir
 			},
 		},
 	})
-	s.Require().ErrorContains(err, "current run is required")
+	s.Require().NoError(err)
+	s.Nil(charge.Realizations.CurrentRun)
+	s.Empty(charge.Realizations.PriorRuns)
 }
 
 func (s *FlatFeeDetailedLineAdapterSuite) createCustomer(namespace string) string {
