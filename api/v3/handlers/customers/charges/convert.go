@@ -54,20 +54,25 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		return api.BillingChargeFlatFee{}, fmt.Errorf("setting flat fee price union: %w", err)
 	}
 
-	return api.BillingChargeFlatFee{
-		AdvanceAfter:         source.State.AdvanceAfter,
-		AmountAfterProration: ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
-		BillingPeriod:        ConvertClosedPeriodToAPI(intent.BillingPeriod),
-		CreatedAt:            source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:             ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
-		Customer:             ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
-		DeletedAt:            source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
-		Description:          intent.Description,
-		Discounts:            convertFlatFeeDiscounts(intent.PercentageDiscounts),
-		Feature: &api.BillingChargeFeature{
+	var feature *api.BillingChargeFeature
+	if source.State.FeatureID != nil {
+		feature = &api.BillingChargeFeature{
 			Key: intent.FeatureKey,
 			Id:  lo.FromPtr(source.State.FeatureID),
-		},
+		}
+	}
+
+	return api.BillingChargeFlatFee{
+		AdvanceAfter:           source.State.AdvanceAfter,
+		AmountAfterProration:   ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
+		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
+		CreatedAt:              source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
+		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
+		Customer:               ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
+		DeletedAt:              source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
+		Description:            intent.Description,
+		Discounts:              convertFlatFeeDiscounts(intent.PercentageDiscounts),
+		Feature:                feature,
 		FullServicePeriod:      ConvertClosedPeriodToAPI(intent.FullServicePeriod),
 		Id:                     source.ChargeBase.ManagedResource.ID,
 		InvoiceAt:              intent.InvoiceAt,
