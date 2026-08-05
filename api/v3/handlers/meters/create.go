@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -41,6 +42,11 @@ func (h *handler) CreateMeter() CreateMeterHandler {
 			return FromAPICreateMeterRequest(ns, body)
 		},
 		func(ctx context.Context, request CreateMeterRequest) (CreateMeterResponse, error) {
+			// Validate JSON paths via ClickHouse
+			if err := streaming.ValidateJSONPaths(ctx, h.streaming, request.ValueProperty, request.GroupBy); err != nil {
+				return CreateMeterResponse{}, err
+			}
+
 			m, err := h.service.CreateMeter(ctx, request)
 			if err != nil {
 				return CreateMeterResponse{}, err

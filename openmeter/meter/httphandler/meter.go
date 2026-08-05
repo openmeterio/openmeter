@@ -155,7 +155,7 @@ func (h handler) CreateMeter() CreateMeterHandler {
 		},
 		func(ctx context.Context, request CreateMeterRequest) (CreateMeterResponse, error) {
 			// Validate JSON paths via ClickHouse
-			err := validateJSONPaths(ctx, h.streaming, request.MeterCreate.ValueProperty, request.MeterCreate.GroupBy)
+			err := streaming.ValidateJSONPaths(ctx, h.streaming, request.MeterCreate.ValueProperty, lo.FromPtr(request.MeterCreate.GroupBy))
 			if err != nil {
 				return CreateMeterResponse{}, err
 			}
@@ -231,7 +231,7 @@ func (h handler) UpdateMeter() UpdateMeterHandler {
 			}
 
 			// Validate JSON paths via ClickHouse
-			err = validateGroupByJSONPaths(ctx, h.streaming, request.MeterUpdate.GroupBy)
+			err = streaming.ValidateGroupByJSONPaths(ctx, h.streaming, lo.FromPtr(request.MeterUpdate.GroupBy))
 			if err != nil {
 				return UpdateMeterResponse{}, err
 			}
@@ -312,59 +312,4 @@ func (h handler) DeleteMeter() DeleteMeterHandler {
 			httptransport.WithOperationName("deleteMeter"),
 		)...,
 	)
-}
-
-// Validate JSON paths via ClickHouse
-// This is necessary because ClickHouse is more strict than JSONPath libraries in Go.
-// Ideally this would be a RegExp
-func validateJSONPaths(ctx context.Context, streaming streaming.Connector, valueProperty *string, groupBy *map[string]string) error {
-	err := validateValuePropertyJSONPath(ctx, streaming, valueProperty)
-	if err != nil {
-		return err
-	}
-
-	err = validateGroupByJSONPaths(ctx, streaming, groupBy)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Validate Value Property JSON path via ClickHouse
-func validateValuePropertyJSONPath(ctx context.Context, streaming streaming.Connector, valueProperty *string) error {
-	if valueProperty == nil {
-		return nil
-	}
-
-	isValid, err := streaming.ValidateJSONPath(ctx, *valueProperty)
-	if err != nil {
-		return fmt.Errorf("validate json path in clickhouse: %w", err)
-	}
-
-	if !isValid {
-		return models.NewGenericValidationError(fmt.Errorf("invalid JSONPath: %w", err))
-	}
-
-	return nil
-}
-
-// Validate GroupBy JSON paths via ClickHouse
-func validateGroupByJSONPaths(ctx context.Context, streaming streaming.Connector, groupBy *map[string]string) error {
-	if groupBy == nil {
-		return nil
-	}
-
-	for groupByKey, jsonPath := range *groupBy {
-		isValid, err := streaming.ValidateJSONPath(ctx, jsonPath)
-		if err != nil {
-			return fmt.Errorf("validate json path in clickhouse: %w", err)
-		}
-
-		if !isValid {
-			return models.NewGenericValidationError(fmt.Errorf("invalid JSONPath for %s group by: %w", groupByKey, err))
-		}
-	}
-
-	return nil
 }

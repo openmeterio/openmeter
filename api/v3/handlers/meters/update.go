@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -42,6 +43,11 @@ func (h *handler) UpdateMeter() UpdateMeterHandler {
 			return FromAPIUpdateMeterRequest(ns, meterID, body)
 		},
 		func(ctx context.Context, request UpdateMeterRequest) (UpdateMeterResponse, error) {
+			// The value property is immutable on update, so only group-by paths need it.
+			if err := streaming.ValidateGroupByJSONPaths(ctx, h.streaming, request.GroupBy); err != nil {
+				return UpdateMeterResponse{}, err
+			}
+
 			m, err := h.service.UpdateMeter(ctx, request)
 			if err != nil {
 				return UpdateMeterResponse{}, err
