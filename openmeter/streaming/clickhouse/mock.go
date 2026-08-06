@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/column"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/stretchr/testify/mock"
 )
@@ -72,6 +73,67 @@ func (m *MockClickHouse) Ping(ctx context.Context) error {
 func (m *MockClickHouse) Close() error {
 	callArgs := m.Called()
 	return callArgs.Error(0)
+}
+
+var _ driver.Batch = &MockBatch{}
+
+func NewMockBatch() *MockBatch {
+	return &MockBatch{}
+}
+
+// MockBatch is a mock for the Batch interface
+type MockBatch struct {
+	mock.Mock
+}
+
+func (m *MockBatch) Abort() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockBatch) Append(v ...any) error {
+	args := m.Called(v)
+	return args.Error(0)
+}
+
+func (m *MockBatch) AppendStruct(v any) error {
+	args := m.Called(v)
+	return args.Error(0)
+}
+
+func (m *MockBatch) Column(idx int) driver.BatchColumn {
+	args := m.Called(idx)
+	return args.Get(0).(driver.BatchColumn)
+}
+
+func (m *MockBatch) Flush() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockBatch) Send() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockBatch) IsSent() bool {
+	args := m.Called()
+	return args.Bool(0)
+}
+
+func (m *MockBatch) Rows() int {
+	args := m.Called()
+	return args.Int(0)
+}
+
+func (m *MockBatch) Columns() []column.Interface {
+	args := m.Called()
+	return args.Get(0).([]column.Interface)
+}
+
+func (m *MockBatch) Close() error {
+	args := m.Called()
+	return args.Error(0)
 }
 
 var _ driver.Rows = &MockRows{}

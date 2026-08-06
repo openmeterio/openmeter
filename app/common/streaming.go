@@ -38,6 +38,7 @@ func NewStreamingConnector(
 		Logger:                 logger,
 		AsyncInsert:            conf.AsyncInsert,
 		AsyncInsertWait:        conf.AsyncInsertWait,
+		InsertTimeout:          conf.InsertTimeout,
 		InsertQuerySettings:    conf.InsertQuerySettings,
 		MeterQuerySettings:     conf.MeterQuerySettings,
 		EnablePrewhere:         conf.EnablePrewhere,

@@ -160,6 +160,7 @@ func TestComplete(t *testing.T) {
 			EventsTableName: "om_events",
 			AsyncInsert:     false,
 			AsyncInsertWait: false,
+			InsertTimeout:   time.Minute,
 		},
 		Entitlements: EntitlementsConfiguration{
 			GracePeriod: datetime.ISODurationString("P1D"),
@@ -264,10 +265,6 @@ func TestComplete(t *testing.T) {
 						pkgkafka.PartitionAssignmentStrategyRoundRobin,
 					},
 				},
-			},
-			Storage: StorageConfiguration{
-				AsyncInsert:     false,
-				AsyncInsertWait: false,
 			},
 		},
 		Dedupe: DedupeConfiguration{
