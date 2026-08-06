@@ -936,8 +936,8 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		detailedLine := line.DetailedLines[0]
 
-		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.PerUnitAmount)
-		s.Equal(alpacadecimal.NewFromFloat(1), detailedLine.Quantity)
+		s.Equal(float64(0.5), detailedLine.PerUnitAmount.InexactFloat64())
+		s.Equal(float64(100), detailedLine.Quantity.InexactFloat64())
 		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.Totals.Amount)
 		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.Totals.Total)
 
@@ -1079,5 +1079,5 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 
 	// The TestStandardInvoiceCreditPurchase test covers the full non-deferred invoicing path.
 	// This path only covers parts up to the point where the gathering line is created, as for
-	// invoice based triggers the lifecycle is governed by the invocing lifecycle hooks.
+	// invoice based triggers the lifecycle is governed by the invoicing line engine.
 }

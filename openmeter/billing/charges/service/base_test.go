@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
-	creditpurchaselineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/lineengine"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
@@ -182,12 +181,7 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
-	creditPurchaseLineEngine, err := creditpurchaselineengine.New(creditpurchaselineengine.Config{
-		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
-	})
-	s.NoError(err)
-
-	err = s.BillingService.RegisterLineEngine(creditPurchaseLineEngine)
+	err = s.BillingService.RegisterLineEngine(creditPurchaseService.GetLineEngine())
 	s.NoError(err)
 	createLineRouter, err := chargeslinerouter.New(chargeslinerouter.Config{
 		CreditsEnabled:           true,

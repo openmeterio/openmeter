@@ -7,7 +7,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34,25 +33,22 @@ func TestNewDetailedLine(t *testing.T) {
 	roundedCustomCurrencyAmount := customCurrency.RoundToPrecision(customCurrencyAmount)
 	fiatOverage := fiatCurrency.RoundToPrecision(roundedCustomCurrencyAmount.Mul(costBasis))
 
-	line, err := NewDetailedLine(NewDetailedLineInput{
+	line, err := newDetailedLine(newDetailedLineInput{
 		Namespace:     "namespace",
 		InvoiceID:     "invoice-id",
 		Name:          "usage (overage)",
 		ServicePeriod: servicePeriod,
-		CustomCurrency: currencies.Currency{
+		CreditCurrency: currencies.Currency{
 			NamespacedID: models.NamespacedID{
 				Namespace: "namespace",
 				ID:        "custom-currency-id",
 			},
 			Currency: customCurrency,
 		},
-		CustomCurrencyAmount: customCurrencyAmount,
-		ResolvedCostBasis: &costbasis.State{
-			CostBasis:  costBasis,
-			ResolvedAt: servicePeriod.From,
-		},
-		FiatCurrency: fiatCurrency,
-		FiatAmount:   fiatOverage,
+		CreditAmount:      customCurrencyAmount,
+		ResolvedCostBasis: costBasis,
+		FiatCurrency:      fiatCurrency,
+		FiatAmount:        fiatOverage,
 	})
 	require.NoError(t, err)
 
@@ -81,24 +77,21 @@ func TestNewDetailedLineRequiresName(t *testing.T) {
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
 
-	_, err = NewDetailedLine(NewDetailedLineInput{
+	_, err = newDetailedLine(newDetailedLineInput{
 		Namespace:     "namespace",
 		InvoiceID:     "invoice-id",
 		ServicePeriod: servicePeriod,
-		CustomCurrency: currencies.Currency{
+		CreditCurrency: currencies.Currency{
 			NamespacedID: models.NamespacedID{
 				Namespace: "namespace",
 				ID:        "custom-currency-id",
 			},
 			Currency: customCurrency,
 		},
-		CustomCurrencyAmount: alpacadecimal.NewFromInt(3),
-		ResolvedCostBasis: &costbasis.State{
-			CostBasis:  alpacadecimal.NewFromInt(2),
-			ResolvedAt: servicePeriod.From,
-		},
-		FiatCurrency: fiatCurrency,
-		FiatAmount:   alpacadecimal.NewFromInt(6),
+		CreditAmount:      alpacadecimal.NewFromInt(3),
+		ResolvedCostBasis: alpacadecimal.NewFromInt(2),
+		FiatCurrency:      fiatCurrency,
+		FiatAmount:        alpacadecimal.NewFromInt(6),
 	})
 	require.ErrorContains(t, err, "name is required")
 }
@@ -119,25 +112,22 @@ func TestNewDetailedLineRejectsInconsistentFiatAmount(t *testing.T) {
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
 
-	_, err = NewDetailedLine(NewDetailedLineInput{
+	_, err = newDetailedLine(newDetailedLineInput{
 		Namespace:     "namespace",
 		InvoiceID:     "invoice-id",
 		Name:          "usage (overage)",
 		ServicePeriod: servicePeriod,
-		CustomCurrency: currencies.Currency{
+		CreditCurrency: currencies.Currency{
 			NamespacedID: models.NamespacedID{
 				Namespace: "namespace",
 				ID:        "custom-currency-id",
 			},
 			Currency: customCurrency,
 		},
-		CustomCurrencyAmount: alpacadecimal.NewFromInt(3),
-		ResolvedCostBasis: &costbasis.State{
-			CostBasis:  alpacadecimal.NewFromInt(2),
-			ResolvedAt: servicePeriod.From,
-		},
-		FiatCurrency: fiatCurrency,
-		FiatAmount:   alpacadecimal.NewFromInt(5),
+		CreditAmount:      alpacadecimal.NewFromInt(3),
+		ResolvedCostBasis: alpacadecimal.NewFromInt(2),
+		FiatCurrency:      fiatCurrency,
+		FiatAmount:        alpacadecimal.NewFromInt(5),
 	})
 	require.ErrorContains(t, err, "totals amount does not match")
 }

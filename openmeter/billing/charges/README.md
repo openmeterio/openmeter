@@ -112,9 +112,9 @@ Credit purchases use a separate settlement union:
 
 - promotional grants credit without payment
 - external grants credit and tracks external authorization and settlement
-- invoice settlement is driven by billing hooks that fire invoice-created,
-  payment-authorized, and payment-settled triggers on the credit-purchase state
-  machine
+- invoice settlement is driven by the charge-owned line engine, which feeds
+  invoice-created, payment-authorized, and payment-settled billing events into
+  the credit-purchase state machine
 
 Payment-backed credit purchases grant credits before entering payment pending,
 then record authorization and settlement as separate state-machine transitions.
