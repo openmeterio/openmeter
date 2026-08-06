@@ -150,12 +150,16 @@ func (p PatchExtend) ValidateWith(intent IntentMutableFields) error {
 		errs = append(errs, fmt.Errorf("new service period to must be greater than existing service period to"))
 	}
 
-	if p.GetNewFullServicePeriodTo().Before(intent.FullServicePeriod.To) {
-		errs = append(errs, fmt.Errorf("new full service period to must be greater than or equal to existing full service period to"))
+	// Extend and shrink describe how service coverage changes. For example,
+	// canceling a one-time in-advance fee can extend its zero-length service and
+	// full-service periods to cancellation while shortening its billing
+	// period to the same cancellation boundary.
+	if p.GetNewFullServicePeriodTo().Before(intent.FullServicePeriod.From) {
+		errs = append(errs, fmt.Errorf("new full service period to must be greater than or equal to existing full service period from"))
 	}
 
-	if p.GetNewBillingPeriodTo().Before(intent.BillingPeriod.To) {
-		errs = append(errs, fmt.Errorf("new billing period to must be greater than or equal to existing billing period to"))
+	if p.GetNewBillingPeriodTo().Before(intent.BillingPeriod.From) {
+		errs = append(errs, fmt.Errorf("new billing period to must be greater than or equal to existing billing period from"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

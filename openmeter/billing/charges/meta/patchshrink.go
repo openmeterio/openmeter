@@ -154,16 +154,8 @@ func (p PatchShrink) ValidateWith(intent IntentMutableFields) error {
 		errs = append(errs, fmt.Errorf("new service period to must be greater than existing service period from"))
 	}
 
-	if p.GetNewFullServicePeriodTo().After(intent.FullServicePeriod.To) {
-		errs = append(errs, fmt.Errorf("new full service period to must be less than or equal to existing full service period to"))
-	}
-
 	if !p.GetNewFullServicePeriodTo().After(intent.FullServicePeriod.From) {
 		errs = append(errs, fmt.Errorf("new full service period to must be greater than existing full service period from"))
-	}
-
-	if p.GetNewBillingPeriodTo().After(intent.BillingPeriod.To) {
-		errs = append(errs, fmt.Errorf("new billing period to must be less than or equal to existing billing period to"))
 	}
 
 	if !p.GetNewBillingPeriodTo().After(intent.BillingPeriod.From) {

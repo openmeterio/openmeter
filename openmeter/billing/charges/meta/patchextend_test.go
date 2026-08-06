@@ -76,23 +76,33 @@ func TestPatchExtendValidateWith(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "rejects earlier full service period end",
+			name: "allows earlier full service and billing period ends",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
 				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To.Add(-time.Hour),
+				NewBillingPeriodTo:     intent.BillingPeriod.To.Add(-time.Hour),
+				NewInvoiceAt:           intent.ServicePeriod.To.Add(time.Hour),
+			}),
+		},
+		{
+			name: "rejects full service period end before its start",
+			patch: mustNewPatchExtend(t, NewPatchExtendInput{
+				ChangeSource:           billing.ChangeSourceSystem,
+				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
+				NewFullServicePeriodTo: intent.FullServicePeriod.From.Add(-time.Hour),
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
 				NewInvoiceAt:           intent.ServicePeriod.To.Add(time.Hour),
 			}),
 			wantErr: true,
 		},
 		{
-			name: "rejects earlier billing period end",
+			name: "rejects billing period end before its start",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
 				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
-				NewBillingPeriodTo:     intent.BillingPeriod.To.Add(-time.Hour),
+				NewBillingPeriodTo:     intent.BillingPeriod.From.Add(-time.Hour),
 				NewInvoiceAt:           intent.ServicePeriod.To.Add(time.Hour),
 			}),
 			wantErr: true,
