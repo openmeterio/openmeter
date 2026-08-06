@@ -2486,7 +2486,7 @@ func (s *CreditThenInvoiceTestSuite) TestRetiresProratedZeroAmountInvoiceLineWit
 			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
 		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 	})
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -2559,7 +2559,7 @@ func (s *CreditThenInvoiceTestSuite) TestRetiresProratedZeroAmountInvoiceLineWit
 			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 		}).AsPatch(),
 	}, s.timingImmediate())
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	usersVersions := editedSubView.Phases[0].ItemsByKey["users"]
 	s.Require().Len(usersVersions, 2)
