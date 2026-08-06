@@ -18,6 +18,42 @@ enum SubscriptionStatus {
 }
 
 /**
+ * Controls how custom-currency cost bases are selected for the subscription.
+ */
+@friendlyName("BillingSubscriptionCostBasisMode")
+enum SubscriptionCostBasisMode {
+  /** Resolve the cost basis effective at the charge's full service period start. */
+  Dynamic: "dynamic",
+
+  /** Pin each custom-currency pair when it is introduced to the subscription. */
+  Pinned: "pinned",
+}
+
+/**
+ * A cost basis pinned to a custom-currency pair for the subscription.
+ */
+@friendlyName("BillingSubscriptionCostBasisPin")
+model SubscriptionCostBasisPin {
+  /**
+   * The managed custom currency ID.
+   */
+  @visibility(Lifecycle.Read)
+  custom_currency_id: Shared.ULID;
+
+  /**
+   * The fiat currency in which the subscription is invoiced.
+   */
+  @visibility(Lifecycle.Read)
+  invoice_currency: Shared.CurrencyCode;
+
+  /**
+   * The pinned cost basis resource ID.
+   */
+  @visibility(Lifecycle.Read)
+  cost_basis_id: Shared.ULID;
+}
+
+/**
  * Subscription edit timing. When immediate, the requested changes take effect
  * immediately. When next_billing_cycle, the requested changes take effect at the
  * next billing cycle.
@@ -125,11 +161,19 @@ model SubscriptionCreate {
   @visibility(Lifecycle.Create)
   @summary("Billing anchor")
   billing_anchor?: Shared.DateTime;
+
+  /**
+   * Controls how custom-currency cost bases are selected for the subscription.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Cost basis mode")
+  cost_basis_mode?: SubscriptionCostBasisMode = SubscriptionCostBasisMode.Dynamic;
 }
 
 /**
  * Subscription.
  */
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "cost basis mode and pins are separate subscription properties"
 @friendlyName("BillingSubscription")
 model Subscription {
   ...OmitProperties<Shared.Resource, "name" | "description">;
@@ -147,6 +191,28 @@ model Subscription {
   @visibility(Lifecycle.Read)
   @summary("Plan ID")
   plan_id?: Shared.ULID;
+
+  /**
+   * The fiat currency in which the subscription is invoiced.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Invoice currency")
+  invoice_currency: Shared.CurrencyCode;
+
+  /**
+   * Controls whether custom-currency cost bases are resolved dynamically or pinned
+   * when their currency pair is introduced to the subscription.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Cost basis mode")
+  cost_basis_mode: SubscriptionCostBasisMode = SubscriptionCostBasisMode.Dynamic;
+
+  /**
+   * Cost bases pinned to custom-currency pairs for this subscription.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Pinned cost bases")
+  cost_basis_pins: SubscriptionCostBasisPin[];
 
   /**
    * A billing anchor is the fixed point in time that determines the subscription's

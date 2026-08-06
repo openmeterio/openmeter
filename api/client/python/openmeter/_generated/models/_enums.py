@@ -840,6 +840,15 @@ class StripeCheckoutSessionMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """SETUP."""
 
 
+class SubscriptionCostBasisMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+    """Controls how custom-currency cost bases are selected for the subscription."""
+
+    DYNAMIC = "dynamic"
+    """DYNAMIC."""
+    PINNED = "pinned"
+    """PINNED."""
+
+
 class SubscriptionStatus(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Subscription status."""
 

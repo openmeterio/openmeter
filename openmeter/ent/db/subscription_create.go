@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -166,9 +167,23 @@ func (_c *SubscriptionCreate) SetCustomerID(v string) *SubscriptionCreate {
 	return _c
 }
 
-// SetCurrency sets the "currency" field.
-func (_c *SubscriptionCreate) SetCurrency(v currencyx.Code) *SubscriptionCreate {
-	_c.mutation.SetCurrency(v)
+// SetInvoiceCurrency sets the "invoice_currency" field.
+func (_c *SubscriptionCreate) SetInvoiceCurrency(v currencyx.Code) *SubscriptionCreate {
+	_c.mutation.SetInvoiceCurrency(v)
+	return _c
+}
+
+// SetCostBasisMode sets the "cost_basis_mode" field.
+func (_c *SubscriptionCreate) SetCostBasisMode(v subscription.CostBasisMode) *SubscriptionCreate {
+	_c.mutation.SetCostBasisMode(v)
+	return _c
+}
+
+// SetNillableCostBasisMode sets the "cost_basis_mode" field if the given value is not nil.
+func (_c *SubscriptionCreate) SetNillableCostBasisMode(v *subscription.CostBasisMode) *SubscriptionCreate {
+	if v != nil {
+		_c.SetCostBasisMode(*v)
+	}
 	return _c
 }
 
@@ -375,6 +390,21 @@ func (_c *SubscriptionCreate) SetBillingSyncState(v *SubscriptionBillingSyncStat
 	return _c.SetBillingSyncStateID(v.ID)
 }
 
+// AddCostBasisPinIDs adds the "cost_basis_pins" edge to the SubscriptionCostBasisPin entity by IDs.
+func (_c *SubscriptionCreate) AddCostBasisPinIDs(ids ...string) *SubscriptionCreate {
+	_c.mutation.AddCostBasisPinIDs(ids...)
+	return _c
+}
+
+// AddCostBasisPins adds the "cost_basis_pins" edges to the SubscriptionCostBasisPin entity.
+func (_c *SubscriptionCreate) AddCostBasisPins(v ...*SubscriptionCostBasisPin) *SubscriptionCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCostBasisPinIDs(ids...)
+}
+
 // Mutation returns the SubscriptionMutation object of the builder.
 func (_c *SubscriptionCreate) Mutation() *SubscriptionMutation {
 	return _c.mutation
@@ -421,6 +451,10 @@ func (_c *SubscriptionCreate) defaults() {
 	if _, ok := _c.mutation.Name(); !ok {
 		v := subscription.DefaultName
 		_c.mutation.SetName(v)
+	}
+	if _, ok := _c.mutation.CostBasisMode(); !ok {
+		v := subscription.DefaultCostBasisMode
+		_c.mutation.SetCostBasisMode(v)
 	}
 	if _, ok := _c.mutation.ProRatingConfig(); !ok {
 		v := subscription.DefaultProRatingConfig()
@@ -471,12 +505,20 @@ func (_c *SubscriptionCreate) check() error {
 			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "Subscription.customer_id": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "Subscription.currency"`)}
+	if _, ok := _c.mutation.InvoiceCurrency(); !ok {
+		return &ValidationError{Name: "invoice_currency", err: errors.New(`db: missing required field "Subscription.invoice_currency"`)}
 	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := subscription.CurrencyValidator(string(v)); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Subscription.currency": %w`, err)}
+	if v, ok := _c.mutation.InvoiceCurrency(); ok {
+		if err := subscription.InvoiceCurrencyValidator(string(v)); err != nil {
+			return &ValidationError{Name: "invoice_currency", err: fmt.Errorf(`db: validator failed for field "Subscription.invoice_currency": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.CostBasisMode(); !ok {
+		return &ValidationError{Name: "cost_basis_mode", err: errors.New(`db: missing required field "Subscription.cost_basis_mode"`)}
+	}
+	if v, ok := _c.mutation.CostBasisMode(); ok {
+		if err := subscription.CostBasisModeValidator(v); err != nil {
+			return &ValidationError{Name: "cost_basis_mode", err: fmt.Errorf(`db: validator failed for field "Subscription.cost_basis_mode": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.BillingAnchor(); !ok {
@@ -583,9 +625,13 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 		_spec.SetField(subscription.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(subscription.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
+	if value, ok := _c.mutation.InvoiceCurrency(); ok {
+		_spec.SetField(subscription.FieldInvoiceCurrency, field.TypeString, value)
+		_node.InvoiceCurrency = value
+	}
+	if value, ok := _c.mutation.CostBasisMode(); ok {
+		_spec.SetField(subscription.FieldCostBasisMode, field.TypeEnum, value)
+		_node.CostBasisMode = value
 	}
 	if value, ok := _c.mutation.BillingAnchor(); ok {
 		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)
@@ -778,6 +824,22 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionbillingsyncstate.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CostBasisPinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.CostBasisPinsTable,
+			Columns: []string{subscription.CostBasisPinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptioncostbasispin.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1034,8 +1096,11 @@ func (u *SubscriptionUpsertOne) UpdateNewValues() *SubscriptionUpsertOne {
 		if _, exists := u.create.mutation.CustomerID(); exists {
 			s.SetIgnore(subscription.FieldCustomerID)
 		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(subscription.FieldCurrency)
+		if _, exists := u.create.mutation.InvoiceCurrency(); exists {
+			s.SetIgnore(subscription.FieldInvoiceCurrency)
+		}
+		if _, exists := u.create.mutation.CostBasisMode(); exists {
+			s.SetIgnore(subscription.FieldCostBasisMode)
 		}
 		if _, exists := u.create.mutation.SettlementMode(); exists {
 			s.SetIgnore(subscription.FieldSettlementMode)
@@ -1465,8 +1530,11 @@ func (u *SubscriptionUpsertBulk) UpdateNewValues() *SubscriptionUpsertBulk {
 			if _, exists := b.mutation.CustomerID(); exists {
 				s.SetIgnore(subscription.FieldCustomerID)
 			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(subscription.FieldCurrency)
+			if _, exists := b.mutation.InvoiceCurrency(); exists {
+				s.SetIgnore(subscription.FieldInvoiceCurrency)
+			}
+			if _, exists := b.mutation.CostBasisMode(); exists {
+				s.SetIgnore(subscription.FieldCostBasisMode)
 			}
 			if _, exists := b.mutation.SettlementMode(); exists {
 				s.SetIgnore(subscription.FieldSettlementMode)
