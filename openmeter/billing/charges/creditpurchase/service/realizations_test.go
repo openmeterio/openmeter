@@ -61,6 +61,7 @@ func TestRealizationsAuthorizeExternalPaymentRoundsFiatAmount(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			expectedAmount := alpacadecimal.RequireFromString(tt.expectedAmount).InexactFloat64()
 			charge := newExternalStateMachineTestChargeWithInput(t, externalStateMachineTestChargeInput{
 				status:        creditpurchase.StatusActivePaymentPending,
 				creditAmount:  alpacadecimal.RequireFromString(tt.creditAmount),
@@ -74,7 +75,7 @@ func TestRealizationsAuthorizeExternalPaymentRoundsFiatAmount(t *testing.T) {
 			handler.On("OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything).
 				Run(func(args mock.Arguments) {
 					input := args.Get(1).(creditpurchase.PaymentEventInput)
-					require.True(t, input.FiatAmount.Equal(alpacadecimal.RequireFromString(tt.expectedAmount)))
+					require.Equal(t, expectedAmount, input.FiatAmount.InexactFloat64())
 				}).
 				Return(ledgertransaction.GroupReference{TransactionGroupID: "authorized-ledger-tx"}, nil).
 				Once()
@@ -84,7 +85,7 @@ func TestRealizationsAuthorizeExternalPaymentRoundsFiatAmount(t *testing.T) {
 			_, err := realizationsService.AuthorizeExternalPayment(t.Context(), charge)
 
 			require.NoError(t, err)
-			require.True(t, adapter.createdExternalPayment.FiatAmount.Equal(alpacadecimal.RequireFromString(tt.expectedAmount)))
+			require.Equal(t, expectedAmount, adapter.createdExternalPayment.FiatAmount.InexactFloat64())
 			handler.AssertExpectations(t)
 		})
 	}

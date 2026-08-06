@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
-func TestLineEngineUsesChargeOwnedValuation(t *testing.T) {
+func TestLineEngineDoesNotImplementLineCalculator(t *testing.T) {
 	lineEngine := (&service{}).GetLineEngine()
 
 	require.Equal(t, billing.LineEngineTypeChargeCreditPurchase, lineEngine.GetLineEngineType())

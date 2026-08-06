@@ -277,6 +277,8 @@ func (e *LineEngine) fireInvoiceLifecycleTriggerForLines(ctx context.Context, tr
 			return fmt.Errorf("triggering %s for credit purchase charge[%s]: %w", trigger, charge.ID, err)
 		}
 
+		// Multiple lines can reference the same charge. Keep its post-transition state
+		// so subsequent triggers do not evaluate stale lifecycle data.
 		chargesByID[updatedCharge.ID] = updatedCharge
 	}
 
