@@ -2461,6 +2461,112 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 	})
 }
 
+func (s *CreditThenInvoiceTestSuite) TestMigratesProratedZeroAmountInvoiceLineToCharge() {
+	// given:
+	// - a credit-then-invoice subscription was synchronized without a charges service, which falls back to invoice-backed storage
+	// - its in-advance flat fee is canceled early enough that the prorated USD amount rounds to zero
+	// when:
+	// - the same subscription is synchronized with credit-then-invoice charge provisioning enabled
+	// then:
+	// - the invoice-backed line is deleted and a zero-amount charge takes ownership of the item
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-01-15T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	invoiceBackedService, err := New(Config{
+		BillingService:          s.BillingService,
+		Logger:                  s.Service.logger,
+		Tracer:                  s.Service.tracer,
+		SubscriptionSyncAdapter: s.Adapter,
+		SubscriptionService:     s.SubscriptionService,
+		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
+	})
+	s.NoError(err)
+
+	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("default", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "users",
+								Name: "users",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(0.01),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	clock.FreezeTime(start.Add(time.Minute))
+	s.NoError(invoiceBackedService.SyncByView(ctx, subView, syncUntil))
+
+	invoiceBackedInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	invoiceBackedLines := invoiceBackedInvoice.Lines.OrEmpty()
+	invoiceBackedLine, found := lo.Find(invoiceBackedLines, func(line billing.GatheringLine) bool {
+		return line.ServicePeriod.From.Equal(start)
+	})
+	s.Require().True(found)
+	s.Nil(invoiceBackedLine.ChargeID)
+	s.Require().NotNil(invoiceBackedLine.ChildUniqueReferenceID)
+	childUniqueReferenceID := *invoiceBackedLine.ChildUniqueReferenceID
+	invoiceBackedPrice, err := invoiceBackedLine.Price.AsFlat()
+	s.NoError(err)
+	s.Equal(float64(0.01), invoiceBackedPrice.Amount.InexactFloat64())
+
+	cancelAt := start.Add(24 * time.Hour)
+	clock.FreezeTime(cancelAt)
+	subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subView.Subscription.NamespacedID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	})
+	s.NoError(err)
+
+	canceledSubView, err := s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
+	s.NoError(err)
+
+	s.Require().NoError(s.Service.SyncByView(ctx, canceledSubView, syncUntil))
+
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	chargeList, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subView.Subscription.ID},
+		IncludeDeleted:  true,
+	})
+	s.NoError(err)
+	s.Require().Len(chargeList.Items, 1)
+	s.Equal(chargesmeta.ChargeTypeFlatFee, chargeList.Items[0].Type())
+	chargeUniqueReferenceID, err := chargeList.Items[0].GetUniqueReferenceID()
+	s.NoError(err)
+	s.Equal(lo.ToPtr(childUniqueReferenceID), chargeUniqueReferenceID)
+}
+
 func (s *CreditThenInvoiceTestSuite) TestDefactoZeroPrices() {
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
