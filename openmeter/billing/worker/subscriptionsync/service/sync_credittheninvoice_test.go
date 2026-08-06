@@ -2461,6 +2461,148 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 	})
 }
 
+func (s *CreditThenInvoiceTestSuite) TestRetiresProratedZeroAmountInvoiceLineWithoutMigratingBackend() {
+	// given:
+	// - a credit-then-invoice subscription was synchronized without a charges service, which falls back to invoice-backed storage
+	// - its in-advance flat fee is replaced quickly enough that the old version's prorated USD amount rounds to zero
+	// when:
+	// - the same subscription is synchronized with credit-then-invoice charge provisioning enabled
+	// then:
+	// - the zero-valued invoice-backed artifact is retired without migrating its backend ownership
+	// - the new item version is provisioned through the charge backend
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-01-15T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	invoiceBackedService, err := New(Config{
+		BillingService:          s.BillingService,
+		Logger:                  s.Service.logger,
+		Tracer:                  s.Service.tracer,
+		SubscriptionSyncAdapter: s.Adapter,
+		SubscriptionService:     s.SubscriptionService,
+		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
+	})
+	s.Require().NoError(err)
+
+	subView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("default", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "users",
+								Name: "users",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromInt(8),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	clock.FreezeTime(start.Add(time.Second))
+	s.NoError(invoiceBackedService.SyncByView(ctx, subView, syncUntil))
+
+	invoiceBackedInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	invoiceBackedLines := invoiceBackedInvoice.Lines.OrEmpty()
+	invoiceBackedLine, found := lo.Find(invoiceBackedLines, func(line billing.GatheringLine) bool {
+		return line.ServicePeriod.From.Equal(start)
+	})
+	s.Require().True(found)
+	s.Nil(invoiceBackedLine.ChargeID)
+	s.Require().NotNil(invoiceBackedLine.ChildUniqueReferenceID)
+	childUniqueReferenceID := *invoiceBackedLine.ChildUniqueReferenceID
+	invoiceBackedPrice, err := invoiceBackedLine.Price.AsFlat()
+	s.NoError(err)
+	s.Equal(float64(8), invoiceBackedPrice.Amount.InexactFloat64())
+
+	editAt := start.Add(9 * time.Second)
+	clock.FreezeTime(editAt)
+	editedSubView, err := s.SubscriptionWorkflowService.EditRunning(ctx, subView.Subscription.NamespacedID, []subscription.Patch{
+		&patch.PatchRemoveItem{
+			PhaseKey: "default",
+			ItemKey:  "users",
+		},
+		(subscriptionAddItem{
+			PhaseKey: "default",
+			ItemKey:  "users",
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromInt(24),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+		}).AsPatch(),
+	}, s.timingImmediate())
+	s.Require().NoError(err)
+
+	usersVersions := editedSubView.Phases[0].ItemsByKey["users"]
+	s.Require().Len(usersVersions, 2)
+	s.Require().NotNil(usersVersions[0].SubscriptionItem.ActiveTo)
+	s.Equal(editAt, *usersVersions[0].SubscriptionItem.ActiveTo)
+
+	s.Require().NoError(s.Service.SyncByView(ctx, editedSubView, syncUntil))
+
+	retiredInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: invoiceBackedInvoice.GetInvoiceID(),
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandDeletedLines,
+		},
+	})
+	s.NoError(err)
+	retiredLine, found := lo.Find(retiredInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+		return line.ID == invoiceBackedLine.ID
+	})
+	s.Require().True(found)
+	s.NotNil(retiredLine.DeletedAt)
+
+	chargeList, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subView.Subscription.ID},
+		IncludeDeleted:  true,
+	})
+	s.NoError(err)
+	s.NotEmpty(chargeList.Items)
+	chargeUniqueReferenceIDs := make([]string, 0, len(chargeList.Items))
+	for _, charge := range chargeList.Items {
+		s.Equal(chargesmeta.ChargeTypeFlatFee, charge.Type())
+
+		chargeUniqueReferenceID, err := charge.GetUniqueReferenceID()
+		s.NoError(err)
+		s.Require().NotNil(chargeUniqueReferenceID)
+		chargeUniqueReferenceIDs = append(chargeUniqueReferenceIDs, *chargeUniqueReferenceID)
+	}
+
+	s.NotContains(chargeUniqueReferenceIDs, childUniqueReferenceID)
+	s.Contains(chargeUniqueReferenceIDs, fmt.Sprintf("%s/default/users/v[1]/period[0]", subView.Subscription.ID))
+}
+
 func (s *CreditThenInvoiceTestSuite) TestDefactoZeroPrices() {
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))

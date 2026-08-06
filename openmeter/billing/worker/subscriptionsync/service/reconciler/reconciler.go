@@ -178,11 +178,16 @@ func (s *Service) diffItem(
 // non-billable targets behave as absent targets and naturally reconcile to
 // delete/no-op outcomes.
 //
-// The router decides which backend a target would use if it had to be created.
-// Only invoicing-backed targets are gated on GetExpectedLine(): if a target
-// does not realize to an invoice line, it should not be diffed as an invoice
-// artifact. Charge-backed targets are filtered by billability only.
-func filterInScopeLines(inScopeLines []targetstate.StateItem, patchCollections *patchCollectionRouter) ([]targetstate.StateItem, error) {
+// Existing artifacts retain their persisted backend; only new targets use the
+// default backend. Invoicing-backed targets are gated on GetExpectedLine(): if
+// a target does not realize to an invoice line, it should behave as absent and
+// naturally retire any existing invoice artifact. Charge-backed targets are
+// filtered by billability only.
+func filterInScopeLines(
+	inScopeLines []targetstate.StateItem,
+	persistedByUniqueID map[string]persistedstate.Item,
+	patchCollections *patchCollectionRouter,
+) ([]targetstate.StateItem, error) {
 	out := make([]targetstate.StateItem, 0, len(inScopeLines))
 
 	for _, line := range inScopeLines {
@@ -190,12 +195,18 @@ func filterInScopeLines(inScopeLines []targetstate.StateItem, patchCollections *
 			continue
 		}
 
-		defaultCollection, err := patchCollections.ResolveDefaultCollection(line)
+		var collection PatchCollection
+		var err error
+		if existing := persistedByUniqueID[line.UniqueID]; existing != nil {
+			collection, err = patchCollections.GetCollectionFor(existing)
+		} else {
+			collection, err = patchCollections.ResolveDefaultCollection(line)
+		}
 		if err != nil {
-			return nil, fmt.Errorf("resolving default patch collection for line[%s]: %w", line.UniqueID, err)
+			return nil, fmt.Errorf("resolving patch collection for line[%s]: %w", line.UniqueID, err)
 		}
 
-		if defaultCollection.GetLineEngineType().IsCharge() {
+		if collection.GetLineEngineType().IsCharge() {
 			out = append(out, line)
 			continue
 		}
@@ -242,11 +253,11 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		return nil, fmt.Errorf("patchCollectionRouter is nil")
 	}
 
-	inScopeLines, err := filterInScopeLines(input.Target.Items, patchCollections)
+	persisted := input.Persisted
+	inScopeLines, err := filterInScopeLines(input.Target.Items, persisted.ByUniqueID, patchCollections)
 	if err != nil {
 		return nil, fmt.Errorf("filtering in-scope lines: %w", err)
 	}
-	persisted := input.Persisted
 
 	if len(inScopeLines) == 0 && len(persisted.ByUniqueID) == 0 {
 		return &Plan{
