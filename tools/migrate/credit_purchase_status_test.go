@@ -129,7 +129,7 @@ func TestMigrateExternalCreditPurchaseStatuses(t *testing.T) {
 				INSERT INTO charge_credit_purchase_external_payments (charge_id, status, deleted_at) VALUES
 					('external-authorized', 'authorized', NULL),
 					('external-settled', 'settled', NULL),
-					('external-deleted-payment', 'authorized', NOW())
+					('external-deleted-payment', 'unsupported', NOW())
 			`)
 			require.NoError(t, err)
 
