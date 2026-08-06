@@ -1,0 +1,1 @@
+-- no down migration: detailed external credit-purchase statuses are intentionally not collapsed

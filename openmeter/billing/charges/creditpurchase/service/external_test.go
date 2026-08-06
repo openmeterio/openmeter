@@ -26,7 +26,6 @@ import (
 func TestExternalCreditPurchaseStateMachineAdvancesThroughGrantToPaymentPending(t *testing.T) {
 	for _, status := range []creditpurchase.Status{
 		creditpurchase.StatusCreated,
-		creditpurchase.StatusActive,
 	} {
 		t.Run(string(status), func(t *testing.T) {
 			// given:
