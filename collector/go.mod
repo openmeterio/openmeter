@@ -12,7 +12,7 @@ require (
 	github.com/openmeterio/openmeter v0.0.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/common v0.70.1
-	github.com/redpanda-data/benthos/v4 v4.76.0
+	github.com/redpanda-data/benthos/v4 v4.77.0
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.101.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.53.0
@@ -53,7 +53,7 @@ require (
 	cloud.google.com/go/storage v1.62.1 // indirect
 	cloud.google.com/go/trace v1.11.7 // indirect
 	connectrpc.com/connect v1.19.1 // indirect
-	cuelang.org/go v0.16.1 // indirect
+	cuelang.org/go v0.17.1 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
@@ -165,7 +165,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
-	github.com/cockroachdb/apd/v3 v3.2.2 // indirect
+	github.com/cockroachdb/apd/v3 v3.2.3 // indirect
 	github.com/cohere-ai/cohere-go/v2 v2.16.2 // indirect
 	github.com/colinmarc/hdfs v1.1.3 // indirect
 	github.com/coreos/go-oidc/v3 v3.17.0 // indirect
@@ -389,7 +389,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	github.com/tetratelabs/wazero v1.11.0 // indirect
+	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/theparanoids/crypki v1.21.0 // indirect
 	github.com/tilinna/z85 v1.0.0 // indirect
 	github.com/timandy/routine v1.1.5 // indirect
