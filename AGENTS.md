@@ -37,6 +37,12 @@
 - Do not hide type switching, validation, persistence mapping, or meaningful
   domain translation inside local closures. Use a named helper; reserve inline
   callbacks for obvious, tiny logic.
+- For non-trivial operations with multiple related parameters, define a named
+  `<Operation>Input` struct that implements `models.Validator` through
+  `Validate() error`. Put field and cross-field validation on the input and
+  validate it at the owning boundary. Prefer this over a multi-argument
+  operation paired with a separate `validate<Operation>(...)` helper. Do not
+  introduce input structs for trivial single-value operations.
 - For `Validate() error`, collect field errors and return
   `models.NewNillableGenericValidationError(errors.Join(errs...))`. Preserve
   field context with wrapped errors.

@@ -131,7 +131,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() 
 	})
 	s.Require().NoError(err)
 	s.Equal(creditpurchase.SettlementTypeInvoice, grant.Intent.Settlement.Type())
-	s.Equal(creditpurchase.StatusActive, grant.Status)
+	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
 	s.NotNil(grant.Realizations.CreditGrantRealization)
 
 	standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
@@ -495,7 +495,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigTo
 		},
 	})
 	s.Require().NoError(err)
-	s.Equal(creditpurchase.StatusActive, grant.Status)
+	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
 
 	standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 		Namespaces: []string{ns},

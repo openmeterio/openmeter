@@ -112,8 +112,15 @@ Credit purchases use a separate settlement union:
 
 - promotional grants credit without payment
 - external grants credit and tracks external authorization and settlement
-- invoice settlement is driven by billing hooks and the credit-purchase line
-  engine
+- invoice settlement is driven by billing hooks that fire invoice-created,
+  payment-authorized, and payment-settled triggers on the credit-purchase state
+  machine
+
+Payment-backed credit purchases grant credits before entering payment pending,
+then record authorization and settlement as separate state-machine transitions.
+Invoice settlement requires billing's authorization callback before settlement;
+external settlement additionally supports a direct-paid path that records both
+facts in order.
 
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier

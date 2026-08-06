@@ -740,7 +740,7 @@ func (s *VoidGrantTestSuite) setupInvoiceFundedVoidGrant(ctx context.Context, ns
 		},
 	})
 	s.Require().NoError(err)
-	s.Equal(creditpurchase.StatusActive, grant.Status)
+	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
 	s.Require().NotNil(grant.Realizations.CreditGrantRealization)
 
 	standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{

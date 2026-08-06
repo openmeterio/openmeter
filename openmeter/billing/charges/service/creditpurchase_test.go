@@ -866,7 +866,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		s.Equal(1, initatedCallback.nrInvocations)
 		s.Equal(initatedCallback.id, creditPurchaseCharge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
-		s.Equal(creditpurchase.StatusActive, creditPurchaseCharge.Status)
+		s.Equal(creditpurchase.StatusActivePaymentPending, creditPurchaseCharge.Status)
 
 		chargeID = creditPurchaseCharge.GetChargeID()
 		initatedTrnsID = initatedCallback.id
@@ -885,7 +885,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 			assert.NotNil(t, charge.Realizations.CreditGrantRealization, "credit grant realization should be set")
 			assert.Equal(t, initatedTrnsID, charge.Realizations.CreditGrantRealization.GroupReference.TransactionGroupID)
 			assert.Nil(t, charge.Realizations.InvoiceSettlement)
-			assert.Equal(t, creditpurchase.StatusActive, charge.Status, "charge status should be active")
+			assert.Equal(t, creditpurchase.StatusActivePaymentAuthorized, charge.Status, "charge status should be payment authorized")
 		})
 
 		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
@@ -916,7 +916,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		// Payment authorization is no longer persisted at pending.
 		s.Equal(0, authorizedCallback.nrInvocations)
 		s.Nil(creditPurchaseCharge.Realizations.InvoiceSettlement)
-		s.Equal(creditpurchase.StatusActive, creditPurchaseCharge.Status, "charge status should be active")
+		s.Equal(creditpurchase.StatusActivePaymentPending, creditPurchaseCharge.Status, "charge status should be payment pending")
 
 		// validate the standard line
 		lines := invoice.Lines.OrEmpty()
@@ -960,7 +960,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 			// Authorized transaction group ID should still be set from the authorized phase
 			assert.Equal(t, authorizedCallback.id, charge.Realizations.InvoiceSettlement.Authorized.TransactionGroupID)
-			assert.Equal(t, creditpurchase.StatusActive, charge.Status, "charge status should be active")
+			assert.Equal(t, creditpurchase.StatusActivePaymentSettled, charge.Status, "charge status should be payment settled")
 		})
 
 		// First verify the invoice is in the expected state
