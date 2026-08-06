@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchasecreditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
@@ -258,6 +259,87 @@ func (_u *ChargeCreditPurchaseUpdate) ClearDescription() *ChargeCreditPurchaseUp
 	return _u
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (_u *ChargeCreditPurchaseUpdate) SetSchemaLevel(v int) *ChargeCreditPurchaseUpdate {
+	_u.mutation.ResetSchemaLevel()
+	_u.mutation.SetSchemaLevel(v)
+	return _u
+}
+
+// SetNillableSchemaLevel sets the "schema_level" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableSchemaLevel(v *int) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetSchemaLevel(*v)
+	}
+	return _u
+}
+
+// AddSchemaLevel adds value to the "schema_level" field.
+func (_u *ChargeCreditPurchaseUpdate) AddSchemaLevel(v int) *ChargeCreditPurchaseUpdate {
+	_u.mutation.AddSchemaLevel(v)
+	return _u
+}
+
+// SetFiatCostBasis sets the "fiat_cost_basis" field.
+func (_u *ChargeCreditPurchaseUpdate) SetFiatCostBasis(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetFiatCostBasis(v)
+	return _u
+}
+
+// SetNillableFiatCostBasis sets the "fiat_cost_basis" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableFiatCostBasis(v *alpacadecimal.Decimal) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetFiatCostBasis(*v)
+	}
+	return _u
+}
+
+// ClearFiatCostBasis clears the value of the "fiat_cost_basis" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearFiatCostBasis() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearFiatCostBasis()
+	return _u
+}
+
+// SetSettlementType sets the "settlement_type" field.
+func (_u *ChargeCreditPurchaseUpdate) SetSettlementType(v creditpurchase.SettlementType) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetSettlementType(v)
+	return _u
+}
+
+// SetNillableSettlementType sets the "settlement_type" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableSettlementType(v *creditpurchase.SettlementType) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetSettlementType(*v)
+	}
+	return _u
+}
+
+// ClearSettlementType clears the value of the "settlement_type" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearSettlementType() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearSettlementType()
+	return _u
+}
+
+// SetInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field.
+func (_u *ChargeCreditPurchaseUpdate) SetInitialPaymentSettlementStatus(v creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetInitialPaymentSettlementStatus(v)
+	return _u
+}
+
+// SetNillableInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableInitialPaymentSettlementStatus(v *creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetInitialPaymentSettlementStatus(*v)
+	}
+	return _u
+}
+
+// ClearInitialPaymentSettlementStatus clears the value of the "initial_payment_settlement_status" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearInitialPaymentSettlementStatus() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearInitialPaymentSettlementStatus()
+	return _u
+}
+
 // SetCreditAmount sets the "credit_amount" field.
 func (_u *ChargeCreditPurchaseUpdate) SetCreditAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpdate {
 	_u.mutation.SetCreditAmount(v)
@@ -273,13 +355,13 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableCreditAmount(v *alpacadecimal.D
 }
 
 // SetSettlement sets the "settlement" field.
-func (_u *ChargeCreditPurchaseUpdate) SetSettlement(v creditpurchase.Settlement) *ChargeCreditPurchaseUpdate {
+func (_u *ChargeCreditPurchaseUpdate) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpdate {
 	_u.mutation.SetSettlement(v)
 	return _u
 }
 
 // SetNillableSettlement sets the "settlement" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdate) SetNillableSettlement(v *creditpurchase.Settlement) *ChargeCreditPurchaseUpdate {
+func (_u *ChargeCreditPurchaseUpdate) SetNillableSettlement(v *creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpdate {
 	if v != nil {
 		_u.SetSettlement(*v)
 	}
@@ -317,6 +399,26 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableVoidedAt(v *time.Time) *ChargeC
 // ClearVoidedAt clears the value of the "voided_at" field.
 func (_u *ChargeCreditPurchaseUpdate) ClearVoidedAt() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearVoidedAt()
+	return _u
+}
+
+// SetCostBasisID sets the "cost_basis_id" field.
+func (_u *ChargeCreditPurchaseUpdate) SetCostBasisID(v string) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetCostBasisID(v)
+	return _u
+}
+
+// SetNillableCostBasisID sets the "cost_basis_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableCostBasisID(v *string) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetCostBasisID(*v)
+	}
+	return _u
+}
+
+// ClearCostBasisID clears the value of the "cost_basis_id" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearCostBasisID() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearCostBasisID()
 	return _u
 }
 
@@ -377,6 +479,11 @@ func (_u *ChargeCreditPurchaseUpdate) SetCreditGrant(v *ChargeCreditPurchaseCred
 	return _u.SetCreditGrantID(v.ID)
 }
 
+// SetCostBasis sets the "cost_basis" edge to the ChargeCreditPurchaseCostBasis entity.
+func (_u *ChargeCreditPurchaseUpdate) SetCostBasis(v *ChargeCreditPurchaseCostBasis) *ChargeCreditPurchaseUpdate {
+	return _u.SetCostBasisID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeCreditPurchaseUpdate) SetSubscriptionItem(v *SubscriptionItem) *ChargeCreditPurchaseUpdate {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -402,6 +509,12 @@ func (_u *ChargeCreditPurchaseUpdate) ClearInvoicedPayment() *ChargeCreditPurcha
 // ClearCreditGrant clears the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity.
 func (_u *ChargeCreditPurchaseUpdate) ClearCreditGrant() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearCreditGrant()
+	return _u
+}
+
+// ClearCostBasis clears the "cost_basis" edge to the ChargeCreditPurchaseCostBasis entity.
+func (_u *ChargeCreditPurchaseUpdate) ClearCostBasis() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearCostBasis()
 	return _u
 }
 
@@ -452,6 +565,16 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := chargecreditpurchase.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.SettlementType(); ok {
+		if err := chargecreditpurchase.SettlementTypeValidator(v); err != nil {
+			return &ValidationError{Name: "settlement_type", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement_type": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InitialPaymentSettlementStatus(); ok {
+		if err := chargecreditpurchase.InitialPaymentSettlementStatusValidator(v); err != nil {
+			return &ValidationError{Name: "initial_payment_settlement_status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.initial_payment_settlement_status": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Settlement(); ok {
@@ -550,6 +673,30 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.SchemaLevel(); ok {
+		_spec.SetField(chargecreditpurchase.FieldSchemaLevel, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSchemaLevel(); ok {
+		_spec.AddField(chargecreditpurchase.FieldSchemaLevel, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.FiatCostBasis(); ok {
+		_spec.SetField(chargecreditpurchase.FieldFiatCostBasis, field.TypeOther, value)
+	}
+	if _u.mutation.FiatCostBasisCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldFiatCostBasis, field.TypeOther)
+	}
+	if value, ok := _u.mutation.SettlementType(); ok {
+		_spec.SetField(chargecreditpurchase.FieldSettlementType, field.TypeEnum, value)
+	}
+	if _u.mutation.SettlementTypeCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldSettlementType, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.InitialPaymentSettlementStatus(); ok {
+		_spec.SetField(chargecreditpurchase.FieldInitialPaymentSettlementStatus, field.TypeEnum, value)
+	}
+	if _u.mutation.InitialPaymentSettlementStatusCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldInitialPaymentSettlementStatus, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.CreditAmount(); ok {
 		_spec.SetField(chargecreditpurchase.FieldCreditAmount, field.TypeOther, value)
@@ -665,6 +812,35 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecreditgrant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CostBasisCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargecreditpurchase.CostBasisTable,
+			Columns: []string{chargecreditpurchase.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecostbasis.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CostBasisIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargecreditpurchase.CostBasisTable,
+			Columns: []string{chargecreditpurchase.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecostbasis.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -943,6 +1119,87 @@ func (_u *ChargeCreditPurchaseUpdateOne) ClearDescription() *ChargeCreditPurchas
 	return _u
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetSchemaLevel(v int) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ResetSchemaLevel()
+	_u.mutation.SetSchemaLevel(v)
+	return _u
+}
+
+// SetNillableSchemaLevel sets the "schema_level" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableSchemaLevel(v *int) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetSchemaLevel(*v)
+	}
+	return _u
+}
+
+// AddSchemaLevel adds value to the "schema_level" field.
+func (_u *ChargeCreditPurchaseUpdateOne) AddSchemaLevel(v int) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.AddSchemaLevel(v)
+	return _u
+}
+
+// SetFiatCostBasis sets the "fiat_cost_basis" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetFiatCostBasis(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetFiatCostBasis(v)
+	return _u
+}
+
+// SetNillableFiatCostBasis sets the "fiat_cost_basis" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableFiatCostBasis(v *alpacadecimal.Decimal) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetFiatCostBasis(*v)
+	}
+	return _u
+}
+
+// ClearFiatCostBasis clears the value of the "fiat_cost_basis" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearFiatCostBasis() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearFiatCostBasis()
+	return _u
+}
+
+// SetSettlementType sets the "settlement_type" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetSettlementType(v creditpurchase.SettlementType) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetSettlementType(v)
+	return _u
+}
+
+// SetNillableSettlementType sets the "settlement_type" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableSettlementType(v *creditpurchase.SettlementType) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetSettlementType(*v)
+	}
+	return _u
+}
+
+// ClearSettlementType clears the value of the "settlement_type" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearSettlementType() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearSettlementType()
+	return _u
+}
+
+// SetInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetInitialPaymentSettlementStatus(v creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetInitialPaymentSettlementStatus(v)
+	return _u
+}
+
+// SetNillableInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableInitialPaymentSettlementStatus(v *creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetInitialPaymentSettlementStatus(*v)
+	}
+	return _u
+}
+
+// ClearInitialPaymentSettlementStatus clears the value of the "initial_payment_settlement_status" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearInitialPaymentSettlementStatus() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearInitialPaymentSettlementStatus()
+	return _u
+}
+
 // SetCreditAmount sets the "credit_amount" field.
 func (_u *ChargeCreditPurchaseUpdateOne) SetCreditAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.SetCreditAmount(v)
@@ -958,13 +1215,13 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableCreditAmount(v *alpacadecima
 }
 
 // SetSettlement sets the "settlement" field.
-func (_u *ChargeCreditPurchaseUpdateOne) SetSettlement(v creditpurchase.Settlement) *ChargeCreditPurchaseUpdateOne {
+func (_u *ChargeCreditPurchaseUpdateOne) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.SetSettlement(v)
 	return _u
 }
 
 // SetNillableSettlement sets the "settlement" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdateOne) SetNillableSettlement(v *creditpurchase.Settlement) *ChargeCreditPurchaseUpdateOne {
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableSettlement(v *creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpdateOne {
 	if v != nil {
 		_u.SetSettlement(*v)
 	}
@@ -1002,6 +1259,26 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableVoidedAt(v *time.Time) *Char
 // ClearVoidedAt clears the value of the "voided_at" field.
 func (_u *ChargeCreditPurchaseUpdateOne) ClearVoidedAt() *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ClearVoidedAt()
+	return _u
+}
+
+// SetCostBasisID sets the "cost_basis_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetCostBasisID(v string) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetCostBasisID(v)
+	return _u
+}
+
+// SetNillableCostBasisID sets the "cost_basis_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableCostBasisID(v *string) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetCostBasisID(*v)
+	}
+	return _u
+}
+
+// ClearCostBasisID clears the value of the "cost_basis_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearCostBasisID() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearCostBasisID()
 	return _u
 }
 
@@ -1062,6 +1339,11 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetCreditGrant(v *ChargeCreditPurchaseC
 	return _u.SetCreditGrantID(v.ID)
 }
 
+// SetCostBasis sets the "cost_basis" edge to the ChargeCreditPurchaseCostBasis entity.
+func (_u *ChargeCreditPurchaseUpdateOne) SetCostBasis(v *ChargeCreditPurchaseCostBasis) *ChargeCreditPurchaseUpdateOne {
+	return _u.SetCostBasisID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeCreditPurchaseUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *ChargeCreditPurchaseUpdateOne {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -1087,6 +1369,12 @@ func (_u *ChargeCreditPurchaseUpdateOne) ClearInvoicedPayment() *ChargeCreditPur
 // ClearCreditGrant clears the "credit_grant" edge to the ChargeCreditPurchaseCreditGrant entity.
 func (_u *ChargeCreditPurchaseUpdateOne) ClearCreditGrant() *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ClearCreditGrant()
+	return _u
+}
+
+// ClearCostBasis clears the "cost_basis" edge to the ChargeCreditPurchaseCostBasis entity.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearCostBasis() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearCostBasis()
 	return _u
 }
 
@@ -1150,6 +1438,16 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := chargecreditpurchase.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.SettlementType(); ok {
+		if err := chargecreditpurchase.SettlementTypeValidator(v); err != nil {
+			return &ValidationError{Name: "settlement_type", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement_type": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InitialPaymentSettlementStatus(); ok {
+		if err := chargecreditpurchase.InitialPaymentSettlementStatusValidator(v); err != nil {
+			return &ValidationError{Name: "initial_payment_settlement_status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.initial_payment_settlement_status": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Settlement(); ok {
@@ -1266,6 +1564,30 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.SchemaLevel(); ok {
+		_spec.SetField(chargecreditpurchase.FieldSchemaLevel, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSchemaLevel(); ok {
+		_spec.AddField(chargecreditpurchase.FieldSchemaLevel, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.FiatCostBasis(); ok {
+		_spec.SetField(chargecreditpurchase.FieldFiatCostBasis, field.TypeOther, value)
+	}
+	if _u.mutation.FiatCostBasisCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldFiatCostBasis, field.TypeOther)
+	}
+	if value, ok := _u.mutation.SettlementType(); ok {
+		_spec.SetField(chargecreditpurchase.FieldSettlementType, field.TypeEnum, value)
+	}
+	if _u.mutation.SettlementTypeCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldSettlementType, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.InitialPaymentSettlementStatus(); ok {
+		_spec.SetField(chargecreditpurchase.FieldInitialPaymentSettlementStatus, field.TypeEnum, value)
+	}
+	if _u.mutation.InitialPaymentSettlementStatusCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldInitialPaymentSettlementStatus, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.CreditAmount(); ok {
 		_spec.SetField(chargecreditpurchase.FieldCreditAmount, field.TypeOther, value)
 	}
@@ -1380,6 +1702,35 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecreditgrant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CostBasisCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargecreditpurchase.CostBasisTable,
+			Columns: []string{chargecreditpurchase.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecostbasis.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CostBasisIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargecreditpurchase.CostBasisTable,
+			Columns: []string{chargecreditpurchase.CostBasisColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchasecostbasis.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

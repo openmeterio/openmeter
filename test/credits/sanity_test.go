@@ -2025,12 +2025,9 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 			To:   createAt,
 		},
 		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-			GenericSettlement: creditpurchase.GenericSettlement{
-				Currency:  currencyx.FiatCode(USD),
-				CostBasis: alpacadecimal.NewFromFloat(0.5),
-			},
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
+		CostBasis:      newFiatCreditPurchaseCostBasis(alpacadecimal.NewFromFloat(0.5)),
 		FeatureFilters: creditpurchase.FeatureFilters{apiRequestsTotal.Feature.Key},
 	})
 
@@ -2225,12 +2222,9 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 					To:   createAt,
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  currencyx.FiatCode(USD),
-						CostBasis: costBasis,
-					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
+				CostBasis:      newFiatCreditPurchaseCostBasis(costBasis),
 				FeatureFilters: creditpurchase.FeatureFilters{apiRequestsFeature.Key},
 			}),
 		},
@@ -2401,12 +2395,9 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 				To:   setupAt,
 			},
 			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.FiatCode(USD),
-					CostBasis: alpacadecimal.NewFromFloat(0.5),
-				},
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 			}),
+			CostBasis: newFiatCreditPurchaseCostBasis(alpacadecimal.NewFromFloat(0.5)),
 		})
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -3177,12 +3168,9 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 				To:   setupAt,
 			},
 			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.FiatCode(USD),
-					CostBasis: alpacadecimal.NewFromFloat(0.5),
-				},
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 			}),
+			CostBasis: newFiatCreditPurchaseCostBasis(alpacadecimal.NewFromFloat(0.5)),
 		})
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -3426,12 +3414,9 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 				To:   clock.Now(),
 			},
 			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.FiatCode(USD),
-					CostBasis: externalCostBasis,
-				},
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 			}),
+			CostBasis: newFiatCreditPurchaseCostBasis(externalCostBasis),
 		})
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -3665,12 +3650,9 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 					To:   purchaseAt,
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  currencyx.FiatCode(USD),
-						CostBasis: purchaseCostBasis,
-					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
+				CostBasis: newFiatCreditPurchaseCostBasis(purchaseCostBasis),
 				TaxConfig: productcatalog.TaxCodeConfig{
 					TaxCodeID: taxA.ID,
 					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
@@ -3846,12 +3828,9 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 					To:   purchaseAt,
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  currencyx.FiatCode(USD),
-						CostBasis: purchaseCostBasis,
-					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
+				CostBasis: newFiatCreditPurchaseCostBasis(purchaseCostBasis),
 			}),
 		},
 	})

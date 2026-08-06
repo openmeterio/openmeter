@@ -2,14 +2,18 @@ package service
 
 import (
 	"testing"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestRealizationsAuthorizeExternalPaymentRoundsFiatAmount(t *testing.T) {
@@ -70,6 +74,16 @@ func TestRealizationsAuthorizeExternalPaymentRoundsFiatAmount(t *testing.T) {
 			})
 			if !tt.fiatCurrency {
 				charge.Intent.Currency = currenciestestutils.NewCustomCurrency(t, "CREDITS", 2)
+				fiatCurrency, err := currencyx.NewFiatCurrency("USD")
+				require.NoError(t, err)
+				charge.Intent.CostBasis = lo.ToPtr(creditpurchase.NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
+					FiatCurrency: fiatCurrency,
+					Rate:         alpacadecimal.RequireFromString(tt.costBasis),
+				})))
+				charge.State.ResolvedCostBasis = &chargecostbasis.State{
+					CostBasis:  alpacadecimal.RequireFromString(tt.costBasis),
+					ResolvedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				}
 			}
 			handler := &externalStateMachineHandler{}
 			handler.On("OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything).

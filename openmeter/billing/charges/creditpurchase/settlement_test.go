@@ -11,7 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestGenericSettlementValidateRequiresPositiveCostBasis(t *testing.T) {
+func TestPersistedSettlementValidateRequiresPositiveCostBasis(t *testing.T) {
+	currency := currencyx.FiatCode("USD")
+
 	for _, tc := range []struct {
 		name      string
 		costBasis alpacadecimal.Decimal
@@ -33,9 +35,10 @@ func TestGenericSettlementValidateRequiresPositiveCostBasis(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			settlement := GenericSettlement{
-				Currency:  currencyx.FiatCode("USD"),
-				CostBasis: tc.costBasis,
+			settlement := PersistedSettlement{
+				Type:      SettlementTypeInvoice,
+				Currency:  &currency,
+				CostBasis: &tc.costBasis,
 			}
 
 			err := settlement.Validate()
@@ -52,10 +55,13 @@ func TestGenericSettlementValidateRequiresPositiveCostBasis(t *testing.T) {
 	}
 }
 
-func TestGenericSettlementRejectsCustomCurrencyCode(t *testing.T) {
-	settlement := GenericSettlement{
-		Currency:  currencyx.FiatCode("TOKENS"),
-		CostBasis: alpacadecimal.NewFromFloat(0.5),
+func TestPersistedSettlementRejectsCustomCurrencyCode(t *testing.T) {
+	currency := currencyx.FiatCode("TOKENS")
+	costBasis := alpacadecimal.NewFromFloat(0.5)
+	settlement := PersistedSettlement{
+		Type:      SettlementTypeInvoice,
+		Currency:  &currency,
+		CostBasis: &costBasis,
 	}
 
 	err := settlement.Validate()
@@ -66,22 +72,24 @@ func TestGenericSettlementRejectsCustomCurrencyCode(t *testing.T) {
 }
 
 func TestSettlementJSONRoundTripPreservesFiatCurrencyCode(t *testing.T) {
-	settlement := NewSettlement(InvoiceSettlement{
-		GenericSettlement: GenericSettlement{
-			Currency:  currencyx.FiatCode("USD"),
-			CostBasis: alpacadecimal.NewFromFloat(0.5),
-		},
-	})
+	currency := currencyx.FiatCode("USD")
+	costBasis := alpacadecimal.NewFromFloat(0.5)
+	settlement := PersistedSettlement{
+		Type:      SettlementTypeInvoice,
+		Currency:  &currency,
+		CostBasis: &costBasis,
+	}
 
 	data, err := json.Marshal(settlement)
 	require.NoError(t, err)
 	require.JSONEq(t, `{"type":"invoice","currency":"USD","costBasis":"0.5"}`, string(data))
 
-	var decoded Settlement
+	var decoded PersistedSettlement
 	require.NoError(t, json.Unmarshal(data, &decoded))
 
-	invoiceSettlement, err := decoded.AsInvoiceSettlement()
+	invoiceSettlement, err := decoded.AsSettlement()
 	require.NoError(t, err)
-	require.Equal(t, currencyx.FiatCode("USD"), invoiceSettlement.Currency)
-	require.Equal(t, float64(0.5), invoiceSettlement.CostBasis.InexactFloat64())
+	require.Equal(t, SettlementTypeInvoice, invoiceSettlement.Type())
+	require.Equal(t, currencyx.FiatCode("USD"), *decoded.Currency)
+	require.Equal(t, float64(0.5), decoded.CostBasis.InexactFloat64())
 }

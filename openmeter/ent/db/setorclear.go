@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
@@ -2569,6 +2570,48 @@ func (u *ChargeCreditPurchaseUpdateOne) SetOrClearDescription(value *string) *Ch
 	return u.SetDescription(*value)
 }
 
+func (u *ChargeCreditPurchaseUpdate) SetOrClearFiatCostBasis(value *alpacadecimal.Decimal) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearFiatCostBasis()
+	}
+	return u.SetFiatCostBasis(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearFiatCostBasis(value *alpacadecimal.Decimal) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearFiatCostBasis()
+	}
+	return u.SetFiatCostBasis(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearSettlementType(value *creditpurchase.SettlementType) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearSettlementType()
+	}
+	return u.SetSettlementType(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearSettlementType(value *creditpurchase.SettlementType) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearSettlementType()
+	}
+	return u.SetSettlementType(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearInitialPaymentSettlementStatus(value *creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearInitialPaymentSettlementStatus()
+	}
+	return u.SetInitialPaymentSettlementStatus(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearInitialPaymentSettlementStatus(value *creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearInitialPaymentSettlementStatus()
+	}
+	return u.SetInitialPaymentSettlementStatus(*value)
+}
+
 func (u *ChargeCreditPurchaseUpdate) SetOrClearVoidedAt(value *time.Time) *ChargeCreditPurchaseUpdate {
 	if value == nil {
 		return u.ClearVoidedAt()
@@ -2581,6 +2624,20 @@ func (u *ChargeCreditPurchaseUpdateOne) SetOrClearVoidedAt(value *time.Time) *Ch
 		return u.ClearVoidedAt()
 	}
 	return u.SetVoidedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearCostBasisID(value *string) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearCostBasisID()
+	}
+	return u.SetCostBasisID(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearCostBasisID(value *string) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearCostBasisID()
+	}
+	return u.SetCostBasisID(*value)
 }
 
 func (u *ChargeCreditPurchaseCostBasisUpdate) SetOrClearCurrencyCostBasisID(value *string) *ChargeCreditPurchaseCostBasisUpdate {

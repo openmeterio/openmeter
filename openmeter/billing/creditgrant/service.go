@@ -149,6 +149,10 @@ func (i CreateInput) Validate() error {
 		if err := i.Purchase.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("purchase currency: %w", err))
 		}
+		// TODO: support custom-currency grants with a distinct fiat purchase currency.
+		if i.FundingMethod != FundingMethodNone && i.Purchase.Currency != i.Currency {
+			errs = append(errs, fmt.Errorf("purchase currency %q must match credit currency %q", i.Purchase.Currency, i.Currency))
+		}
 
 		if i.Purchase.PerUnitCostBasis != nil && !i.Purchase.PerUnitCostBasis.IsPositive() {
 			errs = append(errs, errors.New("per_unit_cost_basis must be positive"))

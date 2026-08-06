@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-var CreditPurchaseSettlementValueScanner = entutils.JSONStringValueScanner[creditpurchase.Settlement]()
+var CreditPurchaseSettlementValueScanner = entutils.JSONStringValueScanner[creditpurchase.PersistedSettlement]()
 
 type ChargeCreditPurchase struct {
 	ent.Schema
@@ -30,6 +30,26 @@ func (ChargeCreditPurchase) Mixin() []ent.Mixin {
 
 func (ChargeCreditPurchase) Fields() []ent.Field {
 	return []ent.Field{
+		field.Int("schema_level").
+			Default(int(creditpurchase.SchemaLevelLegacy)).
+			SchemaType(map[string]string{
+				dialect.Postgres: "smallint",
+			}),
+		field.Other("fiat_cost_basis", alpacadecimal.Decimal{}).
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+		field.Enum("settlement_type").
+			GoType(creditpurchase.SettlementType("")).
+			Optional().
+			Nillable(),
+		field.Enum("initial_payment_settlement_status").
+			GoType(creditpurchase.InitialPaymentSettlementStatus("")).
+			Optional().
+			Nillable(),
+
 		// Intent fields
 		field.Other("credit_amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
@@ -55,7 +75,7 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			}),
 
 		field.String("settlement").
-			GoType(creditpurchase.Settlement{}).
+			GoType(creditpurchase.PersistedSettlement{}).
 			ValueScanner(CreditPurchaseSettlementValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
@@ -78,8 +98,19 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}).
 			Optional().
-			Nillable().
-			Immutable(),
+			Nillable(),
+	}
+}
+
+func (ChargeCreditPurchase) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"schema_level":                              "schema_level IN (1, 2)",
+			"fiat_cost_basis_positive":                  "fiat_cost_basis IS NULL OR fiat_cost_basis > 0",
+			"settlement_type":                           "settlement_type IS NULL OR settlement_type IN ('invoice', 'external', 'promotional')",
+			"initial_payment_settlement_status":         "initial_payment_settlement_status IS NULL OR initial_payment_settlement_status IN ('created', 'authorized', 'settled')",
+			"cost_basis_schema_level_settlement_fields": "schema_level = 1 OR (settlement_type = 'external' AND initial_payment_settlement_status IS NOT NULL) OR (settlement_type IN ('invoice', 'promotional') AND initial_payment_settlement_status IS NULL)",
+		}),
 	}
 }
 
@@ -98,7 +129,6 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Field("cost_basis_id").
 			StorageKey(edge.Symbol("charge_credit_purchase_cost_basis_charge_fk")).
 			Unique().
-			Immutable().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("charge", Charge.Type).
 			Unique().

@@ -73,24 +73,23 @@ func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context
 			return nil, fmt.Errorf("credit purchase charge[%s] not found for line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
 
-		invoiceSettlement, err := charge.Intent.Settlement.AsInvoiceSettlement()
-		if err != nil {
-			return nil, fmt.Errorf("getting invoice settlement for credit purchase charge[%s]: %w", charge.ID, err)
+		if charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeInvoice {
+			return nil, fmt.Errorf("credit purchase charge[%s] is not invoice settled", charge.ID)
 		}
 
-		fiatCurrency, err := invoiceSettlement.Currency.AsFiatCurrency()
+		resolvedCostBasis, err := charge.GetResolvedCostBasis()
 		if err != nil {
-			return nil, fmt.Errorf("getting fiat currency for credit purchase charge[%s]: %w", charge.ID, err)
+			return nil, fmt.Errorf("getting resolved cost basis for credit purchase charge[%s]: %w", charge.ID, err)
 		}
 
-		fiatAmount := fiatCurrency.RoundToPrecision(charge.Intent.CreditAmount.Mul(invoiceSettlement.CostBasis))
+		fiatAmount := resolvedCostBasis.FiatCurrency.RoundToPrecision(charge.Intent.CreditAmount.Mul(resolvedCostBasis.Rate))
 		stdLineWithDetails, err := creditpurchasemodels.WithDetailedLines(creditpurchasemodels.WithDetailedLinesInput{
 			Line:              stdLine,
 			Name:              stdLine.Name,
 			CreditCurrency:    charge.Intent.Currency,
 			CreditAmount:      charge.Intent.CreditAmount,
-			ResolvedCostBasis: invoiceSettlement.CostBasis,
-			FiatCurrency:      fiatCurrency,
+			ResolvedCostBasis: resolvedCostBasis.Rate,
+			FiatCurrency:      resolvedCostBasis.FiatCurrency,
 			FiatAmount:        fiatAmount,
 		})
 		if err != nil {

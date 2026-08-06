@@ -9,12 +9,12 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -47,7 +47,54 @@ func (c ChargeBase) Validate() error {
 		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
 
+	if err := c.validateCostBasis(); err != nil {
+		errs = append(errs, fmt.Errorf("cost basis: %w", err))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (c ChargeBase) validateCostBasis() error {
+	if c.State.SchemaLevel == 0 {
+		return nil
+	}
+
+	if c.Intent.Settlement.Type() == SettlementTypePromotional {
+		if c.State.CostBasisID != nil || c.State.ResolvedCostBasis != nil {
+			return errors.New("promotional credit purchase cannot have cost-basis state")
+		}
+
+		return nil
+	}
+
+	if c.Intent.CostBasis == nil {
+		return errors.New("persisted payment-backed credit purchase requires a cost basis")
+	}
+
+	if !c.Intent.Currency.IsCustom() {
+		if c.State.CostBasisID != nil || c.State.ResolvedCostBasis != nil {
+			return errors.New("fiat credit purchase cannot have custom-currency cost-basis state")
+		}
+
+		return nil
+	}
+
+	if c.State.ResolvedCostBasis == nil {
+		return errors.New("custom-currency credit purchase requires resolved cost-basis state")
+	}
+
+	switch c.State.SchemaLevel {
+	case SchemaLevelLegacy:
+		if c.State.CostBasisID != nil {
+			return errors.New("legacy custom-currency credit purchase cannot reference persisted cost-basis state")
+		}
+	case SchemaLevelCostBasis:
+		if c.State.CostBasisID == nil {
+			return errors.New("cost-basis schema custom-currency credit purchase requires a cost-basis ID")
+		}
+	}
+
+	return nil
 }
 
 func (c ChargeBase) GetChargeID() meta.ChargeID {
@@ -120,6 +167,10 @@ type Intent struct {
 	meta.Intent
 	IntentMutableFields
 
+	// CostBasis describes the purchase price independently from the payment
+	// settlement mechanism. Promotional purchases do not have one.
+	CostBasis *CostBasis `json:"costBasis,omitempty"`
+
 	// Key is the optional idempotency key: a retried create with the same key returns a conflict.
 	Key *string `json:"key,omitempty"`
 }
@@ -168,7 +219,15 @@ func (f IntentMutableFields) Normalized(currency currencies.Currency) IntentMuta
 }
 
 func (f IntentMutableFields) CalculateEffectiveAt() time.Time {
-	return lo.FromPtrOr(f.EffectiveAt, clock.Now().UTC())
+	if f.EffectiveAt != nil {
+		return *f.EffectiveAt
+	}
+
+	if !f.ServicePeriod.From.IsZero() {
+		return f.ServicePeriod.From
+	}
+
+	return clock.Now().UTC()
 }
 
 func (f IntentMutableFields) Validate() error {
@@ -191,10 +250,6 @@ func (f IntentMutableFields) Validate() error {
 	}
 
 	switch f.Settlement.Type() {
-	case SettlementTypeInvoice:
-		if _, err := f.Settlement.AsInvoiceSettlement(); err != nil {
-			errs = append(errs, fmt.Errorf("settlement: %w", err))
-		}
 	case SettlementTypeExternal:
 		if _, err := f.Settlement.AsExternalSettlement(); err != nil {
 			errs = append(errs, fmt.Errorf("settlement: %w", err))
@@ -223,17 +278,8 @@ func (i Intent) Validate() error {
 		errs = append(errs, err)
 	}
 
-	switch i.Settlement.Type() {
-	case SettlementTypeInvoice:
-		settlement, err := i.Settlement.AsInvoiceSettlement()
-		if err == nil && !i.Currency.IsCustom() && currencyx.Code(settlement.Currency) != i.Currency.GetCode() {
-			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency.GetCode()))
-		}
-	case SettlementTypeExternal:
-		settlement, err := i.Settlement.AsExternalSettlement()
-		if err == nil && !i.Currency.IsCustom() && currencyx.Code(settlement.Currency) != i.Currency.GetCode() {
-			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency.GetCode()))
-		}
+	if err := i.validateCostBasis(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if i.Key != nil && *i.Key == "" {
@@ -243,15 +289,78 @@ func (i Intent) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+func (i Intent) validateCostBasis() error {
+	switch i.Settlement.Type() {
+	case SettlementTypePromotional:
+		if i.CostBasis != nil {
+			return errors.New("promotional credit purchase cannot have a cost basis")
+		}
+
+		return nil
+	case SettlementTypeInvoice, SettlementTypeExternal:
+		if i.CostBasis == nil {
+			return errors.New("payment-backed credit purchase requires a cost basis")
+		}
+	default:
+		// Settlement validation owns unsupported variants.
+		return nil
+	}
+
+	if err := i.CostBasis.Validate(); err != nil {
+		return fmt.Errorf("cost basis: %w", err)
+	}
+
+	if i.Currency.IsCustom() {
+		if i.CostBasis.Type() != CostBasisTypeCustomCurrency {
+			return errors.New("custom currency credit purchase requires a custom currency cost basis")
+		}
+
+		return nil
+	}
+
+	if i.CostBasis.Type() != CostBasisTypeFiat {
+		return errors.New("fiat credit purchase requires a fiat cost basis")
+	}
+
+	return nil
+}
+
 // State holds durable base-row scheduling fields for the credit purchase charge.
 type State struct {
+	// SchemaLevel is the persisted cost-basis representation. Zero is reserved
+	// for aggregates constructed outside persistence, including service inputs.
+	SchemaLevel SchemaLevel `json:"-"`
+
 	// VoidedAt is set when the remaining value was forfeited through the
 	// ledger void flow; the breakage records stay the accounting source of truth.
 	VoidedAt *time.Time `json:"voidedAt,omitempty"`
+
+	// CostBasisID and ResolvedCostBasis apply only to custom-currency credit
+	// purchases. Fiat cost basis is immutable intent stored on the charge row.
+	CostBasisID       *string                `json:"-"`
+	ResolvedCostBasis *chargecostbasis.State `json:"resolvedCostBasis,omitempty"`
 }
 
 func (s State) Validate() error {
-	return nil
+	var errs []error
+
+	if s.SchemaLevel != 0 {
+		if err := s.SchemaLevel.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if s.CostBasisID != nil && *s.CostBasisID == "" {
+		errs = append(errs, errors.New("cost basis ID cannot be empty"))
+	}
+
+	if s.ResolvedCostBasis != nil {
+		if err := s.ResolvedCostBasis.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resolved cost basis: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // Realizations holds expand-only data loaded from child tables (edges).

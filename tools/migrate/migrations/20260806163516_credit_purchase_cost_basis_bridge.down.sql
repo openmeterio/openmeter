@@ -1,0 +1,2 @@
+-- reverse: modify "charge_credit_purchases" table
+ALTER TABLE "charge_credit_purchases" DROP COLUMN "initial_payment_settlement_status", DROP COLUMN "settlement_type", DROP COLUMN "fiat_cost_basis", DROP COLUMN "schema_level", DROP CONSTRAINT "settlement_type", DROP CONSTRAINT "schema_level", DROP CONSTRAINT "initial_payment_settlement_status", DROP CONSTRAINT "fiat_cost_basis_positive", DROP CONSTRAINT "cost_basis_schema_level_settlement_fields";

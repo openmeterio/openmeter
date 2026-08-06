@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -181,13 +181,12 @@ func newExternalStateMachineTestChargeWithInput(t *testing.T, input externalStat
 			},
 			CreditAmount: input.creditAmount,
 			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.FiatCode("USD"),
-					CostBasis: input.costBasis,
-				},
 				InitialStatus: input.initialStatus,
 			}),
 		},
+		CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+			Rate: input.costBasis,
+		})),
 	}.Normalized()
 
 	return creditpurchase.Charge{

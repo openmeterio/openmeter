@@ -72,6 +72,14 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldSchemaLevel holds the string denoting the schema_level field in the database.
+	FieldSchemaLevel = "schema_level"
+	// FieldFiatCostBasis holds the string denoting the fiat_cost_basis field in the database.
+	FieldFiatCostBasis = "fiat_cost_basis"
+	// FieldSettlementType holds the string denoting the settlement_type field in the database.
+	FieldSettlementType = "settlement_type"
+	// FieldInitialPaymentSettlementStatus holds the string denoting the initial_payment_settlement_status field in the database.
+	FieldInitialPaymentSettlementStatus = "initial_payment_settlement_status"
 	// FieldCreditAmount holds the string denoting the credit_amount field in the database.
 	FieldCreditAmount = "credit_amount"
 	// FieldEffectiveAt holds the string denoting the effective_at field in the database.
@@ -224,6 +232,10 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
+	FieldSchemaLevel,
+	FieldFiatCostBasis,
+	FieldSettlementType,
+	FieldInitialPaymentSettlementStatus,
 	FieldCreditAmount,
 	FieldEffectiveAt,
 	FieldExpiresAt,
@@ -263,11 +275,13 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultSchemaLevel holds the default value on creation for the "schema_level" field.
+	DefaultSchemaLevel int
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.
 	ValueScanner struct {
-		Settlement field.TypeValueScanner[creditpurchase.Settlement]
+		Settlement field.TypeValueScanner[creditpurchase.PersistedSettlement]
 	}
 )
 
@@ -298,6 +312,26 @@ func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
 		return nil
 	default:
 		return fmt.Errorf("chargecreditpurchase: invalid enum value for tax_behavior field: %q", tb)
+	}
+}
+
+// SettlementTypeValidator is a validator for the "settlement_type" field enum values. It is called by the builders before save.
+func SettlementTypeValidator(st creditpurchase.SettlementType) error {
+	switch st {
+	case "invoice", "external", "promotional":
+		return nil
+	default:
+		return fmt.Errorf("chargecreditpurchase: invalid enum value for settlement_type field: %q", st)
+	}
+}
+
+// InitialPaymentSettlementStatusValidator is a validator for the "initial_payment_settlement_status" field enum values. It is called by the builders before save.
+func InitialPaymentSettlementStatusValidator(ipss creditpurchase.InitialPaymentSettlementStatus) error {
+	switch ipss {
+	case "created", "authorized", "settled":
+		return nil
+	default:
+		return fmt.Errorf("chargecreditpurchase: invalid enum value for initial_payment_settlement_status field: %q", ipss)
 	}
 }
 
@@ -437,6 +471,26 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// BySchemaLevel orders the results by the schema_level field.
+func BySchemaLevel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSchemaLevel, opts...).ToFunc()
+}
+
+// ByFiatCostBasis orders the results by the fiat_cost_basis field.
+func ByFiatCostBasis(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFiatCostBasis, opts...).ToFunc()
+}
+
+// BySettlementType orders the results by the settlement_type field.
+func BySettlementType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSettlementType, opts...).ToFunc()
+}
+
+// ByInitialPaymentSettlementStatus orders the results by the initial_payment_settlement_status field.
+func ByInitialPaymentSettlementStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInitialPaymentSettlementStatus, opts...).ToFunc()
 }
 
 // ByCreditAmount orders the results by the credit_amount field.
