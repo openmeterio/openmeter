@@ -128,6 +128,10 @@ one.
 
 ## Realization and time semantics
 
+- Shrink and extend patches describe the direction of service coverage through
+  `ServicePeriod.To`. Full-service, billing-period, and invoice timing reconcile
+  to their target values independently; charge-type lifecycles use the service
+  direction when deciding how to preserve or replace realizations.
 - A usage-based realization run is a persisted checkpoint. `ServicePeriodTo`
   is the exclusive event-time bound; `StoredAtLT` is the exclusive ingestion
   bound. Waiting and correction logic uses the persisted bounds rather than

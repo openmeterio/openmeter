@@ -98,15 +98,14 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "rejects later full service period end",
+			name: "allows later full service and billing period ends",
 			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
 				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To.Add(time.Hour),
-				NewBillingPeriodTo:     intent.BillingPeriod.To,
+				NewBillingPeriodTo:     intent.BillingPeriod.To.Add(time.Hour),
 				NewInvoiceAt:           intent.ServicePeriod.To.Add(-time.Hour),
 			}),
-			wantErr: true,
 		},
 		{
 			name: "rejects full service period end at full service period start",
@@ -115,17 +114,6 @@ func TestPatchShrinkValidateWith(t *testing.T) {
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.From,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
-				NewInvoiceAt:           intent.ServicePeriod.To.Add(-time.Hour),
-			}),
-			wantErr: true,
-		},
-		{
-			name: "rejects later billing period end",
-			patch: mustNewPatchShrink(t, NewPatchShrinkInput{
-				ChangeSource:           billing.ChangeSourceSystem,
-				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
-				NewFullServicePeriodTo: intent.FullServicePeriod.To,
-				NewBillingPeriodTo:     intent.BillingPeriod.To.Add(time.Hour),
 				NewInvoiceAt:           intent.ServicePeriod.To.Add(-time.Hour),
 			}),
 			wantErr: true,
