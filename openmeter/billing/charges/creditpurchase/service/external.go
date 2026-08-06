@@ -94,9 +94,6 @@ func (s *ExternalCreditPurchaseStateMachine) configureStates() {
 	s.Configure(creditpurchase.StatusCreated).
 		Permit(meta.TriggerNext, creditpurchase.StatusActiveInitialCreditGrant)
 
-	s.Configure(creditpurchase.StatusActive).
-		Permit(meta.TriggerNext, creditpurchase.StatusActiveInitialCreditGrant)
-
 	s.Configure(creditpurchase.StatusActiveInitialCreditGrant).
 		Permit(meta.TriggerNext, creditpurchase.StatusActivePaymentPending).
 		OnActive(s.GrantCredits)
