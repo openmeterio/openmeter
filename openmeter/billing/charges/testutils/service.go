@@ -11,7 +11,6 @@ import (
 	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
-	creditpurchaselineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/lineengine"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
@@ -239,14 +238,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating credit purchase service: %w", err)
 	}
 
-	creditPurchaseLineEngine, err := creditpurchaselineengine.New(creditpurchaselineengine.Config{
-		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating credit purchase line engine: %w", err)
-	}
-
-	if err := config.BillingService.RegisterLineEngine(creditPurchaseLineEngine); err != nil {
+	if err := config.BillingService.RegisterLineEngine(creditPurchaseService.GetLineEngine()); err != nil {
 		return nil, fmt.Errorf("registering credit purchase line engine: %w", err)
 	}
 	if err := config.BillingService.RegisterCreateLineRouter(NewChargesEnabledLineRouter(t)); err != nil {

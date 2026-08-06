@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
@@ -68,4 +69,10 @@ type service struct {
 	handler      creditpurchase.Handler
 	lineage      lineage.Service
 	realizations *creditpurchaserealizations.Service
+}
+
+func (s *service) GetLineEngine() billing.LineEngine {
+	return &LineEngine{
+		service: s,
+	}
 }

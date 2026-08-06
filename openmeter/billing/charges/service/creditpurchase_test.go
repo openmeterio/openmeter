@@ -936,8 +936,8 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		detailedLine := line.DetailedLines[0]
 
-		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.PerUnitAmount)
-		s.Equal(alpacadecimal.NewFromFloat(1), detailedLine.Quantity)
+		s.Equal(alpacadecimal.NewFromFloat(0.5), detailedLine.PerUnitAmount)
+		s.Equal(alpacadecimal.NewFromFloat(100), detailedLine.Quantity)
 		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.Totals.Amount)
 		s.Equal(alpacadecimal.NewFromFloat(50), detailedLine.Totals.Total)
 

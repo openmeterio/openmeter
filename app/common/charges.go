@@ -10,7 +10,6 @@ import (
 	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
-	creditpurchaselineengine "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/lineengine"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
@@ -528,14 +527,7 @@ func newChargesRegistry(
 		return nil, err
 	}
 
-	creditPurchaseLineEngine, err := creditpurchaselineengine.New(creditpurchaselineengine.Config{
-		RatingService: ratingService,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create charges credit purchase line engine: %w", err)
-	}
-
-	if err := billingService.RegisterLineEngine(creditPurchaseLineEngine); err != nil {
+	if err := billingService.RegisterLineEngine(creditPurchaseSvc.GetLineEngine()); err != nil {
 		return nil, fmt.Errorf("failed to register charges credit purchase line engine: %w", err)
 	}
 	createLineRouter, err := chargeslinerouter.New(chargeslinerouter.Config{

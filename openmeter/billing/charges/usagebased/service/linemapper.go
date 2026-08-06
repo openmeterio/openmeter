@@ -184,7 +184,7 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 	stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(input.Run.StoredAtLT.Add(usagebased.InternalCollectionPeriod))
 
 	if input.Charge.Intent.GetCurrency().IsCustom() {
-		return populateCustomCurrencyOverageFromRun(stdLine, input, cur)
+		return populateCustomCurrencyOverageFromRun(stdLine, input)
 	}
 
 	billingMeteredQuantity, err := input.Charge.Realizations.MapToBillingMeteredQuantity(input.Run)
@@ -247,7 +247,6 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 func populateCustomCurrencyOverageFromRun(
 	stdLine *billing.StandardLine,
 	input populateStandardLineFromRunInput,
-	invoiceCurrency currencyx.Currency,
 ) error {
 	charge := input.Charge
 	run := input.Run
@@ -293,34 +292,19 @@ func populateCustomCurrencyOverageFromRun(
 		name = fmt.Sprintf("%s (overage)", stdLine.Name)
 	}
 
-	detailedLine, err := creditpurchase.NewDetailedLine(creditpurchase.NewDetailedLineInput{
-		Namespace:            stdLine.Namespace,
-		InvoiceID:            stdLine.InvoiceID,
-		Name:                 name,
-		ServicePeriod:        stdLine.Period,
-		CustomCurrency:       charge.Intent.GetCurrency(),
-		CustomCurrencyAmount: run.Totals.Total,
-		ResolvedCostBasis:    charge.State.ResolvedCostBasis,
-		FiatCurrency:         fiatOverage.Currency,
-		FiatAmount:           fiatOverage.Amount,
+	stdLineWithDetails, err := creditpurchase.WithDetailedLines(creditpurchase.WithDetailedLinesInput{
+		Line:              stdLine,
+		Name:              name,
+		CreditCurrency:    charge.Intent.GetCurrency(),
+		CreditAmount:      run.Totals.Total,
+		ResolvedCostBasis: charge.State.ResolvedCostBasis.CostBasis,
+		FiatCurrency:      fiatOverage.Currency,
+		FiatAmount:        fiatOverage.Amount,
 	})
 	if err != nil {
-		return fmt.Errorf("creating custom currency overage detail: %w", err)
+		return fmt.Errorf("populating custom currency overage line: %w", err)
 	}
-
-	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(billing.DetailedLines{detailedLine})
-	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(invoiceCurrency)
-
-	if !stdLine.Totals.Total.Equal(fiatOverage.Amount) {
-		return fmt.Errorf(
-			"custom currency charge[%s] mapped overage total mismatch [line_id=%s run_id=%s line_total=%s overage_total=%s]",
-			charge.ID,
-			stdLine.ID,
-			run.ID.ID,
-			stdLine.Totals.Total.String(),
-			fiatOverage.Amount.String(),
-		)
-	}
+	*stdLine = *stdLineWithDetails
 
 	if (input.Stage == standardLinePopulationStageGatheringPreview ||
 		input.Stage == standardLinePopulationStageCollectionCompleted) &&

@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -101,7 +100,7 @@ func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, input pop
 	}
 
 	if input.Charge.Intent.GetCurrency().IsCustom() {
-		return populateCustomCurrencyOverageFromRun(stdLine, input, invoiceCurrency)
+		return populateCustomCurrencyOverageFromRun(stdLine, input)
 	}
 
 	creditsApplied, err := input.Run.CreditRealizations.AsCreditsApplied()
@@ -136,7 +135,6 @@ func populateFlatFeeStandardLineFromRun(stdLine *billing.StandardLine, input pop
 func populateCustomCurrencyOverageFromRun(
 	stdLine *billing.StandardLine,
 	input populateFlatFeeStandardLineFromRunInput,
-	invoiceCurrency currencyx.Currency,
 ) error {
 	charge := input.Charge
 	run := input.Run
@@ -183,34 +181,19 @@ func populateCustomCurrencyOverageFromRun(
 	}
 	stdLine.Name = name
 
-	detailedLine, err := creditpurchase.NewDetailedLine(creditpurchase.NewDetailedLineInput{
-		Namespace:            stdLine.Namespace,
-		InvoiceID:            stdLine.InvoiceID,
-		Name:                 name,
-		ServicePeriod:        stdLine.Period,
-		CustomCurrency:       charge.Intent.GetCurrency(),
-		CustomCurrencyAmount: run.Totals.Total,
-		ResolvedCostBasis:    charge.State.ResolvedCostBasis,
-		FiatCurrency:         fiatOverage.Currency,
-		FiatAmount:           fiatOverage.Amount,
+	stdLineWithDetails, err := creditpurchase.WithDetailedLines(creditpurchase.WithDetailedLinesInput{
+		Line:              stdLine,
+		Name:              name,
+		CreditCurrency:    charge.Intent.GetCurrency(),
+		CreditAmount:      run.Totals.Total,
+		ResolvedCostBasis: charge.State.ResolvedCostBasis.CostBasis,
+		FiatCurrency:      fiatOverage.Currency,
+		FiatAmount:        fiatOverage.Amount,
 	})
 	if err != nil {
-		return fmt.Errorf("creating custom currency overage detail: %w", err)
+		return fmt.Errorf("populating custom currency overage line: %w", err)
 	}
-
-	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(billing.DetailedLines{detailedLine})
-	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(invoiceCurrency)
-
-	if !stdLine.Totals.Total.Equal(fiatOverage.Amount) {
-		return fmt.Errorf(
-			"custom currency charge[%s] mapped overage total mismatch [line_id=%s run_id=%s line_total=%s overage_total=%s]",
-			charge.ID,
-			stdLine.ID,
-			run.ID.ID,
-			stdLine.Totals.Total.String(),
-			fiatOverage.Amount.String(),
-		)
-	}
+	*stdLine = *stdLineWithDetails
 
 	if (input.Stage == standardLinePopulationStageGatheringPreview ||
 		input.Stage == standardLinePopulationStageCollectionCompleted) &&

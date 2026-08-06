@@ -14,6 +14,8 @@ type Service interface {
 	CreditPurchaseService
 	ExternalPaymentLifecycle
 	InvoicePaymentLifecycle
+
+	GetLineEngine() billing.LineEngine
 }
 
 type CreditPurchaseService interface {
