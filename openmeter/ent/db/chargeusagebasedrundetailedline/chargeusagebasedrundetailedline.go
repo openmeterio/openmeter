@@ -8,6 +8,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -77,6 +79,8 @@ const (
 	FieldRunID = "run_id"
 	// FieldPricerReferenceID holds the string denoting the pricer_reference_id field in the database.
 	FieldPricerReferenceID = "pricer_reference_id"
+	// FieldAmountDiscounts holds the string denoting the amount_discounts field in the database.
+	FieldAmountDiscounts = "amount_discounts"
 	// FieldCorrectsRunID holds the string denoting the corrects_run_id field in the database.
 	FieldCorrectsRunID = "corrects_run_id"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
@@ -140,6 +144,7 @@ var Columns = []string{
 	FieldChargeID,
 	FieldRunID,
 	FieldPricerReferenceID,
+	FieldAmountDiscounts,
 	FieldCorrectsRunID,
 }
 
@@ -175,6 +180,10 @@ var (
 	CorrectsRunIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all ChargeUsageBasedRunDetailedLine fields.
+	ValueScanner struct {
+		AmountDiscounts field.TypeValueScanner[amountdiscount.AmountDiscountsOption]
+	}
 )
 
 const DefaultCategory stddetailedline.Category = "regular"
@@ -342,6 +351,11 @@ func ByRunID(opts ...sql.OrderTermOption) OrderOption {
 // ByPricerReferenceID orders the results by the pricer_reference_id field.
 func ByPricerReferenceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPricerReferenceID, opts...).ToFunc()
+}
+
+// ByAmountDiscounts orders the results by the amount_discounts field.
+func ByAmountDiscounts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAmountDiscounts, opts...).ToFunc()
 }
 
 // ByCorrectsRunID orders the results by the corrects_run_id field.

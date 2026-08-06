@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -430,6 +431,26 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillablePricerReferenceID(v 
 	return _u
 }
 
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpdate {
+	_u.mutation.SetAmountDiscounts(v)
+	return _u
+}
+
+// SetNillableAmountDiscounts sets the "amount_discounts" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillableAmountDiscounts(v *amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpdate {
+	if v != nil {
+		_u.SetAmountDiscounts(*v)
+	}
+	return _u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpdate {
+	_u.mutation.ClearAmountDiscounts()
+	return _u
+}
+
 // SetCorrectsRunID sets the "corrects_run_id" field.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpdate {
 	_u.mutation.SetCorrectsRunID(v)
@@ -678,6 +699,16 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldPricerReferenceID, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AmountDiscounts(); ok {
+		vv, err := chargeusagebasedrundetailedline.ValueScanner.AmountDiscounts.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeString, vv)
+	}
+	if _u.mutation.AmountDiscountsCleared() {
+		_spec.ClearField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeString)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1181,6 +1212,26 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillablePricerReferenceID
 	return _u
 }
 
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	_u.mutation.SetAmountDiscounts(v)
+	return _u
+}
+
+// SetNillableAmountDiscounts sets the "amount_discounts" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillableAmountDiscounts(v *amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetAmountDiscounts(*v)
+	}
+	return _u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpdateOne {
+	_u.mutation.ClearAmountDiscounts()
+	return _u
+}
+
 // SetCorrectsRunID sets the "corrects_run_id" field.
 func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpdateOne {
 	_u.mutation.SetCorrectsRunID(v)
@@ -1459,6 +1510,16 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) sqlSave(ctx context.Context)
 	}
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldPricerReferenceID, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AmountDiscounts(); ok {
+		vv, err := chargeusagebasedrundetailedline.ValueScanner.AmountDiscounts.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeString, vv)
+	}
+	if _u.mutation.AmountDiscountsCleared() {
+		_spec.ClearField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeString)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{

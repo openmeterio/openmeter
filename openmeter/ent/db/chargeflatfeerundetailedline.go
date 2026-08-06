@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
@@ -89,6 +90,8 @@ type ChargeFlatFeeRunDetailedLine struct {
 	RunID string `json:"run_id,omitempty"`
 	// PricerReferenceID holds the value of the "pricer_reference_id" field.
 	PricerReferenceID string `json:"pricer_reference_id,omitempty"`
+	// AmountDiscounts holds the value of the "amount_discounts" field.
+	AmountDiscounts amountdiscount.AmountDiscountsOption `json:"amount_discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeFlatFeeRunDetailedLineQuery when eager-loading is set.
 	Edges        ChargeFlatFeeRunDetailedLineEdges `json:"edges"`
@@ -130,6 +133,8 @@ func (*ChargeFlatFeeRunDetailedLine) scanValues(columns []string) ([]any, error)
 			values[i] = new(sql.NullString)
 		case chargeflatfeerundetailedline.FieldServicePeriodStart, chargeflatfeerundetailedline.FieldServicePeriodEnd, chargeflatfeerundetailedline.FieldCreatedAt, chargeflatfeerundetailedline.FieldUpdatedAt, chargeflatfeerundetailedline.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
+		case chargeflatfeerundetailedline.FieldAmountDiscounts:
+			values[i] = chargeflatfeerundetailedline.ValueScanner.AmountDiscounts.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -336,6 +341,12 @@ func (_m *ChargeFlatFeeRunDetailedLine) assignValues(columns []string, values []
 			} else if value.Valid {
 				_m.PricerReferenceID = value.String
 			}
+		case chargeflatfeerundetailedline.FieldAmountDiscounts:
+			if value, err := chargeflatfeerundetailedline.ValueScanner.AmountDiscounts.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.AmountDiscounts = value
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -473,6 +484,9 @@ func (_m *ChargeFlatFeeRunDetailedLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("pricer_reference_id=")
 	builder.WriteString(_m.PricerReferenceID)
+	builder.WriteString(", ")
+	builder.WriteString("amount_discounts=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AmountDiscounts))
 	builder.WriteByte(')')
 	return builder.String()
 }

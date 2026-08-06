@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
@@ -400,6 +401,26 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetNillablePricerReferenceID(v *st
 	return _u
 }
 
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeFlatFeeRunDetailedLineUpdate {
+	_u.mutation.SetAmountDiscounts(v)
+	return _u
+}
+
+// SetNillableAmountDiscounts sets the "amount_discounts" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetNillableAmountDiscounts(v *amountdiscount.AmountDiscountsOption) *ChargeFlatFeeRunDetailedLineUpdate {
+	if v != nil {
+		_u.SetAmountDiscounts(*v)
+	}
+	return _u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdate) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpdate {
+	_u.mutation.ClearAmountDiscounts()
+	return _u
+}
+
 // Mutation returns the ChargeFlatFeeRunDetailedLineMutation object of the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdate) Mutation() *ChargeFlatFeeRunDetailedLineMutation {
 	return _u.mutation
@@ -587,6 +608,16 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) sqlSave(ctx context.Context) (_nod
 	}
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldPricerReferenceID, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AmountDiscounts(); ok {
+		vv, err := chargeflatfeerundetailedline.ValueScanner.AmountDiscounts.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeString, vv)
+	}
+	if _u.mutation.AmountDiscountsCleared() {
+		_spec.ClearField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeString)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -975,6 +1006,26 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetNillablePricerReferenceID(v 
 	return _u
 }
 
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeFlatFeeRunDetailedLineUpdateOne {
+	_u.mutation.SetAmountDiscounts(v)
+	return _u
+}
+
+// SetNillableAmountDiscounts sets the "amount_discounts" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetNillableAmountDiscounts(v *amountdiscount.AmountDiscountsOption) *ChargeFlatFeeRunDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetAmountDiscounts(*v)
+	}
+	return _u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpdateOne {
+	_u.mutation.ClearAmountDiscounts()
+	return _u
+}
+
 // Mutation returns the ChargeFlatFeeRunDetailedLineMutation object of the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) Mutation() *ChargeFlatFeeRunDetailedLineMutation {
 	return _u.mutation
@@ -1192,6 +1243,16 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldPricerReferenceID, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AmountDiscounts(); ok {
+		vv, err := chargeflatfeerundetailedline.ValueScanner.AmountDiscounts.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeString, vv)
+	}
+	if _u.mutation.AmountDiscountsCleared() {
+		_spec.ClearField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeString)
 	}
 	_node = &ChargeFlatFeeRunDetailedLine{config: _u.config}
 	_spec.Assign = _node.assignValues

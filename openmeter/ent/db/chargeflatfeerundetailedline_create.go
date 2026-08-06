@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
@@ -276,6 +277,20 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) SetPricerReferenceID(v string) *Ch
 	return _c
 }
 
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_c *ChargeFlatFeeRunDetailedLineCreate) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeFlatFeeRunDetailedLineCreate {
+	_c.mutation.SetAmountDiscounts(v)
+	return _c
+}
+
+// SetNillableAmountDiscounts sets the "amount_discounts" field if the given value is not nil.
+func (_c *ChargeFlatFeeRunDetailedLineCreate) SetNillableAmountDiscounts(v *amountdiscount.AmountDiscountsOption) *ChargeFlatFeeRunDetailedLineCreate {
+	if v != nil {
+		_c.SetAmountDiscounts(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeFlatFeeRunDetailedLineCreate) SetID(v string) *ChargeFlatFeeRunDetailedLineCreate {
 	_c.mutation.SetID(v)
@@ -462,7 +477,10 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) sqlSave(ctx context.Context) (*Cha
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -481,7 +499,7 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) sqlSave(ctx context.Context) (*Cha
 	return _node, nil
 }
 
-func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDetailedLine, *sqlgraph.CreateSpec) {
+func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDetailedLine, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &ChargeFlatFeeRunDetailedLine{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(chargeflatfeerundetailedline.Table, sqlgraph.NewFieldSpec(chargeflatfeerundetailedline.FieldID, field.TypeString))
@@ -603,6 +621,14 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDet
 		_spec.SetField(chargeflatfeerundetailedline.FieldPricerReferenceID, field.TypeString, value)
 		_node.PricerReferenceID = value
 	}
+	if value, ok := _c.mutation.AmountDiscounts(); ok {
+		vv, err := chargeflatfeerundetailedline.ValueScanner.AmountDiscounts.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeString, vv)
+		_node.AmountDiscounts = value
+	}
 	if nodes := _c.mutation.RunIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -620,7 +646,7 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDet
 		_node.RunID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -1017,6 +1043,24 @@ func (u *ChargeFlatFeeRunDetailedLineUpsert) SetPricerReferenceID(v string) *Cha
 // UpdatePricerReferenceID sets the "pricer_reference_id" field to the value that was provided on create.
 func (u *ChargeFlatFeeRunDetailedLineUpsert) UpdatePricerReferenceID() *ChargeFlatFeeRunDetailedLineUpsert {
 	u.SetExcluded(chargeflatfeerundetailedline.FieldPricerReferenceID)
+	return u
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsert) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeFlatFeeRunDetailedLineUpsert {
+	u.Set(chargeflatfeerundetailedline.FieldAmountDiscounts, v)
+	return u
+}
+
+// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunDetailedLineUpsert) UpdateAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsert {
+	u.SetExcluded(chargeflatfeerundetailedline.FieldAmountDiscounts)
+	return u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsert) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsert {
+	u.SetNull(chargeflatfeerundetailedline.FieldAmountDiscounts)
 	return u
 }
 
@@ -1486,6 +1530,27 @@ func (u *ChargeFlatFeeRunDetailedLineUpsertOne) UpdatePricerReferenceID() *Charg
 	})
 }
 
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsertOne) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeFlatFeeRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.SetAmountDiscounts(v)
+	})
+}
+
+// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunDetailedLineUpsertOne) UpdateAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.UpdateAmountDiscounts()
+	})
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsertOne) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.ClearAmountDiscounts()
+	})
+}
+
 // Exec executes the query.
 func (u *ChargeFlatFeeRunDetailedLineUpsertOne) Exec(ctx context.Context) error {
 	if len(u.create.conflict) == 0 {
@@ -1554,7 +1619,10 @@ func (_c *ChargeFlatFeeRunDetailedLineCreateBulk) Save(ctx context.Context) ([]*
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -2116,6 +2184,27 @@ func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) SetPricerReferenceID(v string) 
 func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) UpdatePricerReferenceID() *ChargeFlatFeeRunDetailedLineUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
 		s.UpdatePricerReferenceID()
+	})
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeFlatFeeRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.SetAmountDiscounts(v)
+	})
+}
+
+// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) UpdateAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.UpdateAmountDiscounts()
+	})
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.ClearAmountDiscounts()
 	})
 }
 

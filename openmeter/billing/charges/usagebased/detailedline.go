@@ -7,8 +7,10 @@ import (
 	"slices"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -22,12 +24,18 @@ import (
 type DetailedLine struct {
 	stddetailedline.Base
 
-	PricerReferenceID string  `json:"pricerReferenceID"`
-	CorrectsRunID     *string `json:"correctsRunID,omitempty"`
+	// AmountDiscounts is absent when discounts were not captured for the persisted line.
+	// A present empty collection means discounts were captured and none applied.
+	AmountDiscounts   mo.Option[amountdiscount.AmountDiscounts] `json:"amountDiscounts,omitzero"`
+	PricerReferenceID string                                    `json:"pricerReferenceID"`
+	CorrectsRunID     *string                                   `json:"correctsRunID,omitempty"`
 }
 
 func (l DetailedLine) Clone() DetailedLine {
 	l.Base = l.Base.Clone()
+	if discounts, ok := l.AmountDiscounts.Get(); ok {
+		l.AmountDiscounts = mo.Some(discounts.Clone())
+	}
 
 	if l.CorrectsRunID != nil {
 		l.CorrectsRunID = lo.ToPtr(*l.CorrectsRunID)
@@ -41,6 +49,12 @@ func (l DetailedLine) Validate() error {
 
 	if err := l.Base.Validate(stddetailedline.IgnoreQuantityChecks()); err != nil {
 		errs = append(errs, err)
+	}
+
+	if discounts, ok := l.AmountDiscounts.Get(); ok {
+		if err := discounts.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("amount discounts: %w", err))
+		}
 	}
 
 	if l.PricerReferenceID == "" {
@@ -98,6 +112,7 @@ func NewDetailedLinesFromBilling(
 		}
 
 		return DetailedLine{
+			AmountDiscounts:   mo.Some(amountdiscount.New(line.AmountDiscounts)),
 			PricerReferenceID: line.ChildUniqueReferenceID,
 			Base: stddetailedline.Base{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{

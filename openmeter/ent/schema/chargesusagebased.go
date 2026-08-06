@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -463,6 +464,14 @@ func (ChargeUsageBasedRunDetailedLine) Fields() []ent.Field {
 
 		field.String("pricer_reference_id").
 			NotEmpty(),
+
+		field.String("amount_discounts").
+			GoType(amountdiscount.AmountDiscountsOption{}).
+			ValueScanner(entutils.JSONStringArrayOptionValueScanner(amountdiscount.NewAmountDiscountsOption)).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
 
 		field.String("corrects_run_id").
 			SchemaType(map[string]string{

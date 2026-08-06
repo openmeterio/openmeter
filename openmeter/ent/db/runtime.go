@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
@@ -1411,6 +1412,9 @@ func init() {
 	chargeflatfeerundetailedlineDescPricerReferenceID := chargeflatfeerundetailedlineFields[1].Descriptor()
 	// chargeflatfeerundetailedline.PricerReferenceIDValidator is a validator for the "pricer_reference_id" field. It is called by the builders before save.
 	chargeflatfeerundetailedline.PricerReferenceIDValidator = chargeflatfeerundetailedlineDescPricerReferenceID.Validators[0].(func(string) error)
+	// chargeflatfeerundetailedlineDescAmountDiscounts is the schema descriptor for amount_discounts field.
+	chargeflatfeerundetailedlineDescAmountDiscounts := chargeflatfeerundetailedlineFields[2].Descriptor()
+	chargeflatfeerundetailedline.ValueScanner.AmountDiscounts = chargeflatfeerundetailedlineDescAmountDiscounts.ValueScanner.(field.TypeValueScanner[amountdiscount.AmountDiscountsOption])
 	// chargeflatfeerundetailedlineDescID is the schema descriptor for id field.
 	chargeflatfeerundetailedlineDescID := chargeflatfeerundetailedlineMixinFields0[12].Descriptor()
 	// chargeflatfeerundetailedline.DefaultID holds the default value on creation for the id field.
@@ -1692,8 +1696,11 @@ func init() {
 	chargeusagebasedrundetailedlineDescPricerReferenceID := chargeusagebasedrundetailedlineFields[2].Descriptor()
 	// chargeusagebasedrundetailedline.PricerReferenceIDValidator is a validator for the "pricer_reference_id" field. It is called by the builders before save.
 	chargeusagebasedrundetailedline.PricerReferenceIDValidator = chargeusagebasedrundetailedlineDescPricerReferenceID.Validators[0].(func(string) error)
+	// chargeusagebasedrundetailedlineDescAmountDiscounts is the schema descriptor for amount_discounts field.
+	chargeusagebasedrundetailedlineDescAmountDiscounts := chargeusagebasedrundetailedlineFields[3].Descriptor()
+	chargeusagebasedrundetailedline.ValueScanner.AmountDiscounts = chargeusagebasedrundetailedlineDescAmountDiscounts.ValueScanner.(field.TypeValueScanner[amountdiscount.AmountDiscountsOption])
 	// chargeusagebasedrundetailedlineDescCorrectsRunID is the schema descriptor for corrects_run_id field.
-	chargeusagebasedrundetailedlineDescCorrectsRunID := chargeusagebasedrundetailedlineFields[3].Descriptor()
+	chargeusagebasedrundetailedlineDescCorrectsRunID := chargeusagebasedrundetailedlineFields[4].Descriptor()
 	// chargeusagebasedrundetailedline.CorrectsRunIDValidator is a validator for the "corrects_run_id" field. It is called by the builders before save.
 	chargeusagebasedrundetailedline.CorrectsRunIDValidator = chargeusagebasedrundetailedlineDescCorrectsRunID.Validators[0].(func(string) error)
 	// chargeusagebasedrundetailedlineDescID is the schema descriptor for id field.

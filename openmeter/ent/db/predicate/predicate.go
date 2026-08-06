@@ -263,6 +263,17 @@ type ChargeFlatFeeRunCreditAllocations func(*sql.Selector)
 // ChargeFlatFeeRunDetailedLine is the predicate function for chargeflatfeerundetailedline builders.
 type ChargeFlatFeeRunDetailedLine func(*sql.Selector)
 
+// ChargeFlatFeeRunDetailedLineOrErr calls the predicate only if the error is not nit.
+func ChargeFlatFeeRunDetailedLineOrErr(p ChargeFlatFeeRunDetailedLine, err error) ChargeFlatFeeRunDetailedLine {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // ChargeFlatFeeRunInvoicedUsage is the predicate function for chargeflatfeeruninvoicedusage builders.
 type ChargeFlatFeeRunInvoicedUsage func(*sql.Selector)
 
@@ -308,6 +319,17 @@ type ChargeUsageBasedRunCreditAllocations func(*sql.Selector)
 
 // ChargeUsageBasedRunDetailedLine is the predicate function for chargeusagebasedrundetailedline builders.
 type ChargeUsageBasedRunDetailedLine func(*sql.Selector)
+
+// ChargeUsageBasedRunDetailedLineOrErr calls the predicate only if the error is not nit.
+func ChargeUsageBasedRunDetailedLineOrErr(p ChargeUsageBasedRunDetailedLine, err error) ChargeUsageBasedRunDetailedLine {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // ChargeUsageBasedRunInvoicedUsage is the predicate function for chargeusagebasedruninvoicedusage builders.
 type ChargeUsageBasedRunInvoicedUsage func(*sql.Selector)
