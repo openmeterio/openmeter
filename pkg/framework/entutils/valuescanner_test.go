@@ -14,31 +14,29 @@ type testStringArrayOption struct {
 	mo.Option[testStringArray]
 }
 
-func newTestStringArrayOption(option mo.Option[testStringArray]) testStringArrayOption {
-	return testStringArrayOption{Option: option}
-}
-
 func TestJSONStringArrayOptionValueScanner(t *testing.T) {
 	t.Parallel()
 
-	scanner := JSONStringArrayOptionValueScanner(newTestStringArrayOption)
+	scanner := JSONStringArrayOptionValueScanner(func(option mo.Option[testStringArray]) testStringArrayOption {
+		return testStringArrayOption{Option: option}
+	})
 
 	t.Run("value", func(t *testing.T) {
 		t.Parallel()
 
-		value, err := scanner.Value(newTestStringArrayOption(mo.None[testStringArray]()))
+		value, err := scanner.Value(testStringArrayOption{Option: mo.None[testStringArray]()})
 		require.NoError(t, err)
 		require.Nil(t, value)
 
-		value, err = scanner.Value(newTestStringArrayOption(mo.Some(testStringArray(nil))))
+		value, err = scanner.Value(testStringArrayOption{Option: mo.Some(testStringArray(nil))})
 		require.NoError(t, err)
 		require.Equal(t, []byte("[]"), value)
 
-		value, err = scanner.Value(newTestStringArrayOption(mo.Some(testStringArray{})))
+		value, err = scanner.Value(testStringArrayOption{Option: mo.Some(testStringArray{})})
 		require.NoError(t, err)
 		require.Equal(t, []byte("[]"), value)
 
-		value, err = scanner.Value(newTestStringArrayOption(mo.Some(testStringArray{"one", "two"})))
+		value, err = scanner.Value(testStringArrayOption{Option: mo.Some(testStringArray{"one", "two"})})
 		require.NoError(t, err)
 		require.Equal(t, []byte(`["one","two"]`), value)
 	})

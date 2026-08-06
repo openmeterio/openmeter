@@ -204,7 +204,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 	initialKeepDiscounts, ok := initialKeepRow.AmountDiscounts.Get()
 	s.Require().True(ok)
 	s.Require().Len(initialKeepDiscounts, 1)
-	s.Equal(float64(0.03), initialKeepDiscounts[0].Amount.InexactFloat64())
+	s.Require().Equal(float64(0.03), initialKeepDiscounts[0].Amount.InexactFloat64())
 
 	replacementLines := usagebased.DetailedLines{
 		s.newDetailedLine(newDetailedLineInput{
@@ -285,13 +285,52 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 	newDiscounts, ok := fetchedRun.DetailedLines.OrEmpty()[1].AmountDiscounts.Get()
 	s.Require().True(ok)
 	s.Require().Len(newDiscounts, 1)
-	s.Equal(float64(-0.02), newDiscounts[0].Amount.InexactFloat64())
-	s.Equal(float64(-0.01), newDiscounts[0].RoundingAmount.InexactFloat64())
+	s.Require().Equal(float64(-0.02), newDiscounts[0].Amount.InexactFloat64())
+	s.Require().Equal(float64(-0.01), newDiscounts[0].RoundingAmount.InexactFloat64())
 
 	_, err = s.dbClient.ChargeUsageBasedRunDetailedLine.UpdateOneID(replacedKeepRow.ID).
 		ClearAmountDiscounts().
 		Save(ctx)
 	s.Require().NoError(err)
+
+	fetchedCharge, err = s.adapter.GetByID(ctx, usagebased.GetByIDInput{
+		ChargeID: charge.GetChargeID(),
+		Expands: chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+			chargesmeta.ExpandDetailedLines,
+		},
+	})
+	s.Require().NoError(err)
+	fetchedRun, ok = lo.Find(fetchedCharge.Realizations, func(run usagebased.RealizationRun) bool {
+		return run.ID.ID == runBase.ID.ID
+	})
+	s.Require().True(ok)
+	s.True(fetchedRun.DetailedLines.OrEmpty()[0].AmountDiscounts.IsAbsent())
+
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID:      charge.GetChargeID(),
+		RunID:         runBase.ID,
+		DetailedLines: replacementLines,
+	}))
+	linesWithoutAmountDiscounts := replacementLines.Clone()
+	linesWithoutAmountDiscounts[0].AmountDiscounts = mo.None[amountdiscount.AmountDiscounts]()
+	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
+		ChargeID:      charge.GetChargeID(),
+		RunID:         runBase.ID,
+		DetailedLines: linesWithoutAmountDiscounts,
+	}))
+
+	keptRowWithoutAmountDiscounts, err := s.dbClient.ChargeUsageBasedRunDetailedLine.Query().
+		Where(
+			dbchargeusagebasedrundetailedline.NamespaceEQ(namespace),
+			dbchargeusagebasedrundetailedline.ChargeIDEQ(charge.ID),
+			dbchargeusagebasedrundetailedline.RunIDEQ(runBase.ID.ID),
+			dbchargeusagebasedrundetailedline.ChildUniqueReferenceIDEQ("keep@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]"),
+			dbchargeusagebasedrundetailedline.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	s.Require().NoError(err)
+	s.True(keptRowWithoutAmountDiscounts.AmountDiscounts.IsAbsent())
 
 	fetchedCharge, err = s.adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: charge.GetChargeID(),

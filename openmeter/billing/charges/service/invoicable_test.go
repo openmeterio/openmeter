@@ -4168,13 +4168,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		amountDiscount := amountDiscounts[0]
 		s.Equal("rateCardDiscount/correlationID=flat-fee-credit-only-discount", amountDiscount.ChildUniqueReferenceID)
 		s.Nil(amountDiscount.Description)
-		s.Equal(float64(10), amountDiscount.Amount.InexactFloat64())
+		s.Require().Equal(float64(10), amountDiscount.Amount.InexactFloat64())
 		s.True(amountDiscount.RoundingAmount.IsZero())
 		s.Equal(billing.RatecardPercentageDiscountReason, amountDiscount.Reason.Type())
 		percentageDiscount, err := amountDiscount.Reason.AsRatecardPercentage()
 		s.Require().NoError(err)
 		s.Equal("flat-fee-credit-only-discount", percentageDiscount.CorrelationID)
-		s.Equal(float64(10), percentageDiscount.Percentage.InexactFloat64())
+		s.Require().Equal(float64(10), percentageDiscount.Percentage.InexactFloat64())
 	})
 
 	s.Run("#3 final charge advance is noop", func() {
