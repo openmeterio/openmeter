@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
@@ -32,14 +31,6 @@ func NewInvoiceCreditPurchaseStateMachine(config StateMachineConfig) (*InvoiceCr
 	if config.Charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeInvoice {
 		return nil, fmt.Errorf("charge %s is not invoice settled", config.Charge.ID)
 	}
-
-	// TODO: Migrate existing invoice credit purchases from the legacy active status
-	// to their detailed status with an SQL migration, then remove this runtime mapping.
-	mappedCharge, err := mapLegacyInvoiceCreditPurchaseStatus(config.Charge)
-	if err != nil {
-		return nil, fmt.Errorf("map legacy invoice credit purchase status: %w", err)
-	}
-	config.Charge = mappedCharge
 
 	stateMachine, err := newStateMachineBase(config)
 	if err != nil {
@@ -77,40 +68,6 @@ func (s *InvoiceCreditPurchaseStateMachine) configureStates() {
 		OnActive(s.SettleInvoicedPayment)
 
 	s.Configure(creditpurchase.StatusFinal)
-}
-
-// mapLegacyInvoiceCreditPurchaseStatus maps the generic active status used before
-// detailed invoice states from durable realization facts. The mapping is in-memory
-// so the next real lifecycle event persists its target without a synthetic transition.
-func mapLegacyInvoiceCreditPurchaseStatus(charge creditpurchase.Charge) (creditpurchase.Charge, error) {
-	if charge.Status != creditpurchase.StatusActive {
-		return charge, nil
-	}
-
-	creditGrant := charge.Realizations.CreditGrantRealization
-	if creditGrant == nil || creditGrant.TransactionGroupID == "" {
-		return creditpurchase.Charge{}, models.NewGenericPreConditionFailedError(
-			fmt.Errorf("legacy active invoice credit purchase has no credit grant [charge_id=%s]", charge.ID),
-		)
-	}
-
-	invoicedPayment := charge.Realizations.InvoiceSettlement
-	if invoicedPayment == nil {
-		return charge.WithStatus(creditpurchase.StatusActivePaymentPending), nil
-	}
-
-	switch invoicedPayment.Status {
-	case payment.StatusAuthorized:
-		return charge.WithStatus(creditpurchase.StatusActivePaymentAuthorized), nil
-	case payment.StatusSettled:
-		return charge.WithStatus(creditpurchase.StatusFinal), nil
-	default:
-		return creditpurchase.Charge{}, fmt.Errorf(
-			"unsupported invoiced payment status %q [charge_id=%s]",
-			invoicedPayment.Status,
-			charge.ID,
-		)
-	}
 }
 
 func (s *InvoiceCreditPurchaseStateMachine) GrantCredits(ctx context.Context) error {
