@@ -695,6 +695,23 @@ export interface InvoiceLineCreditsApplied {
   description?: string
 }
 
+/**
+ * Usage quantity details on an invoice line item when UnitConfig is in effect.
+ *
+ * Provides the full audit trail from raw meter output to the invoiced amount.
+ */
+export interface InvoiceUsageQuantityDetail {
+  /** The raw quantity as reported by the meter (native units). */
+  rawQuantity: string
+  /**
+   * The net billed quantity for this line in converted units, after rounding and any
+   * usage discounts.
+   */
+  invoicedQuantity: string
+  /** The display unit label (e.g., "GB", "hours", "M tokens"). */
+  displayUnit?: string
+}
+
 /** Flat price. */
 export interface UpdatePriceFlat {
   /** The type of the price. */
@@ -3236,30 +3253,6 @@ export interface CreateSubscriptionAddonRequest {
   timing: SubscriptionEditTiming
 }
 
-/**
- * Usage quantity details on an invoice line item when UnitConfig is in effect.
- *
- * Provides the full audit trail from raw meter output to the invoiced amount.
- */
-export interface InvoiceUsageQuantityDetail {
-  /** The raw quantity as reported by the meter (native units). */
-  rawQuantity: string
-  /**
-   * The precise decimal value after applying the conversion operation and factor,
-   * before rounding.
-   */
-  convertedQuantity: string
-  /** The quantity after rounding, used for pricing. */
-  invoicedQuantity: string
-  /** The display unit label (e.g., "GB", "hours", "M tokens"). */
-  displayUnit?: string
-  /**
-   * Snapshot of the UnitConfig that was in effect at billing time. Ensures
-   * historical invoices reflect the config that was actually applied.
-   */
-  appliedUnitConfig: UnitConfig
-}
-
 /** TaxCode create request. */
 export interface CreateTaxCodeRequest {
   /**
@@ -4958,6 +4951,12 @@ export interface InvoiceStandardLine {
    * Present when line has individual details.
    */
   detailedLines: InvoiceDetailedLine[]
+  /**
+   * Usage quantity details for this line when UnitConfig is in effect.
+   *
+   * Read-only; omitted for lines without unit conversion.
+   */
+  usageQuantityDetail?: InvoiceUsageQuantityDetail
   /** Reference to the charge associated with this line item. */
   charge?: ChargeReference
 }
@@ -5993,30 +5992,6 @@ export interface SubscriptionCancelInput {
 }
 
 /**
- * Usage quantity details on an invoice line item when UnitConfig is in effect.
- *
- * Provides the full audit trail from raw meter output to the invoiced amount.
- */
-export interface InvoiceUsageQuantityDetailInput {
-  /** The raw quantity as reported by the meter (native units). */
-  rawQuantity: string
-  /**
-   * The precise decimal value after applying the conversion operation and factor,
-   * before rounding.
-   */
-  convertedQuantity: string
-  /** The quantity after rounding, used for pricing. */
-  invoicedQuantity: string
-  /** The display unit label (e.g., "GB", "hours", "M tokens"). */
-  displayUnit?: string
-  /**
-   * Snapshot of the UnitConfig that was in effect at billing time. Ensures
-   * historical invoices reflect the config that was actually applied.
-   */
-  appliedUnitConfig: UnitConfigInput
-}
-
-/**
  * Invoice-level snapshot of the workflow configuration.
  *
  * Contains only the settings that are meaningful for an already-created invoice:
@@ -6752,6 +6727,12 @@ export interface InvoiceStandardLineInput {
    * Present when line has individual details.
    */
   detailedLines: InvoiceDetailedLineInput[]
+  /**
+   * Usage quantity details for this line when UnitConfig is in effect.
+   *
+   * Read-only; omitted for lines without unit conversion.
+   */
+  usageQuantityDetail?: InvoiceUsageQuantityDetail
   /** Reference to the charge associated with this line item. */
   charge?: ChargeReference
 }

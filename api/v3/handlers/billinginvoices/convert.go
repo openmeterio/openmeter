@@ -314,7 +314,34 @@ func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine
 		Discounts:           mapLineDiscounts(line.Discounts),
 		RateCard:            rateCard,
 		DetailedLines:       detailedLines,
+		UsageQuantityDetail: toAPIUsageQuantityDetail(line),
 	}, nil
+}
+
+// toAPIUsageQuantityDetail surfaces the UnitConfig quantity audit trail for a
+// standard line: the raw metered quantity, the net invoiced quantity, and the
+// configured display unit. The config itself is not repeated here -- it stays on
+// rate_card.unit_config. It returns nil for lines without unit conversion so
+// existing invoices are byte-identical: non-usage-based lines and the charges
+// custom-currency overage path (synthetic metered quantity, no config) both
+// have a nil UnitConfig and emit nothing.
+func toAPIUsageQuantityDetail(line *billing.StandardLine) *api.BillingInvoiceUsageQuantityDetail {
+	uc := line.GetUnitConfig()
+	if line.UsageBased == nil || uc == nil {
+		return nil
+	}
+
+	// The metered and billed quantities are pointer-typed and stay nil on lines
+	// that never rated; without both endpoints there is no trail to surface.
+	if line.UsageBased.MeteredQuantity == nil || line.UsageBased.Quantity == nil {
+		return nil
+	}
+
+	return &api.BillingInvoiceUsageQuantityDetail{
+		RawQuantity:      line.UsageBased.MeteredQuantity.String(),
+		InvoicedQuantity: line.UsageBased.Quantity.String(),
+		DisplayUnit:      uc.DisplayUnit,
+	}
 }
 
 func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, error) {

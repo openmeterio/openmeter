@@ -117,6 +117,64 @@ func TestMapRateCardOmitsUnitConfigWhenAbsent(t *testing.T) {
 	require.Nil(t, rc.UnitConfig)
 }
 
+func TestMapUsageQuantityDetailSurfacesStoredQuantities(t *testing.T) {
+	period := mergeTestPeriod()
+
+	// given: a converted line — raw metered 1300 bytes, billed 2 GB after a
+	// divide-by-1000, ceiling conversion (the engine already stored both).
+	line := standardLineForMergeTest(t, "line-id", period)
+	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(5)})
+	line.UsageBased.MeteredQuantity = lo.ToPtr(decimal.NewFromInt(1300))
+	line.UsageBased.Quantity = lo.ToPtr(decimal.NewFromInt(2))
+	line.UsageBased.UnitConfig = &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: decimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		Precision:        0,
+		DisplayUnit:      lo.ToPtr("GB"),
+	}
+
+	// when: building the audit trail.
+	detail := toAPIUsageQuantityDetail(line)
+
+	// then: raw and invoiced surface the stored values verbatim (raw != invoiced,
+	// so the conversion is visible), with the display unit.
+	require.NotNil(t, detail)
+	require.Equal(t, "1300", detail.RawQuantity)
+	require.Equal(t, "2", detail.InvoicedQuantity)
+	require.Equal(t, lo.ToPtr("GB"), detail.DisplayUnit)
+}
+
+func TestMapUsageQuantityDetailOmitsWhenNoUnitConfig(t *testing.T) {
+	period := mergeTestPeriod()
+
+	// given: a usage-based line with quantities but no unit_config (the common case).
+	line := standardLineForMergeTest(t, "line-id", period)
+	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(5)})
+	line.UsageBased.MeteredQuantity = lo.ToPtr(decimal.NewFromInt(10))
+	line.UsageBased.Quantity = lo.ToPtr(decimal.NewFromInt(10))
+
+	// when/then: no conversion happened, so nothing is surfaced — identity with
+	// today's output for non-unit_config invoices.
+	require.Nil(t, toAPIUsageQuantityDetail(line))
+}
+
+func TestMapUsageQuantityDetailOmitsWhenQuantitiesNil(t *testing.T) {
+	period := mergeTestPeriod()
+
+	// given: a unit_config line that never rated, so its quantities are still nil.
+	line := standardLineForMergeTest(t, "line-id", period)
+	line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(5)})
+	line.UsageBased.UnitConfig = &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: decimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+	}
+
+	// when/then: missing either endpoint yields no trail (and never panics).
+	require.Nil(t, toAPIUsageQuantityDetail(line))
+}
+
 func TestMergeStandardInvoiceLinesFromAPITombstonesOmittedLines(t *testing.T) {
 	period := mergeTestPeriod()
 	keptLine := standardLineForMergeTest(t, "kept-line-id", period)

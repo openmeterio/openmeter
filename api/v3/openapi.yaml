@@ -7151,6 +7151,15 @@ components:
             Present when line has individual details.
           title: Detailed lines
           readOnly: true
+        usage_quantity_detail:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceUsageQuantityDetail'
+          description: |-
+            Usage quantity details for this line when UnitConfig is in effect.
+
+            Read-only; omitted for lines without unit conversion.
+          title: Usage quantity detail
+          readOnly: true
         charge:
           allOf:
             - $ref: '#/components/schemas/BillingChargeReference'
@@ -7209,6 +7218,36 @@ components:
           readOnly: true
       additionalProperties: false
       description: Detailed status information for a standard invoice.
+    BillingInvoiceUsageQuantityDetail:
+      type: object
+      required:
+        - raw_quantity
+        - invoiced_quantity
+      properties:
+        raw_quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The raw quantity as reported by the meter (native units).
+          title: Raw metered quantity
+          readOnly: true
+        invoiced_quantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            The net billed quantity for this line in converted units, after rounding and any
+            usage discounts.
+          title: Invoiced quantity
+          readOnly: true
+        display_unit:
+          type: string
+          description: The display unit label (e.g., "GB", "hours", "M tokens").
+          title: Display unit
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Usage quantity details on an invoice line item when UnitConfig is in effect.
+
+        Provides the full audit trail from raw meter output to the invoiced amount.
     BillingInvoiceValidationIssue:
       type: object
       required:
