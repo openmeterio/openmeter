@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -58,17 +59,16 @@ func New(config Config) (*Service, error) {
 }
 
 func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
-	externalSettlement, err := charge.Intent.Settlement.AsExternalSettlement()
-	if err != nil {
+	if err := charge.Intent.Settlement.Validate(); err != nil {
 		return creditpurchase.Charge{}, err
 	}
 
-	if err := externalSettlement.Validate(); err != nil {
-		return creditpurchase.Charge{}, err
+	if charge.Intent.Settlement.Type() == creditpurchase.SettlementTypePromotional {
+		return creditpurchase.Charge{}, fmt.Errorf("promotional credit purchases do not use payment-backed credit grants")
 	}
 
 	if charge.Realizations.CreditGrantRealization != nil && charge.Realizations.CreditGrantRealization.TransactionGroupID != "" {
-		return creditpurchase.Charge{}, fmt.Errorf("external credit grant already realized [charge_id=%s, transaction_group_id=%s]", charge.ID, charge.Realizations.CreditGrantRealization.TransactionGroupID)
+		return creditpurchase.Charge{}, fmt.Errorf("credit grant already realized [charge_id=%s, transaction_group_id=%s]", charge.ID, charge.Realizations.CreditGrantRealization.TransactionGroupID)
 	}
 
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchaseInitiated(ctx, charge)
@@ -98,6 +98,132 @@ func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge
 			return creditpurchase.Charge{}, err
 		}
 	}
+
+	return charge, nil
+}
+
+type AuthorizeInvoicedPaymentInput struct {
+	Charge         creditpurchase.Charge
+	LineWithHeader billing.StandardLineWithInvoiceHeader
+}
+
+var _ models.Validator = AuthorizeInvoicedPaymentInput{}
+
+func (i AuthorizeInvoicedPaymentInput) Validate() error {
+	var errs []error
+
+	if _, err := i.Charge.Intent.Settlement.AsInvoiceSettlement(); err != nil {
+		errs = append(errs, fmt.Errorf("invoice settlement: %w", err))
+	}
+
+	if err := i.LineWithHeader.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("line with invoice header: %w", err))
+	}
+
+	line := i.LineWithHeader.Line
+	if i.LineWithHeader.Invoice.Namespace != i.Charge.Namespace {
+		errs = append(errs, errors.New("invoice namespace must match charge namespace"))
+	}
+
+	if line != nil {
+		if line.ChargeID == nil || *line.ChargeID != i.Charge.ID {
+			errs = append(errs, errors.New("line charge ID must match charge"))
+		}
+
+		if line.Namespace != i.Charge.Namespace {
+			errs = append(errs, errors.New("line namespace must match charge namespace"))
+		}
+
+		if line.InvoiceID != i.LineWithHeader.Invoice.ID {
+			errs = append(errs, errors.New("line invoice ID must match invoice"))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (s *Service) AuthorizeInvoicedPayment(ctx context.Context, input AuthorizeInvoicedPaymentInput) (creditpurchase.Charge, error) {
+	if err := input.Validate(); err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("validate authorize invoiced payment: %w", err)
+	}
+
+	charge := input.Charge
+	lineWithHeader := input.LineWithHeader
+
+	if charge.Realizations.InvoiceSettlement != nil {
+		return creditpurchase.Charge{}, payment.ErrPaymentAlreadyAuthorized.
+			WithAttrs(charge.ErrorAttributes()).
+			WithAttrs(charge.Realizations.InvoiceSettlement.ErrorAttributes())
+	}
+
+	eventAt := clock.Now()
+	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{
+		Charge:     charge,
+		EventAt:    eventAt,
+		FiatAmount: lineWithHeader.Line.Totals.Total,
+	})
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	paymentSettlement, err := s.adapter.CreateInvoicedPayment(ctx, charge.GetChargeID(), payment.InvoicedCreate{
+		Namespace: charge.Namespace,
+		Base: payment.Base{
+			ServicePeriod: charge.Intent.ServicePeriod,
+			FiatAmount:    lineWithHeader.Line.Totals.Total,
+			Authorized: &ledgertransaction.TimedGroupReference{
+				GroupReference: ledgerTransactionGroupReference,
+				Time:           eventAt,
+			},
+			Status: payment.StatusAuthorized,
+		},
+		InvoiceID: lineWithHeader.Invoice.ID,
+		LineID:    lineWithHeader.Line.ID,
+	})
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	charge.Realizations.InvoiceSettlement = &paymentSettlement
+
+	return charge, nil
+}
+
+func (s *Service) SettleInvoicedPayment(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
+	if charge.Realizations.InvoiceSettlement == nil {
+		return creditpurchase.Charge{}, payment.ErrCannotSettleNotAuthorizedPayment.
+			WithAttrs(charge.ErrorAttributes())
+	}
+
+	paymentSettlement := *charge.Realizations.InvoiceSettlement
+	if paymentSettlement.Status != payment.StatusAuthorized {
+		return creditpurchase.Charge{}, payment.ErrPaymentAlreadySettled.
+			WithAttrs(charge.ErrorAttributes()).
+			WithAttrs(paymentSettlement.ErrorAttributes())
+	}
+
+	eventAt := clock.Now()
+	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentSettled(ctx, creditpurchase.PaymentEventInput{
+		Charge:     charge,
+		EventAt:    eventAt,
+		FiatAmount: paymentSettlement.FiatAmount,
+	})
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	paymentSettlement.Settled = &ledgertransaction.TimedGroupReference{
+		GroupReference: ledgerTransactionGroupReference,
+		Time:           eventAt,
+	}
+	paymentSettlement.Status = payment.StatusSettled
+
+	paymentSettlement, err = s.adapter.UpdateInvoicedPayment(ctx, paymentSettlement)
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	charge.Realizations.InvoiceSettlement = &paymentSettlement
 
 	return charge, nil
 }
