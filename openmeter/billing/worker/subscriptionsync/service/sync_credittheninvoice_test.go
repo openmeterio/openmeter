@@ -3373,6 +3373,97 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
+func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeCancellationReconcilesMixedPeriodDirections() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	cancelAt := s.mustParseTime("2024-01-01T05:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a credit-then-invoice subscription has annual billing and one non-recurring in-advance flat fee
+	// - the initial sync creates a charge with a zero-length service period and an annual billing period
+	// when:
+	// - the subscription is canceled later on its first day and synchronized again
+	// then:
+	// - the charge service period is extended while its billing period is shortened to the cancellation time
+	// - synchronization accepts the mixed period directions
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Annual plan with one-time fee",
+				Key:            "annual-one-time-fee",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1Y"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "one-time-fee",
+								Name: "one-time-fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Service.SyncByView(ctx, subsView, start.Add(time.Minute)))
+	chargePage, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       subsView.Subscription.Namespace,
+		SubscriptionIDs: []string{subsView.Subscription.ID},
+	})
+	s.NoError(err)
+	s.Require().Len(chargePage.Items, 1)
+
+	initialCharge, err := chargePage.Items[0].AsFlatFeeCharge()
+	s.NoError(err)
+	initialIntent := initialCharge.Intent.GetBaseIntent()
+	s.Equal(timeutil.ClosedPeriod{From: start, To: start}, initialIntent.ServicePeriod)
+	s.Equal(timeutil.ClosedPeriod{From: start, To: start}, initialIntent.FullServicePeriod)
+	s.Equal(timeutil.ClosedPeriod{From: start, To: s.mustParseTime("2025-01-01T00:00:00Z")}, initialIntent.BillingPeriod)
+
+	clock.FreezeTime(cancelAt)
+	subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+		Enum: lo.ToPtr(subscription.TimingImmediate),
+	})
+	s.Require().NoError(err)
+
+	canceledSubsView, err := s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
+	s.Require().NoError(err)
+
+	s.Require().NoError(s.Service.SyncByView(ctx, canceledSubsView, cancelAt.Add(time.Minute)))
+
+	updatedChargeGeneric, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+		ChargeID: initialCharge.GetChargeID(),
+	})
+	s.NoError(err)
+	updatedCharge, err := updatedChargeGeneric.AsFlatFeeCharge()
+	s.NoError(err)
+	updatedIntent := updatedCharge.Intent.GetBaseIntent()
+	s.Equal(timeutil.ClosedPeriod{From: start, To: cancelAt}, updatedIntent.ServicePeriod)
+	s.Equal(timeutil.ClosedPeriod{From: start, To: cancelAt}, updatedIntent.FullServicePeriod)
+	s.Equal(timeutil.ClosedPeriod{From: start, To: cancelAt}, updatedIntent.BillingPeriod)
+}
+
 func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
