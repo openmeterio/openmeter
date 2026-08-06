@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -10,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	creditpurchasemodels "github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ billing.LineEngine = (*LineEngine)(nil)
@@ -56,7 +58,11 @@ func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context
 		return nil, fmt.Errorf("converting gathering lines to standard lines: %w", err)
 	}
 
-	chargesByID, err := e.getChargesForStandardLines(ctx, input.Invoice, stdLines)
+	chargesByID, err := e.getChargesForStandardLines(ctx, getChargesForStandardLinesInput{
+		Invoice: input.Invoice,
+		Lines:   stdLines,
+		Expands: meta.ExpandNone,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -101,24 +107,74 @@ func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context
 	return stdLines, nil
 }
 
-func (e *LineEngine) getChargesForStandardLines(ctx context.Context, invoice billing.StandardInvoice, lines billing.StandardLines) (map[string]creditpurchase.Charge, error) {
-	chargeIDs := make([]string, 0, len(lines))
-	seenChargeIDs := make(map[string]struct{}, len(lines))
+type getChargesForStandardLinesInput struct {
+	Invoice billing.StandardInvoice
+	Lines   billing.StandardLines
+	Expands meta.Expands
+}
 
-	for _, stdLine := range lines {
-		if stdLine.ChargeID == nil || *stdLine.ChargeID == "" {
-			return nil, fmt.Errorf("credit purchase standard line[%s]: charge id is required", stdLine.ID)
+var _ models.Validator = getChargesForStandardLinesInput{}
+
+func (i getChargesForStandardLinesInput) Validate() error {
+	var errs []error
+
+	if i.Invoice.ID == "" {
+		errs = append(errs, errors.New("invoice ID is required"))
+	}
+
+	if i.Invoice.Namespace == "" {
+		errs = append(errs, errors.New("invoice namespace is required"))
+	}
+
+	if len(i.Lines) == 0 {
+		errs = append(errs, errors.New("standard lines are required"))
+	}
+
+	for idx, stdLine := range i.Lines {
+		if stdLine == nil {
+			errs = append(errs, fmt.Errorf("standard line[%d] is required", idx))
+			continue
 		}
 
-		if stdLine.Namespace != invoice.Namespace {
-			return nil, fmt.Errorf(
+		if stdLine.ChargeID == nil || *stdLine.ChargeID == "" {
+			errs = append(errs, fmt.Errorf("credit purchase standard line[%s]: charge ID is required", stdLine.ID))
+		}
+
+		if stdLine.Namespace != i.Invoice.Namespace {
+			errs = append(errs, fmt.Errorf(
 				"credit purchase standard line[%s]: namespace %s does not match invoice namespace %s",
 				stdLine.ID,
 				stdLine.Namespace,
-				invoice.Namespace,
-			)
+				i.Invoice.Namespace,
+			))
 		}
 
+		if stdLine.InvoiceID != i.Invoice.ID {
+			errs = append(errs, fmt.Errorf(
+				"credit purchase standard line[%s]: invoice ID %s does not match invoice ID %s",
+				stdLine.ID,
+				stdLine.InvoiceID,
+				i.Invoice.ID,
+			))
+		}
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (e *LineEngine) getChargesForStandardLines(ctx context.Context, input getChargesForStandardLinesInput) (map[string]creditpurchase.Charge, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	chargeIDs := make([]string, 0, len(input.Lines))
+	seenChargeIDs := make(map[string]struct{}, len(input.Lines))
+
+	for _, stdLine := range input.Lines {
 		if _, ok := seenChargeIDs[*stdLine.ChargeID]; ok {
 			continue
 		}
@@ -128,9 +184,9 @@ func (e *LineEngine) getChargesForStandardLines(ctx context.Context, invoice bil
 	}
 
 	charges, err := e.service.GetByIDs(ctx, creditpurchase.GetByIDsInput{
-		Namespace: invoice.Namespace,
+		Namespace: input.Invoice.Namespace,
 		IDs:       chargeIDs,
-		Expands:   meta.ExpandNone,
+		Expands:   input.Expands,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("getting credit purchase charges: %w", err)
@@ -145,7 +201,15 @@ func (e *LineEngine) OnCollectionCompleted(_ context.Context, input billing.OnCo
 	return input.Lines, nil
 }
 
-func (e *LineEngine) OnStandardInvoiceCreated(_ context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
+func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing.OnStandardInvoiceCreatedInput) (billing.StandardLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	if err := e.fireInvoiceLifecycleTriggerForLines(ctx, meta.TriggerInvoiceCreated, input); err != nil {
+		return nil, err
+	}
+
 	return input.Lines, nil
 }
 
@@ -169,10 +233,52 @@ func (e *LineEngine) OnInvoiceIssued(_ context.Context, _ billing.OnInvoiceIssue
 	return nil
 }
 
-func (e *LineEngine) OnPaymentAuthorized(_ context.Context, _ billing.OnPaymentAuthorizedInput) error {
-	return nil
+func (e *LineEngine) OnPaymentAuthorized(ctx context.Context, input billing.OnPaymentAuthorizedInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	return e.fireInvoiceLifecycleTriggerForLines(ctx, billing.TriggerAuthorized, input)
 }
 
-func (e *LineEngine) OnPaymentSettled(_ context.Context, _ billing.OnPaymentSettledInput) error {
+func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPaymentSettledInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	return e.fireInvoiceLifecycleTriggerForLines(ctx, billing.TriggerPaid, input)
+}
+
+func (e *LineEngine) fireInvoiceLifecycleTriggerForLines(ctx context.Context, trigger meta.Trigger, input billing.StandardLineEventInput) error {
+	chargesByID, err := e.getChargesForStandardLines(ctx, getChargesForStandardLinesInput{
+		Invoice: input.Invoice,
+		Lines:   input.Lines,
+		Expands: meta.Expands{meta.ExpandRealizations},
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, stdLine := range input.Lines {
+		charge, ok := chargesByID[*stdLine.ChargeID]
+		if !ok {
+			return fmt.Errorf("credit purchase charge[%s] not found for line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		updatedCharge, err := e.service.handleInvoiceLifecycleTrigger(ctx, HandleInvoiceLifecycleTriggerInput{
+			Charge:  charge,
+			Trigger: trigger,
+			LineWithHeader: billing.StandardLineWithInvoiceHeader{
+				Line:    stdLine,
+				Invoice: input.Invoice,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("triggering %s for credit purchase charge[%s]: %w", trigger, charge.ID, err)
+		}
+
+		chargesByID[updatedCharge.ID] = updatedCharge
+	}
+
 	return nil
 }

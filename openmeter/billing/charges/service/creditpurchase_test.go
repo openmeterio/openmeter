@@ -1079,5 +1079,5 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 
 	// The TestStandardInvoiceCreditPurchase test covers the full non-deferred invoicing path.
 	// This path only covers parts up to the point where the gathering line is created, as for
-	// invoice based triggers the lifecycle is governed by the invocing lifecycle hooks.
+	// invoice based triggers the lifecycle is governed by the invoicing line engine.
 }

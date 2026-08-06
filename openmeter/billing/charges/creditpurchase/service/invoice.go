@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
@@ -207,39 +206,4 @@ func (s *service) handleInvoiceLifecycleTrigger(ctx context.Context, input Handl
 	}
 
 	return stateMachine.GetCharge(), nil
-}
-
-// TODO: Move these invoice lifecycle hook adapters to the credit-purchase line engine
-// and remove the service entry points when the legacy standard invoice hook routing is retired.
-func (s *service) PostInvoiceDraftCreated(ctx context.Context, charge creditpurchase.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
-	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		_, err := s.handleInvoiceLifecycleTrigger(ctx, HandleInvoiceLifecycleTriggerInput{
-			Charge:         charge,
-			Trigger:        meta.TriggerInvoiceCreated,
-			LineWithHeader: lineWithHeader,
-		})
-		return err
-	})
-}
-
-// PostInvoicePaymentAuthorized is called when billing has authorized payment.
-// Billing invokes the hook inside the invoice lifecycle transaction.
-func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge creditpurchase.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
-	_, err := s.handleInvoiceLifecycleTrigger(ctx, HandleInvoiceLifecycleTriggerInput{
-		Charge:         charge,
-		Trigger:        billing.TriggerAuthorized,
-		LineWithHeader: lineWithHeader,
-	})
-	return err
-}
-
-// PostInvoicePaymentSettled is called when billing has settled payment.
-// Billing invokes the hook inside the invoice lifecycle transaction.
-func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge creditpurchase.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
-	_, err := s.handleInvoiceLifecycleTrigger(ctx, HandleInvoiceLifecycleTriggerInput{
-		Charge:         charge,
-		Trigger:        billing.TriggerPaid,
-		LineWithHeader: lineWithHeader,
-	})
-	return err
 }

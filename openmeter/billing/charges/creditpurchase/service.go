@@ -13,7 +13,6 @@ import (
 type Service interface {
 	CreditPurchaseService
 	ExternalPaymentLifecycle
-	InvoicePaymentLifecycle
 
 	GetLineEngine() billing.LineEngine
 }
@@ -50,18 +49,6 @@ type ExternalPaymentLifecycle interface {
 	// HandleExternalPaymentSettled finalizes externally paid credit purchases
 	// and funds the related credit grant.
 	HandleExternalPaymentSettled(ctx context.Context, charge Charge) (Charge, error)
-}
-
-type InvoicePaymentLifecycle interface {
-	// PostInvoicePaymentAuthorized records authorization for invoice-backed
-	// credit purchases after billing confirms the standard line payment.
-	PostInvoicePaymentAuthorized(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
-	// PostInvoicePaymentSettled finalizes invoice-backed credit purchases and
-	// funds credits after the standard line payment settles.
-	PostInvoicePaymentSettled(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
-	// PostInvoiceDraftCreated attaches invoice-backed credit purchases to their
-	// persisted standard invoice line before payment lifecycle callbacks run.
-	PostInvoiceDraftCreated(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 }
 
 type CreateInput struct {
