@@ -110,7 +110,7 @@ func (s *Service) StartCreditThenInvoiceRun(ctx context.Context, in StartCreditT
 			}))
 
 			if len(creditAllocationsWithLineID) > 0 {
-				realizations, err := s.createCreditAllocations(ctx, charge, runBase.ID, creditAllocationsWithLineID.AsCreateInputs())
+				realizations, err := s.createChargeCurrencyCreditRealizations(ctx, charge, runBase.ID, creditAllocationsWithLineID.AsCreateInputs())
 				if err != nil {
 					return StartCreditThenInvoiceRunResult{}, fmt.Errorf("creating credit realizations: %w", err)
 				}

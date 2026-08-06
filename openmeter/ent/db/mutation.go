@@ -65,6 +65,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
@@ -72,6 +73,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
@@ -174,6 +176,7 @@ const (
 	TypeChargeFlatFeeRunCreditAllocations                = "ChargeFlatFeeRunCreditAllocations"
 	TypeChargeFlatFeeRunDetailedLine                     = "ChargeFlatFeeRunDetailedLine"
 	TypeChargeFlatFeeRunInvoicedUsage                    = "ChargeFlatFeeRunInvoicedUsage"
+	TypeChargeFlatFeeRunOverageCreditAllocations         = "ChargeFlatFeeRunOverageCreditAllocations"
 	TypeChargeFlatFeeRunPayment                          = "ChargeFlatFeeRunPayment"
 	TypeChargeUsageBased                                 = "ChargeUsageBased"
 	TypeChargeUsageBasedCostBasis                        = "ChargeUsageBasedCostBasis"
@@ -181,6 +184,7 @@ const (
 	TypeChargeUsageBasedRunCreditAllocations             = "ChargeUsageBasedRunCreditAllocations"
 	TypeChargeUsageBasedRunDetailedLine                  = "ChargeUsageBasedRunDetailedLine"
 	TypeChargeUsageBasedRunInvoicedUsage                 = "ChargeUsageBasedRunInvoicedUsage"
+	TypeChargeUsageBasedRunOverageCreditAllocations      = "ChargeUsageBasedRunOverageCreditAllocations"
 	TypeChargeUsageBasedRunPayment                       = "ChargeUsageBasedRunPayment"
 	TypeChargeUsageBasedRuns                             = "ChargeUsageBasedRuns"
 	TypeChargesSearchV1                                  = "ChargesSearchV1"
@@ -20652,90 +20656,93 @@ func (m *BillingInvoiceFlatFeeLineConfigMutation) ResetEdge(name string) error {
 // BillingInvoiceLineMutation represents an operation that mutates the BillingInvoiceLine nodes in the graph.
 type BillingInvoiceLineMutation struct {
 	config
-	op                                             Op
-	typ                                            string
-	id                                             *string
-	annotations                                    *models.Annotations
-	namespace                                      *string
-	metadata                                       *map[string]string
-	created_at                                     *time.Time
-	updated_at                                     *time.Time
-	deleted_at                                     *time.Time
-	name                                           *string
-	description                                    *string
-	currency                                       *currencyx.FiatCode
-	tax_config                                     *billing.TaxConfig
-	tax_behavior                                   *productcatalog.TaxBehavior
-	amount                                         *alpacadecimal.Decimal
-	taxes_total                                    *alpacadecimal.Decimal
-	taxes_inclusive_total                          *alpacadecimal.Decimal
-	taxes_exclusive_total                          *alpacadecimal.Decimal
-	charges_total                                  *alpacadecimal.Decimal
-	discounts_total                                *alpacadecimal.Decimal
-	credits_total                                  *alpacadecimal.Decimal
-	total                                          *alpacadecimal.Decimal
-	invoicing_app_external_id                      *string
-	period_start                                   *time.Time
-	period_end                                     *time.Time
-	managed_by                                     *billing.InvoiceLineManagedBy
-	invoice_at                                     *time.Time
-	override_collection_period_end                 *time.Time
-	_type                                          *billing.InvoiceLineAdapterType
-	status                                         *billing.InvoiceLineStatus
-	quantity                                       *alpacadecimal.Decimal
-	ratecard_discounts                             **billing.Discounts
-	child_unique_reference_id                      *string
-	subscription_billing_period_from               *time.Time
-	subscription_billing_period_to                 *time.Time
-	engine                                         *billing.LineEngineType
-	credits_applied                                **creditsapplied.CreditsApplied
-	clearedFields                                  map[string]struct{}
-	billing_invoice                                *string
-	clearedbilling_invoice                         bool
-	split_line_group                               *string
-	clearedsplit_line_group                        bool
-	flat_fee_line                                  *string
-	clearedflat_fee_line                           bool
-	usage_based_line                               *string
-	clearedusage_based_line                        bool
-	parent_line                                    *string
-	clearedparent_line                             bool
-	detailed_lines                                 map[string]struct{}
-	removeddetailed_lines                          map[string]struct{}
-	cleareddetailed_lines                          bool
-	detailed_lines_v2                              map[string]struct{}
-	removeddetailed_lines_v2                       map[string]struct{}
-	cleareddetailed_lines_v2                       bool
-	line_usage_discounts                           map[string]struct{}
-	removedline_usage_discounts                    map[string]struct{}
-	clearedline_usage_discounts                    bool
-	line_amount_discounts                          map[string]struct{}
-	removedline_amount_discounts                   map[string]struct{}
-	clearedline_amount_discounts                   bool
-	subscription                                   *string
-	clearedsubscription                            bool
-	subscription_phase                             *string
-	clearedsubscription_phase                      bool
-	subscription_item                              *string
-	clearedsubscription_item                       bool
-	charge                                         *string
-	clearedcharge                                  bool
-	charge_flat_fee_run_payment                    *string
-	clearedcharge_flat_fee_run_payment             bool
-	charge_flat_fee_run_credit_allocations         map[string]struct{}
-	removedcharge_flat_fee_run_credit_allocations  map[string]struct{}
-	clearedcharge_flat_fee_run_credit_allocations  bool
-	charge_flat_fee_runs                           *string
-	clearedcharge_flat_fee_runs                    bool
-	charge_usage_based_run                         *string
-	clearedcharge_usage_based_run                  bool
-	charge_credit_purchase_invoiced_payment        *string
-	clearedcharge_credit_purchase_invoiced_payment bool
-	tax_code                                       *string
-	clearedtax_code                                bool
-	done                                           bool
-	oldValue                                       func(context.Context) (*BillingInvoiceLine, error)
-	predicates                                     []predicate.BillingInvoiceLine
+	op                                                    Op
+	typ                                                   string
+	id                                                    *string
+	annotations                                           *models.Annotations
+	namespace                                             *string
+	metadata                                              *map[string]string
+	created_at                                            *time.Time
+	updated_at                                            *time.Time
+	deleted_at                                            *time.Time
+	name                                                  *string
+	description                                           *string
+	currency                                              *currencyx.FiatCode
+	tax_config                                            *billing.TaxConfig
+	tax_behavior                                          *productcatalog.TaxBehavior
+	amount                                                *alpacadecimal.Decimal
+	taxes_total                                           *alpacadecimal.Decimal
+	taxes_inclusive_total                                 *alpacadecimal.Decimal
+	taxes_exclusive_total                                 *alpacadecimal.Decimal
+	charges_total                                         *alpacadecimal.Decimal
+	discounts_total                                       *alpacadecimal.Decimal
+	credits_total                                         *alpacadecimal.Decimal
+	total                                                 *alpacadecimal.Decimal
+	invoicing_app_external_id                             *string
+	period_start                                          *time.Time
+	period_end                                            *time.Time
+	managed_by                                            *billing.InvoiceLineManagedBy
+	invoice_at                                            *time.Time
+	override_collection_period_end                        *time.Time
+	_type                                                 *billing.InvoiceLineAdapterType
+	status                                                *billing.InvoiceLineStatus
+	quantity                                              *alpacadecimal.Decimal
+	ratecard_discounts                                    **billing.Discounts
+	child_unique_reference_id                             *string
+	subscription_billing_period_from                      *time.Time
+	subscription_billing_period_to                        *time.Time
+	engine                                                *billing.LineEngineType
+	credits_applied                                       **creditsapplied.CreditsApplied
+	clearedFields                                         map[string]struct{}
+	billing_invoice                                       *string
+	clearedbilling_invoice                                bool
+	split_line_group                                      *string
+	clearedsplit_line_group                               bool
+	flat_fee_line                                         *string
+	clearedflat_fee_line                                  bool
+	usage_based_line                                      *string
+	clearedusage_based_line                               bool
+	parent_line                                           *string
+	clearedparent_line                                    bool
+	detailed_lines                                        map[string]struct{}
+	removeddetailed_lines                                 map[string]struct{}
+	cleareddetailed_lines                                 bool
+	detailed_lines_v2                                     map[string]struct{}
+	removeddetailed_lines_v2                              map[string]struct{}
+	cleareddetailed_lines_v2                              bool
+	line_usage_discounts                                  map[string]struct{}
+	removedline_usage_discounts                           map[string]struct{}
+	clearedline_usage_discounts                           bool
+	line_amount_discounts                                 map[string]struct{}
+	removedline_amount_discounts                          map[string]struct{}
+	clearedline_amount_discounts                          bool
+	subscription                                          *string
+	clearedsubscription                                   bool
+	subscription_phase                                    *string
+	clearedsubscription_phase                             bool
+	subscription_item                                     *string
+	clearedsubscription_item                              bool
+	charge                                                *string
+	clearedcharge                                         bool
+	charge_flat_fee_run_payment                           *string
+	clearedcharge_flat_fee_run_payment                    bool
+	charge_flat_fee_run_credit_allocations                map[string]struct{}
+	removedcharge_flat_fee_run_credit_allocations         map[string]struct{}
+	clearedcharge_flat_fee_run_credit_allocations         bool
+	charge_flat_fee_run_overage_credit_allocations        map[string]struct{}
+	removedcharge_flat_fee_run_overage_credit_allocations map[string]struct{}
+	clearedcharge_flat_fee_run_overage_credit_allocations bool
+	charge_flat_fee_runs                                  *string
+	clearedcharge_flat_fee_runs                           bool
+	charge_usage_based_run                                *string
+	clearedcharge_usage_based_run                         bool
+	charge_credit_purchase_invoiced_payment               *string
+	clearedcharge_credit_purchase_invoiced_payment        bool
+	tax_code                                              *string
+	clearedtax_code                                       bool
+	done                                                  bool
+	oldValue                                              func(context.Context) (*BillingInvoiceLine, error)
+	predicates                                            []predicate.BillingInvoiceLine
 }
 
 var _ ent.Mutation = (*BillingInvoiceLineMutation)(nil)
@@ -23216,6 +23223,60 @@ func (m *BillingInvoiceLineMutation) ResetChargeFlatFeeRunCreditAllocations() {
 	m.removedcharge_flat_fee_run_credit_allocations = nil
 }
 
+// AddChargeFlatFeeRunOverageCreditAllocationIDs adds the "charge_flat_fee_run_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by ids.
+func (m *BillingInvoiceLineMutation) AddChargeFlatFeeRunOverageCreditAllocationIDs(ids ...string) {
+	if m.charge_flat_fee_run_overage_credit_allocations == nil {
+		m.charge_flat_fee_run_overage_credit_allocations = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.charge_flat_fee_run_overage_credit_allocations[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChargeFlatFeeRunOverageCreditAllocations clears the "charge_flat_fee_run_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (m *BillingInvoiceLineMutation) ClearChargeFlatFeeRunOverageCreditAllocations() {
+	m.clearedcharge_flat_fee_run_overage_credit_allocations = true
+}
+
+// ChargeFlatFeeRunOverageCreditAllocationsCleared reports if the "charge_flat_fee_run_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity was cleared.
+func (m *BillingInvoiceLineMutation) ChargeFlatFeeRunOverageCreditAllocationsCleared() bool {
+	return m.clearedcharge_flat_fee_run_overage_credit_allocations
+}
+
+// RemoveChargeFlatFeeRunOverageCreditAllocationIDs removes the "charge_flat_fee_run_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by IDs.
+func (m *BillingInvoiceLineMutation) RemoveChargeFlatFeeRunOverageCreditAllocationIDs(ids ...string) {
+	if m.removedcharge_flat_fee_run_overage_credit_allocations == nil {
+		m.removedcharge_flat_fee_run_overage_credit_allocations = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.charge_flat_fee_run_overage_credit_allocations, ids[i])
+		m.removedcharge_flat_fee_run_overage_credit_allocations[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChargeFlatFeeRunOverageCreditAllocations returns the removed IDs of the "charge_flat_fee_run_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (m *BillingInvoiceLineMutation) RemovedChargeFlatFeeRunOverageCreditAllocationsIDs() (ids []string) {
+	for id := range m.removedcharge_flat_fee_run_overage_credit_allocations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChargeFlatFeeRunOverageCreditAllocationsIDs returns the "charge_flat_fee_run_overage_credit_allocations" edge IDs in the mutation.
+func (m *BillingInvoiceLineMutation) ChargeFlatFeeRunOverageCreditAllocationsIDs() (ids []string) {
+	for id := range m.charge_flat_fee_run_overage_credit_allocations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChargeFlatFeeRunOverageCreditAllocations resets all changes to the "charge_flat_fee_run_overage_credit_allocations" edge.
+func (m *BillingInvoiceLineMutation) ResetChargeFlatFeeRunOverageCreditAllocations() {
+	m.charge_flat_fee_run_overage_credit_allocations = nil
+	m.clearedcharge_flat_fee_run_overage_credit_allocations = false
+	m.removedcharge_flat_fee_run_overage_credit_allocations = nil
+}
+
 // SetChargeFlatFeeRunsID sets the "charge_flat_fee_runs" edge to the ChargeFlatFeeRun entity by id.
 func (m *BillingInvoiceLineMutation) SetChargeFlatFeeRunsID(id string) {
 	m.charge_flat_fee_runs = &id
@@ -24319,7 +24380,7 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 19)
+	edges := make([]string, 0, 20)
 	if m.billing_invoice != nil {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
@@ -24364,6 +24425,9 @@ func (m *BillingInvoiceLineMutation) AddedEdges() []string {
 	}
 	if m.charge_flat_fee_run_credit_allocations != nil {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations)
+	}
+	if m.charge_flat_fee_run_overage_credit_allocations != nil {
+		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunOverageCreditAllocations)
 	}
 	if m.charge_flat_fee_runs != nil {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRuns)
@@ -24454,6 +24518,12 @@ func (m *BillingInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case billinginvoiceline.EdgeChargeFlatFeeRunOverageCreditAllocations:
+		ids := make([]ent.Value, 0, len(m.charge_flat_fee_run_overage_credit_allocations))
+		for id := range m.charge_flat_fee_run_overage_credit_allocations {
+			ids = append(ids, id)
+		}
+		return ids
 	case billinginvoiceline.EdgeChargeFlatFeeRuns:
 		if id := m.charge_flat_fee_runs; id != nil {
 			return []ent.Value{*id}
@@ -24476,7 +24546,7 @@ func (m *BillingInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 19)
+	edges := make([]string, 0, 20)
 	if m.removeddetailed_lines != nil {
 		edges = append(edges, billinginvoiceline.EdgeDetailedLines)
 	}
@@ -24491,6 +24561,9 @@ func (m *BillingInvoiceLineMutation) RemovedEdges() []string {
 	}
 	if m.removedcharge_flat_fee_run_credit_allocations != nil {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations)
+	}
+	if m.removedcharge_flat_fee_run_overage_credit_allocations != nil {
+		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunOverageCreditAllocations)
 	}
 	return edges
 }
@@ -24529,13 +24602,19 @@ func (m *BillingInvoiceLineMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case billinginvoiceline.EdgeChargeFlatFeeRunOverageCreditAllocations:
+		ids := make([]ent.Value, 0, len(m.removedcharge_flat_fee_run_overage_credit_allocations))
+		for id := range m.removedcharge_flat_fee_run_overage_credit_allocations {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 19)
+	edges := make([]string, 0, 20)
 	if m.clearedbilling_invoice {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
@@ -24580,6 +24659,9 @@ func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
 	}
 	if m.clearedcharge_flat_fee_run_credit_allocations {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations)
+	}
+	if m.clearedcharge_flat_fee_run_overage_credit_allocations {
+		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRunOverageCreditAllocations)
 	}
 	if m.clearedcharge_flat_fee_runs {
 		edges = append(edges, billinginvoiceline.EdgeChargeFlatFeeRuns)
@@ -24630,6 +24712,8 @@ func (m *BillingInvoiceLineMutation) EdgeCleared(name string) bool {
 		return m.clearedcharge_flat_fee_run_payment
 	case billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations:
 		return m.clearedcharge_flat_fee_run_credit_allocations
+	case billinginvoiceline.EdgeChargeFlatFeeRunOverageCreditAllocations:
+		return m.clearedcharge_flat_fee_run_overage_credit_allocations
 	case billinginvoiceline.EdgeChargeFlatFeeRuns:
 		return m.clearedcharge_flat_fee_runs
 	case billinginvoiceline.EdgeChargeUsageBasedRun:
@@ -24740,6 +24824,9 @@ func (m *BillingInvoiceLineMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoiceline.EdgeChargeFlatFeeRunCreditAllocations:
 		m.ResetChargeFlatFeeRunCreditAllocations()
+		return nil
+	case billinginvoiceline.EdgeChargeFlatFeeRunOverageCreditAllocations:
+		m.ResetChargeFlatFeeRunOverageCreditAllocations()
 		return nil
 	case billinginvoiceline.EdgeChargeFlatFeeRuns:
 		m.ResetChargeFlatFeeRuns()
@@ -53740,48 +53827,51 @@ func (m *ChargeFlatFeeOverrideMutation) ResetEdge(name string) error {
 // ChargeFlatFeeRunMutation represents an operation that mutates the ChargeFlatFeeRun nodes in the graph.
 type ChargeFlatFeeRunMutation struct {
 	config
-	op                           Op
-	typ                          string
-	id                           *string
-	namespace                    *string
-	created_at                   *time.Time
-	updated_at                   *time.Time
-	deleted_at                   *time.Time
-	amount                       *alpacadecimal.Decimal
-	taxes_total                  *alpacadecimal.Decimal
-	taxes_inclusive_total        *alpacadecimal.Decimal
-	taxes_exclusive_total        *alpacadecimal.Decimal
-	charges_total                *alpacadecimal.Decimal
-	discounts_total              *alpacadecimal.Decimal
-	credits_total                *alpacadecimal.Decimal
-	total                        *alpacadecimal.Decimal
-	_type                        *flatfee.RealizationRunType
-	initial_type                 *flatfee.RealizationRunType
-	service_period_from          *time.Time
-	service_period_to            *time.Time
-	amount_after_proration       *alpacadecimal.Decimal
-	no_fiat_transaction_required *bool
-	immutable                    *bool
-	clearedFields                map[string]struct{}
-	flat_fee                     *string
-	clearedflat_fee              bool
-	billing_invoice_line         *string
-	clearedbilling_invoice_line  bool
-	billing_invoice              *string
-	clearedbilling_invoice       bool
-	credit_allocations           map[string]struct{}
-	removedcredit_allocations    map[string]struct{}
-	clearedcredit_allocations    bool
-	detailed_lines               map[string]struct{}
-	removeddetailed_lines        map[string]struct{}
-	cleareddetailed_lines        bool
-	invoiced_usage               *string
-	clearedinvoiced_usage        bool
-	payment                      *string
-	clearedpayment               bool
-	done                         bool
-	oldValue                     func(context.Context) (*ChargeFlatFeeRun, error)
-	predicates                   []predicate.ChargeFlatFeeRun
+	op                                     Op
+	typ                                    string
+	id                                     *string
+	namespace                              *string
+	created_at                             *time.Time
+	updated_at                             *time.Time
+	deleted_at                             *time.Time
+	amount                                 *alpacadecimal.Decimal
+	taxes_total                            *alpacadecimal.Decimal
+	taxes_inclusive_total                  *alpacadecimal.Decimal
+	taxes_exclusive_total                  *alpacadecimal.Decimal
+	charges_total                          *alpacadecimal.Decimal
+	discounts_total                        *alpacadecimal.Decimal
+	credits_total                          *alpacadecimal.Decimal
+	total                                  *alpacadecimal.Decimal
+	_type                                  *flatfee.RealizationRunType
+	initial_type                           *flatfee.RealizationRunType
+	service_period_from                    *time.Time
+	service_period_to                      *time.Time
+	amount_after_proration                 *alpacadecimal.Decimal
+	no_fiat_transaction_required           *bool
+	immutable                              *bool
+	clearedFields                          map[string]struct{}
+	flat_fee                               *string
+	clearedflat_fee                        bool
+	billing_invoice_line                   *string
+	clearedbilling_invoice_line            bool
+	billing_invoice                        *string
+	clearedbilling_invoice                 bool
+	credit_allocations                     map[string]struct{}
+	removedcredit_allocations              map[string]struct{}
+	clearedcredit_allocations              bool
+	fiat_overage_credit_allocations        map[string]struct{}
+	removedfiat_overage_credit_allocations map[string]struct{}
+	clearedfiat_overage_credit_allocations bool
+	detailed_lines                         map[string]struct{}
+	removeddetailed_lines                  map[string]struct{}
+	cleareddetailed_lines                  bool
+	invoiced_usage                         *string
+	clearedinvoiced_usage                  bool
+	payment                                *string
+	clearedpayment                         bool
+	done                                   bool
+	oldValue                               func(context.Context) (*ChargeFlatFeeRun, error)
+	predicates                             []predicate.ChargeFlatFeeRun
 }
 
 var _ ent.Mutation = (*ChargeFlatFeeRunMutation)(nil)
@@ -54893,6 +54983,60 @@ func (m *ChargeFlatFeeRunMutation) ResetCreditAllocations() {
 	m.removedcredit_allocations = nil
 }
 
+// AddFiatOverageCreditAllocationIDs adds the "fiat_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by ids.
+func (m *ChargeFlatFeeRunMutation) AddFiatOverageCreditAllocationIDs(ids ...string) {
+	if m.fiat_overage_credit_allocations == nil {
+		m.fiat_overage_credit_allocations = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.fiat_overage_credit_allocations[ids[i]] = struct{}{}
+	}
+}
+
+// ClearFiatOverageCreditAllocations clears the "fiat_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (m *ChargeFlatFeeRunMutation) ClearFiatOverageCreditAllocations() {
+	m.clearedfiat_overage_credit_allocations = true
+}
+
+// FiatOverageCreditAllocationsCleared reports if the "fiat_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity was cleared.
+func (m *ChargeFlatFeeRunMutation) FiatOverageCreditAllocationsCleared() bool {
+	return m.clearedfiat_overage_credit_allocations
+}
+
+// RemoveFiatOverageCreditAllocationIDs removes the "fiat_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by IDs.
+func (m *ChargeFlatFeeRunMutation) RemoveFiatOverageCreditAllocationIDs(ids ...string) {
+	if m.removedfiat_overage_credit_allocations == nil {
+		m.removedfiat_overage_credit_allocations = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.fiat_overage_credit_allocations, ids[i])
+		m.removedfiat_overage_credit_allocations[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedFiatOverageCreditAllocations returns the removed IDs of the "fiat_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (m *ChargeFlatFeeRunMutation) RemovedFiatOverageCreditAllocationsIDs() (ids []string) {
+	for id := range m.removedfiat_overage_credit_allocations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// FiatOverageCreditAllocationsIDs returns the "fiat_overage_credit_allocations" edge IDs in the mutation.
+func (m *ChargeFlatFeeRunMutation) FiatOverageCreditAllocationsIDs() (ids []string) {
+	for id := range m.fiat_overage_credit_allocations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetFiatOverageCreditAllocations resets all changes to the "fiat_overage_credit_allocations" edge.
+func (m *ChargeFlatFeeRunMutation) ResetFiatOverageCreditAllocations() {
+	m.fiat_overage_credit_allocations = nil
+	m.clearedfiat_overage_credit_allocations = false
+	m.removedfiat_overage_credit_allocations = nil
+}
+
 // AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by ids.
 func (m *ChargeFlatFeeRunMutation) AddDetailedLineIDs(ids ...string) {
 	if m.detailed_lines == nil {
@@ -55536,7 +55680,7 @@ func (m *ChargeFlatFeeRunMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeFlatFeeRunMutation) AddedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.flat_fee != nil {
 		edges = append(edges, chargeflatfeerun.EdgeFlatFee)
 	}
@@ -55548,6 +55692,9 @@ func (m *ChargeFlatFeeRunMutation) AddedEdges() []string {
 	}
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeflatfeerun.EdgeCreditAllocations)
+	}
+	if m.fiat_overage_credit_allocations != nil {
+		edges = append(edges, chargeflatfeerun.EdgeFiatOverageCreditAllocations)
 	}
 	if m.detailed_lines != nil {
 		edges = append(edges, chargeflatfeerun.EdgeDetailedLines)
@@ -55583,6 +55730,12 @@ func (m *ChargeFlatFeeRunMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case chargeflatfeerun.EdgeFiatOverageCreditAllocations:
+		ids := make([]ent.Value, 0, len(m.fiat_overage_credit_allocations))
+		for id := range m.fiat_overage_credit_allocations {
+			ids = append(ids, id)
+		}
+		return ids
 	case chargeflatfeerun.EdgeDetailedLines:
 		ids := make([]ent.Value, 0, len(m.detailed_lines))
 		for id := range m.detailed_lines {
@@ -55603,9 +55756,12 @@ func (m *ChargeFlatFeeRunMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeFlatFeeRunMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.removedcredit_allocations != nil {
 		edges = append(edges, chargeflatfeerun.EdgeCreditAllocations)
+	}
+	if m.removedfiat_overage_credit_allocations != nil {
+		edges = append(edges, chargeflatfeerun.EdgeFiatOverageCreditAllocations)
 	}
 	if m.removeddetailed_lines != nil {
 		edges = append(edges, chargeflatfeerun.EdgeDetailedLines)
@@ -55623,6 +55779,12 @@ func (m *ChargeFlatFeeRunMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case chargeflatfeerun.EdgeFiatOverageCreditAllocations:
+		ids := make([]ent.Value, 0, len(m.removedfiat_overage_credit_allocations))
+		for id := range m.removedfiat_overage_credit_allocations {
+			ids = append(ids, id)
+		}
+		return ids
 	case chargeflatfeerun.EdgeDetailedLines:
 		ids := make([]ent.Value, 0, len(m.removeddetailed_lines))
 		for id := range m.removeddetailed_lines {
@@ -55635,7 +55797,7 @@ func (m *ChargeFlatFeeRunMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeFlatFeeRunMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.clearedflat_fee {
 		edges = append(edges, chargeflatfeerun.EdgeFlatFee)
 	}
@@ -55647,6 +55809,9 @@ func (m *ChargeFlatFeeRunMutation) ClearedEdges() []string {
 	}
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeflatfeerun.EdgeCreditAllocations)
+	}
+	if m.clearedfiat_overage_credit_allocations {
+		edges = append(edges, chargeflatfeerun.EdgeFiatOverageCreditAllocations)
 	}
 	if m.cleareddetailed_lines {
 		edges = append(edges, chargeflatfeerun.EdgeDetailedLines)
@@ -55672,6 +55837,8 @@ func (m *ChargeFlatFeeRunMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice
 	case chargeflatfeerun.EdgeCreditAllocations:
 		return m.clearedcredit_allocations
+	case chargeflatfeerun.EdgeFiatOverageCreditAllocations:
+		return m.clearedfiat_overage_credit_allocations
 	case chargeflatfeerun.EdgeDetailedLines:
 		return m.cleareddetailed_lines
 	case chargeflatfeerun.EdgeInvoicedUsage:
@@ -55721,6 +55888,9 @@ func (m *ChargeFlatFeeRunMutation) ResetEdge(name string) error {
 	case chargeflatfeerun.EdgeCreditAllocations:
 		m.ResetCreditAllocations()
 		return nil
+	case chargeflatfeerun.EdgeFiatOverageCreditAllocations:
+		m.ResetFiatOverageCreditAllocations()
+		return nil
 	case chargeflatfeerun.EdgeDetailedLines:
 		m.ResetDetailedLines()
 		return nil
@@ -55753,11 +55923,11 @@ type ChargeFlatFeeRunCreditAllocationsMutation struct {
 	deleted_at                  *time.Time
 	annotations                 *models.Annotations
 	clearedFields               map[string]struct{}
+	allocation                  *string
+	clearedallocation           bool
 	corrections                 map[string]struct{}
 	removedcorrections          map[string]struct{}
 	clearedcorrections          bool
-	allocation                  *string
-	clearedallocation           bool
 	run                         *string
 	clearedrun                  bool
 	billing_invoice_line        *string
@@ -56447,6 +56617,46 @@ func (m *ChargeFlatFeeRunCreditAllocationsMutation) ResetRunID() {
 	m.run = nil
 }
 
+// SetAllocationID sets the "allocation" edge to the ChargeFlatFeeRunCreditAllocations entity by id.
+func (m *ChargeFlatFeeRunCreditAllocationsMutation) SetAllocationID(id string) {
+	m.allocation = &id
+}
+
+// ClearAllocation clears the "allocation" edge to the ChargeFlatFeeRunCreditAllocations entity.
+func (m *ChargeFlatFeeRunCreditAllocationsMutation) ClearAllocation() {
+	m.clearedallocation = true
+	m.clearedFields[chargeflatfeeruncreditallocations.FieldCorrectsRealizationID] = struct{}{}
+}
+
+// AllocationCleared reports if the "allocation" edge to the ChargeFlatFeeRunCreditAllocations entity was cleared.
+func (m *ChargeFlatFeeRunCreditAllocationsMutation) AllocationCleared() bool {
+	return m.CorrectsRealizationIDCleared() || m.clearedallocation
+}
+
+// AllocationID returns the "allocation" edge ID in the mutation.
+func (m *ChargeFlatFeeRunCreditAllocationsMutation) AllocationID() (id string, exists bool) {
+	if m.allocation != nil {
+		return *m.allocation, true
+	}
+	return
+}
+
+// AllocationIDs returns the "allocation" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AllocationID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeRunCreditAllocationsMutation) AllocationIDs() (ids []string) {
+	if id := m.allocation; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAllocation resets all changes to the "allocation" edge.
+func (m *ChargeFlatFeeRunCreditAllocationsMutation) ResetAllocation() {
+	m.allocation = nil
+	m.clearedallocation = false
+}
+
 // AddCorrectionIDs adds the "corrections" edge to the ChargeFlatFeeRunCreditAllocations entity by ids.
 func (m *ChargeFlatFeeRunCreditAllocationsMutation) AddCorrectionIDs(ids ...string) {
 	if m.corrections == nil {
@@ -56499,46 +56709,6 @@ func (m *ChargeFlatFeeRunCreditAllocationsMutation) ResetCorrections() {
 	m.corrections = nil
 	m.clearedcorrections = false
 	m.removedcorrections = nil
-}
-
-// SetAllocationID sets the "allocation" edge to the ChargeFlatFeeRunCreditAllocations entity by id.
-func (m *ChargeFlatFeeRunCreditAllocationsMutation) SetAllocationID(id string) {
-	m.allocation = &id
-}
-
-// ClearAllocation clears the "allocation" edge to the ChargeFlatFeeRunCreditAllocations entity.
-func (m *ChargeFlatFeeRunCreditAllocationsMutation) ClearAllocation() {
-	m.clearedallocation = true
-	m.clearedFields[chargeflatfeeruncreditallocations.FieldCorrectsRealizationID] = struct{}{}
-}
-
-// AllocationCleared reports if the "allocation" edge to the ChargeFlatFeeRunCreditAllocations entity was cleared.
-func (m *ChargeFlatFeeRunCreditAllocationsMutation) AllocationCleared() bool {
-	return m.CorrectsRealizationIDCleared() || m.clearedallocation
-}
-
-// AllocationID returns the "allocation" edge ID in the mutation.
-func (m *ChargeFlatFeeRunCreditAllocationsMutation) AllocationID() (id string, exists bool) {
-	if m.allocation != nil {
-		return *m.allocation, true
-	}
-	return
-}
-
-// AllocationIDs returns the "allocation" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// AllocationID instead. It exists only for internal usage by the builders.
-func (m *ChargeFlatFeeRunCreditAllocationsMutation) AllocationIDs() (ids []string) {
-	if id := m.allocation; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetAllocation resets all changes to the "allocation" edge.
-func (m *ChargeFlatFeeRunCreditAllocationsMutation) ResetAllocation() {
-	m.allocation = nil
-	m.clearedallocation = false
 }
 
 // ClearRun clears the "run" edge to the ChargeFlatFeeRun entity.
@@ -57005,11 +57175,11 @@ func (m *ChargeFlatFeeRunCreditAllocationsMutation) ResetField(name string) erro
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeFlatFeeRunCreditAllocationsMutation) AddedEdges() []string {
 	edges := make([]string, 0, 4)
-	if m.corrections != nil {
-		edges = append(edges, chargeflatfeeruncreditallocations.EdgeCorrections)
-	}
 	if m.allocation != nil {
 		edges = append(edges, chargeflatfeeruncreditallocations.EdgeAllocation)
+	}
+	if m.corrections != nil {
+		edges = append(edges, chargeflatfeeruncreditallocations.EdgeCorrections)
 	}
 	if m.run != nil {
 		edges = append(edges, chargeflatfeeruncreditallocations.EdgeRun)
@@ -57024,16 +57194,16 @@ func (m *ChargeFlatFeeRunCreditAllocationsMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *ChargeFlatFeeRunCreditAllocationsMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case chargeflatfeeruncreditallocations.EdgeAllocation:
+		if id := m.allocation; id != nil {
+			return []ent.Value{*id}
+		}
 	case chargeflatfeeruncreditallocations.EdgeCorrections:
 		ids := make([]ent.Value, 0, len(m.corrections))
 		for id := range m.corrections {
 			ids = append(ids, id)
 		}
 		return ids
-	case chargeflatfeeruncreditallocations.EdgeAllocation:
-		if id := m.allocation; id != nil {
-			return []ent.Value{*id}
-		}
 	case chargeflatfeeruncreditallocations.EdgeRun:
 		if id := m.run; id != nil {
 			return []ent.Value{*id}
@@ -57072,11 +57242,11 @@ func (m *ChargeFlatFeeRunCreditAllocationsMutation) RemovedIDs(name string) []en
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeFlatFeeRunCreditAllocationsMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 4)
-	if m.clearedcorrections {
-		edges = append(edges, chargeflatfeeruncreditallocations.EdgeCorrections)
-	}
 	if m.clearedallocation {
 		edges = append(edges, chargeflatfeeruncreditallocations.EdgeAllocation)
+	}
+	if m.clearedcorrections {
+		edges = append(edges, chargeflatfeeruncreditallocations.EdgeCorrections)
 	}
 	if m.clearedrun {
 		edges = append(edges, chargeflatfeeruncreditallocations.EdgeRun)
@@ -57091,10 +57261,10 @@ func (m *ChargeFlatFeeRunCreditAllocationsMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *ChargeFlatFeeRunCreditAllocationsMutation) EdgeCleared(name string) bool {
 	switch name {
-	case chargeflatfeeruncreditallocations.EdgeCorrections:
-		return m.clearedcorrections
 	case chargeflatfeeruncreditallocations.EdgeAllocation:
 		return m.clearedallocation
+	case chargeflatfeeruncreditallocations.EdgeCorrections:
+		return m.clearedcorrections
 	case chargeflatfeeruncreditallocations.EdgeRun:
 		return m.clearedrun
 	case chargeflatfeeruncreditallocations.EdgeBillingInvoiceLine:
@@ -57124,11 +57294,11 @@ func (m *ChargeFlatFeeRunCreditAllocationsMutation) ClearEdge(name string) error
 // It returns an error if the edge is not defined in the schema.
 func (m *ChargeFlatFeeRunCreditAllocationsMutation) ResetEdge(name string) error {
 	switch name {
-	case chargeflatfeeruncreditallocations.EdgeCorrections:
-		m.ResetCorrections()
-		return nil
 	case chargeflatfeeruncreditallocations.EdgeAllocation:
 		m.ResetAllocation()
+		return nil
+	case chargeflatfeeruncreditallocations.EdgeCorrections:
+		m.ResetCorrections()
 		return nil
 	case chargeflatfeeruncreditallocations.EdgeRun:
 		m.ResetRun()
@@ -60538,6 +60708,1412 @@ func (m *ChargeFlatFeeRunInvoicedUsageMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRunInvoicedUsage edge %s", name)
+}
+
+// ChargeFlatFeeRunOverageCreditAllocationsMutation represents an operation that mutates the ChargeFlatFeeRunOverageCreditAllocations nodes in the graph.
+type ChargeFlatFeeRunOverageCreditAllocationsMutation struct {
+	config
+	op                          Op
+	typ                         string
+	id                          *string
+	amount                      *alpacadecimal.Decimal
+	service_period_from         *time.Time
+	service_period_to           *time.Time
+	ledger_transaction_group_id *string
+	sort_hint                   *int
+	addsort_hint                *int
+	_type                       *creditrealization.Type
+	namespace                   *string
+	created_at                  *time.Time
+	updated_at                  *time.Time
+	deleted_at                  *time.Time
+	annotations                 *models.Annotations
+	clearedFields               map[string]struct{}
+	allocation                  *string
+	clearedallocation           bool
+	corrections                 map[string]struct{}
+	removedcorrections          map[string]struct{}
+	clearedcorrections          bool
+	run                         *string
+	clearedrun                  bool
+	billing_invoice_line        *string
+	clearedbilling_invoice_line bool
+	done                        bool
+	oldValue                    func(context.Context) (*ChargeFlatFeeRunOverageCreditAllocations, error)
+	predicates                  []predicate.ChargeFlatFeeRunOverageCreditAllocations
+}
+
+var _ ent.Mutation = (*ChargeFlatFeeRunOverageCreditAllocationsMutation)(nil)
+
+// chargeflatfeerunoveragecreditallocationsOption allows management of the mutation configuration using functional options.
+type chargeflatfeerunoveragecreditallocationsOption func(*ChargeFlatFeeRunOverageCreditAllocationsMutation)
+
+// newChargeFlatFeeRunOverageCreditAllocationsMutation creates new mutation for the ChargeFlatFeeRunOverageCreditAllocations entity.
+func newChargeFlatFeeRunOverageCreditAllocationsMutation(c config, op Op, opts ...chargeflatfeerunoveragecreditallocationsOption) *ChargeFlatFeeRunOverageCreditAllocationsMutation {
+	m := &ChargeFlatFeeRunOverageCreditAllocationsMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeChargeFlatFeeRunOverageCreditAllocations,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withChargeFlatFeeRunOverageCreditAllocationsID sets the ID field of the mutation.
+func withChargeFlatFeeRunOverageCreditAllocationsID(id string) chargeflatfeerunoveragecreditallocationsOption {
+	return func(m *ChargeFlatFeeRunOverageCreditAllocationsMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ChargeFlatFeeRunOverageCreditAllocations
+		)
+		m.oldValue = func(ctx context.Context) (*ChargeFlatFeeRunOverageCreditAllocations, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ChargeFlatFeeRunOverageCreditAllocations.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withChargeFlatFeeRunOverageCreditAllocations sets the old ChargeFlatFeeRunOverageCreditAllocations of the mutation.
+func withChargeFlatFeeRunOverageCreditAllocations(node *ChargeFlatFeeRunOverageCreditAllocations) chargeflatfeerunoveragecreditallocationsOption {
+	return func(m *ChargeFlatFeeRunOverageCreditAllocationsMutation) {
+		m.oldValue = func(context.Context) (*ChargeFlatFeeRunOverageCreditAllocations, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ChargeFlatFeeRunOverageCreditAllocationsMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ChargeFlatFeeRunOverageCreditAllocationsMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ChargeFlatFeeRunOverageCreditAllocations entities.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ChargeFlatFeeRunOverageCreditAllocations.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetLineID sets the "line_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetLineID(s string) {
+	m.billing_invoice_line = &s
+}
+
+// LineID returns the value of the "line_id" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) LineID() (r string, exists bool) {
+	v := m.billing_invoice_line
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLineID returns the old "line_id" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldLineID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLineID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLineID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLineID: %w", err)
+	}
+	return oldValue.LineID, nil
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearLineID() {
+	m.billing_invoice_line = nil
+	m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldLineID] = struct{}{}
+}
+
+// LineIDCleared returns if the "line_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) LineIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldLineID]
+	return ok
+}
+
+// ResetLineID resets all changes to the "line_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetLineID() {
+	m.billing_invoice_line = nil
+	delete(m.clearedFields, chargeflatfeerunoveragecreditallocations.FieldLineID)
+}
+
+// SetAmount sets the "amount" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetServicePeriodFrom(t time.Time) {
+	m.service_period_from = &t
+}
+
+// ServicePeriodFrom returns the value of the "service_period_from" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ServicePeriodFrom() (r time.Time, exists bool) {
+	v := m.service_period_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodFrom returns the old "service_period_from" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldServicePeriodFrom(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodFrom: %w", err)
+	}
+	return oldValue.ServicePeriodFrom, nil
+}
+
+// ResetServicePeriodFrom resets all changes to the "service_period_from" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetServicePeriodFrom() {
+	m.service_period_from = nil
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetServicePeriodTo(t time.Time) {
+	m.service_period_to = &t
+}
+
+// ServicePeriodTo returns the value of the "service_period_to" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ServicePeriodTo() (r time.Time, exists bool) {
+	v := m.service_period_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodTo returns the old "service_period_to" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldServicePeriodTo(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodTo: %w", err)
+	}
+	return oldValue.ServicePeriodTo, nil
+}
+
+// ResetServicePeriodTo resets all changes to the "service_period_to" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetServicePeriodTo() {
+	m.service_period_to = nil
+}
+
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetLedgerTransactionGroupID(s string) {
+	m.ledger_transaction_group_id = &s
+}
+
+// LedgerTransactionGroupID returns the value of the "ledger_transaction_group_id" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) LedgerTransactionGroupID() (r string, exists bool) {
+	v := m.ledger_transaction_group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLedgerTransactionGroupID returns the old "ledger_transaction_group_id" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldLedgerTransactionGroupID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLedgerTransactionGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLedgerTransactionGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLedgerTransactionGroupID: %w", err)
+	}
+	return oldValue.LedgerTransactionGroupID, nil
+}
+
+// ResetLedgerTransactionGroupID resets all changes to the "ledger_transaction_group_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetLedgerTransactionGroupID() {
+	m.ledger_transaction_group_id = nil
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetSortHint(i int) {
+	m.sort_hint = &i
+	m.addsort_hint = nil
+}
+
+// SortHint returns the value of the "sort_hint" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SortHint() (r int, exists bool) {
+	v := m.sort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortHint returns the old "sort_hint" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldSortHint(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortHint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortHint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortHint: %w", err)
+	}
+	return oldValue.SortHint, nil
+}
+
+// AddSortHint adds i to the "sort_hint" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AddSortHint(i int) {
+	if m.addsort_hint != nil {
+		*m.addsort_hint += i
+	} else {
+		m.addsort_hint = &i
+	}
+}
+
+// AddedSortHint returns the value that was added to the "sort_hint" field in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AddedSortHint() (r int, exists bool) {
+	v := m.addsort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortHint resets all changes to the "sort_hint" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetSortHint() {
+	m.sort_hint = nil
+	m.addsort_hint = nil
+}
+
+// SetType sets the "type" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetType(c creditrealization.Type) {
+	m._type = &c
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) GetType() (r creditrealization.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldType(ctx context.Context) (v creditrealization.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetType() {
+	m._type = nil
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetCorrectsRealizationID(s string) {
+	m.allocation = &s
+}
+
+// CorrectsRealizationID returns the value of the "corrects_realization_id" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) CorrectsRealizationID() (r string, exists bool) {
+	v := m.allocation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCorrectsRealizationID returns the old "corrects_realization_id" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldCorrectsRealizationID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCorrectsRealizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCorrectsRealizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCorrectsRealizationID: %w", err)
+	}
+	return oldValue.CorrectsRealizationID, nil
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearCorrectsRealizationID() {
+	m.allocation = nil
+	m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID] = struct{}{}
+}
+
+// CorrectsRealizationIDCleared returns if the "corrects_realization_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) CorrectsRealizationIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID]
+	return ok
+}
+
+// ResetCorrectsRealizationID resets all changes to the "corrects_realization_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetCorrectsRealizationID() {
+	m.allocation = nil
+	delete(m.clearedFields, chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID)
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, chargeflatfeerunoveragecreditallocations.FieldDeletedAt)
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, chargeflatfeerunoveragecreditallocations.FieldAnnotations)
+}
+
+// SetRunID sets the "run_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetRunID(s string) {
+	m.run = &s
+}
+
+// RunID returns the value of the "run_id" field in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) RunID() (r string, exists bool) {
+	v := m.run
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRunID returns the old "run_id" field's value of the ChargeFlatFeeRunOverageCreditAllocations entity.
+// If the ChargeFlatFeeRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldRunID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRunID: %w", err)
+	}
+	return oldValue.RunID, nil
+}
+
+// ResetRunID resets all changes to the "run_id" field.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetRunID() {
+	m.run = nil
+}
+
+// SetAllocationID sets the "allocation" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by id.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetAllocationID(id string) {
+	m.allocation = &id
+}
+
+// ClearAllocation clears the "allocation" edge to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearAllocation() {
+	m.clearedallocation = true
+	m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID] = struct{}{}
+}
+
+// AllocationCleared reports if the "allocation" edge to the ChargeFlatFeeRunOverageCreditAllocations entity was cleared.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AllocationCleared() bool {
+	return m.CorrectsRealizationIDCleared() || m.clearedallocation
+}
+
+// AllocationID returns the "allocation" edge ID in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AllocationID() (id string, exists bool) {
+	if m.allocation != nil {
+		return *m.allocation, true
+	}
+	return
+}
+
+// AllocationIDs returns the "allocation" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AllocationID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AllocationIDs() (ids []string) {
+	if id := m.allocation; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAllocation resets all changes to the "allocation" edge.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetAllocation() {
+	m.allocation = nil
+	m.clearedallocation = false
+}
+
+// AddCorrectionIDs adds the "corrections" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by ids.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AddCorrectionIDs(ids ...string) {
+	if m.corrections == nil {
+		m.corrections = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.corrections[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCorrections clears the "corrections" edge to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearCorrections() {
+	m.clearedcorrections = true
+}
+
+// CorrectionsCleared reports if the "corrections" edge to the ChargeFlatFeeRunOverageCreditAllocations entity was cleared.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) CorrectionsCleared() bool {
+	return m.clearedcorrections
+}
+
+// RemoveCorrectionIDs removes the "corrections" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by IDs.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) RemoveCorrectionIDs(ids ...string) {
+	if m.removedcorrections == nil {
+		m.removedcorrections = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.corrections, ids[i])
+		m.removedcorrections[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCorrections returns the removed IDs of the "corrections" edge to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) RemovedCorrectionsIDs() (ids []string) {
+	for id := range m.removedcorrections {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CorrectionsIDs returns the "corrections" edge IDs in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) CorrectionsIDs() (ids []string) {
+	for id := range m.corrections {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCorrections resets all changes to the "corrections" edge.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetCorrections() {
+	m.corrections = nil
+	m.clearedcorrections = false
+	m.removedcorrections = nil
+}
+
+// ClearRun clears the "run" edge to the ChargeFlatFeeRun entity.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearRun() {
+	m.clearedrun = true
+	m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldRunID] = struct{}{}
+}
+
+// RunCleared reports if the "run" edge to the ChargeFlatFeeRun entity was cleared.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) RunCleared() bool {
+	return m.clearedrun
+}
+
+// RunIDs returns the "run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RunID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) RunIDs() (ids []string) {
+	if id := m.run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRun resets all changes to the "run" edge.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetRun() {
+	m.run = nil
+	m.clearedrun = false
+}
+
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by id.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetBillingInvoiceLineID(id string) {
+	m.billing_invoice_line = &id
+}
+
+// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearBillingInvoiceLine() {
+	m.clearedbilling_invoice_line = true
+	m.clearedFields[chargeflatfeerunoveragecreditallocations.FieldLineID] = struct{}{}
+}
+
+// BillingInvoiceLineCleared reports if the "billing_invoice_line" edge to the BillingInvoiceLine entity was cleared.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) BillingInvoiceLineCleared() bool {
+	return m.LineIDCleared() || m.clearedbilling_invoice_line
+}
+
+// BillingInvoiceLineID returns the "billing_invoice_line" edge ID in the mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) BillingInvoiceLineID() (id string, exists bool) {
+	if m.billing_invoice_line != nil {
+		return *m.billing_invoice_line, true
+	}
+	return
+}
+
+// BillingInvoiceLineIDs returns the "billing_invoice_line" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BillingInvoiceLineID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) BillingInvoiceLineIDs() (ids []string) {
+	if id := m.billing_invoice_line; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBillingInvoiceLine resets all changes to the "billing_invoice_line" edge.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetBillingInvoiceLine() {
+	m.billing_invoice_line = nil
+	m.clearedbilling_invoice_line = false
+}
+
+// Where appends a list predicates to the ChargeFlatFeeRunOverageCreditAllocationsMutation builder.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) Where(ps ...predicate.ChargeFlatFeeRunOverageCreditAllocations) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ChargeFlatFeeRunOverageCreditAllocationsMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ChargeFlatFeeRunOverageCreditAllocations, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ChargeFlatFeeRunOverageCreditAllocations).
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) Fields() []string {
+	fields := make([]string, 0, 14)
+	if m.billing_invoice_line != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldLineID)
+	}
+	if m.amount != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldAmount)
+	}
+	if m.service_period_from != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldServicePeriodFrom)
+	}
+	if m.service_period_to != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldServicePeriodTo)
+	}
+	if m.ledger_transaction_group_id != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldLedgerTransactionGroupID)
+	}
+	if m.sort_hint != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldSortHint)
+	}
+	if m._type != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldType)
+	}
+	if m.allocation != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID)
+	}
+	if m.namespace != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldDeletedAt)
+	}
+	if m.annotations != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldAnnotations)
+	}
+	if m.run != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldRunID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.FieldLineID:
+		return m.LineID()
+	case chargeflatfeerunoveragecreditallocations.FieldAmount:
+		return m.Amount()
+	case chargeflatfeerunoveragecreditallocations.FieldServicePeriodFrom:
+		return m.ServicePeriodFrom()
+	case chargeflatfeerunoveragecreditallocations.FieldServicePeriodTo:
+		return m.ServicePeriodTo()
+	case chargeflatfeerunoveragecreditallocations.FieldLedgerTransactionGroupID:
+		return m.LedgerTransactionGroupID()
+	case chargeflatfeerunoveragecreditallocations.FieldSortHint:
+		return m.SortHint()
+	case chargeflatfeerunoveragecreditallocations.FieldType:
+		return m.GetType()
+	case chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID:
+		return m.CorrectsRealizationID()
+	case chargeflatfeerunoveragecreditallocations.FieldNamespace:
+		return m.Namespace()
+	case chargeflatfeerunoveragecreditallocations.FieldCreatedAt:
+		return m.CreatedAt()
+	case chargeflatfeerunoveragecreditallocations.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case chargeflatfeerunoveragecreditallocations.FieldDeletedAt:
+		return m.DeletedAt()
+	case chargeflatfeerunoveragecreditallocations.FieldAnnotations:
+		return m.Annotations()
+	case chargeflatfeerunoveragecreditallocations.FieldRunID:
+		return m.RunID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.FieldLineID:
+		return m.OldLineID(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldAmount:
+		return m.OldAmount(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldServicePeriodFrom:
+		return m.OldServicePeriodFrom(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldServicePeriodTo:
+		return m.OldServicePeriodTo(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldLedgerTransactionGroupID:
+		return m.OldLedgerTransactionGroupID(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldSortHint:
+		return m.OldSortHint(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldType:
+		return m.OldType(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID:
+		return m.OldCorrectsRealizationID(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case chargeflatfeerunoveragecreditallocations.FieldRunID:
+		return m.OldRunID(ctx)
+	}
+	return nil, fmt.Errorf("unknown ChargeFlatFeeRunOverageCreditAllocations field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.FieldLineID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLineID(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldServicePeriodFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodFrom(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldServicePeriodTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodTo(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldLedgerTransactionGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLedgerTransactionGroupID(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortHint(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldType:
+		v, ok := value.(creditrealization.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCorrectsRealizationID(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRunID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeRunOverageCreditAllocations field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AddedFields() []string {
+	var fields []string
+	if m.addsort_hint != nil {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldSortHint)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.FieldSortHint:
+		return m.AddedSortHint()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortHint(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeRunOverageCreditAllocations numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(chargeflatfeerunoveragecreditallocations.FieldLineID) {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldLineID)
+	}
+	if m.FieldCleared(chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID) {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID)
+	}
+	if m.FieldCleared(chargeflatfeerunoveragecreditallocations.FieldDeletedAt) {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldDeletedAt)
+	}
+	if m.FieldCleared(chargeflatfeerunoveragecreditallocations.FieldAnnotations) {
+		fields = append(fields, chargeflatfeerunoveragecreditallocations.FieldAnnotations)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearField(name string) error {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.FieldLineID:
+		m.ClearLineID()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID:
+		m.ClearCorrectsRealizationID()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeRunOverageCreditAllocations nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetField(name string) error {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.FieldLineID:
+		m.ResetLineID()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldServicePeriodFrom:
+		m.ResetServicePeriodFrom()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldServicePeriodTo:
+		m.ResetServicePeriodTo()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldLedgerTransactionGroupID:
+		m.ResetLedgerTransactionGroupID()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldSortHint:
+		m.ResetSortHint()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldType:
+		m.ResetType()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID:
+		m.ResetCorrectsRealizationID()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.FieldRunID:
+		m.ResetRunID()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeRunOverageCreditAllocations field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AddedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.allocation != nil {
+		edges = append(edges, chargeflatfeerunoveragecreditallocations.EdgeAllocation)
+	}
+	if m.corrections != nil {
+		edges = append(edges, chargeflatfeerunoveragecreditallocations.EdgeCorrections)
+	}
+	if m.run != nil {
+		edges = append(edges, chargeflatfeerunoveragecreditallocations.EdgeRun)
+	}
+	if m.billing_invoice_line != nil {
+		edges = append(edges, chargeflatfeerunoveragecreditallocations.EdgeBillingInvoiceLine)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.EdgeAllocation:
+		if id := m.allocation; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeflatfeerunoveragecreditallocations.EdgeCorrections:
+		ids := make([]ent.Value, 0, len(m.corrections))
+		for id := range m.corrections {
+			ids = append(ids, id)
+		}
+		return ids
+	case chargeflatfeerunoveragecreditallocations.EdgeRun:
+		if id := m.run; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeflatfeerunoveragecreditallocations.EdgeBillingInvoiceLine:
+		if id := m.billing_invoice_line; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.removedcorrections != nil {
+		edges = append(edges, chargeflatfeerunoveragecreditallocations.EdgeCorrections)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.EdgeCorrections:
+		ids := make([]ent.Value, 0, len(m.removedcorrections))
+		for id := range m.removedcorrections {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 4)
+	if m.clearedallocation {
+		edges = append(edges, chargeflatfeerunoveragecreditallocations.EdgeAllocation)
+	}
+	if m.clearedcorrections {
+		edges = append(edges, chargeflatfeerunoveragecreditallocations.EdgeCorrections)
+	}
+	if m.clearedrun {
+		edges = append(edges, chargeflatfeerunoveragecreditallocations.EdgeRun)
+	}
+	if m.clearedbilling_invoice_line {
+		edges = append(edges, chargeflatfeerunoveragecreditallocations.EdgeBillingInvoiceLine)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) EdgeCleared(name string) bool {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.EdgeAllocation:
+		return m.clearedallocation
+	case chargeflatfeerunoveragecreditallocations.EdgeCorrections:
+		return m.clearedcorrections
+	case chargeflatfeerunoveragecreditallocations.EdgeRun:
+		return m.clearedrun
+	case chargeflatfeerunoveragecreditallocations.EdgeBillingInvoiceLine:
+		return m.clearedbilling_invoice_line
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ClearEdge(name string) error {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.EdgeAllocation:
+		m.ClearAllocation()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.EdgeRun:
+		m.ClearRun()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.EdgeBillingInvoiceLine:
+		m.ClearBillingInvoiceLine()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeRunOverageCreditAllocations unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ChargeFlatFeeRunOverageCreditAllocationsMutation) ResetEdge(name string) error {
+	switch name {
+	case chargeflatfeerunoveragecreditallocations.EdgeAllocation:
+		m.ResetAllocation()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.EdgeCorrections:
+		m.ResetCorrections()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.EdgeRun:
+		m.ResetRun()
+		return nil
+	case chargeflatfeerunoveragecreditallocations.EdgeBillingInvoiceLine:
+		m.ResetBillingInvoiceLine()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeFlatFeeRunOverageCreditAllocations edge %s", name)
 }
 
 // ChargeFlatFeeRunPaymentMutation represents an operation that mutates the ChargeFlatFeeRunPayment nodes in the graph.
@@ -68077,11 +69653,11 @@ type ChargeUsageBasedRunCreditAllocationsMutation struct {
 	deleted_at                  *time.Time
 	annotations                 *models.Annotations
 	clearedFields               map[string]struct{}
+	allocation                  *string
+	clearedallocation           bool
 	corrections                 map[string]struct{}
 	removedcorrections          map[string]struct{}
 	clearedcorrections          bool
-	allocation                  *string
-	clearedallocation           bool
 	run                         *string
 	clearedrun                  bool
 	done                        bool
@@ -68769,6 +70345,46 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetRunID() {
 	m.run = nil
 }
 
+// SetAllocationID sets the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity by id.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetAllocationID(id string) {
+	m.allocation = &id
+}
+
+// ClearAllocation clears the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) ClearAllocation() {
+	m.clearedallocation = true
+	m.clearedFields[chargeusagebasedruncreditallocations.FieldCorrectsRealizationID] = struct{}{}
+}
+
+// AllocationCleared reports if the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity was cleared.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) AllocationCleared() bool {
+	return m.CorrectsRealizationIDCleared() || m.clearedallocation
+}
+
+// AllocationID returns the "allocation" edge ID in the mutation.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) AllocationID() (id string, exists bool) {
+	if m.allocation != nil {
+		return *m.allocation, true
+	}
+	return
+}
+
+// AllocationIDs returns the "allocation" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AllocationID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) AllocationIDs() (ids []string) {
+	if id := m.allocation; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAllocation resets all changes to the "allocation" edge.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetAllocation() {
+	m.allocation = nil
+	m.clearedallocation = false
+}
+
 // AddCorrectionIDs adds the "corrections" edge to the ChargeUsageBasedRunCreditAllocations entity by ids.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddCorrectionIDs(ids ...string) {
 	if m.corrections == nil {
@@ -68821,46 +70437,6 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetCorrections() {
 	m.corrections = nil
 	m.clearedcorrections = false
 	m.removedcorrections = nil
-}
-
-// SetAllocationID sets the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity by id.
-func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetAllocationID(id string) {
-	m.allocation = &id
-}
-
-// ClearAllocation clears the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity.
-func (m *ChargeUsageBasedRunCreditAllocationsMutation) ClearAllocation() {
-	m.clearedallocation = true
-	m.clearedFields[chargeusagebasedruncreditallocations.FieldCorrectsRealizationID] = struct{}{}
-}
-
-// AllocationCleared reports if the "allocation" edge to the ChargeUsageBasedRunCreditAllocations entity was cleared.
-func (m *ChargeUsageBasedRunCreditAllocationsMutation) AllocationCleared() bool {
-	return m.CorrectsRealizationIDCleared() || m.clearedallocation
-}
-
-// AllocationID returns the "allocation" edge ID in the mutation.
-func (m *ChargeUsageBasedRunCreditAllocationsMutation) AllocationID() (id string, exists bool) {
-	if m.allocation != nil {
-		return *m.allocation, true
-	}
-	return
-}
-
-// AllocationIDs returns the "allocation" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// AllocationID instead. It exists only for internal usage by the builders.
-func (m *ChargeUsageBasedRunCreditAllocationsMutation) AllocationIDs() (ids []string) {
-	if id := m.allocation; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetAllocation resets all changes to the "allocation" edge.
-func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetAllocation() {
-	m.allocation = nil
-	m.clearedallocation = false
 }
 
 // ClearRun clears the "run" edge to the ChargeUsageBasedRuns entity.
@@ -69287,11 +70863,11 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetField(name string) e
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedEdges() []string {
 	edges := make([]string, 0, 3)
-	if m.corrections != nil {
-		edges = append(edges, chargeusagebasedruncreditallocations.EdgeCorrections)
-	}
 	if m.allocation != nil {
 		edges = append(edges, chargeusagebasedruncreditallocations.EdgeAllocation)
+	}
+	if m.corrections != nil {
+		edges = append(edges, chargeusagebasedruncreditallocations.EdgeCorrections)
 	}
 	if m.run != nil {
 		edges = append(edges, chargeusagebasedruncreditallocations.EdgeRun)
@@ -69303,16 +70879,16 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case chargeusagebasedruncreditallocations.EdgeAllocation:
+		if id := m.allocation; id != nil {
+			return []ent.Value{*id}
+		}
 	case chargeusagebasedruncreditallocations.EdgeCorrections:
 		ids := make([]ent.Value, 0, len(m.corrections))
 		for id := range m.corrections {
 			ids = append(ids, id)
 		}
 		return ids
-	case chargeusagebasedruncreditallocations.EdgeAllocation:
-		if id := m.allocation; id != nil {
-			return []ent.Value{*id}
-		}
 	case chargeusagebasedruncreditallocations.EdgeRun:
 		if id := m.run; id != nil {
 			return []ent.Value{*id}
@@ -69347,11 +70923,11 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) RemovedIDs(name string) [
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 3)
-	if m.clearedcorrections {
-		edges = append(edges, chargeusagebasedruncreditallocations.EdgeCorrections)
-	}
 	if m.clearedallocation {
 		edges = append(edges, chargeusagebasedruncreditallocations.EdgeAllocation)
+	}
+	if m.clearedcorrections {
+		edges = append(edges, chargeusagebasedruncreditallocations.EdgeCorrections)
 	}
 	if m.clearedrun {
 		edges = append(edges, chargeusagebasedruncreditallocations.EdgeRun)
@@ -69363,10 +70939,10 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) EdgeCleared(name string) bool {
 	switch name {
-	case chargeusagebasedruncreditallocations.EdgeCorrections:
-		return m.clearedcorrections
 	case chargeusagebasedruncreditallocations.EdgeAllocation:
 		return m.clearedallocation
+	case chargeusagebasedruncreditallocations.EdgeCorrections:
+		return m.clearedcorrections
 	case chargeusagebasedruncreditallocations.EdgeRun:
 		return m.clearedrun
 	}
@@ -69391,11 +70967,11 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ClearEdge(name string) er
 // It returns an error if the edge is not defined in the schema.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetEdge(name string) error {
 	switch name {
-	case chargeusagebasedruncreditallocations.EdgeCorrections:
-		m.ResetCorrections()
-		return nil
 	case chargeusagebasedruncreditallocations.EdgeAllocation:
 		m.ResetAllocation()
+		return nil
+	case chargeusagebasedruncreditallocations.EdgeCorrections:
+		m.ResetCorrections()
 		return nil
 	case chargeusagebasedruncreditallocations.EdgeRun:
 		m.ResetRun()
@@ -73023,6 +74599,1353 @@ func (m *ChargeUsageBasedRunInvoicedUsageMutation) ResetEdge(name string) error 
 	return fmt.Errorf("unknown ChargeUsageBasedRunInvoicedUsage edge %s", name)
 }
 
+// ChargeUsageBasedRunOverageCreditAllocationsMutation represents an operation that mutates the ChargeUsageBasedRunOverageCreditAllocations nodes in the graph.
+type ChargeUsageBasedRunOverageCreditAllocationsMutation struct {
+	config
+	op                          Op
+	typ                         string
+	id                          *string
+	line_id                     *string
+	amount                      *alpacadecimal.Decimal
+	service_period_from         *time.Time
+	service_period_to           *time.Time
+	ledger_transaction_group_id *string
+	sort_hint                   *int
+	addsort_hint                *int
+	_type                       *creditrealization.Type
+	namespace                   *string
+	created_at                  *time.Time
+	updated_at                  *time.Time
+	deleted_at                  *time.Time
+	annotations                 *models.Annotations
+	clearedFields               map[string]struct{}
+	allocation                  *string
+	clearedallocation           bool
+	corrections                 map[string]struct{}
+	removedcorrections          map[string]struct{}
+	clearedcorrections          bool
+	run                         *string
+	clearedrun                  bool
+	done                        bool
+	oldValue                    func(context.Context) (*ChargeUsageBasedRunOverageCreditAllocations, error)
+	predicates                  []predicate.ChargeUsageBasedRunOverageCreditAllocations
+}
+
+var _ ent.Mutation = (*ChargeUsageBasedRunOverageCreditAllocationsMutation)(nil)
+
+// chargeusagebasedrunoveragecreditallocationsOption allows management of the mutation configuration using functional options.
+type chargeusagebasedrunoveragecreditallocationsOption func(*ChargeUsageBasedRunOverageCreditAllocationsMutation)
+
+// newChargeUsageBasedRunOverageCreditAllocationsMutation creates new mutation for the ChargeUsageBasedRunOverageCreditAllocations entity.
+func newChargeUsageBasedRunOverageCreditAllocationsMutation(c config, op Op, opts ...chargeusagebasedrunoveragecreditallocationsOption) *ChargeUsageBasedRunOverageCreditAllocationsMutation {
+	m := &ChargeUsageBasedRunOverageCreditAllocationsMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeChargeUsageBasedRunOverageCreditAllocations,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withChargeUsageBasedRunOverageCreditAllocationsID sets the ID field of the mutation.
+func withChargeUsageBasedRunOverageCreditAllocationsID(id string) chargeusagebasedrunoveragecreditallocationsOption {
+	return func(m *ChargeUsageBasedRunOverageCreditAllocationsMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ChargeUsageBasedRunOverageCreditAllocations
+		)
+		m.oldValue = func(ctx context.Context) (*ChargeUsageBasedRunOverageCreditAllocations, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ChargeUsageBasedRunOverageCreditAllocations.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withChargeUsageBasedRunOverageCreditAllocations sets the old ChargeUsageBasedRunOverageCreditAllocations of the mutation.
+func withChargeUsageBasedRunOverageCreditAllocations(node *ChargeUsageBasedRunOverageCreditAllocations) chargeusagebasedrunoveragecreditallocationsOption {
+	return func(m *ChargeUsageBasedRunOverageCreditAllocationsMutation) {
+		m.oldValue = func(context.Context) (*ChargeUsageBasedRunOverageCreditAllocations, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ChargeUsageBasedRunOverageCreditAllocationsMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ChargeUsageBasedRunOverageCreditAllocationsMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ChargeUsageBasedRunOverageCreditAllocations entities.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ChargeUsageBasedRunOverageCreditAllocations.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetLineID sets the "line_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetLineID(s string) {
+	m.line_id = &s
+}
+
+// LineID returns the value of the "line_id" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) LineID() (r string, exists bool) {
+	v := m.line_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLineID returns the old "line_id" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldLineID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLineID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLineID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLineID: %w", err)
+	}
+	return oldValue.LineID, nil
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearLineID() {
+	m.line_id = nil
+	m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldLineID] = struct{}{}
+}
+
+// LineIDCleared returns if the "line_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) LineIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldLineID]
+	return ok
+}
+
+// ResetLineID resets all changes to the "line_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetLineID() {
+	m.line_id = nil
+	delete(m.clearedFields, chargeusagebasedrunoveragecreditallocations.FieldLineID)
+}
+
+// SetAmount sets the "amount" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetServicePeriodFrom(t time.Time) {
+	m.service_period_from = &t
+}
+
+// ServicePeriodFrom returns the value of the "service_period_from" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ServicePeriodFrom() (r time.Time, exists bool) {
+	v := m.service_period_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodFrom returns the old "service_period_from" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldServicePeriodFrom(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodFrom: %w", err)
+	}
+	return oldValue.ServicePeriodFrom, nil
+}
+
+// ResetServicePeriodFrom resets all changes to the "service_period_from" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetServicePeriodFrom() {
+	m.service_period_from = nil
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetServicePeriodTo(t time.Time) {
+	m.service_period_to = &t
+}
+
+// ServicePeriodTo returns the value of the "service_period_to" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ServicePeriodTo() (r time.Time, exists bool) {
+	v := m.service_period_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodTo returns the old "service_period_to" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldServicePeriodTo(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodTo: %w", err)
+	}
+	return oldValue.ServicePeriodTo, nil
+}
+
+// ResetServicePeriodTo resets all changes to the "service_period_to" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetServicePeriodTo() {
+	m.service_period_to = nil
+}
+
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetLedgerTransactionGroupID(s string) {
+	m.ledger_transaction_group_id = &s
+}
+
+// LedgerTransactionGroupID returns the value of the "ledger_transaction_group_id" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) LedgerTransactionGroupID() (r string, exists bool) {
+	v := m.ledger_transaction_group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLedgerTransactionGroupID returns the old "ledger_transaction_group_id" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldLedgerTransactionGroupID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLedgerTransactionGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLedgerTransactionGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLedgerTransactionGroupID: %w", err)
+	}
+	return oldValue.LedgerTransactionGroupID, nil
+}
+
+// ResetLedgerTransactionGroupID resets all changes to the "ledger_transaction_group_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetLedgerTransactionGroupID() {
+	m.ledger_transaction_group_id = nil
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetSortHint(i int) {
+	m.sort_hint = &i
+	m.addsort_hint = nil
+}
+
+// SortHint returns the value of the "sort_hint" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SortHint() (r int, exists bool) {
+	v := m.sort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortHint returns the old "sort_hint" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldSortHint(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortHint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortHint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortHint: %w", err)
+	}
+	return oldValue.SortHint, nil
+}
+
+// AddSortHint adds i to the "sort_hint" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AddSortHint(i int) {
+	if m.addsort_hint != nil {
+		*m.addsort_hint += i
+	} else {
+		m.addsort_hint = &i
+	}
+}
+
+// AddedSortHint returns the value that was added to the "sort_hint" field in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AddedSortHint() (r int, exists bool) {
+	v := m.addsort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortHint resets all changes to the "sort_hint" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetSortHint() {
+	m.sort_hint = nil
+	m.addsort_hint = nil
+}
+
+// SetType sets the "type" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetType(c creditrealization.Type) {
+	m._type = &c
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) GetType() (r creditrealization.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldType(ctx context.Context) (v creditrealization.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetType() {
+	m._type = nil
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetCorrectsRealizationID(s string) {
+	m.allocation = &s
+}
+
+// CorrectsRealizationID returns the value of the "corrects_realization_id" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) CorrectsRealizationID() (r string, exists bool) {
+	v := m.allocation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCorrectsRealizationID returns the old "corrects_realization_id" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldCorrectsRealizationID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCorrectsRealizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCorrectsRealizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCorrectsRealizationID: %w", err)
+	}
+	return oldValue.CorrectsRealizationID, nil
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearCorrectsRealizationID() {
+	m.allocation = nil
+	m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID] = struct{}{}
+}
+
+// CorrectsRealizationIDCleared returns if the "corrects_realization_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) CorrectsRealizationIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID]
+	return ok
+}
+
+// ResetCorrectsRealizationID resets all changes to the "corrects_realization_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetCorrectsRealizationID() {
+	m.allocation = nil
+	delete(m.clearedFields, chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID)
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, chargeusagebasedrunoveragecreditallocations.FieldDeletedAt)
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, chargeusagebasedrunoveragecreditallocations.FieldAnnotations)
+}
+
+// SetRunID sets the "run_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetRunID(s string) {
+	m.run = &s
+}
+
+// RunID returns the value of the "run_id" field in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) RunID() (r string, exists bool) {
+	v := m.run
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRunID returns the old "run_id" field's value of the ChargeUsageBasedRunOverageCreditAllocations entity.
+// If the ChargeUsageBasedRunOverageCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldRunID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRunID: %w", err)
+	}
+	return oldValue.RunID, nil
+}
+
+// ResetRunID resets all changes to the "run_id" field.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetRunID() {
+	m.run = nil
+}
+
+// SetAllocationID sets the "allocation" edge to the ChargeUsageBasedRunOverageCreditAllocations entity by id.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetAllocationID(id string) {
+	m.allocation = &id
+}
+
+// ClearAllocation clears the "allocation" edge to the ChargeUsageBasedRunOverageCreditAllocations entity.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearAllocation() {
+	m.clearedallocation = true
+	m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID] = struct{}{}
+}
+
+// AllocationCleared reports if the "allocation" edge to the ChargeUsageBasedRunOverageCreditAllocations entity was cleared.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AllocationCleared() bool {
+	return m.CorrectsRealizationIDCleared() || m.clearedallocation
+}
+
+// AllocationID returns the "allocation" edge ID in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AllocationID() (id string, exists bool) {
+	if m.allocation != nil {
+		return *m.allocation, true
+	}
+	return
+}
+
+// AllocationIDs returns the "allocation" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AllocationID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AllocationIDs() (ids []string) {
+	if id := m.allocation; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAllocation resets all changes to the "allocation" edge.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetAllocation() {
+	m.allocation = nil
+	m.clearedallocation = false
+}
+
+// AddCorrectionIDs adds the "corrections" edge to the ChargeUsageBasedRunOverageCreditAllocations entity by ids.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AddCorrectionIDs(ids ...string) {
+	if m.corrections == nil {
+		m.corrections = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.corrections[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCorrections clears the "corrections" edge to the ChargeUsageBasedRunOverageCreditAllocations entity.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearCorrections() {
+	m.clearedcorrections = true
+}
+
+// CorrectionsCleared reports if the "corrections" edge to the ChargeUsageBasedRunOverageCreditAllocations entity was cleared.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) CorrectionsCleared() bool {
+	return m.clearedcorrections
+}
+
+// RemoveCorrectionIDs removes the "corrections" edge to the ChargeUsageBasedRunOverageCreditAllocations entity by IDs.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) RemoveCorrectionIDs(ids ...string) {
+	if m.removedcorrections == nil {
+		m.removedcorrections = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.corrections, ids[i])
+		m.removedcorrections[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCorrections returns the removed IDs of the "corrections" edge to the ChargeUsageBasedRunOverageCreditAllocations entity.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) RemovedCorrectionsIDs() (ids []string) {
+	for id := range m.removedcorrections {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CorrectionsIDs returns the "corrections" edge IDs in the mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) CorrectionsIDs() (ids []string) {
+	for id := range m.corrections {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCorrections resets all changes to the "corrections" edge.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetCorrections() {
+	m.corrections = nil
+	m.clearedcorrections = false
+	m.removedcorrections = nil
+}
+
+// ClearRun clears the "run" edge to the ChargeUsageBasedRuns entity.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearRun() {
+	m.clearedrun = true
+	m.clearedFields[chargeusagebasedrunoveragecreditallocations.FieldRunID] = struct{}{}
+}
+
+// RunCleared reports if the "run" edge to the ChargeUsageBasedRuns entity was cleared.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) RunCleared() bool {
+	return m.clearedrun
+}
+
+// RunIDs returns the "run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RunID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) RunIDs() (ids []string) {
+	if id := m.run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRun resets all changes to the "run" edge.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetRun() {
+	m.run = nil
+	m.clearedrun = false
+}
+
+// Where appends a list predicates to the ChargeUsageBasedRunOverageCreditAllocationsMutation builder.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) Where(ps ...predicate.ChargeUsageBasedRunOverageCreditAllocations) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ChargeUsageBasedRunOverageCreditAllocationsMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ChargeUsageBasedRunOverageCreditAllocations, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ChargeUsageBasedRunOverageCreditAllocations).
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) Fields() []string {
+	fields := make([]string, 0, 14)
+	if m.line_id != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldLineID)
+	}
+	if m.amount != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldAmount)
+	}
+	if m.service_period_from != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldServicePeriodFrom)
+	}
+	if m.service_period_to != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldServicePeriodTo)
+	}
+	if m.ledger_transaction_group_id != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldLedgerTransactionGroupID)
+	}
+	if m.sort_hint != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldSortHint)
+	}
+	if m._type != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldType)
+	}
+	if m.allocation != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID)
+	}
+	if m.namespace != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldDeletedAt)
+	}
+	if m.annotations != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldAnnotations)
+	}
+	if m.run != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldRunID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.FieldLineID:
+		return m.LineID()
+	case chargeusagebasedrunoveragecreditallocations.FieldAmount:
+		return m.Amount()
+	case chargeusagebasedrunoveragecreditallocations.FieldServicePeriodFrom:
+		return m.ServicePeriodFrom()
+	case chargeusagebasedrunoveragecreditallocations.FieldServicePeriodTo:
+		return m.ServicePeriodTo()
+	case chargeusagebasedrunoveragecreditallocations.FieldLedgerTransactionGroupID:
+		return m.LedgerTransactionGroupID()
+	case chargeusagebasedrunoveragecreditallocations.FieldSortHint:
+		return m.SortHint()
+	case chargeusagebasedrunoveragecreditallocations.FieldType:
+		return m.GetType()
+	case chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID:
+		return m.CorrectsRealizationID()
+	case chargeusagebasedrunoveragecreditallocations.FieldNamespace:
+		return m.Namespace()
+	case chargeusagebasedrunoveragecreditallocations.FieldCreatedAt:
+		return m.CreatedAt()
+	case chargeusagebasedrunoveragecreditallocations.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case chargeusagebasedrunoveragecreditallocations.FieldDeletedAt:
+		return m.DeletedAt()
+	case chargeusagebasedrunoveragecreditallocations.FieldAnnotations:
+		return m.Annotations()
+	case chargeusagebasedrunoveragecreditallocations.FieldRunID:
+		return m.RunID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.FieldLineID:
+		return m.OldLineID(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldAmount:
+		return m.OldAmount(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldServicePeriodFrom:
+		return m.OldServicePeriodFrom(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldServicePeriodTo:
+		return m.OldServicePeriodTo(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldLedgerTransactionGroupID:
+		return m.OldLedgerTransactionGroupID(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldSortHint:
+		return m.OldSortHint(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldType:
+		return m.OldType(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID:
+		return m.OldCorrectsRealizationID(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case chargeusagebasedrunoveragecreditallocations.FieldRunID:
+		return m.OldRunID(ctx)
+	}
+	return nil, fmt.Errorf("unknown ChargeUsageBasedRunOverageCreditAllocations field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.FieldLineID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLineID(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldServicePeriodFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodFrom(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldServicePeriodTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodTo(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldLedgerTransactionGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLedgerTransactionGroupID(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortHint(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldType:
+		v, ok := value.(creditrealization.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCorrectsRealizationID(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRunID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunOverageCreditAllocations field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AddedFields() []string {
+	var fields []string
+	if m.addsort_hint != nil {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldSortHint)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.FieldSortHint:
+		return m.AddedSortHint()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortHint(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunOverageCreditAllocations numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(chargeusagebasedrunoveragecreditallocations.FieldLineID) {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldLineID)
+	}
+	if m.FieldCleared(chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID) {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID)
+	}
+	if m.FieldCleared(chargeusagebasedrunoveragecreditallocations.FieldDeletedAt) {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldDeletedAt)
+	}
+	if m.FieldCleared(chargeusagebasedrunoveragecreditallocations.FieldAnnotations) {
+		fields = append(fields, chargeusagebasedrunoveragecreditallocations.FieldAnnotations)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearField(name string) error {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.FieldLineID:
+		m.ClearLineID()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID:
+		m.ClearCorrectsRealizationID()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunOverageCreditAllocations nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetField(name string) error {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.FieldLineID:
+		m.ResetLineID()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldServicePeriodFrom:
+		m.ResetServicePeriodFrom()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldServicePeriodTo:
+		m.ResetServicePeriodTo()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldLedgerTransactionGroupID:
+		m.ResetLedgerTransactionGroupID()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldSortHint:
+		m.ResetSortHint()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldType:
+		m.ResetType()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID:
+		m.ResetCorrectsRealizationID()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.FieldRunID:
+		m.ResetRunID()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunOverageCreditAllocations field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.allocation != nil {
+		edges = append(edges, chargeusagebasedrunoveragecreditallocations.EdgeAllocation)
+	}
+	if m.corrections != nil {
+		edges = append(edges, chargeusagebasedrunoveragecreditallocations.EdgeCorrections)
+	}
+	if m.run != nil {
+		edges = append(edges, chargeusagebasedrunoveragecreditallocations.EdgeRun)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.EdgeAllocation:
+		if id := m.allocation; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeusagebasedrunoveragecreditallocations.EdgeCorrections:
+		ids := make([]ent.Value, 0, len(m.corrections))
+		for id := range m.corrections {
+			ids = append(ids, id)
+		}
+		return ids
+	case chargeusagebasedrunoveragecreditallocations.EdgeRun:
+		if id := m.run; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.removedcorrections != nil {
+		edges = append(edges, chargeusagebasedrunoveragecreditallocations.EdgeCorrections)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.EdgeCorrections:
+		ids := make([]ent.Value, 0, len(m.removedcorrections))
+		for id := range m.removedcorrections {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedallocation {
+		edges = append(edges, chargeusagebasedrunoveragecreditallocations.EdgeAllocation)
+	}
+	if m.clearedcorrections {
+		edges = append(edges, chargeusagebasedrunoveragecreditallocations.EdgeCorrections)
+	}
+	if m.clearedrun {
+		edges = append(edges, chargeusagebasedrunoveragecreditallocations.EdgeRun)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) EdgeCleared(name string) bool {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.EdgeAllocation:
+		return m.clearedallocation
+	case chargeusagebasedrunoveragecreditallocations.EdgeCorrections:
+		return m.clearedcorrections
+	case chargeusagebasedrunoveragecreditallocations.EdgeRun:
+		return m.clearedrun
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ClearEdge(name string) error {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.EdgeAllocation:
+		m.ClearAllocation()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.EdgeRun:
+		m.ClearRun()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunOverageCreditAllocations unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ChargeUsageBasedRunOverageCreditAllocationsMutation) ResetEdge(name string) error {
+	switch name {
+	case chargeusagebasedrunoveragecreditallocations.EdgeAllocation:
+		m.ResetAllocation()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.EdgeCorrections:
+		m.ResetCorrections()
+		return nil
+	case chargeusagebasedrunoveragecreditallocations.EdgeRun:
+		m.ResetRun()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeUsageBasedRunOverageCreditAllocations edge %s", name)
+}
+
 // ChargeUsageBasedRunPaymentMutation represents an operation that mutates the ChargeUsageBasedRunPayment nodes in the graph.
 type ChargeUsageBasedRunPaymentMutation struct {
 	config
@@ -74374,6 +77297,9 @@ type ChargeUsageBasedRunsMutation struct {
 	credit_allocations                        map[string]struct{}
 	removedcredit_allocations                 map[string]struct{}
 	clearedcredit_allocations                 bool
+	fiat_overage_credit_allocations           map[string]struct{}
+	removedfiat_overage_credit_allocations    map[string]struct{}
+	clearedfiat_overage_credit_allocations    bool
 	detailed_lines                            map[string]struct{}
 	removeddetailed_lines                     map[string]struct{}
 	cleareddetailed_lines                     bool
@@ -75597,6 +78523,60 @@ func (m *ChargeUsageBasedRunsMutation) ResetCreditAllocations() {
 	m.removedcredit_allocations = nil
 }
 
+// AddFiatOverageCreditAllocationIDs adds the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRunOverageCreditAllocations entity by ids.
+func (m *ChargeUsageBasedRunsMutation) AddFiatOverageCreditAllocationIDs(ids ...string) {
+	if m.fiat_overage_credit_allocations == nil {
+		m.fiat_overage_credit_allocations = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.fiat_overage_credit_allocations[ids[i]] = struct{}{}
+	}
+}
+
+// ClearFiatOverageCreditAllocations clears the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRunOverageCreditAllocations entity.
+func (m *ChargeUsageBasedRunsMutation) ClearFiatOverageCreditAllocations() {
+	m.clearedfiat_overage_credit_allocations = true
+}
+
+// FiatOverageCreditAllocationsCleared reports if the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRunOverageCreditAllocations entity was cleared.
+func (m *ChargeUsageBasedRunsMutation) FiatOverageCreditAllocationsCleared() bool {
+	return m.clearedfiat_overage_credit_allocations
+}
+
+// RemoveFiatOverageCreditAllocationIDs removes the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRunOverageCreditAllocations entity by IDs.
+func (m *ChargeUsageBasedRunsMutation) RemoveFiatOverageCreditAllocationIDs(ids ...string) {
+	if m.removedfiat_overage_credit_allocations == nil {
+		m.removedfiat_overage_credit_allocations = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.fiat_overage_credit_allocations, ids[i])
+		m.removedfiat_overage_credit_allocations[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedFiatOverageCreditAllocations returns the removed IDs of the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRunOverageCreditAllocations entity.
+func (m *ChargeUsageBasedRunsMutation) RemovedFiatOverageCreditAllocationsIDs() (ids []string) {
+	for id := range m.removedfiat_overage_credit_allocations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// FiatOverageCreditAllocationsIDs returns the "fiat_overage_credit_allocations" edge IDs in the mutation.
+func (m *ChargeUsageBasedRunsMutation) FiatOverageCreditAllocationsIDs() (ids []string) {
+	for id := range m.fiat_overage_credit_allocations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetFiatOverageCreditAllocations resets all changes to the "fiat_overage_credit_allocations" edge.
+func (m *ChargeUsageBasedRunsMutation) ResetFiatOverageCreditAllocations() {
+	m.fiat_overage_credit_allocations = nil
+	m.clearedfiat_overage_credit_allocations = false
+	m.removedfiat_overage_credit_allocations = nil
+}
+
 // AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by ids.
 func (m *ChargeUsageBasedRunsMutation) AddDetailedLineIDs(ids ...string) {
 	if m.detailed_lines == nil {
@@ -76328,7 +79308,7 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.usage_based != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
@@ -76343,6 +79323,9 @@ func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
 	}
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
+	}
+	if m.fiat_overage_credit_allocations != nil {
+		edges = append(edges, chargeusagebasedruns.EdgeFiatOverageCreditAllocations)
 	}
 	if m.detailed_lines != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeDetailedLines)
@@ -76385,6 +79368,12 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case chargeusagebasedruns.EdgeFiatOverageCreditAllocations:
+		ids := make([]ent.Value, 0, len(m.fiat_overage_credit_allocations))
+		for id := range m.fiat_overage_credit_allocations {
+			ids = append(ids, id)
+		}
+		return ids
 	case chargeusagebasedruns.EdgeDetailedLines:
 		ids := make([]ent.Value, 0, len(m.detailed_lines))
 		for id := range m.detailed_lines {
@@ -76411,9 +79400,12 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedRunsMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.removedcredit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
+	}
+	if m.removedfiat_overage_credit_allocations != nil {
+		edges = append(edges, chargeusagebasedruns.EdgeFiatOverageCreditAllocations)
 	}
 	if m.removeddetailed_lines != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeDetailedLines)
@@ -76431,6 +79423,12 @@ func (m *ChargeUsageBasedRunsMutation) RemovedIDs(name string) []ent.Value {
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		ids := make([]ent.Value, 0, len(m.removedcredit_allocations))
 		for id := range m.removedcredit_allocations {
+			ids = append(ids, id)
+		}
+		return ids
+	case chargeusagebasedruns.EdgeFiatOverageCreditAllocations:
+		ids := make([]ent.Value, 0, len(m.removedfiat_overage_credit_allocations))
+		for id := range m.removedfiat_overage_credit_allocations {
 			ids = append(ids, id)
 		}
 		return ids
@@ -76452,7 +79450,7 @@ func (m *ChargeUsageBasedRunsMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.clearedusage_based {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
@@ -76467,6 +79465,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
 	}
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
+	}
+	if m.clearedfiat_overage_credit_allocations {
+		edges = append(edges, chargeusagebasedruns.EdgeFiatOverageCreditAllocations)
 	}
 	if m.cleareddetailed_lines {
 		edges = append(edges, chargeusagebasedruns.EdgeDetailedLines)
@@ -76497,6 +79498,8 @@ func (m *ChargeUsageBasedRunsMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoice
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		return m.clearedcredit_allocations
+	case chargeusagebasedruns.EdgeFiatOverageCreditAllocations:
+		return m.clearedfiat_overage_credit_allocations
 	case chargeusagebasedruns.EdgeDetailedLines:
 		return m.cleareddetailed_lines
 	case chargeusagebasedruns.EdgeCorrectedDetailedLines:
@@ -76553,6 +79556,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetEdge(name string) error {
 		return nil
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		m.ResetCreditAllocations()
+		return nil
+	case chargeusagebasedruns.EdgeFiatOverageCreditAllocations:
+		m.ResetFiatOverageCreditAllocations()
 		return nil
 	case chargeusagebasedruns.EdgeDetailedLines:
 		m.ResetDetailedLines()

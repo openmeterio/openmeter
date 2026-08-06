@@ -117,14 +117,16 @@ func fromDBRun(dbRun *entdb.ChargeFlatFeeRun) (flatfee.RealizationRun, error) {
 	run := flatfee.RealizationRun{
 		RealizationRunBase: fromDBRunBase(dbRun),
 	}
+	var err error
 
-	dbCreditsAllocated, err := dbRun.Edges.CreditAllocationsOrErr()
-	if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
-		return flatfee.RealizationRun{}, fmt.Errorf("credits allocated not loaded for flat fee charge run [id=%s]", dbRun.ID)
+	run.CreditRealizations, err = creditrealization.FromDBRealizationsOrErr(dbRun.Edges.CreditAllocationsOrErr())
+	if err != nil {
+		return flatfee.RealizationRun{}, fmt.Errorf("mapping charge currency credit realizations for flat fee charge run [id=%s]: %w", dbRun.ID, err)
 	}
 
-	for _, credit := range dbCreditsAllocated {
-		run.CreditRealizations = append(run.CreditRealizations, creditrealization.MapFromDB(credit))
+	run.FiatOverageCreditRealizations, err = creditrealization.FromDBRealizationsOrErr(dbRun.Edges.FiatOverageCreditAllocationsOrErr())
+	if err != nil {
+		return flatfee.RealizationRun{}, fmt.Errorf("mapping fiat overage credit realizations for flat fee charge run [id=%s]: %w", dbRun.ID, err)
 	}
 
 	dbInvoiceUsage, err := dbRun.Edges.InvoicedUsageOrErr()

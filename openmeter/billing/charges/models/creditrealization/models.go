@@ -111,6 +111,28 @@ func (i CreateInputs) Sum() alpacadecimal.Decimal {
 	return sum
 }
 
+// CorrectionTargetIDs returns the unique allocation IDs referenced by correction inputs.
+func (i CreateInputs) CorrectionTargetIDs() []string {
+	targetIDs := make([]string, 0)
+	seen := make(map[string]struct{})
+
+	for _, input := range i {
+		if input.Type != TypeCorrection || input.CorrectsRealizationID == nil {
+			continue
+		}
+
+		targetID := *input.CorrectsRealizationID
+		if _, ok := seen[targetID]; ok {
+			continue
+		}
+
+		seen[targetID] = struct{}{}
+		targetIDs = append(targetIDs, targetID)
+	}
+
+	return targetIDs
+}
+
 type Realization struct {
 	models.NamespacedModel
 	models.ManagedModel

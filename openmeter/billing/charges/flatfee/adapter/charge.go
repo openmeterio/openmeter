@@ -404,6 +404,7 @@ func expandRealizations(query *db.ChargeFlatFeeQuery) *db.ChargeFlatFeeQuery {
 				dbchargeflatfeerun.ByCreatedAt(),
 			).
 			WithCreditAllocations().
+			WithFiatOverageCreditAllocations().
 			WithInvoicedUsage().
 			WithPayment()
 	})

@@ -178,15 +178,17 @@ func fromDBRun(dbRun *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun, er
 	run := usagebased.RealizationRun{
 		RealizationRunBase: fromDBRunBase(dbRun),
 	}
+	var err error
 
-	dbCreditsAllocated, err := dbRun.Edges.CreditAllocationsOrErr()
-	if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
-		return usagebased.RealizationRun{}, fmt.Errorf("credits allocated not loaded for usage based charge run [id=%s]", dbRun.ID)
+	run.CreditsAllocated, err = creditrealization.FromDBRealizationsOrErr(dbRun.Edges.CreditAllocationsOrErr())
+	if err != nil {
+		return usagebased.RealizationRun{}, fmt.Errorf("mapping credit realizations for usage based charge run [id=%s]: %w", dbRun.ID, err)
 	}
 
-	run.CreditsAllocated = lo.Map(dbCreditsAllocated, func(credit *entdb.ChargeUsageBasedRunCreditAllocations, _ int) creditrealization.Realization {
-		return creditrealization.MapFromDB(credit)
-	})
+	run.FiatOverageCreditRealizations, err = creditrealization.FromDBRealizationsOrErr(dbRun.Edges.FiatOverageCreditAllocationsOrErr())
+	if err != nil {
+		return usagebased.RealizationRun{}, fmt.Errorf("mapping fiat overage credit realizations for usage based charge run [id=%s]: %w", dbRun.ID, err)
+	}
 
 	dbInvoiceUsage, err := dbRun.Edges.InvoicedUsageOrErr()
 	if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {

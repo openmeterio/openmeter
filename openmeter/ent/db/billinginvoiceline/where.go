@@ -2584,6 +2584,29 @@ func HasChargeFlatFeeRunCreditAllocationsWith(preds ...predicate.ChargeFlatFeeRu
 	})
 }
 
+// HasChargeFlatFeeRunOverageCreditAllocations applies the HasEdge predicate on the "charge_flat_fee_run_overage_credit_allocations" edge.
+func HasChargeFlatFeeRunOverageCreditAllocations() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeRunOverageCreditAllocationsTable, ChargeFlatFeeRunOverageCreditAllocationsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeFlatFeeRunOverageCreditAllocationsWith applies the HasEdge predicate on the "charge_flat_fee_run_overage_credit_allocations" edge with a given conditions (other predicates).
+func HasChargeFlatFeeRunOverageCreditAllocationsWith(preds ...predicate.ChargeFlatFeeRunOverageCreditAllocations) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newChargeFlatFeeRunOverageCreditAllocationsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasChargeFlatFeeRuns applies the HasEdge predicate on the "charge_flat_fee_runs" edge.
 func HasChargeFlatFeeRuns() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {

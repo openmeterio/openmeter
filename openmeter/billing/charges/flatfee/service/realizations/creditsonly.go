@@ -91,7 +91,7 @@ func (s *Service) AllocateCreditsOnly(ctx context.Context, in AllocateCreditsOnl
 		var realizations creditrealization.Realizations
 		if len(creditAllocations) > 0 {
 			var err error
-			realizations, err = s.createCreditAllocations(ctx, in.Charge, in.Charge.Realizations.CurrentRun.ID, creditAllocations.AsCreateInputs())
+			realizations, err = s.createChargeCurrencyCreditRealizations(ctx, in.Charge, in.Charge.Realizations.CurrentRun.ID, creditAllocations.AsCreateInputs())
 			if err != nil {
 				return AllocateCreditsOnlyResult{}, fmt.Errorf("create credit allocations: %w", err)
 			}

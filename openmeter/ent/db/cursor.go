@@ -1696,6 +1696,57 @@ func (_m *ChargeFlatFeeRunInvoicedUsageQuery) Cursor(ctx context.Context, cursor
 
 // Cursor runs the query and returns a cursor-paginated response.
 // Ordering is always by created_at asc, id asc.
+func (_m *ChargeFlatFeeRunOverageCreditAllocationsQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeFlatFeeRunOverageCreditAllocations], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeFlatFeeRunOverageCreditAllocations]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeFlatFeeRunOverageCreditAllocations]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeFlatFeeRunOverageCreditAllocations, 0)
+	}
+
+	result := pagination.Result[*ChargeFlatFeeRunOverageCreditAllocations]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
 func (_m *ChargeFlatFeeRunPaymentQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeFlatFeeRunPayment], error) {
 	if cursor != nil {
 		if err := cursor.Validate(); err != nil {
@@ -1989,6 +2040,57 @@ func (_m *ChargeUsageBasedRunInvoicedUsageQuery) Cursor(ctx context.Context, cur
 	}
 
 	result := pagination.Result[*ChargeUsageBasedRunInvoicedUsage]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeUsageBasedRunOverageCreditAllocationsQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeUsageBasedRunOverageCreditAllocations], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeUsageBasedRunOverageCreditAllocations]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeUsageBasedRunOverageCreditAllocations]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeUsageBasedRunOverageCreditAllocations, 0)
+	}
+
+	result := pagination.Result[*ChargeUsageBasedRunOverageCreditAllocations]{
 		Items: items,
 	}
 

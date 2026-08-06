@@ -477,6 +477,18 @@ func (f ChargeFlatFeeRunInvoicedUsageFunc) Mutate(ctx context.Context, m db.Muta
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeRunInvoicedUsageMutation", m)
 }
 
+// The ChargeFlatFeeRunOverageCreditAllocationsFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFeeRunOverageCreditAllocations mutator.
+type ChargeFlatFeeRunOverageCreditAllocationsFunc func(context.Context, *db.ChargeFlatFeeRunOverageCreditAllocationsMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeFlatFeeRunOverageCreditAllocationsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeRunOverageCreditAllocationsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeRunOverageCreditAllocationsMutation", m)
+}
+
 // The ChargeFlatFeeRunPaymentFunc type is an adapter to allow the use of ordinary
 // function as ChargeFlatFeeRunPayment mutator.
 type ChargeFlatFeeRunPaymentFunc func(context.Context, *db.ChargeFlatFeeRunPaymentMutation) (db.Value, error)
@@ -559,6 +571,18 @@ func (f ChargeUsageBasedRunInvoicedUsageFunc) Mutate(ctx context.Context, m db.M
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunInvoicedUsageMutation", m)
+}
+
+// The ChargeUsageBasedRunOverageCreditAllocationsFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRunOverageCreditAllocations mutator.
+type ChargeUsageBasedRunOverageCreditAllocationsFunc func(context.Context, *db.ChargeUsageBasedRunOverageCreditAllocationsMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRunOverageCreditAllocationsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRunOverageCreditAllocationsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunOverageCreditAllocationsMutation", m)
 }
 
 // The ChargeUsageBasedRunPaymentFunc type is an adapter to allow the use of ordinary

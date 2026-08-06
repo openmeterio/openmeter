@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruninvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunoveragecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 )
 
@@ -280,6 +281,21 @@ func (_c *ChargeFlatFeeRunCreate) AddCreditAllocations(v ...*ChargeFlatFeeRunCre
 		ids[i] = v[i].ID
 	}
 	return _c.AddCreditAllocationIDs(ids...)
+}
+
+// AddFiatOverageCreditAllocationIDs adds the "fiat_overage_credit_allocations" edge to the ChargeFlatFeeRunOverageCreditAllocations entity by IDs.
+func (_c *ChargeFlatFeeRunCreate) AddFiatOverageCreditAllocationIDs(ids ...string) *ChargeFlatFeeRunCreate {
+	_c.mutation.AddFiatOverageCreditAllocationIDs(ids...)
+	return _c
+}
+
+// AddFiatOverageCreditAllocations adds the "fiat_overage_credit_allocations" edges to the ChargeFlatFeeRunOverageCreditAllocations entity.
+func (_c *ChargeFlatFeeRunCreate) AddFiatOverageCreditAllocations(v ...*ChargeFlatFeeRunOverageCreditAllocations) *ChargeFlatFeeRunCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddFiatOverageCreditAllocationIDs(ids...)
 }
 
 // AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
@@ -643,6 +659,22 @@ func (_c *ChargeFlatFeeRunCreate) createSpec() (*ChargeFlatFeeRun, *sqlgraph.Cre
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeruncreditallocations.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.FiatOverageCreditAllocationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfeerun.FiatOverageCreditAllocationsTable,
+			Columns: []string{chargeflatfeerun.FiatOverageCreditAllocationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeerunoveragecreditallocations.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

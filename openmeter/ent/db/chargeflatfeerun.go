@@ -84,6 +84,8 @@ type ChargeFlatFeeRunEdges struct {
 	BillingInvoice *BillingInvoice `json:"billing_invoice,omitempty"`
 	// CreditAllocations holds the value of the credit_allocations edge.
 	CreditAllocations []*ChargeFlatFeeRunCreditAllocations `json:"credit_allocations,omitempty"`
+	// FiatOverageCreditAllocations holds the value of the fiat_overage_credit_allocations edge.
+	FiatOverageCreditAllocations []*ChargeFlatFeeRunOverageCreditAllocations `json:"fiat_overage_credit_allocations,omitempty"`
 	// DetailedLines holds the value of the detailed_lines edge.
 	DetailedLines []*ChargeFlatFeeRunDetailedLine `json:"detailed_lines,omitempty"`
 	// InvoicedUsage holds the value of the invoiced_usage edge.
@@ -92,7 +94,7 @@ type ChargeFlatFeeRunEdges struct {
 	Payment *ChargeFlatFeeRunPayment `json:"payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // FlatFeeOrErr returns the FlatFee value or an error if the edge
@@ -137,10 +139,19 @@ func (e ChargeFlatFeeRunEdges) CreditAllocationsOrErr() ([]*ChargeFlatFeeRunCred
 	return nil, &NotLoadedError{edge: "credit_allocations"}
 }
 
+// FiatOverageCreditAllocationsOrErr returns the FiatOverageCreditAllocations value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeFlatFeeRunEdges) FiatOverageCreditAllocationsOrErr() ([]*ChargeFlatFeeRunOverageCreditAllocations, error) {
+	if e.loadedTypes[4] {
+		return e.FiatOverageCreditAllocations, nil
+	}
+	return nil, &NotLoadedError{edge: "fiat_overage_credit_allocations"}
+}
+
 // DetailedLinesOrErr returns the DetailedLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeFlatFeeRunEdges) DetailedLinesOrErr() ([]*ChargeFlatFeeRunDetailedLine, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.DetailedLines, nil
 	}
 	return nil, &NotLoadedError{edge: "detailed_lines"}
@@ -151,7 +162,7 @@ func (e ChargeFlatFeeRunEdges) DetailedLinesOrErr() ([]*ChargeFlatFeeRunDetailed
 func (e ChargeFlatFeeRunEdges) InvoicedUsageOrErr() (*ChargeFlatFeeRunInvoicedUsage, error) {
 	if e.InvoicedUsage != nil {
 		return e.InvoicedUsage, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: chargeflatfeeruninvoicedusage.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoiced_usage"}
@@ -162,7 +173,7 @@ func (e ChargeFlatFeeRunEdges) InvoicedUsageOrErr() (*ChargeFlatFeeRunInvoicedUs
 func (e ChargeFlatFeeRunEdges) PaymentOrErr() (*ChargeFlatFeeRunPayment, error) {
 	if e.Payment != nil {
 		return e.Payment, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: chargeflatfeerunpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment"}
@@ -368,6 +379,11 @@ func (_m *ChargeFlatFeeRun) QueryBillingInvoice() *BillingInvoiceQuery {
 // QueryCreditAllocations queries the "credit_allocations" edge of the ChargeFlatFeeRun entity.
 func (_m *ChargeFlatFeeRun) QueryCreditAllocations() *ChargeFlatFeeRunCreditAllocationsQuery {
 	return NewChargeFlatFeeRunClient(_m.config).QueryCreditAllocations(_m)
+}
+
+// QueryFiatOverageCreditAllocations queries the "fiat_overage_credit_allocations" edge of the ChargeFlatFeeRun entity.
+func (_m *ChargeFlatFeeRun) QueryFiatOverageCreditAllocations() *ChargeFlatFeeRunOverageCreditAllocationsQuery {
+	return NewChargeFlatFeeRunClient(_m.config).QueryFiatOverageCreditAllocations(_m)
 }
 
 // QueryDetailedLines queries the "detailed_lines" edge of the ChargeFlatFeeRun entity.

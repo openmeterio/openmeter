@@ -14,8 +14,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (s *Service) createRunCreditRealizations(ctx context.Context, charge usagebased.Charge, runID usagebased.RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error) {
-	realizations, err := s.adapter.CreateRunCreditRealization(ctx, runID, creditAllocations)
+func (s *Service) createChargeCurrencyCreditRealizations(ctx context.Context, charge usagebased.Charge, runID usagebased.RealizationRunID, creditAllocations creditrealization.CreateInputs) (creditrealization.Realizations, error) {
+	realizations, err := s.adapter.CreateChargeCurrencyCreditRealizations(ctx, usagebased.CreateCreditRealizationsInput{
+		RunID:              runID,
+		CreditRealizations: creditAllocations,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +143,7 @@ func (s *Service) allocate(ctx context.Context, in allocateCreditRealizationsInp
 	}
 
 	if len(creditAllocations) > 0 {
-		realizations, err := s.createRunCreditRealizations(ctx, in.Charge, in.Run.ID, creditAllocations.AsCreateInputs())
+		realizations, err := s.createChargeCurrencyCreditRealizations(ctx, in.Charge, in.Run.ID, creditAllocations.AsCreateInputs())
 		if err != nil {
 			return allocateCreditRealizationsResult{}, fmt.Errorf("create credit allocations: %w", err)
 		}

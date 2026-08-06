@@ -139,8 +139,9 @@ one.
 - Usage-based run metered quantity is cumulative from charge start to the run
   boundary. A billing standard line expects line-period and pre-line-period
   quantities, so charge mappers translate rather than copy it.
-- Corrections reconcile against persisted runs and allocations and preserve
-  lineage to the facts previously billed or posted.
+- Corrections reconcile against persisted allocations in the same realization
+  run and monetary domain, preserving lineage to the facts previously billed
+  or posted.
 - Charge lifecycle timestamps are normalized to streaming aggregation
   precision before duration-sensitive calculations and persistence. Deletion
   timestamps retain their supplied instant.

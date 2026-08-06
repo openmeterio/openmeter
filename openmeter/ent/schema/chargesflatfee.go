@@ -393,6 +393,9 @@ func (ChargeFlatFeeRun) Edges() []ent.Edge {
 		edge.To("credit_allocations", ChargeFlatFeeRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ff_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("fiat_overage_credit_allocations", ChargeFlatFeeRunOverageCreditAllocations.Type).
+			StorageKey(edge.Symbol("charge_ff_overage_credit_alloc_run")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("detailed_lines", ChargeFlatFeeRunDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("invoiced_usage", ChargeFlatFeeRunInvoicedUsage.Type).
@@ -542,7 +545,8 @@ type ChargeFlatFeeRunCreditAllocations struct {
 func (ChargeFlatFeeRunCreditAllocations) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		creditrealization.Mixin{
-			SelfReferenceType: ChargeFlatFeeRunCreditAllocations.Type,
+			SelfReferenceType:   ChargeFlatFeeRunCreditAllocations.Type,
+			SelfReferenceSymbol: "charge_flat_fee_run_credit_allocations_charge_flat_fee_run_cred",
 		},
 	}
 }
@@ -567,6 +571,44 @@ func (ChargeFlatFeeRunCreditAllocations) Edges() []ent.Edge {
 			Immutable(),
 		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
 			Ref("charge_flat_fee_run_credit_allocations").
+			Field("line_id").
+			Unique(),
+	}
+}
+
+type ChargeFlatFeeRunOverageCreditAllocations struct {
+	ent.Schema
+}
+
+func (ChargeFlatFeeRunOverageCreditAllocations) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		creditrealization.Mixin{
+			SelfReferenceType:   ChargeFlatFeeRunOverageCreditAllocations.Type,
+			SelfReferenceSymbol: "charge_ff_overage_credit_alloc_correction",
+		},
+	}
+}
+
+func (ChargeFlatFeeRunOverageCreditAllocations) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+	}
+}
+
+func (ChargeFlatFeeRunOverageCreditAllocations) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("run", ChargeFlatFeeRun.Type).
+			Ref("fiat_overage_credit_allocations").
+			Field("run_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("charge_flat_fee_run_overage_credit_allocations").
 			Field("line_id").
 			Unique(),
 	}
