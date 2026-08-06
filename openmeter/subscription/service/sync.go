@@ -10,6 +10,14 @@ import (
 )
 
 func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
+	if err := s.prepareSpecCurrencies(ctx, view.Subscription.Namespace, &newSpec); err != nil {
+		return subscription.Subscription{}, err
+	}
+
+	return s.syncPrepared(ctx, view, newSpec)
+}
+
+func (s *service) syncPrepared(ctx context.Context, view subscription.SubscriptionView, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {
 		var def subscription.Subscription
 

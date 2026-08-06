@@ -6194,6 +6194,20 @@ func (u *SubscriptionItemUpdateOne) SetOrClearPrice(value **productcatalog.Price
 	return u.SetPrice(*value)
 }
 
+func (u *SubscriptionItemUpdate) SetOrClearCurrency(value *string) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearCurrency()
+	}
+	return u.SetCurrency(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearCurrency(value *string) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearCurrency()
+	}
+	return u.SetCurrency(*value)
+}
+
 func (u *SubscriptionItemUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearDiscounts()

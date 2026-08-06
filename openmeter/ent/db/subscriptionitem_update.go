@@ -354,6 +354,26 @@ func (_u *SubscriptionItemUpdate) ClearPrice() *SubscriptionItemUpdate {
 	return _u
 }
 
+// SetCurrency sets the "currency" field.
+func (_u *SubscriptionItemUpdate) SetCurrency(v string) *SubscriptionItemUpdate {
+	_u.mutation.SetCurrency(v)
+	return _u
+}
+
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_u *SubscriptionItemUpdate) SetNillableCurrency(v *string) *SubscriptionItemUpdate {
+	if v != nil {
+		_u.SetCurrency(*v)
+	}
+	return _u
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (_u *SubscriptionItemUpdate) ClearCurrency() *SubscriptionItemUpdate {
+	_u.mutation.ClearCurrency()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *SubscriptionItemUpdate) SetDiscounts(v *productcatalog.Discounts) *SubscriptionItemUpdate {
 	_u.mutation.SetDiscounts(v)
@@ -684,6 +704,11 @@ func (_u *SubscriptionItemUpdate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Currency(); ok {
+		if err := subscriptionitem.CurrencyValidator(v); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.currency": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
@@ -820,6 +845,12 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(subscriptionitem.FieldPrice, field.TypeString)
+	}
+	if value, ok := _u.mutation.Currency(); ok {
+		_spec.SetField(subscriptionitem.FieldCurrency, field.TypeString, value)
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(subscriptionitem.FieldCurrency, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)
@@ -1503,6 +1534,26 @@ func (_u *SubscriptionItemUpdateOne) ClearPrice() *SubscriptionItemUpdateOne {
 	return _u
 }
 
+// SetCurrency sets the "currency" field.
+func (_u *SubscriptionItemUpdateOne) SetCurrency(v string) *SubscriptionItemUpdateOne {
+	_u.mutation.SetCurrency(v)
+	return _u
+}
+
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_u *SubscriptionItemUpdateOne) SetNillableCurrency(v *string) *SubscriptionItemUpdateOne {
+	if v != nil {
+		_u.SetCurrency(*v)
+	}
+	return _u
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (_u *SubscriptionItemUpdateOne) ClearCurrency() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearCurrency()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *SubscriptionItemUpdateOne) SetDiscounts(v *productcatalog.Discounts) *SubscriptionItemUpdateOne {
 	_u.mutation.SetDiscounts(v)
@@ -1846,6 +1897,11 @@ func (_u *SubscriptionItemUpdateOne) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Currency(); ok {
+		if err := subscriptionitem.CurrencyValidator(v); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.currency": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
@@ -1999,6 +2055,12 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 	}
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(subscriptionitem.FieldPrice, field.TypeString)
+	}
+	if value, ok := _u.mutation.Currency(); ok {
+		_spec.SetField(subscriptionitem.FieldCurrency, field.TypeString, value)
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(subscriptionitem.FieldCurrency, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := subscriptionitem.ValueScanner.Discounts.Value(value)

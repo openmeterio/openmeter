@@ -2,10 +2,12 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -26,6 +28,38 @@ func NewSubscriptionItemRepo(db *db.Client) *subscriptionItemRepo {
 	return &subscriptionItemRepo{
 		db: db,
 	}
+}
+
+// validateCurrencyReferenceForPersistence enforces the repository contract
+// that custom currency references have already been resolved by the service.
+func validateCurrencyReferenceForPersistence(namespace string, reference currencies.CurrencyReference) error {
+	if err := reference.Validate(); err != nil {
+		return err
+	}
+
+	if reference.IsFiat() {
+		return nil
+	}
+
+	if !reference.IsResolved() {
+		return fmt.Errorf("custom currency %q must be resolved before persistence", reference.GetCode())
+	}
+
+	customCurrency, ok := reference.CustomCurrency()
+	if !ok {
+		return fmt.Errorf("custom currency %q must be resolved before persistence", reference.GetCode())
+	}
+
+	if customCurrency.Namespace != namespace {
+		return fmt.Errorf(
+			"custom currency namespace mismatch [subscription_item.namespace=%s currency.namespace=%s currency.id=%s]",
+			namespace,
+			customCurrency.Namespace,
+			customCurrency.ID,
+		)
+	}
+
+	return nil
 }
 
 func getItemForSubscriptionAtFilter(input subscription.GetForSubscriptionAtInput) predicate.SubscriptionItem {
@@ -122,6 +156,9 @@ func (r *subscriptionItemRepo) GetByID(ctx context.Context, id models.Namespaced
 func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.CreateSubscriptionItemEntityInput) (subscription.SubscriptionItem, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionItemRepo) (subscription.SubscriptionItem, error) {
 		var def subscription.SubscriptionItem
+		if input.RateCard.AsMeta().Price != nil && input.RateCard.AsMeta().Currency == nil {
+			return def, errors.New("priced subscription item currency must be materialized before persistence")
+		}
 
 		cmd := repo.db.SubscriptionItem.Create().
 			SetNillableActiveFromOverrideRelativeToPhaseStart(input.ActiveFromOverrideRelativeToPhaseStart.ISOStringPtrOrNil()).
@@ -157,6 +194,19 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 
 		if input.RateCard.AsMeta().Price != nil {
 			cmd.SetPrice(input.RateCard.AsMeta().Price)
+		}
+
+		currencyRef := input.RateCard.AsMeta().Currency
+		if currencyRef != nil {
+			if err := validateCurrencyReferenceForPersistence(input.Namespace, *currencyRef); err != nil {
+				return def, fmt.Errorf("invalid subscription item currency: %w", err)
+			}
+
+			cmd.SetCurrency(currencyRef.GetCode().String())
+
+			if currencyRef.IsCustom() {
+				cmd.SetCustomCurrencyID(*currencyRef.CustomCurrencyID)
+			}
 		}
 
 		if !input.RateCard.AsMeta().Discounts.IsEmpty() {

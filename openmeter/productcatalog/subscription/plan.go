@@ -5,10 +5,10 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -94,8 +94,8 @@ func (p *Plan) GetPhases() []subscription.PlanPhase {
 	return ps
 }
 
-func (p *Plan) Currency() currencyx.Code {
-	return p.Plan.Currency.GetCode()
+func (p *Plan) Currency() currencies.CurrencyReference {
+	return p.Plan.Currency
 }
 
 type Phase struct {

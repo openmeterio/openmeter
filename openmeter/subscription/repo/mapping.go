@@ -5,11 +5,14 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -127,6 +130,47 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		return subscription.SubscriptionItem{}, fmt.Errorf("failed to parse billing cadence: %w", err)
 	}
 
+	var itemCurrency *currencies.CurrencyReference
+
+	switch {
+	case item.Currency == nil && item.CustomCurrencyID != nil:
+		return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: custom currency ID %q has no currency code", *item.CustomCurrencyID)
+	case item.Currency != nil:
+		reference := currencies.CurrencyReference{
+			Code:             currencyx.Code(*item.Currency),
+			CustomCurrencyID: item.CustomCurrencyID,
+		}
+		if err := reference.Validate(); err != nil {
+			return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: %w", err)
+		}
+
+		if reference.IsCustom() && reference.CustomCurrencyID == nil {
+			return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: custom currency %q has no managed resource identity", reference.GetCode())
+		}
+
+		if customCurrencyRow := item.Edges.CustomCurrency; customCurrencyRow != nil {
+			customCurrency, err := currencyadapter.FromDBCustomCurrency(customCurrencyRow)
+			if err != nil {
+				return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: %w", err)
+			}
+			if customCurrency.Namespace != item.Namespace {
+				return subscription.SubscriptionItem{}, fmt.Errorf(
+					"invalid subscription item currency: namespace mismatch [subscription_item.namespace=%s currency.namespace=%s currency.id=%s]",
+					item.Namespace,
+					customCurrency.Namespace,
+					customCurrency.ID,
+				)
+			}
+
+			reference, err = reference.WithCurrency(&customCurrency)
+			if err != nil {
+				return subscription.SubscriptionItem{}, fmt.Errorf("invalid subscription item currency: %w", err)
+			}
+		}
+
+		itemCurrency = &reference
+	}
+
 	var rc productcatalog.RateCard
 	rcMeta := productcatalog.RateCardMeta{
 		Name:                item.Name,
@@ -140,6 +184,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		Key:                 item.Key,
 		// NOTE: resolving feature is done on service level as there is no direct relationship between subscription items and features.
 		FeatureID: nil,
+		Currency:  itemCurrency,
 	}
 
 	// Map TaxCode if eagerly loaded.

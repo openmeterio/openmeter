@@ -79185,6 +79185,9 @@ type CustomCurrencyMutation struct {
 	addon_rate_cards               map[string]struct{}
 	removedaddon_rate_cards        map[string]struct{}
 	clearedaddon_rate_cards        bool
+	subscription_items             map[string]struct{}
+	removedsubscription_items      map[string]struct{}
+	clearedsubscription_items      bool
 	done                           bool
 	oldValue                       func(context.Context) (*CustomCurrency, error)
 	predicates                     []predicate.CustomCurrency
@@ -80132,6 +80135,60 @@ func (m *CustomCurrencyMutation) ResetAddonRateCards() {
 	m.removedaddon_rate_cards = nil
 }
 
+// AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by ids.
+func (m *CustomCurrencyMutation) AddSubscriptionItemIDs(ids ...string) {
+	if m.subscription_items == nil {
+		m.subscription_items = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.subscription_items[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubscriptionItems clears the "subscription_items" edge to the SubscriptionItem entity.
+func (m *CustomCurrencyMutation) ClearSubscriptionItems() {
+	m.clearedsubscription_items = true
+}
+
+// SubscriptionItemsCleared reports if the "subscription_items" edge to the SubscriptionItem entity was cleared.
+func (m *CustomCurrencyMutation) SubscriptionItemsCleared() bool {
+	return m.clearedsubscription_items
+}
+
+// RemoveSubscriptionItemIDs removes the "subscription_items" edge to the SubscriptionItem entity by IDs.
+func (m *CustomCurrencyMutation) RemoveSubscriptionItemIDs(ids ...string) {
+	if m.removedsubscription_items == nil {
+		m.removedsubscription_items = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.subscription_items, ids[i])
+		m.removedsubscription_items[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubscriptionItems returns the removed IDs of the "subscription_items" edge to the SubscriptionItem entity.
+func (m *CustomCurrencyMutation) RemovedSubscriptionItemsIDs() (ids []string) {
+	for id := range m.removedsubscription_items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubscriptionItemsIDs returns the "subscription_items" edge IDs in the mutation.
+func (m *CustomCurrencyMutation) SubscriptionItemsIDs() (ids []string) {
+	for id := range m.subscription_items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubscriptionItems resets all changes to the "subscription_items" edge.
+func (m *CustomCurrencyMutation) ResetSubscriptionItems() {
+	m.subscription_items = nil
+	m.clearedsubscription_items = false
+	m.removedsubscription_items = nil
+}
+
 // Where appends a list predicates to the CustomCurrencyMutation builder.
 func (m *CustomCurrencyMutation) Where(ps ...predicate.CustomCurrency) {
 	m.predicates = append(m.predicates, ps...)
@@ -80448,7 +80505,7 @@ func (m *CustomCurrencyMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CustomCurrencyMutation) AddedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.cost_basis_history != nil {
 		edges = append(edges, customcurrency.EdgeCostBasisHistory)
 	}
@@ -80472,6 +80529,9 @@ func (m *CustomCurrencyMutation) AddedEdges() []string {
 	}
 	if m.addon_rate_cards != nil {
 		edges = append(edges, customcurrency.EdgeAddonRateCards)
+	}
+	if m.subscription_items != nil {
+		edges = append(edges, customcurrency.EdgeSubscriptionItems)
 	}
 	return edges
 }
@@ -80528,13 +80588,19 @@ func (m *CustomCurrencyMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customcurrency.EdgeSubscriptionItems:
+		ids := make([]ent.Value, 0, len(m.subscription_items))
+		for id := range m.subscription_items {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CustomCurrencyMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.removedcost_basis_history != nil {
 		edges = append(edges, customcurrency.EdgeCostBasisHistory)
 	}
@@ -80558,6 +80624,9 @@ func (m *CustomCurrencyMutation) RemovedEdges() []string {
 	}
 	if m.removedaddon_rate_cards != nil {
 		edges = append(edges, customcurrency.EdgeAddonRateCards)
+	}
+	if m.removedsubscription_items != nil {
+		edges = append(edges, customcurrency.EdgeSubscriptionItems)
 	}
 	return edges
 }
@@ -80614,13 +80683,19 @@ func (m *CustomCurrencyMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case customcurrency.EdgeSubscriptionItems:
+		ids := make([]ent.Value, 0, len(m.removedsubscription_items))
+		for id := range m.removedsubscription_items {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CustomCurrencyMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 8)
+	edges := make([]string, 0, 9)
 	if m.clearedcost_basis_history {
 		edges = append(edges, customcurrency.EdgeCostBasisHistory)
 	}
@@ -80645,6 +80720,9 @@ func (m *CustomCurrencyMutation) ClearedEdges() []string {
 	if m.clearedaddon_rate_cards {
 		edges = append(edges, customcurrency.EdgeAddonRateCards)
 	}
+	if m.clearedsubscription_items {
+		edges = append(edges, customcurrency.EdgeSubscriptionItems)
+	}
 	return edges
 }
 
@@ -80668,6 +80746,8 @@ func (m *CustomCurrencyMutation) EdgeCleared(name string) bool {
 		return m.clearedplan_rate_cards
 	case customcurrency.EdgeAddonRateCards:
 		return m.clearedaddon_rate_cards
+	case customcurrency.EdgeSubscriptionItems:
+		return m.clearedsubscription_items
 	}
 	return false
 }
@@ -80707,6 +80787,9 @@ func (m *CustomCurrencyMutation) ResetEdge(name string) error {
 		return nil
 	case customcurrency.EdgeAddonRateCards:
 		m.ResetAddonRateCards()
+		return nil
+	case customcurrency.EdgeSubscriptionItems:
+		m.ResetSubscriptionItems()
 		return nil
 	}
 	return fmt.Errorf("unknown CustomCurrency edge %s", name)
@@ -118366,6 +118449,7 @@ type SubscriptionItemMutation struct {
 	tax_config                                   **productcatalog.TaxConfig
 	billing_cadence                              *datetime.ISODurationString
 	price                                        **productcatalog.Price
+	currency                                     *string
 	discounts                                    **productcatalog.Discounts
 	unit_config                                  **unitconfig.UnitConfig
 	clearedFields                                map[string]struct{}
@@ -118393,6 +118477,8 @@ type SubscriptionItemMutation struct {
 	clearedcharges_flat_fee                      bool
 	tax_code                                     *string
 	clearedtax_code                              bool
+	custom_currency                              *string
+	clearedcustom_currency                       bool
 	done                                         bool
 	oldValue                                     func(context.Context) (*SubscriptionItem, error)
 	predicates                                   []predicate.SubscriptionItem
@@ -119538,6 +119624,104 @@ func (m *SubscriptionItemMutation) ResetPrice() {
 	delete(m.clearedFields, subscriptionitem.FieldPrice)
 }
 
+// SetCurrency sets the "currency" field.
+func (m *SubscriptionItemMutation) SetCurrency(s string) {
+	m.currency = &s
+}
+
+// Currency returns the value of the "currency" field in the mutation.
+func (m *SubscriptionItemMutation) Currency() (r string, exists bool) {
+	v := m.currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrency returns the old "currency" field's value of the SubscriptionItem entity.
+// If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionItemMutation) OldCurrency(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrency requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
+	}
+	return oldValue.Currency, nil
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (m *SubscriptionItemMutation) ClearCurrency() {
+	m.currency = nil
+	m.clearedFields[subscriptionitem.FieldCurrency] = struct{}{}
+}
+
+// CurrencyCleared returns if the "currency" field was cleared in this mutation.
+func (m *SubscriptionItemMutation) CurrencyCleared() bool {
+	_, ok := m.clearedFields[subscriptionitem.FieldCurrency]
+	return ok
+}
+
+// ResetCurrency resets all changes to the "currency" field.
+func (m *SubscriptionItemMutation) ResetCurrency() {
+	m.currency = nil
+	delete(m.clearedFields, subscriptionitem.FieldCurrency)
+}
+
+// SetCustomCurrencyID sets the "custom_currency_id" field.
+func (m *SubscriptionItemMutation) SetCustomCurrencyID(s string) {
+	m.custom_currency = &s
+}
+
+// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
+func (m *SubscriptionItemMutation) CustomCurrencyID() (r string, exists bool) {
+	v := m.custom_currency
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the SubscriptionItem entity.
+// If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionItemMutation) OldCustomCurrencyID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
+	}
+	return oldValue.CustomCurrencyID, nil
+}
+
+// ClearCustomCurrencyID clears the value of the "custom_currency_id" field.
+func (m *SubscriptionItemMutation) ClearCustomCurrencyID() {
+	m.custom_currency = nil
+	m.clearedFields[subscriptionitem.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyIDCleared returns if the "custom_currency_id" field was cleared in this mutation.
+func (m *SubscriptionItemMutation) CustomCurrencyIDCleared() bool {
+	_, ok := m.clearedFields[subscriptionitem.FieldCustomCurrencyID]
+	return ok
+}
+
+// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
+func (m *SubscriptionItemMutation) ResetCustomCurrencyID() {
+	m.custom_currency = nil
+	delete(m.clearedFields, subscriptionitem.FieldCustomCurrencyID)
+}
+
 // SetDiscounts sets the "discounts" field.
 func (m *SubscriptionItemMutation) SetDiscounts(pr *productcatalog.Discounts) {
 	m.discounts = &pr
@@ -120041,6 +120225,33 @@ func (m *SubscriptionItemMutation) ResetTaxCode() {
 	m.clearedtax_code = false
 }
 
+// ClearCustomCurrency clears the "custom_currency" edge to the CustomCurrency entity.
+func (m *SubscriptionItemMutation) ClearCustomCurrency() {
+	m.clearedcustom_currency = true
+	m.clearedFields[subscriptionitem.FieldCustomCurrencyID] = struct{}{}
+}
+
+// CustomCurrencyCleared reports if the "custom_currency" edge to the CustomCurrency entity was cleared.
+func (m *SubscriptionItemMutation) CustomCurrencyCleared() bool {
+	return m.CustomCurrencyIDCleared() || m.clearedcustom_currency
+}
+
+// CustomCurrencyIDs returns the "custom_currency" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CustomCurrencyID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionItemMutation) CustomCurrencyIDs() (ids []string) {
+	if id := m.custom_currency; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCustomCurrency resets all changes to the "custom_currency" edge.
+func (m *SubscriptionItemMutation) ResetCustomCurrency() {
+	m.custom_currency = nil
+	m.clearedcustom_currency = false
+}
+
 // Where appends a list predicates to the SubscriptionItemMutation builder.
 func (m *SubscriptionItemMutation) Where(ps ...predicate.SubscriptionItem) {
 	m.predicates = append(m.predicates, ps...)
@@ -120075,7 +120286,7 @@ func (m *SubscriptionItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionItemMutation) Fields() []string {
-	fields := make([]string, 0, 25)
+	fields := make([]string, 0, 27)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionitem.FieldNamespace)
 	}
@@ -120145,6 +120356,12 @@ func (m *SubscriptionItemMutation) Fields() []string {
 	if m.price != nil {
 		fields = append(fields, subscriptionitem.FieldPrice)
 	}
+	if m.currency != nil {
+		fields = append(fields, subscriptionitem.FieldCurrency)
+	}
+	if m.custom_currency != nil {
+		fields = append(fields, subscriptionitem.FieldCustomCurrencyID)
+	}
 	if m.discounts != nil {
 		fields = append(fields, subscriptionitem.FieldDiscounts)
 	}
@@ -120205,6 +120422,10 @@ func (m *SubscriptionItemMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case subscriptionitem.FieldPrice:
 		return m.Price()
+	case subscriptionitem.FieldCurrency:
+		return m.Currency()
+	case subscriptionitem.FieldCustomCurrencyID:
+		return m.CustomCurrencyID()
 	case subscriptionitem.FieldDiscounts:
 		return m.Discounts()
 	case subscriptionitem.FieldUnitConfig:
@@ -120264,6 +120485,10 @@ func (m *SubscriptionItemMutation) OldField(ctx context.Context, name string) (e
 		return m.OldBillingCadence(ctx)
 	case subscriptionitem.FieldPrice:
 		return m.OldPrice(ctx)
+	case subscriptionitem.FieldCurrency:
+		return m.OldCurrency(ctx)
+	case subscriptionitem.FieldCustomCurrencyID:
+		return m.OldCustomCurrencyID(ctx)
 	case subscriptionitem.FieldDiscounts:
 		return m.OldDiscounts(ctx)
 	case subscriptionitem.FieldUnitConfig:
@@ -120438,6 +120663,20 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetPrice(v)
 		return nil
+	case subscriptionitem.FieldCurrency:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrency(v)
+		return nil
+	case subscriptionitem.FieldCustomCurrencyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomCurrencyID(v)
+		return nil
 	case subscriptionitem.FieldDiscounts:
 		v, ok := value.(*productcatalog.Discounts)
 		if !ok {
@@ -120530,6 +120769,12 @@ func (m *SubscriptionItemMutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionitem.FieldPrice) {
 		fields = append(fields, subscriptionitem.FieldPrice)
 	}
+	if m.FieldCleared(subscriptionitem.FieldCurrency) {
+		fields = append(fields, subscriptionitem.FieldCurrency)
+	}
+	if m.FieldCleared(subscriptionitem.FieldCustomCurrencyID) {
+		fields = append(fields, subscriptionitem.FieldCustomCurrencyID)
+	}
 	if m.FieldCleared(subscriptionitem.FieldDiscounts) {
 		fields = append(fields, subscriptionitem.FieldDiscounts)
 	}
@@ -120597,6 +120842,12 @@ func (m *SubscriptionItemMutation) ClearField(name string) error {
 		return nil
 	case subscriptionitem.FieldPrice:
 		m.ClearPrice()
+		return nil
+	case subscriptionitem.FieldCurrency:
+		m.ClearCurrency()
+		return nil
+	case subscriptionitem.FieldCustomCurrencyID:
+		m.ClearCustomCurrencyID()
 		return nil
 	case subscriptionitem.FieldDiscounts:
 		m.ClearDiscounts()
@@ -120681,6 +120932,12 @@ func (m *SubscriptionItemMutation) ResetField(name string) error {
 	case subscriptionitem.FieldPrice:
 		m.ResetPrice()
 		return nil
+	case subscriptionitem.FieldCurrency:
+		m.ResetCurrency()
+		return nil
+	case subscriptionitem.FieldCustomCurrencyID:
+		m.ResetCustomCurrencyID()
+		return nil
 	case subscriptionitem.FieldDiscounts:
 		m.ResetDiscounts()
 		return nil
@@ -120693,7 +120950,7 @@ func (m *SubscriptionItemMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubscriptionItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.phase != nil {
 		edges = append(edges, subscriptionitem.EdgePhase)
 	}
@@ -120720,6 +120977,9 @@ func (m *SubscriptionItemMutation) AddedEdges() []string {
 	}
 	if m.tax_code != nil {
 		edges = append(edges, subscriptionitem.EdgeTaxCode)
+	}
+	if m.custom_currency != nil {
+		edges = append(edges, subscriptionitem.EdgeCustomCurrency)
 	}
 	return edges
 }
@@ -120776,13 +121036,17 @@ func (m *SubscriptionItemMutation) AddedIDs(name string) []ent.Value {
 		if id := m.tax_code; id != nil {
 			return []ent.Value{*id}
 		}
+	case subscriptionitem.EdgeCustomCurrency:
+		if id := m.custom_currency; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubscriptionItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.removedbilling_lines != nil {
 		edges = append(edges, subscriptionitem.EdgeBillingLines)
 	}
@@ -120850,7 +121114,7 @@ func (m *SubscriptionItemMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubscriptionItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.clearedphase {
 		edges = append(edges, subscriptionitem.EdgePhase)
 	}
@@ -120878,6 +121142,9 @@ func (m *SubscriptionItemMutation) ClearedEdges() []string {
 	if m.clearedtax_code {
 		edges = append(edges, subscriptionitem.EdgeTaxCode)
 	}
+	if m.clearedcustom_currency {
+		edges = append(edges, subscriptionitem.EdgeCustomCurrency)
+	}
 	return edges
 }
 
@@ -120903,6 +121170,8 @@ func (m *SubscriptionItemMutation) EdgeCleared(name string) bool {
 		return m.clearedcharges_flat_fee
 	case subscriptionitem.EdgeTaxCode:
 		return m.clearedtax_code
+	case subscriptionitem.EdgeCustomCurrency:
+		return m.clearedcustom_currency
 	}
 	return false
 }
@@ -120919,6 +121188,9 @@ func (m *SubscriptionItemMutation) ClearEdge(name string) error {
 		return nil
 	case subscriptionitem.EdgeTaxCode:
 		m.ClearTaxCode()
+		return nil
+	case subscriptionitem.EdgeCustomCurrency:
+		m.ClearCustomCurrency()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem unique edge %s", name)
@@ -120954,6 +121226,9 @@ func (m *SubscriptionItemMutation) ResetEdge(name string) error {
 		return nil
 	case subscriptionitem.EdgeTaxCode:
 		m.ResetTaxCode()
+		return nil
+	case subscriptionitem.EdgeCustomCurrency:
+		m.ResetCustomCurrency()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem edge %s", name)

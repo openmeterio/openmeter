@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/wire"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -49,6 +50,7 @@ func NewSubscriptionServices(
 	featureConnector feature.FeatureConnector,
 	entitlementRegistry *registry.Entitlement,
 	customerService customer.Service,
+	currencyResolver currencies.CurrencyResolver,
 	planService plan.Service,
 	planAddonService planaddon.Service,
 	addonService addon.Service,
@@ -72,6 +74,7 @@ func NewSubscriptionServices(
 		SubscriptionPhaseRepo: subscriptionPhaseRepo,
 		SubscriptionItemRepo:  subscriptionItemRepo,
 		CustomerService:       customerService,
+		CurrencyResolver:      currencyResolver,
 		EntitlementAdapter:    subscriptionEntitlementAdapter,
 		FeatureService:        featureConnector,
 		TransactionManager:    subscriptionRepo,
@@ -101,7 +104,7 @@ func NewSubscriptionServices(
 		return SubscriptionServiceWithWorkflow{}, err
 	}
 
-	subscriptionWorkflowService := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
+	subscriptionWorkflowService, err := subscriptionworkflowservice.NewWorkflowService(subscriptionworkflowservice.WorkflowServiceConfig{
 		Service:            subscriptionService,
 		CustomerService:    customerService,
 		TransactionManager: subscriptionRepo,
@@ -110,6 +113,9 @@ func NewSubscriptionServices(
 		Lockr:              lockr,
 		FeatureFlags:       featureFlags,
 	})
+	if err != nil {
+		return SubscriptionServiceWithWorkflow{}, err
+	}
 
 	planSubscriptionService := subscriptionchangeservice.New(subscriptionchangeservice.Config{
 		WorkflowService:     subscriptionWorkflowService,
