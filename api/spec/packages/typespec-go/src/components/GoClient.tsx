@@ -50,6 +50,7 @@ export function GoClient({ clientRefkey, resources }: GoClientProps) {
           />
           <go.StructMember name="token" type="string" />
           <go.StructMember name="userAgent" type="string" />
+          <go.StructMember name="requestEditors" type="[]RequestEditorFn" />
           <ay.List hardline>
             {roots.map((resource) => (
               <go.StructMember

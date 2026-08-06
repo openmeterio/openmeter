@@ -5,6 +5,7 @@ package openmeter_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -467,6 +468,146 @@ func TestStream(t *testing.T) {
 		}
 		if apiErr.StatusCode != http.StatusForbidden || apiErr.Title != "Forbidden" {
 			t.Errorf("APIError = status %d title %q, want 403 %q", apiErr.StatusCode, apiErr.Title, "Forbidden")
+		}
+	})
+}
+
+func TestRequestEditor(t *testing.T) {
+	t.Parallel()
+
+	t.Run("adds a header", func(t *testing.T) {
+		t.Parallel()
+
+		rec := &requestRecorder{}
+		om := newTestClient(t, rec.handler(http.StatusOK, `{"data":{"id":"m-1","key":"k","name":"n","aggregation":"SUM","event_type":"e"}}`),
+			openmeter.WithRequestEditor(func(_ context.Context, req *http.Request) error {
+				req.Header.Set("X-Correlation-ID", "corr-1")
+				return nil
+			}),
+		)
+
+		if _, err := om.Meters.Get(t.Context(), "m-1"); err != nil {
+			t.Fatalf("Meters.Get: %v", err)
+		}
+		if got := rec.reqs[0].header.Get("X-Correlation-ID"); got != "corr-1" {
+			t.Errorf("X-Correlation-ID = %q, want %q", got, "corr-1")
+		}
+	})
+
+	t.Run("runs after defaults and can override them", func(t *testing.T) {
+		t.Parallel()
+
+		rec := &requestRecorder{}
+		om := newTestClient(t, rec.handler(http.StatusOK, `{"data":{"id":"m-1","key":"k","name":"n","aggregation":"SUM","event_type":"e"}}`),
+			openmeter.WithToken("original"),
+			openmeter.WithRequestEditor(func(_ context.Context, req *http.Request) error {
+				req.Header.Set("Authorization", "Bearer overridden")
+				return nil
+			}),
+		)
+
+		if _, err := om.Meters.Get(t.Context(), "m-1"); err != nil {
+			t.Fatalf("Meters.Get: %v", err)
+		}
+		if got := rec.reqs[0].header.Get("Authorization"); got != "Bearer overridden" {
+			t.Errorf("Authorization = %q, want the editor's override to win", got)
+		}
+	})
+
+	t.Run("can override the per-operation content type", func(t *testing.T) {
+		t.Parallel()
+
+		rec := &requestRecorder{}
+		om := newTestClient(t, rec.handler(http.StatusNoContent, ""),
+			openmeter.WithRequestEditor(func(_ context.Context, req *http.Request) error {
+				req.Header.Set("Content-Type", "application/json")
+				return nil
+			}),
+		)
+
+		if err := om.Events.IngestEvent(t.Context(), openmeter.EventInput{ID: "e-1", Source: "test", Type: "t"}); err != nil {
+			t.Fatalf("Events.IngestEvent: %v", err)
+		}
+		if got := rec.reqs[0].header.Get("Content-Type"); got != "application/json" {
+			t.Errorf("Content-Type = %q, want the editor to override the cloudevents content type", got)
+		}
+	})
+
+	t.Run("multiple editors compose in order", func(t *testing.T) {
+		t.Parallel()
+
+		rec := &requestRecorder{}
+		om := newTestClient(t, rec.handler(http.StatusOK, `{"data":{"id":"m-1","key":"k","name":"n","aggregation":"SUM","event_type":"e"}}`),
+			openmeter.WithRequestEditor(func(_ context.Context, req *http.Request) error {
+				req.Header.Set("X-Order", "first")
+				return nil
+			}),
+			openmeter.WithRequestEditor(func(_ context.Context, req *http.Request) error {
+				req.Header.Set("X-Order", "second")
+				return nil
+			}),
+		)
+
+		if _, err := om.Meters.Get(t.Context(), "m-1"); err != nil {
+			t.Fatalf("Meters.Get: %v", err)
+		}
+		if got := rec.reqs[0].header.Get("X-Order"); got != "second" {
+			t.Errorf("X-Order = %q, want the later editor to run last", got)
+		}
+	})
+
+	t.Run("an editor error aborts before any network call", func(t *testing.T) {
+		t.Parallel()
+
+		rec := &requestRecorder{}
+		om := newTestClient(t, rec.handler(http.StatusOK, `{}`),
+			openmeter.WithRequestEditor(func(_ context.Context, _ *http.Request) error {
+				return errors.New("boom")
+			}),
+		)
+
+		_, err := om.Meters.Get(t.Context(), "m-1")
+		if err == nil || !strings.Contains(err.Error(), "boom") {
+			t.Fatalf("err = %v, want the editor error", err)
+		}
+		if len(rec.reqs) != 0 {
+			t.Errorf("recorded %d requests, want none when the editor fails", len(rec.reqs))
+		}
+	})
+
+	t.Run("nil editor is ignored", func(t *testing.T) {
+		t.Parallel()
+
+		rec := &requestRecorder{}
+		om := newTestClient(t, rec.handler(http.StatusOK, `{"data":{"id":"m-1","key":"k","name":"n","aggregation":"SUM","event_type":"e"}}`),
+			openmeter.WithRequestEditor(nil),
+		)
+
+		if _, err := om.Meters.Get(t.Context(), "m-1"); err != nil {
+			t.Fatalf("Meters.Get: %v", err)
+		}
+	})
+
+	t.Run("observes the caller's context", func(t *testing.T) {
+		t.Parallel()
+
+		type ctxKey struct{}
+
+		var observed any
+		rec := &requestRecorder{}
+		om := newTestClient(t, rec.handler(http.StatusOK, `{"data":{"id":"m-1","key":"k","name":"n","aggregation":"SUM","event_type":"e"}}`),
+			openmeter.WithRequestEditor(func(ctx context.Context, _ *http.Request) error {
+				observed = ctx.Value(ctxKey{})
+				return nil
+			}),
+		)
+
+		ctx := context.WithValue(t.Context(), ctxKey{}, "marker")
+		if _, err := om.Meters.Get(ctx, "m-1"); err != nil {
+			t.Fatalf("Meters.Get: %v", err)
+		}
+		if observed != "marker" {
+			t.Errorf("editor observed context value %v, want %q", observed, "marker")
 		}
 	})
 }
