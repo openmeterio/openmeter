@@ -253,8 +253,8 @@ github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0.55.0/go.mod h1:vB2GH9GAYYJTO3mEn8oYwzEdhlayZIdQz6zdzgUIRvA=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0 h1:0s6TxfCu2KHkkZPnBfsQ2y5qia0jl3MMrmBhu3nCOYk=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0/go.mod h1:Mf6O40IAyB9zR/1J8nGDDPirZQQPbYJni8Yisy7NTMc=
-github.com/IBM/sarama v1.60.0 h1:ID/bpW3NePqZaFmXvloQ5h/EFJ9qs2GwHkhS6IyAYHw=
-github.com/IBM/sarama v1.60.0/go.mod h1:zRuXO3TY28cqFymE7Ysko5BxWRo8/VRPzRNKL6Eo2/k=
+github.com/IBM/sarama v1.60.1 h1:2IjpLPCL16CvaJcpxUT5+zE6tpeY5HdhREZOES80kGE=
+github.com/IBM/sarama v1.60.1/go.mod h1:ugg061kdM8zE4mgCeCUwDMd9NRd7QIRMoiA4a/Z8VH8=
 github.com/Jeffail/checkpoint v1.1.0 h1:xcjJV5Eli6hFwD5r0WDhqszNniWDlGRjbiWCY+CE994=
 github.com/Jeffail/checkpoint v1.1.0/go.mod h1:wzqZ22J7jgpf+sNf6Um6xn7ufB/ashFkkSVu9anzmSY=
 github.com/Jeffail/gabs/v2 v2.7.0 h1:Y2edYaTcE8ZpRsR2AtmPu5xQdFDIthFG0jYhu5PY8kg=
