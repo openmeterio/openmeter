@@ -122,6 +122,18 @@ Invoice settlement requires billing's authorization callback before settlement;
 external settlement additionally supports a direct-paid path that records both
 facts in order.
 
+Payment-backed credit purchases also carry a charge-level cost basis. Fiat
+credit uses a fixed scalar rate in the charge currency. Custom-currency credit
+reuses the shared manual, pinned, or dynamic cost-basis intent and its durable
+resolved state; the shared model remains custom-currency-only.
+
+During the compatibility bridge, persisted credit purchases declare which
+representation is authoritative. Schema level 1 derives the cost basis from
+legacy settlement JSON. Schema level 2 reads only the dedicated fiat field or
+custom-currency cost-basis row. A business write locks a level-1 charge row and
+materializes level 2 in the same transaction; malformed mixed representations
+are rejected instead of falling back between formats.
+
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier
 one.

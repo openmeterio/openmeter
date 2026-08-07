@@ -394,13 +394,11 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 						FullServicePeriod: servicePeriod,
 					},
 					CreditAmount: alpacadecimal.NewFromFloat(100),
-					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
-						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  currencyx.FiatCode(USD),
-							CostBasis: alpacadecimal.NewFromFloat(0.5),
-						},
-					}),
+					Settlement:   creditpurchase.NewInvoiceSettlement(),
 				},
+				CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+					Rate: alpacadecimal.NewFromFloat(0.5),
+				})),
 			}),
 		},
 	})
@@ -513,13 +511,11 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 						FullServicePeriod: servicePeriod,
 					},
 					CreditAmount: alpacadecimal.NewFromFloat(100),
-					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
-						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  currencyx.FiatCode(USD),
-							CostBasis: alpacadecimal.NewFromFloat(0.5),
-						},
-					}),
+					Settlement:   creditpurchase.NewInvoiceSettlement(),
 				},
+				CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+					Rate: alpacadecimal.NewFromFloat(0.5),
+				})),
 			}),
 		},
 	})

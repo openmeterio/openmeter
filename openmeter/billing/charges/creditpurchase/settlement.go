@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34,39 +33,6 @@ func (s SettlementType) Values() []string {
 		string(SettlementTypeExternal),
 		string(SettlementTypePromotional),
 	}
-}
-
-type GenericSettlement struct {
-	Currency  currencyx.FiatCode    `json:"currency"`
-	CostBasis alpacadecimal.Decimal `json:"costBasis"`
-}
-
-func (s GenericSettlement) Validate() error {
-	var errs []error
-
-	if err := s.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("settlement currency: %w", err))
-	}
-
-	if !s.CostBasis.IsPositive() {
-		errs = append(errs, fmt.Errorf("cost basis must be positive"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-type InvoiceSettlement struct {
-	GenericSettlement
-}
-
-func (s InvoiceSettlement) Validate() error {
-	var errs []error
-
-	if err := s.GenericSettlement.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("generic settlement: %w", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type InitialPaymentSettlementStatus string
@@ -97,8 +63,6 @@ func (s InitialPaymentSettlementStatus) In(statuses ...InitialPaymentSettlementS
 }
 
 type ExternalSettlement struct {
-	GenericSettlement
-
 	InitialStatus InitialPaymentSettlementStatus `json:"status"`
 }
 
@@ -107,10 +71,6 @@ func (s ExternalSettlement) Validate() error {
 
 	if err := s.InitialStatus.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("initial status: %w", err))
-	}
-
-	if err := s.GenericSettlement.Validate(); err != nil {
-		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -125,7 +85,6 @@ func (s PromotionalSettlement) Validate() error {
 type Settlement struct {
 	t SettlementType
 
-	invoice     *InvoiceSettlement
 	external    *ExternalSettlement
 	promotional *PromotionalSettlement
 }
@@ -135,17 +94,9 @@ func (s Settlement) MarshalJSON() ([]byte, error) {
 
 	switch s.t {
 	case SettlementTypeInvoice:
-		if s.invoice == nil {
-			return nil, fmt.Errorf("settlement: invoice is nil")
-		}
-
 		serde = struct {
 			Type SettlementType `json:"type"`
-			*InvoiceSettlement
-		}{
-			Type:              SettlementTypeInvoice,
-			InvoiceSettlement: s.invoice,
-		}
+		}{Type: SettlementTypeInvoice}
 	case SettlementTypeExternal:
 		if s.external == nil {
 			return nil, fmt.Errorf("settlement: external is nil")
@@ -187,12 +138,6 @@ func (s *Settlement) UnmarshalJSON(bytes []byte) error {
 
 	switch serde.Type {
 	case SettlementTypeInvoice:
-		v := &InvoiceSettlement{}
-		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to JSON deserialize InvoiceCreditPurchaseSettlement: %w", err)
-		}
-
-		s.invoice = v
 		s.t = SettlementTypeInvoice
 	case SettlementTypeExternal:
 		v := &ExternalSettlement{}
@@ -212,13 +157,12 @@ func (s *Settlement) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-func NewSettlement[T InvoiceSettlement | ExternalSettlement | PromotionalSettlement](settlement T) Settlement {
+func NewInvoiceSettlement() Settlement {
+	return Settlement{t: SettlementTypeInvoice}
+}
+
+func NewSettlement[T ExternalSettlement | PromotionalSettlement](settlement T) Settlement {
 	switch v := any(settlement).(type) {
-	case InvoiceSettlement:
-		return Settlement{
-			t:       SettlementTypeInvoice,
-			invoice: &v,
-		}
 	case ExternalSettlement:
 		return Settlement{
 			t:        SettlementTypeExternal,
@@ -241,13 +185,6 @@ func (s Settlement) Type() SettlementType {
 func (s Settlement) Validate() error {
 	switch s.t {
 	case SettlementTypeInvoice:
-		if s.invoice == nil {
-			return models.NewGenericValidationError(fmt.Errorf("invoice is required"))
-		}
-
-		if err := s.invoice.Validate(); err != nil {
-			return models.NewGenericValidationError(fmt.Errorf("invoice: %w", err))
-		}
 	case SettlementTypeExternal:
 		if s.external == nil {
 			return models.NewGenericValidationError(fmt.Errorf("external is required"))
@@ -268,18 +205,6 @@ func (s Settlement) Validate() error {
 		return models.NewGenericValidationError(fmt.Errorf("invalid credit purchase settlement type: %s", s.t))
 	}
 	return nil
-}
-
-func (s Settlement) AsInvoiceSettlement() (InvoiceSettlement, error) {
-	if s.t != SettlementTypeInvoice {
-		return InvoiceSettlement{}, fmt.Errorf("settlement is not an invoice settlement")
-	}
-
-	if s.invoice == nil {
-		return InvoiceSettlement{}, fmt.Errorf("invoice is nil")
-	}
-
-	return *s.invoice, nil
 }
 
 func (s Settlement) AsExternalSettlement() (ExternalSettlement, error) {
@@ -306,49 +231,124 @@ func (s Settlement) AsPromotionalSettlement() (PromotionalSettlement, error) {
 	return *s.promotional, nil
 }
 
-// Common getters
+// PersistedSettlement is the temporary compatibility representation stored in
+// charge_credit_purchases.settlement. Currency and cost basis remain here only
+// so old application binaries can read rows written during the schema-level
+// rollout. Remove them when the schema-level transition has concluded.
+type PersistedSettlement struct {
+	Type          SettlementType                  `json:"type"`
+	Currency      *currencyx.FiatCode             `json:"currency,omitempty"`
+	CostBasis     *alpacadecimal.Decimal          `json:"costBasis,omitempty"`
+	InitialStatus *InitialPaymentSettlementStatus `json:"status,omitempty"`
+}
 
-func (s Settlement) GetCostBasis() (alpacadecimal.Decimal, error) {
-	switch s.t {
-	case SettlementTypeInvoice:
-		if s.invoice == nil {
-			return alpacadecimal.Zero, fmt.Errorf("invoice is nil")
+func (s PersistedSettlement) Validate() error {
+	var errs []error
+
+	if err := s.Type.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	switch s.Type {
+	case SettlementTypeInvoice, SettlementTypeExternal:
+		if s.Currency == nil {
+			errs = append(errs, errors.New("currency is required"))
+		} else if err := s.Currency.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
 
-		return s.invoice.CostBasis, nil
-	case SettlementTypeExternal:
-		if s.external == nil {
-			return alpacadecimal.Zero, fmt.Errorf("external is nil")
+		if s.CostBasis == nil {
+			errs = append(errs, errors.New("cost basis is required"))
+		} else if !s.CostBasis.IsPositive() {
+			errs = append(errs, errors.New("cost basis must be positive"))
 		}
-
-		return s.external.CostBasis, nil
 	case SettlementTypePromotional:
-		return alpacadecimal.Zero, nil
+		if s.Currency != nil || s.CostBasis != nil || s.InitialStatus != nil {
+			errs = append(errs, errors.New("promotional settlement cannot contain payment compatibility fields"))
+		}
+	}
+
+	if s.Type == SettlementTypeExternal {
+		if s.InitialStatus == nil {
+			errs = append(errs, errors.New("initial status is required"))
+		} else if err := s.InitialStatus.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("initial status: %w", err))
+		}
+	} else if s.InitialStatus != nil {
+		errs = append(errs, errors.New("initial status is only valid for external settlement"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func NewPersistedSettlement(settlement Settlement, resolvedCostBasis *ResolvedCostBasis) (PersistedSettlement, error) {
+	if err := settlement.Validate(); err != nil {
+		return PersistedSettlement{}, err
+	}
+
+	persisted := PersistedSettlement{Type: settlement.Type()}
+
+	switch settlement.Type() {
+	case SettlementTypeInvoice, SettlementTypeExternal:
+		if resolvedCostBasis == nil {
+			return PersistedSettlement{}, errors.New("resolved cost basis is required for payment-backed settlement")
+		}
+		if err := resolvedCostBasis.Validate(); err != nil {
+			return PersistedSettlement{}, fmt.Errorf("resolved cost basis: %w", err)
+		}
+
+		currency := resolvedCostBasis.FiatCurrency.GetFiatCode()
+		rate := resolvedCostBasis.Rate
+		persisted.Currency = &currency
+		persisted.CostBasis = &rate
+	case SettlementTypePromotional:
+	}
+
+	if settlement.Type() == SettlementTypeExternal {
+		external, err := settlement.AsExternalSettlement()
+		if err != nil {
+			return PersistedSettlement{}, err
+		}
+
+		persisted.InitialStatus = &external.InitialStatus
+	}
+
+	return persisted, persisted.Validate()
+}
+
+func (s PersistedSettlement) AsSettlement() (Settlement, error) {
+	if err := s.Validate(); err != nil {
+		return Settlement{}, err
+	}
+
+	switch s.Type {
+	case SettlementTypeInvoice:
+		return NewInvoiceSettlement(), nil
+	case SettlementTypeExternal:
+		return NewSettlement(ExternalSettlement{InitialStatus: *s.InitialStatus}), nil
+	case SettlementTypePromotional:
+		return NewSettlement(PromotionalSettlement{}), nil
 	default:
-		return alpacadecimal.Zero, fmt.Errorf("invalid settlement type: %s", s.t)
+		return Settlement{}, fmt.Errorf("invalid credit purchase settlement type: %s", s.Type)
 	}
 }
 
-// GetCurrency returns the fiat currency real money settles in. Promotional
-// settlements never move real money, so they return an empty currency rather
-// than an error.
-func (s Settlement) GetCurrency() (*currencyx.FiatCode, error) {
-	switch s.t {
-	case SettlementTypeInvoice:
-		if s.invoice == nil {
-			return nil, fmt.Errorf("invoice is nil")
-		}
-
-		return lo.ToPtr(s.invoice.Currency), nil
-	case SettlementTypeExternal:
-		if s.external == nil {
-			return nil, fmt.Errorf("external is nil")
-		}
-
-		return &s.external.Currency, nil
-	case SettlementTypePromotional:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("invalid settlement type: %s", s.t)
+func (s PersistedSettlement) GetCostBasis() (alpacadecimal.Decimal, error) {
+	if err := s.Validate(); err != nil {
+		return alpacadecimal.Zero, err
 	}
+
+	if s.Type == SettlementTypePromotional {
+		return alpacadecimal.Zero, nil
+	}
+
+	return *s.CostBasis, nil
+}
+
+func (s PersistedSettlement) GetCurrency() (*currencyx.FiatCode, error) {
+	if err := s.Validate(); err != nil {
+		return nil, err
+	}
+
+	return s.Currency, nil
 }

@@ -47,12 +47,7 @@ func newInvoiceStateMachineTestCharge(t *testing.T, status creditpurchase.Status
 
 	charge := newExternalStateMachineTestCharge(t, status, alpacadecimal.NewFromFloat(0.5))
 	charge.Intent.Name = "test invoice credits"
-	charge.Intent.Settlement = creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
-		GenericSettlement: creditpurchase.GenericSettlement{
-			Currency:  currencyx.FiatCode("USD"),
-			CostBasis: alpacadecimal.NewFromFloat(0.5),
-		},
-	})
+	charge.Intent.Settlement = creditpurchase.NewInvoiceSettlement()
 
 	return charge
 }

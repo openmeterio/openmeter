@@ -1816,6 +1816,10 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "schema_level", Type: field.TypeInt, Default: 1, SchemaType: map[string]string{"postgres": "smallint"}},
+		{Name: "fiat_cost_basis", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "settlement_type", Type: field.TypeEnum, Nullable: true, Enums: []string{"invoice", "external", "promotional"}},
+		{Name: "initial_payment_settlement_status", Type: field.TypeEnum, Nullable: true, Enums: []string{"created", "authorized", "settled"}},
 		{Name: "credit_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "effective_at", Type: field.TypeTime, Nullable: true},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
@@ -1841,43 +1845,43 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_credit_purchase_cost_basis_charge_fk",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[30]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[34]},
 				RefColumns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_credit_purchases_custom_currencies_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[31]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[35]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_credit_purchases_customers_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[32]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[36]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscriptions_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[33]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[37]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_items_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[34]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[38]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_phases_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[35]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[39]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_tax_codes_charge_credit_purchases",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[36]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[40]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1886,7 +1890,7 @@ var (
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[32], ChargeCreditPurchasesColumns[8]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[36], ChargeCreditPurchasesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1919,12 +1923,12 @@ var (
 			{
 				Name:    "chargecreditpurchases_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[36]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[40]},
 			},
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[32], ChargeCreditPurchasesColumns[28]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[36], ChargeCreditPurchasesColumns[32]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "key IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -6206,8 +6210,13 @@ func init() {
 	ChargeCreditPurchasesTable.ForeignKeys[6].RefTable = TaxCodesTable
 	ChargeCreditPurchasesTable.Annotation = &entsql.Annotation{}
 	ChargeCreditPurchasesTable.Annotation.Checks = map[string]string{
-		"currency_not_empty": "currency IS NULL OR currency <> ''",
-		"currency_reference": "(currency IS NULL) <> (custom_currency_id IS NULL)",
+		"cost_basis_schema_level_settlement_fields": "schema_level = 1 OR (settlement_type IS NOT NULL AND ((settlement_type = 'external' AND initial_payment_settlement_status IS NOT NULL) OR (settlement_type IN ('invoice', 'promotional') AND initial_payment_settlement_status IS NULL)))",
+		"currency_not_empty":                        "currency IS NULL OR currency <> ''",
+		"currency_reference":                        "(currency IS NULL) <> (custom_currency_id IS NULL)",
+		"fiat_cost_basis_positive":                  "fiat_cost_basis IS NULL OR (fiat_cost_basis <> 'NaN'::numeric AND fiat_cost_basis > 0)",
+		"initial_payment_settlement_status":         "initial_payment_settlement_status IS NULL OR initial_payment_settlement_status IN ('created', 'authorized', 'settled')",
+		"schema_level":                              "schema_level IN (1, 2)",
+		"settlement_type":                           "settlement_type IS NULL OR settlement_type IN ('invoice', 'external', 'promotional')",
 	}
 	ChargeCreditPurchaseCostBasesTable.ForeignKeys[0].RefTable = CurrencyCostBasesTable
 	ChargeCreditPurchaseCostBasesTable.ForeignKeys[1].RefTable = CurrencyCostBasesTable

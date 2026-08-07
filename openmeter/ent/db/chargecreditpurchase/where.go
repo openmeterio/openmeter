@@ -178,6 +178,16 @@ func Description(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldDescription, v))
 }
 
+// SchemaLevel applies equality check predicate on the "schema_level" field. It's identical to SchemaLevelEQ.
+func SchemaLevel(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldSchemaLevel, v))
+}
+
+// FiatCostBasis applies equality check predicate on the "fiat_cost_basis" field. It's identical to FiatCostBasisEQ.
+func FiatCostBasis(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldFiatCostBasis, v))
+}
+
 // CreditAmount applies equality check predicate on the "credit_amount" field. It's identical to CreditAmountEQ.
 func CreditAmount(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCreditAmount, v))
@@ -1560,6 +1570,176 @@ func DescriptionEqualFold(v string) predicate.ChargeCreditPurchase {
 // DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
 func DescriptionContainsFold(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// SchemaLevelEQ applies the EQ predicate on the "schema_level" field.
+func SchemaLevelEQ(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldSchemaLevel, v))
+}
+
+// SchemaLevelNEQ applies the NEQ predicate on the "schema_level" field.
+func SchemaLevelNEQ(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldSchemaLevel, v))
+}
+
+// SchemaLevelIn applies the In predicate on the "schema_level" field.
+func SchemaLevelIn(vs ...int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldSchemaLevel, vs...))
+}
+
+// SchemaLevelNotIn applies the NotIn predicate on the "schema_level" field.
+func SchemaLevelNotIn(vs ...int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldSchemaLevel, vs...))
+}
+
+// SchemaLevelGT applies the GT predicate on the "schema_level" field.
+func SchemaLevelGT(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldSchemaLevel, v))
+}
+
+// SchemaLevelGTE applies the GTE predicate on the "schema_level" field.
+func SchemaLevelGTE(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldSchemaLevel, v))
+}
+
+// SchemaLevelLT applies the LT predicate on the "schema_level" field.
+func SchemaLevelLT(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldSchemaLevel, v))
+}
+
+// SchemaLevelLTE applies the LTE predicate on the "schema_level" field.
+func SchemaLevelLTE(v int) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldSchemaLevel, v))
+}
+
+// FiatCostBasisEQ applies the EQ predicate on the "fiat_cost_basis" field.
+func FiatCostBasisEQ(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldFiatCostBasis, v))
+}
+
+// FiatCostBasisNEQ applies the NEQ predicate on the "fiat_cost_basis" field.
+func FiatCostBasisNEQ(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldFiatCostBasis, v))
+}
+
+// FiatCostBasisIn applies the In predicate on the "fiat_cost_basis" field.
+func FiatCostBasisIn(vs ...alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldFiatCostBasis, vs...))
+}
+
+// FiatCostBasisNotIn applies the NotIn predicate on the "fiat_cost_basis" field.
+func FiatCostBasisNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldFiatCostBasis, vs...))
+}
+
+// FiatCostBasisGT applies the GT predicate on the "fiat_cost_basis" field.
+func FiatCostBasisGT(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldFiatCostBasis, v))
+}
+
+// FiatCostBasisGTE applies the GTE predicate on the "fiat_cost_basis" field.
+func FiatCostBasisGTE(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldFiatCostBasis, v))
+}
+
+// FiatCostBasisLT applies the LT predicate on the "fiat_cost_basis" field.
+func FiatCostBasisLT(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldFiatCostBasis, v))
+}
+
+// FiatCostBasisLTE applies the LTE predicate on the "fiat_cost_basis" field.
+func FiatCostBasisLTE(v alpacadecimal.Decimal) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldFiatCostBasis, v))
+}
+
+// FiatCostBasisIsNil applies the IsNil predicate on the "fiat_cost_basis" field.
+func FiatCostBasisIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldFiatCostBasis))
+}
+
+// FiatCostBasisNotNil applies the NotNil predicate on the "fiat_cost_basis" field.
+func FiatCostBasisNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldFiatCostBasis))
+}
+
+// SettlementTypeEQ applies the EQ predicate on the "settlement_type" field.
+func SettlementTypeEQ(v creditpurchase.SettlementType) predicate.ChargeCreditPurchase {
+	vc := v
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldSettlementType, vc))
+}
+
+// SettlementTypeNEQ applies the NEQ predicate on the "settlement_type" field.
+func SettlementTypeNEQ(v creditpurchase.SettlementType) predicate.ChargeCreditPurchase {
+	vc := v
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldSettlementType, vc))
+}
+
+// SettlementTypeIn applies the In predicate on the "settlement_type" field.
+func SettlementTypeIn(vs ...creditpurchase.SettlementType) predicate.ChargeCreditPurchase {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldSettlementType, v...))
+}
+
+// SettlementTypeNotIn applies the NotIn predicate on the "settlement_type" field.
+func SettlementTypeNotIn(vs ...creditpurchase.SettlementType) predicate.ChargeCreditPurchase {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldSettlementType, v...))
+}
+
+// SettlementTypeIsNil applies the IsNil predicate on the "settlement_type" field.
+func SettlementTypeIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldSettlementType))
+}
+
+// SettlementTypeNotNil applies the NotNil predicate on the "settlement_type" field.
+func SettlementTypeNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldSettlementType))
+}
+
+// InitialPaymentSettlementStatusEQ applies the EQ predicate on the "initial_payment_settlement_status" field.
+func InitialPaymentSettlementStatusEQ(v creditpurchase.InitialPaymentSettlementStatus) predicate.ChargeCreditPurchase {
+	vc := v
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldInitialPaymentSettlementStatus, vc))
+}
+
+// InitialPaymentSettlementStatusNEQ applies the NEQ predicate on the "initial_payment_settlement_status" field.
+func InitialPaymentSettlementStatusNEQ(v creditpurchase.InitialPaymentSettlementStatus) predicate.ChargeCreditPurchase {
+	vc := v
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldInitialPaymentSettlementStatus, vc))
+}
+
+// InitialPaymentSettlementStatusIn applies the In predicate on the "initial_payment_settlement_status" field.
+func InitialPaymentSettlementStatusIn(vs ...creditpurchase.InitialPaymentSettlementStatus) predicate.ChargeCreditPurchase {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldInitialPaymentSettlementStatus, v...))
+}
+
+// InitialPaymentSettlementStatusNotIn applies the NotIn predicate on the "initial_payment_settlement_status" field.
+func InitialPaymentSettlementStatusNotIn(vs ...creditpurchase.InitialPaymentSettlementStatus) predicate.ChargeCreditPurchase {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldInitialPaymentSettlementStatus, v...))
+}
+
+// InitialPaymentSettlementStatusIsNil applies the IsNil predicate on the "initial_payment_settlement_status" field.
+func InitialPaymentSettlementStatusIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldInitialPaymentSettlementStatus))
+}
+
+// InitialPaymentSettlementStatusNotNil applies the NotNil predicate on the "initial_payment_settlement_status" field.
+func InitialPaymentSettlementStatusNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldInitialPaymentSettlementStatus))
 }
 
 // CreditAmountEQ applies the EQ predicate on the "credit_amount" field.

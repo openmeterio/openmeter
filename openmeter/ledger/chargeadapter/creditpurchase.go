@@ -77,10 +77,11 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	}
 	charge := input.Charge
 
-	costBasis, err := charge.Intent.Settlement.GetCostBasis()
+	resolvedCostBasis, err := charge.GetResolvedCostBasis()
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get resolved cost basis: %w", err)
 	}
+	costBasis := resolvedCostBasis.Rate
 
 	customerID := customer.CustomerID{
 		Namespace: charge.Namespace,
@@ -89,10 +90,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
-	settlementCurrency, err := settlementPaymentCurrency(charge.Intent.Currency, charge.Intent.Settlement)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement payment currency: %w", err)
-	}
+	settlementCurrency := currencyx.Code(resolvedCostBasis.FiatCurrency.GetFiatCode())
 
 	var templates []transactions.TransactionTemplate
 	if charge.Intent.Currency.IsCustom() || !input.FiatAmount.Equal(charge.Intent.CreditAmount) {
@@ -158,10 +156,11 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	}
 	charge := input.Charge
 
-	costBasis, err := charge.Intent.Settlement.GetCostBasis()
+	resolvedCostBasis, err := charge.GetResolvedCostBasis()
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get resolved cost basis: %w", err)
 	}
+	costBasis := resolvedCostBasis.Rate
 
 	customerID := customer.CustomerID{
 		Namespace: charge.Namespace,
@@ -170,10 +169,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
-	settlementCurrency, err := settlementPaymentCurrency(charge.Intent.Currency, charge.Intent.Settlement)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement payment currency: %w", err)
-	}
+	settlementCurrency := currencyx.Code(resolvedCostBasis.FiatCurrency.GetFiatCode())
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -234,22 +230,22 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		return ledgertransaction.GroupReference{}, nil
 	}
 
-	costBasis, err := charge.Intent.Settlement.GetCostBasis()
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
-	}
+	var costBasisPtr *alpacadecimal.Decimal
+	var costBasisCurrency *currencyx.Code
+	if charge.Intent.Settlement.Type() == chargecreditpurchase.SettlementTypePromotional {
+		if !charge.Intent.Currency.IsCustom() {
+			costBasisPtr = lo.ToPtr(alpacadecimal.Zero)
+		}
+	} else {
+		resolvedCostBasis, err := charge.GetResolvedCostBasis()
+		if err != nil {
+			return ledgertransaction.GroupReference{}, fmt.Errorf("get resolved cost basis: %w", err)
+		}
 
-	costBasisPtr := &costBasis
-	if charge.Intent.Currency.IsCustom() && charge.Intent.Settlement.Type() == chargecreditpurchase.SettlementTypePromotional {
-		// A custom-currency promotional grant has no cost basis to denominate
-		// (GetCostBasis returns zero, not a real rate), so leave the route's
-		// cost basis unset rather than routing it as a zero-rate bucket.
-		costBasisPtr = nil
-	}
-
-	costBasisCurrency, err := settlementCostBasisCurrency(charge.Intent.Currency, charge.Intent.Settlement)
-	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get settlement cost basis currency: %w", err)
+		costBasisPtr = &resolvedCostBasis.Rate
+		if charge.Intent.Currency.IsCustom() {
+			costBasisCurrency = lo.ToPtr(currencyx.Code(resolvedCostBasis.FiatCurrency.GetFiatCode()))
+		}
 	}
 	customerID := customer.CustomerID{
 		Namespace: charge.Namespace,
@@ -275,6 +271,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	// where the balance formula (FBO + nil-cost-basis advance receivable) still
 	// nets it against the new credit, and a later paid purchase attributes it.
 	var advanceAttributions []advanceAttribution
+	var err error
 	if costBasisPtr != nil {
 		advanceAttributions, err = h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
 		if err != nil {
@@ -445,53 +442,6 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 		AccountCatalog: h.accountCatalog,
 		BalanceQuerier: h.balanceQuerier,
 	}
-}
-
-// settlementPaymentCurrency returns the fiat currency that Authorize/Settle
-// payment templates must book against. The charge layer owns the exact fiat
-// amount and passes it through PaymentEventInput.
-func settlementPaymentCurrency(
-	currency currencies.Currency,
-	settlement chargecreditpurchase.Settlement,
-) (currencyx.Code, error) {
-	if !currency.IsCustom() {
-		return currency.GetCode(), nil
-	}
-
-	settlementCurrency, err := settlement.GetCurrency()
-	if err != nil {
-		return "", fmt.Errorf("get settlement currency: %w", err)
-	}
-	if settlementCurrency == nil {
-		return "", fmt.Errorf("settlement currency is required for a custom currency purchase")
-	}
-
-	sc := lo.FromPtr(settlementCurrency)
-
-	if err := sc.Validate(); err != nil {
-		return "", fmt.Errorf("settlement currency is invalid: %w", err)
-	}
-
-	return currencyx.Code(sc), nil
-}
-
-// settlementCostBasisCurrency returns the fiat currency a custom-currency
-// route's cost basis is denominated in, or nil when the currency is fiat or
-// the settlement has no known cost basis yet (e.g. promotional grants).
-func settlementCostBasisCurrency(currency currencies.Currency, settlement chargecreditpurchase.Settlement) (*currencyx.Code, error) {
-	if !currency.IsCustom() {
-		return nil, nil
-	}
-
-	settlementCurrency, err := settlement.GetCurrency()
-	if err != nil {
-		return nil, fmt.Errorf("get settlement currency: %w", err)
-	}
-	if settlementCurrency == nil {
-		return nil, nil
-	}
-
-	return lo.ToPtr(currencyx.Code(lo.FromPtr(settlementCurrency))), nil
 }
 
 // advanceAttribution is the posting plan for one slice of existing advance

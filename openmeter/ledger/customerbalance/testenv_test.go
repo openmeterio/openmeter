@@ -592,12 +592,7 @@ func (e *testEnv) advanceFlatFeeCharge(t *testing.T, charge flatfee.Charge) flat
 func (e *testEnv) createPendingInvoiceCreditGrant(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features ...string) creditpurchase.Charge {
 	t.Helper()
 
-	return e.createCreditPurchase(t, amount, currency, nil, creditpurchase.FeatureFilters(features), creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
-		GenericSettlement: creditpurchase.GenericSettlement{
-			Currency:  currencyx.FiatCode(currency),
-			CostBasis: alpacadecimal.NewFromFloat(1),
-		},
-	}))
+	return e.createCreditPurchase(t, amount, currency, nil, creditpurchase.FeatureFilters(features), creditpurchase.NewInvoiceSettlement())
 }
 
 func (e *testEnv) createPromotionalCreditGrant(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, effectiveAt *time.Time, features ...string) creditpurchase.Charge {
@@ -635,6 +630,12 @@ func (e *testEnv) createCreditPurchase(
 		From: periodAt,
 		To:   periodAt,
 	}
+	var costBasis *creditpurchase.CostBasis
+	if settlement.Type() != creditpurchase.SettlementTypePromotional {
+		costBasis = lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+			Rate: alpacadecimal.NewFromInt(1),
+		}))
+	}
 
 	result, err := e.creditPurchase.Create(t.Context(), creditpurchase.CreateInput{
 		Namespace: e.Namespace,
@@ -659,6 +660,7 @@ func (e *testEnv) createCreditPurchase(
 				FeatureFilters: features,
 				Settlement:     settlement,
 			},
+			CostBasis: costBasis,
 		},
 	})
 	require.NoError(t, err)

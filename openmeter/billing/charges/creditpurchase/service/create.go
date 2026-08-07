@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -80,21 +81,19 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 }
 
 func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.Charge) (billing.GatheringLine, error) {
-	invoiceSettlement, err := charge.Intent.Settlement.AsInvoiceSettlement()
-	if err != nil {
-		return billing.GatheringLine{}, err
+	if charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeInvoice {
+		return billing.GatheringLine{}, errors.New("credit purchase is not invoice settled")
 	}
 
 	intent := charge.Intent
+	resolvedCostBasis, err := charge.GetResolvedCostBasis()
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("getting resolved cost basis: %w", err)
+	}
 
 	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
-	totalCost := intent.CreditAmount.Mul(invoiceSettlement.CostBasis)
-	invoiceCurrency := invoiceSettlement.Currency
-	calc, err := invoiceCurrency.AsFiatCurrency()
-	if err != nil {
-		return billing.GatheringLine{}, fmt.Errorf("creating currency calculator: %w", err)
-	}
-	totalCost = calc.RoundToPrecision(totalCost)
+	totalCost := resolvedCostBasis.FiatCurrency.RoundToPrecision(intent.CreditAmount.Mul(resolvedCostBasis.Rate))
+	invoiceCurrency := resolvedCostBasis.FiatCurrency.GetFiatCode()
 
 	// Clone metadata and add credit-purchase specific annotations
 	annotations, err := charge.Intent.Annotations.Clone()

@@ -112,8 +112,8 @@ var _ models.Validator = AuthorizeInvoicedPaymentInput{}
 func (i AuthorizeInvoicedPaymentInput) Validate() error {
 	var errs []error
 
-	if _, err := i.Charge.Intent.Settlement.AsInvoiceSettlement(); err != nil {
-		errs = append(errs, fmt.Errorf("invoice settlement: %w", err))
+	if i.Charge.Intent.Settlement.Type() != creditpurchase.SettlementTypeInvoice {
+		errs = append(errs, errors.New("charge is not invoice settled"))
 	}
 
 	if err := i.LineWithHeader.Validate(); err != nil {
@@ -235,18 +235,17 @@ func (s *Service) AuthorizeExternalPayment(ctx context.Context, charge creditpur
 			WithAttrs(charge.Realizations.ExternalPaymentSettlement.ErrorAttributes())
 	}
 
-	externalSettlement, err := charge.Intent.Settlement.AsExternalSettlement()
+	if _, err := charge.Intent.Settlement.AsExternalSettlement(); err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	resolvedCostBasis, err := charge.GetResolvedCostBasis()
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}
 
-	fiatCurrency, err := externalSettlement.Currency.AsFiatCurrency()
-	if err != nil {
-		return creditpurchase.Charge{}, err
-	}
-
-	fiatAmount := fiatCurrency.RoundToPrecision(
-		charge.Intent.CreditAmount.Mul(externalSettlement.CostBasis),
+	fiatAmount := resolvedCostBasis.FiatCurrency.RoundToPrecision(
+		charge.Intent.CreditAmount.Mul(resolvedCostBasis.Rate),
 	)
 
 	eventAt := clock.Now()

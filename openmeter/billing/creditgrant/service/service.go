@@ -369,6 +369,14 @@ func toIntent(input creditgrant.CreateInput) (creditpurchase.Intent, error) {
 		return creditpurchase.Intent{}, fmt.Errorf("build fiat currency: %w", err)
 	}
 
+	var costBasis *creditpurchase.CostBasis
+	if input.FundingMethod != creditgrant.FundingMethodNone {
+		// TODO: map custom-currency grants to the shared custom-currency cost-basis intent.
+		costBasis = lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{
+			Rate: lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1)),
+		}))
+	}
+
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
 			CustomerID: input.CustomerID,
@@ -391,7 +399,8 @@ func toIntent(input creditgrant.CreateInput) (creditpurchase.Intent, error) {
 			ExpiresAt:    calculateExpiresAt(effectiveAt, input.ExpiresAfter),
 			Settlement:   toSettlement(input),
 		},
-		Key: input.Key,
+		CostBasis: costBasis,
+		Key:       input.Key,
 	}
 
 	if input.Filters != nil {
@@ -419,13 +428,7 @@ func calculateExpiresAt(from time.Time, expiresAfter *datetime.ISODuration) *tim
 func toSettlement(input creditgrant.CreateInput) creditpurchase.Settlement {
 	switch input.FundingMethod {
 	case creditgrant.FundingMethodInvoice:
-		settlement := creditpurchase.InvoiceSettlement{
-			GenericSettlement: creditpurchase.GenericSettlement{
-				Currency:  currencyx.FiatCode(input.Purchase.Currency),
-				CostBasis: lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1)),
-			},
-		}
-		return creditpurchase.NewSettlement(settlement)
+		return creditpurchase.NewInvoiceSettlement()
 
 	case creditgrant.FundingMethodExternal:
 		initialStatus := creditpurchase.CreatedInitialPaymentSettlementStatus
@@ -434,10 +437,6 @@ func toSettlement(input creditgrant.CreateInput) creditpurchase.Settlement {
 		}
 
 		settlement := creditpurchase.ExternalSettlement{
-			GenericSettlement: creditpurchase.GenericSettlement{
-				Currency:  currencyx.FiatCode(input.Purchase.Currency),
-				CostBasis: lo.FromPtrOr(input.Purchase.PerUnitCostBasis, alpacadecimal.NewFromInt(1)),
-			},
 			InitialStatus: initialStatus,
 		}
 		return creditpurchase.NewSettlement(settlement)

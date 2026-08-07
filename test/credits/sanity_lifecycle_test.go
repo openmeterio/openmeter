@@ -21,7 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -259,12 +258,9 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 					To:   chargeBStartFinalizationAt,
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  currencyx.FiatCode(USD),
-						CostBasis: costBasis1,
-					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
+				CostBasis: newFiatCreditPurchaseCostBasis(costBasis1),
 			}),
 		},
 	})
@@ -326,12 +322,9 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 					To:   clock.Now(),
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  currencyx.FiatCode(USD),
-						CostBasis: costBasis2,
-					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
+				CostBasis: newFiatCreditPurchaseCostBasis(costBasis2),
 			}),
 		},
 	})
@@ -491,12 +484,9 @@ func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfill
 					To:   startFinalizationAt,
 				},
 				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-					GenericSettlement: creditpurchase.GenericSettlement{
-						Currency:  currencyx.FiatCode(USD),
-						CostBasis: costBasis,
-					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
+				CostBasis: newFiatCreditPurchaseCostBasis(costBasis),
 			}),
 		},
 	})

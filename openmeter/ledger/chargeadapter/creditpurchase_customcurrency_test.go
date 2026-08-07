@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -304,6 +306,9 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalChargeCustomCurrency(
 	charge.ID = "credit-purchase-cc-promo"
 	charge.Intent.Name = "Promotional Credit Purchase (custom currency)"
 	charge.Intent.Settlement = chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{})
+	charge.Intent.CostBasis = nil
+	charge.State.CostBasisID = nil
+	charge.State.ResolvedCostBasis = nil
 
 	return charge
 }
@@ -495,7 +500,8 @@ func (e *creditPurchaseHandlerTestEnv) newExternalChargeCustomCurrency(
 		From: now.Add(-time.Hour),
 		To:   now,
 	}
-
+	fiatCurrency, err := currencyx.NewFiatCurrency(settlementCurrency)
+	require.NoError(t, err)
 	return chargecreditpurchase.Charge{
 		ChargeBase: chargecreditpurchase.ChargeBase{
 			ManagedResource: meta.ManagedResource{
@@ -527,14 +533,20 @@ func (e *creditPurchaseHandlerTestEnv) newExternalChargeCustomCurrency(
 					CreditAmount: amount,
 					Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
 						InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
-						GenericSettlement: chargecreditpurchase.GenericSettlement{
-							Currency:  currencyx.FiatCode(settlementCurrency),
-							CostBasis: costBasis,
-						},
 					}),
 				},
+				CostBasis: lo.ToPtr(chargecreditpurchase.NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
+					FiatCurrency: fiatCurrency,
+					Rate:         costBasis,
+				}))),
 			},
 			Status: chargecreditpurchase.StatusCreated,
+			State: chargecreditpurchase.State{
+				ResolvedCostBasis: &chargecostbasis.State{
+					CostBasis:  costBasis,
+					ResolvedAt: now,
+				},
+			},
 		},
 	}
 }

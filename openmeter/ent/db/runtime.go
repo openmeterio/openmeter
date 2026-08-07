@@ -1063,9 +1063,13 @@ func init() {
 	chargecreditpurchase.DefaultUpdatedAt = chargecreditpurchaseDescUpdatedAt.Default.(func() time.Time)
 	// chargecreditpurchase.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargecreditpurchase.UpdateDefaultUpdatedAt = chargecreditpurchaseDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargecreditpurchaseDescSchemaLevel is the schema descriptor for schema_level field.
+	chargecreditpurchaseDescSchemaLevel := chargecreditpurchaseFields[0].Descriptor()
+	// chargecreditpurchase.DefaultSchemaLevel holds the default value on creation for the schema_level field.
+	chargecreditpurchase.DefaultSchemaLevel = chargecreditpurchaseDescSchemaLevel.Default.(int)
 	// chargecreditpurchaseDescSettlement is the schema descriptor for settlement field.
-	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[5].Descriptor()
-	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[creditpurchase.Settlement])
+	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[9].Descriptor()
+	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[creditpurchase.PersistedSettlement])
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[19].Descriptor()
 	// chargecreditpurchase.DefaultID holds the default value on creation for the id field.

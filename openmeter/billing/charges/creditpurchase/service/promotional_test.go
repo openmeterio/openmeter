@@ -150,7 +150,7 @@ func TestPromotionalCreditPurchaseStateMachineRejectsNonPromotionalCharge(t *tes
 	// then:
 	// - construction fails before any lifecycle side effect can happen
 	charge := newPromotionalStateMachineTestCharge(t, creditpurchase.StatusCreated)
-	charge.Intent.Settlement = creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{})
+	charge.Intent.Settlement = creditpurchase.NewInvoiceSettlement()
 
 	_, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{
 		Charge:  charge,

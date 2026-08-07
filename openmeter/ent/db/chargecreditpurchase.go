@@ -89,6 +89,14 @@ type ChargeCreditPurchase struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
+	// SchemaLevel holds the value of the "schema_level" field.
+	SchemaLevel int `json:"schema_level,omitempty"`
+	// FiatCostBasis holds the value of the "fiat_cost_basis" field.
+	FiatCostBasis *alpacadecimal.Decimal `json:"fiat_cost_basis,omitempty"`
+	// SettlementType holds the value of the "settlement_type" field.
+	SettlementType *creditpurchase.SettlementType `json:"settlement_type,omitempty"`
+	// InitialPaymentSettlementStatus holds the value of the "initial_payment_settlement_status" field.
+	InitialPaymentSettlementStatus *creditpurchase.InitialPaymentSettlementStatus `json:"initial_payment_settlement_status,omitempty"`
 	// CreditAmount holds the value of the "credit_amount" field.
 	CreditAmount alpacadecimal.Decimal `json:"credit_amount,omitempty"`
 	// EffectiveAt holds the value of the "effective_at" field.
@@ -100,7 +108,7 @@ type ChargeCreditPurchase struct {
 	// FeatureFilters holds the value of the "feature_filters" field.
 	FeatureFilters pq.StringArray `json:"feature_filters,omitempty"`
 	// Settlement holds the value of the "settlement" field.
-	Settlement creditpurchase.Settlement `json:"settlement,omitempty"`
+	Settlement creditpurchase.PersistedSettlement `json:"settlement,omitempty"`
 	// StatusDetailed holds the value of the "status_detailed" field.
 	StatusDetailed creditpurchase.Status `json:"status_detailed,omitempty"`
 	// Key holds the value of the "key" field.
@@ -270,15 +278,17 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case chargecreditpurchase.FieldFiatCostBasis:
+			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case chargecreditpurchase.FieldAnnotations, chargecreditpurchase.FieldMetadata:
 			values[i] = new([]byte)
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
 		case chargecreditpurchase.FieldFeatureFilters:
 			values[i] = new(pq.StringArray)
-		case chargecreditpurchase.FieldPriority:
+		case chargecreditpurchase.FieldSchemaLevel, chargecreditpurchase.FieldPriority:
 			values[i] = new(sql.NullInt64)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldFiatCurrencyCode, chargecreditpurchase.FieldCustomCurrencyID, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed, chargecreditpurchase.FieldKey, chargecreditpurchase.FieldCostBasisID:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldFiatCurrencyCode, chargecreditpurchase.FieldCustomCurrencyID, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldSettlementType, chargecreditpurchase.FieldInitialPaymentSettlementStatus, chargecreditpurchase.FieldStatusDetailed, chargecreditpurchase.FieldKey, chargecreditpurchase.FieldCostBasisID:
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldExpiresAt, chargecreditpurchase.FieldVoidedAt:
 			values[i] = new(sql.NullTime)
@@ -474,6 +484,33 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.Description = new(string)
 				*_m.Description = value.String
+			}
+		case chargecreditpurchase.FieldSchemaLevel:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field schema_level", values[i])
+			} else if value.Valid {
+				_m.SchemaLevel = int(value.Int64)
+			}
+		case chargecreditpurchase.FieldFiatCostBasis:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field fiat_cost_basis", values[i])
+			} else if value.Valid {
+				_m.FiatCostBasis = new(alpacadecimal.Decimal)
+				*_m.FiatCostBasis = *value.S.(*alpacadecimal.Decimal)
+			}
+		case chargecreditpurchase.FieldSettlementType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field settlement_type", values[i])
+			} else if value.Valid {
+				_m.SettlementType = new(creditpurchase.SettlementType)
+				*_m.SettlementType = creditpurchase.SettlementType(value.String)
+			}
+		case chargecreditpurchase.FieldInitialPaymentSettlementStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field initial_payment_settlement_status", values[i])
+			} else if value.Valid {
+				_m.InitialPaymentSettlementStatus = new(creditpurchase.InitialPaymentSettlementStatus)
+				*_m.InitialPaymentSettlementStatus = creditpurchase.InitialPaymentSettlementStatus(value.String)
 			}
 		case chargecreditpurchase.FieldCreditAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -728,6 +765,24 @@ func (_m *ChargeCreditPurchase) String() string {
 	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("schema_level=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SchemaLevel))
+	builder.WriteString(", ")
+	if v := _m.FiatCostBasis; v != nil {
+		builder.WriteString("fiat_cost_basis=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.SettlementType; v != nil {
+		builder.WriteString("settlement_type=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.InitialPaymentSettlementStatus; v != nil {
+		builder.WriteString("initial_payment_settlement_status=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("credit_amount=")

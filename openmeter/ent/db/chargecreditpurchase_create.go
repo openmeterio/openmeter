@@ -294,6 +294,62 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableDescription(v *string) *ChargeC
 	return _c
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (_c *ChargeCreditPurchaseCreate) SetSchemaLevel(v int) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetSchemaLevel(v)
+	return _c
+}
+
+// SetNillableSchemaLevel sets the "schema_level" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableSchemaLevel(v *int) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetSchemaLevel(*v)
+	}
+	return _c
+}
+
+// SetFiatCostBasis sets the "fiat_cost_basis" field.
+func (_c *ChargeCreditPurchaseCreate) SetFiatCostBasis(v alpacadecimal.Decimal) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetFiatCostBasis(v)
+	return _c
+}
+
+// SetNillableFiatCostBasis sets the "fiat_cost_basis" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableFiatCostBasis(v *alpacadecimal.Decimal) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetFiatCostBasis(*v)
+	}
+	return _c
+}
+
+// SetSettlementType sets the "settlement_type" field.
+func (_c *ChargeCreditPurchaseCreate) SetSettlementType(v creditpurchase.SettlementType) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetSettlementType(v)
+	return _c
+}
+
+// SetNillableSettlementType sets the "settlement_type" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableSettlementType(v *creditpurchase.SettlementType) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetSettlementType(*v)
+	}
+	return _c
+}
+
+// SetInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field.
+func (_c *ChargeCreditPurchaseCreate) SetInitialPaymentSettlementStatus(v creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetInitialPaymentSettlementStatus(v)
+	return _c
+}
+
+// SetNillableInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableInitialPaymentSettlementStatus(v *creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetInitialPaymentSettlementStatus(*v)
+	}
+	return _c
+}
+
 // SetCreditAmount sets the "credit_amount" field.
 func (_c *ChargeCreditPurchaseCreate) SetCreditAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetCreditAmount(v)
@@ -349,7 +405,7 @@ func (_c *ChargeCreditPurchaseCreate) SetFeatureFilters(v pq.StringArray) *Charg
 }
 
 // SetSettlement sets the "settlement" field.
-func (_c *ChargeCreditPurchaseCreate) SetSettlement(v creditpurchase.Settlement) *ChargeCreditPurchaseCreate {
+func (_c *ChargeCreditPurchaseCreate) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetSettlement(v)
 	return _c
 }
@@ -570,6 +626,10 @@ func (_c *ChargeCreditPurchaseCreate) defaults() {
 		v := chargecreditpurchase.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.SchemaLevel(); !ok {
+		v := chargecreditpurchase.DefaultSchemaLevel
+		_c.mutation.SetSchemaLevel(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargecreditpurchase.DefaultID()
 		_c.mutation.SetID(v)
@@ -659,6 +719,19 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "ChargeCreditPurchase.name"`)}
+	}
+	if _, ok := _c.mutation.SchemaLevel(); !ok {
+		return &ValidationError{Name: "schema_level", err: errors.New(`db: missing required field "ChargeCreditPurchase.schema_level"`)}
+	}
+	if v, ok := _c.mutation.SettlementType(); ok {
+		if err := chargecreditpurchase.SettlementTypeValidator(v); err != nil {
+			return &ValidationError{Name: "settlement_type", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement_type": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.InitialPaymentSettlementStatus(); ok {
+		if err := chargecreditpurchase.InitialPaymentSettlementStatusValidator(v); err != nil {
+			return &ValidationError{Name: "initial_payment_settlement_status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.initial_payment_settlement_status": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.CreditAmount(); !ok {
 		return &ValidationError{Name: "credit_amount", err: errors.New(`db: missing required field "ChargeCreditPurchase.credit_amount"`)}
@@ -803,6 +876,22 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(chargecreditpurchase.FieldDescription, field.TypeString, value)
 		_node.Description = &value
+	}
+	if value, ok := _c.mutation.SchemaLevel(); ok {
+		_spec.SetField(chargecreditpurchase.FieldSchemaLevel, field.TypeInt, value)
+		_node.SchemaLevel = value
+	}
+	if value, ok := _c.mutation.FiatCostBasis(); ok {
+		_spec.SetField(chargecreditpurchase.FieldFiatCostBasis, field.TypeOther, value)
+		_node.FiatCostBasis = &value
+	}
+	if value, ok := _c.mutation.SettlementType(); ok {
+		_spec.SetField(chargecreditpurchase.FieldSettlementType, field.TypeEnum, value)
+		_node.SettlementType = &value
+	}
+	if value, ok := _c.mutation.InitialPaymentSettlementStatus(); ok {
+		_spec.SetField(chargecreditpurchase.FieldInitialPaymentSettlementStatus, field.TypeEnum, value)
+		_node.InitialPaymentSettlementStatus = &value
 	}
 	if value, ok := _c.mutation.CreditAmount(); ok {
 		_spec.SetField(chargecreditpurchase.FieldCreditAmount, field.TypeOther, value)
@@ -1295,6 +1384,78 @@ func (u *ChargeCreditPurchaseUpsert) ClearDescription() *ChargeCreditPurchaseUps
 	return u
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (u *ChargeCreditPurchaseUpsert) SetSchemaLevel(v int) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldSchemaLevel, v)
+	return u
+}
+
+// UpdateSchemaLevel sets the "schema_level" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateSchemaLevel() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldSchemaLevel)
+	return u
+}
+
+// AddSchemaLevel adds v to the "schema_level" field.
+func (u *ChargeCreditPurchaseUpsert) AddSchemaLevel(v int) *ChargeCreditPurchaseUpsert {
+	u.Add(chargecreditpurchase.FieldSchemaLevel, v)
+	return u
+}
+
+// SetFiatCostBasis sets the "fiat_cost_basis" field.
+func (u *ChargeCreditPurchaseUpsert) SetFiatCostBasis(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldFiatCostBasis, v)
+	return u
+}
+
+// UpdateFiatCostBasis sets the "fiat_cost_basis" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateFiatCostBasis() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldFiatCostBasis)
+	return u
+}
+
+// ClearFiatCostBasis clears the value of the "fiat_cost_basis" field.
+func (u *ChargeCreditPurchaseUpsert) ClearFiatCostBasis() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldFiatCostBasis)
+	return u
+}
+
+// SetSettlementType sets the "settlement_type" field.
+func (u *ChargeCreditPurchaseUpsert) SetSettlementType(v creditpurchase.SettlementType) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldSettlementType, v)
+	return u
+}
+
+// UpdateSettlementType sets the "settlement_type" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateSettlementType() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldSettlementType)
+	return u
+}
+
+// ClearSettlementType clears the value of the "settlement_type" field.
+func (u *ChargeCreditPurchaseUpsert) ClearSettlementType() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldSettlementType)
+	return u
+}
+
+// SetInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field.
+func (u *ChargeCreditPurchaseUpsert) SetInitialPaymentSettlementStatus(v creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldInitialPaymentSettlementStatus, v)
+	return u
+}
+
+// UpdateInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateInitialPaymentSettlementStatus() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldInitialPaymentSettlementStatus)
+	return u
+}
+
+// ClearInitialPaymentSettlementStatus clears the value of the "initial_payment_settlement_status" field.
+func (u *ChargeCreditPurchaseUpsert) ClearInitialPaymentSettlementStatus() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldInitialPaymentSettlementStatus)
+	return u
+}
+
 // SetCreditAmount sets the "credit_amount" field.
 func (u *ChargeCreditPurchaseUpsert) SetCreditAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpsert {
 	u.Set(chargecreditpurchase.FieldCreditAmount, v)
@@ -1308,7 +1469,7 @@ func (u *ChargeCreditPurchaseUpsert) UpdateCreditAmount() *ChargeCreditPurchaseU
 }
 
 // SetSettlement sets the "settlement" field.
-func (u *ChargeCreditPurchaseUpsert) SetSettlement(v creditpurchase.Settlement) *ChargeCreditPurchaseUpsert {
+func (u *ChargeCreditPurchaseUpsert) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpsert {
 	u.Set(chargecreditpurchase.FieldSettlement, v)
 	return u
 }
@@ -1346,6 +1507,24 @@ func (u *ChargeCreditPurchaseUpsert) UpdateVoidedAt() *ChargeCreditPurchaseUpser
 // ClearVoidedAt clears the value of the "voided_at" field.
 func (u *ChargeCreditPurchaseUpsert) ClearVoidedAt() *ChargeCreditPurchaseUpsert {
 	u.SetNull(chargecreditpurchase.FieldVoidedAt)
+	return u
+}
+
+// SetCostBasisID sets the "cost_basis_id" field.
+func (u *ChargeCreditPurchaseUpsert) SetCostBasisID(v string) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldCostBasisID, v)
+	return u
+}
+
+// UpdateCostBasisID sets the "cost_basis_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateCostBasisID() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldCostBasisID)
+	return u
+}
+
+// ClearCostBasisID clears the value of the "cost_basis_id" field.
+func (u *ChargeCreditPurchaseUpsert) ClearCostBasisID() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldCostBasisID)
 	return u
 }
 
@@ -1413,9 +1592,6 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.Key(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldKey)
-		}
-		if _, exists := u.create.mutation.CostBasisID(); exists {
-			s.SetIgnore(chargecreditpurchase.FieldCostBasisID)
 		}
 	}))
 	return u
@@ -1700,6 +1876,90 @@ func (u *ChargeCreditPurchaseUpsertOne) ClearDescription() *ChargeCreditPurchase
 	})
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetSchemaLevel(v int) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetSchemaLevel(v)
+	})
+}
+
+// AddSchemaLevel adds v to the "schema_level" field.
+func (u *ChargeCreditPurchaseUpsertOne) AddSchemaLevel(v int) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.AddSchemaLevel(v)
+	})
+}
+
+// UpdateSchemaLevel sets the "schema_level" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateSchemaLevel() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateSchemaLevel()
+	})
+}
+
+// SetFiatCostBasis sets the "fiat_cost_basis" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetFiatCostBasis(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetFiatCostBasis(v)
+	})
+}
+
+// UpdateFiatCostBasis sets the "fiat_cost_basis" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateFiatCostBasis() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateFiatCostBasis()
+	})
+}
+
+// ClearFiatCostBasis clears the value of the "fiat_cost_basis" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearFiatCostBasis() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearFiatCostBasis()
+	})
+}
+
+// SetSettlementType sets the "settlement_type" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetSettlementType(v creditpurchase.SettlementType) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetSettlementType(v)
+	})
+}
+
+// UpdateSettlementType sets the "settlement_type" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateSettlementType() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateSettlementType()
+	})
+}
+
+// ClearSettlementType clears the value of the "settlement_type" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearSettlementType() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearSettlementType()
+	})
+}
+
+// SetInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetInitialPaymentSettlementStatus(v creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetInitialPaymentSettlementStatus(v)
+	})
+}
+
+// UpdateInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateInitialPaymentSettlementStatus() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateInitialPaymentSettlementStatus()
+	})
+}
+
+// ClearInitialPaymentSettlementStatus clears the value of the "initial_payment_settlement_status" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearInitialPaymentSettlementStatus() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearInitialPaymentSettlementStatus()
+	})
+}
+
 // SetCreditAmount sets the "credit_amount" field.
 func (u *ChargeCreditPurchaseUpsertOne) SetCreditAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
@@ -1715,7 +1975,7 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateCreditAmount() *ChargeCreditPurcha
 }
 
 // SetSettlement sets the "settlement" field.
-func (u *ChargeCreditPurchaseUpsertOne) SetSettlement(v creditpurchase.Settlement) *ChargeCreditPurchaseUpsertOne {
+func (u *ChargeCreditPurchaseUpsertOne) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.SetSettlement(v)
 	})
@@ -1760,6 +2020,27 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateVoidedAt() *ChargeCreditPurchaseUp
 func (u *ChargeCreditPurchaseUpsertOne) ClearVoidedAt() *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.ClearVoidedAt()
+	})
+}
+
+// SetCostBasisID sets the "cost_basis_id" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetCostBasisID(v string) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetCostBasisID(v)
+	})
+}
+
+// UpdateCostBasisID sets the "cost_basis_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateCostBasisID() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateCostBasisID()
+	})
+}
+
+// ClearCostBasisID clears the value of the "cost_basis_id" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearCostBasisID() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearCostBasisID()
 	})
 }
 
@@ -1996,9 +2277,6 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.Key(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldKey)
-			}
-			if _, exists := b.mutation.CostBasisID(); exists {
-				s.SetIgnore(chargecreditpurchase.FieldCostBasisID)
 			}
 		}
 	}))
@@ -2284,6 +2562,90 @@ func (u *ChargeCreditPurchaseUpsertBulk) ClearDescription() *ChargeCreditPurchas
 	})
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetSchemaLevel(v int) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetSchemaLevel(v)
+	})
+}
+
+// AddSchemaLevel adds v to the "schema_level" field.
+func (u *ChargeCreditPurchaseUpsertBulk) AddSchemaLevel(v int) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.AddSchemaLevel(v)
+	})
+}
+
+// UpdateSchemaLevel sets the "schema_level" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateSchemaLevel() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateSchemaLevel()
+	})
+}
+
+// SetFiatCostBasis sets the "fiat_cost_basis" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetFiatCostBasis(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetFiatCostBasis(v)
+	})
+}
+
+// UpdateFiatCostBasis sets the "fiat_cost_basis" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateFiatCostBasis() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateFiatCostBasis()
+	})
+}
+
+// ClearFiatCostBasis clears the value of the "fiat_cost_basis" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearFiatCostBasis() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearFiatCostBasis()
+	})
+}
+
+// SetSettlementType sets the "settlement_type" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetSettlementType(v creditpurchase.SettlementType) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetSettlementType(v)
+	})
+}
+
+// UpdateSettlementType sets the "settlement_type" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateSettlementType() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateSettlementType()
+	})
+}
+
+// ClearSettlementType clears the value of the "settlement_type" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearSettlementType() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearSettlementType()
+	})
+}
+
+// SetInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetInitialPaymentSettlementStatus(v creditpurchase.InitialPaymentSettlementStatus) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetInitialPaymentSettlementStatus(v)
+	})
+}
+
+// UpdateInitialPaymentSettlementStatus sets the "initial_payment_settlement_status" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateInitialPaymentSettlementStatus() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateInitialPaymentSettlementStatus()
+	})
+}
+
+// ClearInitialPaymentSettlementStatus clears the value of the "initial_payment_settlement_status" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearInitialPaymentSettlementStatus() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearInitialPaymentSettlementStatus()
+	})
+}
+
 // SetCreditAmount sets the "credit_amount" field.
 func (u *ChargeCreditPurchaseUpsertBulk) SetCreditAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
@@ -2299,7 +2661,7 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateCreditAmount() *ChargeCreditPurch
 }
 
 // SetSettlement sets the "settlement" field.
-func (u *ChargeCreditPurchaseUpsertBulk) SetSettlement(v creditpurchase.Settlement) *ChargeCreditPurchaseUpsertBulk {
+func (u *ChargeCreditPurchaseUpsertBulk) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.SetSettlement(v)
 	})
@@ -2344,6 +2706,27 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateVoidedAt() *ChargeCreditPurchaseU
 func (u *ChargeCreditPurchaseUpsertBulk) ClearVoidedAt() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.ClearVoidedAt()
+	})
+}
+
+// SetCostBasisID sets the "cost_basis_id" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetCostBasisID(v string) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetCostBasisID(v)
+	})
+}
+
+// UpdateCostBasisID sets the "cost_basis_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateCostBasisID() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateCostBasisID()
+	})
+}
+
+// ClearCostBasisID clears the value of the "cost_basis_id" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearCostBasisID() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearCostBasisID()
 	})
 }
 

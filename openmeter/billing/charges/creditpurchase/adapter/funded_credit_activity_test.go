@@ -92,7 +92,7 @@ func (s *ListFundedCreditActivitiesSuite) insertCreditPurchaseWithGrant(
 		SetNillableDescription(description).
 		SetTaxCodeID(s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID).
 		SetCreditAmount(alpacadecimal.NewFromInt(100)).
-		SetSettlement(creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{})).
+		SetSettlement(creditpurchase.PersistedSettlement{Type: creditpurchase.SettlementTypePromotional}).
 		SetCreatedAt(chargeCreatedAt).
 		SetUpdatedAt(chargeCreatedAt)
 	if len(features) > 0 && features[0] != nil {

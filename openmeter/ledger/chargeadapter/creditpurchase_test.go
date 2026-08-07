@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -26,7 +27,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -761,7 +761,6 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 		From: now.Add(-time.Hour),
 		To:   now,
 	}
-
 	return chargecreditpurchase.Charge{
 		ChargeBase: chargecreditpurchase.ChargeBase{
 			ManagedResource: meta.ManagedResource{
@@ -793,12 +792,11 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 					CreditAmount: amount,
 					Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
 						InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
-						GenericSettlement: chargecreditpurchase.GenericSettlement{
-							Currency:  currencyx.FiatCode("USD"),
-							CostBasis: costBasis,
-						},
 					}),
 				},
+				CostBasis: lo.ToPtr(chargecreditpurchase.NewCostBasis(chargecreditpurchase.FiatCostBasis{
+					Rate: costBasis,
+				})),
 			},
 			Status: chargecreditpurchase.StatusCreated,
 		},
