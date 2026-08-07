@@ -76,6 +76,24 @@ Effective deletion and base-intent deletion are therefore different query
 concepts. Subscription reconciliation must be able to find a base intent even
 when an active override hides it.
 
+### Customer charge deletion payment adjustment
+
+The customer charge API facade requires a payment adjustment when deleting a
+flat-fee or usage-based charge. The facade owns this customer-facing choice and
+maps it to the more detailed internal deletion policies used by charge state
+machines.
+
+`none` requests no compensating adjustment for economic effects already
+realized by the charge. It maps to ignoring both credit and invoice refunds:
+credit-only realizations are not corrected, and payment authorization,
+settlement, payment intents, and external collection state are not refunded or
+otherwise adjusted.
+
+Payment adjustment is separate from invoice lifecycle reconciliation. Deleting
+a charge still removes its gathering or mutable invoice lines. Immutable
+invoice and payment history is preserved; unsupported drift is recorded as an
+invoice validation issue.
+
 ## Lifecycle and persistence invariants
 
 - Each concrete state machine is the authority for reachable detailed states.
