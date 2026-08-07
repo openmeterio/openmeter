@@ -5,6 +5,9 @@ tone_instructions: |
   Keep the writing light, concise, and positive, as if speaking to a peer.
 reviews:
   profile: "chill"
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
   request_changes_workflow: false
   high_level_summary: true
   poem: false
