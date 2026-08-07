@@ -210,6 +210,9 @@ notification:
 #      - topic
 #    # Consumer/Producer identifier
 #    clientID: kafka-client-1
+#    # Rack identifier (e.g. availability zone) the client is running in.
+#    # Enables rack-aware consumer group assignment and fetching from the closest replica.
+#    clientRack: use1-az1
 #    # Consumer group identifier
 #    consumerGroupID: consumer-group
 #    # Static membership identifier in consumer group
