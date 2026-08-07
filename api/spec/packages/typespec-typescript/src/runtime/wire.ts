@@ -314,7 +314,13 @@ function walk(
   if (d?.type === 'union') {
     const variant = selectVariant(record, s, dir)
     if (!variant) {
-      // No confident match: leave keys untransformed rather than guess.
+      // No variant owns this data: a discriminated union whose discriminator
+      // value the SDK does not know (a variant added server-side after
+      // generation), or a union with no object-shaped variant at all reached
+      // with object data. Both mean the schema describes nothing about these
+      // keys, so leave them untransformed rather than guess. Note this is NOT
+      // the zero-key-coverage case — a non-discriminated union with any object
+      // variant always resolves one; see selectVariant.
       return data
     }
     return walk(data, variant, dir, depth + 1)
@@ -403,6 +409,12 @@ function selectVariant(
   // data-kind branches, not here.
   const dataKeys = Object.keys(data)
   let best: ZodType | undefined
+  // Starting below zero means data that matches NO variant's keys still selects
+  // one — the narrowest, by the tie-break below — instead of falling through to
+  // the pass-through above. That is deliberate: the selected variant's object
+  // walk then drops the undeclared keys, exactly as the object branch does for a
+  // non-union field. Passing the keys through instead would put snake_case names
+  // into a value fromWire's return type declares to be camelCase.
   let bestMatched = -1
   let bestWidth = 0
   for (const option of options) {
