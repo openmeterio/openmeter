@@ -243,8 +243,13 @@ func (s *CreditThenInvoiceStateMachine) HasTerminalCompletedRealizationWithoutCu
 		return false
 	}
 
-	if latestRun.InvoiceUsage == nil && !isZeroFiatAmountOverageRun(s.Charge, latestRun) {
-		return false
+	if latestRun.InvoiceUsage == nil {
+		fiatOverage, err := calculateFiatOverageForRun(s.Charge, latestRun)
+		if err != nil || !fiatOverage.ShouldOmitInvoiceLine {
+			// Stateless guards cannot return errors. Conversion failures are
+			// exposed by line mapping or snapshotting before this state is durable.
+			return false
+		}
 	}
 
 	return isFinalRunInPeriod(s.Charge, timeutil.ClosedPeriod{
@@ -635,7 +640,9 @@ func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 		}
 	}
 
-	s.updateStateAfterShrink(runsToKeep, gatheringLinePeriod, newServicePeriodTo)
+	if err := s.updateStateAfterShrink(runsToKeep, gatheringLinePeriod, newServicePeriodTo); err != nil {
+		return fmt.Errorf("updating state after shrink: %w", err)
+	}
 
 	return nil
 }
@@ -644,9 +651,9 @@ func (s *CreditThenInvoiceStateMachine) updateStateAfterShrink(
 	runsToKeep usagebased.RealizationRuns,
 	replacementGatheringLinePeriod timeutil.ClosedPeriod,
 	newServicePeriodTo time.Time,
-) {
+) error {
 	if s.Charge.Status == usagebased.StatusCreated {
-		return
+		return nil
 	}
 
 	if s.Charge.State.CurrentRealizationRunID != nil {
@@ -655,7 +662,7 @@ func (s *CreditThenInvoiceStateMachine) updateStateAfterShrink(
 			// Billing still owns the current invoice lifecycle. Shrink may shorten
 			// future gathering, but it must not make the charge forget an in-flight
 			// invoice-backed run that still fits inside the new service period.
-			return
+			return nil
 		}
 	}
 
@@ -669,18 +676,24 @@ func (s *CreditThenInvoiceStateMachine) updateStateAfterShrink(
 		// arrive.
 		chargeWithKeptRuns := s.Charge
 		chargeWithKeptRuns.Realizations = runsToKeep
-		if areAllRealizationRunsSettled(chargeWithKeptRuns) {
+		allSettled, err := areAllRealizationRunsSettled(chargeWithKeptRuns)
+		if err != nil {
+			return err
+		}
+		if allSettled {
 			s.Charge.Status = usagebased.StatusFinal
 		} else if s.Charge.Status != usagebased.StatusFinal {
 			s.Charge.Status = usagebased.StatusActiveAwaitingPaymentSettlement
 		}
 		s.Charge.State.AdvanceAfter = nil
 
-		return
+		return nil
 	}
 
 	s.Charge.Status = usagebased.StatusActive
 	s.Charge.State.AdvanceAfter = lo.ToPtr(newServicePeriodTo)
+
+	return nil
 }
 
 // Extending a charge after a final invoice run moves the customer's contractual
@@ -842,7 +855,14 @@ func isFinalRunInPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedP
 }
 
 func (s *CreditThenInvoiceStateMachine) AreAllRealizationRunsSettled() bool {
-	return areAllRealizationRunsSettled(s.Charge)
+	allSettled, err := areAllRealizationRunsSettled(s.Charge)
+	if err != nil {
+		// Stateless guards cannot return errors. Conversion failures are exposed
+		// by line mapping or snapshotting before this transition becomes reachable.
+		return false
+	}
+
+	return allSettled
 }
 
 func (s *CreditThenInvoiceStateMachine) SnapshotInvoiceUsage(ctx context.Context) error {
@@ -949,7 +969,14 @@ func (s *CreditThenInvoiceStateMachine) IsCurrentRunZeroFiatAmountOverage() bool
 		return false
 	}
 
-	return isZeroFiatAmountOverageRun(s.Charge, currentRun)
+	fiatOverage, err := calculateFiatOverageForRun(s.Charge, currentRun)
+	if err != nil {
+		// Stateless guards cannot return errors. Conversion failures are exposed
+		// by line mapping or snapshotting before this transition becomes reachable.
+		return false
+	}
+
+	return fiatOverage.ShouldOmitInvoiceLine
 }
 
 // FinalizeZeroFiatAmountOverageRun releases the persisted current run while the
@@ -964,7 +991,12 @@ func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(_ conte
 		return fmt.Errorf("get current realization run: %w", err)
 	}
 
-	if !isZeroFiatAmountOverageRun(s.Charge, currentRun) {
+	fiatOverage, err := calculateFiatOverageForRun(s.Charge, currentRun)
+	if err != nil {
+		return fmt.Errorf("calculate fiat overage for current realization run %s: %w", currentRun.ID.ID, err)
+	}
+
+	if !fiatOverage.ShouldOmitInvoiceLine {
 		return fmt.Errorf("current realization run %s is not a zero fiat amount overage", currentRun.ID.ID)
 	}
 
@@ -1013,14 +1045,6 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 	s.Charge.ChargeBase = updatedChargeBase
 
 	return nil
-}
-
-// isZeroFiatAmountOverageRun identifies custom-currency overage runs whose
-// converted fiat Amount is zero.
-func isZeroFiatAmountOverageRun(charge usagebased.Charge, run usagebased.RealizationRun) bool {
-	return charge.Intent.GetCurrency().IsCustom() &&
-		charge.Intent.GetSettlementMode() == productcatalog.CreditThenInvoiceSettlementMode &&
-		run.NoFiatTransactionRequired
 }
 
 func getRunForLine(charge usagebased.Charge, lineID string) (usagebased.RealizationRun, error) {

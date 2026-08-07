@@ -369,24 +369,78 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 	require.Equal(t, "existing-overage-id", line.DetailedLines[0].ID)
 	require.Nil(t, line.DeletedAt)
 
-	run.NoFiatTransactionRequired = true
-	run.Totals = totals.Totals{}
-	err = populateStandardLineFromRun(line, populateStandardLineFromRunInput{
-		Charge: charge,
-		Run:    run,
-		Stage:  standardLinePopulationStageGatheringPreview,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, line.DeletedAt)
+	for _, stage := range []standardLinePopulationStage{
+		standardLinePopulationStageGatheringPreview,
+		standardLinePopulationStageCollectionCompleted,
+	} {
+		t.Run(string(stage), func(t *testing.T) {
+			t.Run("zero converted overage deletes the line", func(t *testing.T) {
+				// given: a zero converted overage whose transaction flag does not request payment skipping
+				zeroOverageRun := run
+				zeroOverageRun.NoFiatTransactionRequired = false
+				zeroOverageRun.Totals = totals.Totals{
+					Amount:       alpacadecimal.NewFromInt(3),
+					CreditsTotal: alpacadecimal.NewFromInt(3),
+				}
+				line := newUsageBasedStandardLineForTest(period)
 
-	line.DeletedAt = nil
-	err = populateStandardLineFromRun(line, populateStandardLineFromRunInput{
-		Charge: charge,
-		Run:    run,
-		Stage:  standardLinePopulationStageCollectionCompleted,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, line.DeletedAt)
+				// when: the overage line is populated at a deletion-capable stage
+				err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+					Charge: charge,
+					Run:    zeroOverageRun,
+					Stage:  stage,
+				})
+
+				// then: line omission follows the converted overage
+				require.NoError(t, err)
+				require.NotNil(t, line.DeletedAt)
+			})
+
+			t.Run("positive converted overage retains the line without a transaction", func(t *testing.T) {
+				// given: a positive converted overage whose settlement does not require a fiat transaction
+				noTransactionRun := run
+				noTransactionRun.NoFiatTransactionRequired = true
+				line := newUsageBasedStandardLineForTest(period)
+
+				// when: the overage line is populated at a deletion-capable stage
+				err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+					Charge: charge,
+					Run:    noTransactionRun,
+					Stage:  stage,
+				})
+
+				// then: the positive billable line is retained independently of payment handling
+				require.NoError(t, err)
+				require.Nil(t, line.DeletedAt)
+
+				flatPrice, err := line.UsageBased.Price.AsFlat()
+				require.NoError(t, err)
+				require.Equal(t, float64(6), flatPrice.Amount.InexactFloat64())
+
+				require.Len(t, line.DetailedLines, 1)
+				require.Equal(t, creditpurchase.CreditPurchaseChildUniqueReferenceID, line.DetailedLines[0].ChildUniqueReferenceID)
+				require.Equal(t, float64(6), line.DetailedLines[0].Totals.Amount.InexactFloat64())
+			})
+
+			t.Run("conversion failure returns an error without deleting the line", func(t *testing.T) {
+				// given: a custom-currency run whose resolved cost basis is unavailable
+				charge := charge
+				charge.State.ResolvedCostBasis = nil
+				line := newUsageBasedStandardLineForTest(period)
+
+				// when: the overage line is populated at a deletion-capable stage
+				err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+					Charge: charge,
+					Run:    run,
+					Stage:  stage,
+				})
+
+				// then: conversion failure is exposed before the line can be deleted
+				require.ErrorContains(t, err, "resolved cost basis is required")
+				require.Nil(t, line.DeletedAt)
+			})
+		})
+	}
 }
 
 func newUsageBasedStandardLineForTest(period timeutil.ClosedPeriod) *billing.StandardLine {

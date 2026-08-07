@@ -107,7 +107,7 @@ func (e *LineEngine) recordPaymentSettled(ctx context.Context, stateMachine Stat
 	return nil
 }
 
-func areAllRealizationRunsSettled(charge usagebased.Charge) bool {
+func areAllRealizationRunsSettled(charge usagebased.Charge) (bool, error) {
 	hasFinalRealization := false
 
 	for _, run := range charge.Realizations {
@@ -117,15 +117,18 @@ func areAllRealizationRunsSettled(charge usagebased.Charge) bool {
 
 		// Zero-fiat-amount overages bypass invoice issuance, they are removed from the
 		// invoice, thus we can consider them settled.
-		isZeroFiatAmountOverage := isZeroFiatAmountOverageRun(charge, run)
+		fiatOverage, err := calculateFiatOverageForRun(charge, run)
+		if err != nil {
+			return false, fmt.Errorf("calculating fiat overage for realization run[%s]: %w", run.ID.ID, err)
+		}
 		if isFinalRunInPeriod(charge, timeutil.ClosedPeriod{
 			From: charge.Intent.GetEffectiveServicePeriod().From,
 			To:   run.ServicePeriodTo,
-		}) && (run.InvoiceUsage != nil || isZeroFiatAmountOverage) {
+		}) && (run.InvoiceUsage != nil || fiatOverage.ShouldOmitInvoiceLine) {
 			hasFinalRealization = true
 		}
 
-		if isZeroFiatAmountOverage {
+		if fiatOverage.ShouldOmitInvoiceLine {
 			continue
 		}
 
@@ -138,9 +141,9 @@ func areAllRealizationRunsSettled(charge usagebased.Charge) bool {
 		}
 
 		if run.Payment == nil || run.Payment.Status != payment.StatusSettled {
-			return false
+			return false, nil
 		}
 	}
 
-	return hasFinalRealization
+	return hasFinalRealization, nil
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -45,6 +46,32 @@ type populateFlatFeeStandardLineFromRunInput struct {
 	Charge flatfee.Charge
 	Run    flatfee.RealizationRun
 	Stage  standardLinePopulationStage
+}
+
+type calculateFiatOverageForRunResult struct {
+	FiatCurrency          *currencyx.FiatCurrency
+	FiatOverage           alpacadecimal.Decimal
+	ShouldOmitInvoiceLine bool
+}
+
+// calculateFiatOverageForRun resolves the post-allocation custom-currency
+// overage and the invoice-line omission decision from the same conversion.
+func calculateFiatOverageForRun(charge flatfee.Charge, run flatfee.RealizationRun) (calculateFiatOverageForRunResult, error) {
+	if !charge.Intent.GetCurrency().IsCustom() ||
+		charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		return calculateFiatOverageForRunResult{}, nil
+	}
+
+	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(run.Totals)
+	if err != nil {
+		return calculateFiatOverageForRunResult{}, err
+	}
+
+	return calculateFiatOverageForRunResult{
+		FiatCurrency:          fiatOverage.Currency,
+		FiatOverage:           fiatOverage.Amount,
+		ShouldOmitInvoiceLine: fiatOverage.Amount.IsZero(),
+	}, nil
 }
 
 func (i populateFlatFeeStandardLineFromRunInput) Validate() error {
@@ -139,17 +166,20 @@ func populateCustomCurrencyOverageFromRun(
 	charge := input.Charge
 	run := input.Run
 
-	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(run.Totals)
+	fiatOverage, err := calculateFiatOverageForRun(charge, run)
 	if err != nil {
 		return fmt.Errorf("custom currency charge[%s] converting overage to fiat: %w", charge.ID, err)
 	}
+	if fiatOverage.FiatCurrency == nil {
+		return fmt.Errorf("custom currency charge[%s] does not have an invoiceable fiat overage", charge.ID)
+	}
 
-	if stdLine.Currency != fiatOverage.Currency.GetFiatCode() {
+	if stdLine.Currency != fiatOverage.FiatCurrency.GetFiatCode() {
 		return fmt.Errorf(
 			"custom currency charge[%s] invoice currency mismatch: %s != %s",
 			charge.ID,
 			stdLine.Currency,
-			fiatOverage.Currency.Details().Code,
+			fiatOverage.FiatCurrency.Details().Code,
 		)
 	}
 
@@ -166,7 +196,7 @@ func populateCustomCurrencyOverageFromRun(
 		ConfigID:   stdLine.UsageBased.ConfigID,
 		FeatureKey: stdLine.UsageBased.FeatureKey,
 		Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-			Amount:      fiatOverage.Amount,
+			Amount:      fiatOverage.FiatOverage,
 			PaymentTerm: productcatalog.InArrearsPaymentTerm,
 		}),
 		MeteredQuantity:              lo.ToPtr(alpacadecimal.NewFromInt(1)),
@@ -187,8 +217,8 @@ func populateCustomCurrencyOverageFromRun(
 		CreditCurrency:    charge.Intent.GetCurrency(),
 		CreditAmount:      run.Totals.Total,
 		ResolvedCostBasis: charge.State.ResolvedCostBasis.CostBasis,
-		FiatCurrency:      fiatOverage.Currency,
-		FiatAmount:        fiatOverage.Amount,
+		FiatCurrency:      fiatOverage.FiatCurrency,
+		FiatAmount:        fiatOverage.FiatOverage,
 	})
 	if err != nil {
 		return fmt.Errorf("populating custom currency overage line: %w", err)
@@ -197,7 +227,7 @@ func populateCustomCurrencyOverageFromRun(
 
 	if (input.Stage == standardLinePopulationStageGatheringPreview ||
 		input.Stage == standardLinePopulationStageCollectionCompleted) &&
-		isZeroFiatAmountOverageRun(charge, run) {
+		fiatOverage.ShouldOmitInvoiceLine {
 		stdLine.DeletedAt = lo.ToPtr(clock.Now())
 	}
 
