@@ -4,10 +4,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -38,6 +43,109 @@ func TestIntentNormalizedPinsServicePeriodsToEffectiveAt(t *testing.T) {
 	require.Equal(t, expectedPeriod, got.ServicePeriod)
 	require.Equal(t, expectedPeriod, got.FullServicePeriod)
 	require.Equal(t, expectedPeriod, got.BillingPeriod)
+}
+
+func TestIntentMutableFieldsCalculateEffectiveAtDoesNotBackdateToServicePeriod(t *testing.T) {
+	now := time.Date(2026, 8, 7, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	fields := IntentMutableFields{
+		IntentMutableFields: meta.IntentMutableFields{
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: now.Add(-24 * time.Hour),
+				To:   now,
+			},
+		},
+	}
+
+	require.Equal(t, now, fields.CalculateEffectiveAt())
+}
+
+func TestIntentMutableFieldsValidateAllowsHistoricalExpiryWithoutEffectiveAt(t *testing.T) {
+	now := time.Date(2026, 8, 7, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	period := timeutil.ClosedPeriod{
+		From: now.Add(-2 * time.Hour),
+		To:   now.Add(-time.Hour),
+	}
+
+	require.NoError(t, (IntentMutableFields{
+		IntentMutableFields: meta.IntentMutableFields{
+			Name:              "historical credit purchase",
+			ServicePeriod:     period,
+			FullServicePeriod: period,
+			BillingPeriod:     period,
+		},
+		CreditAmount: alpacadecimal.NewFromInt(1),
+		ExpiresAt:    lo.ToPtr(period.To),
+		Settlement:   NewInvoiceSettlement(),
+	}).Validate())
+}
+
+func TestCreateInputValidateRejectsExpiryWithoutEffectiveAt(t *testing.T) {
+	now := time.Date(2026, 8, 7, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	period := timeutil.ClosedPeriod{
+		From: now.Add(-2 * time.Hour),
+		To:   now.Add(-time.Hour),
+	}
+
+	for _, tc := range []struct {
+		name      string
+		expiresAt time.Time
+	}{
+		{
+			name:      "before now",
+			expiresAt: period.To,
+		},
+		{
+			name:      "equal to now",
+			expiresAt: now,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given: a credit purchase without an explicit effective time that
+			// expires no later than its creation time
+			input := CreateInput{
+				Namespace: "test",
+				Intent: Intent{
+					Intent: meta.Intent{
+						ManagedBy:  billing.ManuallyManagedLine,
+						CustomerID: "customer-1",
+						Currency:   currenciestestutils.NewFiatCurrency(t, "USD"),
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: "tax-code-1",
+						},
+					},
+					IntentMutableFields: IntentMutableFields{
+						IntentMutableFields: meta.IntentMutableFields{
+							Name:              "historical credit purchase",
+							ServicePeriod:     period,
+							FullServicePeriod: period,
+							BillingPeriod:     period,
+						},
+						CreditAmount: alpacadecimal.NewFromInt(1),
+						ExpiresAt:    lo.ToPtr(tc.expiresAt),
+						Settlement:   NewInvoiceSettlement(),
+					},
+					CostBasis: lo.ToPtr(NewCostBasis(FiatCostBasis{
+						Rate: alpacadecimal.NewFromInt(1),
+					})),
+				},
+			}
+
+			// when: the create input is validated
+			err := input.Validate()
+
+			// then: expiration at or before creation is rejected
+			require.ErrorContains(t, err, "expires at must be after effective at")
+		})
+	}
 }
 
 func TestFeatureFiltersNormalize(t *testing.T) {

@@ -1,11 +1,13 @@
 package creditpurchase
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -84,6 +86,14 @@ type CostBasis struct {
 
 var _ models.Validator = (*CostBasis)(nil)
 
+type costBasisJSON struct {
+	Type                CostBasisType          `json:"type"`
+	Mode                chargecostbasis.Mode   `json:"mode,omitempty"`
+	FiatCurrency        *currencyx.FiatCode    `json:"fiatCurrency,omitempty"`
+	CurrencyCostBasisID *string                `json:"currencyCostBasisID,omitempty"`
+	Rate                *alpacadecimal.Decimal `json:"rate,omitempty"`
+}
+
 func NewCostBasis[T FiatCostBasis | chargecostbasis.Intent](in T) CostBasis {
 	switch value := any(in).(type) {
 	case FiatCostBasis:
@@ -103,6 +113,123 @@ func NewCostBasis[T FiatCostBasis | chargecostbasis.Intent](in T) CostBasis {
 
 func (c CostBasis) Type() CostBasisType {
 	return c.kind
+}
+
+func (c CostBasis) MarshalJSON() ([]byte, error) {
+	if err := c.Validate(); err != nil {
+		return nil, fmt.Errorf("validating credit purchase cost basis: %w", err)
+	}
+
+	serde := costBasisJSON{Type: c.kind}
+
+	switch c.kind {
+	case CostBasisTypeFiat:
+		serde.Rate = &c.fiat.Rate
+	case CostBasisTypeCustomCurrency:
+		serde.Mode = c.customCurrency.Kind()
+
+		fiatCurrency, err := c.customCurrency.GetFiatCurrency()
+		if err != nil {
+			return nil, fmt.Errorf("getting custom-currency fiat currency: %w", err)
+		}
+		serde.FiatCurrency = lo.ToPtr(fiatCurrency.GetFiatCode())
+
+		switch serde.Mode {
+		case chargecostbasis.ModeDynamic:
+		case chargecostbasis.ModePinned:
+			intent, err := c.customCurrency.AsPinned()
+			if err != nil {
+				return nil, err
+			}
+			serde.CurrencyCostBasisID = &intent.CurrencyCostBasisID
+		case chargecostbasis.ModeManual:
+			intent, err := c.customCurrency.AsManual()
+			if err != nil {
+				return nil, err
+			}
+			serde.Rate = &intent.Rate
+		default:
+			return nil, fmt.Errorf("unsupported custom-currency cost basis mode: %s", serde.Mode)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported credit purchase cost basis type: %s", c.kind)
+	}
+
+	return json.Marshal(serde)
+}
+
+func (c *CostBasis) UnmarshalJSON(data []byte) error {
+	var serde costBasisJSON
+	if err := json.Unmarshal(data, &serde); err != nil {
+		return fmt.Errorf("deserializing credit purchase cost basis: %w", err)
+	}
+
+	var decoded CostBasis
+
+	switch serde.Type {
+	case CostBasisTypeFiat:
+		if serde.Rate == nil {
+			return errors.New("fiat cost basis rate is required")
+		}
+		if serde.Mode != "" || serde.FiatCurrency != nil || serde.CurrencyCostBasisID != nil {
+			return errors.New("fiat cost basis contains custom-currency fields")
+		}
+
+		decoded = NewCostBasis(FiatCostBasis{Rate: *serde.Rate})
+	case CostBasisTypeCustomCurrency:
+		if serde.FiatCurrency == nil {
+			return errors.New("custom-currency fiat currency is required")
+		}
+
+		fiatCurrency, err := currencyx.NewFiatCurrency(*serde.FiatCurrency)
+		if err != nil {
+			return fmt.Errorf("mapping custom-currency fiat currency: %w", err)
+		}
+
+		switch serde.Mode {
+		case chargecostbasis.ModeDynamic:
+			if serde.Rate != nil || serde.CurrencyCostBasisID != nil {
+				return errors.New("dynamic cost basis contains resolved fields")
+			}
+			decoded = NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.DynamicIntent{
+				FiatCurrency: fiatCurrency,
+			}))
+		case chargecostbasis.ModePinned:
+			if serde.CurrencyCostBasisID == nil {
+				return errors.New("pinned currency cost basis ID is required")
+			}
+			if serde.Rate != nil {
+				return errors.New("pinned cost basis contains a manual rate")
+			}
+			decoded = NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.PinnedIntent{
+				FiatCurrency:        fiatCurrency,
+				CurrencyCostBasisID: *serde.CurrencyCostBasisID,
+			}))
+		case chargecostbasis.ModeManual:
+			if serde.Rate == nil {
+				return errors.New("manual cost basis rate is required")
+			}
+			if serde.CurrencyCostBasisID != nil {
+				return errors.New("manual cost basis contains a pinned cost basis ID")
+			}
+			decoded = NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
+				FiatCurrency: fiatCurrency,
+				Rate:         *serde.Rate,
+			}))
+		default:
+			return fmt.Errorf("unsupported custom-currency cost basis mode: %s", serde.Mode)
+		}
+	default:
+		return fmt.Errorf("unsupported credit purchase cost basis type: %s", serde.Type)
+	}
+
+	if err := decoded.Validate(); err != nil {
+		return fmt.Errorf("validating credit purchase cost basis: %w", err)
+	}
+
+	*c = decoded
+
+	return nil
 }
 
 func (c *CostBasis) Validate() error {
@@ -167,6 +294,12 @@ func (c CostBasis) AsCustomCurrency() (chargecostbasis.Intent, error) {
 type ResolvedCostBasis struct {
 	FiatCurrency *currencyx.FiatCurrency
 	Rate         alpacadecimal.Decimal
+}
+
+// FiatAmount converts a credit amount to fiat and rounds it at the settlement
+// currency's precision.
+func (c ResolvedCostBasis) FiatAmount(creditAmount alpacadecimal.Decimal) alpacadecimal.Decimal {
+	return c.FiatCurrency.RoundToPrecision(creditAmount.Mul(c.Rate))
 }
 
 func (c ResolvedCostBasis) Validate() error {

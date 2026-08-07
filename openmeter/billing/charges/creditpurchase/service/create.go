@@ -92,7 +92,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 	}
 
 	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
-	totalCost := resolvedCostBasis.FiatCurrency.RoundToPrecision(intent.CreditAmount.Mul(resolvedCostBasis.Rate))
+	totalCost := resolvedCostBasis.FiatAmount(intent.CreditAmount)
 	invoiceCurrency := resolvedCostBasis.FiatCurrency.GetFiatCode()
 
 	// Clone metadata and add credit-purchase specific annotations

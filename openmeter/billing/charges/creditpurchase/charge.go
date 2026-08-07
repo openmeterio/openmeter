@@ -219,15 +219,7 @@ func (f IntentMutableFields) Normalized(currency currencies.Currency) IntentMuta
 }
 
 func (f IntentMutableFields) CalculateEffectiveAt() time.Time {
-	if f.EffectiveAt != nil {
-		return *f.EffectiveAt
-	}
-
-	if !f.ServicePeriod.From.IsZero() {
-		return f.ServicePeriod.From
-	}
-
-	return clock.Now().UTC()
+	return lo.FromPtrOr(f.EffectiveAt, clock.Now().UTC())
 }
 
 func (f IntentMutableFields) Validate() error {
@@ -256,7 +248,7 @@ func (f IntentMutableFields) Validate() error {
 		}
 	}
 
-	if f.ExpiresAt != nil && !f.ExpiresAt.After(f.CalculateEffectiveAt()) {
+	if f.EffectiveAt != nil && f.ExpiresAt != nil && !f.ExpiresAt.After(*f.EffectiveAt) {
 		errs = append(errs, fmt.Errorf("expires at must be after effective at"))
 	}
 

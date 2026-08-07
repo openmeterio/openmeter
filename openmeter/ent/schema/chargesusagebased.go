@@ -174,6 +174,9 @@ func (ChargeUsageBased) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tax_code_id").
 			StorageKey("chargeusagebased_tax_code_id"),
+		index.Fields("cost_basis_id").
+			StorageKey("chargeusagebased_cost_basis_id").
+			Unique(),
 	}
 }
 

@@ -1847,7 +1847,7 @@ var (
 				Symbol:     "charge_credit_purchase_cost_basis_charge_fk",
 				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[34]},
 				RefColumns: []*schema.Column{ChargeCreditPurchaseCostBasesColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "charge_credit_purchases_custom_currencies_charges_credit_purchase",
@@ -1924,6 +1924,11 @@ var (
 				Name:    "chargecreditpurchases_tax_code_id",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeCreditPurchasesColumns[40]},
+			},
+			{
+				Name:    "chargecreditpurchases_cost_basis_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[34]},
 			},
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_key",
@@ -2309,6 +2314,11 @@ var (
 				Name:    "chargeflatfees_tax_code_id",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeFlatFeesColumns[39]},
+			},
+			{
+				Name:    "chargeflatfees_cost_basis_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeFlatFeesColumns[32]},
 			},
 		},
 	}
@@ -3002,6 +3012,11 @@ var (
 				Name:    "chargeusagebased_tax_code_id",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeUsageBasedColumns[38]},
+			},
+			{
+				Name:    "chargeusagebased_cost_basis_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedColumns[31]},
 			},
 		},
 	}

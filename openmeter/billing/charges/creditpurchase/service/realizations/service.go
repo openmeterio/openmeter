@@ -244,9 +244,7 @@ func (s *Service) AuthorizeExternalPayment(ctx context.Context, charge creditpur
 		return creditpurchase.Charge{}, err
 	}
 
-	fiatAmount := resolvedCostBasis.FiatCurrency.RoundToPrecision(
-		charge.Intent.CreditAmount.Mul(resolvedCostBasis.Rate),
-	)
+	fiatAmount := resolvedCostBasis.FiatAmount(charge.Intent.CreditAmount)
 
 	eventAt := clock.Now()
 	ledgerTransactionGroupReference, err := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{

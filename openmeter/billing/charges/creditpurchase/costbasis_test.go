@@ -1,6 +1,7 @@
 package creditpurchase
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -58,6 +59,45 @@ func TestCostBasisVariants(t *testing.T) {
 	})
 }
 
+func TestCostBasisJSONRoundTrip(t *testing.T) {
+	usd, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	testCases := map[string]CostBasis{
+		"fiat": NewCostBasis(FiatCostBasis{
+			Rate: alpacadecimal.NewFromFloat(1.25),
+		}),
+		"custom currency dynamic": NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.DynamicIntent{
+			FiatCurrency: usd,
+		})),
+		"custom currency pinned": NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.PinnedIntent{
+			FiatCurrency:        usd,
+			CurrencyCostBasisID: "01J00000000000000000000000",
+		})),
+		"custom currency manual": NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.ManualIntent{
+			FiatCurrency: usd,
+			Rate:         alpacadecimal.NewFromFloat(0.5),
+		})),
+	}
+
+	for name, costBasis := range testCases {
+		t.Run(name, func(t *testing.T) {
+			encoded, err := json.Marshal(costBasis)
+			require.NoError(t, err)
+			require.NotEqual(t, "{}", string(encoded))
+
+			var decoded CostBasis
+			require.NoError(t, json.Unmarshal(encoded, &decoded))
+			require.NoError(t, decoded.Validate())
+			require.Equal(t, costBasis.Type(), decoded.Type())
+
+			reencoded, err := json.Marshal(decoded)
+			require.NoError(t, err)
+			require.JSONEq(t, string(encoded), string(reencoded))
+		})
+	}
+}
+
 func TestResolvedCostBasisValidate(t *testing.T) {
 	require.ErrorContains(t, (ResolvedCostBasis{
 		Rate: alpacadecimal.NewFromInt(1),
@@ -69,6 +109,18 @@ func TestResolvedCostBasisValidate(t *testing.T) {
 		FiatCurrency: usd,
 		Rate:         alpacadecimal.Zero,
 	}).Validate(), "rate must be positive")
+}
+
+func TestResolvedCostBasisFiatAmount(t *testing.T) {
+	usd, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	amount := (ResolvedCostBasis{
+		FiatCurrency: usd,
+		Rate:         alpacadecimal.NewFromFloat(0.5),
+	}).FiatAmount(alpacadecimal.NewFromFloat(100.1234))
+
+	require.Equal(t, 50.06, amount.InexactFloat64())
 }
 
 func TestChargeBaseValidateCostBasis(t *testing.T) {

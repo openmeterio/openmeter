@@ -103,7 +103,7 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 		}
 
 		costBasis := resolvedCostBasis.Rate.String()
-		purchaseAmount := resolvedCostBasis.FiatCurrency.RoundToPrecision(charge.Intent.CreditAmount.Mul(resolvedCostBasis.Rate))
+		purchaseAmount := resolvedCostBasis.FiatAmount(charge.Intent.CreditAmount)
 		settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
 
 		if charge.Realizations.InvoiceSettlement != nil {
@@ -129,7 +129,7 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 		}
 
 		costBasis := resolvedCostBasis.Rate.String()
-		purchaseAmount := resolvedCostBasis.FiatCurrency.RoundToPrecision(charge.Intent.CreditAmount.Mul(resolvedCostBasis.Rate))
+		purchaseAmount := resolvedCostBasis.FiatAmount(charge.Intent.CreditAmount)
 		availPolicy, err := toAPIBillingCreditAvailabilityPolicy(ext.InitialStatus)
 		if err != nil {
 			return nil, fmt.Errorf("converting availability policy: %w", err)

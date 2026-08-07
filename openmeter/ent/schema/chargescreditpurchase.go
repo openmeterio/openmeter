@@ -129,7 +129,9 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Field("cost_basis_id").
 			StorageKey(edge.Symbol("charge_credit_purchase_cost_basis_charge_fk")).
 			Unique().
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+			// The charge stores the foreign key, so cascading a cost-basis delete
+			// would delete the financial charge record instead of its child state.
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 		edge.To("charge", Charge.Type).
 			Unique().
 			Immutable().
@@ -175,6 +177,9 @@ func (ChargeCreditPurchase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tax_code_id").
 			StorageKey("chargecreditpurchases_tax_code_id"),
+		index.Fields("cost_basis_id").
+			StorageKey("chargecreditpurchases_cost_basis_id").
+			Unique(),
 		// Idempotency key, unique per customer within a namespace. Partial so it is enforced
 		// only while live: NULL means no idempotency requested, and a soft-deleted grant must
 		// not permanently reserve a key the caller may reuse.

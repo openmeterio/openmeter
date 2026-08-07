@@ -136,65 +136,22 @@ func fromDBCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.C
 			return mappedCostBasis{}, errors.New("legacy schema row contains dedicated cost-basis state")
 		}
 
-		return fromDBLegacyCostBasis(dbEntity, currency)
+		var fiatCreditCurrencyCode *currencyx.Code
+		if !currency.IsCustom() {
+			fiatCreditCurrencyCode = lo.ToPtr(currency.GetCode())
+		}
+
+		return mapLegacyCostBasis(mapLegacyCostBasisInput{
+			Settlement:             dbEntity.Settlement,
+			CustomCurrency:         currency.IsCustom(),
+			FiatCreditCurrencyCode: fiatCreditCurrencyCode,
+			CreatedAt:              dbEntity.CreatedAt,
+		})
 	case creditpurchase.SchemaLevelCostBasis:
 		return fromDBDedicatedCostBasis(dbEntity, currency)
 	default:
 		return mappedCostBasis{}, fmt.Errorf("unsupported credit purchase schema level: %d", schemaLevel)
 	}
-}
-
-func fromDBLegacyCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.Currency) (mappedCostBasis, error) {
-	if dbEntity.Settlement.Type == creditpurchase.SettlementTypePromotional {
-		return mappedCostBasis{}, nil
-	}
-
-	rate, err := dbEntity.Settlement.GetCostBasis()
-	if err != nil {
-		return mappedCostBasis{}, fmt.Errorf("getting legacy settlement cost basis: %w", err)
-	}
-
-	if !currency.IsCustom() {
-		fiatCode, err := dbEntity.Settlement.GetCurrency()
-		if err != nil {
-			return mappedCostBasis{}, fmt.Errorf("getting legacy settlement currency: %w", err)
-		}
-		if fiatCode == nil {
-			return mappedCostBasis{}, errors.New("legacy fiat cost basis requires a settlement currency")
-		}
-		if currencyx.Code(*fiatCode) != currency.GetCode() {
-			return mappedCostBasis{}, fmt.Errorf("settlement currency %q must match credit currency %q", *fiatCode, currency.GetCode())
-		}
-
-		return mappedCostBasis{CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: rate}))}, nil
-	}
-
-	fiatCode, err := dbEntity.Settlement.GetCurrency()
-	if err != nil {
-		return mappedCostBasis{}, fmt.Errorf("getting legacy settlement currency: %w", err)
-	}
-	if fiatCode == nil {
-		return mappedCostBasis{}, errors.New("legacy custom-currency cost basis requires a settlement currency")
-	}
-
-	fiatCurrency, err := currencyx.NewFiatCurrency(*fiatCode)
-	if err != nil {
-		return mappedCostBasis{}, fmt.Errorf("mapping legacy settlement currency: %w", err)
-	}
-
-	intent := costbasis.NewIntent(costbasis.ManualIntent{
-		FiatCurrency: fiatCurrency,
-		Rate:         rate,
-	})
-	state := costbasis.State{
-		CostBasis:  rate,
-		ResolvedAt: dbEntity.CreatedAt.UTC(),
-	}
-
-	return mappedCostBasis{
-		CostBasis:         lo.ToPtr(creditpurchase.NewCostBasis(intent)),
-		ResolvedCostBasis: &state,
-	}, nil
 }
 
 func fromDBDedicatedCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.Currency) (mappedCostBasis, error) {

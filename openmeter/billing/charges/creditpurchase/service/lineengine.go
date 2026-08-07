@@ -82,7 +82,7 @@ func (e *LineEngine) buildInvoiceCreditPurchaseStandardLines(ctx context.Context
 			return nil, fmt.Errorf("getting resolved cost basis for credit purchase charge[%s]: %w", charge.ID, err)
 		}
 
-		fiatAmount := resolvedCostBasis.FiatCurrency.RoundToPrecision(charge.Intent.CreditAmount.Mul(resolvedCostBasis.Rate))
+		fiatAmount := resolvedCostBasis.FiatAmount(charge.Intent.CreditAmount)
 		stdLineWithDetails, err := creditpurchasemodels.WithDetailedLines(creditpurchasemodels.WithDetailedLinesInput{
 			Line:              stdLine,
 			Name:              stdLine.Name,
