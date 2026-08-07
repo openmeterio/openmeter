@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -27,6 +27,8 @@ type ChargeUsageBasedRunDetailedLine struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
+	// AmountDiscounts holds the value of the "amount_discounts" field.
+	AmountDiscounts detailedline.AmountDiscounts `json:"amount_discounts,omitempty"`
 	// Currency holds the value of the "currency" field.
 	//
 	// Deprecated: currency is defined by the parent line or charge
@@ -93,8 +95,6 @@ type ChargeUsageBasedRunDetailedLine struct {
 	RunID string `json:"run_id,omitempty"`
 	// PricerReferenceID holds the value of the "pricer_reference_id" field.
 	PricerReferenceID string `json:"pricer_reference_id,omitempty"`
-	// AmountDiscounts holds the value of the "amount_discounts" field.
-	AmountDiscounts amountdiscount.AmountDiscountsOption `json:"amount_discounts,omitempty"`
 	// CorrectsRunID holds the value of the "corrects_run_id" field.
 	CorrectsRunID *string `json:"corrects_run_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -154,7 +154,7 @@ func (*ChargeUsageBasedRunDetailedLine) scanValues(columns []string) ([]any, err
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeusagebasedrundetailedline.FieldCreditsApplied, chargeusagebasedrundetailedline.FieldAnnotations, chargeusagebasedrundetailedline.FieldMetadata:
+		case chargeusagebasedrundetailedline.FieldAmountDiscounts, chargeusagebasedrundetailedline.FieldCreditsApplied, chargeusagebasedrundetailedline.FieldAnnotations, chargeusagebasedrundetailedline.FieldMetadata:
 			values[i] = new([]byte)
 		case chargeusagebasedrundetailedline.FieldQuantity, chargeusagebasedrundetailedline.FieldPerUnitAmount, chargeusagebasedrundetailedline.FieldAmount, chargeusagebasedrundetailedline.FieldTaxesTotal, chargeusagebasedrundetailedline.FieldTaxesInclusiveTotal, chargeusagebasedrundetailedline.FieldTaxesExclusiveTotal, chargeusagebasedrundetailedline.FieldChargesTotal, chargeusagebasedrundetailedline.FieldDiscountsTotal, chargeusagebasedrundetailedline.FieldCreditsTotal, chargeusagebasedrundetailedline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
@@ -164,8 +164,6 @@ func (*ChargeUsageBasedRunDetailedLine) scanValues(columns []string) ([]any, err
 			values[i] = new(sql.NullString)
 		case chargeusagebasedrundetailedline.FieldServicePeriodStart, chargeusagebasedrundetailedline.FieldServicePeriodEnd, chargeusagebasedrundetailedline.FieldCreatedAt, chargeusagebasedrundetailedline.FieldUpdatedAt, chargeusagebasedrundetailedline.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case chargeusagebasedrundetailedline.FieldAmountDiscounts:
-			values[i] = chargeusagebasedrundetailedline.ValueScanner.AmountDiscounts.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -186,6 +184,14 @@ func (_m *ChargeUsageBasedRunDetailedLine) assignValues(columns []string, values
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
+			}
+		case chargeusagebasedrundetailedline.FieldAmountDiscounts:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field amount_discounts", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AmountDiscounts); err != nil {
+					return fmt.Errorf("unmarshal field amount_discounts: %w", err)
+				}
 			}
 		case chargeusagebasedrundetailedline.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -378,12 +384,6 @@ func (_m *ChargeUsageBasedRunDetailedLine) assignValues(columns []string, values
 			} else if value.Valid {
 				_m.PricerReferenceID = value.String
 			}
-		case chargeusagebasedrundetailedline.FieldAmountDiscounts:
-			if value, err := chargeusagebasedrundetailedline.ValueScanner.AmountDiscounts.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				_m.AmountDiscounts = value
-			}
 		case chargeusagebasedrundetailedline.FieldCorrectsRunID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field corrects_run_id", values[i])
@@ -442,6 +442,9 @@ func (_m *ChargeUsageBasedRunDetailedLine) String() string {
 	var builder strings.Builder
 	builder.WriteString("ChargeUsageBasedRunDetailedLine(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("amount_discounts=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AmountDiscounts))
+	builder.WriteString(", ")
 	if v := _m.Currency; v != nil {
 		builder.WriteString("currency=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
@@ -541,9 +544,6 @@ func (_m *ChargeUsageBasedRunDetailedLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("pricer_reference_id=")
 	builder.WriteString(_m.PricerReferenceID)
-	builder.WriteString(", ")
-	builder.WriteString("amount_discounts=")
-	builder.WriteString(fmt.Sprintf("%v", _m.AmountDiscounts))
 	builder.WriteString(", ")
 	if v := _m.CorrectsRunID; v != nil {
 		builder.WriteString("corrects_run_id=")

@@ -8,7 +8,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -191,10 +190,14 @@ func PricerReferenceID(v string) predicate.ChargeFlatFeeRunDetailedLine {
 	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldEQ(FieldPricerReferenceID, v))
 }
 
-// AmountDiscounts applies equality check predicate on the "amount_discounts" field. It's identical to AmountDiscountsEQ.
-func AmountDiscounts(v amountdiscount.AmountDiscountsOption) predicate.ChargeFlatFeeRunDetailedLine {
-	vc, err := ValueScanner.AmountDiscounts.Value(v)
-	return predicate.ChargeFlatFeeRunDetailedLineOrErr(sql.FieldEQ(FieldAmountDiscounts, vc), err)
+// AmountDiscountsIsNil applies the IsNil predicate on the "amount_discounts" field.
+func AmountDiscountsIsNil() predicate.ChargeFlatFeeRunDetailedLine {
+	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldIsNull(FieldAmountDiscounts))
+}
+
+// AmountDiscountsNotNil applies the NotNil predicate on the "amount_discounts" field.
+func AmountDiscountsNotNil() predicate.ChargeFlatFeeRunDetailedLine {
+	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNotNull(FieldAmountDiscounts))
 }
 
 // CurrencyEQ applies the EQ predicate on the "currency" field.
@@ -1514,80 +1517,6 @@ func PricerReferenceIDEqualFold(v string) predicate.ChargeFlatFeeRunDetailedLine
 // PricerReferenceIDContainsFold applies the ContainsFold predicate on the "pricer_reference_id" field.
 func PricerReferenceIDContainsFold(v string) predicate.ChargeFlatFeeRunDetailedLine {
 	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldContainsFold(FieldPricerReferenceID, v))
-}
-
-// AmountDiscountsEQ applies the EQ predicate on the "amount_discounts" field.
-func AmountDiscountsEQ(v amountdiscount.AmountDiscountsOption) predicate.ChargeFlatFeeRunDetailedLine {
-	vc, err := ValueScanner.AmountDiscounts.Value(v)
-	return predicate.ChargeFlatFeeRunDetailedLineOrErr(sql.FieldEQ(FieldAmountDiscounts, vc), err)
-}
-
-// AmountDiscountsNEQ applies the NEQ predicate on the "amount_discounts" field.
-func AmountDiscountsNEQ(v amountdiscount.AmountDiscountsOption) predicate.ChargeFlatFeeRunDetailedLine {
-	vc, err := ValueScanner.AmountDiscounts.Value(v)
-	return predicate.ChargeFlatFeeRunDetailedLineOrErr(sql.FieldNEQ(FieldAmountDiscounts, vc), err)
-}
-
-// AmountDiscountsIn applies the In predicate on the "amount_discounts" field.
-func AmountDiscountsIn(vs ...amountdiscount.AmountDiscountsOption) predicate.ChargeFlatFeeRunDetailedLine {
-	var (
-		err error
-		v   = make([]any, len(vs))
-	)
-	for i := range v {
-		if v[i], err = ValueScanner.AmountDiscounts.Value(vs[i]); err != nil {
-			break
-		}
-	}
-	return predicate.ChargeFlatFeeRunDetailedLineOrErr(sql.FieldIn(FieldAmountDiscounts, v...), err)
-}
-
-// AmountDiscountsNotIn applies the NotIn predicate on the "amount_discounts" field.
-func AmountDiscountsNotIn(vs ...amountdiscount.AmountDiscountsOption) predicate.ChargeFlatFeeRunDetailedLine {
-	var (
-		err error
-		v   = make([]any, len(vs))
-	)
-	for i := range v {
-		if v[i], err = ValueScanner.AmountDiscounts.Value(vs[i]); err != nil {
-			break
-		}
-	}
-	return predicate.ChargeFlatFeeRunDetailedLineOrErr(sql.FieldNotIn(FieldAmountDiscounts, v...), err)
-}
-
-// AmountDiscountsGT applies the GT predicate on the "amount_discounts" field.
-func AmountDiscountsGT(v amountdiscount.AmountDiscountsOption) predicate.ChargeFlatFeeRunDetailedLine {
-	vc, err := ValueScanner.AmountDiscounts.Value(v)
-	return predicate.ChargeFlatFeeRunDetailedLineOrErr(sql.FieldGT(FieldAmountDiscounts, vc), err)
-}
-
-// AmountDiscountsGTE applies the GTE predicate on the "amount_discounts" field.
-func AmountDiscountsGTE(v amountdiscount.AmountDiscountsOption) predicate.ChargeFlatFeeRunDetailedLine {
-	vc, err := ValueScanner.AmountDiscounts.Value(v)
-	return predicate.ChargeFlatFeeRunDetailedLineOrErr(sql.FieldGTE(FieldAmountDiscounts, vc), err)
-}
-
-// AmountDiscountsLT applies the LT predicate on the "amount_discounts" field.
-func AmountDiscountsLT(v amountdiscount.AmountDiscountsOption) predicate.ChargeFlatFeeRunDetailedLine {
-	vc, err := ValueScanner.AmountDiscounts.Value(v)
-	return predicate.ChargeFlatFeeRunDetailedLineOrErr(sql.FieldLT(FieldAmountDiscounts, vc), err)
-}
-
-// AmountDiscountsLTE applies the LTE predicate on the "amount_discounts" field.
-func AmountDiscountsLTE(v amountdiscount.AmountDiscountsOption) predicate.ChargeFlatFeeRunDetailedLine {
-	vc, err := ValueScanner.AmountDiscounts.Value(v)
-	return predicate.ChargeFlatFeeRunDetailedLineOrErr(sql.FieldLTE(FieldAmountDiscounts, vc), err)
-}
-
-// AmountDiscountsIsNil applies the IsNil predicate on the "amount_discounts" field.
-func AmountDiscountsIsNil() predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldIsNull(FieldAmountDiscounts))
-}
-
-// AmountDiscountsNotNil applies the NotNil predicate on the "amount_discounts" field.
-func AmountDiscountsNotNil() predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNotNull(FieldAmountDiscounts))
 }
 
 // HasRun applies the HasEdge predicate on the "run" edge.

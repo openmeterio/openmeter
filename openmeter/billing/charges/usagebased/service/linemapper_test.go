@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -418,21 +419,23 @@ func newUsageBasedStandardLineForTest(period timeutil.ClosedPeriod) *billing.Sta
 func newUsageBasedDetailedLineForTest(ref string, period timeutil.ClosedPeriod, amount alpacadecimal.Decimal) usagebased.DetailedLine {
 	return usagebased.DetailedLine{
 		PricerReferenceID: ref,
-		Base: stddetailedline.Base{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace: "namespace",
-				Name:      ref,
-			}),
-			Category:               stddetailedline.CategoryRegular,
-			ChildUniqueReferenceID: ref,
-			Index:                  lo.ToPtr(0),
-			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-			ServicePeriod:          period,
-			PerUnitAmount:          amount,
-			Quantity:               alpacadecimal.NewFromInt(1),
-			Totals: totals.Totals{
-				Amount: amount,
-				Total:  amount,
+		Base: chargedetailedline.Base{
+			Base: stddetailedline.Base{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: "namespace",
+					Name:      ref,
+				}),
+				Category:               stddetailedline.CategoryRegular,
+				ChildUniqueReferenceID: ref,
+				Index:                  lo.ToPtr(0),
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				ServicePeriod:          period,
+				PerUnitAmount:          amount,
+				Quantity:               alpacadecimal.NewFromInt(1),
+				Totals: totals.Totals{
+					Amount: amount,
+					Total:  amount,
+				},
 			},
 		},
 	}

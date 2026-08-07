@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -1381,18 +1382,20 @@ func usageBasedDetailedLinesForTest(lines billingrating.DetailedLines, servicePe
 
 		return usagebased.DetailedLine{
 			PricerReferenceID: line.ChildUniqueReferenceID,
-			Base: stddetailedline.Base{
-				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-					Namespace: "ns",
-					Name:      line.Name,
-				}),
-				Category:               category,
-				ChildUniqueReferenceID: line.ChildUniqueReferenceID,
-				PaymentTerm:            paymentTerm,
-				ServicePeriod:          period,
-				PerUnitAmount:          line.PerUnitAmount,
-				Quantity:               line.Quantity,
-				Totals:                 line.Totals,
+			Base: chargedetailedline.Base{
+				Base: stddetailedline.Base{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: "ns",
+						Name:      line.Name,
+					}),
+					Category:               category,
+					ChildUniqueReferenceID: line.ChildUniqueReferenceID,
+					PaymentTerm:            paymentTerm,
+					ServicePeriod:          period,
+					PerUnitAmount:          line.PerUnitAmount,
+					Quantity:               line.Quantity,
+					Totals:                 line.Totals,
+				},
 			},
 		}
 	})
@@ -1516,27 +1519,29 @@ func makeRatedDetailedLineForTest(in ratedDetailedLineForTestInput) usagebased.D
 
 	return usagebased.DetailedLine{
 		PricerReferenceID: in.referenceID,
-		Base: stddetailedline.Base{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace: "ns",
-				Name:      "feature",
-			}),
-			Category:               category,
-			ChildUniqueReferenceID: childUniqueReferenceID,
-			Index:                  in.index,
-			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-			ServicePeriod:          in.servicePeriod,
-			PerUnitAmount:          alpacadecimal.NewFromFloat(in.perUnitAmount),
-			Quantity:               alpacadecimal.NewFromFloat(in.quantity),
-			Totals: totals.Totals{
-				Amount:              alpacadecimal.NewFromFloat(in.totals.Amount),
-				ChargesTotal:        alpacadecimal.NewFromFloat(in.totals.ChargesTotal),
-				DiscountsTotal:      alpacadecimal.NewFromFloat(in.totals.DiscountsTotal),
-				TaxesInclusiveTotal: alpacadecimal.NewFromFloat(in.totals.TaxesInclusiveTotal),
-				TaxesExclusiveTotal: alpacadecimal.NewFromFloat(in.totals.TaxesExclusiveTotal),
-				TaxesTotal:          alpacadecimal.NewFromFloat(in.totals.TaxesTotal),
-				CreditsTotal:        alpacadecimal.NewFromFloat(in.totals.CreditsTotal),
-				Total:               alpacadecimal.NewFromFloat(in.totals.Total),
+		Base: chargedetailedline.Base{
+			Base: stddetailedline.Base{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: "ns",
+					Name:      "feature",
+				}),
+				Category:               category,
+				ChildUniqueReferenceID: childUniqueReferenceID,
+				Index:                  in.index,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				ServicePeriod:          in.servicePeriod,
+				PerUnitAmount:          alpacadecimal.NewFromFloat(in.perUnitAmount),
+				Quantity:               alpacadecimal.NewFromFloat(in.quantity),
+				Totals: totals.Totals{
+					Amount:              alpacadecimal.NewFromFloat(in.totals.Amount),
+					ChargesTotal:        alpacadecimal.NewFromFloat(in.totals.ChargesTotal),
+					DiscountsTotal:      alpacadecimal.NewFromFloat(in.totals.DiscountsTotal),
+					TaxesInclusiveTotal: alpacadecimal.NewFromFloat(in.totals.TaxesInclusiveTotal),
+					TaxesExclusiveTotal: alpacadecimal.NewFromFloat(in.totals.TaxesExclusiveTotal),
+					TaxesTotal:          alpacadecimal.NewFromFloat(in.totals.TaxesTotal),
+					CreditsTotal:        alpacadecimal.NewFromFloat(in.totals.CreditsTotal),
+					Total:               alpacadecimal.NewFromFloat(in.totals.Total),
+				},
 			},
 		},
 	}

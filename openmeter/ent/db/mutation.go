@@ -18,9 +18,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
@@ -57317,6 +57317,8 @@ type ChargeFlatFeeRunDetailedLineMutation struct {
 	op                        Op
 	typ                       string
 	id                        *string
+	amount_discounts          *detailedline.AmountDiscounts
+	appendamount_discounts    detailedline.AmountDiscounts
 	currency                  *currencyx.Code
 	service_period_start      *time.Time
 	service_period_end        *time.Time
@@ -57346,7 +57348,6 @@ type ChargeFlatFeeRunDetailedLineMutation struct {
 	credits_total             *alpacadecimal.Decimal
 	total                     *alpacadecimal.Decimal
 	pricer_reference_id       *string
-	amount_discounts          *amountdiscount.AmountDiscountsOption
 	clearedFields             map[string]struct{}
 	run                       *string
 	clearedrun                bool
@@ -57457,6 +57458,71 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) IDs(ctx context.Context) ([]strin
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (m *ChargeFlatFeeRunDetailedLineMutation) SetAmountDiscounts(dd detailedline.AmountDiscounts) {
+	m.amount_discounts = &dd
+	m.appendamount_discounts = nil
+}
+
+// AmountDiscounts returns the value of the "amount_discounts" field in the mutation.
+func (m *ChargeFlatFeeRunDetailedLineMutation) AmountDiscounts() (r detailedline.AmountDiscounts, exists bool) {
+	v := m.amount_discounts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmountDiscounts returns the old "amount_discounts" field's value of the ChargeFlatFeeRunDetailedLine entity.
+// If the ChargeFlatFeeRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeRunDetailedLineMutation) OldAmountDiscounts(ctx context.Context) (v detailedline.AmountDiscounts, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmountDiscounts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmountDiscounts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmountDiscounts: %w", err)
+	}
+	return oldValue.AmountDiscounts, nil
+}
+
+// AppendAmountDiscounts adds dd to the "amount_discounts" field.
+func (m *ChargeFlatFeeRunDetailedLineMutation) AppendAmountDiscounts(dd detailedline.AmountDiscounts) {
+	m.appendamount_discounts = append(m.appendamount_discounts, dd...)
+}
+
+// AppendedAmountDiscounts returns the list of values that were appended to the "amount_discounts" field in this mutation.
+func (m *ChargeFlatFeeRunDetailedLineMutation) AppendedAmountDiscounts() (detailedline.AmountDiscounts, bool) {
+	if len(m.appendamount_discounts) == 0 {
+		return nil, false
+	}
+	return m.appendamount_discounts, true
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (m *ChargeFlatFeeRunDetailedLineMutation) ClearAmountDiscounts() {
+	m.amount_discounts = nil
+	m.appendamount_discounts = nil
+	m.clearedFields[chargeflatfeerundetailedline.FieldAmountDiscounts] = struct{}{}
+}
+
+// AmountDiscountsCleared returns if the "amount_discounts" field was cleared in this mutation.
+func (m *ChargeFlatFeeRunDetailedLineMutation) AmountDiscountsCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeerundetailedline.FieldAmountDiscounts]
+	return ok
+}
+
+// ResetAmountDiscounts resets all changes to the "amount_discounts" field.
+func (m *ChargeFlatFeeRunDetailedLineMutation) ResetAmountDiscounts() {
+	m.amount_discounts = nil
+	m.appendamount_discounts = nil
+	delete(m.clearedFields, chargeflatfeerundetailedline.FieldAmountDiscounts)
 }
 
 // SetCurrency sets the "currency" field.
@@ -58628,55 +58694,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ResetPricerReferenceID() {
 	m.pricer_reference_id = nil
 }
 
-// SetAmountDiscounts sets the "amount_discounts" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) SetAmountDiscounts(ado amountdiscount.AmountDiscountsOption) {
-	m.amount_discounts = &ado
-}
-
-// AmountDiscounts returns the value of the "amount_discounts" field in the mutation.
-func (m *ChargeFlatFeeRunDetailedLineMutation) AmountDiscounts() (r amountdiscount.AmountDiscountsOption, exists bool) {
-	v := m.amount_discounts
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAmountDiscounts returns the old "amount_discounts" field's value of the ChargeFlatFeeRunDetailedLine entity.
-// If the ChargeFlatFeeRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeRunDetailedLineMutation) OldAmountDiscounts(ctx context.Context) (v amountdiscount.AmountDiscountsOption, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAmountDiscounts is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAmountDiscounts requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAmountDiscounts: %w", err)
-	}
-	return oldValue.AmountDiscounts, nil
-}
-
-// ClearAmountDiscounts clears the value of the "amount_discounts" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ClearAmountDiscounts() {
-	m.amount_discounts = nil
-	m.clearedFields[chargeflatfeerundetailedline.FieldAmountDiscounts] = struct{}{}
-}
-
-// AmountDiscountsCleared returns if the "amount_discounts" field was cleared in this mutation.
-func (m *ChargeFlatFeeRunDetailedLineMutation) AmountDiscountsCleared() bool {
-	_, ok := m.clearedFields[chargeflatfeerundetailedline.FieldAmountDiscounts]
-	return ok
-}
-
-// ResetAmountDiscounts resets all changes to the "amount_discounts" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ResetAmountDiscounts() {
-	m.amount_discounts = nil
-	delete(m.clearedFields, chargeflatfeerundetailedline.FieldAmountDiscounts)
-}
-
 // ClearRun clears the "run" edge to the ChargeFlatFeeRun entity.
 func (m *ChargeFlatFeeRunDetailedLineMutation) ClearRun() {
 	m.clearedrun = true
@@ -58739,6 +58756,9 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) Type() string {
 // AddedFields().
 func (m *ChargeFlatFeeRunDetailedLineMutation) Fields() []string {
 	fields := make([]string, 0, 30)
+	if m.amount_discounts != nil {
+		fields = append(fields, chargeflatfeerundetailedline.FieldAmountDiscounts)
+	}
 	if m.currency != nil {
 		fields = append(fields, chargeflatfeerundetailedline.FieldCurrency)
 	}
@@ -58826,9 +58846,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) Fields() []string {
 	if m.pricer_reference_id != nil {
 		fields = append(fields, chargeflatfeerundetailedline.FieldPricerReferenceID)
 	}
-	if m.amount_discounts != nil {
-		fields = append(fields, chargeflatfeerundetailedline.FieldAmountDiscounts)
-	}
 	return fields
 }
 
@@ -58837,6 +58854,8 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) Fields() []string {
 // schema.
 func (m *ChargeFlatFeeRunDetailedLineMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case chargeflatfeerundetailedline.FieldAmountDiscounts:
+		return m.AmountDiscounts()
 	case chargeflatfeerundetailedline.FieldCurrency:
 		return m.Currency()
 	case chargeflatfeerundetailedline.FieldServicePeriodStart:
@@ -58895,8 +58914,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) Field(name string) (ent.Value, bo
 		return m.RunID()
 	case chargeflatfeerundetailedline.FieldPricerReferenceID:
 		return m.PricerReferenceID()
-	case chargeflatfeerundetailedline.FieldAmountDiscounts:
-		return m.AmountDiscounts()
 	}
 	return nil, false
 }
@@ -58906,6 +58923,8 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) Field(name string) (ent.Value, bo
 // database failed.
 func (m *ChargeFlatFeeRunDetailedLineMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case chargeflatfeerundetailedline.FieldAmountDiscounts:
+		return m.OldAmountDiscounts(ctx)
 	case chargeflatfeerundetailedline.FieldCurrency:
 		return m.OldCurrency(ctx)
 	case chargeflatfeerundetailedline.FieldServicePeriodStart:
@@ -58964,8 +58983,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) OldField(ctx context.Context, nam
 		return m.OldRunID(ctx)
 	case chargeflatfeerundetailedline.FieldPricerReferenceID:
 		return m.OldPricerReferenceID(ctx)
-	case chargeflatfeerundetailedline.FieldAmountDiscounts:
-		return m.OldAmountDiscounts(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeFlatFeeRunDetailedLine field %s", name)
 }
@@ -58975,6 +58992,13 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) OldField(ctx context.Context, nam
 // type.
 func (m *ChargeFlatFeeRunDetailedLineMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case chargeflatfeerundetailedline.FieldAmountDiscounts:
+		v, ok := value.(detailedline.AmountDiscounts)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmountDiscounts(v)
+		return nil
 	case chargeflatfeerundetailedline.FieldCurrency:
 		v, ok := value.(currencyx.Code)
 		if !ok {
@@ -59178,13 +59202,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) SetField(name string, value ent.V
 		}
 		m.SetPricerReferenceID(v)
 		return nil
-	case chargeflatfeerundetailedline.FieldAmountDiscounts:
-		v, ok := value.(amountdiscount.AmountDiscountsOption)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAmountDiscounts(v)
-		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRunDetailedLine field %s", name)
 }
@@ -59230,6 +59247,9 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) AddField(name string, value ent.V
 // mutation.
 func (m *ChargeFlatFeeRunDetailedLineMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(chargeflatfeerundetailedline.FieldAmountDiscounts) {
+		fields = append(fields, chargeflatfeerundetailedline.FieldAmountDiscounts)
+	}
 	if m.FieldCleared(chargeflatfeerundetailedline.FieldCurrency) {
 		fields = append(fields, chargeflatfeerundetailedline.FieldCurrency)
 	}
@@ -59254,9 +59274,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfeerundetailedline.FieldDescription) {
 		fields = append(fields, chargeflatfeerundetailedline.FieldDescription)
 	}
-	if m.FieldCleared(chargeflatfeerundetailedline.FieldAmountDiscounts) {
-		fields = append(fields, chargeflatfeerundetailedline.FieldAmountDiscounts)
-	}
 	return fields
 }
 
@@ -59271,6 +59288,9 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ChargeFlatFeeRunDetailedLineMutation) ClearField(name string) error {
 	switch name {
+	case chargeflatfeerundetailedline.FieldAmountDiscounts:
+		m.ClearAmountDiscounts()
+		return nil
 	case chargeflatfeerundetailedline.FieldCurrency:
 		m.ClearCurrency()
 		return nil
@@ -59295,9 +59315,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ClearField(name string) error {
 	case chargeflatfeerundetailedline.FieldDescription:
 		m.ClearDescription()
 		return nil
-	case chargeflatfeerundetailedline.FieldAmountDiscounts:
-		m.ClearAmountDiscounts()
-		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRunDetailedLine nullable field %s", name)
 }
@@ -59306,6 +59323,9 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *ChargeFlatFeeRunDetailedLineMutation) ResetField(name string) error {
 	switch name {
+	case chargeflatfeerundetailedline.FieldAmountDiscounts:
+		m.ResetAmountDiscounts()
+		return nil
 	case chargeflatfeerundetailedline.FieldCurrency:
 		m.ResetCurrency()
 		return nil
@@ -59392,9 +59412,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfeerundetailedline.FieldPricerReferenceID:
 		m.ResetPricerReferenceID()
-		return nil
-	case chargeflatfeerundetailedline.FieldAmountDiscounts:
-		m.ResetAmountDiscounts()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRunDetailedLine field %s", name)
@@ -71060,6 +71077,8 @@ type ChargeUsageBasedRunDetailedLineMutation struct {
 	op                        Op
 	typ                       string
 	id                        *string
+	amount_discounts          *detailedline.AmountDiscounts
+	appendamount_discounts    detailedline.AmountDiscounts
 	currency                  *currencyx.Code
 	service_period_start      *time.Time
 	service_period_end        *time.Time
@@ -71089,7 +71108,6 @@ type ChargeUsageBasedRunDetailedLineMutation struct {
 	credits_total             *alpacadecimal.Decimal
 	total                     *alpacadecimal.Decimal
 	pricer_reference_id       *string
-	amount_discounts          *amountdiscount.AmountDiscountsOption
 	clearedFields             map[string]struct{}
 	charge                    *string
 	clearedcharge             bool
@@ -71204,6 +71222,71 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) IDs(ctx context.Context) ([]st
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) SetAmountDiscounts(dd detailedline.AmountDiscounts) {
+	m.amount_discounts = &dd
+	m.appendamount_discounts = nil
+}
+
+// AmountDiscounts returns the value of the "amount_discounts" field in the mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AmountDiscounts() (r detailedline.AmountDiscounts, exists bool) {
+	v := m.amount_discounts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmountDiscounts returns the old "amount_discounts" field's value of the ChargeUsageBasedRunDetailedLine entity.
+// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunDetailedLineMutation) OldAmountDiscounts(ctx context.Context) (v detailedline.AmountDiscounts, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmountDiscounts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmountDiscounts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmountDiscounts: %w", err)
+	}
+	return oldValue.AmountDiscounts, nil
+}
+
+// AppendAmountDiscounts adds dd to the "amount_discounts" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AppendAmountDiscounts(dd detailedline.AmountDiscounts) {
+	m.appendamount_discounts = append(m.appendamount_discounts, dd...)
+}
+
+// AppendedAmountDiscounts returns the list of values that were appended to the "amount_discounts" field in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AppendedAmountDiscounts() (detailedline.AmountDiscounts, bool) {
+	if len(m.appendamount_discounts) == 0 {
+		return nil, false
+	}
+	return m.appendamount_discounts, true
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ClearAmountDiscounts() {
+	m.amount_discounts = nil
+	m.appendamount_discounts = nil
+	m.clearedFields[chargeusagebasedrundetailedline.FieldAmountDiscounts] = struct{}{}
+}
+
+// AmountDiscountsCleared returns if the "amount_discounts" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunDetailedLineMutation) AmountDiscountsCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldAmountDiscounts]
+	return ok
+}
+
+// ResetAmountDiscounts resets all changes to the "amount_discounts" field.
+func (m *ChargeUsageBasedRunDetailedLineMutation) ResetAmountDiscounts() {
+	m.amount_discounts = nil
+	m.appendamount_discounts = nil
+	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldAmountDiscounts)
 }
 
 // SetCurrency sets the "currency" field.
@@ -72411,55 +72494,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ResetPricerReferenceID() {
 	m.pricer_reference_id = nil
 }
 
-// SetAmountDiscounts sets the "amount_discounts" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) SetAmountDiscounts(ado amountdiscount.AmountDiscountsOption) {
-	m.amount_discounts = &ado
-}
-
-// AmountDiscounts returns the value of the "amount_discounts" field in the mutation.
-func (m *ChargeUsageBasedRunDetailedLineMutation) AmountDiscounts() (r amountdiscount.AmountDiscountsOption, exists bool) {
-	v := m.amount_discounts
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAmountDiscounts returns the old "amount_discounts" field's value of the ChargeUsageBasedRunDetailedLine entity.
-// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunDetailedLineMutation) OldAmountDiscounts(ctx context.Context) (v amountdiscount.AmountDiscountsOption, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAmountDiscounts is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAmountDiscounts requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAmountDiscounts: %w", err)
-	}
-	return oldValue.AmountDiscounts, nil
-}
-
-// ClearAmountDiscounts clears the value of the "amount_discounts" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ClearAmountDiscounts() {
-	m.amount_discounts = nil
-	m.clearedFields[chargeusagebasedrundetailedline.FieldAmountDiscounts] = struct{}{}
-}
-
-// AmountDiscountsCleared returns if the "amount_discounts" field was cleared in this mutation.
-func (m *ChargeUsageBasedRunDetailedLineMutation) AmountDiscountsCleared() bool {
-	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldAmountDiscounts]
-	return ok
-}
-
-// ResetAmountDiscounts resets all changes to the "amount_discounts" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ResetAmountDiscounts() {
-	m.amount_discounts = nil
-	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldAmountDiscounts)
-}
-
 // SetCorrectsRunID sets the "corrects_run_id" field.
 func (m *ChargeUsageBasedRunDetailedLineMutation) SetCorrectsRunID(s string) {
 	m.corrects_run = &s
@@ -72625,6 +72659,9 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) Type() string {
 // AddedFields().
 func (m *ChargeUsageBasedRunDetailedLineMutation) Fields() []string {
 	fields := make([]string, 0, 32)
+	if m.amount_discounts != nil {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldAmountDiscounts)
+	}
 	if m.currency != nil {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldCurrency)
 	}
@@ -72715,9 +72752,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) Fields() []string {
 	if m.pricer_reference_id != nil {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldPricerReferenceID)
 	}
-	if m.amount_discounts != nil {
-		fields = append(fields, chargeusagebasedrundetailedline.FieldAmountDiscounts)
-	}
 	if m.corrects_run != nil {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldCorrectsRunID)
 	}
@@ -72729,6 +72763,8 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) Fields() []string {
 // schema.
 func (m *ChargeUsageBasedRunDetailedLineMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
+		return m.AmountDiscounts()
 	case chargeusagebasedrundetailedline.FieldCurrency:
 		return m.Currency()
 	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
@@ -72789,8 +72825,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) Field(name string) (ent.Value,
 		return m.RunID()
 	case chargeusagebasedrundetailedline.FieldPricerReferenceID:
 		return m.PricerReferenceID()
-	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
-		return m.AmountDiscounts()
 	case chargeusagebasedrundetailedline.FieldCorrectsRunID:
 		return m.CorrectsRunID()
 	}
@@ -72802,6 +72836,8 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) Field(name string) (ent.Value,
 // database failed.
 func (m *ChargeUsageBasedRunDetailedLineMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
+		return m.OldAmountDiscounts(ctx)
 	case chargeusagebasedrundetailedline.FieldCurrency:
 		return m.OldCurrency(ctx)
 	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
@@ -72862,8 +72898,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) OldField(ctx context.Context, 
 		return m.OldRunID(ctx)
 	case chargeusagebasedrundetailedline.FieldPricerReferenceID:
 		return m.OldPricerReferenceID(ctx)
-	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
-		return m.OldAmountDiscounts(ctx)
 	case chargeusagebasedrundetailedline.FieldCorrectsRunID:
 		return m.OldCorrectsRunID(ctx)
 	}
@@ -72875,6 +72909,13 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) OldField(ctx context.Context, 
 // type.
 func (m *ChargeUsageBasedRunDetailedLineMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
+		v, ok := value.(detailedline.AmountDiscounts)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmountDiscounts(v)
+		return nil
 	case chargeusagebasedrundetailedline.FieldCurrency:
 		v, ok := value.(currencyx.Code)
 		if !ok {
@@ -73085,13 +73126,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) SetField(name string, value en
 		}
 		m.SetPricerReferenceID(v)
 		return nil
-	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
-		v, ok := value.(amountdiscount.AmountDiscountsOption)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAmountDiscounts(v)
-		return nil
 	case chargeusagebasedrundetailedline.FieldCorrectsRunID:
 		v, ok := value.(string)
 		if !ok {
@@ -73144,6 +73178,9 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) AddField(name string, value en
 // mutation.
 func (m *ChargeUsageBasedRunDetailedLineMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(chargeusagebasedrundetailedline.FieldAmountDiscounts) {
+		fields = append(fields, chargeusagebasedrundetailedline.FieldAmountDiscounts)
+	}
 	if m.FieldCleared(chargeusagebasedrundetailedline.FieldCurrency) {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldCurrency)
 	}
@@ -73168,9 +73205,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebasedrundetailedline.FieldDescription) {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldDescription)
 	}
-	if m.FieldCleared(chargeusagebasedrundetailedline.FieldAmountDiscounts) {
-		fields = append(fields, chargeusagebasedrundetailedline.FieldAmountDiscounts)
-	}
 	if m.FieldCleared(chargeusagebasedrundetailedline.FieldCorrectsRunID) {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldCorrectsRunID)
 	}
@@ -73188,6 +73222,9 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) FieldCleared(name string) bool
 // error if the field is not defined in the schema.
 func (m *ChargeUsageBasedRunDetailedLineMutation) ClearField(name string) error {
 	switch name {
+	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
+		m.ClearAmountDiscounts()
+		return nil
 	case chargeusagebasedrundetailedline.FieldCurrency:
 		m.ClearCurrency()
 		return nil
@@ -73212,9 +73249,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ClearField(name string) error 
 	case chargeusagebasedrundetailedline.FieldDescription:
 		m.ClearDescription()
 		return nil
-	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
-		m.ClearAmountDiscounts()
-		return nil
 	case chargeusagebasedrundetailedline.FieldCorrectsRunID:
 		m.ClearCorrectsRunID()
 		return nil
@@ -73226,6 +73260,9 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ClearField(name string) error 
 // It returns an error if the field is not defined in the schema.
 func (m *ChargeUsageBasedRunDetailedLineMutation) ResetField(name string) error {
 	switch name {
+	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
+		m.ResetAmountDiscounts()
+		return nil
 	case chargeusagebasedrundetailedline.FieldCurrency:
 		m.ResetCurrency()
 		return nil
@@ -73315,9 +73352,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ResetField(name string) error 
 		return nil
 	case chargeusagebasedrundetailedline.FieldPricerReferenceID:
 		m.ResetPricerReferenceID()
-		return nil
-	case chargeusagebasedrundetailedline.FieldAmountDiscounts:
-		m.ResetAmountDiscounts()
 		return nil
 	case chargeusagebasedrundetailedline.FieldCorrectsRunID:
 		m.ResetCorrectsRunID()

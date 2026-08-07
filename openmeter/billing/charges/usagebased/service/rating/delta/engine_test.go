@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	ratingtestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -158,19 +159,21 @@ func TestRateSubtractsAlreadyBilledLinesAndBooksDeltaOnCurrentPeriod(t *testing.
 		AlreadyBilledDetailedLines: usagebased.DetailedLines{
 			{
 				PricerReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID,
-				Base: stddetailedline.Base{
-					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-						Name: "Usage",
-					}),
-					ServicePeriod:          priorPeriod,
-					ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
-					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					PerUnitAmount:          alpacadecimal.NewFromInt(10),
-					Quantity:               alpacadecimal.NewFromInt(3),
-					Category:               stddetailedline.CategoryRegular,
-					Totals: totals.Totals{
-						Amount: alpacadecimal.NewFromInt(30),
-						Total:  alpacadecimal.NewFromInt(30),
+				Base: chargedetailedline.Base{
+					Base: stddetailedline.Base{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "Usage",
+						}),
+						ServicePeriod:          priorPeriod,
+						ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
+						PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+						PerUnitAmount:          alpacadecimal.NewFromInt(10),
+						Quantity:               alpacadecimal.NewFromInt(3),
+						Category:               stddetailedline.CategoryRegular,
+						Totals: totals.Totals{
+							Amount: alpacadecimal.NewFromInt(30),
+							Total:  alpacadecimal.NewFromInt(30),
+						},
 					},
 				},
 			},
@@ -224,20 +227,22 @@ func TestRateGeneratesCorrectionChildUniqueReferenceIDForPreviousOnlyReversal(t 
 		AlreadyBilledDetailedLines: usagebased.DetailedLines{
 			{
 				PricerReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID,
-				Base: stddetailedline.Base{
-					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-						ID:   "previous-line-id",
-						Name: "Usage",
-					}),
-					ServicePeriod:          priorPeriod,
-					ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
-					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					PerUnitAmount:          alpacadecimal.NewFromInt(10),
-					Quantity:               alpacadecimal.NewFromInt(3),
-					Category:               stddetailedline.CategoryRegular,
-					Totals: totals.Totals{
-						Amount: alpacadecimal.NewFromInt(30),
-						Total:  alpacadecimal.NewFromInt(30),
+				Base: chargedetailedline.Base{
+					Base: stddetailedline.Base{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							ID:   "previous-line-id",
+							Name: "Usage",
+						}),
+						ServicePeriod:          priorPeriod,
+						ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
+						PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+						PerUnitAmount:          alpacadecimal.NewFromInt(10),
+						Quantity:               alpacadecimal.NewFromInt(3),
+						Category:               stddetailedline.CategoryRegular,
+						Totals: totals.Totals{
+							Amount: alpacadecimal.NewFromInt(30),
+							Total:  alpacadecimal.NewFromInt(30),
+						},
 					},
 				},
 			},
@@ -292,19 +297,21 @@ func TestRateErrorsWhenPreviousOnlyReversalDetailedLineIDIsMissing(t *testing.T)
 		AlreadyBilledDetailedLines: usagebased.DetailedLines{
 			{
 				PricerReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID,
-				Base: stddetailedline.Base{
-					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-						Name: "Usage",
-					}),
-					ServicePeriod:          priorPeriod,
-					ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
-					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-					PerUnitAmount:          alpacadecimal.NewFromInt(10),
-					Quantity:               alpacadecimal.NewFromInt(3),
-					Category:               stddetailedline.CategoryRegular,
-					Totals: totals.Totals{
-						Amount: alpacadecimal.NewFromInt(30),
-						Total:  alpacadecimal.NewFromInt(30),
+				Base: chargedetailedline.Base{
+					Base: stddetailedline.Base{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Name: "Usage",
+						}),
+						ServicePeriod:          priorPeriod,
+						ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
+						PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+						PerUnitAmount:          alpacadecimal.NewFromInt(10),
+						Quantity:               alpacadecimal.NewFromInt(3),
+						Category:               stddetailedline.CategoryRegular,
+						Totals: totals.Totals{
+							Amount: alpacadecimal.NewFromInt(30),
+							Total:  alpacadecimal.NewFromInt(30),
+						},
 					},
 				},
 			},

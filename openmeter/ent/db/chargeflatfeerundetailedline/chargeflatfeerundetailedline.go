@@ -8,8 +8,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -19,6 +17,8 @@ const (
 	Label = "charge_flat_fee_run_detailed_line"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldAmountDiscounts holds the string denoting the amount_discounts field in the database.
+	FieldAmountDiscounts = "amount_discounts"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldServicePeriodStart holds the string denoting the service_period_start field in the database.
@@ -77,8 +77,6 @@ const (
 	FieldRunID = "run_id"
 	// FieldPricerReferenceID holds the string denoting the pricer_reference_id field in the database.
 	FieldPricerReferenceID = "pricer_reference_id"
-	// FieldAmountDiscounts holds the string denoting the amount_discounts field in the database.
-	FieldAmountDiscounts = "amount_discounts"
 	// EdgeRun holds the string denoting the run edge name in mutations.
 	EdgeRun = "run"
 	// Table holds the table name of the chargeflatfeerundetailedline in the database.
@@ -95,6 +93,7 @@ const (
 // Columns holds all SQL columns for chargeflatfeerundetailedline fields.
 var Columns = []string{
 	FieldID,
+	FieldAmountDiscounts,
 	FieldServicePeriodStart,
 	FieldServicePeriodEnd,
 	FieldQuantity,
@@ -121,7 +120,6 @@ var Columns = []string{
 	FieldTotal,
 	FieldRunID,
 	FieldPricerReferenceID,
-	FieldAmountDiscounts,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -154,10 +152,6 @@ var (
 	PricerReferenceIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-	// ValueScanner of all ChargeFlatFeeRunDetailedLine fields.
-	ValueScanner struct {
-		AmountDiscounts field.TypeValueScanner[amountdiscount.AmountDiscountsOption]
-	}
 )
 
 const DefaultCategory stddetailedline.Category = "regular"
@@ -320,11 +314,6 @@ func ByRunID(opts ...sql.OrderTermOption) OrderOption {
 // ByPricerReferenceID orders the results by the pricer_reference_id field.
 func ByPricerReferenceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPricerReferenceID, opts...).ToFunc()
-}
-
-// ByAmountDiscounts orders the results by the amount_discounts field.
-func ByAmountDiscounts(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAmountDiscounts, opts...).ToFunc()
 }
 
 // ByRunField orders the results by run field.

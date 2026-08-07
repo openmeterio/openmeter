@@ -7,10 +7,9 @@ import (
 	"slices"
 
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -22,20 +21,14 @@ import (
 )
 
 type DetailedLine struct {
-	stddetailedline.Base
+	chargedetailedline.Base
 
-	// AmountDiscounts is absent when discounts were not captured for the persisted line.
-	// A present empty collection means discounts were captured and none applied.
-	AmountDiscounts   mo.Option[amountdiscount.AmountDiscounts] `json:"amountDiscounts,omitzero"`
-	PricerReferenceID string                                    `json:"pricerReferenceID"`
-	CorrectsRunID     *string                                   `json:"correctsRunID,omitempty"`
+	PricerReferenceID string  `json:"pricerReferenceID"`
+	CorrectsRunID     *string `json:"correctsRunID,omitempty"`
 }
 
 func (l DetailedLine) Clone() DetailedLine {
 	l.Base = l.Base.Clone()
-	if discounts, ok := l.AmountDiscounts.Get(); ok {
-		l.AmountDiscounts = mo.Some(discounts.Clone())
-	}
 
 	if l.CorrectsRunID != nil {
 		l.CorrectsRunID = lo.ToPtr(*l.CorrectsRunID)
@@ -49,12 +42,6 @@ func (l DetailedLine) Validate() error {
 
 	if err := l.Base.Validate(stddetailedline.IgnoreQuantityChecks()); err != nil {
 		errs = append(errs, err)
-	}
-
-	if discounts, ok := l.AmountDiscounts.Get(); ok {
-		if err := discounts.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("amount discounts: %w", err))
-		}
 	}
 
 	if l.PricerReferenceID == "" {
@@ -112,21 +99,23 @@ func NewDetailedLinesFromBilling(
 		}
 
 		return DetailedLine{
-			AmountDiscounts:   mo.Some(amountdiscount.New(line.AmountDiscounts)),
 			PricerReferenceID: line.ChildUniqueReferenceID,
-			Base: stddetailedline.Base{
-				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-					Name: line.Name,
-				}),
-				ServicePeriod:          period,
-				Index:                  lo.ToPtr(idx),
-				ChildUniqueReferenceID: line.ChildUniqueReferenceID,
-				PaymentTerm:            lo.CoalesceOrEmpty(line.PaymentTerm, productcatalog.InArrearsPaymentTerm),
-				PerUnitAmount:          line.PerUnitAmount,
-				Quantity:               line.Quantity,
-				Category:               category,
-				CreditsApplied:         line.CreditsApplied,
-				Totals:                 line.Totals,
+			Base: chargedetailedline.Base{
+				AmountDiscounts: chargedetailedline.MapAmountDiscountsFromBilling(line.AmountDiscounts),
+				Base: stddetailedline.Base{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: line.Name,
+					}),
+					ServicePeriod:          period,
+					Index:                  lo.ToPtr(idx),
+					ChildUniqueReferenceID: line.ChildUniqueReferenceID,
+					PaymentTerm:            lo.CoalesceOrEmpty(line.PaymentTerm, productcatalog.InArrearsPaymentTerm),
+					PerUnitAmount:          line.PerUnitAmount,
+					Quantity:               line.Quantity,
+					Category:               category,
+					CreditsApplied:         line.CreditsApplied,
+					Totals:                 line.Totals,
+				},
 			},
 		}
 	})
@@ -141,14 +130,14 @@ func (l DetailedLines) Clone() DetailedLines {
 func (l DetailedLines) mapBase(fn func(stddetailedline.Bases) (stddetailedline.Bases, error)) (DetailedLines, error) {
 	out := l.Clone()
 	bases, err := fn(lo.Map(out, func(line DetailedLine, _ int) stddetailedline.Base {
-		return line.Base
+		return line.Base.Base
 	}))
 	if err != nil {
 		return nil, err
 	}
 
 	for idx := range out {
-		out[idx].Base = bases[idx]
+		out[idx].Base.Base = bases[idx]
 	}
 
 	return out, nil

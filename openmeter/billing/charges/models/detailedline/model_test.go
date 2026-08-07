@@ -1,4 +1,4 @@
-package amountdiscount
+package detailedline
 
 import (
 	"testing"
@@ -44,7 +44,7 @@ func TestAmountDiscountsValidateRequiresStableReferenceAndReason(t *testing.T) {
 	require.ErrorContains(t, err, "invalid discount type")
 }
 
-func TestAmountDiscountsClonePreservesKnownEmptyCollection(t *testing.T) {
+func TestAmountDiscountsClonePreservesEmptyCollection(t *testing.T) {
 	t.Parallel()
 
 	cloned := (AmountDiscounts{}).Clone()

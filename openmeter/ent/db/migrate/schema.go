@@ -2582,6 +2582,7 @@ var (
 	// ChargeFlatFeeRunDetailedLinesColumns holds the columns for the "charge_flat_fee_run_detailed_lines" table.
 	ChargeFlatFeeRunDetailedLinesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "amount_discounts", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "currency", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "service_period_start", Type: field.TypeTime},
 		{Name: "service_period_end", Type: field.TypeTime},
@@ -2610,7 +2611,6 @@ var (
 		{Name: "credits_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "pricer_reference_id", Type: field.TypeString},
-		{Name: "amount_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeFlatFeeRunDetailedLinesTable holds the schema information for the "charge_flat_fee_run_detailed_lines" table.
@@ -2630,7 +2630,7 @@ var (
 			{
 				Name:    "chargeflatfeerundetailedline_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[12]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[13]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -2645,22 +2645,22 @@ var (
 			{
 				Name:    "chargeflatfeerundetailedline_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[13]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[14]},
 			},
 			{
 				Name:    "chargeflatfeerundetailedline_namespace_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[13], ChargeFlatFeeRunDetailedLinesColumns[0]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[14], ChargeFlatFeeRunDetailedLinesColumns[0]},
 			},
 			{
 				Name:    "chargeflatfeerundetailedline_namespace_run_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[13], ChargeFlatFeeRunDetailedLinesColumns[30]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[14], ChargeFlatFeeRunDetailedLinesColumns[30]},
 			},
 			{
 				Name:    "chargeffdetailedline_ns_run_child_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[13], ChargeFlatFeeRunDetailedLinesColumns[30], ChargeFlatFeeRunDetailedLinesColumns[6]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[14], ChargeFlatFeeRunDetailedLinesColumns[30], ChargeFlatFeeRunDetailedLinesColumns[7]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -3198,6 +3198,7 @@ var (
 	// ChargeUsageBasedRunDetailedLineColumns holds the columns for the "charge_usage_based_run_detailed_line" table.
 	ChargeUsageBasedRunDetailedLineColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "amount_discounts", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "currency", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "service_period_start", Type: field.TypeTime},
 		{Name: "service_period_end", Type: field.TypeTime},
@@ -3226,7 +3227,6 @@ var (
 		{Name: "credits_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "pricer_reference_id", Type: field.TypeString},
-		{Name: "amount_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "corrects_run_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3260,7 +3260,7 @@ var (
 			{
 				Name:    "chargeusagebasedrundetailedline_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[12]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -3275,27 +3275,27 @@ var (
 			{
 				Name:    "chargeusagebasedrundetailedline_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[14]},
 			},
 			{
 				Name:    "chargeusagebasedrundetailedline_namespace_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13], ChargeUsageBasedRunDetailedLineColumns[0]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[14], ChargeUsageBasedRunDetailedLineColumns[0]},
 			},
 			{
 				Name:    "chargeusagebasedrundetailedline_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13], ChargeUsageBasedRunDetailedLineColumns[30]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[14], ChargeUsageBasedRunDetailedLineColumns[30]},
 			},
 			{
 				Name:    "chargeusagebasedrundetailedline_namespace_run_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13], ChargeUsageBasedRunDetailedLineColumns[31]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[14], ChargeUsageBasedRunDetailedLineColumns[31]},
 			},
 			{
 				Name:    "chargeubdetailedline_ns_charge_run_child_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13], ChargeUsageBasedRunDetailedLineColumns[30], ChargeUsageBasedRunDetailedLineColumns[31], ChargeUsageBasedRunDetailedLineColumns[6]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[14], ChargeUsageBasedRunDetailedLineColumns[30], ChargeUsageBasedRunDetailedLineColumns[31], ChargeUsageBasedRunDetailedLineColumns[7]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},

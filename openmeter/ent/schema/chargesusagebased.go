@@ -11,12 +11,11 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -446,7 +445,7 @@ type ChargeUsageBasedRunDetailedLine struct {
 
 func (ChargeUsageBasedRunDetailedLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		stddetailedline.Mixin{},
+		chargedetailedline.Mixin{},
 	}
 }
 
@@ -464,15 +463,6 @@ func (ChargeUsageBasedRunDetailedLine) Fields() []ent.Field {
 
 		field.String("pricer_reference_id").
 			NotEmpty(),
-
-		field.String("amount_discounts").
-			GoType(amountdiscount.AmountDiscountsOption{}).
-			ValueScanner(entutils.JSONStringArrayOptionValueScanner(amountdiscount.NewAmountDiscountsOption)).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional(),
-
 		field.String("corrects_run_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",

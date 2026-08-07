@@ -12,11 +12,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -420,7 +419,7 @@ type ChargeFlatFeeRunDetailedLine struct {
 
 func (ChargeFlatFeeRunDetailedLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		stddetailedline.Mixin{},
+		chargedetailedline.Mixin{},
 	}
 }
 
@@ -434,14 +433,6 @@ func (ChargeFlatFeeRunDetailedLine) Fields() []ent.Field {
 
 		field.String("pricer_reference_id").
 			NotEmpty(),
-
-		field.String("amount_discounts").
-			GoType(amountdiscount.AmountDiscountsOption{}).
-			ValueScanner(entutils.JSONStringArrayOptionValueScanner(amountdiscount.NewAmountDiscountsOption)).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional(),
 	}
 }
 

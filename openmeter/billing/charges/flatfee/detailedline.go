@@ -5,9 +5,8 @@ import (
 	"fmt"
 
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -18,38 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type DetailedLine struct {
-	stddetailedline.Base
-
-	// AmountDiscounts is absent when discounts were not captured for the persisted line.
-	// A present empty collection means discounts were captured and none applied.
-	AmountDiscounts mo.Option[amountdiscount.AmountDiscounts] `json:"amountDiscounts,omitzero"`
-}
-
-func (l DetailedLine) Clone() DetailedLine {
-	l.Base = l.Base.Clone()
-	if discounts, ok := l.AmountDiscounts.Get(); ok {
-		l.AmountDiscounts = mo.Some(discounts.Clone())
-	}
-
-	return l
-}
-
-func (l DetailedLine) Validate() error {
-	var errs []error
-
-	if err := l.Base.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if discounts, ok := l.AmountDiscounts.Get(); ok {
-		if err := discounts.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("amount discounts: %w", err))
-		}
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
+type DetailedLine = chargedetailedline.Base
 
 type DetailedLines []DetailedLine
 
@@ -105,7 +73,7 @@ func (l DetailedLines) Validate() error {
 func NewDetailedLinesFromRating(defaultServicePeriod timeutil.ClosedPeriod, lines billingrating.DetailedLines) DetailedLines {
 	return lo.Map(lines, func(line billingrating.DetailedLine, idx int) DetailedLine {
 		return DetailedLine{
-			AmountDiscounts: mo.Some(amountdiscount.New(line.AmountDiscounts)),
+			AmountDiscounts: chargedetailedline.MapAmountDiscountsFromBilling(line.AmountDiscounts),
 			Base: stddetailedline.Base{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					Name: line.Name,

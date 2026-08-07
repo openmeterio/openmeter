@@ -10,8 +10,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -162,13 +161,11 @@ func buildDetailedLineCreate(db *entdb.Client, runID flatfee.RealizationRunID, l
 		SetRunID(runID.ID).
 		SetPricerReferenceID(line.ChildUniqueReferenceID)
 
-	create = stddetailedline.Create(create, line.Base)
+	create = chargedetailedline.Create(create, line)
 
 	if len(line.CreditsApplied) > 0 {
 		create = create.SetCreditsApplied(&line.CreditsApplied)
 	}
-
-	create = create.SetAmountDiscounts(amountdiscount.NewAmountDiscountsOption(line.AmountDiscounts))
 
 	return create, nil
 }
@@ -177,10 +174,7 @@ func fromDBDetailedLines(dbLines []*entdb.ChargeFlatFeeRunDetailedLine) (flatfee
 	lines := make(flatfee.DetailedLines, 0, len(dbLines))
 
 	for _, dbLine := range dbLines {
-		line := flatfee.DetailedLine{
-			Base:            stddetailedline.FromDB(dbLine),
-			AmountDiscounts: dbLine.AmountDiscounts.Option,
-		}
+		line := chargedetailedline.FromDB(dbLine)
 
 		if err := line.Validate(); err != nil {
 			return nil, err

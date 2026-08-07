@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -30,6 +30,12 @@ type ChargeUsageBasedRunDetailedLineCreate struct {
 	mutation *ChargeUsageBasedRunDetailedLineMutation
 	hooks    []Hook
 	conflict []sql.ConflictOption
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_c *ChargeUsageBasedRunDetailedLineCreate) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineCreate {
+	_c.mutation.SetAmountDiscounts(v)
+	return _c
 }
 
 // SetCurrency sets the "currency" field.
@@ -284,20 +290,6 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) SetPricerReferenceID(v string) 
 	return _c
 }
 
-// SetAmountDiscounts sets the "amount_discounts" field.
-func (_c *ChargeUsageBasedRunDetailedLineCreate) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineCreate {
-	_c.mutation.SetAmountDiscounts(v)
-	return _c
-}
-
-// SetNillableAmountDiscounts sets the "amount_discounts" field if the given value is not nil.
-func (_c *ChargeUsageBasedRunDetailedLineCreate) SetNillableAmountDiscounts(v *amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineCreate {
-	if v != nil {
-		_c.SetAmountDiscounts(*v)
-	}
-	return _c
-}
-
 // SetCorrectsRunID sets the "corrects_run_id" field.
 func (_c *ChargeUsageBasedRunDetailedLineCreate) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineCreate {
 	_c.mutation.SetCorrectsRunID(v)
@@ -400,6 +392,11 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeUsageBasedRunDetailedLineCreate) check() error {
+	if v, ok := _c.mutation.AmountDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "amount_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.amount_discounts": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.Currency(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.currency": %w`, err)}
@@ -519,10 +516,7 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) sqlSave(ctx context.Context) (*
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := _c.createSpec()
-	if err != nil {
-		return nil, err
-	}
+	_node, _spec := _c.createSpec()
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -541,7 +535,7 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) sqlSave(ctx context.Context) (*
 	return _node, nil
 }
 
-func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBasedRunDetailedLine, *sqlgraph.CreateSpec, error) {
+func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBasedRunDetailedLine, *sqlgraph.CreateSpec) {
 	var (
 		_node = &ChargeUsageBasedRunDetailedLine{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(chargeusagebasedrundetailedline.Table, sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString))
@@ -550,6 +544,10 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBased
 	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
+	}
+	if value, ok := _c.mutation.AmountDiscounts(); ok {
+		_spec.SetField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeJSON, value)
+		_node.AmountDiscounts = value
 	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldCurrency, field.TypeString, value)
@@ -663,14 +661,6 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBased
 		_spec.SetField(chargeusagebasedrundetailedline.FieldPricerReferenceID, field.TypeString, value)
 		_node.PricerReferenceID = value
 	}
-	if value, ok := _c.mutation.AmountDiscounts(); ok {
-		vv, err := chargeusagebasedrundetailedline.ValueScanner.AmountDiscounts.Value(value)
-		if err != nil {
-			return nil, nil, err
-		}
-		_spec.SetField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeString, vv)
-		_node.AmountDiscounts = value
-	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -722,14 +712,14 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBased
 		_node.CorrectsRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec, nil
+	return _node, _spec
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
 // of the `INSERT` statement. For example:
 //
 //	client.ChargeUsageBasedRunDetailedLine.Create().
-//		SetCurrency(v).
+//		SetAmountDiscounts(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -738,7 +728,7 @@ func (_c *ChargeUsageBasedRunDetailedLineCreate) createSpec() (*ChargeUsageBased
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeUsageBasedRunDetailedLineUpsert) {
-//			SetCurrency(v+v).
+//			SetAmountDiscounts(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeUsageBasedRunDetailedLineCreate) OnConflict(opts ...sql.ConflictOption) *ChargeUsageBasedRunDetailedLineUpsertOne {
@@ -773,6 +763,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsert) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineUpsert {
+	u.Set(chargeusagebasedrundetailedline.FieldAmountDiscounts, v)
+	return u
+}
+
+// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunDetailedLineUpsert) UpdateAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsert {
+	u.SetExcluded(chargeusagebasedrundetailedline.FieldAmountDiscounts)
+	return u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsert) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsert {
+	u.SetNull(chargeusagebasedrundetailedline.FieldAmountDiscounts)
+	return u
+}
 
 // SetServicePeriodStart sets the "service_period_start" field.
 func (u *ChargeUsageBasedRunDetailedLineUpsert) SetServicePeriodStart(v time.Time) *ChargeUsageBasedRunDetailedLineUpsert {
@@ -1146,24 +1154,6 @@ func (u *ChargeUsageBasedRunDetailedLineUpsert) UpdatePricerReferenceID() *Charg
 	return u
 }
 
-// SetAmountDiscounts sets the "amount_discounts" field.
-func (u *ChargeUsageBasedRunDetailedLineUpsert) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpsert {
-	u.Set(chargeusagebasedrundetailedline.FieldAmountDiscounts, v)
-	return u
-}
-
-// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunDetailedLineUpsert) UpdateAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsert {
-	u.SetExcluded(chargeusagebasedrundetailedline.FieldAmountDiscounts)
-	return u
-}
-
-// ClearAmountDiscounts clears the value of the "amount_discounts" field.
-func (u *ChargeUsageBasedRunDetailedLineUpsert) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsert {
-	u.SetNull(chargeusagebasedrundetailedline.FieldAmountDiscounts)
-	return u
-}
-
 // SetCorrectsRunID sets the "corrects_run_id" field.
 func (u *ChargeUsageBasedRunDetailedLineUpsert) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpsert {
 	u.Set(chargeusagebasedrundetailedline.FieldCorrectsRunID, v)
@@ -1237,6 +1227,27 @@ func (u *ChargeUsageBasedRunDetailedLineUpsertOne) Update(set func(*ChargeUsageB
 		set(&ChargeUsageBasedRunDetailedLineUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertOne) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.SetAmountDiscounts(v)
+	})
+}
+
+// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunDetailedLineUpsertOne) UpdateAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.UpdateAmountDiscounts()
+	})
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertOne) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.ClearAmountDiscounts()
+	})
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -1673,27 +1684,6 @@ func (u *ChargeUsageBasedRunDetailedLineUpsertOne) UpdatePricerReferenceID() *Ch
 	})
 }
 
-// SetAmountDiscounts sets the "amount_discounts" field.
-func (u *ChargeUsageBasedRunDetailedLineUpsertOne) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
-		s.SetAmountDiscounts(v)
-	})
-}
-
-// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunDetailedLineUpsertOne) UpdateAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
-		s.UpdateAmountDiscounts()
-	})
-}
-
-// ClearAmountDiscounts clears the value of the "amount_discounts" field.
-func (u *ChargeUsageBasedRunDetailedLineUpsertOne) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
-		s.ClearAmountDiscounts()
-	})
-}
-
 // SetCorrectsRunID sets the "corrects_run_id" field.
 func (u *ChargeUsageBasedRunDetailedLineUpsertOne) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
@@ -1783,10 +1773,7 @@ func (_c *ChargeUsageBasedRunDetailedLineCreateBulk) Save(ctx context.Context) (
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i], err = builder.createSpec()
-				if err != nil {
-					return nil, err
-				}
+				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -1854,7 +1841,7 @@ func (_c *ChargeUsageBasedRunDetailedLineCreateBulk) ExecX(ctx context.Context) 
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeUsageBasedRunDetailedLineUpsert) {
-//			SetCurrency(v+v).
+//			SetAmountDiscounts(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeUsageBasedRunDetailedLineCreateBulk) OnConflict(opts ...sql.ConflictOption) *ChargeUsageBasedRunDetailedLineUpsertBulk {
@@ -1940,6 +1927,27 @@ func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) Update(set func(*ChargeUsage
 		set(&ChargeUsageBasedRunDetailedLineUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.SetAmountDiscounts(v)
+	})
+}
+
+// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) UpdateAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.UpdateAmountDiscounts()
+	})
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
+		s.ClearAmountDiscounts()
+	})
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -2373,27 +2381,6 @@ func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) SetPricerReferenceID(v strin
 func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) UpdatePricerReferenceID() *ChargeUsageBasedRunDetailedLineUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
 		s.UpdatePricerReferenceID()
-	})
-}
-
-// SetAmountDiscounts sets the "amount_discounts" field.
-func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
-		s.SetAmountDiscounts(v)
-	})
-}
-
-// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) UpdateAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
-		s.UpdateAmountDiscounts()
-	})
-}
-
-// ClearAmountDiscounts clears the value of the "amount_discounts" field.
-func (u *ChargeUsageBasedRunDetailedLineUpsertBulk) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunDetailedLineUpsert) {
-		s.ClearAmountDiscounts()
 	})
 }
 

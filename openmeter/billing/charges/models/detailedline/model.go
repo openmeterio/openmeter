@@ -1,4 +1,4 @@
-package amountdiscount
+package detailedline
 
 import (
 	"errors"
@@ -6,12 +6,49 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// Base is the common model for charge realization detailed lines. Billing
+// invoice detailed lines cannot share this model because billing discounts are
+// managed resources, while charge discounts are signed realization snapshots.
+type Base struct {
+	stddetailedline.Base
+
+	AmountDiscounts AmountDiscounts `json:"amountDiscounts,omitempty"`
+}
+
+func (l Base) Clone() Base {
+	l.Base = l.Base.Clone()
+	l.AmountDiscounts = l.AmountDiscounts.Clone()
+
+	return l
+}
+
+// CloneStandardBase returns the shared detailed-line fields without charge
+// discount snapshots. Billing manages its own discount resources when it
+// consumes the returned base.
+func (l Base) CloneStandardBase() stddetailedline.Base {
+	return l.Base.Clone()
+}
+
+func (l Base) Validate(opts ...stddetailedline.ValidateOption) error {
+	var errs []error
+
+	if err := l.Base.Validate(opts...); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := l.AmountDiscounts.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("amount discounts: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
 
 // AmountDiscount is a signed discount realization on a charge detailed line.
 // Negative values represent the reversal of a previously realized discount.
@@ -47,10 +84,11 @@ func (d AmountDiscount) Validate() error {
 
 type AmountDiscounts []AmountDiscount
 
-// New captures billing rating discounts as charge realization facts. Managed
-// billing identifiers are intentionally excluded; the child reference is the
-// stable identity used across rerating and correction runs.
-func New(discounts billing.AmountLineDiscountsManaged) AmountDiscounts {
+// MapAmountDiscountsFromBilling captures billing rating discounts as charge
+// realization facts. Managed billing identifiers are intentionally excluded;
+// the child reference is the stable identity used across rerating and
+// correction runs.
+func MapAmountDiscountsFromBilling(discounts billing.AmountLineDiscountsManaged) AmountDiscounts {
 	return lo.Map(discounts, func(discount billing.AmountLineDiscountManaged, _ int) AmountDiscount {
 		return AmountDiscount{
 			ChildUniqueReferenceID: lo.FromPtr(discount.ChildUniqueReferenceID),
@@ -60,16 +98,6 @@ func New(discounts billing.AmountLineDiscountsManaged) AmountDiscounts {
 			RoundingAmount:         discount.RoundingAmount,
 		}
 	})
-}
-
-// AmountDiscountsOption is the named persistence representation of optional
-// amount discounts. Ent cannot generate code for parameterized GoType values.
-type AmountDiscountsOption struct {
-	mo.Option[AmountDiscounts]
-}
-
-func NewAmountDiscountsOption(option mo.Option[AmountDiscounts]) AmountDiscountsOption {
-	return AmountDiscountsOption{Option: option}
 }
 
 func (d AmountDiscounts) Clone() AmountDiscounts {

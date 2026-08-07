@@ -4162,8 +4162,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 		detailedLine := fetchedFF.Realizations.CurrentRun.DetailedLines.OrEmpty()[0]
 		s.Empty(detailedLine.CreditsApplied)
 
-		amountDiscounts, ok := detailedLine.AmountDiscounts.Get()
-		s.Require().True(ok)
+		amountDiscounts := detailedLine.AmountDiscounts
 		s.Require().Len(amountDiscounts, 1)
 		amountDiscount := amountDiscounts[0]
 		s.Equal("rateCardDiscount/correlationID=flat-fee-credit-only-discount", amountDiscount.ChildUniqueReferenceID)

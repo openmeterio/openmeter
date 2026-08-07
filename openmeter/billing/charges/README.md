@@ -145,9 +145,12 @@ one.
 - Amount discounts on persisted detailed lines are signed realization facts.
   Their rounded amounts and rounding adjustments reconcile to the line's
   `DiscountsTotal`; correction lines can therefore carry negative discount
-  values that reverse an earlier realization. Missing discount data means no
-  trustworthy discount facts were captured when the line was persisted; a
-  present empty collection means capture ran and no discounts applied.
+  values that reverse an earlier realization. Historical lines may not have a
+  detailed discount breakdown; `DiscountsTotal` remains authoritative.
+- Charge and billing detailed lines intentionally share only the standard line
+  base. Charge discounts are immutable realization snapshots, while billing
+  discounts are managed resources with their own identity and lifecycle, so
+  the complete detailed-line model cannot be shared.
 - Charge lifecycle timestamps are normalized to streaming aggregation
   precision before duration-sensitive calculations and persistence. Deletion
   timestamps retain their supplied instant.

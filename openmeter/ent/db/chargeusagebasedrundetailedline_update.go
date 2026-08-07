@@ -10,9 +10,10 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/amountdiscount"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -33,6 +34,24 @@ type ChargeUsageBasedRunDetailedLineUpdate struct {
 // Where appends a list predicates to the ChargeUsageBasedRunDetailedLineUpdate builder.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) Where(ps ...predicate.ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunDetailedLineUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineUpdate {
+	_u.mutation.SetAmountDiscounts(v)
+	return _u
+}
+
+// AppendAmountDiscounts appends value to the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) AppendAmountDiscounts(v detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineUpdate {
+	_u.mutation.AppendAmountDiscounts(v)
+	return _u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpdate {
+	_u.mutation.ClearAmountDiscounts()
 	return _u
 }
 
@@ -431,26 +450,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillablePricerReferenceID(v 
 	return _u
 }
 
-// SetAmountDiscounts sets the "amount_discounts" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.SetAmountDiscounts(v)
-	return _u
-}
-
-// SetNillableAmountDiscounts sets the "amount_discounts" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillableAmountDiscounts(v *amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpdate {
-	if v != nil {
-		_u.SetAmountDiscounts(*v)
-	}
-	return _u
-}
-
-// ClearAmountDiscounts clears the value of the "amount_discounts" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.ClearAmountDiscounts()
-	return _u
-}
-
 // SetCorrectsRunID sets the "corrects_run_id" field.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpdate {
 	_u.mutation.SetCorrectsRunID(v)
@@ -547,6 +546,11 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) check() error {
+	if v, ok := _u.mutation.AmountDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "amount_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.amount_discounts": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := chargeusagebasedrundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.child_unique_reference_id": %w`, err)}
@@ -597,6 +601,17 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) sqlSave(ctx context.Context) (_
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.AmountDiscounts(); ok {
+		_spec.SetField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAmountDiscounts(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargeusagebasedrundetailedline.FieldAmountDiscounts, value)
+		})
+	}
+	if _u.mutation.AmountDiscountsCleared() {
+		_spec.ClearField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeJSON)
 	}
 	if _u.mutation.CurrencyCleared() {
 		_spec.ClearField(chargeusagebasedrundetailedline.FieldCurrency, field.TypeString)
@@ -699,16 +714,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldPricerReferenceID, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.AmountDiscounts(); ok {
-		vv, err := chargeusagebasedrundetailedline.ValueScanner.AmountDiscounts.Value(value)
-		if err != nil {
-			return 0, err
-		}
-		_spec.SetField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeString, vv)
-	}
-	if _u.mutation.AmountDiscountsCleared() {
-		_spec.ClearField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeString)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -815,6 +820,24 @@ type ChargeUsageBasedRunDetailedLineUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ChargeUsageBasedRunDetailedLineMutation
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	_u.mutation.SetAmountDiscounts(v)
+	return _u
+}
+
+// AppendAmountDiscounts appends value to the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) AppendAmountDiscounts(v detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	_u.mutation.AppendAmountDiscounts(v)
+	return _u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpdateOne {
+	_u.mutation.ClearAmountDiscounts()
+	return _u
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -1212,26 +1235,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillablePricerReferenceID
 	return _u
 }
 
-// SetAmountDiscounts sets the "amount_discounts" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetAmountDiscounts(v amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.SetAmountDiscounts(v)
-	return _u
-}
-
-// SetNillableAmountDiscounts sets the "amount_discounts" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillableAmountDiscounts(v *amountdiscount.AmountDiscountsOption) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetAmountDiscounts(*v)
-	}
-	return _u
-}
-
-// ClearAmountDiscounts clears the value of the "amount_discounts" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearAmountDiscounts() *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.ClearAmountDiscounts()
-	return _u
-}
-
 // SetCorrectsRunID sets the "corrects_run_id" field.
 func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetCorrectsRunID(v string) *ChargeUsageBasedRunDetailedLineUpdateOne {
 	_u.mutation.SetCorrectsRunID(v)
@@ -1341,6 +1344,11 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) check() error {
+	if v, ok := _u.mutation.AmountDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "amount_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.amount_discounts": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := chargeusagebasedrundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.child_unique_reference_id": %w`, err)}
@@ -1408,6 +1416,17 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) sqlSave(ctx context.Context)
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.AmountDiscounts(); ok {
+		_spec.SetField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAmountDiscounts(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargeusagebasedrundetailedline.FieldAmountDiscounts, value)
+		})
+	}
+	if _u.mutation.AmountDiscountsCleared() {
+		_spec.ClearField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeJSON)
 	}
 	if _u.mutation.CurrencyCleared() {
 		_spec.ClearField(chargeusagebasedrundetailedline.FieldCurrency, field.TypeString)
@@ -1510,16 +1529,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) sqlSave(ctx context.Context)
 	}
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldPricerReferenceID, field.TypeString, value)
-	}
-	if value, ok := _u.mutation.AmountDiscounts(); ok {
-		vv, err := chargeusagebasedrundetailedline.ValueScanner.AmountDiscounts.Value(value)
-		if err != nil {
-			return nil, err
-		}
-		_spec.SetField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeString, vv)
-	}
-	if _u.mutation.AmountDiscountsCleared() {
-		_spec.ClearField(chargeusagebasedrundetailedline.FieldAmountDiscounts, field.TypeString)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
