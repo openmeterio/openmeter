@@ -54,7 +54,9 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		return api.BillingChargeFlatFee{}, fmt.Errorf("setting flat fee price union: %w", err)
 	}
 
-	feature, err := convertFeatureIDToReference(source.State.FeatureID)
+	feature, err := convertFeatureToReference(featureOrReference{
+		ref: convertFeatureIDToReference(source.State.FeatureID),
+	})
 	if err != nil {
 		return api.BillingChargeFlatFee{}, err
 	}
@@ -123,7 +125,9 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		return api.BillingChargeUsageBased{}, fmt.Errorf("converting system intent: %w", err)
 	}
 
-	feature, err := convertFeatureIDToReference(&source.State.FeatureID)
+	feature, err := convertFeatureToReference(featureOrReference{
+		ref: convertFeatureIDToReference(&source.State.FeatureID),
+	})
 	if err != nil {
 		return api.BillingChargeUsageBased{}, err
 	}
@@ -220,20 +224,37 @@ func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableInten
 	}, nil
 }
 
-// convertFeatureIDToReference builds the feature union's reference branch from an
-// optional feature ID; nil means the charge has no feature (legal for flat fees).
-// The full-feature branch arrives with the `feature` expand wiring.
-func convertFeatureIDToReference(id *string) (*api.FeatureOrReference, error) {
-	if id == nil {
+type featureOrReference struct {
+	feature *api.Feature
+	ref     *api.FeatureReference
+}
+
+// convertFeatureToReference picks the branch of the feature union to serialize: the
+// expanded feature when the `feature` expand was requested, otherwise the bare
+// reference. Neither set means the charge has no feature, which is legal for flat fees.
+func convertFeatureToReference(source featureOrReference) (*api.FeatureOrReference, error) {
+	var feature api.FeatureOrReference
+	if source.feature != nil {
+		if err := feature.FromFeature(*source.feature); err != nil {
+			return nil, fmt.Errorf("feature mapping failed: %w", err)
+		}
+	} else if source.ref != nil {
+		if err := feature.FromFeatureReference(*source.ref); err != nil {
+			return nil, fmt.Errorf("feature mapping failed: %w", err)
+		}
+	} else {
 		return nil, nil
 	}
-
-	var feature api.FeatureOrReference
-	if err := feature.FromFeatureReference(api.FeatureReference{Id: *id}); err != nil {
-		return nil, fmt.Errorf("converting feature reference: %w", err)
-	}
-
 	return &feature, nil
+}
+
+func convertFeatureIDToReference(id *string) *api.FeatureReference {
+	if id == nil {
+		return nil
+	}
+	return &api.FeatureReference{
+		Id: *id,
+	}
 }
 
 // convertSubscriptionToReference converts a nullable SubscriptionReference pointer to the API type.
