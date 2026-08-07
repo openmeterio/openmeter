@@ -40,8 +40,10 @@ type ChargeFilter struct {
 	ServicePeriodFrom *DateTimeFilter
 	// Filter charges by the end of their service period.
 	//
-	// See `service_period_from` for how to express a service-period window query using
-	// both fields together.
+	// Combine with `service_period_from` to match charges whose service period falls
+	// within a given window: `filter[service_period_from][gte]=<from>` together with
+	// `filter[service_period_to][lte]=<to>` returns charges whose service period lies
+	// within `[from, to)`.
 	ServicePeriodTo *DateTimeFilter
 }
 

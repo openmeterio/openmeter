@@ -6410,7 +6410,7 @@ export const listCustomerChargesQueryParams = z.object({
     .optional()
 
     .describe(
-      'Expand full objects for referenced entities. See `BillingChargesExpand` for the supported values and what each one populates.',
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
     ),
 })
 
@@ -13504,7 +13504,7 @@ export const listCustomerChargesQueryParamsWire = z.object({
     .optional()
 
     .describe(
-      'Expand full objects for referenced entities. See `BillingChargesExpand` for the supported values and what each one populates.',
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
     ),
 })
 

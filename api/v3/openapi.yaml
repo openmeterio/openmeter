@@ -1395,7 +1395,17 @@ paths:
           description: |-
             Expand full objects for referenced entities.
 
-            See `BillingChargesExpand` for the supported values and what each one populates.
+            Supported values are:
+
+            - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage`
+            and the `totals.realtime` fields.
+            - `customer`: Expand the charge's customer to the complete entity.
+            - `feature`: Expand the charge's feature to the complete entity.
+            - `subscription`: Expand the charge's subscription to the complete entity.
+            - `realization.invoice`: Expand each realization's invoice to the complete
+            entity.
+            - `realization.totals`: Expand each realization run's `totals`.
+            - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.
           schema:
             type: array
             items:
@@ -11440,8 +11450,10 @@ components:
           description: |-
             Filter charges by the end of their service period.
 
-            See `service_period_from` for how to express a service-period window query using
-            both fields together.
+            Combine with `service_period_from` to match charges whose service period falls
+            within a given window: `filter[service_period_from][gte]=<from>` together with
+            `filter[service_period_to][lte]=<to>` returns charges whose service period lies
+            within `[from, to)`.
       additionalProperties: false
       description: Filter options for listing charges.
     ListCostBasesParamsFilter:
