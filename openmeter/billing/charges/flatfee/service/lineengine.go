@@ -772,7 +772,11 @@ func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input bill
 		// Collection deletes only the presentation line for a zero-fiat-amount
 		// overage. Its run, credits, and details remain durable billing history
 		// and must not enter mutable-line cleanup.
-		if isZeroFiatAmountOverageRun(charge, run) {
+		fiatOverage, err := calculateFiatOverageForRun(charge, run)
+		if err != nil {
+			return fmt.Errorf("calculating fiat overage for flat fee realization run[%s]: %w", run.ID.ID, err)
+		}
+		if fiatOverage.ShouldOmitInvoiceLine {
 			continue
 		}
 

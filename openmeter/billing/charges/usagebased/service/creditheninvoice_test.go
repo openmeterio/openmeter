@@ -64,10 +64,12 @@ func TestZeroFiatAmountOverageRunCanResumeCompletionAfterPersistence(t *testing.
 	require.NoError(t, err)
 	require.False(t, canFire)
 	require.True(t, machine.HasTerminalCompletedRealizationWithoutCurrentRun())
-	require.True(t, areAllRealizationRunsSettled(charge))
+	allSettled, err := areAllRealizationRunsSettled(charge)
+	require.NoError(t, err)
+	require.True(t, allSettled)
 }
 
-func TestIsZeroFiatAmountOverageRunUsesConvertedOverage(t *testing.T) {
+func TestCalculateFiatOverageForRun(t *testing.T) {
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -78,7 +80,9 @@ func TestIsZeroFiatAmountOverageRunUsesConvertedOverage(t *testing.T) {
 		name                      string
 		runTotals                 totals.Totals
 		noFiatTransactionRequired bool
-		expectZeroOverage         bool
+		conversionFails           bool
+		expectFiatOverage         float64
+		expectOmitInvoiceLine     bool
 	}{
 		{
 			name: "zero converted overage does not depend on transaction requirement",
@@ -87,7 +91,7 @@ func TestIsZeroFiatAmountOverageRunUsesConvertedOverage(t *testing.T) {
 				CreditsTotal: decimal.NewFromInt(3),
 			},
 			noFiatTransactionRequired: false,
-			expectZeroOverage:         true,
+			expectOmitInvoiceLine:     true,
 		},
 		{
 			name: "positive converted overage is retained when no transaction is required",
@@ -96,13 +100,25 @@ func TestIsZeroFiatAmountOverageRunUsesConvertedOverage(t *testing.T) {
 				Total:  decimal.NewFromInt(3),
 			},
 			noFiatTransactionRequired: true,
-			expectZeroOverage:         false,
+			expectFiatOverage:         6,
+		},
+		{
+			name: "conversion failure is returned",
+			runTotals: totals.Totals{
+				Amount: decimal.NewFromInt(3),
+				Total:  decimal.NewFromInt(3),
+			},
+			conversionFails: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// given: a custom-currency run where converted overage and transaction requirement intentionally differ
+			charge := charge
+			if test.conversionFails {
+				charge.State.ResolvedCostBasis = nil
+			}
 			run := usagebased.RealizationRun{
 				RealizationRunBase: usagebased.RealizationRunBase{
 					Totals:                    test.runTotals,
@@ -110,11 +126,18 @@ func TestIsZeroFiatAmountOverageRunUsesConvertedOverage(t *testing.T) {
 				},
 			}
 
-			// when: zero-overage invoice handling is evaluated
-			isZeroOverage := isZeroFiatAmountOverageRun(charge, run)
+			// when: the run's fiat overage and invoice-line omission decision are calculated
+			fiatOverage, err := calculateFiatOverageForRun(charge, run)
 
-			// then: only the converted overage controls the result
-			require.Equal(t, test.expectZeroOverage, isZeroOverage)
+			// then: conversion errors are returned and successful conversion alone controls omission
+			if test.conversionFails {
+				require.ErrorContains(t, err, "resolved cost basis is required")
+				require.False(t, fiatOverage.ShouldOmitInvoiceLine)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, test.expectFiatOverage, fiatOverage.FiatOverage.InexactFloat64())
+			require.Equal(t, test.expectOmitInvoiceLine, fiatOverage.ShouldOmitInvoiceLine)
 		})
 	}
 }

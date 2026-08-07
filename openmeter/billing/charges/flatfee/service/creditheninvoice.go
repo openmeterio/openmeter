@@ -583,7 +583,14 @@ func (s *CreditThenInvoiceStateMachine) IsCurrentRunZeroFiatAmountOverage() bool
 		return false
 	}
 
-	return isZeroFiatAmountOverageRun(s.Charge, *currentRun)
+	fiatOverage, err := calculateFiatOverageForRun(s.Charge, *currentRun)
+	if err != nil {
+		// Stateless guards cannot return errors. Conversion failures are exposed
+		// by line mapping before this transition becomes reachable.
+		return false
+	}
+
+	return fiatOverage.ShouldOmitInvoiceLine
 }
 
 // FinalizeZeroFiatAmountOverageRun seals the persisted current run while the
@@ -594,7 +601,12 @@ func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(ctx con
 		return fmt.Errorf("no realization run in progress [charge_id=%s]", s.Charge.ID)
 	}
 
-	if !isZeroFiatAmountOverageRun(s.Charge, *currentRun) {
+	fiatOverage, err := calculateFiatOverageForRun(s.Charge, *currentRun)
+	if err != nil {
+		return fmt.Errorf("calculate fiat overage for current realization run %s: %w", currentRun.ID.ID, err)
+	}
+
+	if !fiatOverage.ShouldOmitInvoiceLine {
 		return fmt.Errorf("current realization run %s is not a zero fiat amount overage", currentRun.ID.ID)
 	}
 
@@ -613,25 +625,6 @@ func (s *CreditThenInvoiceStateMachine) FinalizeZeroFiatAmountOverageRun(ctx con
 	s.Charge.State.AdvanceAfter = nil
 
 	return nil
-}
-
-// isZeroFiatAmountOverageRun identifies custom-currency overage runs whose
-// converted fiat amount is zero before any fiat settlement is applied. If the
-// conversion cannot be evaluated, the run must keep its line so the normal
-// invoice path can surface the underlying error instead of deleting billable
-// history.
-func isZeroFiatAmountOverageRun(charge flatfee.Charge, run flatfee.RealizationRun) bool {
-	if !charge.Intent.GetCurrency().IsCustom() ||
-		charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-		return false
-	}
-
-	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(run.Totals)
-	if err != nil {
-		return false
-	}
-
-	return fiatOverage.Amount.IsZero()
 }
 
 type reconcileInvoicingStateInput struct {

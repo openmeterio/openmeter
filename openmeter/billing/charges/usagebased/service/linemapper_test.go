@@ -413,6 +413,24 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 				require.NoError(t, err)
 				require.Nil(t, line.DeletedAt)
 			})
+
+			t.Run("conversion failure returns an error without deleting the line", func(t *testing.T) {
+				// given: a custom-currency run whose resolved cost basis is unavailable
+				charge := charge
+				charge.State.ResolvedCostBasis = nil
+				line := newUsageBasedStandardLineForTest(period)
+
+				// when: the overage line is populated at a deletion-capable stage
+				err := populateStandardLineFromRun(line, populateStandardLineFromRunInput{
+					Charge: charge,
+					Run:    run,
+					Stage:  stage,
+				})
+
+				// then: conversion failure is exposed before the line can be deleted
+				require.ErrorContains(t, err, "resolved cost basis is required")
+				require.Nil(t, line.DeletedAt)
+			})
 		})
 	}
 }
