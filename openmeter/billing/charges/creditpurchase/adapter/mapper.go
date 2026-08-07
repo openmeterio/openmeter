@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func fromDBBaseWithCurrency(dbEntity *entdb.ChargeCreditPurchase, currency currencies.Currency) (creditpurchase.ChargeBase, error) {
@@ -29,6 +28,10 @@ func fromDBBaseWithCurrency(dbEntity *entdb.ChargeCreditPurchase, currency curre
 }
 
 func fromDBBase(dbEntity *entdb.ChargeCreditPurchase, mappedMeta meta.Charge) (creditpurchase.ChargeBase, error) {
+	if dbEntity.SchemaLevel != creditpurchase.CurrentSchemaLevel {
+		return creditpurchase.ChargeBase{}, fmt.Errorf("unsupported credit purchase schema level: %d", dbEntity.SchemaLevel)
+	}
+
 	mappedSettlement, err := fromDBSettlement(dbEntity)
 	if err != nil {
 		return creditpurchase.ChargeBase{}, fmt.Errorf("mapping credit purchase settlement [id=%s]: %w", dbEntity.ID, err)
@@ -57,9 +60,7 @@ func fromDBBase(dbEntity *entdb.ChargeCreditPurchase, mappedMeta meta.Charge) (c
 			Key:       dbEntity.Key,
 		},
 		State: creditpurchase.State{
-			SchemaLevel:       creditpurchase.SchemaLevel(dbEntity.SchemaLevel),
 			VoidedAt:          convert.SafeToUTC(dbEntity.VoidedAt),
-			CostBasisID:       mappedCostBasis.CostBasisID,
 			ResolvedCostBasis: mappedCostBasis.ResolvedCostBasis,
 		},
 	}
@@ -72,89 +73,42 @@ func fromDBBase(dbEntity *entdb.ChargeCreditPurchase, mappedMeta meta.Charge) (c
 }
 
 func fromDBSettlement(dbEntity *entdb.ChargeCreditPurchase) (creditpurchase.Settlement, error) {
-	schemaLevel := creditpurchase.SchemaLevel(dbEntity.SchemaLevel)
-	if err := schemaLevel.Validate(); err != nil {
-		return creditpurchase.Settlement{}, err
+	if dbEntity.SettlementType == nil {
+		return creditpurchase.Settlement{}, errors.New("settlement type is required")
 	}
 
-	switch schemaLevel {
-	case creditpurchase.SchemaLevelLegacy:
-		if dbEntity.SettlementType != nil || dbEntity.InitialPaymentSettlementStatus != nil {
-			return creditpurchase.Settlement{}, errors.New("legacy schema row contains dedicated settlement state")
+	switch *dbEntity.SettlementType {
+	case creditpurchase.SettlementTypeInvoice:
+		if dbEntity.InitialPaymentSettlementStatus != nil {
+			return creditpurchase.Settlement{}, errors.New("invoice settlement cannot have an initial payment settlement status")
 		}
 
-		return dbEntity.Settlement.AsSettlement()
-	case creditpurchase.SchemaLevelCostBasis:
-		if dbEntity.SettlementType == nil {
-			return creditpurchase.Settlement{}, errors.New("settlement type is required")
+		return creditpurchase.NewInvoiceSettlement(), nil
+	case creditpurchase.SettlementTypeExternal:
+		if dbEntity.InitialPaymentSettlementStatus == nil {
+			return creditpurchase.Settlement{}, errors.New("external settlement requires an initial payment settlement status")
 		}
 
-		switch *dbEntity.SettlementType {
-		case creditpurchase.SettlementTypeInvoice:
-			if dbEntity.InitialPaymentSettlementStatus != nil {
-				return creditpurchase.Settlement{}, errors.New("invoice settlement cannot have an initial payment settlement status")
-			}
-
-			return creditpurchase.NewInvoiceSettlement(), nil
-		case creditpurchase.SettlementTypeExternal:
-			if dbEntity.InitialPaymentSettlementStatus == nil {
-				return creditpurchase.Settlement{}, errors.New("external settlement requires an initial payment settlement status")
-			}
-
-			return creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-				InitialStatus: *dbEntity.InitialPaymentSettlementStatus,
-			}), nil
-		case creditpurchase.SettlementTypePromotional:
-			if dbEntity.InitialPaymentSettlementStatus != nil {
-				return creditpurchase.Settlement{}, errors.New("promotional settlement cannot have an initial payment settlement status")
-			}
-
-			return creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}), nil
-		default:
-			return creditpurchase.Settlement{}, fmt.Errorf("unsupported credit purchase settlement type: %s", *dbEntity.SettlementType)
+		return creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+			InitialStatus: *dbEntity.InitialPaymentSettlementStatus,
+		}), nil
+	case creditpurchase.SettlementTypePromotional:
+		if dbEntity.InitialPaymentSettlementStatus != nil {
+			return creditpurchase.Settlement{}, errors.New("promotional settlement cannot have an initial payment settlement status")
 		}
+
+		return creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}), nil
 	default:
-		return creditpurchase.Settlement{}, fmt.Errorf("unsupported credit purchase schema level: %d", schemaLevel)
+		return creditpurchase.Settlement{}, fmt.Errorf("unsupported credit purchase settlement type: %s", *dbEntity.SettlementType)
 	}
 }
 
 type mappedCostBasis struct {
 	CostBasis         *creditpurchase.CostBasis
-	CostBasisID       *string
 	ResolvedCostBasis *costbasis.State
 }
 
 func fromDBCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.Currency) (mappedCostBasis, error) {
-	schemaLevel := creditpurchase.SchemaLevel(dbEntity.SchemaLevel)
-	if err := schemaLevel.Validate(); err != nil {
-		return mappedCostBasis{}, err
-	}
-
-	switch schemaLevel {
-	case creditpurchase.SchemaLevelLegacy:
-		if dbEntity.FiatCostBasis != nil || dbEntity.CostBasisID != nil || dbEntity.Edges.CostBasis != nil {
-			return mappedCostBasis{}, errors.New("legacy schema row contains dedicated cost-basis state")
-		}
-
-		var fiatCreditCurrencyCode *currencyx.Code
-		if !currency.IsCustom() {
-			fiatCreditCurrencyCode = lo.ToPtr(currency.GetCode())
-		}
-
-		return mapLegacyCostBasis(mapLegacyCostBasisInput{
-			Settlement:             dbEntity.Settlement,
-			CustomCurrency:         currency.IsCustom(),
-			FiatCreditCurrencyCode: fiatCreditCurrencyCode,
-			CreatedAt:              dbEntity.CreatedAt,
-		})
-	case creditpurchase.SchemaLevelCostBasis:
-		return fromDBDedicatedCostBasis(dbEntity, currency)
-	default:
-		return mappedCostBasis{}, fmt.Errorf("unsupported credit purchase schema level: %d", schemaLevel)
-	}
-}
-
-func fromDBDedicatedCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.Currency) (mappedCostBasis, error) {
 	if dbEntity.SettlementType == nil {
 		return mappedCostBasis{}, errors.New("settlement type is required")
 	}
@@ -204,7 +158,6 @@ func fromDBDedicatedCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency cur
 
 	return mappedCostBasis{
 		CostBasis:         lo.ToPtr(creditpurchase.NewCostBasis(mappedCustomCostBasis.Intent)),
-		CostBasisID:       lo.ToPtr(*dbEntity.CostBasisID),
 		ResolvedCostBasis: mappedCustomCostBasis.State,
 	}, nil
 }

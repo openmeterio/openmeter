@@ -7,7 +7,6 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
@@ -1067,9 +1066,6 @@ func init() {
 	chargecreditpurchaseDescSchemaLevel := chargecreditpurchaseFields[0].Descriptor()
 	// chargecreditpurchase.DefaultSchemaLevel holds the default value on creation for the schema_level field.
 	chargecreditpurchase.DefaultSchemaLevel = chargecreditpurchaseDescSchemaLevel.Default.(int)
-	// chargecreditpurchaseDescSettlement is the schema descriptor for settlement field.
-	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[9].Descriptor()
-	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[creditpurchase.PersistedSettlement])
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[19].Descriptor()
 	// chargecreditpurchase.DefaultID holds the default value on creation for the id field.
