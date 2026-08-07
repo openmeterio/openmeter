@@ -1,6 +1,7 @@
 import "../../shared/index.tsp";
 import "../../productcatalog/index.tsp";
 import "../../subscriptions/index.tsp";
+import "../../features/index.tsp";
 import "../customer.tsp";
 
 namespace Customers;
@@ -118,6 +119,334 @@ model ChargeUsageBasedSystemIntent {
 }
 
 /**
+ * Settlement status of a charge realization's payment.
+ *
+ * Values:
+ *
+ * - `authorized`: The payment has been authorized against the customer's ledger
+ *   but has not settled yet.
+ * - `settled`: The payment has settled.
+ */
+@friendlyName("BillingChargeRealizationPaymentStatus")
+@summary("Charge realization payment status")
+enum ChargeRealizationPaymentStatus {
+  Authorized: "authorized",
+  Settled: "settled",
+}
+
+/**
+ * Payment state of a charge realization.
+ */
+@friendlyName("BillingChargeRealizationPayment")
+@summary("Charge realization payment")
+model ChargeRealizationPayment {
+  /**
+   * The settlement status of the payment.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Status")
+  status: ChargeRealizationPaymentStatus;
+}
+
+/**
+ * Type of a charge realization run.
+ *
+ * Values:
+ *
+ * - `final_realization`: The run is the final realization of the charge for its
+ *   service period; no further runs are expected to correct it.
+ * - `partial_invoice`: The run only realizes part of the charge, because the
+ *   remainder is not yet due to be invoiced.
+ * - `outstanding`: The type an outstanding (not-yet-realized) projection would
+ *   carry if it were realized now. Never returned on a booked realization run.
+ */
+@friendlyName("BillingChargeRealizationType")
+@summary("Charge realization type")
+enum ChargeRealizationType {
+  FinalRealization: "final_realization",
+  PartialInvoice: "partial_invoice",
+  Outstanding: "outstanding",
+}
+
+/**
+ * Cost category of a charge realization detailed line.
+ *
+ * Values:
+ *
+ * - `regular`: Regular is a regular flat fee, that is based on the usage or a
+ *   subscription.
+ * - `commitment`: Commitment is a flat fee that is based on a commitment such as
+ *   minimum spend.
+ */
+@friendlyName("BillingChargeRealizationDetailedLineCategory")
+@summary("Charge realization detailed line category")
+enum ChargeRealizationDetailedLineCategory {
+  Regular: "regular",
+  Commitment: "commitment",
+}
+
+/**
+ * A credit allocation applied to a charge realization detailed line.
+ */
+@friendlyName("BillingChargeRealizationDetailedLineCreditApplied")
+@summary("Charge realization detailed line credit applied")
+model ChargeRealizationDetailedLineCreditApplied {
+  /**
+   * The monetary amount credited.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Amount")
+  amount: Shared.Numeric;
+
+  /**
+   * Optional human-readable description of the credit allocation.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Description")
+  description?: string;
+
+  /**
+   * The ID of the credit realization (allocation) this credit was applied from.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Credit realization ID")
+  credit_realization_id: string;
+}
+
+/**
+ * Shared fields present on every charge realization detailed line, regardless
+ * of charge type.
+ *
+ * Deliberately independent of an invoice's own detailed lines: a realization
+ * detailed line is the charge run's own rated breakdown, which exists even
+ * when no invoice is ever produced (e.g. a credits-only settlement charge).
+ * Its shape must not be coupled to the invoice line's, which only exists once
+ * a realization has actually been invoiced and can evolve independently.
+ */
+@friendlyName("BillingChargeRealizationDetailedLineBase")
+@summary("Charge realization detailed line")
+model ChargeRealizationDetailedLineBase<T extends ChargeType> {
+  ...OmitProperties<Shared.Resource, "name" | "description" | "labels">;
+
+  /**
+   * The type of the charge the realization belongs to.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Type")
+  type: T;
+
+  /**
+   * The service period covered by this detailed line.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Service period")
+  service_period: Shared.ClosedPeriod;
+
+  /**
+   * Aggregated financial totals for the detailed line.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Totals")
+  totals: Common.BillingRoot.BillingTotals;
+
+  /**
+   * The cost category of this detailed line.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Category")
+  category: ChargeRealizationDetailedLineCategory;
+
+  /**
+   * Credits applied to this detailed line.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Credits applied")
+  credits_applied?: ChargeRealizationDetailedLineCreditApplied[];
+
+  /**
+   * The unit price of the detailed line.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Unit price")
+  unit_price: Shared.Numeric;
+
+  /**
+   * The amount discounts applied to the detailed line.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Amount discounts")
+  amount_discounts: ChargeRealizationAmountDiscount[];
+}
+
+/**
+ * A discount applied to a charge realization detailed line.
+ */
+@friendlyName("BillingChargeRealizationAmountDiscount")
+@summary("Charge detailed line amount discount")
+model ChargeRealizationAmountDiscount {
+  /**
+   * The amount of the discount applied to the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Amount")
+  amount: Shared.Numeric;
+
+  /**
+   * The reason for the discount applied to the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Reason")
+  reason: string;
+
+  /**
+   * Optional human-readable description of the discount.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Description")
+  description?: string;
+
+  /**
+   * The amount of the discount applied to the charge, rounded to the nearest cent
+   * (or equivalent for the charge's currency).
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Rounded amount")
+  rounding_amount: Shared.Numeric;
+
+  /**
+   * Unique reference ID of the discount applied to the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Unique reference ID")
+  child_unique_reference_id: string;
+}
+
+/**
+ * A detailed (child) line type of a charge realization run.
+ *
+ * This is distinct from an invoice's own detailed lines: it represents the
+ * rated/priced breakdown produced by the realization run itself, before that
+ * breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice
+ * runs include credit allocations in these lines, while credits-only runs keep the
+ * gross rated detail.
+ */
+@friendlyName("BillingChargeRealizationDetailedLine")
+@summary("Charge realization detailed line")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union ChargeRealizationDetailedLine {
+  flat_fee: ChargeRealizationDetailedLineFlatFee,
+  usage_based: ChargeRealizationDetailedLineUsageBased,
+}
+
+/**
+ * A detailed line produced by a flat fee charge's realization run.
+ */
+@friendlyName("BillingChargeRealizationDetailedLineFlatFee")
+@summary("Flat fee charge realization detailed line")
+model ChargeRealizationDetailedLineFlatFee {
+  ...ChargeRealizationDetailedLineBase<ChargeType.FlatFee>;
+}
+
+/**
+ * A detailed line produced by a usage-based charge's realization run.
+ */
+@friendlyName("BillingChargeRealizationDetailedLineUsageBased")
+@summary("Usage-based charge realization detailed line")
+model ChargeRealizationDetailedLineUsageBased {
+  ...ChargeRealizationDetailedLineBase<ChargeType.UsageBased>;
+
+  /**
+   * The quantity of the detailed line.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Quantity")
+  quantity: Shared.Numeric;
+
+  /**
+   * The ID of a prior realization run this detailed line corrects, when applicable.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Corrects run ID")
+  corrects_run_id?: string;
+}
+
+/**
+ * A realization run of a charge.
+ *
+ * Realizations are always sorted by `service_period.from`. `totals` and
+ * `detailed_lines` are only populated with the `realization.totals` and
+ * `realization.detailed_lines` expands, respectively, since computing them
+ * requires re-deriving the run's rated breakdown. `invoice` is an ID reference
+ * unless the `realization.invoice` expand is used, which resolves it to the full
+ * invoice.
+ */
+@friendlyName("BillingChargeRealization")
+@summary("Charge realization")
+model ChargeRealization {
+  /**
+   * The ID of the invoice line this realization was booked to, when the realization
+   * has been invoiced.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Line ID")
+  line_id?: string;
+
+  /**
+   * The reference of the invoice related to the realization.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Invoice")
+  invoice?: Shared.ExpandableResourceReference<Invoices.Invoice>;
+
+  /**
+   * The type of the realization run.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Type")
+  type: ChargeRealizationType;
+
+  /**
+   * The service period covered by this realization run.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Service period")
+  service_period: Shared.ClosedPeriod;
+
+  /**
+   * The metered usage quantity this realization run accounts for.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Usage")
+  usage: Shared.Numeric;
+
+  /**
+   * The payment state of the realization, when the charge requires a fiat
+   * transaction to settle.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Payment")
+  payment?: ChargeRealizationPayment;
+
+  /**
+   * Financial totals for the realization run, including credit allocations.
+   *
+   * Requires the `realization.totals` expand.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Totals")
+  totals?: Common.BillingRoot.BillingTotals;
+
+  /**
+   * The detailed (rated) lines produced by the realization run.
+   *
+   * Requires the `realization.detailed_lines` expand.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Detailed lines")
+  detailed_lines?: ChargeRealizationDetailedLine[];
+}
+
+/**
  * Shared fields present on all customer charge responses.
  */
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "charge temporal fields should remain flat"
@@ -135,13 +464,16 @@ model ChargeBase<T extends ChargeType> {
 
   /**
    * The customer owning the charge.
+   *
+   * By default, only the `id` of the customer is returned. For more details use the
+   * `customer` expand.
    */
   @visibility(Lifecycle.Read)
   @summary("Customer")
-  customer: CustomerReference;
+  customer: Shared.ExpandableResourceReference<Customer>;
 
   /**
-   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+   * Indicates whether the charge lifecycle is controlled by the system or manually
    * overridden by the API user.
    */
   @visibility(Lifecycle.Read)
@@ -151,10 +483,16 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The subscription that originated the charge, when the charge was created from a
    * subscription item.
+   *
+   * By default, only the `id`, `phase.id`, `phase.item.id` of the subscription is
+   * returned. For more details use the `subscription` expand.
    */
   @visibility(Lifecycle.Read)
   @summary("Subscription")
-  subscription?: Subscriptions.SubscriptionReference;
+  subscription?: Shared.CustomExpandableResourceReference<
+    Subscriptions.Subscription,
+    Subscriptions.SubscriptionReference
+  >;
 
   /**
    * The currency of the charge.
@@ -226,6 +564,13 @@ model ChargeBase<T extends ChargeType> {
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Tax configuration")
   tax_config?: Common.BillingRoot.TaxConfig;
+
+  /**
+   * The realization runs of the charge, sorted by `service_period.from`.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Realizations")
+  realizations: ChargeRealization[];
 }
 
 /**
@@ -253,17 +598,12 @@ model ChargeFlatFee {
 
   /**
    * The feature associated with the charge, when applicable.
+   *
+   * For more details use the `feature` expand.
    */
-  @visibility(Lifecycle.Read)
-  @summary("Feature key")
-  feature_key?: string;
-
-  /**
-   * The feature ID associated with the charge.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  @summary("Feature id")
-  feature_id?: string;
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Feature")
+  feature?: Shared.ExpandableResourceReference<Features.Feature>;
 
   /**
    * The proration configuration of the charge.
@@ -305,9 +645,9 @@ model ChargeFlatFee {
 }
 
 /**
- * The totals of a change.
+ * The totals of a charge.
  *
- * RealTime is only expanded when the `real_time_usage` expand is used.
+ * `realtime` is only populated when the `real_time_usage` expand is used.
  */
 @friendlyName("BillingChargeTotals")
 model ChargeTotals {
@@ -319,9 +659,12 @@ model ChargeTotals {
   booked: Common.BillingRoot.BillingTotals;
 
   /**
-   * The realtime amount of the charge.
+   * The realtime amount of the charge, i.e. the whole usage rated at the charge's
+   * price for its full service period, ignoring what has already been booked to a
+   * realization. This differs from `charge.outstanding.totals`, which only covers
+   * the portion not yet booked.
    *
-   * Requires the `realtime_usage` expand.
+   * Requires the `real_time_usage` expand.
    */
   @visibility(Lifecycle.Read)
   @summary("Realtime totals")
@@ -345,19 +688,12 @@ model ChargeUsageBased {
 
   /**
    * The feature associated with the charge.
+   *
+   * For more details use the `feature` expand.
    */
-  @visibility(Lifecycle.Read)
-  @summary("Feature key")
-  feature_key: string;
-
-  /**
-   * The feature ID associated with the charge.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  @summary("Feature id")
-  feature_id: string;
-
-  // Status fields
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Feature")
+  feature: Shared.ExpandableResourceReference<Features.Feature>;
 
   /**
    * Aggregated booked and realtime totals for the charge.
@@ -365,6 +701,16 @@ model ChargeUsageBased {
   @visibility(Lifecycle.Read)
   @summary("Totals for the charge")
   totals: ChargeTotals;
+
+  /**
+   * The metered usage quantity of the charge for its full service period.
+   *
+   * Requires the `real_time_usage` expand, since it is computed live from the
+   * metering store rather than stored on the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Usage")
+  usage?: Shared.Numeric;
 
   /**
    * The price of the charge.
@@ -406,12 +752,27 @@ union Charge {
  *
  * Values:
  *
- * - `real_time_usage`: The charge's real-time usage.
+ * - `real_time_usage`: The charge's real-time usage; it sets the `usage` and the
+ *   `totals.realtime` fields.
+ * - `customer`: The complete customer entity of the charge.
+ * - `feature`: The complete feature entity of the charge.
+ * - `subscription`: The complete subscription of the charge, when present.
+ * - `realization.invoice`: The complete invoice entity of each realization, in
+ *   place of the ID reference.
+ * - `realization.totals`: The `totals` of each realization run, including credit
+ *   allocations.
+ * - `realization.detailed_lines`: The `detailed_lines` of each realization run.
  */
 @friendlyName("BillingChargesExpand")
 @summary("Customer charge expands")
 enum ChargesExpand {
   RealTimeUsage: "real_time_usage",
+  Customer: "customer",
+  Feature: "feature",
+  Subscription: "subscription",
+  RealizationInvoice: "realization.invoice",
+  RealizationTotals: "realization.totals",
+  RealizationDetailedLines: "realization.detailed_lines",
 }
 
 /**

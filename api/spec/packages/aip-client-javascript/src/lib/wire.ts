@@ -394,11 +394,58 @@ function selectVariant(
     const dataKey = dir.discriminatorKey(d.discriminator)
     return variantsByDiscriminator(schema, d).get(data[dataKey])
   }
-  // Non-discriminated union: the codegen gate guarantees at most one object
-  // variant (it fails the build for a mapped union with two or more), so the single
-  // object-shaped option is unambiguous. Other variants (scalars, arrays) reach the
-  // walk through their own data-kind branches, not here.
-  return options.find((option) => def(unwrap(option))?.type === 'object')
+  // Non-discriminated union: pick the object variant that best covers the data's
+  // keys. The codegen gate guarantees the object variants agree on every key they
+  // share (they differ only in WHICH keys they declare, e.g. a customer reference
+  // versus the full customer), so the pick can never change how a key is mapped —
+  // it only decides which keys the object branch keeps. Most keys matched
+  // therefore preserves a wider variant's extra fields, and the narrowest shape
+  // wins a tie so toWire does not materialize defaults for a field the value never
+  // carried. Other variants (scalars, arrays) reach the walk through their own
+  // data-kind branches, not here.
+  const dataKeys = Object.keys(data)
+  let best: ZodType | undefined
+  let bestMatched = -1
+  let bestWidth = 0
+  for (const option of options) {
+    // A variant that is itself a union (`Invoice | InvoiceReference`, where
+    // `Invoice` is the discriminated union of its concrete types) resolves
+    // through its own selection first, so the nested union contributes the one
+    // variant its discriminator — or its own key coverage — identifies. Without
+    // this the nested union is no object and gets skipped, leaving the
+    // reference variant the only candidate and silently dropping every field
+    // of an expanded resource. A nested union that cannot resolve (reference
+    // data carries no discriminator) contributes nothing, which is what leaves
+    // the reference variant to win on its own merits. The gate's agreement
+    // check does not reach into a union variant, so a nested union's variants
+    // are not verified against the outer siblings they compete with — today
+    // they agree because both sides declare the shared keys through the same
+    // shared models.
+    const inner = unwrap(option)
+    const candidate =
+      def(inner)?.type === 'union' ? selectVariant(data, inner, dir) : option
+    const resolved = unwrap(candidate)
+    if (def(resolved)?.type !== 'object') {
+      continue
+    }
+    const shape = shapeOf(resolved) ?? {}
+    const width = Object.keys(shape).length
+    let matched = 0
+    for (const key of dataKeys) {
+      if (fieldFor(shape, key) !== undefined) {
+        matched++
+      }
+    }
+    if (
+      matched > bestMatched ||
+      (matched === bestMatched && width < bestWidth)
+    ) {
+      best = candidate
+      bestMatched = matched
+      bestWidth = width
+    }
+  }
+  return best
 }
 
 // Memoized literal→variant map for a discriminated union, built once per schema.

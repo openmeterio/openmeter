@@ -164,6 +164,71 @@ export interface TaxConfigExternalInvoicing {
   code: string
 }
 
+/** External identifiers assigned to an invoice by third-party systems. */
+export interface InvoiceExternalReferences {
+  /** The ID assigned by the external invoicing app (e.g. Stripe invoice ID). */
+  invoicingId?: string
+  /** The ID assigned by the external payment app (e.g. Stripe payment intent ID). */
+  paymentId?: string
+}
+
+/** Details about an available invoice action including the resulting state. */
+export interface InvoiceAvailableActionDetails {
+  /** The extended status the invoice will transition to after performing this action. */
+  resultingState: string
+}
+
+/**
+ * Invoice-level invoicing settings.
+ *
+ * A subset of BillingWorkflowInvoicingSettings limited to fields that are
+ * meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
+ * profile-level decision.
+ */
+export interface InvoiceWorkflowInvoicingSettings {
+  /** Whether to automatically issue the invoice after the draft_period has passed. */
+  autoAdvance: boolean
+  /** The period for the invoice to be kept in draft status for manual reviews. */
+  draftPeriod: string
+  /** The period after which the invoice is considered overdue if not paid. */
+  dueAfter?: string
+}
+
+/**
+ * Payment settings for a billing workflow when the collection method is charge
+ * automatically.
+ */
+export interface WorkflowPaymentChargeAutomaticallySettings {
+  /** The collection method for the invoice. */
+  collectionMethod: 'charge_automatically'
+}
+
+/**
+ * Payment settings for a billing workflow when the collection method is send
+ * invoice.
+ */
+export interface WorkflowPaymentSendInvoiceSettings {
+  /** The collection method for the invoice. */
+  collectionMethod: 'send_invoice'
+  /**
+   * The period after which the invoice is due. With some payment solutions it's only
+   * applicable for manual collection method.
+   */
+  dueAfter: string
+}
+
+/** External identifiers for an invoice line item assigned by third-party systems. */
+export interface InvoiceLineExternalReferences {
+  /** The ID assigned by the external invoicing app. */
+  invoicingId?: string
+}
+
+/** Free price. */
+export interface PriceFree {
+  /** The type of the price. */
+  type: 'free'
+}
+
 /**
  * Discounts applicable to flat fee charges.
  *
@@ -173,12 +238,6 @@ export interface TaxConfigExternalInvoicing {
 export interface ChargeFlatFeeDiscounts {
   /** Percentage discount applied to the price (0–100). */
   percentage?: number
-}
-
-/** Free price. */
-export interface PriceFree {
-  /** The type of the price. */
-  type: 'free'
 }
 
 /** The entitlement template of a static entitlement. */
@@ -256,65 +315,6 @@ export interface InstallAppExternalInvoicing {
 export interface WorkflowCollectionAlignmentSubscription {
   /** The type of alignment. */
   type: 'subscription'
-}
-
-/**
- * Payment settings for a billing workflow when the collection method is charge
- * automatically.
- */
-export interface WorkflowPaymentChargeAutomaticallySettings {
-  /** The collection method for the invoice. */
-  collectionMethod: 'charge_automatically'
-}
-
-/**
- * Payment settings for a billing workflow when the collection method is send
- * invoice.
- */
-export interface WorkflowPaymentSendInvoiceSettings {
-  /** The collection method for the invoice. */
-  collectionMethod: 'send_invoice'
-  /**
-   * The period after which the invoice is due. With some payment solutions it's only
-   * applicable for manual collection method.
-   */
-  dueAfter: string
-}
-
-/** External identifiers assigned to an invoice by third-party systems. */
-export interface InvoiceExternalReferences {
-  /** The ID assigned by the external invoicing app (e.g. Stripe invoice ID). */
-  invoicingId?: string
-  /** The ID assigned by the external payment app (e.g. Stripe payment intent ID). */
-  paymentId?: string
-}
-
-/** Details about an available invoice action including the resulting state. */
-export interface InvoiceAvailableActionDetails {
-  /** The extended status the invoice will transition to after performing this action. */
-  resultingState: string
-}
-
-/**
- * Invoice-level invoicing settings.
- *
- * A subset of BillingWorkflowInvoicingSettings limited to fields that are
- * meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
- * profile-level decision.
- */
-export interface InvoiceWorkflowInvoicingSettings {
-  /** Whether to automatically issue the invoice after the draft_period has passed. */
-  autoAdvance: boolean
-  /** The period for the invoice to be kept in draft status for manual reviews. */
-  draftPeriod: string
-  /** The period after which the invoice is considered overdue if not paid. */
-  dueAfter?: string
-}
-
-/** External identifiers for an invoice line item assigned by third-party systems. */
-export interface InvoiceLineExternalReferences {
-  /** The ID assigned by the external invoicing app. */
-  invoicingId?: string
 }
 
 /**
@@ -617,10 +617,32 @@ export interface CreateCurrencyCustomRequest {
   code: string
 }
 
-/** Monetary amount in a specific currency. */
-export interface CurrencyAmount {
+/** Totals contains the summaries of all calculations for a billing resource. */
+export interface Totals {
+  /** The total value of the resource before taxes, discounts and commitments. */
   amount: string
-  currency: string
+  /** The total tax amount applied to the resource. */
+  taxesTotal: string
+  /** The total tax amount already included in the resource amount. */
+  taxesInclusiveTotal: string
+  /** The total tax amount added on top of the resource amount. */
+  taxesExclusiveTotal: string
+  /** The total amount contributed by additional charges. */
+  chargesTotal: string
+  /** The total amount deducted through discounts. */
+  discountsTotal: string
+  /** The total amount deducted through credits before taxes are applied. */
+  creditsTotal: string
+  /** The final total value of the resource after taxes, discounts and commitments. */
+  total: string
+}
+
+/** A credit allocation applied to an invoice line item. */
+export interface InvoiceLineCreditsApplied {
+  /** The monetary amount credited. */
+  amount: string
+  /** Optional human-readable description of the credit allocation. */
+  description?: string
 }
 
 /** Flat price. */
@@ -656,45 +678,6 @@ export interface RateCardDiscounts {
   usage?: string
 }
 
-/** Totals contains the summaries of all calculations for a billing resource. */
-export interface Totals {
-  /** The total value of the resource before taxes, discounts and commitments. */
-  amount: string
-  /** The total tax amount applied to the resource. */
-  taxesTotal: string
-  /** The total tax amount already included in the resource amount. */
-  taxesInclusiveTotal: string
-  /** The total tax amount added on top of the resource amount. */
-  taxesExclusiveTotal: string
-  /** The total amount contributed by additional charges. */
-  chargesTotal: string
-  /** The total amount deducted through discounts. */
-  discountsTotal: string
-  /** The total amount deducted through credits before taxes are applied. */
-  creditsTotal: string
-  /** The final total value of the resource after taxes, discounts and commitments. */
-  total: string
-}
-
-/**
- * Spend commitments for a rate card. The customer is committed to spend at least
- * the minimum amount and at most the maximum amount.
- */
-export interface SpendCommitments {
-  /** The customer is committed to spend at least the amount. */
-  minimumAmount?: string
-  /** The customer is limited to spend at most the amount. */
-  maximumAmount?: string
-}
-
-/** A credit allocation applied to an invoice line item. */
-export interface InvoiceLineCreditsApplied {
-  /** The monetary amount credited. */
-  amount: string
-  /** Optional human-readable description of the credit allocation. */
-  description?: string
-}
-
 /**
  * Usage quantity details on an invoice line item when UnitConfig is in effect.
  *
@@ -710,6 +693,72 @@ export interface InvoiceUsageQuantityDetail {
   invoicedQuantity: string
   /** The display unit label (e.g., "GB", "hours", "M tokens"). */
   displayUnit?: string
+}
+
+/** A credit allocation applied to a charge realization detailed line. */
+export interface ChargeRealizationDetailedLineCreditApplied {
+  /** The monetary amount credited. */
+  amount: string
+  /** Optional human-readable description of the credit allocation. */
+  description?: string
+  /** The ID of the credit realization (allocation) this credit was applied from. */
+  creditRealizationId: string
+}
+
+/** A discount applied to a charge realization detailed line. */
+export interface ChargeRealizationAmountDiscount {
+  /** The amount of the discount applied to the charge. */
+  amount: string
+  /** The reason for the discount applied to the charge. */
+  reason: string
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /**
+   * The amount of the discount applied to the charge, rounded to the nearest cent
+   * (or equivalent for the charge's currency).
+   */
+  roundingAmount: string
+  /** Unique reference ID of the discount applied to the charge. */
+  childUniqueReferenceId: string
+}
+
+/** A fixed per-unit cost amount. */
+export interface FeatureManualUnitCost {
+  /** The type discriminator for manual unit cost. */
+  type: 'manual'
+  /** Fixed per-unit cost amount in USD. */
+  amount: string
+}
+
+/** Resolved per-token pricing from the LLM cost database. */
+export interface FeatureLlmUnitCostPricing {
+  /** Cost per input token in USD. */
+  inputPerToken: string
+  /** Cost per output token in USD. */
+  outputPerToken: string
+  /** Cost per cache read token in USD. */
+  cacheReadPerToken?: string
+  /** Cost per reasoning token in USD. */
+  reasoningPerToken?: string
+  /** Cost per cache write token in USD. */
+  cacheWritePerToken?: string
+}
+
+/** Monetary amount in a specific currency. */
+export interface CurrencyAmount {
+  amount: string
+  currency: string
+}
+
+/**
+ * Spend commitments for a rate card. The customer is committed to spend at least
+ * the minimum amount and at most the maximum amount.
+ */
+export interface SpendCommitments {
+  /** The customer is committed to spend at least the amount. */
+  minimumAmount?: string
+  /** The customer is limited to spend at most the amount. */
+  maximumAmount?: string
 }
 
 /** Flat price. */
@@ -743,28 +792,6 @@ export interface UpdateDiscounts {
    * exhausted.
    */
   usage?: string
-}
-
-/** A fixed per-unit cost amount. */
-export interface FeatureManualUnitCost {
-  /** The type discriminator for manual unit cost. */
-  type: 'manual'
-  /** Fixed per-unit cost amount in USD. */
-  amount: string
-}
-
-/** Resolved per-token pricing from the LLM cost database. */
-export interface FeatureLlmUnitCostPricing {
-  /** Cost per input token in USD. */
-  inputPerToken: string
-  /** Cost per output token in USD. */
-  outputPerToken: string
-  /** Cost per cache read token in USD. */
-  cacheReadPerToken?: string
-  /** Cost per reasoning token in USD. */
-  reasoningPerToken?: string
-  /** Cost per cache write token in USD. */
-  cacheWritePerToken?: string
 }
 
 /** Token pricing for an LLM model, denominated per token. */
@@ -866,12 +893,6 @@ export interface CreditGrantInvoiceReference {
   line?: { id: string }
 }
 
-/** Customer reference. */
-export interface BillingCustomerReference {
-  /** The ID of the customer. */
-  id: string
-}
-
 /**
  * Subscription reference represents a reference to the specific subscription item
  * this entity represents.
@@ -881,16 +902,6 @@ export interface SubscriptionReference {
   id: string
   /** The phase of the subscription. */
   phase: { id: string; item: { id: string } }
-}
-
-/** Addon reference. */
-export interface AddonReference {
-  id: string
-}
-
-/** Feature reference. */
-export interface FeatureReference {
-  id: string
 }
 
 /** App reference. */
@@ -905,8 +916,29 @@ export interface ChargeReference {
   id: string
 }
 
+/** Invoice reference. */
+export interface InvoiceReference {
+  id: string
+}
+
+/** Feature reference. */
+export interface FeatureReference {
+  id: string
+}
+
+/** Addon reference. */
+export interface AddonReference {
+  id: string
+}
+
 /** TaxCode reference. */
 export interface UpdateResourceReference {
+  id: string
+}
+
+/** Customer reference. */
+export interface BillingCustomerReference {
+  /** The ID of the customer. */
   id: string
 }
 
@@ -1850,23 +1882,6 @@ export interface GetCreditBalanceParamsFilter {
   featureKey?: StringFieldFilter
 }
 
-/** Filter options for listing charges. */
-export interface ListChargesParamsFilter {
-  /**
-   * Filter charges by status.
-   *
-   * Supported statuses are:
-   *
-   * - `created`
-   * - `active`
-   * - `final`
-   * - `deleted`
-   *
-   * If omitted, all statuses are returned except for `deleted`.
-   */
-  status?: StringFieldFilterExact
-}
-
 /** Filter options for listing plans. */
 export interface ListPlansParamsFilter {
   key?: StringFieldFilter
@@ -1885,44 +1900,6 @@ export interface VoidCreditGrantRequest {
    * payment later completes, the original invoiced amount may still be collected.
    */
   paymentAdjustment: 'none'
-}
-
-/** Subscription create request. */
-export interface SubscriptionCreate {
-  labels?: Labels
-  /**
-   * Settlement mode for billing.
-   *
-   * Values:
-   *
-   * - `credit_then_invoice`: Credits are applied first, then any remainder is
-   * invoiced.
-   * - `credit_only`: Usage is settled exclusively against credits.
-   */
-  settlementMode?: 'credit_then_invoice' | 'credit_only'
-  /** The customer to create the subscription for. */
-  customer: { id?: string; key?: string }
-  /** The plan reference of the subscription. */
-  plan: { id?: string; key?: string; version?: number }
-  /**
-   * A billing anchor is the fixed point in time that determines the subscription's
-   * recurring billing cycle. It affects when charges occur and how prorations are
-   * calculated. Common anchors:
-   *
-   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-   * - Subscription anniversary (day customer signed up)
-   * - Custom date (customer-specified day)
-   *
-   * If not provided, the subscription will be created with the subscription's
-   * creation time as the billing anchor.
-   */
-  billingAnchor?: Date
-}
-
-/** The proration configuration of the rate card. */
-export interface RateCardProrationConfiguration {
-  /** The proration mode of the rate card. */
-  mode: 'no_proration' | 'prorate_prices'
 }
 
 /** Subscription. */
@@ -1961,6 +1938,139 @@ export interface Subscription {
    * - `credit_only`: Usage is settled exclusively against credits.
    */
   settlementMode?: 'credit_then_invoice' | 'credit_only'
+}
+
+/** Subscription create request. */
+export interface SubscriptionCreate {
+  labels?: Labels
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   * invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
+  /** The customer to create the subscription for. */
+  customer: { id?: string; key?: string }
+  /** The plan reference of the subscription. */
+  plan: { id?: string; key?: string; version?: number }
+  /**
+   * A billing anchor is the fixed point in time that determines the subscription's
+   * recurring billing cycle. It affects when charges occur and how prorations are
+   * calculated. Common anchors:
+   *
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's
+   * creation time as the billing anchor.
+   */
+  billingAnchor?: Date
+}
+
+/**
+ * Identity stores the details required to identify an entity for tax purposes in a
+ * specific country.
+ */
+export interface PartyTaxIdentity {
+  /** Normalized tax identification code shown on the original identity document. */
+  code?: string
+}
+
+/**
+ * Identity stores the details required to identify an entity for tax purposes in a
+ * specific country.
+ */
+export interface UpdateBillingPartyTaxIdentity {
+  /** Normalized tax identification code shown on the original identity document. */
+  code?: string
+}
+
+/**
+ * A validation issue found during invoice processing.
+ *
+ * Converges on the same structure used by plan and subscription validation errors:
+ * a machine-readable `code`, a human-readable `message`, optional structured
+ * `attributes`, plus a `severity` and optional `field` path.
+ */
+export interface InvoiceValidationIssue {
+  /** Machine-readable error code. */
+  code: string
+  /** Human-readable description of the error. */
+  message: string
+  /** Additional structured context. */
+  attributes?: Record<string, unknown>
+  /** Severity of the validation issue. */
+  severity: 'critical' | 'warning'
+  /**
+   * JSON path to the field that caused this validation issue, if applicable.
+   *
+   * For example: `lines/0/rate_card/price`.
+   */
+  field?: string
+}
+
+/**
+ * The set of state-transition actions available for an invoice in its current
+ * status.
+ *
+ * A field is present only when that action is permitted from the current state.
+ */
+export interface InvoiceAvailableActions {
+  /** Advance the invoice to the next workflow step. */
+  advance?: InvoiceAvailableActionDetails
+  /** Approve the invoice for issuance. */
+  approve?: InvoiceAvailableActionDetails
+  /** Delete the invoice. */
+  delete?: InvoiceAvailableActionDetails
+  /** Retry a failed workflow step. */
+  retry?: InvoiceAvailableActionDetails
+  /** Snapshot the current usage quantities. */
+  snapshotQuantities?: InvoiceAvailableActionDetails
+}
+
+/** A monetary amount discount applied to an invoice line item. */
+export interface InvoiceLineAmountDiscount {
+  /** Unique identifier for the discount. */
+  id: string
+  /** The reason this discount was applied. */
+  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /** External identifiers for this discount. */
+  externalReferences?: InvoiceLineExternalReferences
+  /** The monetary amount deducted. */
+  amount: string
+}
+
+/** A usage quantity discount applied to an invoice line item. */
+export interface InvoiceLineUsageDiscount {
+  /** Unique identifier for the discount. */
+  id: string
+  /** The reason this discount was applied. */
+  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /** External identifiers for this discount. */
+  externalReferences?: InvoiceLineExternalReferences
+  /** The usage quantity deducted (in billing units). */
+  quantity: string
+}
+
+/** Base fields shared by all invoice line item discounts. */
+export interface InvoiceLineBaseDiscount {
+  /** Unique identifier for the discount. */
+  id: string
+  /** The reason this discount was applied. */
+  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /** External identifiers for this discount. */
+  externalReferences?: InvoiceLineExternalReferences
 }
 
 /**
@@ -2020,6 +2130,18 @@ export interface UnitConfig {
    * Optional. When omitted, no unit label is rendered.
    */
   displayUnit?: string
+}
+
+/** Payment state of a charge realization. */
+export interface ChargeRealizationPayment {
+  /** The settlement status of the payment. */
+  status: 'authorized' | 'settled'
+}
+
+/** The proration configuration of the rate card. */
+export interface RateCardProrationConfiguration {
+  /** The proration mode of the rate card. */
+  mode: 'no_proration' | 'prorate_prices'
 }
 
 /** Mapping of app types to tax codes. */
@@ -2130,24 +2252,6 @@ export interface UpdateAppExternalInvoicingRequest {
   enableIssuingSyncHook: boolean
 }
 
-/**
- * Identity stores the details required to identify an entity for tax purposes in a
- * specific country.
- */
-export interface PartyTaxIdentity {
-  /** Normalized tax identification code shown on the original identity document. */
-  code?: string
-}
-
-/**
- * Identity stores the details required to identify an entity for tax purposes in a
- * specific country.
- */
-export interface UpdateBillingPartyTaxIdentity {
-  /** Normalized tax identification code shown on the original identity document. */
-  code?: string
-}
-
 /** Invoice settings for a billing workflow. */
 export interface WorkflowInvoicingSettings {
   /** Whether to automatically issue the invoice after the draftPeriod has passed. */
@@ -2158,89 +2262,6 @@ export interface WorkflowInvoicingSettings {
   progressiveBilling: boolean
   /** Controls how subscription-ending shortened service periods are billed. */
   subscriptionEndProrationMode: 'bill_full_period' | 'bill_actual_period'
-}
-
-/**
- * A validation issue found during invoice processing.
- *
- * Converges on the same structure used by plan and subscription validation errors:
- * a machine-readable `code`, a human-readable `message`, optional structured
- * `attributes`, plus a `severity` and optional `field` path.
- */
-export interface InvoiceValidationIssue {
-  /** Machine-readable error code. */
-  code: string
-  /** Human-readable description of the error. */
-  message: string
-  /** Additional structured context. */
-  attributes?: Record<string, unknown>
-  /** Severity of the validation issue. */
-  severity: 'critical' | 'warning'
-  /**
-   * JSON path to the field that caused this validation issue, if applicable.
-   *
-   * For example: `lines/0/rate_card/price`.
-   */
-  field?: string
-}
-
-/**
- * The set of state-transition actions available for an invoice in its current
- * status.
- *
- * A field is present only when that action is permitted from the current state.
- */
-export interface InvoiceAvailableActions {
-  /** Advance the invoice to the next workflow step. */
-  advance?: InvoiceAvailableActionDetails
-  /** Approve the invoice for issuance. */
-  approve?: InvoiceAvailableActionDetails
-  /** Delete the invoice. */
-  delete?: InvoiceAvailableActionDetails
-  /** Retry a failed workflow step. */
-  retry?: InvoiceAvailableActionDetails
-  /** Snapshot the current usage quantities. */
-  snapshotQuantities?: InvoiceAvailableActionDetails
-}
-
-/** A monetary amount discount applied to an invoice line item. */
-export interface InvoiceLineAmountDiscount {
-  /** Unique identifier for the discount. */
-  id: string
-  /** The reason this discount was applied. */
-  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
-  /** Optional human-readable description of the discount. */
-  description?: string
-  /** External identifiers for this discount. */
-  externalReferences?: InvoiceLineExternalReferences
-  /** The monetary amount deducted. */
-  amount: string
-}
-
-/** A usage quantity discount applied to an invoice line item. */
-export interface InvoiceLineUsageDiscount {
-  /** Unique identifier for the discount. */
-  id: string
-  /** The reason this discount was applied. */
-  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
-  /** Optional human-readable description of the discount. */
-  description?: string
-  /** External identifiers for this discount. */
-  externalReferences?: InvoiceLineExternalReferences
-  /** The usage quantity deducted (in billing units). */
-  quantity: string
-}
-
-/** Base fields shared by all invoice line item discounts. */
-export interface InvoiceLineBaseDiscount {
-  /** Unique identifier for the discount. */
-  id: string
-  /** The reason this discount was applied. */
-  reason: 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
-  /** Optional human-readable description of the discount. */
-  description?: string
-  /** External identifiers for this discount. */
-  externalReferences?: InvoiceLineExternalReferences
 }
 
 /** Filter options for listing currencies. */
@@ -2422,6 +2443,25 @@ export interface CreditTransaction {
 }
 
 /**
+ * The totals of a charge.
+ *
+ * `realtime` is only populated when the `real_time_usage` expand is used.
+ */
+export interface ChargeTotals {
+  /** The amount of the charge already booked to the internal accounting system. */
+  booked: Totals
+  /**
+   * The realtime amount of the charge, i.e. the whole usage rated at the charge's
+   * price for its full service period, ignoring what has already been booked to a
+   * realization. This differs from `charge.outstanding.totals`, which only covers
+   * the portion not yet booked.
+   *
+   * Requires the `real_time_usage` expand.
+   */
+  realtime?: Totals
+}
+
+/**
  * A price tier used in graduated and volume pricing.
  *
  * At least one price component (flat_price or unit_price) must be set. When
@@ -2438,41 +2478,6 @@ export interface PriceTier {
   flatPrice?: PriceFlat
   /** The unit price component of the tier. Charged per billing unit within the tier. */
   unitPrice?: PriceUnit
-}
-
-/**
- * The totals of a change.
- *
- * RealTime is only expanded when the `real_time_usage` expand is used.
- */
-export interface ChargeTotals {
-  /** The amount of the charge already booked to the internal accounting system. */
-  booked: Totals
-  /**
-   * The realtime amount of the charge.
-   *
-   * Requires the `realtime_usage` expand.
-   */
-  realtime?: Totals
-}
-
-/**
- * A price tier used in graduated and volume pricing.
- *
- * At least one price component (flat_price or unit_price) must be set. When
- * UnitConfig is present on the rate card, up_to_amount is expressed in converted
- * billing units.
- */
-export interface UpdatePriceTier {
-  /**
-   * Up to and including this quantity will be contained in the tier. If undefined,
-   * the tier is open-ended (the last tier).
-   */
-  upToAmount?: string
-  /** The flat price component of the tier. Charged once when the tier is entered. */
-  flatPrice?: UpdatePriceFlat
-  /** The unit price component of the tier. Charged per billing unit within the tier. */
-  unitPrice?: UpdatePriceUnit
 }
 
 /**
@@ -2527,6 +2532,25 @@ export interface FeatureLlmUnitCost {
    * meter group-by filters with exact matches.
    */
   pricing?: FeatureLlmUnitCostPricing
+}
+
+/**
+ * A price tier used in graduated and volume pricing.
+ *
+ * At least one price component (flat_price or unit_price) must be set. When
+ * UnitConfig is present on the rate card, up_to_amount is expressed in converted
+ * billing units.
+ */
+export interface UpdatePriceTier {
+  /**
+   * Up to and including this quantity will be contained in the tier. If undefined,
+   * the tier is open-ended (the last tier).
+   */
+  upToAmount?: string
+  /** The flat price component of the tier. Charged once when the tier is entered. */
+  flatPrice?: UpdatePriceFlat
+  /** The unit price component of the tier. Charged per billing unit within the tier. */
+  unitPrice?: UpdatePriceUnit
 }
 
 /**
@@ -2696,6 +2720,29 @@ export interface UpdateOrganizationDefaultTaxCodesRequest {
 }
 
 /**
+ * BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps
+ * used by a billing profile
+ */
+export interface InvoiceWorkflowAppsReferences {
+  /** The tax app used for this workflow */
+  tax: AppReference
+  /** The invoicing app used for this workflow */
+  invoicing: AppReference
+  /** The payment app used for this workflow */
+  payment: AppReference
+}
+
+/** References to the applications used by a billing profile. */
+export interface ProfileAppReferences {
+  /** The tax app used for this workflow. */
+  tax: AppReference
+  /** The invoicing app used for this workflow. */
+  invoicing: AppReference
+  /** The payment app used for this workflow. */
+  payment: AppReference
+}
+
+/**
  * PlanAddon represents an association between a plan and an add-on, controlling
  * which add-ons are available for purchase within a plan.
  */
@@ -2761,29 +2808,6 @@ export interface CreatePlanAddonRequest {
   maxQuantity?: number
 }
 
-/** References to the applications used by a billing profile. */
-export interface ProfileAppReferences {
-  /** The tax app used for this workflow. */
-  tax: AppReference
-  /** The invoicing app used for this workflow. */
-  invoicing: AppReference
-  /** The payment app used for this workflow. */
-  payment: AppReference
-}
-
-/**
- * BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps
- * used by a billing profile
- */
-export interface InvoiceWorkflowAppsReferences {
-  /** The tax app used for this workflow */
-  tax: AppReference
-  /** The invoicing app used for this workflow */
-  invoicing: AppReference
-  /** The payment app used for this workflow */
-  payment: AppReference
-}
-
 /** The tax config of the rate card. */
 export interface UpdateRateCardTaxConfig {
   behavior?: 'inclusive' | 'exclusive'
@@ -2808,6 +2832,43 @@ export interface ListEventsParamsFilter {
   ingestedAt?: DateTimeFieldFilter
   /** Filter events by the time the event was stored. */
   storedAt?: DateTimeFieldFilter
+}
+
+/** Filter options for listing charges. */
+export interface ListChargesParamsFilter {
+  /**
+   * Filter charges by status.
+   *
+   * Supported statuses are:
+   *
+   * - `created`
+   * - `active`
+   * - `final`
+   * - `deleted`
+   *
+   * If omitted, all statuses are returned except for `deleted`.
+   */
+  status?: StringFieldFilterExact
+  /** Filter charges by the ID of their associated feature. */
+  featureId?: UlidFieldFilter
+  /** Filter charges by the key of their associated feature. */
+  featureKey?: StringFieldFilterExact
+  /**
+   * Filter charges by the start of their service period.
+   *
+   * Combine with `service_period_to` to match charges whose service period overlaps
+   * a given window: `filter[service_period_to][gte]=<from>` together with
+   * `filter[service_period_from][lt]=<to>` returns charges whose service period
+   * intersects `[from, to)`.
+   */
+  servicePeriodFrom?: DateTimeFieldFilter
+  /**
+   * Filter charges by the end of their service period.
+   *
+   * See `service_period_from` for how to express a service-period overlap query
+   * using both fields together.
+   */
+  servicePeriodTo?: DateTimeFieldFilter
 }
 
 /** Filter options for listing invoices. */
@@ -2877,6 +2938,60 @@ export interface MeterQueryResult {
   to?: Date
   /** The usage data. If no data is available, an empty array is returned. */
   data: MeterQueryRow[]
+}
+
+/** A detailed line produced by a flat fee charge's realization run. */
+export interface ChargeRealizationDetailedLineFlatFee {
+  id: string
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge the realization belongs to. */
+  type: 'flat_fee'
+  /** The service period covered by this detailed line. */
+  servicePeriod: ClosedPeriod
+  /** Aggregated financial totals for the detailed line. */
+  totals: Totals
+  /** The cost category of this detailed line. */
+  category: 'regular' | 'commitment'
+  /** Credits applied to this detailed line. */
+  creditsApplied?: ChargeRealizationDetailedLineCreditApplied[]
+  /** The unit price of the detailed line. */
+  unitPrice: string
+  /** The amount discounts applied to the detailed line. */
+  amountDiscounts: ChargeRealizationAmountDiscount[]
+}
+
+/** A detailed line produced by a usage-based charge's realization run. */
+export interface ChargeRealizationDetailedLineUsageBased {
+  id: string
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge the realization belongs to. */
+  type: 'usage_based'
+  /** The service period covered by this detailed line. */
+  servicePeriod: ClosedPeriod
+  /** Aggregated financial totals for the detailed line. */
+  totals: Totals
+  /** The cost category of this detailed line. */
+  category: 'regular' | 'commitment'
+  /** Credits applied to this detailed line. */
+  creditsApplied?: ChargeRealizationDetailedLineCreditApplied[]
+  /** The unit price of the detailed line. */
+  unitPrice: string
+  /** The amount discounts applied to the detailed line. */
+  amountDiscounts: ChargeRealizationAmountDiscount[]
+  /** The quantity of the detailed line. */
+  quantity: string
+  /** The ID of a prior realization run this detailed line corrects, when applicable. */
+  correctsRunId?: string
 }
 
 /** Describes custom currency. */
@@ -3140,6 +3255,57 @@ export interface WorkflowCollectionAlignmentAnchored {
   recurringPeriod: RecurringPeriod
 }
 
+/** Page paginated response. */
+export interface SubscriptionPagePaginatedResponse {
+  data: Subscription[]
+  meta: PaginatedMeta
+}
+
+/** Response for changing a subscription. */
+export interface SubscriptionChangeResponse {
+  /** The current subscription before the change. */
+  current: Subscription
+  /** The new state of the subscription after the change. */
+  next: Subscription
+}
+
+/** Detailed status information for a standard invoice. */
+export interface InvoiceStatusDetails {
+  /** Whether the invoice is immutable (i.e. cannot be modified or deleted). */
+  immutable: boolean
+  /** Whether the invoice is in a failed state. */
+  failed: boolean
+  /**
+   * Fine-grained internal status string providing additional workflow detail beyond
+   * the top-level status enum.
+   */
+  extendedStatus: string
+  /** The set of state-transition actions currently available for this invoice. */
+  availableActions: InvoiceAvailableActions
+}
+
+/**
+ * Invoice-level snapshot of the workflow configuration.
+ *
+ * Contains only the settings that are meaningful for an already-created invoice:
+ * invoicing behaviour and payment settings. Collection alignment and tax policy
+ * are gather-time / profile-wide concerns and are not included.
+ */
+export interface InvoiceWorkflow {
+  /** Invoicing settings for this invoice. */
+  invoicing?: InvoiceWorkflowInvoicingSettings
+  /** Payment settings for this invoice. */
+  payment?: WorkflowPaymentSettings
+}
+
+/** Discounts applied to an invoice line item. */
+export interface InvoiceLineDiscounts {
+  /** Monetary amount discounts (e.g. from maximum spend commitments). */
+  amount?: InvoiceLineAmountDiscount[]
+  /** Usage quantity discounts (e.g. free tier usage allowances). */
+  usage?: InvoiceLineUsageDiscount[]
+}
+
 /**
  * Flat fee intent fields from the system lifecycle controller shadowed by a manual
  * override.
@@ -3179,20 +3345,6 @@ export interface ChargeFlatFeeSystemIntent {
    * effective charge can remain visible while a manual override is active.
    */
   deletedAt?: Date
-}
-
-/** Page paginated response. */
-export interface SubscriptionPagePaginatedResponse {
-  data: Subscription[]
-  meta: PaginatedMeta
-}
-
-/** Response for changing a subscription. */
-export interface SubscriptionChangeResponse {
-  /** The current subscription before the change. */
-  current: Subscription
-  /** The new state of the subscription after the change. */
-  next: Subscription
 }
 
 /** Request for canceling a subscription. */
@@ -3336,43 +3488,6 @@ export interface AppCatalogItem {
   capabilities: AppCapability[]
   /** Available install methods of the app. */
   installMethods: ('with_oauth2' | 'with_api_key' | 'no_credentials_required')[]
-}
-
-/**
- * Invoice-level snapshot of the workflow configuration.
- *
- * Contains only the settings that are meaningful for an already-created invoice:
- * invoicing behaviour and payment settings. Collection alignment and tax policy
- * are gather-time / profile-wide concerns and are not included.
- */
-export interface InvoiceWorkflow {
-  /** Invoicing settings for this invoice. */
-  invoicing?: InvoiceWorkflowInvoicingSettings
-  /** Payment settings for this invoice. */
-  payment?: WorkflowPaymentSettings
-}
-
-/** Detailed status information for a standard invoice. */
-export interface InvoiceStatusDetails {
-  /** Whether the invoice is immutable (i.e. cannot be modified or deleted). */
-  immutable: boolean
-  /** Whether the invoice is in a failed state. */
-  failed: boolean
-  /**
-   * Fine-grained internal status string providing additional workflow detail beyond
-   * the top-level status enum.
-   */
-  extendedStatus: string
-  /** The set of state-transition actions currently available for this invoice. */
-  availableActions: InvoiceAvailableActions
-}
-
-/** Discounts applied to an invoice line item. */
-export interface InvoiceLineDiscounts {
-  /** Monetary amount discounts (e.g. from maximum spend commitments). */
-  amount?: InvoiceLineAmountDiscount[]
-  /** Usage quantity discounts (e.g. free tier usage allowances). */
-  usage?: InvoiceLineUsageDiscount[]
 }
 
 /**
@@ -3647,51 +3762,6 @@ export interface CreditGrant {
   status: 'pending' | 'active' | 'expired' | 'voided'
 }
 
-/** Flat fee charge create request. */
-export interface CreateChargeFlatFeeRequest {
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** The type of the charge. */
-  type: 'flat_fee'
-  /** The currency of the charge. */
-  currency: string
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: Date
-  /** The effective service period covered by the charge. */
-  servicePeriod: ClosedPeriod
-  /** Unique reference ID of the charge. */
-  uniqueReferenceId?: string
-  /** Settlement mode of the charge. */
-  settlementMode: 'credit_then_invoice' | 'credit_only'
-  /** Tax configuration of the charge. */
-  taxConfig?: TaxConfig
-  /** Payment term of the flat fee charge. */
-  paymentTerm: PricePaymentTerm
-  /** The discounts applied to the charge. */
-  discounts?: ChargeFlatFeeDiscounts
-  /** The feature ID associated with the charge. */
-  featureId?: string
-  /** The proration configuration of the charge. */
-  prorationConfiguration: RateCardProrationConfiguration
-  /** The amount before proration of the charge. */
-  amountBeforeProration: CurrencyAmount
-  /** The full, unprorated service period of the charge. */
-  fullServicePeriod?: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billingPeriod?: ClosedPeriod
-}
-
 /** Tax settings for a billing workflow. */
 export interface WorkflowTaxSettings {
   /**
@@ -3761,23 +3831,6 @@ export interface CustomerPagePaginatedResponse {
   meta: PaginatedMeta
 }
 
-/** Party represents a person or business entity. */
-export interface Party {
-  /** Unique identifier for the party. */
-  id?: string
-  /** An optional unique key of the party. */
-  key?: string
-  /** Legal name or representation of the party. */
-  name?: string
-  /**
-   * The entity's legal identification used for tax purposes. They may have other
-   * numbers, but we're only interested in those valid for tax purposes.
-   */
-  taxId?: PartyTaxIdentity
-  /** Address for where information should be sent if needed. */
-  addresses?: PartyAddresses
-}
-
 /**
  * Snapshot of the supplier's information at the time the invoice was issued.
  *
@@ -3797,6 +3850,23 @@ export interface Supplier {
   addresses?: PartyAddresses
   /** Unique identifier for the party. */
   id?: string
+}
+
+/** Party represents a person or business entity. */
+export interface Party {
+  /** Unique identifier for the party. */
+  id?: string
+  /** An optional unique key of the party. */
+  key?: string
+  /** Legal name or representation of the party. */
+  name?: string
+  /**
+   * The entity's legal identification used for tax purposes. They may have other
+   * numbers, but we're only interested in those valid for tax purposes.
+   */
+  taxId?: PartyTaxIdentity
+  /** Address for where information should be sent if needed. */
+  addresses?: PartyAddresses
 }
 
 /**
@@ -3912,6 +3982,68 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
   redirectOnCompletion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
   taxIdCollection?: AppStripeCreateCheckoutSessionTaxIdCollection
+}
+
+/** Snapshot of the billing workflow configuration captured at invoice creation. */
+export interface InvoiceWorkflowSettings {
+  /** The apps that will be used to orchestrate the invoice's workflow. */
+  apps?: InvoiceWorkflowAppsReferences
+  /** The billing profile that was the source of this workflow snapshot. */
+  sourceBillingProfile: ProfileReference
+  /**
+   * The workflow configuration that was active when the invoice was created.
+   *
+   * Only the fields that are meaningful at the per-invoice level are included:
+   * invoicing behaviour (auto-advance, draft period) and payment settings
+   * (collection method, due date). Profile-wide settings such as collection
+   * alignment, progressive billing, and tax policy are omitted.
+   */
+  workflow: InvoiceWorkflow
+}
+
+/**
+ * A detailed (child) sub-line belonging to a parent invoice line.
+ *
+ * Detailed lines represent the individual flat-fee components that make up a
+ * usage-based parent line after quantity snapshotting.
+ */
+export interface InvoiceDetailedLine {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The service period covered by this detailed line. */
+  servicePeriod: ClosedPeriod
+  /** Aggregated financial totals for the detailed line. */
+  totals: Totals
+  /** The cost category of this detailed line. */
+  category: 'regular' | 'commitment'
+  /** Discounts applied to this detailed line. */
+  discounts?: InvoiceLineDiscounts
+  /** Credit applied to this detailed line. */
+  creditsApplied?: InvoiceLineCreditsApplied[]
+  /** External identifiers for this detailed line. */
+  externalReferences?: InvoiceLineExternalReferences
+  /** The quantity of the detailed line. */
+  quantity: string
+  /** The unit price of the detailed line. */
+  unitPrice: string
 }
 
 /** Page paginated response. */
@@ -4062,68 +4194,6 @@ export interface AppExternalInvoicing {
 export interface AppCatalogItemPagePaginatedResponse {
   data: AppCatalogItem[]
   meta: PaginatedMeta
-}
-
-/** Snapshot of the billing workflow configuration captured at invoice creation. */
-export interface InvoiceWorkflowSettings {
-  /** The apps that will be used to orchestrate the invoice's workflow. */
-  apps?: InvoiceWorkflowAppsReferences
-  /** The billing profile that was the source of this workflow snapshot. */
-  sourceBillingProfile: ProfileReference
-  /**
-   * The workflow configuration that was active when the invoice was created.
-   *
-   * Only the fields that are meaningful at the per-invoice level are included:
-   * invoicing behaviour (auto-advance, draft period) and payment settings
-   * (collection method, due date). Profile-wide settings such as collection
-   * alignment, progressive billing, and tax policy are omitted.
-   */
-  workflow: InvoiceWorkflow
-}
-
-/**
- * A detailed (child) sub-line belonging to a parent invoice line.
- *
- * Detailed lines represent the individual flat-fee components that make up a
- * usage-based parent line after quantity snapshotting.
- */
-export interface InvoiceDetailedLine {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The service period covered by this detailed line. */
-  servicePeriod: ClosedPeriod
-  /** Aggregated financial totals for the detailed line. */
-  totals: Totals
-  /** The cost category of this detailed line. */
-  category: 'regular' | 'commitment'
-  /** Discounts applied to this detailed line. */
-  discounts?: InvoiceLineDiscounts
-  /** Credit applied to this detailed line. */
-  creditsApplied?: InvoiceLineCreditsApplied[]
-  /** External identifiers for this detailed line. */
-  externalReferences?: InvoiceLineExternalReferences
-  /** The quantity of the detailed line. */
-  quantity: string
-  /** The unit price of the detailed line. */
-  unitPrice: string
 }
 
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
@@ -4362,85 +4432,21 @@ export interface GovernanceQueryResponse {
   meta: CursorMeta
 }
 
-/** A flat fee charge for a customer. */
-export interface ChargeFlatFee {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /** The type of the charge. */
-  type: 'flat_fee'
-  /** The customer owning the charge. */
-  customer: BillingCustomerReference
-  /**
-   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
-   * overridden by the API user.
-   */
-  lifecycleController: 'system' | 'manual'
-  /**
-   * The subscription that originated the charge, when the charge was created from a
-   * subscription item.
-   */
-  subscription?: SubscriptionReference
-  /** The currency of the charge. */
-  currency: string
-  /** The lifecycle status of the charge. */
-  status: 'created' | 'active' | 'final' | 'deleted'
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: Date
-  /** The effective service period covered by the charge. */
-  servicePeriod: ClosedPeriod
-  /** The full, unprorated service period of the charge. */
-  fullServicePeriod: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billingPeriod: ClosedPeriod
-  /**
-   * The earliest time when the charge should be advanced again by background
-   * processing.
-   */
-  advanceAfter?: Date
-  /** Unique reference ID of the charge. */
-  uniqueReferenceId?: string
-  /** Settlement mode of the charge. */
-  settlementMode: 'credit_then_invoice' | 'credit_only'
-  /** Tax configuration of the charge. */
-  taxConfig?: TaxConfig
-  /** Payment term of the flat fee charge. */
-  paymentTerm: PricePaymentTerm
-  /** The discounts applied to the charge. */
-  discounts?: ChargeFlatFeeDiscounts
-  /** The feature associated with the charge, when applicable. */
-  featureKey?: string
-  /** The feature ID associated with the charge. */
-  featureId?: string
-  /** The proration configuration of the charge. */
-  prorationConfiguration: RateCardProrationConfiguration
-  /** The amount after proration of the charge. */
-  amountAfterProration: CurrencyAmount
-  /** The price of the charge. */
+/** Rate card configuration snapshot for a usage-based invoice line. */
+export interface InvoiceLineRateCard {
+  /** The price definition used to calculate charges for this line. */
   price: Price
+  /** Tax configuration snapshot for this line. */
+  taxConfig?: RateCardTaxConfig
+  /** The feature key associated with this line's rate card. */
+  featureKey?: string
+  /** Discount configuration from the rate card. */
+  discounts?: RateCardDiscounts
   /**
-   * Current intent from the system lifecycle controller for a charge that has an
-   * active manual override. The top-level charge fields remain the effective
-   * customer-facing intent.
+   * Unit config snapshot applied when this line was billed, converting the raw
+   * metered quantity into the billed quantity. Frozen at billing time; read-only.
    */
-  systemIntent?: ChargeFlatFeeSystemIntent
+  unitConfig?: UnitConfig
 }
 
 /**
@@ -4478,47 +4484,6 @@ export interface ChargeUsageBasedSystemIntent {
    * effective charge can remain visible while a manual override is active.
    */
   deletedAt?: Date
-}
-
-/** Usage-based charge create request. */
-export interface CreateChargeUsageBasedRequest {
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** The type of the charge. */
-  type: 'usage_based'
-  /** The currency of the charge. */
-  currency: string
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: Date
-  /** The effective service period covered by the charge. */
-  servicePeriod: ClosedPeriod
-  /** Unique reference ID of the charge. */
-  uniqueReferenceId?: string
-  /** Settlement mode of the charge. */
-  settlementMode: 'credit_then_invoice' | 'credit_only'
-  /** Tax configuration of the charge. */
-  taxConfig?: TaxConfig
-  /** Discounts applied to the usage-based charge. */
-  discounts?: RateCardDiscounts
-  /** The feature ID associated with the charge. */
-  featureId: string
-  /** The price of the charge. */
-  price: Price
-  /** The full, unprorated service period of the charge. */
-  fullServicePeriod?: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billingPeriod?: ClosedPeriod
 }
 
 /** A rate card defines the pricing and entitlement of a feature or service. */
@@ -4583,21 +4548,10 @@ export interface RateCard {
   entitlement?: RateCardEntitlement
 }
 
-/** Rate card configuration snapshot for a usage-based invoice line. */
-export interface InvoiceLineRateCard {
-  /** The price definition used to calculate charges for this line. */
-  price: Price
-  /** Tax configuration snapshot for this line. */
-  taxConfig?: RateCardTaxConfig
-  /** The feature key associated with this line's rate card. */
-  featureKey?: string
-  /** Discount configuration from the rate card. */
-  discounts?: RateCardDiscounts
-  /**
-   * Unit config snapshot applied when this line was billed, converting the raw
-   * metered quantity into the billed quantity. Frozen at billing time; read-only.
-   */
-  unitConfig?: UnitConfig
+/** Page paginated response. */
+export interface FeaturePagePaginatedResponse {
+  data: Feature[]
+  meta: PaginatedMeta
 }
 
 /** Rate card configuration snapshot for a usage-based invoice line. */
@@ -4610,12 +4564,6 @@ export interface UpdateInvoiceLineRateCard {
   featureKey?: string
   /** Discount configuration from the rate card. */
   discounts?: UpdateDiscounts
-}
-
-/** Page paginated response. */
-export interface FeaturePagePaginatedResponse {
-  data: Feature[]
-  meta: PaginatedMeta
 }
 
 /** Billing workflow settings. */
@@ -4658,9 +4606,14 @@ export interface ProfileApps {
   payment: App
 }
 
-/** A usage-based charge for a customer. */
-export interface ChargeUsageBased {
-  id: string
+/**
+ * A top-level line item on an invoice.
+ *
+ * Each line represents a single charge, typically associated with a rate card from
+ * a subscription. Detailed (child) lines are nested under `detailed_lines` when
+ * present.
+ */
+export interface InvoiceStandardLine {
   /**
    * Display name of the resource.
    *
@@ -4680,59 +4633,55 @@ export interface ChargeUsageBased {
   updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deletedAt?: Date
-  /** The type of the charge. */
-  type: 'usage_based'
-  /** The customer owning the charge. */
-  customer: BillingCustomerReference
   /**
-   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
-   * overridden by the API user.
+   * ID of the line.
+   *
+   * Optional on update: omit to create a new line, or supply the ID of an existing
+   * line to edit it. Existing lines omitted from an update's `lines` array are
+   * deleted.
+   */
+  id?: string
+  /** The type of charge this line item represents. */
+  type: 'standard_line'
+  /**
+   * Indicates whether this line item's lifecycle is controlled by OpenMeter or
+   * manually overridden by the API user.
    */
   lifecycleController: 'system' | 'manual'
   /**
-   * The subscription that originated the charge, when the charge was created from a
-   * subscription item.
+   * The service period covered by this invoice, spanning the earliest line start to
+   * the latest line end across all of its lines.
+   *
+   * For an invoice with no lines the period is empty, which means `from` will be
+   * equal to `to`.
    */
-  subscription?: SubscriptionReference
-  /** The currency of the charge. */
-  currency: string
-  /** The lifecycle status of the charge. */
-  status: 'created' | 'active' | 'final' | 'deleted'
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: Date
-  /** The effective service period covered by the charge. */
   servicePeriod: ClosedPeriod
-  /** The full, unprorated service period of the charge. */
-  fullServicePeriod: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billingPeriod: ClosedPeriod
+  /** Aggregated financial totals for the line item. */
+  totals: Totals
+  /** Discounts applied to this line item. */
+  discounts?: InvoiceLineDiscounts
+  /** Credit applied to this line item. */
+  creditsApplied?: InvoiceLineCreditsApplied[]
+  /** External identifiers for this line item assigned by third-party systems. */
+  externalReferences?: InvoiceLineExternalReferences
+  /** Reference to the subscription item that generated this line. */
+  subscription?: SubscriptionReference
+  /** The rate card configuration snapshot used to price this line item. */
+  rateCard: InvoiceLineRateCard
   /**
-   * The earliest time when the charge should be advanced again by background
-   * processing.
+   * Detailed sub-lines that this line has been broken down into.
+   *
+   * Present when line has individual details.
    */
-  advanceAfter?: Date
-  /** Unique reference ID of the charge. */
-  uniqueReferenceId?: string
-  /** Settlement mode of the charge. */
-  settlementMode: 'credit_then_invoice' | 'credit_only'
-  /** Tax configuration of the charge. */
-  taxConfig?: TaxConfig
-  /** Discounts applied to the usage-based charge. */
-  discounts?: RateCardDiscounts
-  /** The feature associated with the charge. */
-  featureKey: string
-  /** The feature ID associated with the charge. */
-  featureId: string
-  /** Aggregated booked and realtime totals for the charge. */
-  totals: ChargeTotals
-  /** The price of the charge. */
-  price: Price
+  detailedLines: InvoiceDetailedLine[]
   /**
-   * Current intent from the system lifecycle controller for a charge that has an
-   * active manual override. The top-level charge fields remain the effective
-   * customer-facing intent.
+   * Usage quantity details for this line when UnitConfig is in effect.
+   *
+   * Read-only; omitted for lines without unit conversion.
    */
-  systemIntent?: ChargeUsageBasedSystemIntent
+  usageQuantityDetail?: InvoiceUsageQuantityDetail
+  /** Reference to the charge associated with this line item. */
+  charge?: ChargeReference
 }
 
 /** A rate card for a subscription add-on. */
@@ -4883,14 +4832,8 @@ export interface UpsertAddonRequest {
   rateCards: RateCard[]
 }
 
-/**
- * A top-level line item on an invoice.
- *
- * Each line represents a single charge, typically associated with a rate card from
- * a subscription. Detailed (child) lines are nested under `detailed_lines` when
- * present.
- */
-export interface InvoiceStandardLine {
+/** Flat fee charge create request. */
+export interface CreateChargeFlatFeeRequest {
   /**
    * Display name of the resource.
    *
@@ -4904,61 +4847,83 @@ export interface InvoiceStandardLine {
    */
   description?: string
   labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /**
-   * ID of the line.
-   *
-   * Optional on update: omit to create a new line, or supply the ID of an existing
-   * line to edit it. Existing lines omitted from an update's `lines` array are
-   * deleted.
-   */
-  id?: string
-  /** The type of charge this line item represents. */
-  type: 'standard_line'
-  /**
-   * Indicates whether this line item's lifecycle is controlled by OpenMeter or
-   * manually overridden by the API user.
-   */
-  lifecycleController: 'system' | 'manual'
-  /**
-   * The service period covered by this invoice, spanning the earliest line start to
-   * the latest line end across all of its lines.
-   *
-   * For an invoice with no lines the period is empty, which means `from` will be
-   * equal to `to`.
-   */
+  /** The type of the charge. */
+  type: 'flat_fee'
+  /** The currency of the charge. */
+  currency: string
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
   servicePeriod: ClosedPeriod
-  /** Aggregated financial totals for the line item. */
-  totals: Totals
-  /** Discounts applied to this line item. */
-  discounts?: InvoiceLineDiscounts
-  /** Credit applied to this line item. */
-  creditsApplied?: InvoiceLineCreditsApplied[]
-  /** External identifiers for this line item assigned by third-party systems. */
-  externalReferences?: InvoiceLineExternalReferences
-  /** Reference to the subscription item that generated this line. */
-  subscription?: SubscriptionReference
-  /** The rate card configuration snapshot used to price this line item. */
-  rateCard: InvoiceLineRateCard
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** Payment term of the flat fee charge. */
+  paymentTerm: PricePaymentTerm
+  /** The discounts applied to the charge. */
+  discounts?: ChargeFlatFeeDiscounts
   /**
-   * Detailed sub-lines that this line has been broken down into.
+   * The feature associated with the charge, when applicable.
    *
-   * Present when line has individual details.
+   * For more details use the `feature` expand.
    */
-  detailedLines: InvoiceDetailedLine[]
+  feature?: FeatureOrReference
+  /** The proration configuration of the charge. */
+  prorationConfiguration: RateCardProrationConfiguration
+  /** The amount before proration of the charge. */
+  amountBeforeProration: CurrencyAmount
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod?: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod?: ClosedPeriod
+}
+
+/** Usage-based charge create request. */
+export interface CreateChargeUsageBasedRequest {
   /**
-   * Usage quantity details for this line when UnitConfig is in effect.
+   * Display name of the resource.
    *
-   * Read-only; omitted for lines without unit conversion.
+   * Between 1 and 256 characters.
    */
-  usageQuantityDetail?: InvoiceUsageQuantityDetail
-  /** Reference to the charge associated with this line item. */
-  charge?: ChargeReference
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** The type of the charge. */
+  type: 'usage_based'
+  /** The currency of the charge. */
+  currency: string
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /**
+   * The feature associated with the charge.
+   *
+   * For more details use the `feature` expand.
+   */
+  feature: FeatureOrReference
+  /** The price of the charge. */
+  price: Price
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod?: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod?: ClosedPeriod
 }
 
 /**
@@ -5288,24 +5253,6 @@ export interface ProfilePagePaginatedResponse {
   meta: PaginatedMeta
 }
 
-/** Page paginated response. */
-export interface ChargePagePaginatedResponse {
-  data: Charge[]
-  meta: PaginatedMeta
-}
-
-/** Page paginated response. */
-export interface SubscriptionAddonPagePaginatedResponse {
-  data: SubscriptionAddon[]
-  meta: PaginatedMeta
-}
-
-/** Page paginated response. */
-export interface PlanPagePaginatedResponse {
-  data: Plan[]
-  meta: PaginatedMeta
-}
-
 /** A standard invoice for charges owed by the customer. */
 export interface InvoiceStandard {
   id: string
@@ -5396,6 +5343,18 @@ export interface InvoiceStandard {
   lines?: InvoiceLine[]
 }
 
+/** Page paginated response. */
+export interface SubscriptionAddonPagePaginatedResponse {
+  data: SubscriptionAddon[]
+  meta: PaginatedMeta
+}
+
+/** Page paginated response. */
+export interface PlanPagePaginatedResponse {
+  data: Plan[]
+  meta: PaginatedMeta
+}
+
 /** InvoiceStandard update request. */
 export interface UpdateInvoiceStandardRequest {
   /**
@@ -5431,6 +5390,244 @@ export interface UpdateInvoiceStandardRequest {
 /** Page paginated response. */
 export interface InvoicePagePaginatedResponse {
   data: Invoice[]
+  meta: PaginatedMeta
+}
+
+/**
+ * A realization run of a charge.
+ *
+ * Realizations are always sorted by `service_period.from`. `totals` and
+ * `detailed_lines` are only populated with the `realization.totals` and
+ * `realization.detailed_lines` expands, respectively, since computing them
+ * requires re-deriving the run's rated breakdown. `invoice` is an ID reference
+ * unless the `realization.invoice` expand is used, which resolves it to the full
+ * invoice.
+ */
+export interface ChargeRealization {
+  /**
+   * The ID of the invoice line this realization was booked to, when the realization
+   * has been invoiced.
+   */
+  lineId?: string
+  /** The reference of the invoice related to the realization. */
+  invoice?: InvoiceOrReference
+  /** The type of the realization run. */
+  type: 'final_realization' | 'partial_invoice' | 'outstanding'
+  /** The service period covered by this realization run. */
+  servicePeriod: ClosedPeriod
+  /** The metered usage quantity this realization run accounts for. */
+  usage: string
+  /**
+   * The payment state of the realization, when the charge requires a fiat
+   * transaction to settle.
+   */
+  payment?: ChargeRealizationPayment
+  /**
+   * Financial totals for the realization run, including credit allocations.
+   *
+   * Requires the `realization.totals` expand.
+   */
+  totals?: Totals
+  /**
+   * The detailed (rated) lines produced by the realization run.
+   *
+   * Requires the `realization.detailed_lines` expand.
+   */
+  detailedLines?: ChargeRealizationDetailedLine[]
+}
+
+/** A flat fee charge for a customer. */
+export interface ChargeFlatFee {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge. */
+  type: 'flat_fee'
+  /**
+   * The customer owning the charge.
+   *
+   * By default, only the `id` of the customer is returned. For more details use the
+   * `customer` expand.
+   */
+  customer: CustomerOrReference
+  /**
+   * Indicates whether the charge lifecycle is controlled by the system or manually
+   * overridden by the API user.
+   */
+  lifecycleController: 'system' | 'manual'
+  /**
+   * The subscription that originated the charge, when the charge was created from a
+   * subscription item.
+   *
+   * By default, only the `id`, `phase.id`, `phase.item.id` of the subscription is
+   * returned. For more details use the `subscription` expand.
+   */
+  subscription?: SubscriptionOrReference
+  /** The currency of the charge. */
+  currency: string
+  /** The lifecycle status of the charge. */
+  status: 'created' | 'active' | 'final' | 'deleted'
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod: ClosedPeriod
+  /**
+   * The earliest time when the charge should be advanced again by background
+   * processing.
+   */
+  advanceAfter?: Date
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** The realization runs of the charge, sorted by `service_period.from`. */
+  realizations: ChargeRealization[]
+  /** Payment term of the flat fee charge. */
+  paymentTerm: PricePaymentTerm
+  /** The discounts applied to the charge. */
+  discounts?: ChargeFlatFeeDiscounts
+  /**
+   * The feature associated with the charge, when applicable.
+   *
+   * For more details use the `feature` expand.
+   */
+  feature?: FeatureOrReference
+  /** The proration configuration of the charge. */
+  prorationConfiguration: RateCardProrationConfiguration
+  /** The amount after proration of the charge. */
+  amountAfterProration: CurrencyAmount
+  /** The price of the charge. */
+  price: Price
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  systemIntent?: ChargeFlatFeeSystemIntent
+}
+
+/** A usage-based charge for a customer. */
+export interface ChargeUsageBased {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge. */
+  type: 'usage_based'
+  /**
+   * The customer owning the charge.
+   *
+   * By default, only the `id` of the customer is returned. For more details use the
+   * `customer` expand.
+   */
+  customer: CustomerOrReference
+  /**
+   * Indicates whether the charge lifecycle is controlled by the system or manually
+   * overridden by the API user.
+   */
+  lifecycleController: 'system' | 'manual'
+  /**
+   * The subscription that originated the charge, when the charge was created from a
+   * subscription item.
+   *
+   * By default, only the `id`, `phase.id`, `phase.item.id` of the subscription is
+   * returned. For more details use the `subscription` expand.
+   */
+  subscription?: SubscriptionOrReference
+  /** The currency of the charge. */
+  currency: string
+  /** The lifecycle status of the charge. */
+  status: 'created' | 'active' | 'final' | 'deleted'
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod: ClosedPeriod
+  /**
+   * The earliest time when the charge should be advanced again by background
+   * processing.
+   */
+  advanceAfter?: Date
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** The realization runs of the charge, sorted by `service_period.from`. */
+  realizations: ChargeRealization[]
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /**
+   * The feature associated with the charge.
+   *
+   * For more details use the `feature` expand.
+   */
+  feature: FeatureOrReference
+  /** Aggregated booked and realtime totals for the charge. */
+  totals: ChargeTotals
+  /**
+   * The metered usage quantity of the charge for its full service period.
+   *
+   * Requires the `real_time_usage` expand, since it is computed live from the
+   * metering store rather than stored on the charge.
+   */
+  usage?: string
+  /** The price of the charge. */
+  price: Price
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  systemIntent?: ChargeUsageBasedSystemIntent
+}
+
+/** Page paginated response. */
+export interface ChargePagePaginatedResponse {
+  data: Charge[]
   meta: PaginatedMeta
 }
 
@@ -5493,6 +5690,11 @@ export type UlidFieldFilter =
 export type DateTimeFieldFilter =
   Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
 
+/** Payment settings for a billing workflow. */
+export type WorkflowPaymentSettings =
+  | WorkflowPaymentChargeAutomaticallySettings
+  | WorkflowPaymentSendInvoiceSettings
+
 /**
  * Subscription edit timing defined when the changes should take effect. If the
  * provided configuration is not supported by the subscription, an error will be
@@ -5503,11 +5705,6 @@ export type SubscriptionEditTiming = 'immediate' | 'next_billing_cycle' | Date
 /** Request to install an app from the catalog. */
 export type InstallAppRequest =
   InstallAppStripeWithApiKey | InstallAppSandbox | InstallAppExternalInvoicing
-
-/** Payment settings for a billing workflow. */
-export type WorkflowPaymentSettings =
-  | WorkflowPaymentChargeAutomaticallySettings
-  | WorkflowPaymentSendInvoiceSettings
 
 /** Payment settings for a billing workflow. */
 export type UpdateBillingWorkflowPaymentSettings =
@@ -5531,6 +5728,9 @@ export type RateCardEntitlement =
   | RateCardStaticEntitlement
   | RateCardBooleanEntitlement
 
+/** Subscription or reference. */
+export type SubscriptionOrReference = Subscription | SubscriptionReference
+
 /** Request to update an installed app. */
 export type UpdateAppRequest =
   | UpdateAppStripeRequest
@@ -5543,8 +5743,23 @@ export type UpdateAppRequest =
  */
 export type FeatureUnitCost = FeatureManualUnitCost | FeatureLlmUnitCost
 
+/**
+ * A detailed (child) line type of a charge realization run.
+ *
+ * This is distinct from an invoice's own detailed lines: it represents the
+ * rated/priced breakdown produced by the realization run itself, before that
+ * breakdown is (or is not yet) reflected on an invoice line. Credit-then-invoice
+ * runs include credit allocations in these lines, while credits-only runs keep the
+ * gross rated detail.
+ */
+export type ChargeRealizationDetailedLine =
+  ChargeRealizationDetailedLineFlatFee | ChargeRealizationDetailedLineUsageBased
+
 /** Fiat or custom currency. */
 export type Currency = CurrencyFiat | CurrencyCustom
+
+/** Customer or reference. */
+export type CustomerOrReference = Customer | CustomerReference
 
 /**
  * The alignment for collecting the pending line items into an invoice.
@@ -5571,12 +5786,8 @@ export type UpdatePrice =
 /** Installed application. */
 export type App = AppStripe | AppSandbox | AppExternalInvoicing
 
-/** Customer charge. */
-export type CreateChargeRequest =
-  CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequest
-
-/** Customer charge. */
-export type Charge = ChargeFlatFee | ChargeUsageBased
+/** Feature or reference. */
+export type FeatureOrReference = Feature | FeatureReference
 
 /**
  * A top-level line item on an invoice.
@@ -5586,6 +5797,10 @@ export type Charge = ChargeFlatFee | ChargeUsageBased
  * present.
  */
 export type InvoiceLine = InvoiceStandardLine
+
+/** Customer charge. */
+export type CreateChargeRequest =
+  CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequest
 
 /**
  * A top-level line item on an invoice.
@@ -5607,6 +5822,12 @@ export type Invoice = InvoiceStandard
 
 /** UpdateInvoiceRequest update request. */
 export type UpdateInvoiceRequest = UpdateInvoiceStandardRequest
+
+/** Invoice or reference. */
+export type InvoiceOrReference = Invoice | InvoiceReference
+
+/** Customer charge. */
+export type Charge = ChargeFlatFee | ChargeUsageBased
 
 /**
  * Sort query.
@@ -5640,20 +5861,6 @@ export interface BaseErrorInput {
 }
 
 /**
- * Payment settings for a billing workflow when the collection method is send
- * invoice.
- */
-export interface WorkflowPaymentSendInvoiceSettingsInput {
-  /** The collection method for the invoice. */
-  collectionMethod: 'send_invoice'
-  /**
-   * The period after which the invoice is due. With some payment solutions it's only
-   * applicable for manual collection method.
-   */
-  dueAfter?: string
-}
-
-/**
  * Invoice-level invoicing settings.
  *
  * A subset of BillingWorkflowInvoicingSettings limited to fields that are
@@ -5666,6 +5873,20 @@ export interface InvoiceWorkflowInvoicingSettingsInput {
   /** The period for the invoice to be kept in draft status for manual reviews. */
   draftPeriod?: string
   /** The period after which the invoice is considered overdue if not paid. */
+  dueAfter?: string
+}
+
+/**
+ * Payment settings for a billing workflow when the collection method is send
+ * invoice.
+ */
+export interface WorkflowPaymentSendInvoiceSettingsInput {
+  /** The collection method for the invoice. */
+  collectionMethod: 'send_invoice'
+  /**
+   * The period after which the invoice is due. With some payment solutions it's only
+   * applicable for manual collection method.
+   */
   dueAfter?: string
 }
 
@@ -5985,12 +6206,6 @@ export interface IngestedEventInput {
   validationErrors?: IngestedEventValidationError[]
 }
 
-/** Request for canceling a subscription. */
-export interface SubscriptionCancelInput {
-  /** If not provided the subscription is canceled immediately. */
-  timing?: SubscriptionEditTiming
-}
-
 /**
  * Invoice-level snapshot of the workflow configuration.
  *
@@ -6003,6 +6218,12 @@ export interface InvoiceWorkflowInput {
   invoicing?: InvoiceWorkflowInvoicingSettingsInput
   /** Payment settings for this invoice. */
   payment?: WorkflowPaymentSettingsInput
+}
+
+/** Request for canceling a subscription. */
+export interface SubscriptionCancelInput {
+  /** If not provided the subscription is canceled immediately. */
+  timing?: SubscriptionEditTiming
 }
 
 /**
@@ -6420,6 +6641,23 @@ export interface WorkflowCollectionSettingsInput {
   interval?: string
 }
 
+/** Rate card configuration snapshot for a usage-based invoice line. */
+export interface InvoiceLineRateCardInput {
+  /** The price definition used to calculate charges for this line. */
+  price: Price
+  /** Tax configuration snapshot for this line. */
+  taxConfig?: RateCardTaxConfig
+  /** The feature key associated with this line's rate card. */
+  featureKey?: string
+  /** Discount configuration from the rate card. */
+  discounts?: RateCardDiscounts
+  /**
+   * Unit config snapshot applied when this line was billed, converting the raw
+   * metered quantity into the billed quantity. Frozen at billing time; read-only.
+   */
+  unitConfig?: UnitConfigInput
+}
+
 /** A rate card defines the pricing and entitlement of a feature or service. */
 export interface RateCardInput {
   /**
@@ -6482,23 +6720,6 @@ export interface RateCardInput {
   entitlement?: RateCardEntitlementInput
 }
 
-/** Rate card configuration snapshot for a usage-based invoice line. */
-export interface InvoiceLineRateCardInput {
-  /** The price definition used to calculate charges for this line. */
-  price: Price
-  /** Tax configuration snapshot for this line. */
-  taxConfig?: RateCardTaxConfig
-  /** The feature key associated with this line's rate card. */
-  featureKey?: string
-  /** Discount configuration from the rate card. */
-  discounts?: RateCardDiscounts
-  /**
-   * Unit config snapshot applied when this line was billed, converting the raw
-   * metered quantity into the billed quantity. Frozen at billing time; read-only.
-   */
-  unitConfig?: UnitConfigInput
-}
-
 /** Billing workflow settings. */
 export interface WorkflowInput {
   /** The collection settings for this workflow */
@@ -6509,6 +6730,84 @@ export interface WorkflowInput {
   payment?: WorkflowPaymentSettingsInput
   /** The tax settings for this workflow */
   tax?: WorkflowTaxSettingsInput
+}
+
+/**
+ * A top-level line item on an invoice.
+ *
+ * Each line represents a single charge, typically associated with a rate card from
+ * a subscription. Detailed (child) lines are nested under `detailed_lines` when
+ * present.
+ */
+export interface InvoiceStandardLineInput {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /**
+   * ID of the line.
+   *
+   * Optional on update: omit to create a new line, or supply the ID of an existing
+   * line to edit it. Existing lines omitted from an update's `lines` array are
+   * deleted.
+   */
+  id?: string
+  /** The type of charge this line item represents. */
+  type: 'standard_line'
+  /**
+   * Indicates whether this line item's lifecycle is controlled by OpenMeter or
+   * manually overridden by the API user.
+   */
+  lifecycleController: 'system' | 'manual'
+  /**
+   * The service period covered by this invoice, spanning the earliest line start to
+   * the latest line end across all of its lines.
+   *
+   * For an invoice with no lines the period is empty, which means `from` will be
+   * equal to `to`.
+   */
+  servicePeriod: ClosedPeriod
+  /** Aggregated financial totals for the line item. */
+  totals: Totals
+  /** Discounts applied to this line item. */
+  discounts?: InvoiceLineDiscounts
+  /** Credit applied to this line item. */
+  creditsApplied?: InvoiceLineCreditsApplied[]
+  /** External identifiers for this line item assigned by third-party systems. */
+  externalReferences?: InvoiceLineExternalReferences
+  /** Reference to the subscription item that generated this line. */
+  subscription?: SubscriptionReference
+  /** The rate card configuration snapshot used to price this line item. */
+  rateCard: InvoiceLineRateCardInput
+  /**
+   * Detailed sub-lines that this line has been broken down into.
+   *
+   * Present when line has individual details.
+   */
+  detailedLines: InvoiceDetailedLineInput[]
+  /**
+   * Usage quantity details for this line when UnitConfig is in effect.
+   *
+   * Read-only; omitted for lines without unit conversion.
+   */
+  usageQuantityDetail?: InvoiceUsageQuantityDetail
+  /** Reference to the charge associated with this line item. */
+  charge?: ChargeReference
 }
 
 /** A rate card for a subscription add-on. */
@@ -6657,84 +6956,6 @@ export interface UpsertAddonRequestInput {
   instanceType: 'single' | 'multiple'
   /** The rate cards of the add-on. */
   rateCards: RateCardInput[]
-}
-
-/**
- * A top-level line item on an invoice.
- *
- * Each line represents a single charge, typically associated with a rate card from
- * a subscription. Detailed (child) lines are nested under `detailed_lines` when
- * present.
- */
-export interface InvoiceStandardLineInput {
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: Date
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: Date
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: Date
-  /**
-   * ID of the line.
-   *
-   * Optional on update: omit to create a new line, or supply the ID of an existing
-   * line to edit it. Existing lines omitted from an update's `lines` array are
-   * deleted.
-   */
-  id?: string
-  /** The type of charge this line item represents. */
-  type: 'standard_line'
-  /**
-   * Indicates whether this line item's lifecycle is controlled by OpenMeter or
-   * manually overridden by the API user.
-   */
-  lifecycleController: 'system' | 'manual'
-  /**
-   * The service period covered by this invoice, spanning the earliest line start to
-   * the latest line end across all of its lines.
-   *
-   * For an invoice with no lines the period is empty, which means `from` will be
-   * equal to `to`.
-   */
-  servicePeriod: ClosedPeriod
-  /** Aggregated financial totals for the line item. */
-  totals: Totals
-  /** Discounts applied to this line item. */
-  discounts?: InvoiceLineDiscounts
-  /** Credit applied to this line item. */
-  creditsApplied?: InvoiceLineCreditsApplied[]
-  /** External identifiers for this line item assigned by third-party systems. */
-  externalReferences?: InvoiceLineExternalReferences
-  /** Reference to the subscription item that generated this line. */
-  subscription?: SubscriptionReference
-  /** The rate card configuration snapshot used to price this line item. */
-  rateCard: InvoiceLineRateCardInput
-  /**
-   * Detailed sub-lines that this line has been broken down into.
-   *
-   * Present when line has individual details.
-   */
-  detailedLines: InvoiceDetailedLineInput[]
-  /**
-   * Usage quantity details for this line when UnitConfig is in effect.
-   *
-   * Read-only; omitted for lines without unit conversion.
-   */
-  usageQuantityDetail?: InvoiceUsageQuantityDetail
-  /** Reference to the charge associated with this line item. */
-  charge?: ChargeReference
 }
 
 /**
@@ -7021,18 +7242,6 @@ export interface ProfilePagePaginatedResponseInput {
   meta: PaginatedMeta
 }
 
-/** Page paginated response. */
-export interface SubscriptionAddonPagePaginatedResponseInput {
-  data: SubscriptionAddonInput[]
-  meta: PaginatedMeta
-}
-
-/** Page paginated response. */
-export interface PlanPagePaginatedResponseInput {
-  data: PlanInput[]
-  meta: PaginatedMeta
-}
-
 /** A standard invoice for charges owed by the customer. */
 export interface InvoiceStandardInput {
   id: string
@@ -7123,6 +7332,18 @@ export interface InvoiceStandardInput {
   lines?: InvoiceLineInput[]
 }
 
+/** Page paginated response. */
+export interface SubscriptionAddonPagePaginatedResponseInput {
+  data: SubscriptionAddonInput[]
+  meta: PaginatedMeta
+}
+
+/** Page paginated response. */
+export interface PlanPagePaginatedResponseInput {
+  data: PlanInput[]
+  meta: PaginatedMeta
+}
+
 /** InvoiceStandard update request. */
 export interface UpdateInvoiceStandardRequestInput {
   /**
@@ -7158,6 +7379,244 @@ export interface UpdateInvoiceStandardRequestInput {
 /** Page paginated response. */
 export interface InvoicePagePaginatedResponseInput {
   data: InvoiceInput[]
+  meta: PaginatedMeta
+}
+
+/**
+ * A realization run of a charge.
+ *
+ * Realizations are always sorted by `service_period.from`. `totals` and
+ * `detailed_lines` are only populated with the `realization.totals` and
+ * `realization.detailed_lines` expands, respectively, since computing them
+ * requires re-deriving the run's rated breakdown. `invoice` is an ID reference
+ * unless the `realization.invoice` expand is used, which resolves it to the full
+ * invoice.
+ */
+export interface ChargeRealizationInput {
+  /**
+   * The ID of the invoice line this realization was booked to, when the realization
+   * has been invoiced.
+   */
+  lineId?: string
+  /** The reference of the invoice related to the realization. */
+  invoice?: InvoiceOrReference
+  /** The type of the realization run. */
+  type: 'final_realization' | 'partial_invoice' | 'outstanding'
+  /** The service period covered by this realization run. */
+  servicePeriod: ClosedPeriod
+  /** The metered usage quantity this realization run accounts for. */
+  usage: string
+  /**
+   * The payment state of the realization, when the charge requires a fiat
+   * transaction to settle.
+   */
+  payment?: ChargeRealizationPayment
+  /**
+   * Financial totals for the realization run, including credit allocations.
+   *
+   * Requires the `realization.totals` expand.
+   */
+  totals?: Totals
+  /**
+   * The detailed (rated) lines produced by the realization run.
+   *
+   * Requires the `realization.detailed_lines` expand.
+   */
+  detailedLines?: ChargeRealizationDetailedLine[]
+}
+
+/** A flat fee charge for a customer. */
+export interface ChargeFlatFeeInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge. */
+  type: 'flat_fee'
+  /**
+   * The customer owning the charge.
+   *
+   * By default, only the `id` of the customer is returned. For more details use the
+   * `customer` expand.
+   */
+  customer: CustomerOrReference
+  /**
+   * Indicates whether the charge lifecycle is controlled by the system or manually
+   * overridden by the API user.
+   */
+  lifecycleController: 'system' | 'manual'
+  /**
+   * The subscription that originated the charge, when the charge was created from a
+   * subscription item.
+   *
+   * By default, only the `id`, `phase.id`, `phase.item.id` of the subscription is
+   * returned. For more details use the `subscription` expand.
+   */
+  subscription?: SubscriptionOrReference
+  /** The currency of the charge. */
+  currency: string
+  /** The lifecycle status of the charge. */
+  status: 'created' | 'active' | 'final' | 'deleted'
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod: ClosedPeriod
+  /**
+   * The earliest time when the charge should be advanced again by background
+   * processing.
+   */
+  advanceAfter?: Date
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** The realization runs of the charge, sorted by `service_period.from`. */
+  realizations: ChargeRealizationInput[]
+  /** Payment term of the flat fee charge. */
+  paymentTerm: PricePaymentTerm
+  /** The discounts applied to the charge. */
+  discounts?: ChargeFlatFeeDiscounts
+  /**
+   * The feature associated with the charge, when applicable.
+   *
+   * For more details use the `feature` expand.
+   */
+  feature?: FeatureOrReference
+  /** The proration configuration of the charge. */
+  prorationConfiguration: RateCardProrationConfiguration
+  /** The amount after proration of the charge. */
+  amountAfterProration: CurrencyAmount
+  /** The price of the charge. */
+  price: Price
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  systemIntent?: ChargeFlatFeeSystemIntent
+}
+
+/** A usage-based charge for a customer. */
+export interface ChargeUsageBasedInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  createdAt: Date
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updatedAt: Date
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deletedAt?: Date
+  /** The type of the charge. */
+  type: 'usage_based'
+  /**
+   * The customer owning the charge.
+   *
+   * By default, only the `id` of the customer is returned. For more details use the
+   * `customer` expand.
+   */
+  customer: CustomerOrReference
+  /**
+   * Indicates whether the charge lifecycle is controlled by the system or manually
+   * overridden by the API user.
+   */
+  lifecycleController: 'system' | 'manual'
+  /**
+   * The subscription that originated the charge, when the charge was created from a
+   * subscription item.
+   *
+   * By default, only the `id`, `phase.id`, `phase.item.id` of the subscription is
+   * returned. For more details use the `subscription` expand.
+   */
+  subscription?: SubscriptionOrReference
+  /** The currency of the charge. */
+  currency: string
+  /** The lifecycle status of the charge. */
+  status: 'created' | 'active' | 'final' | 'deleted'
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod: ClosedPeriod
+  /**
+   * The earliest time when the charge should be advanced again by background
+   * processing.
+   */
+  advanceAfter?: Date
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** The realization runs of the charge, sorted by `service_period.from`. */
+  realizations: ChargeRealizationInput[]
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /**
+   * The feature associated with the charge.
+   *
+   * For more details use the `feature` expand.
+   */
+  feature: FeatureOrReference
+  /** Aggregated booked and realtime totals for the charge. */
+  totals: ChargeTotals
+  /**
+   * The metered usage quantity of the charge for its full service period.
+   *
+   * Requires the `real_time_usage` expand, since it is computed live from the
+   * metering store rather than stored on the charge.
+   */
+  usage?: string
+  /** The price of the charge. */
+  price: Price
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  systemIntent?: ChargeUsageBasedSystemIntent
+}
+
+/** Page paginated response. */
+export interface ChargePagePaginatedResponseInput {
+  data: ChargeInput[]
   meta: PaginatedMeta
 }
 
@@ -7200,3 +7659,6 @@ export type InvoiceInput = InvoiceStandardInput
 
 /** UpdateInvoiceRequest update request. */
 export type UpdateInvoiceRequestInput = UpdateInvoiceStandardRequestInput
+
+/** Customer charge. */
+export type ChargeInput = ChargeFlatFeeInput | ChargeUsageBasedInput

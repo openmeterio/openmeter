@@ -54,18 +54,34 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		return api.BillingChargeFlatFee{}, fmt.Errorf("setting flat fee price union: %w", err)
 	}
 
+	feature, err := convertFeatureToReference(featureOrReference{
+		ref: convertFeatureIDToReference(source.State.FeatureID),
+	})
+	if err != nil {
+		return api.BillingChargeFlatFee{}, err
+	}
+
+	customer, err := convertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID())
+	if err != nil {
+		return api.BillingChargeFlatFee{}, err
+	}
+
+	subscription, err := convertSubscriptionToReference(source.ChargeBase.Intent.GetSubscription())
+	if err != nil {
+		return api.BillingChargeFlatFee{}, fmt.Errorf("converting subscription reference: %w", err)
+	}
+
 	return api.BillingChargeFlatFee{
 		AdvanceAfter:           source.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
 		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:              source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
 		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
-		Customer:               ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
+		Customer:               customer,
 		DeletedAt:              source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:            intent.Description,
 		Discounts:              convertFlatFeeDiscounts(intent.PercentageDiscounts),
-		FeatureKey:             intent.FeatureKey,
-		FeatureId:              source.State.FeatureID,
+		Feature:                feature,
 		FullServicePeriod:      ConvertClosedPeriodToAPI(intent.FullServicePeriod),
 		Id:                     source.ChargeBase.ManagedResource.ID,
 		InvoiceAt:              intent.InvoiceAt,
@@ -78,7 +94,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		ServicePeriod:          ConvertClosedPeriodToAPI(intent.ServicePeriod),
 		SettlementMode:         ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
 		Status:                 ConvertChargeStatusToAPI(meta.ChargeStatus(source.Status)),
-		Subscription:           subscriptionRefPtrToAPI(source.ChargeBase.Intent.GetSubscription()),
+		Subscription:           subscription,
 		SystemIntent:           toAPIBillingChargeFlatFeeSystemIntent(source.ChargeBase.Intent),
 		TaxConfig:              convertTaxCodeConfigToAPI(intent.TaxConfig),
 		Type:                   api.BillingChargeFlatFeeTypeFlatFee,
@@ -106,17 +122,33 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		return api.BillingChargeUsageBased{}, fmt.Errorf("converting system intent: %w", err)
 	}
 
+	feature, err := convertFeatureToReference(featureOrReference{
+		ref: convertFeatureIDToReference(&source.State.FeatureID),
+	})
+	if err != nil {
+		return api.BillingChargeUsageBased{}, err
+	}
+
+	customer, err := convertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID())
+	if err != nil {
+		return api.BillingChargeUsageBased{}, err
+	}
+
+	subscription, err := convertSubscriptionToReference(source.ChargeBase.Intent.GetSubscription())
+	if err != nil {
+		return api.BillingChargeUsageBased{}, fmt.Errorf("converting subscription reference: %w", err)
+	}
+
 	return api.BillingChargeUsageBased{
 		AdvanceAfter:        source.State.AdvanceAfter,
 		BillingPeriod:       ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:           source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
 		Currency:            ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency().GetCode()),
-		Customer:            ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
+		Customer:            customer,
 		DeletedAt:           source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
 		Description:         intent.Description,
 		Discounts:           convertUsageBasedDiscounts(intent.Discounts),
-		FeatureKey:          intent.FeatureKey,
-		FeatureId:           source.State.FeatureID,
+		Feature:             lo.FromPtr(feature),
 		FullServicePeriod:   ConvertClosedPeriodToAPI(intent.FullServicePeriod),
 		Id:                  source.ChargeBase.ManagedResource.ID,
 		InvoiceAt:           intent.InvoiceAt,
@@ -127,7 +159,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		ServicePeriod:       ConvertClosedPeriodToAPI(intent.ServicePeriod),
 		SettlementMode:      ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
 		Status:              lo.FromPtr(status),
-		Subscription:        subscriptionRefPtrToAPI(source.ChargeBase.Intent.GetSubscription()),
+		Subscription:        subscription,
 		SystemIntent:        systemIntent,
 		TaxConfig:           convertTaxCodeConfigToAPI(intent.TaxConfig),
 		Totals:              convertUsageBasedChargeTotals(source),
@@ -186,13 +218,46 @@ func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableInten
 	}, nil
 }
 
-// subscriptionRefPtrToAPI converts a nullable SubscriptionReference pointer to the API type.
-func subscriptionRefPtrToAPI(source *meta.SubscriptionReference) *api.BillingSubscriptionReference {
-	if source == nil {
+type featureOrReference struct {
+	feature *api.Feature
+	ref     *api.FeatureReference
+}
+
+func convertFeatureToReference(source featureOrReference) (*api.FeatureOrReference, error) {
+	var feature api.FeatureOrReference
+	if source.feature != nil {
+		if err := feature.FromFeature(*source.feature); err != nil {
+			return nil, fmt.Errorf("feature mapping failed: %w", err)
+		}
+	} else if source.ref != nil {
+		if err := feature.FromFeatureReference(*source.ref); err != nil {
+			return nil, fmt.Errorf("feature mapping failed: %w", err)
+		}
+	} else {
+		return nil, errors.New("only one must be set, either ref or feature")
+	}
+	return &feature, nil
+}
+
+func convertFeatureIDToReference(id *string) *api.FeatureReference {
+	if id == nil {
 		return nil
 	}
-	ref := ConvertSubscriptionRefToAPI(*source)
-	return &ref
+	return &api.FeatureReference{
+		Id: *id,
+	}
+}
+
+// convertSubscriptionToReference converts a nullable SubscriptionReference pointer to the API type.
+func convertSubscriptionToReference(source *meta.SubscriptionReference) (*api.SubscriptionOrReference, error) {
+	if source == nil {
+		return nil, nil
+	}
+	var result api.SubscriptionOrReference
+	if err := result.FromBillingSubscriptionReference(ConvertSubscriptionRefToAPI(*source)); err != nil {
+		return nil, fmt.Errorf("converting subscription reference: %w", err)
+	}
+	return &result, nil
 }
 
 // convertChargeToAPI dispatches on charge type and maps to the API union type.
@@ -395,9 +460,13 @@ func ConvertDecimalToCurrencyAmount(d alpacadecimal.Decimal) api.CurrencyAmount 
 	return api.CurrencyAmount{Amount: d.String()}
 }
 
-// ConvertCustomerIDToReference builds a BillingCustomerReference from a customer ID string.
-func ConvertCustomerIDToReference(id string) api.BillingCustomerReference {
-	return api.BillingCustomerReference{Id: id}
+func convertCustomerIDToReference(id string) (api.CustomerOrReference, error) {
+	var customer api.CustomerOrReference
+	if err := customer.FromCustomerReference(api.CustomerReference{Id: id}); err != nil {
+		return customer, fmt.Errorf("converting customer reference: %w", err)
+	}
+
+	return customer, nil
 }
 
 // ConvertProRatingConfigToAPI maps a ProRatingConfig to the API proration configuration.
@@ -551,6 +620,15 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		}
 	}
 
+	var featureID *string
+	if flatFee.Feature != nil {
+		featureRef, err := flatFee.Feature.AsFeatureReference()
+		if err != nil {
+			return zero, fmt.Errorf("invalid feature reference: %w", err)
+		}
+		featureID = &featureRef.Id
+	}
+
 	return billingcharges.CreateCustomerChargeInput{
 		Namespace:         namespace,
 		CustomerID:        customerID,
@@ -573,7 +651,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 				ProRating:             proRating,
 				AmountBeforeProration: amountBeforeProration,
 			},
-			FeatureID:      flatFee.FeatureId,
+			FeatureID:      featureID,
 			SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
 		},
 	}, nil
@@ -619,6 +697,12 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 	if err != nil {
 		return zero, fmt.Errorf("invalid price: %w", err)
 	}
+
+	featureRef, err := usageBasedFee.Feature.AsFeatureReference()
+	if err != nil {
+		return zero, fmt.Errorf("invalid feature reference: %w", err)
+	}
+
 	return billingcharges.CreateCustomerChargeInput{
 		Namespace:         namespace,
 		CustomerID:        customerID,
@@ -639,7 +723,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 				Price:     *price,
 				Discounts: discounts,
 			},
-			FeatureID:      usageBasedFee.FeatureId,
+			FeatureID:      featureRef.Id,
 			SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
 		},
 	}, nil

@@ -2,11 +2,7 @@
 
 package openmeter
 
-import (
-	"encoding/json"
-	"fmt"
-	"time"
-)
+import "time"
 
 // Feature create request.
 type CreateFeatureRequest struct {
@@ -23,34 +19,6 @@ type CreateFeatureRequest struct {
 	// The meter that the feature is associated with and based on which usage is
 	// calculated. If not specified, the feature is static.
 	Meter *FeatureMeterReferenceInput `json:"meter,omitempty"`
-	// Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
-	// "llm" to look up cost from the LLM cost database based on meter group-by
-	// properties.
-	UnitCost *FeatureUnitCost `json:"unit_cost,omitempty"`
-}
-
-// A capability or billable dimension offered by a provider.
-type Feature struct {
-	ID string `json:"id"`
-	// Display name of the resource.
-	//
-	// Between 1 and 256 characters.
-	Name string `json:"name"`
-	// Optional description of the resource.
-	//
-	// Maximum 1024 characters.
-	Description *string           `json:"description,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	// An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt time.Time `json:"created_at"`
-	// An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt time.Time `json:"updated_at"`
-	// An ISO-8601 timestamp representation of entity deletion date.
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	Key       string     `json:"key"`
-	// The meter that the feature is associated with and based on which usage is
-	// calculated. If not specified, the feature is static.
-	Meter *FeatureMeterReference `json:"meter,omitempty"`
 	// Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
 	// "llm" to look up cost from the LLM cost database based on meter group-by
 	// properties.
@@ -88,200 +56,10 @@ type FeatureCostQueryRow struct {
 	Dimensions map[string]string `json:"dimensions"`
 }
 
-// Token type for LLM cost lookup.
-type FeatureLLMTokenType string
-
-const (
-	FeatureLLMTokenTypeInput      FeatureLLMTokenType = "input"
-	FeatureLLMTokenTypeOutput     FeatureLLMTokenType = "output"
-	FeatureLLMTokenTypeCacheRead  FeatureLLMTokenType = "cache_read"
-	FeatureLLMTokenTypeCacheWrite FeatureLLMTokenType = "cache_write"
-	FeatureLLMTokenTypeReasoning  FeatureLLMTokenType = "reasoning"
-	FeatureLLMTokenTypeRequest    FeatureLLMTokenType = "request"
-	FeatureLLMTokenTypeResponse   FeatureLLMTokenType = "response"
-)
-
-func (value FeatureLLMTokenType) Valid() bool {
-	switch value {
-	case FeatureLLMTokenTypeInput, FeatureLLMTokenTypeOutput, FeatureLLMTokenTypeCacheRead, FeatureLLMTokenTypeCacheWrite, FeatureLLMTokenTypeReasoning, FeatureLLMTokenTypeRequest, FeatureLLMTokenTypeResponse:
-		return true
-	default:
-		return false
-	}
-}
-
-// LLM cost lookup configuration. Each dimension (provider, model, token type) can
-// be specified as either a static value or a meter group-by property name
-// (mutually exclusive).
-type FeatureLLMUnitCost struct {
-	// The type discriminator for LLM unit cost.
-	Type FeatureUnitCostType `json:"type"`
-	// Meter group-by property that holds the LLM provider. Use this when the meter has
-	// a group-by dimension for provider. Mutually exclusive with `provider`.
-	ProviderProperty *string `json:"provider_property,omitempty"`
-	// Static LLM provider value (e.g., "openai", "anthropic"). Use this when the
-	// feature tracks a single provider. Mutually exclusive with `provider_property`.
-	Provider *string `json:"provider,omitempty"`
-	// Meter group-by property that holds the model ID. Use this when the meter has a
-	// group-by dimension for model. Mutually exclusive with `model`.
-	ModelProperty *string `json:"model_property,omitempty"`
-	// Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet"). Use this when the
-	// feature tracks a single model. Mutually exclusive with `model_property`.
-	Model *string `json:"model,omitempty"`
-	// Meter group-by property that holds the token type. Use this when the meter has a
-	// group-by dimension for token type. Mutually exclusive with `token_type`.
-	TokenTypeProperty *string `json:"token_type_property,omitempty"`
-	// Static token type value. Use this when the feature tracks a single token type
-	// (e.g., only input tokens). `request` is an alias for `input`, `response` is an
-	// alias for `output`. Mutually exclusive with `token_type_property`.
-	TokenType *FeatureLLMTokenType `json:"token_type,omitempty"`
-	// Resolved per-token pricing from the LLM cost database. Populated in responses
-	// when the provider and model can be determined, either from static values or from
-	// meter group-by filters with exact matches.
-	Pricing *FeatureLLMUnitCostPricing `json:"pricing,omitempty"`
-}
-
-// Resolved per-token pricing from the LLM cost database.
-type FeatureLLMUnitCostPricing struct {
-	// Cost per input token in USD.
-	InputPerToken Numeric `json:"input_per_token"`
-	// Cost per output token in USD.
-	OutputPerToken Numeric `json:"output_per_token"`
-	// Cost per cache read token in USD.
-	CacheReadPerToken *Numeric `json:"cache_read_per_token,omitempty"`
-	// Cost per reasoning token in USD.
-	ReasoningPerToken *Numeric `json:"reasoning_per_token,omitempty"`
-	// Cost per cache write token in USD.
-	CacheWritePerToken *Numeric `json:"cache_write_per_token,omitempty"`
-}
-
-// A fixed per-unit cost amount.
-type FeatureManualUnitCost struct {
-	// The type discriminator for manual unit cost.
-	Type FeatureUnitCostType `json:"type"`
-	// Fixed per-unit cost amount in USD.
-	Amount Numeric `json:"amount"`
-}
-
-// Reference to a meter associated with a feature.
-type FeatureMeterReference struct {
-	// The ID of the meter to associate with this feature.
-	ID string `json:"id"`
-	// Filters to apply to the dimensions of the meter.
-	Filters map[string]QueryFilterStringMapItem `json:"filters,omitempty"`
-}
-
-// Reference to a meter associated with a feature.
-type FeatureMeterReferenceInput struct {
-	// The ID of the meter to associate with this feature.
-	ID string `json:"id"`
-	// Filters to apply to the dimensions of the meter.
-	Filters *map[string]QueryFilterStringMapItemInput `json:"filters,omitempty"`
-}
-
 // Page paginated response.
 type FeaturePagePaginatedResponse struct {
 	Data []Feature     `json:"data"`
 	Meta PaginatedMeta `json:"meta"`
-}
-
-// Per-unit cost configuration for a feature. Either a fixed manual amount or a
-// dynamic LLM cost lookup.
-//
-// FeatureUnitCost is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the FeatureUnitCostFrom* constructors.
-// The exported Type field is decode-side metadata; MarshalJSON round-trips the original payload and ignores writes to it.
-type FeatureUnitCost struct {
-	Type string `json:"type"`
-	raw  json.RawMessage
-}
-
-func (u *FeatureUnitCost) UnmarshalJSON(data []byte) error {
-	u.raw = append([]byte(nil), data...)
-	if string(data) == "null" {
-		u.Type = ""
-		return nil
-	}
-
-	var envelope struct {
-		Value string `json:"type"`
-	}
-	if err := json.Unmarshal(data, &envelope); err != nil {
-		return err
-	}
-	u.Type = envelope.Value
-	return nil
-}
-
-func (u FeatureUnitCost) MarshalJSON() ([]byte, error) {
-	if len(u.raw) == 0 {
-		return []byte("null"), nil
-	}
-	return append([]byte(nil), u.raw...), nil
-}
-
-func (u FeatureUnitCost) AsFeatureManualUnitCost() (*FeatureManualUnitCost, error) {
-	if u.Type != "manual" {
-		return nil, fmt.Errorf("FeatureUnitCost: expected type %q, got %q", "manual", u.Type)
-	}
-	var value FeatureManualUnitCost
-	if err := json.Unmarshal(u.raw, &value); err != nil {
-		return nil, err
-	}
-	return &value, nil
-}
-
-func FeatureUnitCostFromFeatureManualUnitCost(value FeatureManualUnitCost) (FeatureUnitCost, error) {
-	value.Type = "manual"
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return FeatureUnitCost{}, err
-	}
-	var result FeatureUnitCost
-	if err := result.UnmarshalJSON(raw); err != nil {
-		return FeatureUnitCost{}, err
-	}
-	return result, nil
-}
-
-func (u FeatureUnitCost) AsFeatureLLMUnitCost() (*FeatureLLMUnitCost, error) {
-	if u.Type != "llm" {
-		return nil, fmt.Errorf("FeatureUnitCost: expected type %q, got %q", "llm", u.Type)
-	}
-	var value FeatureLLMUnitCost
-	if err := json.Unmarshal(u.raw, &value); err != nil {
-		return nil, err
-	}
-	return &value, nil
-}
-
-func FeatureUnitCostFromFeatureLLMUnitCost(value FeatureLLMUnitCost) (FeatureUnitCost, error) {
-	value.Type = "llm"
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return FeatureUnitCost{}, err
-	}
-	var result FeatureUnitCost
-	if err := result.UnmarshalJSON(raw); err != nil {
-		return FeatureUnitCost{}, err
-	}
-	return result, nil
-}
-
-// The type of unit cost.
-type FeatureUnitCostType string
-
-const (
-	FeatureUnitCostTypeLLM    FeatureUnitCostType = "llm"
-	FeatureUnitCostTypeManual FeatureUnitCostType = "manual"
-)
-
-func (value FeatureUnitCostType) Valid() bool {
-	switch value {
-	case FeatureUnitCostTypeLLM, FeatureUnitCostTypeManual:
-		return true
-	default:
-		return false
-	}
 }
 
 // Request body for updating a feature. Currently only the unit_cost field can be

@@ -32,9 +32,20 @@ export function GoUnion({ program, union, name, mode, doc }: GoUnionProps) {
   )
   const discriminator = discriminatorProperty(program, union, modelVariants)
   if (!discriminator && modelVariants.length > 1) {
-    throw new Error(
-      `typespec-go: union ${name} has multiple object variants but no discriminator; add @discriminated so Go accessors can select variants safely`,
-    )
+    // Without a discriminator an As* accessor cannot verify it was handed its
+    // own variant — it just unmarshals the preserved payload into the variant
+    // type. That is still faithful when the variants agree on every JSON key
+    // they share and differ only in which keys they declare (a reference model
+    // versus the full resource): each accessor then reads exactly the subset of
+    // the payload its type describes. A key with two different types across
+    // variants would decode into the wrong Go type, so that still has to be
+    // discriminated.
+    const conflict = conflictingVariantProperty(program, modelVariants)
+    if (conflict) {
+      throw new Error(
+        `typespec-go: union ${name} has object variants that disagree on ${conflict}; add @discriminated so Go accessors can select variants safely (variants whose properties are a subset of another's are supported)`,
+      )
+    }
   }
   // The discriminated path assumes every selectable variant is a model: the
   // From* constructors envelope the payload under the discriminator property
@@ -271,6 +282,59 @@ function accessorBody({
     }
     return &value, nil
   `
+}
+
+/**
+ * The first JSON key two model variants declare with different types, described
+ * for the build error — or undefined when the variants only differ in which keys
+ * they declare, which every accessor can decode from the same payload.
+ */
+export function conflictingVariantProperty(
+  program: Program,
+  variants: Model[],
+): string | undefined {
+  const byKey = new Map<string, { type: Type; variant: string }>()
+  for (const model of variants) {
+    for (const [key, property] of variantProperties(program, model)) {
+      const seen = byKey.get(key)
+      if (!seen) {
+        byKey.set(key, { type: property.type, variant: model.name })
+        continue
+      }
+      if (seen.type !== property.type) {
+        return `"${key}" (different types in ${seen.variant} and ${model.name})`
+      }
+    }
+  }
+  return undefined
+}
+
+/**
+ * A model's properties keyed by their JSON name, including inherited ones, with
+ * an override shadowing the property it replaces.
+ */
+function variantProperties(
+  program: Program,
+  model: Model,
+): Map<string, ModelProperty> {
+  const properties = new Map<string, ModelProperty>()
+  for (
+    let current: Model | undefined = model;
+    current;
+    current = current.baseModel
+  ) {
+    for (const property of current.properties.values()) {
+      const key = resolveEncodedName(
+        program,
+        property as ModelProperty & { name: string },
+        'application/json',
+      )
+      if (!properties.has(key)) {
+        properties.set(key, property)
+      }
+    }
+  }
+  return properties
 }
 
 export function variantAccessorName(
