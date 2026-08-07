@@ -8,40 +8,6 @@ import (
 	"time"
 )
 
-// Subscription.
-type BillingSubscription struct {
-	ID     string            `json:"id"`
-	Labels map[string]string `json:"labels,omitempty"`
-	// An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt time.Time `json:"created_at"`
-	// An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt time.Time `json:"updated_at"`
-	// An ISO-8601 timestamp representation of entity deletion date.
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// The customer ID of the subscription.
-	CustomerID string `json:"customer_id"`
-	// The plan ID of the subscription. Set if subscription is created from a plan.
-	PlanID *string `json:"plan_id,omitempty"`
-	// A billing anchor is the fixed point in time that determines the subscription's
-	// recurring billing cycle. It affects when charges occur and how prorations are
-	// calculated. Common anchors:
-	//
-	// - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
-	// - Subscription anniversary (day customer signed up)
-	// - Custom date (customer-specified day)
-	BillingAnchor time.Time `json:"billing_anchor"`
-	// The status of the subscription.
-	Status SubscriptionStatus `json:"status"`
-	// Settlement mode for billing.
-	//
-	// Values:
-	//
-	// - `credit_then_invoice`: Credits are applied first, then any remainder is
-	// invoiced.
-	// - `credit_only`: Usage is settled exclusively against credits.
-	SettlementMode *SettlementMode `json:"settlement_mode,omitempty"`
-}
-
 // SubscriptionAddon create request.
 type CreateSubscriptionAddonRequest struct {
 	Labels *map[string]string `json:"labels,omitempty"`
@@ -304,23 +270,4 @@ func (value SubscriptionEditTimingEnum) Valid() bool {
 type SubscriptionPagePaginatedResponse struct {
 	Data []BillingSubscription `json:"data"`
 	Meta PaginatedMeta         `json:"meta"`
-}
-
-// Subscription status.
-type SubscriptionStatus string
-
-const (
-	SubscriptionStatusActive    SubscriptionStatus = "active"
-	SubscriptionStatusInactive  SubscriptionStatus = "inactive"
-	SubscriptionStatusCanceled  SubscriptionStatus = "canceled"
-	SubscriptionStatusScheduled SubscriptionStatus = "scheduled"
-)
-
-func (value SubscriptionStatus) Valid() bool {
-	switch value {
-	case SubscriptionStatusActive, SubscriptionStatusInactive, SubscriptionStatusCanceled, SubscriptionStatusScheduled:
-		return true
-	default:
-		return false
-	}
 }

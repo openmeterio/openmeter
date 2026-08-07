@@ -407,11 +407,97 @@ describe('wire walker edge cases', () => {
 
   it('renames the object variant of a scalar-or-object union', () => {
     // The realistic non-discriminated shape (a filter field: string | { op }).
-    // The codegen gate guarantees at most one object variant, so it is picked
-    // unambiguously; scalar data flows through the scalar branch unchanged.
+    // Only one option is object-shaped, so it is picked unambiguously; scalar
+    // data flows through the scalar branch unchanged.
     const union = z.union([z.string(), z.object({ fooBar: z.string() })])
     expect(toWire({ fooBar: 'x' }, union)).toEqual({ foo_bar: 'x' })
     expect(toWire('plain', union)).toBe('plain')
+  })
+
+  it('picks the object variant that covers the data in a subset union', () => {
+    // The realistic subset shape (charge.customer: the full customer, or just a
+    // reference to it). The codegen gate guarantees such variants agree on every
+    // key they share, so the pick only decides which keys survive.
+    const union = z.union([
+      z.object({ id: z.string(), fooBar: z.string() }),
+      z.object({ id: z.string() }),
+    ])
+    expect(toWire({ id: 'x', fooBar: 'y' }, union)).toEqual({
+      id: 'x',
+      foo_bar: 'y',
+    })
+    expect(fromWire({ id: 'x', foo_bar: 'y' }, union)).toEqual({
+      id: 'x',
+      fooBar: 'y',
+    })
+    expect(toWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+    expect(fromWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+  })
+
+  it('does not apply a wider variant default to narrow-variant data', () => {
+    // The narrowest shape wins a tie on matched keys, so a required-with-default
+    // field the value never carried is not materialized onto the wire.
+    const union = z.union([
+      z.object({ id: z.string(), kind: z.string().default('full') }),
+      z.object({ id: z.string() }),
+    ])
+    expect(toWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+    expect(toWire({ id: 'x', kind: 'full' }, union)).toEqual({
+      id: 'x',
+      kind: 'full',
+    })
+  })
+
+  it('resolves a nested union variant before scoring it against its siblings', () => {
+    // The expandable-reference shape whose expanded side is itself a union
+    // (charge realization's `invoice`: the full Invoice — a discriminated union
+    // of its concrete types — or a bare reference). The nested union is no
+    // object, so unless it is resolved first it never competes and the
+    // reference variant wins every time, dropping the whole expanded resource.
+    const union = z.union([
+      z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('standard'),
+          id: z.string(),
+          fooBar: z.string(),
+        }),
+        z.object({
+          type: z.literal('other'),
+          id: z.string(),
+          bazQux: z.string(),
+        }),
+      ]),
+      z.object({ id: z.string() }),
+    ])
+    expect(toWire({ type: 'standard', id: 'x', fooBar: 'y' }, union)).toEqual({
+      type: 'standard',
+      id: 'x',
+      foo_bar: 'y',
+    })
+    expect(fromWire({ type: 'other', id: 'x', baz_qux: 'y' }, union)).toEqual({
+      type: 'other',
+      id: 'x',
+      bazQux: 'y',
+    })
+    // Reference data carries no discriminator, so the nested union contributes
+    // no candidate and the reference variant wins on its own merits.
+    expect(toWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+    expect(fromWire({ id: 'x' }, union)).toEqual({ id: 'x' })
+  })
+
+  it('resolves a nested non-discriminated union by its own key coverage', () => {
+    const union = z.union([
+      z.union([
+        z.object({ id: z.string(), fooBar: z.string() }),
+        z.object({ id: z.string() }),
+      ]),
+      z.object({ bazQux: z.string() }),
+    ])
+    expect(toWire({ id: 'x', fooBar: 'y' }, union)).toEqual({
+      id: 'x',
+      foo_bar: 'y',
+    })
+    expect(toWire({ bazQux: 'y' }, union)).toEqual({ baz_qux: 'y' })
   })
 
   it('fails closed on a discriminated union with an unknown discriminator value', () => {
