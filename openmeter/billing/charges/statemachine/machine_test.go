@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
@@ -81,6 +82,17 @@ func newFakeCharge(status fakeStatus) fakeCharge {
 		},
 		Marker: "initial",
 	}
+}
+
+func newTestPatchClearOverride(t *testing.T) meta.PatchClearOverride {
+	t.Helper()
+
+	patch, err := meta.NewPatchClearOverride(meta.NewPatchClearOverrideInput{
+		ChangeSource: billing.ChangeSourceAPIRequest,
+	})
+	require.NoError(t, err)
+
+	return patch
 }
 
 func newTestMachine(
@@ -184,6 +196,115 @@ func TestMachine_FireAndActivateValidatesTriggerArguments(t *testing.T) {
 	require.ErrorContains(t, err, fmt.Sprint(meta.TriggerNext))
 	require.Equal(t, fakeStatusCreated, machine.GetCharge().GetStatus())
 	require.Zero(t, updateCalls)
+}
+
+func TestMachine_ApplyPatchLeavesTheChargeInItsStableState(t *testing.T) {
+	// given:
+	// - a created charge whose clear-override patch leads to an otherwise stable active state
+	// when:
+	// - the patch is applied
+	// then:
+	// - the patch transition is persisted and the resulting active charge is returned in stable state
+	var updateCalls int
+	machine := newTestMachine(
+		t,
+		newFakeCharge(fakeStatusCreated),
+		func(ctx context.Context, base fakeBase) (fakeBase, error) {
+			updateCalls++
+			base.Revision++
+			return base, nil
+		},
+		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+	)
+	machine.Configure(fakeStatusCreated).Permit(meta.TriggerClearOverride, fakeStatusActive)
+
+	err := machine.ApplyPatch(t.Context(), newTestPatchClearOverride(t))
+
+	require.NoError(t, err)
+	require.Equal(t, fakeStatusActive, machine.GetCharge().Status)
+	require.Equal(t, 1, machine.GetCharge().Base.Revision)
+	require.Equal(t, 1, updateCalls)
+}
+
+func TestMachine_ApplyPatchAdvancesMultipleNextTransitions(t *testing.T) {
+	// given:
+	// - a clear-override patch that enters an active state with two synchronous next transitions
+	// when:
+	// - the patch is applied
+	// then:
+	// - the machine walks every next transition before returning
+	var updateCalls int
+	machine := newTestMachine(
+		t,
+		newFakeCharge(fakeStatusCreated),
+		func(ctx context.Context, base fakeBase) (fakeBase, error) {
+			updateCalls++
+			base.Revision++
+			return base, nil
+		},
+		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+	)
+	machine.Configure(fakeStatusCreated).
+		Permit(meta.TriggerClearOverride, fakeStatusActive).
+		Permit(meta.TriggerNext, fakeStatusFinal)
+	machine.Configure(fakeStatusActive).Permit(meta.TriggerNext, fakeStatusCreated)
+
+	err := machine.ApplyPatch(t.Context(), newTestPatchClearOverride(t))
+
+	require.NoError(t, err)
+	require.Equal(t, fakeStatusFinal, machine.GetCharge().Status)
+	require.Equal(t, 3, machine.GetCharge().Base.Revision)
+	require.Equal(t, 3, updateCalls)
+}
+
+func TestMachine_ApplyPatchWrapsTriggerAndAdvancementFailures(t *testing.T) {
+	patch := newTestPatchClearOverride(t)
+
+	t.Run("trigger", func(t *testing.T) {
+		// given:
+		// - a machine that cannot accept the patch trigger
+		// when:
+		// - the patch is applied
+		// then:
+		// - the trigger failure is returned with patch context
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+
+		err := machine.ApplyPatch(t.Context(), patch)
+
+		require.ErrorIs(t, err, ErrUnsupportedOperation)
+		require.ErrorContains(t, err, "applying patch clear_override")
+	})
+
+	t.Run("advancement", func(t *testing.T) {
+		// given:
+		// - a patch that succeeds but whose next transition activation fails
+		// when:
+		// - the patch is applied
+		// then:
+		// - the advancement failure is returned with patch context
+		advanceErr := errors.New("advance failed")
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerClearOverride, fakeStatusActive)
+		machine.Configure(fakeStatusActive).Permit(meta.TriggerNext, fakeStatusFinal)
+		machine.Configure(fakeStatusFinal).OnActive(func(ctx context.Context) error {
+			return advanceErr
+		})
+
+		err := machine.ApplyPatch(t.Context(), patch)
+
+		require.ErrorIs(t, err, advanceErr)
+		require.ErrorContains(t, err, "advancing after patch clear_override")
+	})
 }
 
 func TestMachine_AdvanceUntilStateStableReturnsNilWhenAlreadyStable(t *testing.T) {

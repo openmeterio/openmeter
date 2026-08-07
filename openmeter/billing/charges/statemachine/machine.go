@@ -37,6 +37,7 @@ type Config[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] st
 }
 
 type StateMachine[CHARGE any] interface {
+	ApplyPatch(ctx context.Context, patch meta.Patch) error
 	AdvanceUntilStateStable(ctx context.Context) (*CHARGE, error)
 	CanFire(ctx context.Context, trigger meta.Trigger) (bool, error)
 	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error
@@ -124,6 +125,18 @@ func (m *Machine[CHARGE, BASE, STATUS]) AddInvoicePatch(patches ...invoiceupdate
 }
 
 var ErrUnsupportedOperation = models.NewGenericPreConditionFailedError(fmt.Errorf("unsupported operation"))
+
+func (m *Machine[CHARGE, BASE, STATUS]) ApplyPatch(ctx context.Context, patch meta.Patch) error {
+	if err := m.FireAndActivate(ctx, patch.Trigger(), patch); err != nil {
+		return fmt.Errorf("applying patch %s: %w", patch.Trigger(), err)
+	}
+
+	if _, err := m.AdvanceUntilStateStable(ctx); err != nil {
+		return fmt.Errorf("advancing after patch %s: %w", patch.Trigger(), err)
+	}
+
+	return nil
+}
 
 func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error {
 	fireArgs := make([]any, 0, len(args))

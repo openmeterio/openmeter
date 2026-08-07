@@ -18,6 +18,7 @@ import (
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -50,6 +51,286 @@ func TestCreditsOnlyPeriodPatchIsConfiguredForPatchableStates(t *testing.T) {
 			require.True(t, canFire)
 		})
 	}
+}
+
+func TestCreditsOnlySetOverrideVoidsRealizationsAndReturnsChargeToActive(t *testing.T) {
+	// given:
+	// - a credit-only usage-based charge with a final realization in progress
+	// when:
+	// - an API override changes its effective intent
+	// then:
+	// - the realization is voided, the override becomes effective, and the charge is rerated from active
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	currentRunID := "run-1"
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          newUsageBasedIntentForCreditOnlyTest(t, servicePeriod),
+			Status:          usagebased.StatusActiveRealizationWaitingForCollection,
+			State: usagebased.State{
+				CurrentRealizationRunID: &currentRunID,
+				FeatureID:               "feature-id",
+				RatingEngine:            usagebased.RatingEngineDelta,
+			},
+		},
+		Realizations: usagebased.RealizationRuns{
+			newUsageBasedRunForShrinkTest(currentRunID, usagebased.RealizationRunTypeFinalRealization, servicePeriod.To),
+		},
+	}
+	machine := newCreditsOnlyStateMachineWithChargeForTest(t, charge)
+
+	overrideFields := charge.Intent.GetEffectiveIntent().IntentMutableFields.Clone()
+	overrideFields.Name = "overridden usage"
+	overrideFields.ServicePeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+	overrideFields.FullServicePeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+	overrideFields.BillingPeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+	overrideFields.InvoiceAt = servicePeriod.To.AddDate(0, 1, 0)
+
+	patch, err := meta.NewPatchSetOverride(usagebased.NewPatchSetOverrideInput{
+		ChangeSource:        billing.ChangeSourceAPIRequest,
+		IntentMutableFields: overrideFields,
+	})
+	require.NoError(t, err)
+
+	err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+	require.NoError(t, err)
+
+	updated := machine.GetCharge()
+	require.Equal(t, usagebased.StatusActive, updated.Status)
+	require.Nil(t, updated.State.CurrentRealizationRunID)
+	require.NotNil(t, updated.State.AdvanceAfter)
+	require.Equal(t, overrideFields.ServicePeriod.To, *updated.State.AdvanceAfter)
+	require.Equal(t, servicePeriod.To, updated.Intent.GetBaseIntent().ServicePeriod.To)
+	require.True(t, updated.Intent.HasOverrideLayer())
+	require.Equal(t, overrideFields, *updated.Intent.GetOverrideLayerMutableFields())
+
+	run, err := updated.Realizations.GetByID(currentRunID)
+	require.NoError(t, err)
+	require.NotNil(t, run.DeletedAt)
+}
+
+func TestCreditsOnlySetOverrideUpdatesExistingOverrideWithoutStacking(t *testing.T) {
+	// given:
+	// - a created credit-only charge with an existing manual override
+	// when:
+	// - the API sets another override snapshot
+	// then:
+	// - the existing override is replaced while the base intent and created schedule remain intact
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	baseIntent := newUsageBasedIntentForCreditOnlyTest(t, servicePeriod).GetBaseIntent()
+	existingOverride := baseIntent.IntentMutableFields.Clone()
+	existingOverride.Name = "first override"
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          usagebased.NewOverridableIntent(baseIntent, &existingOverride),
+			Status:          usagebased.StatusCreated,
+			State: usagebased.State{
+				FeatureID:    "feature-id",
+				RatingEngine: usagebased.RatingEngineDelta,
+			},
+		},
+	}
+	machine := newCreditsOnlyStateMachineWithChargeForTest(t, charge)
+
+	overrideFields := existingOverride.Clone()
+	overrideFields.Name = "second override"
+	patch, err := meta.NewPatchSetOverride(usagebased.NewPatchSetOverrideInput{
+		ChangeSource:        billing.ChangeSourceAPIRequest,
+		IntentMutableFields: overrideFields,
+	})
+	require.NoError(t, err)
+
+	err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+	require.NoError(t, err)
+
+	updated := machine.GetCharge()
+	require.Equal(t, usagebased.StatusCreated, updated.Status)
+	require.Equal(t, baseIntent.IntentMutableFields, updated.Intent.GetBaseIntent().IntentMutableFields)
+	require.Equal(t, overrideFields, *updated.Intent.GetOverrideLayerMutableFields())
+	require.NotNil(t, updated.State.AdvanceAfter)
+	require.Equal(t, servicePeriod.From, *updated.State.AdvanceAfter)
+}
+
+func TestCreditsOnlyClearOverrideVoidsRealizationsAndRestoresBase(t *testing.T) {
+	// given:
+	// - a credit-only charge with an active override and mutable realization history
+	// when:
+	// - the override is cleared
+	// then:
+	// - credits are voided, the source intent becomes effective, and rerating resumes from active
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	baseIntent := newUsageBasedIntentForCreditOnlyTest(t, servicePeriod).GetBaseIntent()
+	overrideFields := baseIntent.IntentMutableFields.Clone()
+	overrideFields.Name = "overridden usage"
+	overrideFields.ServicePeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+	overrideFields.FullServicePeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+	overrideFields.BillingPeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+	overrideFields.InvoiceAt = servicePeriod.To.AddDate(0, 1, 0)
+	currentRunID := "run-1"
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          usagebased.NewOverridableIntent(baseIntent, &overrideFields),
+			Status:          usagebased.StatusActiveRealizationWaitingForCollection,
+			State: usagebased.State{
+				CurrentRealizationRunID: &currentRunID,
+				FeatureID:               "feature-id",
+				RatingEngine:            usagebased.RatingEngineDelta,
+			},
+		},
+		Realizations: usagebased.RealizationRuns{
+			newUsageBasedRunForShrinkTest(currentRunID, usagebased.RealizationRunTypeFinalRealization, overrideFields.ServicePeriod.To),
+		},
+	}
+	machine := newCreditsOnlyStateMachineWithChargeForTest(t, charge)
+
+	err := machine.FireAndActivate(t.Context(), meta.TriggerClearOverride, mustNewPatchClearOverride(t))
+	require.NoError(t, err)
+	require.Equal(t, usagebased.StatusActiveClearOverride, machine.GetCharge().Status)
+	require.NoError(t, machine.FireAndActivate(t.Context(), meta.TriggerNext))
+
+	updated := machine.GetCharge()
+	require.False(t, updated.Intent.HasOverrideLayer())
+	require.Equal(t, baseIntent.IntentMutableFields, updated.Intent.GetEffectiveIntent().IntentMutableFields)
+	require.Equal(t, usagebased.StatusActive, updated.Status)
+	require.Nil(t, updated.State.CurrentRealizationRunID)
+	require.NotNil(t, updated.State.AdvanceAfter)
+	require.Equal(t, servicePeriod.To, *updated.State.AdvanceAfter)
+
+	run, err := updated.Realizations.GetByID(currentRunID)
+	require.NoError(t, err)
+	require.NotNil(t, run.DeletedAt)
+}
+
+func TestCreditsOnlyClearDeletionOverrideRestoresLiveBase(t *testing.T) {
+	// given:
+	// - a deleted credit-only override hiding a live source intent
+	// when:
+	// - the override is cleared
+	// then:
+	// - the charge is reactivated from the base lifecycle instead of remaining deleted
+	clock.FreezeTime(time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	baseIntent := newUsageBasedIntentForCreditOnlyTest(t, servicePeriod).GetBaseIntent()
+	overrideFields := baseIntent.IntentMutableFields.Clone()
+	deletedAt := clock.Now()
+	overrideFields.IntentDeletedAt = &deletedAt
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          usagebased.NewOverridableIntent(baseIntent, &overrideFields),
+			Status:          usagebased.StatusDeleted,
+			State: usagebased.State{
+				FeatureID:    "feature-id",
+				RatingEngine: usagebased.RatingEngineDelta,
+			},
+		},
+	}
+	machine := newCreditsOnlyStateMachineWithChargeForTest(t, charge)
+
+	err := machine.FireAndActivate(t.Context(), meta.TriggerClearOverride, mustNewPatchClearOverride(t))
+	require.NoError(t, err)
+	require.Equal(t, usagebased.StatusActiveClearOverride, machine.GetCharge().Status)
+	require.NoError(t, machine.FireAndActivate(t.Context(), meta.TriggerNext))
+
+	updated := machine.GetCharge()
+	require.False(t, updated.Intent.HasOverrideLayer())
+	require.Equal(t, usagebased.StatusActive, updated.Status)
+	require.NotNil(t, updated.State.AdvanceAfter)
+	require.Equal(t, servicePeriod.To, *updated.State.AdvanceAfter)
+}
+
+func TestCreditsOnlyClearOverrideKeepsDeletedStatusWhenBaseIsDeleted(t *testing.T) {
+	// given:
+	// - a deleted charge whose override is hiding an already-deleted base intent
+	// when:
+	// - the override is cleared
+	// then:
+	// - only the layer is removed; the charge remains deleted
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	baseIntent := newUsageBasedIntentForCreditOnlyTest(t, servicePeriod).GetBaseIntent()
+	deletedAt := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	baseIntent.IntentDeletedAt = &deletedAt
+	overrideFields := baseIntent.IntentMutableFields.Clone()
+	overrideFields.IntentDeletedAt = nil
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          usagebased.NewOverridableIntent(baseIntent, &overrideFields),
+			Status:          usagebased.StatusDeleted,
+			State: usagebased.State{
+				FeatureID:    "feature-id",
+				RatingEngine: usagebased.RatingEngineDelta,
+			},
+		},
+	}
+	machine := newCreditsOnlyStateMachineWithChargeForTest(t, charge)
+
+	err := machine.FireAndActivate(t.Context(), meta.TriggerClearOverride, mustNewPatchClearOverride(t))
+	require.NoError(t, err)
+
+	updated := machine.GetCharge()
+	require.False(t, updated.Intent.HasOverrideLayer())
+	require.Equal(t, usagebased.StatusDeleted, updated.Status)
+	require.Equal(t, deletedAt, *updated.Intent.GetDeletedAt())
+}
+
+func TestCreditsOnlyClearOverrideTransitionsToDeletedBase(t *testing.T) {
+	// given:
+	// - an active override hiding a source intent deleted by subscription reconciliation
+	// when:
+	// - the override is cleared
+	// then:
+	// - the source deletion becomes effective through the normal deletion lifecycle
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	baseIntent := newUsageBasedIntentForCreditOnlyTest(t, servicePeriod).GetBaseIntent()
+	deletedAt := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	baseIntent.IntentDeletedAt = &deletedAt
+	overrideFields := baseIntent.IntentMutableFields.Clone()
+	overrideFields.IntentDeletedAt = nil
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          usagebased.NewOverridableIntent(baseIntent, &overrideFields),
+			Status:          usagebased.StatusActive,
+			State: usagebased.State{
+				FeatureID:    "feature-id",
+				RatingEngine: usagebased.RatingEngineDelta,
+			},
+		},
+	}
+	machine := newCreditsOnlyStateMachineWithChargeForTest(t, charge)
+
+	require.NoError(t, machine.FireAndActivate(t.Context(), meta.TriggerClearOverride, mustNewPatchClearOverride(t)))
+	require.Equal(t, usagebased.StatusDeletedClearOverride, machine.GetCharge().Status)
+	_, err := machine.AdvanceUntilStateStable(t.Context())
+	require.NoError(t, err)
+
+	updated := machine.GetCharge()
+	require.False(t, updated.Intent.HasOverrideLayer())
+	require.Equal(t, usagebased.StatusDeleted, updated.Status)
+	require.Equal(t, deletedAt, *updated.Intent.GetDeletedAt())
 }
 
 func TestCreditsOnlyPeriodPatchWhileCreatedUpdatesIntentAndKeepsCreatedSchedule(t *testing.T) {
@@ -309,11 +590,9 @@ func newCreditsOnlyStateMachineWithChargeForTest(t *testing.T, charge usagebased
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
 		Charge: charge,
 		Persistence: chargestatemachine.Persistence[usagebased.Charge, usagebased.ChargeBase]{
-			UpdateBase: func(_ context.Context, base usagebased.ChargeBase) (usagebased.ChargeBase, error) {
-				return base, nil
-			},
+			UpdateBase: adapter.UpdateCharge,
 			Refetch: func(_ context.Context, _ meta.ChargeID) (usagebased.Charge, error) {
-				return charge, nil
+				return adapter.charge, nil
 			},
 		},
 	})
@@ -348,7 +627,8 @@ func newUsageBasedChargeTestManagedResource(id string) meta.ManagedResource {
 type creditsOnlyStateMachineAdapter struct {
 	usagebased.Adapter
 
-	runs map[string]usagebased.RealizationRunBase
+	charge usagebased.Charge
+	runs   map[string]usagebased.RealizationRunBase
 }
 
 func newCreditsOnlyStateMachineAdapter(charge usagebased.Charge) *creditsOnlyStateMachineAdapter {
@@ -358,12 +638,29 @@ func newCreditsOnlyStateMachineAdapter(charge usagebased.Charge) *creditsOnlySta
 	}
 
 	return &creditsOnlyStateMachineAdapter{
-		runs: runs,
+		charge: charge,
+		runs:   runs,
 	}
 }
 
 func (a *creditsOnlyStateMachineAdapter) UpdateCharge(_ context.Context, base usagebased.ChargeBase) (usagebased.ChargeBase, error) {
+	a.charge.ChargeBase = base
 	return base, nil
+}
+
+func (a *creditsOnlyStateMachineAdapter) DeleteCharge(_ context.Context, charge usagebased.Charge) error {
+	a.charge = charge
+	return nil
+}
+
+func (a *creditsOnlyStateMachineAdapter) CreateChargeOverride(_ context.Context, charge usagebased.ChargeBase, override usagebased.IntentMutableFields) (usagebased.ChargeBase, error) {
+	charge.Intent = usagebased.NewOverridableIntent(charge.Intent.GetBaseIntent(), &override)
+	return charge, nil
+}
+
+func (a *creditsOnlyStateMachineAdapter) DeleteChargeOverride(_ context.Context, charge usagebased.ChargeBase) (usagebased.ChargeBase, error) {
+	charge.Intent = charge.Intent.GetBaseIntent().AsOverridableIntent()
+	return charge, nil
 }
 
 func (a *creditsOnlyStateMachineAdapter) UpdateRealizationRun(_ context.Context, input usagebased.UpdateRealizationRunInput) (usagebased.RealizationRunBase, error) {

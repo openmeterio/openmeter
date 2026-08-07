@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -168,6 +169,364 @@ func TestUnsupportedExtendOperation(t *testing.T) {
 			require.Empty(t, machine.InvoicePatches())
 		})
 	}
+}
+
+func TestCreditThenInvoiceSetOverrideBeforeRealizationUpdatesGatheringLine(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		status          usagebased.Status
+		expectedAdvance func(timeutil.ClosedPeriod) time.Time
+	}{
+		{
+			name:   "created",
+			status: usagebased.StatusCreated,
+			expectedAdvance: func(period timeutil.ClosedPeriod) time.Time {
+				return period.From
+			},
+		},
+		{
+			name:   "active",
+			status: usagebased.StatusActive,
+			expectedAdvance: func(period timeutil.ClosedPeriod) time.Time {
+				return period.To
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given:
+			// - a credit-then-invoice usage-based charge before any realization has started
+			// when:
+			// - the API sets a full override snapshot
+			// then:
+			// - the source intent remains unchanged and the pending gathering line follows the override
+			servicePeriod := timeutil.ClosedPeriod{
+				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+			}
+			charge := usagebased.Charge{
+				ChargeBase: usagebased.ChargeBase{
+					ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+					Intent:          newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
+					Status:          tc.status,
+					State: usagebased.State{
+						FeatureID:    "feature-id",
+						RatingEngine: usagebased.RatingEngineDelta,
+					},
+				},
+			}
+			machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+
+			overrideFields := charge.Intent.GetEffectiveIntent().IntentMutableFields.Clone()
+			overrideFields.Name = "overridden usage"
+			overrideFields.ServicePeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+			overrideFields.FullServicePeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+			overrideFields.BillingPeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+			overrideFields.InvoiceAt = servicePeriod.To.AddDate(0, 1, 0)
+			patch, err := meta.NewPatchSetOverride(usagebased.NewPatchSetOverrideInput{
+				ChangeSource:        billing.ChangeSourceAPIRequest,
+				IntentMutableFields: overrideFields,
+			})
+			require.NoError(t, err)
+
+			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+			require.NoError(t, err)
+
+			updated := machine.GetCharge()
+			require.Equal(t, tc.status, updated.Status)
+			require.Equal(t, servicePeriod.To, updated.Intent.GetBaseIntent().ServicePeriod.To)
+			require.True(t, updated.Intent.HasOverrideLayer())
+			require.Equal(t, overrideFields, *updated.Intent.GetOverrideLayerMutableFields())
+			require.NotNil(t, updated.State.AdvanceAfter)
+			require.Equal(t, tc.expectedAdvance(overrideFields.ServicePeriod), *updated.State.AdvanceAfter)
+
+			patches := machine.InvoicePatches()
+			require.Len(t, patches, 1)
+			require.Equal(t, invoiceupdater.PatchOpUpsertGatheringLineByChargeID, patches[0].Op())
+			linePatch, err := patches[0].AsUpsertGatheringLineByChargeIDPatch()
+			require.NoError(t, err)
+			require.Equal(t, overrideFields.ServicePeriod, linePatch.TargetState.ServicePeriod)
+			require.Equal(t, overrideFields.InvoiceAt, linePatch.TargetState.InvoiceAt)
+		})
+	}
+}
+
+func TestCreditThenInvoiceSetOverrideRejectsAfterRealizationStarted(t *testing.T) {
+	// given:
+	// - an active credit-then-invoice charge with a non-voided realization
+	// when:
+	// - the API sets an override
+	// then:
+	// - the request is rejected before it changes intent or invoice state
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
+			Status:          usagebased.StatusActive,
+		},
+		Realizations: usagebased.RealizationRuns{
+			newUsageBasedRunForShrinkTest("run-1", usagebased.RealizationRunTypePartialInvoice, servicePeriod.To),
+		},
+	}
+	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+	patch, err := meta.NewPatchSetOverride(usagebased.NewPatchSetOverrideInput{
+		ChangeSource:        billing.ChangeSourceAPIRequest,
+		IntentMutableFields: charge.Intent.GetEffectiveIntent().IntentMutableFields,
+	})
+	require.NoError(t, err)
+
+	err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+	require.Error(t, err)
+	require.True(t, models.IsGenericPreConditionFailedError(err))
+	require.ErrorContains(t, err, "after realization has started")
+
+	updated := machine.GetCharge()
+	require.False(t, updated.Intent.HasOverrideLayer())
+	require.Empty(t, machine.InvoicePatches())
+}
+
+func TestCreditThenInvoiceSetOverrideIsRejectedAtRealizationBoundaries(t *testing.T) {
+	for _, status := range []usagebased.Status{
+		usagebased.StatusActiveRealizationStarted,
+		usagebased.StatusActiveRealizationWaitingForCollection,
+		usagebased.StatusActiveRealizationProcessing,
+		usagebased.StatusActiveRealizationIssuing,
+		usagebased.StatusActiveRealizationZeroFiatAmountOverageCompleted,
+		usagebased.StatusActiveRealizationCompleted,
+		usagebased.StatusActiveAwaitingPaymentSettlement,
+		usagebased.StatusFinal,
+		usagebased.StatusDeleted,
+	} {
+		t.Run(string(status), func(t *testing.T) {
+			// given:
+			// - a credit-then-invoice charge at a realization or terminal boundary
+			// when:
+			// - an override is requested
+			// then:
+			// - the state machine returns a precondition failure without emitting invoice patches
+			servicePeriod := timeutil.ClosedPeriod{
+				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+			}
+			charge := usagebased.Charge{
+				ChargeBase: usagebased.ChargeBase{
+					ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+					Intent:          newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
+					Status:          status,
+				},
+			}
+			machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+			patch, err := meta.NewPatchSetOverride(usagebased.NewPatchSetOverrideInput{
+				ChangeSource:        billing.ChangeSourceAPIRequest,
+				IntentMutableFields: charge.Intent.GetEffectiveIntent().IntentMutableFields,
+			})
+			require.NoError(t, err)
+
+			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+			require.Error(t, err)
+			require.True(t, models.IsGenericPreConditionFailedError(err))
+			require.ErrorContains(t, err, "cannot set override for usage-based charge in status "+string(status))
+			require.False(t, machine.GetCharge().Intent.HasOverrideLayer())
+			require.Empty(t, machine.InvoicePatches())
+		})
+	}
+}
+
+func TestCreditThenInvoiceClearOverrideBeforeRealizationRestoresGatheringLine(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		status          usagebased.Status
+		expectedAdvance func(timeutil.ClosedPeriod) time.Time
+	}{
+		{
+			name:   "created",
+			status: usagebased.StatusCreated,
+			expectedAdvance: func(period timeutil.ClosedPeriod) time.Time {
+				return period.From
+			},
+		},
+		{
+			name:   "active",
+			status: usagebased.StatusActive,
+			expectedAdvance: func(period timeutil.ClosedPeriod) time.Time {
+				return period.To
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given:
+			// - a pre-realization credit-then-invoice charge with a manual override
+			// when:
+			// - the override is cleared
+			// then:
+			// - the base intent becomes effective and the pending gathering line is restored from it
+			servicePeriod := timeutil.ClosedPeriod{
+				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+			}
+			baseIntent := newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod).GetBaseIntent()
+			overrideFields := baseIntent.IntentMutableFields.Clone()
+			overrideFields.Name = "overridden usage"
+			overrideFields.ServicePeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+			overrideFields.FullServicePeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+			overrideFields.BillingPeriod.To = servicePeriod.To.AddDate(0, 1, 0)
+			overrideFields.InvoiceAt = servicePeriod.To.AddDate(0, 1, 0)
+			charge := usagebased.Charge{
+				ChargeBase: usagebased.ChargeBase{
+					ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+					Intent:          usagebased.NewOverridableIntent(baseIntent, &overrideFields),
+					Status:          tc.status,
+					State: usagebased.State{
+						FeatureID:    "feature-id",
+						RatingEngine: usagebased.RatingEngineDelta,
+					},
+				},
+			}
+			machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+
+			err := machine.FireAndActivate(t.Context(), meta.TriggerClearOverride, mustNewPatchClearOverride(t))
+			require.NoError(t, err)
+
+			updated := machine.GetCharge()
+			require.Equal(t, tc.status, updated.Status)
+			require.False(t, updated.Intent.HasOverrideLayer())
+			require.Equal(t, baseIntent.IntentMutableFields, updated.Intent.GetEffectiveIntent().IntentMutableFields)
+			require.NotNil(t, updated.State.AdvanceAfter)
+			require.Equal(t, tc.expectedAdvance(servicePeriod), *updated.State.AdvanceAfter)
+
+			patches := machine.InvoicePatches()
+			require.Len(t, patches, 1)
+			linePatch, err := patches[0].AsUpsertGatheringLineByChargeIDPatch()
+			require.NoError(t, err)
+			require.Equal(t, servicePeriod, linePatch.TargetState.ServicePeriod)
+			require.Equal(t, servicePeriod.To, linePatch.TargetState.InvoiceAt)
+		})
+	}
+}
+
+func TestCreditThenInvoiceClearOverrideTransitionsToDeletedBase(t *testing.T) {
+	// given:
+	// - an active override hiding a source intent deleted by subscription reconciliation
+	// when:
+	// - the override is cleared
+	// then:
+	// - the source deletion becomes effective through the normal deletion lifecycle
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	baseIntent := newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod).GetBaseIntent()
+	deletedAt := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	baseIntent.IntentDeletedAt = &deletedAt
+	overrideFields := baseIntent.IntentMutableFields.Clone()
+	overrideFields.IntentDeletedAt = nil
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          usagebased.NewOverridableIntent(baseIntent, &overrideFields),
+			Status:          usagebased.StatusActive,
+			State: usagebased.State{
+				FeatureID:    "feature-id",
+				RatingEngine: usagebased.RatingEngineDelta,
+			},
+		},
+	}
+	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+
+	require.NoError(t, machine.FireAndActivate(t.Context(), meta.TriggerClearOverride, mustNewPatchClearOverride(t)))
+	require.Equal(t, usagebased.StatusDeletedClearOverride, machine.GetCharge().Status)
+	_, err := machine.AdvanceUntilStateStable(t.Context())
+	require.NoError(t, err)
+
+	updated := machine.GetCharge()
+	require.False(t, updated.Intent.HasOverrideLayer())
+	require.Equal(t, usagebased.StatusDeleted, updated.Status)
+	require.Equal(t, deletedAt, *updated.Intent.GetDeletedAt())
+	require.Len(t, machine.InvoicePatches(), 1)
+	require.Equal(t, invoiceupdater.PatchOpDeleteGatheringLineByChargeID, machine.InvoicePatches()[0].Op())
+}
+
+func TestCreditThenInvoiceClearOverrideRejectsAfterRealizationStarted(t *testing.T) {
+	// given:
+	// - a credit-then-invoice charge with an override and a non-voided realization
+	// when:
+	// - the override is cleared
+	// then:
+	// - the operation fails without exposing the source intent or changing invoice state
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	baseIntent := newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod).GetBaseIntent()
+	overrideFields := baseIntent.IntentMutableFields.Clone()
+	overrideFields.Name = "overridden usage"
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          usagebased.NewOverridableIntent(baseIntent, &overrideFields),
+			Status:          usagebased.StatusActive,
+		},
+		Realizations: usagebased.RealizationRuns{
+			newUsageBasedRunForShrinkTest("run-1", usagebased.RealizationRunTypePartialInvoice, servicePeriod.To),
+		},
+	}
+	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+
+	err := machine.FireAndActivate(t.Context(), meta.TriggerClearOverride, mustNewPatchClearOverride(t))
+	require.Error(t, err)
+	require.True(t, models.IsGenericPreConditionFailedError(err))
+	require.ErrorContains(t, err, "after realization has started")
+	require.True(t, machine.GetCharge().Intent.HasOverrideLayer())
+	require.Empty(t, machine.InvoicePatches())
+}
+
+func TestCreditThenInvoiceClearDeletionOverrideRestoresLiveBase(t *testing.T) {
+	// given:
+	// - a deleted override hiding a live, pre-realization source intent
+	// when:
+	// - the override is cleared
+	// then:
+	// - the charge resumes its source lifecycle and restores the gathering line
+	clock.FreezeTime(time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	baseIntent := newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod).GetBaseIntent()
+	overrideFields := baseIntent.IntentMutableFields.Clone()
+	deletedAt := clock.Now()
+	overrideFields.IntentDeletedAt = &deletedAt
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          usagebased.NewOverridableIntent(baseIntent, &overrideFields),
+			Status:          usagebased.StatusDeleted,
+			State: usagebased.State{
+				FeatureID:    "feature-id",
+				RatingEngine: usagebased.RatingEngineDelta,
+			},
+		},
+	}
+	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
+
+	err := machine.FireAndActivate(t.Context(), meta.TriggerClearOverride, mustNewPatchClearOverride(t))
+	require.NoError(t, err)
+	require.Equal(t, usagebased.StatusActiveClearOverride, machine.GetCharge().Status)
+	require.NoError(t, machine.FireAndActivate(t.Context(), meta.TriggerNext))
+
+	updated := machine.GetCharge()
+	require.False(t, updated.Intent.HasOverrideLayer())
+	require.Equal(t, usagebased.StatusActive, updated.Status)
+	require.NotNil(t, updated.State.AdvanceAfter)
+	require.Equal(t, servicePeriod.To, *updated.State.AdvanceAfter)
+	patches := machine.InvoicePatches()
+	require.Len(t, patches, 1)
+	require.Equal(t, invoiceupdater.PatchOpUpsertGatheringLineByChargeID, patches[0].Op())
 }
 
 func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *testing.T) {
@@ -453,7 +812,6 @@ func TestShrinkToRealizedPeriodFinalizesKeptPartialRunAndPreservesChargeState(t 
 		},
 	}
 	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
-	machine.Adapter = newCreditThenInvoiceStateMachineAdapter(charge)
 
 	err := machine.ShrinkToRealizedPeriod(t.Context(), mustNewPatchShrinkToRealizedPeriod(t, newServicePeriodTo))
 	require.NoError(t, err)
@@ -534,7 +892,6 @@ func TestShrinkToRealizedPeriodFinalizesCurrentPartialRunAndPreservesChargeState
 		},
 	}
 	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
-	machine.Adapter = newCreditThenInvoiceStateMachineAdapter(charge)
 
 	err := machine.ShrinkToRealizedPeriod(t.Context(), mustNewPatchShrinkToRealizedPeriod(t, newServicePeriodTo))
 	require.NoError(t, err)
@@ -673,14 +1030,13 @@ func newUsageBasedCustomCurrencyCreditThenInvoiceChargeForTest(t testing.TB, ser
 func newCreditThenInvoiceStateMachineWithChargeForTest(t *testing.T, charge usagebased.Charge) *CreditThenInvoiceStateMachine {
 	t.Helper()
 
+	adapter := newCreditThenInvoiceStateMachineAdapter(charge)
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
 		Charge: charge,
 		Persistence: chargestatemachine.Persistence[usagebased.Charge, usagebased.ChargeBase]{
-			UpdateBase: func(_ context.Context, base usagebased.ChargeBase) (usagebased.ChargeBase, error) {
-				return base, nil
-			},
+			UpdateBase: adapter.UpdateCharge,
 			Refetch: func(_ context.Context, _ meta.ChargeID) (usagebased.Charge, error) {
-				return charge, nil
+				return adapter.charge, nil
 			},
 		},
 	})
@@ -689,6 +1045,7 @@ func newCreditThenInvoiceStateMachineWithChargeForTest(t *testing.T, charge usag
 	out := &CreditThenInvoiceStateMachine{
 		stateMachine: &stateMachine{
 			Machine: machine,
+			Adapter: adapter,
 		},
 	}
 	out.configureStates()
@@ -699,7 +1056,8 @@ func newCreditThenInvoiceStateMachineWithChargeForTest(t *testing.T, charge usag
 type creditThenInvoiceStateMachineAdapter struct {
 	usagebased.Adapter
 
-	runs map[string]usagebased.RealizationRunBase
+	charge usagebased.Charge
+	runs   map[string]usagebased.RealizationRunBase
 }
 
 func newCreditThenInvoiceStateMachineAdapter(charge usagebased.Charge) *creditThenInvoiceStateMachineAdapter {
@@ -709,12 +1067,28 @@ func newCreditThenInvoiceStateMachineAdapter(charge usagebased.Charge) *creditTh
 	}
 
 	return &creditThenInvoiceStateMachineAdapter{
-		runs: runs,
+		charge: charge,
+		runs:   runs,
 	}
+}
+
+func (a *creditThenInvoiceStateMachineAdapter) UpdateCharge(_ context.Context, base usagebased.ChargeBase) (usagebased.ChargeBase, error) {
+	a.charge.ChargeBase = base
+	return base, nil
+}
+
+func (a *creditThenInvoiceStateMachineAdapter) DeleteCharge(_ context.Context, charge usagebased.Charge) error {
+	a.charge = charge
+	return nil
 }
 
 func (a *creditThenInvoiceStateMachineAdapter) CreateChargeOverride(_ context.Context, charge usagebased.ChargeBase, override usagebased.IntentMutableFields) (usagebased.ChargeBase, error) {
 	charge.Intent = usagebased.NewOverridableIntent(charge.Intent.GetBaseIntent(), &override)
+	return charge, nil
+}
+
+func (a *creditThenInvoiceStateMachineAdapter) DeleteChargeOverride(_ context.Context, charge usagebased.ChargeBase) (usagebased.ChargeBase, error) {
+	charge.Intent = charge.Intent.GetBaseIntent().AsOverridableIntent()
 	return charge, nil
 }
 
@@ -761,6 +1135,17 @@ func mustNewPatchShrink(t *testing.T, newServicePeriodTo time.Time) meta.PatchSh
 		NewFullServicePeriodTo: newServicePeriodTo,
 		NewBillingPeriodTo:     newServicePeriodTo,
 		NewInvoiceAt:           newServicePeriodTo,
+	})
+	require.NoError(t, err)
+
+	return patch
+}
+
+func mustNewPatchClearOverride(t *testing.T) meta.PatchClearOverride {
+	t.Helper()
+
+	patch, err := meta.NewPatchClearOverride(meta.NewPatchClearOverrideInput{
+		ChangeSource: billing.ChangeSourceAPIRequest,
 	})
 	require.NoError(t, err)
 

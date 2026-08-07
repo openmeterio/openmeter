@@ -777,6 +777,198 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 	})
 }
 
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCancellationPreservesLiveOverrideUntilClear() {
+	// Given:
+	// - a subscription is created with credits_only settlement
+	// - the subscription is single phase with a monthly usage based charge priced at $1 per usage
+	// - the initial sync horizon provisions the first period charge in created state
+	// - a customer-facing live override hides its subscription-owned base
+	//
+	// When:
+	// - the subscription is canceled at the service period start
+	// - the subscription is synchronized again
+	//
+	// Then:
+	// - the base is deleted while the effective override remains live
+	// - clearing the override completes synchronously in the deleted state
+	ctx := s.testContext()
+	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-03-01T00:00:00Z")
+	cancelAt := startAt
+
+	clock.SetTime(setupAt)
+	defer clock.ResetTime()
+
+	unitPrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromFloat(1),
+	})
+
+	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Credits Only Usage Based Created-State Cancellation",
+				Key:            "credits-only-usage-based-created-state-cancellation",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name:       s.APIRequestsTotalFeature.Key,
+								Key:        s.APIRequestsTotalFeature.Key,
+								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Price:      unitPrice,
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	}, startAt)
+
+	timeline := timeutil.NewSimpleTimeline([]time.Time{
+		s.mustParseTime("2024-02-01T00:00:00Z"),
+		s.mustParseTime("2024-03-01T00:00:00Z"),
+	})
+	periods := timeline.GetClosedPeriods()
+	invoiceAt := timeline.GetTimes()[1:]
+
+	expectedCharges := []expectedUsageBasedCharge{
+		{
+			ChildUniqueReferenceIDs: recurringLineMatcher{
+				PhaseKey:  "first-phase",
+				ItemKey:   s.APIRequestsTotalFeature.Key,
+				Version:   0,
+				PeriodMin: 0,
+				PeriodMax: 0,
+			}.ChildIDs(subscriptionView.Subscription.ID),
+			ServicePeriods:     periods,
+			FullServicePeriods: periods,
+			BillingPeriods:     periods,
+			InvoiceAt:          invoiceAt,
+			FeatureKey:         s.APIRequestsTotalFeature.Key,
+			Price:              *unitPrice,
+		},
+	}
+
+	var originalCharge usagebased.Charge
+
+	s.Run("provisions the charge in created state", func() {
+		// given:
+		// - a future subscription-owned usage-based charge has no override
+		// when:
+		// - subscription sync provisions the first service period
+		// then:
+		// - the charge is created with its subscription identity
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+		provisionedCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
+		s.Len(provisionedCharges, 1)
+		originalCharge = provisionedCharges[0]
+		s.Equal(usagebased.StatusCreated, originalCharge.Status)
+	})
+
+	s.Run("sets a live customer override", func() {
+		// given:
+		// - the subscription-owned base is live and created
+		// when:
+		// - the customer replaces its mutable effective intent
+		// then:
+		// - the live override is stored independently from the base
+		override := originalCharge.Intent.GetEffectiveIntent().IntentMutableFields.Clone()
+		override.Name = "usage-based-live-override"
+		_, err := s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   originalCharge.ID,
+			UsageBased: &override,
+		})
+		s.NoError(err)
+	})
+
+	s.Run("cancels the hidden subscription-owned base", func() {
+		// given:
+		// - a live override is effective while the subscription still owns the base
+		// when:
+		// - cancellation removes the base period and subscription sync reconciles it
+		// then:
+		// - the base is deleted without deleting the customer-facing override
+		clock.FreezeTime(cancelAt)
+		defer clock.UnFreeze()
+
+		subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subscriptionView.Subscription.NamespacedID, subscription.Timing{
+			Enum: lo.ToPtr(subscription.TimingImmediate),
+		})
+		s.NoError(err)
+
+		subscriptionView, err = s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
+		s.NoError(err)
+
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+
+		hiddenBaseChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+			ChargeID: chargesmeta.ChargeID{
+				Namespace: s.Namespace,
+				ID:        originalCharge.ID,
+			},
+		})
+		s.NoError(err)
+
+		hiddenBaseCharge, err := hiddenBaseChargeRes.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usagebased.StatusCreated, hiddenBaseCharge.Status)
+		s.NotNil(hiddenBaseCharge.Intent.GetBaseIntent().IntentDeletedAt)
+		s.NotNil(hiddenBaseCharge.Intent.GetOverrideLayerMutableFields())
+		s.Nil(hiddenBaseCharge.Intent.GetOverrideLayerMutableFields().IntentDeletedAt)
+		s.Equal("usage-based-live-override", hiddenBaseCharge.Intent.GetEffectiveIntent().Name)
+		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[0], lo.FromPtr(hiddenBaseCharge.Intent.GetUniqueReferenceID()))
+	})
+
+	s.Run("clears the override after base cancellation", func() {
+		// given:
+		// - the effective override hides a base already deleted by cancellation
+		// when:
+		// - the customer clears the override
+		// then:
+		// - the returned charge is synchronously stable and deleted
+		_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   originalCharge.ID,
+		})
+		s.NoError(err)
+
+		clearedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+			ChargeID: chargesmeta.ChargeID{
+				Namespace: s.Namespace,
+				ID:        originalCharge.ID,
+			},
+		})
+		s.NoError(err)
+
+		clearedCharge, err := clearedChargeRes.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usagebased.StatusDeleted, clearedCharge.Status)
+		s.NotEqual(usagebased.StatusDeletedClearOverride, clearedCharge.Status)
+		s.Nil(clearedCharge.Intent.GetOverrideLayerMutableFields())
+		s.NotNil(clearedCharge.Intent.GetBaseIntent().IntentDeletedAt)
+	})
+}
+
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPeriodCancellation() {
 	// Given:
 	// - a subscription is created with credits_only settlement
@@ -1101,6 +1293,304 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 
 	s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
 	s.expectCreditsOnlyMixedCharges(ctx, subscriptionView.Subscription.ID, expectedFlatFeeCharges, expectedUsageBasedCharges)
+}
+
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlySubscriptionSyncPreservesCustomerOverrideLayers() {
+	ctx := s.testContext()
+	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
+
+	clock.SetTime(setupAt)
+	defer clock.ResetTime()
+
+	unitPrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromFloat(1),
+	})
+	timeline := timeutil.NewSimpleTimeline([]time.Time{
+		startAt,
+		s.mustParseTime("2024-03-01T00:00:00Z"),
+		s.mustParseTime("2024-04-01T00:00:00Z"),
+	})
+	periods := timeline.GetClosedPeriods()
+
+	var subscriptionView subscription.SubscriptionView
+	var flatFeeCharge flatfee.Charge
+	var usageBasedCharge usagebased.Charge
+	var flatFeeUniqueReferenceID string
+	var usageBasedUniqueReferenceID string
+
+	s.Run("given a subscription-owned flat-fee and usage-based charge", func() {
+		// given:
+		// - a credits-only subscription defines both supported charge types
+		// when:
+		// - subscription sync provisions their first future service periods
+		// then:
+		// - each charge has a stable subscription-owned base and unique reference
+		subscriptionView = s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Credits Only Customer Override Reconciliation",
+					Key:            "credits-only-customer-override-reconciliation",
+					Version:        1,
+					Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.FlatFeeRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Name: "flat-fee",
+									Key:  "flat-fee",
+									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+										Amount:      alpacadecimal.NewFromFloat(100),
+										PaymentTerm: productcatalog.InAdvancePaymentTerm,
+									}),
+								},
+								BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+							},
+							&productcatalog.UsageBasedRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Name:       s.APIRequestsTotalFeature.Key,
+									Key:        s.APIRequestsTotalFeature.Key,
+									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Price:      unitPrice,
+								},
+								BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+							},
+						},
+					},
+				},
+			},
+		}, startAt)
+
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+
+		flatFeeCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, []expectedFlatFeeCharge{
+			{
+				ChildUniqueReferenceIDs: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "flat-fee",
+					Version:   0,
+					PeriodMin: 0,
+					PeriodMax: 1,
+				}.ChildIDs(subscriptionView.Subscription.ID),
+				ServicePeriods:     periods,
+				FullServicePeriods: periods,
+				BillingPeriods:     periods,
+				InvoiceAt:          timeline.GetTimes()[:2],
+			},
+		})
+		usageBasedCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, []expectedUsageBasedCharge{
+			{
+				ChildUniqueReferenceIDs: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   s.APIRequestsTotalFeature.Key,
+					Version:   0,
+					PeriodMin: 0,
+					PeriodMax: 0,
+				}.ChildIDs(subscriptionView.Subscription.ID),
+				ServicePeriods:     periods[:1],
+				FullServicePeriods: periods[:1],
+				BillingPeriods:     periods[:1],
+				InvoiceAt:          timeline.GetTimes()[1:2],
+				FeatureKey:         s.APIRequestsTotalFeature.Key,
+				Price:              *unitPrice,
+			},
+		})
+		s.Len(flatFeeCharges, 2)
+		s.Len(usageBasedCharges, 1)
+		flatFeeCharge = flatFeeCharges[0]
+		usageBasedCharge = usageBasedCharges[0]
+		flatFeeUniqueReferenceID = lo.FromPtr(flatFeeCharge.Intent.GetUniqueReferenceID())
+		usageBasedUniqueReferenceID = lo.FromPtr(usageBasedCharge.Intent.GetUniqueReferenceID())
+	})
+
+	s.Run("when setting customer overrides and synchronizing again", func() {
+		// given:
+		// - subscription sync owns the base intents for the existing charges
+		// when:
+		// - customer-facing overrides are set and the unchanged subscription is resynchronized
+		// then:
+		// - reconciliation preserves the effective override without duplicating either charge
+		flatFeeOverride := flatFeeCharge.Intent.GetEffectiveIntent().IntentMutableFields.Clone()
+		flatFeeOverride.Name = "flat-fee-customer-override"
+		flatFeeOverride.AmountBeforeProration = alpacadecimal.NewFromFloat(150)
+		_, err := s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   flatFeeCharge.ID,
+			FlatFee:    &flatFeeOverride,
+		})
+		s.NoError(err)
+
+		usageBasedOverride := usageBasedCharge.Intent.GetEffectiveIntent().IntentMutableFields.Clone()
+		usageBasedOverride.Name = "usage-based-customer-override"
+		usageBasedOverride.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(2)})
+		_, err = s.Charges.SetCustomerChargeOverride(ctx, charges.SetCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   usageBasedCharge.ID,
+			UsageBased: &usageBasedOverride,
+		})
+		s.NoError(err)
+
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+
+		flatFeeResult, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: flatFeeCharge.GetChargeID()})
+		s.NoError(err)
+		flatFeeCharge, err = flatFeeResult.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal("flat-fee", flatFeeCharge.Intent.GetBaseIntent().Name)
+		s.Equal(flatFeeUniqueReferenceID, lo.FromPtr(flatFeeCharge.Intent.GetUniqueReferenceID()))
+		s.Equal("flat-fee-customer-override", flatFeeCharge.Intent.GetEffectiveIntent().Name)
+		s.NotNil(flatFeeCharge.Intent.GetOverrideLayerMutableFields())
+
+		usageBasedResult, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: usageBasedCharge.GetChargeID()})
+		s.NoError(err)
+		usageBasedCharge, err = usageBasedResult.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(s.APIRequestsTotalFeature.Key, usageBasedCharge.Intent.GetBaseIntent().Name)
+		s.Equal(usageBasedUniqueReferenceID, lo.FromPtr(usageBasedCharge.Intent.GetUniqueReferenceID()))
+		s.Equal("usage-based-customer-override", usageBasedCharge.Intent.GetEffectiveIntent().Name)
+		s.NotNil(usageBasedCharge.Intent.GetOverrideLayerMutableFields())
+
+		flatFeeCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{subscriptionView.Subscription.ID},
+			ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		})
+		s.NoError(err)
+		s.Len(flatFeeCharges.Items, 2)
+
+		usageBasedCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{subscriptionView.Subscription.ID},
+			ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		})
+		s.NoError(err)
+		s.Len(usageBasedCharges.Items, 1)
+	})
+
+	s.Run("when clearing customer overrides", func() {
+		// given:
+		// - both subscription-owned charges expose a live customer override
+		// when:
+		// - the customer clears each override
+		// then:
+		// - the latest live base is restored in a stable lifecycle state
+		_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   flatFeeCharge.ID,
+		})
+		s.NoError(err)
+		_, err = s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   usageBasedCharge.ID,
+		})
+		s.NoError(err)
+
+		flatFeeResult, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: flatFeeCharge.GetChargeID()})
+		s.NoError(err)
+		flatFeeCharge, err = flatFeeResult.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Nil(flatFeeCharge.Intent.GetOverrideLayerMutableFields())
+		s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
+		s.NotEqual(flatfee.StatusActiveClearOverride, flatFeeCharge.Status)
+		s.NotEqual(flatfee.StatusDeletedClearOverride, flatFeeCharge.Status)
+
+		usageBasedResult, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: usageBasedCharge.GetChargeID()})
+		s.NoError(err)
+		usageBasedCharge, err = usageBasedResult.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Nil(usageBasedCharge.Intent.GetOverrideLayerMutableFields())
+		s.Equal(usagebased.StatusCreated, usageBasedCharge.Status)
+		s.NotEqual(usagebased.StatusActiveClearOverride, usageBasedCharge.Status)
+		s.NotEqual(usagebased.StatusDeletedClearOverride, usageBasedCharge.Status)
+	})
+
+	s.Run("when deleting through customer overrides and synchronizing again", func() {
+		// given:
+		// - both charges again expose their live subscription-owned base intent
+		// when:
+		// - customer deletion uses no payment adjustment and subscription sync runs again
+		// then:
+		// - deletion remains an effective override and sync does not recreate either charge
+		for _, chargeID := range []string{flatFeeCharge.ID, usageBasedCharge.ID} {
+			err := s.Charges.DeleteCustomerCharge(ctx, charges.DeleteCustomerChargeInput{
+				Namespace:         s.Namespace,
+				CustomerID:        s.Customer.ID,
+				ChargeID:          chargeID,
+				PaymentAdjustment: charges.PaymentAdjustmentNone,
+			})
+			s.NoError(err)
+		}
+		s.NoError(s.Service.SyncByView(ctx, subscriptionView, syncUntil))
+
+		flatFeeResult, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: flatFeeCharge.GetChargeID()})
+		s.NoError(err)
+		flatFeeCharge, err = flatFeeResult.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatfee.StatusDeleted, flatFeeCharge.Status)
+		s.Nil(flatFeeCharge.Intent.GetBaseIntent().IntentDeletedAt)
+		s.NotNil(flatFeeCharge.Intent.GetOverrideLayerMutableFields())
+		s.NotNil(flatFeeCharge.Intent.GetOverrideLayerMutableFields().IntentDeletedAt)
+
+		usageBasedResult, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: usageBasedCharge.GetChargeID()})
+		s.NoError(err)
+		usageBasedCharge, err = usageBasedResult.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usagebased.StatusDeleted, usageBasedCharge.Status)
+		s.Nil(usageBasedCharge.Intent.GetBaseIntent().IntentDeletedAt)
+		s.NotNil(usageBasedCharge.Intent.GetOverrideLayerMutableFields())
+		s.NotNil(usageBasedCharge.Intent.GetOverrideLayerMutableFields().IntentDeletedAt)
+	})
+
+	s.Run("when clearing customer deletion overrides", func() {
+		// given:
+		// - deletion is represented only by the effective customer override layer
+		// when:
+		// - the customer clears each deletion override
+		// then:
+		// - the existing live subscription bases are restored without transient statuses
+		_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   flatFeeCharge.ID,
+		})
+		s.NoError(err)
+		_, err = s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   usageBasedCharge.ID,
+		})
+		s.NoError(err)
+
+		flatFeeResult, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: flatFeeCharge.GetChargeID()})
+		s.NoError(err)
+		flatFeeCharge, err = flatFeeResult.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
+		s.Nil(flatFeeCharge.Intent.GetOverrideLayerMutableFields())
+		s.Equal(flatFeeUniqueReferenceID, lo.FromPtr(flatFeeCharge.Intent.GetUniqueReferenceID()))
+
+		usageBasedResult, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: usageBasedCharge.GetChargeID()})
+		s.NoError(err)
+		usageBasedCharge, err = usageBasedResult.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usagebased.StatusCreated, usageBasedCharge.Status)
+		s.Nil(usageBasedCharge.Intent.GetOverrideLayerMutableFields())
+		s.Equal(usageBasedUniqueReferenceID, lo.FromPtr(usageBasedCharge.Intent.GetUniqueReferenceID()))
+	})
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyMixedCharges(ctx context.Context, subscriptionID string, expectedFlatFee []expectedFlatFeeCharge, expectedUsageBased []expectedUsageBasedCharge) {
