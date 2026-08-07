@@ -5,6 +5,7 @@ import { OpenAPITestLibrary } from '@typespec/openapi/testing'
 import { describe, expect, it } from 'vitest'
 import {
   conflictingVariantProperty,
+  GoUnion,
   nestedUnionModelVariants,
   variantGoName,
 } from '../dist/components/GoUnion.js'
@@ -200,5 +201,116 @@ describe('union variant accessor naming', () => {
       (variant) => variantGoName(program, 'InvoiceOrReference', variant),
     )
     expect(names).toEqual(['Invoice', 'InvoiceReference'])
+  })
+})
+
+// The gates above are predicates; these are the throws the emitter actually
+// reaches. GoUnion rejects before it produces any JSX, so calling it as a plain
+// function is enough to drive every one of them.
+describe('union emit-path rejections', () => {
+  it('rejects a non-discriminated union whose variants disagree on a key', async () => {
+    const { program, union } = await compileModels(`
+      @service namespace Test;
+
+      model OwnerRef {
+        id: string;
+      }
+
+      model Owner {
+        id: int32;
+        display_name: string;
+      }
+
+      union OwnerOrRef {
+        owner: Owner,
+        ref: OwnerRef,
+      }
+    `)
+
+    expect(() =>
+      GoUnion({ program, union: union('OwnerOrRef'), name: 'OwnerOrRef' }),
+    ).toThrow(
+      /union OwnerOrRef has object variants that disagree on "id" \(different types in Owner and OwnerRef\); add @discriminated/,
+    )
+  })
+
+  it('rejects a nested union variant that disagrees with an outer sibling', async () => {
+    const { program, union } = await compileModels(`
+      @service namespace Test;
+
+      model InvoiceStandard {
+        type: "standard";
+        id: int32;
+      }
+
+      @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+      union Invoice {
+        standard: InvoiceStandard,
+      }
+
+      model InvoiceReference {
+        id: string;
+      }
+
+      union InvoiceOrReference {
+        Invoice,
+        InvoiceReference,
+      }
+    `)
+
+    expect(() =>
+      GoUnion({
+        program,
+        union: union('InvoiceOrReference'),
+        name: 'InvoiceOrReference',
+      }),
+    ).toThrow(
+      /disagree on "id" \(different types in InvoiceReference and InvoiceStandard\)/,
+    )
+  })
+
+  it('rejects a discriminated union that mixes model and non-model variants', async () => {
+    const { program, union } = await compileModels(`
+      @service namespace Test;
+
+      model StandardOwner {
+        type: "standard";
+        id: string;
+      }
+
+      union OwnerOrPlain {
+        owner: StandardOwner,
+        plain: string,
+      }
+    `)
+
+    expect(() =>
+      GoUnion({
+        program,
+        union: union('OwnerOrPlain'),
+        name: 'OwnerOrPlain',
+      }),
+    ).toThrow(
+      /discriminated union OwnerOrPlain mixes model and non-model variants/,
+    )
+  })
+
+  it('rejects a discriminated union that envelopes its variants', async () => {
+    const { program, union } = await compileModels(`
+      @service namespace Test;
+
+      model StandardOwner {
+        id: string;
+      }
+
+      @discriminated
+      union Owner {
+        standard: StandardOwner,
+      }
+    `)
+
+    expect(() =>
+      GoUnion({ program, union: union('Owner'), name: 'Owner' }),
+    ).toThrow(/union Owner uses unsupported discriminated union envelope/)
   })
 })
