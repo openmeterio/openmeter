@@ -412,6 +412,14 @@ func TestPopulateUsageBasedStandardLineFromCustomCurrencyRunCreatesFiatOverage(t
 				// then: the positive billable line is retained independently of payment handling
 				require.NoError(t, err)
 				require.Nil(t, line.DeletedAt)
+
+				flatPrice, err := line.UsageBased.Price.AsFlat()
+				require.NoError(t, err)
+				require.Equal(t, float64(6), flatPrice.Amount.InexactFloat64())
+
+				require.Len(t, line.DetailedLines, 1)
+				require.Equal(t, creditpurchase.CreditPurchaseChildUniqueReferenceID, line.DetailedLines[0].ChildUniqueReferenceID)
+				require.Equal(t, float64(6), line.DetailedLines[0].Totals.Amount.InexactFloat64())
 			})
 
 			t.Run("conversion failure returns an error without deleting the line", func(t *testing.T) {
