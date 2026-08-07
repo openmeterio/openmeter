@@ -1,6 +1,7 @@
 package migrate_test
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -149,14 +150,11 @@ func TestMigrateCreditPurchaseCostBasisSchemaLevel2WaitsForLockedRows(t *testing
 		require.NoError(t, err)
 		defer migrationConn.Close()
 
-		_, err = migrationConn.ExecContext(t.Context(), `SET statement_timeout = '250ms'`)
-		require.NoError(t, err)
+		migrationContext, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		_, err = migrationConn.ExecContext(migrationContext, readMigration(t, creditPurchaseCostBasisSchemaLevel2Migration))
+		cancel()
+		require.ErrorIs(t, err, context.DeadlineExceeded)
 
-		_, err = migrationConn.ExecContext(t.Context(), readMigration(t, creditPurchaseCostBasisSchemaLevel2Migration))
-		require.ErrorContains(t, err, "canceling statement due to statement timeout")
-
-		_, err = migrationConn.ExecContext(t.Context(), `ROLLBACK`)
-		require.NoError(t, err)
 		require.NoError(t, lockTx.Rollback())
 
 		var schemaLevel int
