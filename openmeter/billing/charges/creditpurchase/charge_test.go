@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -38,6 +39,23 @@ func TestIntentNormalizedPinsServicePeriodsToEffectiveAt(t *testing.T) {
 	require.Equal(t, expectedPeriod, got.ServicePeriod)
 	require.Equal(t, expectedPeriod, got.FullServicePeriod)
 	require.Equal(t, expectedPeriod, got.BillingPeriod)
+}
+
+func TestIntentMutableFieldsCalculateEffectiveAtDoesNotBackdateToServicePeriod(t *testing.T) {
+	now := time.Date(2026, 8, 7, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	fields := IntentMutableFields{
+		IntentMutableFields: meta.IntentMutableFields{
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: now.Add(-24 * time.Hour),
+				To:   now,
+			},
+		},
+	}
+
+	require.Equal(t, now, fields.CalculateEffectiveAt())
 }
 
 func TestFeatureFiltersNormalize(t *testing.T) {

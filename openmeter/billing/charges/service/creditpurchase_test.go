@@ -316,6 +316,26 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() 
 		s.Equal(currencyx.FiatCode(currency.USD), resolvedCostBasis.FiatCurrency.GetFiatCode())
 	})
 
+	s.Run("referenced cost basis cannot be deleted", func() {
+		// given:
+		// - a persisted custom-currency purchase referencing its cost basis
+		s.Require().NotNil(createdCharge.State.CostBasisID, "create subtest must have persisted a cost basis")
+
+		// when:
+		// - the referenced cost-basis row is deleted directly
+		err := s.DBClient.ChargeCreditPurchaseCostBasis.DeleteOneID(*createdCharge.State.CostBasisID).Exec(ctx)
+
+		// then:
+		// - the foreign key rejects the delete and preserves the financial charge
+		s.Require().Error(err)
+		persisted, err := creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
+			Namespace: ns,
+			IDs:       []string{createdCharge.ID},
+		})
+		s.Require().NoError(err)
+		s.Require().Len(persisted, 1)
+	})
+
 	s.Run("legacy row upgrades on write", func() {
 		// given:
 		// - the persisted custom-currency purchase is reverted to the level-1
@@ -328,8 +348,6 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() 
 			ClearInitialPaymentSettlementStatus().
 			SetSchemaLevel(int(creditpurchase.SchemaLevelLegacy)).
 			Save(ctx)
-		s.Require().NoError(err)
-		err = s.DBClient.ChargeCreditPurchaseCostBasis.DeleteOneID(originalCostBasisID).Exec(ctx)
 		s.Require().NoError(err)
 
 		legacy, err := s.CreditPurchaseAdapter.GetByID(ctx, creditpurchase.GetByIDInput{

@@ -61,9 +61,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 		if err != nil {
 			return creditpurchase.ChargeBase{}, err
 		}
-		if err := tx.loadCostBasisEdge(ctx, dbCreditPurchase); err != nil {
-			return creditpurchase.ChargeBase{}, err
-		}
+		dbCreditPurchase.Edges.CostBasis = lockedCharge.Edges.CostBasis
 
 		return fromDBBaseWithCurrency(dbCreditPurchase, charge.Intent.Currency)
 	})
@@ -267,7 +265,8 @@ func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoide
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.ChargeBase, error) {
-		if _, err := tx.upgradeCostBasisSchemaForWrite(ctx, input.Charge.GetChargeID()); err != nil {
+		lockedCharge, err := tx.upgradeCostBasisSchemaForWrite(ctx, input.Charge.GetChargeID())
+		if err != nil {
 			return creditpurchase.ChargeBase{}, err
 		}
 
@@ -278,9 +277,7 @@ func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoide
 		if err != nil {
 			return creditpurchase.ChargeBase{}, fmt.Errorf("marking credit purchase charge voided [id=%s]: %w", input.Charge.ID, err)
 		}
-		if err := tx.loadCostBasisEdge(ctx, dbCreditPurchase); err != nil {
-			return creditpurchase.ChargeBase{}, err
-		}
+		dbCreditPurchase.Edges.CostBasis = lockedCharge.Edges.CostBasis
 
 		return fromDBBaseWithCurrency(dbCreditPurchase, input.Charge.Intent.Currency)
 	})

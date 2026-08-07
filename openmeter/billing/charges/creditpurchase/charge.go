@@ -219,15 +219,7 @@ func (f IntentMutableFields) Normalized(currency currencies.Currency) IntentMuta
 }
 
 func (f IntentMutableFields) CalculateEffectiveAt() time.Time {
-	if f.EffectiveAt != nil {
-		return *f.EffectiveAt
-	}
-
-	if !f.ServicePeriod.From.IsZero() {
-		return f.ServicePeriod.From
-	}
-
-	return clock.Now().UTC()
+	return lo.FromPtrOr(f.EffectiveAt, clock.Now().UTC())
 }
 
 func (f IntentMutableFields) Validate() error {
