@@ -1,0 +1,3 @@
+-- Intentionally no-op. The migration preserves the legacy settlement shadow,
+-- but deleting the new authoritative state would make rows unreadable by the
+-- schema-level-2 application and could discard later writes.
