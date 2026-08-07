@@ -62,6 +62,13 @@ func TestResolvedCostBasisValidate(t *testing.T) {
 	require.ErrorContains(t, (ResolvedCostBasis{
 		Rate: alpacadecimal.NewFromInt(1),
 	}).Validate(), "fiat currency is required")
+
+	usd, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+	require.ErrorContains(t, (ResolvedCostBasis{
+		FiatCurrency: usd,
+		Rate:         alpacadecimal.Zero,
+	}).Validate(), "rate must be positive")
 }
 
 func TestChargeBaseValidateCostBasis(t *testing.T) {

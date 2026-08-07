@@ -94,8 +94,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInpu
 			SetNillableKey(in.Intent.Key).
 			SetStatusDetailed(initialStatus)
 
-		var createdCostBasis *db.ChargeCreditPurchaseCostBasis
-		var resolvedCostBasis *creditpurchase.ResolvedCostBasis
+		var costBasis applyCostBasisResult
 		switch in.Intent.Settlement.Type() {
 		case creditpurchase.SettlementTypePromotional:
 		case creditpurchase.SettlementTypeInvoice, creditpurchase.SettlementTypeExternal:
@@ -107,79 +106,18 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInpu
 				create.SetInitialPaymentSettlementStatus(externalSettlement.InitialStatus)
 			}
 
-			if in.Intent.CostBasis == nil {
-				return creditpurchase.Charge{}, errors.New("payment-backed credit purchase requires a cost basis")
-			}
-
-			switch in.Intent.CostBasis.Type() {
-			case creditpurchase.CostBasisTypeFiat:
-				fiatCostBasis, err := in.Intent.CostBasis.AsFiat()
-				if err != nil {
-					return creditpurchase.Charge{}, fmt.Errorf("getting fiat cost basis: %w", err)
-				}
-
-				fiatCurrency, err := currencyx.NewFiatCurrency(in.Intent.Currency.GetCode())
-				if err != nil {
-					return creditpurchase.Charge{}, fmt.Errorf("mapping credit currency to fiat currency: %w", err)
-				}
-
-				create.SetFiatCostBasis(fiatCostBasis.Rate)
-				resolvedCostBasis = &creditpurchase.ResolvedCostBasis{
-					FiatCurrency: fiatCurrency,
-					Rate:         fiatCostBasis.Rate,
-				}
-			case creditpurchase.CostBasisTypeCustomCurrency:
-				customCostBasis, err := in.Intent.CostBasis.AsCustomCurrency()
-				if err != nil {
-					return creditpurchase.Charge{}, fmt.Errorf("getting custom-currency cost basis: %w", err)
-				}
-				if customCostBasis.Kind() != costbasis.ModeManual {
-					return creditpurchase.Charge{}, errors.New("custom-currency cost basis requires resolver integration")
-				}
-
-				costBasisCreate, err := costbasis.Create(tx.db.ChargeCreditPurchaseCostBasis.Create(), costbasis.CreateInput{
-					NamespacedID: models.NamespacedID{
-						Namespace: in.Namespace,
-						ID:        ulid.Make().String(),
-					},
-					CurrencyID: in.Intent.Currency.ID,
-					Intent:     customCostBasis,
-				})
-				if err != nil {
-					return creditpurchase.Charge{}, fmt.Errorf("building custom-currency cost basis: %w", err)
-				}
-
-				createdCostBasis, err = costBasisCreate.Save(ctx)
-				if err != nil {
-					return creditpurchase.Charge{}, fmt.Errorf("creating custom-currency cost basis: %w", err)
-				}
-
-				mappedCostBasis, err := costbasis.Get(createdCostBasis)
-				if err != nil {
-					return creditpurchase.Charge{}, fmt.Errorf("mapping created custom-currency cost basis: %w", err)
-				}
-				if mappedCostBasis.State == nil {
-					return creditpurchase.Charge{}, errors.New("created custom-currency cost basis is unresolved")
-				}
-
-				fiatCurrency, err := customCostBasis.GetFiatCurrency()
-				if err != nil {
-					return creditpurchase.Charge{}, fmt.Errorf("getting custom-currency fiat currency: %w", err)
-				}
-
-				resolvedCostBasis = &creditpurchase.ResolvedCostBasis{
-					FiatCurrency: fiatCurrency,
-					Rate:         mappedCostBasis.State.CostBasis,
-				}
-				create.SetCostBasisID(createdCostBasis.ID)
-			default:
-				return creditpurchase.Charge{}, fmt.Errorf("unsupported credit purchase cost basis type: %s", in.Intent.CostBasis.Type())
+			costBasis, err = tx.applyCostBasis(ctx, applyCostBasisInput{
+				Create: create,
+				Charge: in,
+			})
+			if err != nil {
+				return creditpurchase.Charge{}, err
 			}
 		default:
 			return creditpurchase.Charge{}, fmt.Errorf("unsupported credit purchase settlement type: %s", in.Intent.Settlement.Type())
 		}
 
-		persistedSettlement, err := creditpurchase.NewPersistedSettlement(in.Intent.Settlement, resolvedCostBasis)
+		persistedSettlement, err := creditpurchase.NewPersistedSettlement(in.Intent.Settlement, costBasis.Resolved)
 		if err != nil {
 			return creditpurchase.Charge{}, fmt.Errorf("building persisted settlement compatibility shadow: %w", err)
 		}
@@ -199,7 +137,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInpu
 		if err != nil {
 			return creditpurchase.Charge{}, metaadapter.MapChargeConstraintError(err)
 		}
-		dbCreditPurchase.Edges.CostBasis = createdCostBasis
+		dbCreditPurchase.Edges.CostBasis = costBasis.Created
 
 		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
 			Namespace: in.Namespace,
@@ -217,6 +155,110 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInpu
 
 		return FromDBWithCurrency(dbCreditPurchase, in.Intent.Currency, meta.ExpandNone)
 	})
+}
+
+type applyCostBasisInput struct {
+	Create *db.ChargeCreditPurchaseCreate
+	Charge creditpurchase.CreateInput
+}
+
+var _ models.Validator = (*applyCostBasisInput)(nil)
+
+func (i applyCostBasisInput) Validate() error {
+	var errs []error
+
+	if i.Create == nil {
+		errs = append(errs, errors.New("create is required"))
+	}
+
+	if i.Charge.Intent.CostBasis == nil {
+		errs = append(errs, errors.New("payment-backed credit purchase requires a cost basis"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type applyCostBasisResult struct {
+	Created  *db.ChargeCreditPurchaseCostBasis
+	Resolved *creditpurchase.ResolvedCostBasis
+}
+
+func (a *adapter) applyCostBasis(ctx context.Context, in applyCostBasisInput) (applyCostBasisResult, error) {
+	if err := in.Validate(); err != nil {
+		return applyCostBasisResult{}, err
+	}
+
+	switch in.Charge.Intent.CostBasis.Type() {
+	case creditpurchase.CostBasisTypeFiat:
+		fiatCostBasis, err := in.Charge.Intent.CostBasis.AsFiat()
+		if err != nil {
+			return applyCostBasisResult{}, fmt.Errorf("getting fiat cost basis: %w", err)
+		}
+
+		fiatCurrency, err := currencyx.NewFiatCurrency(in.Charge.Intent.Currency.GetCode())
+		if err != nil {
+			return applyCostBasisResult{}, fmt.Errorf("mapping credit currency to fiat currency: %w", err)
+		}
+
+		in.Create.SetFiatCostBasis(fiatCostBasis.Rate)
+
+		return applyCostBasisResult{
+			Resolved: &creditpurchase.ResolvedCostBasis{
+				FiatCurrency: fiatCurrency,
+				Rate:         fiatCostBasis.Rate,
+			},
+		}, nil
+	case creditpurchase.CostBasisTypeCustomCurrency:
+		customCostBasis, err := in.Charge.Intent.CostBasis.AsCustomCurrency()
+		if err != nil {
+			return applyCostBasisResult{}, fmt.Errorf("getting custom-currency cost basis: %w", err)
+		}
+		if customCostBasis.Kind() != costbasis.ModeManual {
+			return applyCostBasisResult{}, errors.New("custom-currency cost basis requires resolver integration")
+		}
+
+		costBasisCreate, err := costbasis.Create(a.db.ChargeCreditPurchaseCostBasis.Create(), costbasis.CreateInput{
+			NamespacedID: models.NamespacedID{
+				Namespace: in.Charge.Namespace,
+				ID:        ulid.Make().String(),
+			},
+			CurrencyID: in.Charge.Intent.Currency.ID,
+			Intent:     customCostBasis,
+		})
+		if err != nil {
+			return applyCostBasisResult{}, fmt.Errorf("building custom-currency cost basis: %w", err)
+		}
+
+		createdCostBasis, err := costBasisCreate.Save(ctx)
+		if err != nil {
+			return applyCostBasisResult{}, fmt.Errorf("creating custom-currency cost basis: %w", err)
+		}
+
+		mappedCostBasis, err := costbasis.Get(createdCostBasis)
+		if err != nil {
+			return applyCostBasisResult{}, fmt.Errorf("mapping created custom-currency cost basis: %w", err)
+		}
+		if mappedCostBasis.State == nil {
+			return applyCostBasisResult{}, errors.New("created custom-currency cost basis is unresolved")
+		}
+
+		fiatCurrency, err := customCostBasis.GetFiatCurrency()
+		if err != nil {
+			return applyCostBasisResult{}, fmt.Errorf("getting custom-currency fiat currency: %w", err)
+		}
+
+		in.Create.SetCostBasisID(createdCostBasis.ID)
+
+		return applyCostBasisResult{
+			Created: createdCostBasis,
+			Resolved: &creditpurchase.ResolvedCostBasis{
+				FiatCurrency: fiatCurrency,
+				Rate:         mappedCostBasis.State.CostBasis,
+			},
+		}, nil
+	default:
+		return applyCostBasisResult{}, fmt.Errorf("unsupported credit purchase cost basis type: %s", in.Charge.Intent.CostBasis.Type())
+	}
 }
 
 func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoidedAdapterInput) (creditpurchase.ChargeBase, error) {

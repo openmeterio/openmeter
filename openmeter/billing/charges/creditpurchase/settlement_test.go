@@ -71,6 +71,53 @@ func TestPersistedSettlementRejectsCustomCurrencyCode(t *testing.T) {
 	require.True(t, models.IsGenericValidationError(err))
 }
 
+func TestPersistedSettlementValidateFieldCombinations(t *testing.T) {
+	currency := currencyx.FiatCode("USD")
+	costBasis := alpacadecimal.NewFromFloat(0.5)
+	status := CreatedInitialPaymentSettlementStatus
+
+	for _, tc := range []struct {
+		name       string
+		settlement PersistedSettlement
+		wantErr    string
+	}{
+		{
+			name: "promotional rejects payment compatibility fields",
+			settlement: PersistedSettlement{
+				Type:      SettlementTypePromotional,
+				CostBasis: &costBasis,
+			},
+			wantErr: "promotional settlement cannot contain payment compatibility fields",
+		},
+		{
+			name: "external requires initial status",
+			settlement: PersistedSettlement{
+				Type:      SettlementTypeExternal,
+				Currency:  &currency,
+				CostBasis: &costBasis,
+			},
+			wantErr: "initial status is required",
+		},
+		{
+			name: "invoice rejects initial status",
+			settlement: PersistedSettlement{
+				Type:          SettlementTypeInvoice,
+				Currency:      &currency,
+				CostBasis:     &costBasis,
+				InitialStatus: &status,
+			},
+			wantErr: "initial status is only valid for external settlement",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.settlement.Validate()
+
+			require.ErrorContains(t, err, tc.wantErr)
+			require.True(t, models.IsGenericValidationError(err))
+		})
+	}
+}
+
 func TestSettlementJSONRoundTripPreservesFiatCurrencyCode(t *testing.T) {
 	currency := currencyx.FiatCode("USD")
 	costBasis := alpacadecimal.NewFromFloat(0.5)

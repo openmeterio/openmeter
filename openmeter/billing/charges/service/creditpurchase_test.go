@@ -320,6 +320,7 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() 
 		// given:
 		// - the persisted custom-currency purchase is reverted to the level-1
 		//   representation to model a row created by an old application binary
+		s.Require().NotNil(createdCharge.State.CostBasisID, "create subtest must have persisted a cost basis")
 		originalCostBasisID := *createdCharge.State.CostBasisID
 		_, err := s.DBClient.ChargeCreditPurchase.UpdateOneID(createdCharge.ID).
 			ClearCostBasisID().

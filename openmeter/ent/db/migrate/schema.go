@@ -6210,7 +6210,7 @@ func init() {
 	ChargeCreditPurchasesTable.ForeignKeys[6].RefTable = TaxCodesTable
 	ChargeCreditPurchasesTable.Annotation = &entsql.Annotation{}
 	ChargeCreditPurchasesTable.Annotation.Checks = map[string]string{
-		"cost_basis_schema_level_settlement_fields": "schema_level = 1 OR (settlement_type = 'external' AND initial_payment_settlement_status IS NOT NULL) OR (settlement_type IN ('invoice', 'promotional') AND initial_payment_settlement_status IS NULL)",
+		"cost_basis_schema_level_settlement_fields": "schema_level = 1 OR (settlement_type IS NOT NULL AND ((settlement_type = 'external' AND initial_payment_settlement_status IS NOT NULL) OR (settlement_type IN ('invoice', 'promotional') AND initial_payment_settlement_status IS NULL)))",
 		"currency_not_empty":                        "currency IS NULL OR currency <> ''",
 		"currency_reference":                        "(currency IS NULL) <> (custom_currency_id IS NULL)",
 		"fiat_cost_basis_positive":                  "fiat_cost_basis IS NULL OR fiat_cost_basis > 0",
