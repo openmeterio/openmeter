@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -20,7 +21,7 @@ import (
 )
 
 type DetailedLine struct {
-	stddetailedline.Base
+	chargedetailedline.Base
 
 	PricerReferenceID string  `json:"pricerReferenceID"`
 	CorrectsRunID     *string `json:"correctsRunID,omitempty"`
@@ -99,19 +100,22 @@ func NewDetailedLinesFromBilling(
 
 		return DetailedLine{
 			PricerReferenceID: line.ChildUniqueReferenceID,
-			Base: stddetailedline.Base{
-				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-					Name: line.Name,
-				}),
-				ServicePeriod:          period,
-				Index:                  lo.ToPtr(idx),
-				ChildUniqueReferenceID: line.ChildUniqueReferenceID,
-				PaymentTerm:            lo.CoalesceOrEmpty(line.PaymentTerm, productcatalog.InArrearsPaymentTerm),
-				PerUnitAmount:          line.PerUnitAmount,
-				Quantity:               line.Quantity,
-				Category:               category,
-				CreditsApplied:         line.CreditsApplied,
-				Totals:                 line.Totals,
+			Base: chargedetailedline.Base{
+				AmountDiscounts: chargedetailedline.MapAmountDiscountsFromBilling(line.AmountDiscounts),
+				Base: stddetailedline.Base{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: line.Name,
+					}),
+					ServicePeriod:          period,
+					Index:                  lo.ToPtr(idx),
+					ChildUniqueReferenceID: line.ChildUniqueReferenceID,
+					PaymentTerm:            lo.CoalesceOrEmpty(line.PaymentTerm, productcatalog.InArrearsPaymentTerm),
+					PerUnitAmount:          line.PerUnitAmount,
+					Quantity:               line.Quantity,
+					Category:               category,
+					CreditsApplied:         line.CreditsApplied,
+					Totals:                 line.Totals,
+				},
 			},
 		}
 	})
@@ -126,14 +130,14 @@ func (l DetailedLines) Clone() DetailedLines {
 func (l DetailedLines) mapBase(fn func(stddetailedline.Bases) (stddetailedline.Bases, error)) (DetailedLines, error) {
 	out := l.Clone()
 	bases, err := fn(lo.Map(out, func(line DetailedLine, _ int) stddetailedline.Base {
-		return line.Base
+		return line.Base.Base
 	}))
 	if err != nil {
 		return nil, err
 	}
 
 	for idx := range out {
-		out[idx].Base = bases[idx]
+		out[idx].Base.Base = bases[idx]
 	}
 
 	return out, nil

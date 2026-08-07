@@ -200,6 +200,16 @@ func CorrectsRunID(v string) predicate.ChargeUsageBasedRunDetailedLine {
 	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldEQ(FieldCorrectsRunID, v))
 }
 
+// AmountDiscountsIsNil applies the IsNil predicate on the "amount_discounts" field.
+func AmountDiscountsIsNil() predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldIsNull(FieldAmountDiscounts))
+}
+
+// AmountDiscountsNotNil applies the NotNil predicate on the "amount_discounts" field.
+func AmountDiscountsNotNil() predicate.ChargeUsageBasedRunDetailedLine {
+	return predicate.ChargeUsageBasedRunDetailedLine(sql.FieldNotNull(FieldAmountDiscounts))
+}
+
 // CurrencyEQ applies the EQ predicate on the "currency" field.
 func CurrencyEQ(v currencyx.Code) predicate.ChargeUsageBasedRunDetailedLine {
 	vc := string(v)

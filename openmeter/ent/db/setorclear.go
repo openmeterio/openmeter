@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -3254,6 +3255,20 @@ func (u *ChargeFlatFeeRunCreditAllocationsUpdateOne) SetOrClearAnnotations(value
 	return u.SetAnnotations(*value)
 }
 
+func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearAmountDiscounts(value *detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearAmountDiscounts()
+	}
+	return u.SetAmountDiscounts(*value)
+}
+
+func (u *ChargeFlatFeeRunDetailedLineUpdateOne) SetOrClearAmountDiscounts(value *detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearAmountDiscounts()
+	}
+	return u.SetAmountDiscounts(*value)
+}
+
 func (u *ChargeFlatFeeRunDetailedLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *ChargeFlatFeeRunDetailedLineUpdate {
 	if value == nil {
 		return u.ClearInvoicingAppExternalID()
@@ -3896,6 +3911,20 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetOrClearAnnotations(va
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearAmountDiscounts(value *detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineUpdate {
+	if value == nil {
+		return u.ClearAmountDiscounts()
+	}
+	return u.SetAmountDiscounts(*value)
+}
+
+func (u *ChargeUsageBasedRunDetailedLineUpdateOne) SetOrClearAmountDiscounts(value *detailedline.AmountDiscounts) *ChargeUsageBasedRunDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearAmountDiscounts()
+	}
+	return u.SetAmountDiscounts(*value)
 }
 
 func (u *ChargeUsageBasedRunDetailedLineUpdate) SetOrClearInvoicingAppExternalID(value *string) *ChargeUsageBasedRunDetailedLineUpdate {

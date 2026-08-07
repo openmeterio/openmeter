@@ -300,12 +300,12 @@ func (_q *ChargeFlatFeeRunDetailedLineQuery) WithRun(opts ...func(*ChargeFlatFee
 // Example:
 //
 //	var v []struct {
-//		Currency currencyx.Code `json:"currency,omitempty"`
+//		AmountDiscounts detailedline.AmountDiscounts `json:"amount_discounts,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.ChargeFlatFeeRunDetailedLine.Query().
-//		GroupBy(chargeflatfeerundetailedline.FieldCurrency).
+//		GroupBy(chargeflatfeerundetailedline.FieldAmountDiscounts).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (_q *ChargeFlatFeeRunDetailedLineQuery) GroupBy(field string, fields ...string) *ChargeFlatFeeRunDetailedLineGroupBy {
@@ -323,11 +323,11 @@ func (_q *ChargeFlatFeeRunDetailedLineQuery) GroupBy(field string, fields ...str
 // Example:
 //
 //	var v []struct {
-//		Currency currencyx.Code `json:"currency,omitempty"`
+//		AmountDiscounts detailedline.AmountDiscounts `json:"amount_discounts,omitempty"`
 //	}
 //
 //	client.ChargeFlatFeeRunDetailedLine.Query().
-//		Select(chargeflatfeerundetailedline.FieldCurrency).
+//		Select(chargeflatfeerundetailedline.FieldAmountDiscounts).
 //		Scan(ctx, &v)
 func (_q *ChargeFlatFeeRunDetailedLineQuery) Select(fields ...string) *ChargeFlatFeeRunDetailedLineSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

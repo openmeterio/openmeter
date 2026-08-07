@@ -10,8 +10,10 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
@@ -30,6 +32,24 @@ type ChargeFlatFeeRunDetailedLineUpdate struct {
 // Where appends a list predicates to the ChargeFlatFeeRunDetailedLineUpdate builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdate) Where(ps ...predicate.ChargeFlatFeeRunDetailedLine) *ChargeFlatFeeRunDetailedLineUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineUpdate {
+	_u.mutation.SetAmountDiscounts(v)
+	return _u
+}
+
+// AppendAmountDiscounts appends value to the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdate) AppendAmountDiscounts(v detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineUpdate {
+	_u.mutation.AppendAmountDiscounts(v)
+	return _u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdate) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpdate {
+	_u.mutation.ClearAmountDiscounts()
 	return _u
 }
 
@@ -443,6 +463,11 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdate) check() error {
+	if v, ok := _u.mutation.AmountDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "amount_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.amount_discounts": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := chargeflatfeerundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.child_unique_reference_id": %w`, err)}
@@ -485,6 +510,17 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) sqlSave(ctx context.Context) (_nod
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.AmountDiscounts(); ok {
+		_spec.SetField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAmountDiscounts(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargeflatfeerundetailedline.FieldAmountDiscounts, value)
+		})
+	}
+	if _u.mutation.AmountDiscountsCleared() {
+		_spec.ClearField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeJSON)
 	}
 	if _u.mutation.CurrencyCleared() {
 		_spec.ClearField(chargeflatfeerundetailedline.FieldCurrency, field.TypeString)
@@ -606,6 +642,24 @@ type ChargeFlatFeeRunDetailedLineUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ChargeFlatFeeRunDetailedLineMutation
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineUpdateOne {
+	_u.mutation.SetAmountDiscounts(v)
+	return _u
+}
+
+// AppendAmountDiscounts appends value to the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) AppendAmountDiscounts(v detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineUpdateOne {
+	_u.mutation.AppendAmountDiscounts(v)
+	return _u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpdateOne {
+	_u.mutation.ClearAmountDiscounts()
+	return _u
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -1031,6 +1085,11 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) check() error {
+	if v, ok := _u.mutation.AmountDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "amount_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.amount_discounts": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := chargeflatfeerundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.child_unique_reference_id": %w`, err)}
@@ -1090,6 +1149,17 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) sqlSave(ctx context.Context) (_
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.AmountDiscounts(); ok {
+		_spec.SetField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAmountDiscounts(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, chargeflatfeerundetailedline.FieldAmountDiscounts, value)
+		})
+	}
+	if _u.mutation.AmountDiscountsCleared() {
+		_spec.ClearField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeJSON)
 	}
 	if _u.mutation.CurrencyCleared() {
 		_spec.ClearField(chargeflatfeerundetailedline.FieldCurrency, field.TypeString)

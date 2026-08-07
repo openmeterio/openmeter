@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
@@ -25,6 +26,8 @@ type ChargeFlatFeeRunDetailedLine struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
+	// AmountDiscounts holds the value of the "amount_discounts" field.
+	AmountDiscounts detailedline.AmountDiscounts `json:"amount_discounts,omitempty"`
 	// Currency holds the value of the "currency" field.
 	//
 	// Deprecated: currency is defined by the parent line or charge
@@ -120,7 +123,7 @@ func (*ChargeFlatFeeRunDetailedLine) scanValues(columns []string) ([]any, error)
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeflatfeerundetailedline.FieldCreditsApplied, chargeflatfeerundetailedline.FieldAnnotations, chargeflatfeerundetailedline.FieldMetadata:
+		case chargeflatfeerundetailedline.FieldAmountDiscounts, chargeflatfeerundetailedline.FieldCreditsApplied, chargeflatfeerundetailedline.FieldAnnotations, chargeflatfeerundetailedline.FieldMetadata:
 			values[i] = new([]byte)
 		case chargeflatfeerundetailedline.FieldQuantity, chargeflatfeerundetailedline.FieldPerUnitAmount, chargeflatfeerundetailedline.FieldAmount, chargeflatfeerundetailedline.FieldTaxesTotal, chargeflatfeerundetailedline.FieldTaxesInclusiveTotal, chargeflatfeerundetailedline.FieldTaxesExclusiveTotal, chargeflatfeerundetailedline.FieldChargesTotal, chargeflatfeerundetailedline.FieldDiscountsTotal, chargeflatfeerundetailedline.FieldCreditsTotal, chargeflatfeerundetailedline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
@@ -150,6 +153,14 @@ func (_m *ChargeFlatFeeRunDetailedLine) assignValues(columns []string, values []
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
+			}
+		case chargeflatfeerundetailedline.FieldAmountDiscounts:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field amount_discounts", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AmountDiscounts); err != nil {
+					return fmt.Errorf("unmarshal field amount_discounts: %w", err)
+				}
 			}
 		case chargeflatfeerundetailedline.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -377,6 +388,9 @@ func (_m *ChargeFlatFeeRunDetailedLine) String() string {
 	var builder strings.Builder
 	builder.WriteString("ChargeFlatFeeRunDetailedLine(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("amount_discounts=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AmountDiscounts))
+	builder.WriteString(", ")
 	if v := _m.Currency; v != nil {
 		builder.WriteString("currency=")
 		builder.WriteString(fmt.Sprintf("%v", *v))

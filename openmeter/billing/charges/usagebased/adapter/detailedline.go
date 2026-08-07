@@ -12,6 +12,7 @@ import (
 	"github.com/samber/mo"
 
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -224,6 +225,7 @@ func (a *adapter) UpsertRunDetailedLines(
 			UpdateInvoicingAppExternalID().
 			UpdateChildUniqueReferenceID().
 			UpdateCreditsApplied().
+			UpdateAmountDiscounts().
 			UpdateAnnotations().
 			UpdateMetadata().
 			Exec(ctx)
@@ -243,7 +245,7 @@ func buildDetailedLineCreate(db *entdb.Client, chargeID chargesmeta.ChargeID, ru
 		SetPricerReferenceID(lo.CoalesceOrEmpty(line.PricerReferenceID, line.ChildUniqueReferenceID)).
 		SetNillableCorrectsRunID(line.CorrectsRunID)
 
-	create = stddetailedline.Create(create, line.Base)
+	create = chargedetailedline.Create(create, line.Base)
 
 	if len(line.CreditsApplied) > 0 {
 		create = create.SetCreditsApplied(&line.CreditsApplied)
@@ -254,7 +256,7 @@ func buildDetailedLineCreate(db *entdb.Client, chargeID chargesmeta.ChargeID, ru
 
 func fromDBDetailedLine(dbLine *entdb.ChargeUsageBasedRunDetailedLine) (usagebased.DetailedLine, error) {
 	line := usagebased.DetailedLine{
-		Base:              stddetailedline.FromDB(dbLine),
+		Base:              chargedetailedline.FromDB(dbLine),
 		PricerReferenceID: dbLine.PricerReferenceID,
 		CorrectsRunID:     dbLine.CorrectsRunID,
 	}

@@ -371,12 +371,12 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) WithCorrectsRun(opts ...func(*Ch
 // Example:
 //
 //	var v []struct {
-//		Currency currencyx.Code `json:"currency,omitempty"`
+//		AmountDiscounts detailedline.AmountDiscounts `json:"amount_discounts,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.ChargeUsageBasedRunDetailedLine.Query().
-//		GroupBy(chargeusagebasedrundetailedline.FieldCurrency).
+//		GroupBy(chargeusagebasedrundetailedline.FieldAmountDiscounts).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (_q *ChargeUsageBasedRunDetailedLineQuery) GroupBy(field string, fields ...string) *ChargeUsageBasedRunDetailedLineGroupBy {
@@ -394,11 +394,11 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) GroupBy(field string, fields ...
 // Example:
 //
 //	var v []struct {
-//		Currency currencyx.Code `json:"currency,omitempty"`
+//		AmountDiscounts detailedline.AmountDiscounts `json:"amount_discounts,omitempty"`
 //	}
 //
 //	client.ChargeUsageBasedRunDetailedLine.Query().
-//		Select(chargeusagebasedrundetailedline.FieldCurrency).
+//		Select(chargeusagebasedrundetailedline.FieldAmountDiscounts).
 //		Scan(ctx, &v)
 func (_q *ChargeUsageBasedRunDetailedLineQuery) Select(fields ...string) *ChargeUsageBasedRunDetailedLineSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

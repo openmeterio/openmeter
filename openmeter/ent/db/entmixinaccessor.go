@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -1571,6 +1572,10 @@ func (e *ChargeFlatFeeRunDetailedLine) GetID() string {
 	return e.ID
 }
 
+func (e *ChargeFlatFeeRunDetailedLine) GetAmountDiscounts() detailedline.AmountDiscounts {
+	return e.AmountDiscounts
+}
+
 func (e *ChargeFlatFeeRunDetailedLine) GetCurrency() *currencyx.Code {
 	return e.Currency
 }
@@ -2093,6 +2098,10 @@ func (e *ChargeUsageBasedRunCreditAllocations) GetAnnotations() models.Annotatio
 
 func (e *ChargeUsageBasedRunDetailedLine) GetID() string {
 	return e.ID
+}
+
+func (e *ChargeUsageBasedRunDetailedLine) GetAmountDiscounts() detailedline.AmountDiscounts {
+	return e.AmountDiscounts
 }
 
 func (e *ChargeUsageBasedRunDetailedLine) GetCurrency() *currencyx.Code {

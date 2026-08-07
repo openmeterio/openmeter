@@ -329,7 +329,7 @@ func mapUsageBasedDetailedLines(
 	}
 
 	detailedLines := billing.DetailedLines(lo.Map(run.DetailedLines.OrEmpty(), func(line usagebased.DetailedLine, _ int) billing.DetailedLine {
-		base := line.Base.Clone()
+		base := line.CloneStandardBase()
 		base.Namespace = stdLine.Namespace
 		base.ID = ""
 		base.CreatedAt = time.Time{}

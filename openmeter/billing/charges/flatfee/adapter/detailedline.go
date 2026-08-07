@@ -10,7 +10,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -50,17 +50,19 @@ func (a *adapter) FetchDetailedLines(ctx context.Context, charge flatfee.Charge)
 		})
 
 		if charge.Realizations.CurrentRun != nil {
-			lines := flatfee.DetailedLines(lo.Map(dbLinesByRunID[charge.Realizations.CurrentRun.ID.ID], func(dbLine *entdb.ChargeFlatFeeRunDetailedLine, _ int) flatfee.DetailedLine {
-				return stddetailedline.FromDB(dbLine)
-			}))
+			lines, err := fromDBDetailedLines(dbLinesByRunID[charge.Realizations.CurrentRun.ID.ID])
+			if err != nil {
+				return flatfee.Charge{}, err
+			}
 			sortDetailedLines(lines)
 			charge.Realizations.CurrentRun.DetailedLines = mo.Some(lines)
 		}
 
 		for idx := range charge.Realizations.PriorRuns {
-			lines := flatfee.DetailedLines(lo.Map(dbLinesByRunID[charge.Realizations.PriorRuns[idx].ID.ID], func(dbLine *entdb.ChargeFlatFeeRunDetailedLine, _ int) flatfee.DetailedLine {
-				return stddetailedline.FromDB(dbLine)
-			}))
+			lines, err := fromDBDetailedLines(dbLinesByRunID[charge.Realizations.PriorRuns[idx].ID.ID])
+			if err != nil {
+				return flatfee.Charge{}, err
+			}
 			sortDetailedLines(lines)
 			charge.Realizations.PriorRuns[idx].DetailedLines = mo.Some(lines)
 		}
@@ -141,6 +143,7 @@ func (a *adapter) UpsertDetailedLines(ctx context.Context, runID flatfee.Realiza
 			UpdateInvoicingAppExternalID().
 			UpdateChildUniqueReferenceID().
 			UpdateCreditsApplied().
+			UpdateAmountDiscounts().
 			UpdateAnnotations().
 			UpdateMetadata().
 			Exec(ctx)
@@ -158,11 +161,27 @@ func buildDetailedLineCreate(db *entdb.Client, runID flatfee.RealizationRunID, l
 		SetRunID(runID.ID).
 		SetPricerReferenceID(line.ChildUniqueReferenceID)
 
-	create = stddetailedline.Create(create, line)
+	create = chargedetailedline.Create(create, line)
 
 	if len(line.CreditsApplied) > 0 {
 		create = create.SetCreditsApplied(&line.CreditsApplied)
 	}
 
 	return create, nil
+}
+
+func fromDBDetailedLines(dbLines []*entdb.ChargeFlatFeeRunDetailedLine) (flatfee.DetailedLines, error) {
+	lines := make(flatfee.DetailedLines, 0, len(dbLines))
+
+	for _, dbLine := range dbLines {
+		line := chargedetailedline.FromDB(dbLine)
+
+		if err := line.Validate(); err != nil {
+			return nil, err
+		}
+
+		lines = append(lines, line)
+	}
+
+	return lines, nil
 }

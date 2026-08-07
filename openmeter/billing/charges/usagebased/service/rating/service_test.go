@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	ratingtestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -94,9 +95,26 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 				Quantity:               alpacadecimal.NewFromInt(12),
 				PerUnitAmount:          alpacadecimal.NewFromInt(3),
 				ChildUniqueReferenceID: "unit-price-usage",
+				AmountDiscounts: billing.AmountLineDiscountsManaged{
+					{
+						AmountLineDiscount: billing.AmountLineDiscount{
+							LineDiscountBase: billing.LineDiscountBase{
+								ChildUniqueReferenceID: lo.ToPtr("rateCardDiscount/correlationID=discount-10pct"),
+								Reason: billing.NewDiscountReasonFrom(billing.PercentageDiscount{
+									PercentageDiscount: productcatalog.PercentageDiscount{
+										Percentage: models.NewPercentage(10),
+									},
+									CorrelationID: "discount-10pct",
+								}),
+							},
+							Amount: alpacadecimal.NewFromFloat(3.6),
+						},
+					},
+				},
 				Totals: totals.Totals{
-					Amount: alpacadecimal.NewFromInt(36),
-					Total:  alpacadecimal.NewFromInt(36),
+					Amount:         alpacadecimal.NewFromInt(36),
+					DiscountsTotal: alpacadecimal.NewFromFloat(3.6),
+					Total:          alpacadecimal.NewFromFloat(32.4),
 				},
 			},
 			{
@@ -119,9 +137,18 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 	require.Equal(t, stddetailedline.CategoryRegular, out[0].Category)
 	require.Equal(t, float64(12), out[0].Quantity.InexactFloat64())
 	require.Equal(t, float64(3), out[0].PerUnitAmount.InexactFloat64())
-	require.Equal(t, float64(36), out[0].Totals.Total.InexactFloat64())
+	require.Equal(t, float64(32.4), out[0].Totals.Total.InexactFloat64())
+	discounts := out[0].AmountDiscounts
+	require.Len(t, discounts, 1)
+	require.Equal(t, "rateCardDiscount/correlationID=discount-10pct", discounts[0].ChildUniqueReferenceID)
+	require.Equal(t, float64(3.6), discounts[0].Amount.InexactFloat64())
+	require.Equal(t, billing.RatecardPercentageDiscountReason, discounts[0].Reason.Type())
+	percentageDiscount, err := discounts[0].Reason.AsRatecardPercentage()
+	require.NoError(t, err)
+	require.Equal(t, "discount-10pct", percentageDiscount.CorrelationID)
 
 	require.Equal(t, explicitServicePeriod, out[1].ServicePeriod)
+	require.Empty(t, out[1].AmountDiscounts)
 	require.Equal(t, productcatalog.InAdvancePaymentTerm, out[1].PaymentTerm)
 	require.Equal(t, stddetailedline.CategoryCommitment, out[1].Category)
 }
@@ -164,19 +191,21 @@ func TestGetDetailedRatingForUsageUsesPeriodPreservingRatingEngine(t *testing.T)
 	priorRun.DetailedLines = mo.Some(usagebased.DetailedLines{
 		{
 			PricerReferenceID: billingrating.UnitPriceUsageChildUniqueReferenceID,
-			Base: stddetailedline.Base{
-				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-					Name: "Usage",
-				}),
-				ServicePeriod:          priorPeriod,
-				ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
-				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-				PerUnitAmount:          alpacadecimal.NewFromInt(3),
-				Quantity:               alpacadecimal.NewFromInt(3),
-				Category:               stddetailedline.CategoryRegular,
-				Totals: totals.Totals{
-					Amount: alpacadecimal.NewFromInt(9),
-					Total:  alpacadecimal.NewFromInt(9),
+			Base: chargedetailedline.Base{
+				Base: stddetailedline.Base{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Name: "Usage",
+					}),
+					ServicePeriod:          priorPeriod,
+					ChildUniqueReferenceID: ratingtestutils.FormatDetailedLineChildUniqueReferenceID(billingrating.UnitPriceUsageChildUniqueReferenceID, priorPeriod),
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					PerUnitAmount:          alpacadecimal.NewFromInt(3),
+					Quantity:               alpacadecimal.NewFromInt(3),
+					Category:               stddetailedline.CategoryRegular,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromInt(9),
+						Total:  alpacadecimal.NewFromInt(9),
+					},
 				},
 			},
 		},

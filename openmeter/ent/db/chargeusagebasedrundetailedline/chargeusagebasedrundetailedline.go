@@ -17,6 +17,8 @@ const (
 	Label = "charge_usage_based_run_detailed_line"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldAmountDiscounts holds the string denoting the amount_discounts field in the database.
+	FieldAmountDiscounts = "amount_discounts"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldServicePeriodStart holds the string denoting the service_period_start field in the database.
@@ -113,6 +115,7 @@ const (
 // Columns holds all SQL columns for chargeusagebasedrundetailedline fields.
 var Columns = []string{
 	FieldID,
+	FieldAmountDiscounts,
 	FieldServicePeriodStart,
 	FieldServicePeriodEnd,
 	FieldQuantity,

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
@@ -28,6 +29,12 @@ type ChargeFlatFeeRunDetailedLineCreate struct {
 	mutation *ChargeFlatFeeRunDetailedLineMutation
 	hooks    []Hook
 	conflict []sql.ConflictOption
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (_c *ChargeFlatFeeRunDetailedLineCreate) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineCreate {
+	_c.mutation.SetAmountDiscounts(v)
+	return _c
 }
 
 // SetCurrency sets the "currency" field.
@@ -354,6 +361,11 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeFlatFeeRunDetailedLineCreate) check() error {
+	if v, ok := _c.mutation.AmountDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "amount_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.amount_discounts": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.Currency(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.currency": %w`, err)}
@@ -491,6 +503,10 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDet
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.AmountDiscounts(); ok {
+		_spec.SetField(chargeflatfeerundetailedline.FieldAmountDiscounts, field.TypeJSON, value)
+		_node.AmountDiscounts = value
+	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldCurrency, field.TypeString, value)
 		_node.Currency = &value
@@ -627,7 +643,7 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDet
 // of the `INSERT` statement. For example:
 //
 //	client.ChargeFlatFeeRunDetailedLine.Create().
-//		SetCurrency(v).
+//		SetAmountDiscounts(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -636,7 +652,7 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDet
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeFlatFeeRunDetailedLineUpsert) {
-//			SetCurrency(v+v).
+//			SetAmountDiscounts(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeFlatFeeRunDetailedLineCreate) OnConflict(opts ...sql.ConflictOption) *ChargeFlatFeeRunDetailedLineUpsertOne {
@@ -671,6 +687,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsert) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineUpsert {
+	u.Set(chargeflatfeerundetailedline.FieldAmountDiscounts, v)
+	return u
+}
+
+// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunDetailedLineUpsert) UpdateAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsert {
+	u.SetExcluded(chargeflatfeerundetailedline.FieldAmountDiscounts)
+	return u
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsert) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsert {
+	u.SetNull(chargeflatfeerundetailedline.FieldAmountDiscounts)
+	return u
+}
 
 // SetServicePeriodStart sets the "service_period_start" field.
 func (u *ChargeFlatFeeRunDetailedLineUpsert) SetServicePeriodStart(v time.Time) *ChargeFlatFeeRunDetailedLineUpsert {
@@ -1078,6 +1112,27 @@ func (u *ChargeFlatFeeRunDetailedLineUpsertOne) Update(set func(*ChargeFlatFeeRu
 		set(&ChargeFlatFeeRunDetailedLineUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsertOne) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.SetAmountDiscounts(v)
+	})
+}
+
+// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunDetailedLineUpsertOne) UpdateAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.UpdateAmountDiscounts()
+	})
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsertOne) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.ClearAmountDiscounts()
+	})
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -1622,7 +1677,7 @@ func (_c *ChargeFlatFeeRunDetailedLineCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeFlatFeeRunDetailedLineUpsert) {
-//			SetCurrency(v+v).
+//			SetAmountDiscounts(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeFlatFeeRunDetailedLineCreateBulk) OnConflict(opts ...sql.ConflictOption) *ChargeFlatFeeRunDetailedLineUpsertBulk {
@@ -1711,6 +1766,27 @@ func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) Update(set func(*ChargeFlatFeeR
 		set(&ChargeFlatFeeRunDetailedLineUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetAmountDiscounts sets the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) SetAmountDiscounts(v detailedline.AmountDiscounts) *ChargeFlatFeeRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.SetAmountDiscounts(v)
+	})
+}
+
+// UpdateAmountDiscounts sets the "amount_discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) UpdateAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.UpdateAmountDiscounts()
+	})
+}
+
+// ClearAmountDiscounts clears the value of the "amount_discounts" field.
+func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) ClearAmountDiscounts() *ChargeFlatFeeRunDetailedLineUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
+		s.ClearAmountDiscounts()
+	})
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.

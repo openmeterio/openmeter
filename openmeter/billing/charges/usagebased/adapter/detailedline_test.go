@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
+	chargedetailedline "github.com/openmeterio/openmeter/openmeter/billing/charges/models/detailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -52,6 +53,7 @@ type newDetailedLineInput struct {
 	CorrectsRunID          *string
 	Quantity               int64
 	Description            *string
+	AmountDiscounts        chargedetailedline.AmountDiscounts
 }
 
 func (s *DetailedLineAdapterSuite) SetupSuite() {
@@ -166,6 +168,13 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			ChildUniqueReferenceID: "keep@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
 			Quantity:               1,
 			Description:            lo.ToPtr("old description"),
+			AmountDiscounts: chargedetailedline.AmountDiscounts{
+				{
+					ChildUniqueReferenceID: "maximum-spend",
+					Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+					Amount:                 alpacadecimal.NewFromFloat(0.03),
+				},
+			},
 		}),
 		s.newDetailedLine(newDetailedLineInput{
 			Charge:                 charge,
@@ -192,6 +201,8 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 		).
 		Only(ctx)
 	s.Require().NoError(err)
+	s.Require().Len(initialKeepRow.AmountDiscounts, 1)
+	s.Require().Equal(float64(0.03), initialKeepRow.AmountDiscounts[0].Amount.InexactFloat64())
 
 	replacementLines := usagebased.DetailedLines{
 		s.newDetailedLine(newDetailedLineInput{
@@ -201,6 +212,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			ChildUniqueReferenceID: "keep@[2026-01-01T00:00:00Z..2026-02-01T00:00:00Z]",
 			PricerReferenceID:      "keep-pricer-reference",
 			Quantity:               3,
+			AmountDiscounts:        chargedetailedline.AmountDiscounts{},
 		}),
 		s.newDetailedLine(newDetailedLineInput{
 			Charge:                 charge,
@@ -210,6 +222,14 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			CorrectsRunID:          lo.ToPtr(correctedRunBase.ID.ID),
 			Quantity:               -4,
 			Description:            lo.ToPtr("new description"),
+			AmountDiscounts: chargedetailedline.AmountDiscounts{
+				{
+					ChildUniqueReferenceID: "maximum-spend-reversal",
+					Reason:                 billing.NewDiscountReasonFrom(billing.MaximumSpendDiscount{}),
+					Amount:                 alpacadecimal.NewFromFloat(-0.02),
+					RoundingAmount:         alpacadecimal.NewFromFloat(-0.01),
+				},
+			},
 		}),
 	}
 	s.Require().NoError(s.adapter.UpsertRunDetailedLines(ctx, usagebased.UpsertRunDetailedLinesInput{
@@ -229,6 +249,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 		Only(ctx)
 	s.Require().NoError(err)
 	s.Equal(initialKeepRow.ID, replacedKeepRow.ID)
+	s.Empty(replacedKeepRow.AmountDiscounts)
 
 	fetchedCharge, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
@@ -251,8 +272,32 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 	s.Equal(float64(3), fetchedRun.DetailedLines.OrEmpty()[0].Quantity.InexactFloat64())
 	s.Nil(fetchedRun.DetailedLines.OrEmpty()[0].Description)
 	s.Nil(fetchedRun.DetailedLines.OrEmpty()[0].CorrectsRunID)
+	s.Empty(fetchedRun.DetailedLines.OrEmpty()[0].AmountDiscounts)
 	s.Equal(float64(-4), fetchedRun.DetailedLines.OrEmpty()[1].Quantity.InexactFloat64())
 	s.Equal(lo.ToPtr(correctedRunBase.ID.ID), fetchedRun.DetailedLines.OrEmpty()[1].CorrectsRunID)
+	newDiscounts := fetchedRun.DetailedLines.OrEmpty()[1].AmountDiscounts
+	s.Require().Len(newDiscounts, 1)
+	s.Require().Equal(float64(-0.02), newDiscounts[0].Amount.InexactFloat64())
+	s.Require().Equal(float64(-0.01), newDiscounts[0].RoundingAmount.InexactFloat64())
+
+	_, err = s.dbClient.ChargeUsageBasedRunDetailedLine.UpdateOneID(replacedKeepRow.ID).
+		ClearAmountDiscounts().
+		Save(ctx)
+	s.Require().NoError(err)
+
+	fetchedCharge, err = s.adapter.GetByID(ctx, usagebased.GetByIDInput{
+		ChargeID: charge.GetChargeID(),
+		Expands: chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+			chargesmeta.ExpandDetailedLines,
+		},
+	})
+	s.Require().NoError(err)
+	fetchedRun, ok = lo.Find(fetchedCharge.Realizations, func(run usagebased.RealizationRun) bool {
+		return run.ID.ID == runBase.ID.ID
+	})
+	s.Require().True(ok)
+	s.Empty(fetchedRun.DetailedLines.OrEmpty()[0].AmountDiscounts)
 
 	deletedRow, err := s.dbClient.ChargeUsageBasedRunDetailedLine.Query().
 		Where(
@@ -560,22 +605,25 @@ func (s *DetailedLineAdapterSuite) newDetailedLine(input newDetailedLineInput) u
 
 	return usagebased.DetailedLine{
 		PricerReferenceID: lo.CoalesceOrEmpty(input.PricerReferenceID, input.ChildUniqueReferenceID),
-		Base: stddetailedline.Base{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace:   input.Charge.Namespace,
-				Name:        "Detailed line",
-				Description: input.Description,
-			}),
-			ServicePeriod:          input.ServicePeriod,
-			ChildUniqueReferenceID: input.ChildUniqueReferenceID,
-			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
-			PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),
-			Quantity:               alpacadecimal.NewFromInt(input.Quantity),
-			Category:               stddetailedline.CategoryRegular,
-			Totals: totals.Totals{
-				Amount:       alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
-				ChargesTotal: alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
-				Total:        alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
+		Base: chargedetailedline.Base{
+			AmountDiscounts: input.AmountDiscounts,
+			Base: stddetailedline.Base{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace:   input.Charge.Namespace,
+					Name:        "Detailed line",
+					Description: input.Description,
+				}),
+				ServicePeriod:          input.ServicePeriod,
+				ChildUniqueReferenceID: input.ChildUniqueReferenceID,
+				PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),
+				Quantity:               alpacadecimal.NewFromInt(input.Quantity),
+				Category:               stddetailedline.CategoryRegular,
+				Totals: totals.Totals{
+					Amount:       alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
+					ChargesTotal: alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
+					Total:        alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity)),
+				},
 			},
 		},
 		CorrectsRunID: input.CorrectsRunID,

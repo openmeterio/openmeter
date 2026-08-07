@@ -210,7 +210,7 @@ func mapFlatFeeDetailedLines(stdLine *billing.StandardLine, run flatfee.Realizat
 	}
 
 	return lo.Map(run.DetailedLines.OrEmpty(), func(line flatfee.DetailedLine, _ int) billing.DetailedLine {
-		base := line.Clone()
+		base := line.Base.Clone()
 		base.Namespace = stdLine.Namespace
 		base.ID = ""
 		base.CreatedAt = time.Time{}

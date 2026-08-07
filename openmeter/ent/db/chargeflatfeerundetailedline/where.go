@@ -190,6 +190,16 @@ func PricerReferenceID(v string) predicate.ChargeFlatFeeRunDetailedLine {
 	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldEQ(FieldPricerReferenceID, v))
 }
 
+// AmountDiscountsIsNil applies the IsNil predicate on the "amount_discounts" field.
+func AmountDiscountsIsNil() predicate.ChargeFlatFeeRunDetailedLine {
+	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldIsNull(FieldAmountDiscounts))
+}
+
+// AmountDiscountsNotNil applies the NotNil predicate on the "amount_discounts" field.
+func AmountDiscountsNotNil() predicate.ChargeFlatFeeRunDetailedLine {
+	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNotNull(FieldAmountDiscounts))
+}
+
 // CurrencyEQ applies the EQ predicate on the "currency" field.
 func CurrencyEQ(v currencyx.Code) predicate.ChargeFlatFeeRunDetailedLine {
 	vc := string(v)

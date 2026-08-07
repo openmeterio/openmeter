@@ -4096,7 +4096,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 	s.NotEmpty(flatFeeChargeID)
 
-	s.Run("#2 advance at invoice_at goes to final", func() {
+	s.Run("#2 advance at invoice_at persists detailed-line amount discounts", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
 		type callbackInvocation struct {
@@ -4159,7 +4159,21 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 			DiscountsTotal: 10,
 			Total:          90,
 		}, fetchedFF.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].Totals)
-		s.Empty(fetchedFF.Realizations.CurrentRun.DetailedLines.OrEmpty()[0].CreditsApplied)
+		detailedLine := fetchedFF.Realizations.CurrentRun.DetailedLines.OrEmpty()[0]
+		s.Empty(detailedLine.CreditsApplied)
+
+		amountDiscounts := detailedLine.AmountDiscounts
+		s.Require().Len(amountDiscounts, 1)
+		amountDiscount := amountDiscounts[0]
+		s.Equal("rateCardDiscount/correlationID=flat-fee-credit-only-discount", amountDiscount.ChildUniqueReferenceID)
+		s.Nil(amountDiscount.Description)
+		s.Require().Equal(float64(10), amountDiscount.Amount.InexactFloat64())
+		s.True(amountDiscount.RoundingAmount.IsZero())
+		s.Equal(billing.RatecardPercentageDiscountReason, amountDiscount.Reason.Type())
+		percentageDiscount, err := amountDiscount.Reason.AsRatecardPercentage()
+		s.Require().NoError(err)
+		s.Equal("flat-fee-credit-only-discount", percentageDiscount.CorrelationID)
+		s.Require().Equal(float64(10), percentageDiscount.Percentage.InexactFloat64())
 	})
 
 	s.Run("#3 final charge advance is noop", func() {
