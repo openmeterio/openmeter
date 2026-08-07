@@ -719,9 +719,10 @@ type ChargeRealizationAmountDiscount struct {
 	Reason string `json:"reason"`
 	// Optional human-readable description of the discount.
 	Description *string `json:"description,omitempty"`
-	// The amount of the discount applied to the charge, rounded to the nearest cent
-	// (or equivalent for the charge's currency).
-	RoundingAmount Numeric `json:"rounding_amount"`
+	// The discount amount applied to the charge, rounded to the nearest cent (or
+	// currency equivalent) and adjusted to compensate for rounding errors across
+	// multiple discounted detail lines.
+	RoundingAmount *Numeric `json:"rounding_amount,omitempty"`
 	// Unique reference ID of the discount applied to the charge.
 	ChildUniqueReferenceID string `json:"child_unique_reference_id"`
 }
@@ -897,7 +898,8 @@ type ChargeRealizationDetailedLineUsageBased struct {
 	AmountDiscounts []ChargeRealizationAmountDiscount `json:"amount_discounts"`
 	// The quantity of the detailed line.
 	Quantity Numeric `json:"quantity"`
-	// The ID of a prior realization run this detailed line corrects, when applicable.
+	// The ID of a prior realization run this detailed line corrects. Only set if the
+	// detailed line's totals are negative.
 	CorrectsRunID *string `json:"corrects_run_id,omitempty"`
 }
 

@@ -714,10 +714,11 @@ export interface ChargeRealizationAmountDiscount {
   /** Optional human-readable description of the discount. */
   description?: string
   /**
-   * The amount of the discount applied to the charge, rounded to the nearest cent
-   * (or equivalent for the charge's currency).
+   * The discount amount applied to the charge, rounded to the nearest cent (or
+   * currency equivalent) and adjusted to compensate for rounding errors across
+   * multiple discounted detail lines.
    */
-  roundingAmount: string
+  roundingAmount?: string
   /** Unique reference ID of the discount applied to the charge. */
   childUniqueReferenceId: string
 }
@@ -2990,7 +2991,10 @@ export interface ChargeRealizationDetailedLineUsageBased {
   amountDiscounts: ChargeRealizationAmountDiscount[]
   /** The quantity of the detailed line. */
   quantity: string
-  /** The ID of a prior realization run this detailed line corrects, when applicable. */
+  /**
+   * The ID of a prior realization run this detailed line corrects. Only set if the
+   * detailed line's totals are negative.
+   */
   correctsRunId?: string
 }
 

@@ -5136,7 +5136,6 @@ components:
       required:
         - amount
         - reason
-        - rounding_amount
         - child_unique_reference_id
       properties:
         amount:
@@ -5159,8 +5158,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            The amount of the discount applied to the charge, rounded to the nearest cent
-            (or equivalent for the charge's currency).
+            The discount amount applied to the charge, rounded to the nearest cent (or
+            currency equivalent) and adjusted to compensate for rounding errors across
+            multiple discounted detail lines.
           title: Rounded amount
           readOnly: true
         child_unique_reference_id:
@@ -5396,7 +5396,9 @@ components:
           readOnly: true
         corrects_run_id:
           type: string
-          description: The ID of a prior realization run this detailed line corrects, when applicable.
+          description: |-
+            The ID of a prior realization run this detailed line corrects. Only set if the
+            detailed line's totals are negative.
           title: Corrects run ID
           readOnly: true
       additionalProperties: false

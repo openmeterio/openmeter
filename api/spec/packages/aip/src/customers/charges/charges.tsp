@@ -306,12 +306,13 @@ model ChargeRealizationAmountDiscount {
   description?: string;
 
   /**
-   * The amount of the discount applied to the charge, rounded to the nearest cent
-   * (or equivalent for the charge's currency).
+   * The discount amount applied to the charge, rounded to the nearest cent (or
+   * currency equivalent) and adjusted to compensate for rounding errors across
+   * multiple discounted detail lines.
    */
   @visibility(Lifecycle.Read)
   @summary("Rounded amount")
-  rounding_amount: Shared.Numeric;
+  rounding_amount?: Shared.Numeric;
 
   /**
    * Unique reference ID of the discount applied to the charge.
@@ -363,7 +364,8 @@ model ChargeRealizationDetailedLineUsageBased {
   quantity: Shared.Numeric;
 
   /**
-   * The ID of a prior realization run this detailed line corrects, when applicable.
+   * The ID of a prior realization run this detailed line corrects. Only set if the
+   * detailed line's totals are negative.
    */
   @visibility(Lifecycle.Read)
   @summary("Corrects run ID")

@@ -1699,7 +1699,7 @@ export const chargeRealizationAmountDiscount = z
       .string()
       .optional()
       .describe('Optional human-readable description of the discount.'),
-    roundingAmount: numeric,
+    roundingAmount: numeric.optional(),
     childUniqueReferenceId: z
       .string()
       .describe('Unique reference ID of the discount applied to the charge.'),
@@ -3836,7 +3836,7 @@ export const chargeRealizationDetailedLineUsageBased = z
       .optional()
 
       .describe(
-        'The ID of a prior realization run this detailed line corrects, when applicable.',
+        "The ID of a prior realization run this detailed line corrects. Only set if the detailed line's totals are negative.",
       ),
   })
 
@@ -8776,7 +8776,7 @@ export const chargeRealizationAmountDiscountWire = z
       .string()
       .optional()
       .describe('Optional human-readable description of the discount.'),
-    rounding_amount: numericWire,
+    rounding_amount: numericWire.optional(),
     child_unique_reference_id: z
       .string()
       .describe('Unique reference ID of the discount applied to the charge.'),
@@ -10895,7 +10895,7 @@ export const chargeRealizationDetailedLineUsageBasedWire = z
       .optional()
 
       .describe(
-        'The ID of a prior realization run this detailed line corrects, when applicable.',
+        "The ID of a prior realization run this detailed line corrects. Only set if the detailed line's totals are negative.",
       ),
   })
 
