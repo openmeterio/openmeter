@@ -44,8 +44,10 @@ func TestAmountDiscountsValidateRequiresStableReferenceAndReason(t *testing.T) {
 	require.ErrorContains(t, err, "invalid discount type")
 }
 
-func TestAmountDiscountsClonePreservesEmptyCollection(t *testing.T) {
+func TestAmountDiscountsClonePreservesNilAndEmptyCollections(t *testing.T) {
 	t.Parallel()
+
+	require.Nil(t, (AmountDiscounts(nil)).Clone())
 
 	cloned := (AmountDiscounts{}).Clone()
 	require.NotNil(t, cloned)
