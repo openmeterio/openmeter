@@ -99,6 +99,7 @@ sink:
       - topic
       - consumer
     clientID: kafka-client-1
+    clientRack: use1-az1
     consumerGroupID: consumer-group
     consumerGroupInstanceID: consumer-group-1
     sessionTimeout: 5m

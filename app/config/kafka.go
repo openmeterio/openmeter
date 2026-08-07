@@ -69,6 +69,7 @@ func ConfigureKafkaConfiguration(v *viper.Viper, prefix string) {
 	v.SetDefault(AddPrefix(prefix, "kafka.socketKeepAliveEnabled"), false)
 	v.SetDefault(AddPrefix(prefix, "kafka.debugContexts"), nil)
 	v.SetDefault(AddPrefix(prefix, "kafka.clientID"), "")
+	v.SetDefault(AddPrefix(prefix, "kafka.clientRack"), "")
 	v.SetDefault(AddPrefix(prefix, "kafka.consumerGroupID"), "")
 	v.SetDefault(AddPrefix(prefix, "kafka.consumerGroupInstanceID"), "")
 	v.SetDefault(AddPrefix(prefix, "kafka.sessionTimeout"), "9s")

@@ -20,6 +20,7 @@ func TestConsumerConfig(t *testing.T) {
 		ExpectedError           error
 		ExpectedValidationError error
 		ExpectedConfigMap       kafka.ConfigMap
+		ExpectedAbsentKeys      []string
 	}{
 		{
 			Name: "Valid",
@@ -38,7 +39,8 @@ func TestConsumerConfig(t *testing.T) {
 						DebugContextAdmin,
 						DebugContextBroker,
 					},
-					ClientID: "client-id-1",
+					ClientID:   "client-id-1",
+					ClientRack: "use1-az1",
 				},
 				ConsumerConfigParams{
 					ConsumerGroupID:             "consumer-group",
@@ -66,6 +68,7 @@ func TestConsumerConfig(t *testing.T) {
 				"metadata.max.age.ms":                3 * TimeDurationMilliSeconds(30*time.Second),
 				"debug":                              "admin,broker",
 				"client.id":                          "client-id-1",
+				"client.rack":                        "use1-az1",
 				"group.id":                           "consumer-group",
 				"group.instance.id":                  "consumer-group-1",
 				"session.timeout.ms":                 TimeDurationMilliSeconds(5 * time.Minute),
@@ -75,6 +78,44 @@ func TestConsumerConfig(t *testing.T) {
 				"auto.offset.reset":                  AutoOffsetResetLatest,
 				"partition.assignment.strategy":      PartitionAssignmentStrategies{PartitionAssignmentStrategyCooperativeSticky},
 			},
+		},
+		{
+			Name: "EmptyClientRack",
+			Params: ConsumerConfig{
+				CommonConfigParams{
+					Brokers:                      "broker-1:9092,broker-2:9092",
+					SecurityProtocol:             "SASL_SSL",
+					SaslMechanisms:               "PLAIN",
+					SaslUsername:                 "user",
+					SaslPassword:                 "pass",
+					StatsInterval:                TimeDurationMilliSeconds(5 * time.Second),
+					BrokerAddressFamily:          BrokerAddressFamilyAny,
+					SocketKeepAliveEnabled:       true,
+					TopicMetadataRefreshInterval: TimeDurationMilliSeconds(30 * time.Second),
+					DebugContexts: DebugContexts{
+						DebugContextAdmin,
+						DebugContextBroker,
+					},
+					ClientID:   "client-id-1",
+					ClientRack: "",
+				},
+				ConsumerConfigParams{
+					ConsumerGroupID:             "consumer-group",
+					ConsumerGroupInstanceID:     "consumer-group-1",
+					SessionTimeout:              TimeDurationMilliSeconds(5 * time.Minute),
+					HeartbeatInterval:           TimeDurationMilliSeconds(5 * time.Second),
+					EnableAutoCommit:            true,
+					EnableAutoOffsetStore:       true,
+					AutoOffsetReset:             AutoOffsetResetLatest,
+					PartitionAssignmentStrategy: PartitionAssignmentStrategies{PartitionAssignmentStrategyCooperativeSticky},
+				},
+			},
+			ExpectedError:           nil,
+			ExpectedValidationError: nil,
+			ExpectedConfigMap: kafka.ConfigMap{
+				"client.id": "client-id-1",
+			},
+			ExpectedAbsentKeys: []string{"client.rack"},
 		},
 	}
 
@@ -88,6 +129,11 @@ func TestConsumerConfig(t *testing.T) {
 
 			for k, v := range test.ExpectedConfigMap {
 				assert.Equal(t, v, m[k], fmt.Sprintf("expected %s got %s", v, m[k]))
+			}
+
+			for _, k := range test.ExpectedAbsentKeys {
+				_, ok := m[k]
+				assert.False(t, ok, fmt.Sprintf("expected key %s to be absent", k))
 			}
 		})
 	}

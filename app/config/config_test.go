@@ -241,6 +241,7 @@ func TestComplete(t *testing.T) {
 					SaslUsername:                 "user",
 					SaslPassword:                 "pass",
 					ClientID:                     "kafka-client-1",
+					ClientRack:                   "use1-az1",
 					StatsInterval:                pkgkafka.TimeDurationMilliSeconds(5 * time.Second),
 					BrokerAddressFamily:          pkgkafka.BrokerAddressFamilyAny,
 					TopicMetadataRefreshInterval: pkgkafka.TimeDurationMilliSeconds(time.Minute),

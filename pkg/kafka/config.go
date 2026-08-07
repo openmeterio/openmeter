@@ -57,6 +57,11 @@ type CommonConfigParams struct {
 
 	// ClientID sets the Consumer/Producer identifier
 	ClientID string
+
+	// ClientRack sets the rack identifier (e.g. availability zone) the client is running in.
+	// It enables rack-aware partition assignment for consumer groups and lets consumers fetch
+	// from the replica in the same rack, reducing cross-AZ network traffic.
+	ClientRack string
 }
 
 func (c CommonConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
@@ -137,6 +142,12 @@ func (c CommonConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
 
 	if c.ClientID != "" {
 		if err := m.SetKey("client.id", c.ClientID); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.ClientRack != "" {
+		if err := m.SetKey("client.rack", c.ClientRack); err != nil {
 			return nil, err
 		}
 	}
