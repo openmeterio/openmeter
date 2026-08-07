@@ -8,7 +8,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -241,7 +240,6 @@ var Columns = []string{
 	FieldExpiresAt,
 	FieldPriority,
 	FieldFeatureFilters,
-	FieldSettlement,
 	FieldStatusDetailed,
 	FieldKey,
 	FieldVoidedAt,
@@ -252,6 +250,11 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldSettlement} {
+		if column == f {
 			return true
 		}
 	}
@@ -279,10 +282,6 @@ var (
 	DefaultSchemaLevel int
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
-	// ValueScanner of all ChargeCreditPurchase fields.
-	ValueScanner struct {
-		Settlement field.TypeValueScanner[creditpurchase.PersistedSettlement]
-	}
 )
 
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.

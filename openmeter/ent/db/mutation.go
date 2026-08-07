@@ -39848,7 +39848,7 @@ type ChargeCreditPurchaseMutation struct {
 	priority                          *int
 	addpriority                       *int
 	feature_filters                   *pq.StringArray
-	settlement                        *creditpurchase.PersistedSettlement
+	settlement                        *string
 	status_detailed                   *creditpurchase.Status
 	key                               *string
 	voided_at                         *time.Time
@@ -41533,12 +41533,12 @@ func (m *ChargeCreditPurchaseMutation) ResetFeatureFilters() {
 }
 
 // SetSettlement sets the "settlement" field.
-func (m *ChargeCreditPurchaseMutation) SetSettlement(cs creditpurchase.PersistedSettlement) {
-	m.settlement = &cs
+func (m *ChargeCreditPurchaseMutation) SetSettlement(s string) {
+	m.settlement = &s
 }
 
 // Settlement returns the value of the "settlement" field in the mutation.
-func (m *ChargeCreditPurchaseMutation) Settlement() (r creditpurchase.PersistedSettlement, exists bool) {
+func (m *ChargeCreditPurchaseMutation) Settlement() (r string, exists bool) {
 	v := m.settlement
 	if v == nil {
 		return
@@ -41549,7 +41549,7 @@ func (m *ChargeCreditPurchaseMutation) Settlement() (r creditpurchase.PersistedS
 // OldSettlement returns the old "settlement" field's value of the ChargeCreditPurchase entity.
 // If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeCreditPurchaseMutation) OldSettlement(ctx context.Context) (v creditpurchase.PersistedSettlement, err error) {
+func (m *ChargeCreditPurchaseMutation) OldSettlement(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldSettlement is only allowed on UpdateOne operations")
 	}
@@ -41563,9 +41563,22 @@ func (m *ChargeCreditPurchaseMutation) OldSettlement(ctx context.Context) (v cre
 	return oldValue.Settlement, nil
 }
 
+// ClearSettlement clears the value of the "settlement" field.
+func (m *ChargeCreditPurchaseMutation) ClearSettlement() {
+	m.settlement = nil
+	m.clearedFields[chargecreditpurchase.FieldSettlement] = struct{}{}
+}
+
+// SettlementCleared returns if the "settlement" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) SettlementCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldSettlement]
+	return ok
+}
+
 // ResetSettlement resets all changes to the "settlement" field.
 func (m *ChargeCreditPurchaseMutation) ResetSettlement() {
 	m.settlement = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldSettlement)
 }
 
 // SetStatusDetailed sets the "status_detailed" field.
@@ -42683,7 +42696,7 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		m.SetFeatureFilters(v)
 		return nil
 	case chargecreditpurchase.FieldSettlement:
-		v, ok := value.(creditpurchase.PersistedSettlement)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -42831,6 +42844,9 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldFeatureFilters) {
 		fields = append(fields, chargecreditpurchase.FieldFeatureFilters)
 	}
+	if m.FieldCleared(chargecreditpurchase.FieldSettlement) {
+		fields = append(fields, chargecreditpurchase.FieldSettlement)
+	}
 	if m.FieldCleared(chargecreditpurchase.FieldKey) {
 		fields = append(fields, chargecreditpurchase.FieldKey)
 	}
@@ -42910,6 +42926,9 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldFeatureFilters:
 		m.ClearFeatureFilters()
+		return nil
+	case chargecreditpurchase.FieldSettlement:
+		m.ClearSettlement()
 		return nil
 	case chargecreditpurchase.FieldKey:
 		m.ClearKey()

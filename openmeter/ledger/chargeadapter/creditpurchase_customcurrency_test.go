@@ -307,7 +307,6 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalChargeCustomCurrency(
 	charge.Intent.Name = "Promotional Credit Purchase (custom currency)"
 	charge.Intent.Settlement = chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{})
 	charge.Intent.CostBasis = nil
-	charge.State.CostBasisID = nil
 	charge.State.ResolvedCostBasis = nil
 
 	return charge

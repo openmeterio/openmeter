@@ -14,29 +14,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// SchemaLevel identifies the persisted credit-purchase cost-basis representation.
-// Zero is reserved for aggregates that have not been loaded from persistence.
-type SchemaLevel int
-
-const (
-	SchemaLevelLegacy    SchemaLevel = 1
-	SchemaLevelCostBasis SchemaLevel = 2
-)
-
-func (SchemaLevel) Values() []int {
-	return []int{
-		int(SchemaLevelLegacy),
-		int(SchemaLevelCostBasis),
-	}
-}
-
-func (s SchemaLevel) Validate() error {
-	if !slices.Contains(s.Values(), int(s)) {
-		return models.NewGenericValidationError(fmt.Errorf("invalid credit purchase schema level: %d", s))
-	}
-
-	return nil
-}
+// CurrentSchemaLevel identifies the persisted credit-purchase representation.
+// Keep the marker so future persistence changes can introduce a new level.
+const CurrentSchemaLevel = 2
 
 type CostBasisType string
 

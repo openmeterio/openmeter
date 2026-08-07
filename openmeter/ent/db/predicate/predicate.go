@@ -200,17 +200,6 @@ type Charge func(*sql.Selector)
 // ChargeCreditPurchase is the predicate function for chargecreditpurchase builders.
 type ChargeCreditPurchase func(*sql.Selector)
 
-// ChargeCreditPurchaseOrErr calls the predicate only if the error is not nit.
-func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPurchase {
-	return func(s *sql.Selector) {
-		if err != nil {
-			s.AddError(err)
-			return
-		}
-		p(s)
-	}
-}
-
 // ChargeCreditPurchaseCostBasis is the predicate function for chargecreditpurchasecostbasis builders.
 type ChargeCreditPurchaseCostBasis func(*sql.Selector)
 

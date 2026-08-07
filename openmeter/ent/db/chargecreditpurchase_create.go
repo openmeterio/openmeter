@@ -405,8 +405,16 @@ func (_c *ChargeCreditPurchaseCreate) SetFeatureFilters(v pq.StringArray) *Charg
 }
 
 // SetSettlement sets the "settlement" field.
-func (_c *ChargeCreditPurchaseCreate) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseCreate {
+func (_c *ChargeCreditPurchaseCreate) SetSettlement(v string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetSettlement(v)
+	return _c
+}
+
+// SetNillableSettlement sets the "settlement" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableSettlement(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetSettlement(*v)
+	}
 	return _c
 }
 
@@ -736,14 +744,6 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 	if _, ok := _c.mutation.CreditAmount(); !ok {
 		return &ValidationError{Name: "credit_amount", err: errors.New(`db: missing required field "ChargeCreditPurchase.credit_amount"`)}
 	}
-	if _, ok := _c.mutation.Settlement(); !ok {
-		return &ValidationError{Name: "settlement", err: errors.New(`db: missing required field "ChargeCreditPurchase.settlement"`)}
-	}
-	if v, ok := _c.mutation.Settlement(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "settlement", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.StatusDetailed(); !ok {
 		return &ValidationError{Name: "status_detailed", err: errors.New(`db: missing required field "ChargeCreditPurchase.status_detailed"`)}
 	}
@@ -765,10 +765,7 @@ func (_c *ChargeCreditPurchaseCreate) sqlSave(ctx context.Context) (*ChargeCredi
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec, err := _c.createSpec()
-	if err != nil {
-		return nil, err
-	}
+	_node, _spec := _c.createSpec()
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -787,7 +784,7 @@ func (_c *ChargeCreditPurchaseCreate) sqlSave(ctx context.Context) (*ChargeCredi
 	return _node, nil
 }
 
-func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlgraph.CreateSpec, error) {
+func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlgraph.CreateSpec) {
 	var (
 		_node = &ChargeCreditPurchase{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(chargecreditpurchase.Table, sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString))
@@ -914,12 +911,8 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_node.FeatureFilters = value
 	}
 	if value, ok := _c.mutation.Settlement(); ok {
-		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)
-		if err != nil {
-			return nil, nil, err
-		}
-		_spec.SetField(chargecreditpurchase.FieldSettlement, field.TypeString, vv)
-		_node.Settlement = value
+		_spec.SetField(chargecreditpurchase.FieldSettlement, field.TypeString, value)
+		_node.Settlement = &value
 	}
 	if value, ok := _c.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargecreditpurchase.FieldStatusDetailed, field.TypeEnum, value)
@@ -1116,7 +1109,7 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_node.CustomCurrencyID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec, nil
+	return _node, _spec
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -1468,18 +1461,6 @@ func (u *ChargeCreditPurchaseUpsert) UpdateCreditAmount() *ChargeCreditPurchaseU
 	return u
 }
 
-// SetSettlement sets the "settlement" field.
-func (u *ChargeCreditPurchaseUpsert) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpsert {
-	u.Set(chargecreditpurchase.FieldSettlement, v)
-	return u
-}
-
-// UpdateSettlement sets the "settlement" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsert) UpdateSettlement() *ChargeCreditPurchaseUpsert {
-	u.SetExcluded(chargecreditpurchase.FieldSettlement)
-	return u
-}
-
 // SetStatusDetailed sets the "status_detailed" field.
 func (u *ChargeCreditPurchaseUpsert) SetStatusDetailed(v creditpurchase.Status) *ChargeCreditPurchaseUpsert {
 	u.Set(chargecreditpurchase.FieldStatusDetailed, v)
@@ -1589,6 +1570,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.FeatureFilters(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)
+		}
+		if _, exists := u.create.mutation.Settlement(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldSettlement)
 		}
 		if _, exists := u.create.mutation.Key(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldKey)
@@ -1974,20 +1958,6 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateCreditAmount() *ChargeCreditPurcha
 	})
 }
 
-// SetSettlement sets the "settlement" field.
-func (u *ChargeCreditPurchaseUpsertOne) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetSettlement(v)
-	})
-}
-
-// UpdateSettlement sets the "settlement" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertOne) UpdateSettlement() *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateSettlement()
-	})
-}
-
 // SetStatusDetailed sets the "status_detailed" field.
 func (u *ChargeCreditPurchaseUpsertOne) SetStatusDetailed(v creditpurchase.Status) *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
@@ -2112,10 +2082,7 @@ func (_c *ChargeCreditPurchaseCreateBulk) Save(ctx context.Context) ([]*ChargeCr
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i], err = builder.createSpec()
-				if err != nil {
-					return nil, err
-				}
+				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -2274,6 +2241,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.FeatureFilters(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)
+			}
+			if _, exists := b.mutation.Settlement(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldSettlement)
 			}
 			if _, exists := b.mutation.Key(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldKey)
@@ -2657,20 +2627,6 @@ func (u *ChargeCreditPurchaseUpsertBulk) SetCreditAmount(v alpacadecimal.Decimal
 func (u *ChargeCreditPurchaseUpsertBulk) UpdateCreditAmount() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateCreditAmount()
-	})
-}
-
-// SetSettlement sets the "settlement" field.
-func (u *ChargeCreditPurchaseUpsertBulk) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetSettlement(v)
-	})
-}
-
-// UpdateSettlement sets the "settlement" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertBulk) UpdateSettlement() *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateSettlement()
 	})
 }
 

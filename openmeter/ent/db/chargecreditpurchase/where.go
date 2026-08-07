@@ -213,6 +213,11 @@ func FeatureFilters(v pq.StringArray) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldFeatureFilters, v))
 }
 
+// Settlement applies equality check predicate on the "settlement" field. It's identical to SettlementEQ.
+func Settlement(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldSettlement, v))
+}
+
 // Key applies equality check predicate on the "key" field. It's identical to KeyEQ.
 func Key(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldKey, v))
@@ -1980,6 +1985,81 @@ func FeatureFiltersIsNil() predicate.ChargeCreditPurchase {
 // FeatureFiltersNotNil applies the NotNil predicate on the "feature_filters" field.
 func FeatureFiltersNotNil() predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldFeatureFilters))
+}
+
+// SettlementEQ applies the EQ predicate on the "settlement" field.
+func SettlementEQ(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldSettlement, v))
+}
+
+// SettlementNEQ applies the NEQ predicate on the "settlement" field.
+func SettlementNEQ(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldSettlement, v))
+}
+
+// SettlementIn applies the In predicate on the "settlement" field.
+func SettlementIn(vs ...string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldSettlement, vs...))
+}
+
+// SettlementNotIn applies the NotIn predicate on the "settlement" field.
+func SettlementNotIn(vs ...string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldSettlement, vs...))
+}
+
+// SettlementGT applies the GT predicate on the "settlement" field.
+func SettlementGT(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldSettlement, v))
+}
+
+// SettlementGTE applies the GTE predicate on the "settlement" field.
+func SettlementGTE(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldSettlement, v))
+}
+
+// SettlementLT applies the LT predicate on the "settlement" field.
+func SettlementLT(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldSettlement, v))
+}
+
+// SettlementLTE applies the LTE predicate on the "settlement" field.
+func SettlementLTE(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldSettlement, v))
+}
+
+// SettlementContains applies the Contains predicate on the "settlement" field.
+func SettlementContains(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldContains(FieldSettlement, v))
+}
+
+// SettlementHasPrefix applies the HasPrefix predicate on the "settlement" field.
+func SettlementHasPrefix(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldHasPrefix(FieldSettlement, v))
+}
+
+// SettlementHasSuffix applies the HasSuffix predicate on the "settlement" field.
+func SettlementHasSuffix(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldHasSuffix(FieldSettlement, v))
+}
+
+// SettlementIsNil applies the IsNil predicate on the "settlement" field.
+func SettlementIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldSettlement))
+}
+
+// SettlementNotNil applies the NotNil predicate on the "settlement" field.
+func SettlementNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldSettlement))
+}
+
+// SettlementEqualFold applies the EqualFold predicate on the "settlement" field.
+func SettlementEqualFold(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEqualFold(FieldSettlement, v))
+}
+
+// SettlementContainsFold applies the ContainsFold predicate on the "settlement" field.
+func SettlementContainsFold(v string) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldSettlement, v))
 }
 
 // StatusDetailedEQ applies the EQ predicate on the "status_detailed" field.

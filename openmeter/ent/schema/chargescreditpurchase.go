@@ -16,8 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-var CreditPurchaseSettlementValueScanner = entutils.JSONStringValueScanner[creditpurchase.PersistedSettlement]()
-
 type ChargeCreditPurchase struct {
 	ent.Schema
 }
@@ -31,7 +29,7 @@ func (ChargeCreditPurchase) Mixin() []ent.Mixin {
 func (ChargeCreditPurchase) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("schema_level").
-			Default(int(creditpurchase.SchemaLevelLegacy)).
+			Default(creditpurchase.CurrentSchemaLevel).
 			SchemaType(map[string]string{
 				dialect.Postgres: "smallint",
 			}),
@@ -75,8 +73,10 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			}),
 
 		field.String("settlement").
-			GoType(creditpurchase.PersistedSettlement{}).
-			ValueScanner(CreditPurchaseSettlementValueScanner).
+			Optional().
+			Nillable().
+			Immutable().
+			Deprecated("use settlement_type and the dedicated cost-basis fields instead").
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
@@ -105,11 +105,11 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 func (ChargeCreditPurchase) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Checks(map[string]string{
-			"schema_level":                              "schema_level IN (1, 2)",
+			"schema_level":                              "schema_level = 2",
 			"fiat_cost_basis_positive":                  "fiat_cost_basis IS NULL OR (fiat_cost_basis <> 'NaN'::numeric AND fiat_cost_basis > 0)",
 			"settlement_type":                           "settlement_type IS NULL OR settlement_type IN ('invoice', 'external', 'promotional')",
 			"initial_payment_settlement_status":         "initial_payment_settlement_status IS NULL OR initial_payment_settlement_status IN ('created', 'authorized', 'settled')",
-			"cost_basis_schema_level_settlement_fields": "schema_level = 1 OR (settlement_type IS NOT NULL AND ((settlement_type = 'external' AND initial_payment_settlement_status IS NOT NULL) OR (settlement_type IN ('invoice', 'promotional') AND initial_payment_settlement_status IS NULL)))",
+			"cost_basis_schema_level_settlement_fields": "settlement_type IS NOT NULL AND ((settlement_type = 'external' AND initial_payment_settlement_status IS NOT NULL) OR (settlement_type IN ('invoice', 'promotional') AND initial_payment_settlement_status IS NULL))",
 		}),
 	}
 }

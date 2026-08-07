@@ -55,12 +55,8 @@ func (c ChargeBase) Validate() error {
 }
 
 func (c ChargeBase) validateCostBasis() error {
-	if c.State.SchemaLevel == 0 {
-		return nil
-	}
-
 	if c.Intent.Settlement.Type() == SettlementTypePromotional {
-		if c.State.CostBasisID != nil || c.State.ResolvedCostBasis != nil {
+		if c.State.ResolvedCostBasis != nil {
 			return errors.New("promotional credit purchase cannot have cost-basis state")
 		}
 
@@ -72,7 +68,7 @@ func (c ChargeBase) validateCostBasis() error {
 	}
 
 	if !c.Intent.Currency.IsCustom() {
-		if c.State.CostBasisID != nil || c.State.ResolvedCostBasis != nil {
+		if c.State.ResolvedCostBasis != nil {
 			return errors.New("fiat credit purchase cannot have custom-currency cost-basis state")
 		}
 
@@ -81,17 +77,6 @@ func (c ChargeBase) validateCostBasis() error {
 
 	if c.State.ResolvedCostBasis == nil {
 		return errors.New("custom-currency credit purchase requires resolved cost-basis state")
-	}
-
-	switch c.State.SchemaLevel {
-	case SchemaLevelLegacy:
-		if c.State.CostBasisID != nil {
-			return errors.New("legacy custom-currency credit purchase cannot reference persisted cost-basis state")
-		}
-	case SchemaLevelCostBasis:
-		if c.State.CostBasisID == nil {
-			return errors.New("cost-basis schema custom-currency credit purchase requires a cost-basis ID")
-		}
 	}
 
 	return nil
@@ -319,32 +304,17 @@ func (i Intent) validateCostBasis() error {
 
 // State holds durable base-row scheduling fields for the credit purchase charge.
 type State struct {
-	// SchemaLevel is the persisted cost-basis representation. Zero is reserved
-	// for aggregates constructed outside persistence, including service inputs.
-	SchemaLevel SchemaLevel `json:"-"`
-
 	// VoidedAt is set when the remaining value was forfeited through the
 	// ledger void flow; the breakage records stay the accounting source of truth.
 	VoidedAt *time.Time `json:"voidedAt,omitempty"`
 
-	// CostBasisID and ResolvedCostBasis apply only to custom-currency credit
-	// purchases. Fiat cost basis is immutable intent stored on the charge row.
-	CostBasisID       *string                `json:"-"`
+	// ResolvedCostBasis applies only to custom-currency credit purchases. Fiat
+	// cost basis is immutable intent stored on the charge row.
 	ResolvedCostBasis *chargecostbasis.State `json:"resolvedCostBasis,omitempty"`
 }
 
 func (s State) Validate() error {
 	var errs []error
-
-	if s.SchemaLevel != 0 {
-		if err := s.SchemaLevel.Validate(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	if s.CostBasisID != nil && *s.CostBasisID == "" {
-		errs = append(errs, errors.New("cost basis ID cannot be empty"))
-	}
 
 	if s.ResolvedCostBasis != nil {
 		if err := s.ResolvedCostBasis.Validate(); err != nil {

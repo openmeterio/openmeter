@@ -139,19 +139,8 @@ func TestChargeBaseValidateCostBasis(t *testing.T) {
 	intent.Settlement = NewInvoiceSettlement()
 
 	require.NoError(t, (ChargeBase{Intent: intent, State: State{
-		SchemaLevel:       SchemaLevelLegacy,
 		ResolvedCostBasis: &resolved,
 	}}).validateCostBasis())
 
-	require.Error(t, (ChargeBase{Intent: intent, State: State{
-		SchemaLevel:       SchemaLevelCostBasis,
-		ResolvedCostBasis: &resolved,
-	}}).validateCostBasis())
-
-	costBasisID := "01J00000000000000000000000"
-	require.NoError(t, (ChargeBase{Intent: intent, State: State{
-		SchemaLevel:       SchemaLevelCostBasis,
-		CostBasisID:       &costBasisID,
-		ResolvedCostBasis: &resolved,
-	}}).validateCostBasis())
+	require.Error(t, (ChargeBase{Intent: intent}).validateCostBasis())
 }

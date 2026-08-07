@@ -354,20 +354,6 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableCreditAmount(v *alpacadecimal.D
 	return _u
 }
 
-// SetSettlement sets the "settlement" field.
-func (_u *ChargeCreditPurchaseUpdate) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpdate {
-	_u.mutation.SetSettlement(v)
-	return _u
-}
-
-// SetNillableSettlement sets the "settlement" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdate) SetNillableSettlement(v *creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpdate {
-	if v != nil {
-		_u.SetSettlement(*v)
-	}
-	return _u
-}
-
 // SetStatusDetailed sets the "status_detailed" field.
 func (_u *ChargeCreditPurchaseUpdate) SetStatusDetailed(v creditpurchase.Status) *ChargeCreditPurchaseUpdate {
 	_u.mutation.SetStatusDetailed(v)
@@ -577,11 +563,6 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 			return &ValidationError{Name: "initial_payment_settlement_status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.initial_payment_settlement_status": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Settlement(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "settlement", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargecreditpurchase.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status_detailed": %w`, err)}
@@ -713,12 +694,8 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	if _u.mutation.FeatureFiltersCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldFeatureFilters, field.TypeOther)
 	}
-	if value, ok := _u.mutation.Settlement(); ok {
-		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)
-		if err != nil {
-			return 0, err
-		}
-		_spec.SetField(chargecreditpurchase.FieldSettlement, field.TypeString, vv)
+	if _u.mutation.SettlementCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldSettlement, field.TypeString)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargecreditpurchase.FieldStatusDetailed, field.TypeEnum, value)
@@ -1214,20 +1191,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableCreditAmount(v *alpacadecima
 	return _u
 }
 
-// SetSettlement sets the "settlement" field.
-func (_u *ChargeCreditPurchaseUpdateOne) SetSettlement(v creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.SetSettlement(v)
-	return _u
-}
-
-// SetNillableSettlement sets the "settlement" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdateOne) SetNillableSettlement(v *creditpurchase.PersistedSettlement) *ChargeCreditPurchaseUpdateOne {
-	if v != nil {
-		_u.SetSettlement(*v)
-	}
-	return _u
-}
-
 // SetStatusDetailed sets the "status_detailed" field.
 func (_u *ChargeCreditPurchaseUpdateOne) SetStatusDetailed(v creditpurchase.Status) *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.SetStatusDetailed(v)
@@ -1450,11 +1413,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 			return &ValidationError{Name: "initial_payment_settlement_status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.initial_payment_settlement_status": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Settlement(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "settlement", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargecreditpurchase.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status_detailed": %w`, err)}
@@ -1603,12 +1561,8 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	if _u.mutation.FeatureFiltersCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldFeatureFilters, field.TypeOther)
 	}
-	if value, ok := _u.mutation.Settlement(); ok {
-		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)
-		if err != nil {
-			return nil, err
-		}
-		_spec.SetField(chargecreditpurchase.FieldSettlement, field.TypeString, vv)
+	if _u.mutation.SettlementCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldSettlement, field.TypeString)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargecreditpurchase.FieldStatusDetailed, field.TypeEnum, value)

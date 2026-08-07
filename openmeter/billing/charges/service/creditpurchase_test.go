@@ -287,9 +287,7 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() 
 		s.True(createdCharge.Intent.Currency.IsCustom())
 		s.Equal(customCurrency.ID, createdCharge.Intent.Currency.ID)
 		s.Equal(float64(100.123), createdCharge.Intent.CreditAmount.InexactFloat64())
-		s.Equal(creditpurchase.SchemaLevelCostBasis, createdCharge.State.SchemaLevel)
 		s.NotNil(createdCharge.Intent.CostBasis)
-		s.NotNil(createdCharge.State.CostBasisID)
 		s.NotNil(createdCharge.State.ResolvedCostBasis)
 
 		s.Require().NotNil(created.GatheringLineToCreate)
@@ -319,11 +317,13 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() 
 	s.Run("referenced cost basis cannot be deleted", func() {
 		// given:
 		// - a persisted custom-currency purchase referencing its cost basis
-		s.Require().NotNil(createdCharge.State.CostBasisID, "create subtest must have persisted a cost basis")
+		persistedEntity, err := s.DBClient.ChargeCreditPurchase.Get(ctx, createdCharge.ID)
+		s.Require().NoError(err)
+		s.Require().NotNil(persistedEntity.CostBasisID, "create subtest must have persisted a cost basis")
 
 		// when:
 		// - the referenced cost-basis row is deleted directly
-		err := s.DBClient.ChargeCreditPurchaseCostBasis.DeleteOneID(*createdCharge.State.CostBasisID).Exec(ctx)
+		err = s.DBClient.ChargeCreditPurchaseCostBasis.DeleteOneID(*persistedEntity.CostBasisID).Exec(ctx)
 
 		// then:
 		// - the foreign key rejects the delete and preserves the financial charge
@@ -334,45 +334,6 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() 
 		})
 		s.Require().NoError(err)
 		s.Require().Len(persisted, 1)
-	})
-
-	s.Run("legacy row upgrades on write", func() {
-		// given:
-		// - the persisted custom-currency purchase is reverted to the level-1
-		//   representation to model a row created by an old application binary
-		s.Require().NotNil(createdCharge.State.CostBasisID, "create subtest must have persisted a cost basis")
-		originalCostBasisID := *createdCharge.State.CostBasisID
-		_, err := s.DBClient.ChargeCreditPurchase.UpdateOneID(createdCharge.ID).
-			ClearCostBasisID().
-			ClearSettlementType().
-			ClearInitialPaymentSettlementStatus().
-			SetSchemaLevel(int(creditpurchase.SchemaLevelLegacy)).
-			Save(ctx)
-		s.Require().NoError(err)
-
-		legacy, err := s.CreditPurchaseAdapter.GetByID(ctx, creditpurchase.GetByIDInput{
-			ChargeID: createdCharge.GetChargeID(),
-		})
-		s.Require().NoError(err)
-		s.Equal(creditpurchase.SchemaLevelLegacy, legacy.State.SchemaLevel)
-		s.Nil(legacy.State.CostBasisID)
-		s.NotNil(legacy.Intent.CostBasis)
-		s.NotNil(legacy.State.ResolvedCostBasis)
-
-		// when:
-		// - a normal business write touches the legacy row
-		upgraded, err := s.CreditPurchaseAdapter.UpdateCharge(ctx, legacy.ChargeBase)
-		s.Require().NoError(err)
-
-		// then:
-		// - the adapter materializes a new custom-currency cost-basis row and
-		//   advances the parent to level 2 in the same transaction
-		s.Equal(creditpurchase.SchemaLevelCostBasis, upgraded.State.SchemaLevel)
-		s.Require().NotNil(upgraded.State.CostBasisID)
-		s.NotEqual(originalCostBasisID, *upgraded.State.CostBasisID)
-		s.Require().NotNil(upgraded.State.ResolvedCostBasis)
-		s.Equal(createdCharge.CreatedAt.UTC(), upgraded.State.ResolvedCostBasis.ResolvedAt)
-		s.Equal(float64(0.5), upgraded.State.ResolvedCostBasis.CostBasis.InexactFloat64())
 	})
 }
 
@@ -687,7 +648,6 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 			// The charge should have both a grant and a payment settlement.
 			creditPurchaseCharge, err := tc.charge.AsCreditPurchaseCharge()
 			s.NoError(err)
-			s.Equal(creditpurchase.SchemaLevelCostBasis, creditPurchaseCharge.State.SchemaLevel)
 			s.Require().NotNil(creditPurchaseCharge.Intent.CostBasis)
 			fiatCostBasis, err := creditPurchaseCharge.Intent.CostBasis.AsFiat()
 			s.NoError(err)

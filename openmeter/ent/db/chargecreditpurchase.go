@@ -108,7 +108,9 @@ type ChargeCreditPurchase struct {
 	// FeatureFilters holds the value of the "feature_filters" field.
 	FeatureFilters pq.StringArray `json:"feature_filters,omitempty"`
 	// Settlement holds the value of the "settlement" field.
-	Settlement creditpurchase.PersistedSettlement `json:"settlement,omitempty"`
+	//
+	// Deprecated: use settlement_type and the dedicated cost-basis fields instead
+	Settlement *string `json:"settlement,omitempty"`
 	// StatusDetailed holds the value of the "status_detailed" field.
 	StatusDetailed creditpurchase.Status `json:"status_detailed,omitempty"`
 	// Key holds the value of the "key" field.
@@ -288,12 +290,10 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(pq.StringArray)
 		case chargecreditpurchase.FieldSchemaLevel, chargecreditpurchase.FieldPriority:
 			values[i] = new(sql.NullInt64)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldFiatCurrencyCode, chargecreditpurchase.FieldCustomCurrencyID, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldSettlementType, chargecreditpurchase.FieldInitialPaymentSettlementStatus, chargecreditpurchase.FieldStatusDetailed, chargecreditpurchase.FieldKey, chargecreditpurchase.FieldCostBasisID:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldFiatCurrencyCode, chargecreditpurchase.FieldCustomCurrencyID, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldSettlementType, chargecreditpurchase.FieldInitialPaymentSettlementStatus, chargecreditpurchase.FieldSettlement, chargecreditpurchase.FieldStatusDetailed, chargecreditpurchase.FieldKey, chargecreditpurchase.FieldCostBasisID:
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldExpiresAt, chargecreditpurchase.FieldVoidedAt:
 			values[i] = new(sql.NullTime)
-		case chargecreditpurchase.FieldSettlement:
-			values[i] = chargecreditpurchase.ValueScanner.Settlement.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -546,10 +546,11 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				_m.FeatureFilters = *value
 			}
 		case chargecreditpurchase.FieldSettlement:
-			if value, err := chargecreditpurchase.ValueScanner.Settlement.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				_m.Settlement = value
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field settlement", values[i])
+			} else if value.Valid {
+				_m.Settlement = new(string)
+				*_m.Settlement = value.String
 			}
 		case chargecreditpurchase.FieldStatusDetailed:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -806,8 +807,10 @@ func (_m *ChargeCreditPurchase) String() string {
 	builder.WriteString("feature_filters=")
 	builder.WriteString(fmt.Sprintf("%v", _m.FeatureFilters))
 	builder.WriteString(", ")
-	builder.WriteString("settlement=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Settlement))
+	if v := _m.Settlement; v != nil {
+		builder.WriteString("settlement=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("status_detailed=")
 	builder.WriteString(fmt.Sprintf("%v", _m.StatusDetailed))

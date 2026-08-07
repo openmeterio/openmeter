@@ -1816,7 +1816,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "schema_level", Type: field.TypeInt, Default: 1, SchemaType: map[string]string{"postgres": "smallint"}},
+		{Name: "schema_level", Type: field.TypeInt, Default: 2, SchemaType: map[string]string{"postgres": "smallint"}},
 		{Name: "fiat_cost_basis", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "settlement_type", Type: field.TypeEnum, Nullable: true, Enums: []string{"invoice", "external", "promotional"}},
 		{Name: "initial_payment_settlement_status", Type: field.TypeEnum, Nullable: true, Enums: []string{"created", "authorized", "settled"}},
@@ -1825,7 +1825,7 @@ var (
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "priority", Type: field.TypeInt, Nullable: true},
 		{Name: "feature_filters", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
-		{Name: "settlement", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "settlement", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.initial_credit_grant", "active.payment.pending", "active.payment.authorized", "active.payment.paid_and_authorized", "active.payment.settled", "final", "deleted"}},
 		{Name: "key", Type: field.TypeString, Nullable: true},
 		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
@@ -6225,12 +6225,12 @@ func init() {
 	ChargeCreditPurchasesTable.ForeignKeys[6].RefTable = TaxCodesTable
 	ChargeCreditPurchasesTable.Annotation = &entsql.Annotation{}
 	ChargeCreditPurchasesTable.Annotation.Checks = map[string]string{
-		"cost_basis_schema_level_settlement_fields": "schema_level = 1 OR (settlement_type IS NOT NULL AND ((settlement_type = 'external' AND initial_payment_settlement_status IS NOT NULL) OR (settlement_type IN ('invoice', 'promotional') AND initial_payment_settlement_status IS NULL)))",
+		"cost_basis_schema_level_settlement_fields": "settlement_type IS NOT NULL AND ((settlement_type = 'external' AND initial_payment_settlement_status IS NOT NULL) OR (settlement_type IN ('invoice', 'promotional') AND initial_payment_settlement_status IS NULL))",
 		"currency_not_empty":                        "currency IS NULL OR currency <> ''",
 		"currency_reference":                        "(currency IS NULL) <> (custom_currency_id IS NULL)",
 		"fiat_cost_basis_positive":                  "fiat_cost_basis IS NULL OR (fiat_cost_basis <> 'NaN'::numeric AND fiat_cost_basis > 0)",
 		"initial_payment_settlement_status":         "initial_payment_settlement_status IS NULL OR initial_payment_settlement_status IN ('created', 'authorized', 'settled')",
-		"schema_level":                              "schema_level IN (1, 2)",
+		"schema_level":                              "schema_level = 2",
 		"settlement_type":                           "settlement_type IS NULL OR settlement_type IN ('invoice', 'external', 'promotional')",
 	}
 	ChargeCreditPurchaseCostBasesTable.ForeignKeys[0].RefTable = CurrencyCostBasesTable
