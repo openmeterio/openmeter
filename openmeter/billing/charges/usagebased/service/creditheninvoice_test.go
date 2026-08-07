@@ -11,9 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -23,30 +25,12 @@ import (
 )
 
 func TestZeroFiatAmountOverageRunCanResumeCompletionAfterPersistence(t *testing.T) {
+	// given: a persisted custom-currency run whose converted fiat overage is zero
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
-	intent := newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod).GetBaseIntent()
-	customCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
-		WithCode("TOKENS").
-		WithName("Tokens").
-		WithPrecision(2).
-		Build()
-	require.NoError(t, err)
-	intent.Intent.Currency = currencies.Currency{
-		NamespacedID: models.NamespacedID{
-			Namespace: "namespace",
-			ID:        "currency-id",
-		},
-		Currency: customCurrency,
-	}
-
-	charge := usagebased.Charge{
-		ChargeBase: usagebased.ChargeBase{
-			Intent: usagebased.NewOverridableIntent(intent, nil),
-		},
-	}
+	charge := newUsageBasedCustomCurrencyCreditThenInvoiceChargeForTest(t, servicePeriod)
 	run := usagebased.RealizationRun{
 		RealizationRunBase: usagebased.RealizationRunBase{
 			ID: usagebased.RealizationRunID{
@@ -63,18 +47,76 @@ func TestZeroFiatAmountOverageRunCanResumeCompletionAfterPersistence(t *testing.
 	currentRunID := run.ID.ID
 	charge.State.CurrentRealizationRunID = &currentRunID
 
+	// when: the state machine resumes while the run is still current
 	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
 	canFire, err := machine.CanFire(t.Context(), meta.TriggerNext)
+
+	// then: it can complete the zero-overage transition
 	require.NoError(t, err)
 	require.True(t, canFire)
 
+	// when: the same persisted run is reloaded after the current-run reference was cleared
 	charge.State.CurrentRealizationRunID = nil
 	machine = newCreditThenInvoiceStateMachineWithChargeForTest(t, charge)
 	canFire, err = machine.CanFire(t.Context(), meta.TriggerNext)
+
+	// then: it remains terminal and settled without requiring an invoice line
 	require.NoError(t, err)
 	require.False(t, canFire)
 	require.True(t, machine.HasTerminalCompletedRealizationWithoutCurrentRun())
 	require.True(t, areAllRealizationRunsSettled(charge))
+}
+
+func TestIsZeroFiatAmountOverageRunUsesConvertedOverage(t *testing.T) {
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	charge := newUsageBasedCustomCurrencyCreditThenInvoiceChargeForTest(t, servicePeriod)
+
+	tests := []struct {
+		name                      string
+		runTotals                 totals.Totals
+		noFiatTransactionRequired bool
+		expectZeroOverage         bool
+	}{
+		{
+			name: "zero converted overage does not depend on transaction requirement",
+			runTotals: totals.Totals{
+				Amount:       decimal.NewFromInt(3),
+				CreditsTotal: decimal.NewFromInt(3),
+			},
+			noFiatTransactionRequired: false,
+			expectZeroOverage:         true,
+		},
+		{
+			name: "positive converted overage is retained when no transaction is required",
+			runTotals: totals.Totals{
+				Amount: decimal.NewFromInt(3),
+				Total:  decimal.NewFromInt(3),
+			},
+			noFiatTransactionRequired: true,
+			expectZeroOverage:         false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// given: a custom-currency run where converted overage and transaction requirement intentionally differ
+			run := usagebased.RealizationRun{
+				RealizationRunBase: usagebased.RealizationRunBase{
+					Totals:                    test.runTotals,
+					NoFiatTransactionRequired: test.noFiatTransactionRequired,
+				},
+			}
+
+			// when: zero-overage invoice handling is evaluated
+			isZeroOverage := isZeroFiatAmountOverageRun(charge, run)
+
+			// then: only the converted overage controls the result
+			require.Equal(t, test.expectZeroOverage, isZeroOverage)
+		})
+	}
 }
 
 func TestUnsupportedExtendOperation(t *testing.T) {
@@ -559,6 +601,50 @@ func newUsageBasedIntentForCreditThenInvoiceTest(t testing.TB, servicePeriod tim
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		FeatureKey:     "feature-key",
 	}.AsOverridableIntent()
+}
+
+func newUsageBasedCustomCurrencyCreditThenInvoiceChargeForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod) usagebased.Charge {
+	t.Helper()
+
+	customCurrency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode("TOKENS").
+		WithName("Tokens").
+		WithPrecision(4).
+		Build()
+	require.NoError(t, err)
+
+	fiatCurrency, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+	costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+		FiatCurrency: fiatCurrency,
+		Rate:         decimal.NewFromInt(2),
+	})
+
+	intent := newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod).GetBaseIntent()
+	intent.Intent.Currency = currencies.Currency{
+		NamespacedID: models.NamespacedID{
+			Namespace: "namespace",
+			ID:        "currency-id",
+		},
+		Currency: customCurrency,
+	}
+	intent.CostBasis = &costBasisIntent
+
+	return usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: meta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
+				ID:              "charge-id",
+			},
+			Intent: usagebased.NewOverridableIntent(intent, nil),
+			State: usagebased.State{
+				ResolvedCostBasis: &costbasis.State{
+					CostBasis:  decimal.NewFromInt(2),
+					ResolvedAt: servicePeriod.From,
+				},
+			},
+		},
+	}
 }
 
 func newCreditThenInvoiceStateMachineWithChargeForTest(t *testing.T, charge usagebased.Charge) *CreditThenInvoiceStateMachine {

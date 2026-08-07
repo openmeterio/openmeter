@@ -1016,11 +1016,22 @@ func (s *CreditThenInvoiceStateMachine) FinalizeInvoiceRun(ctx context.Context, 
 }
 
 // isZeroFiatAmountOverageRun identifies custom-currency overage runs whose
-// converted fiat Amount is zero.
+// converted fiat amount is zero before any fiat settlement is applied. If the
+// conversion cannot be evaluated, the run must keep its line so the normal
+// invoice path can surface the underlying error instead of deleting billable
+// history.
 func isZeroFiatAmountOverageRun(charge usagebased.Charge, run usagebased.RealizationRun) bool {
-	return charge.Intent.GetCurrency().IsCustom() &&
-		charge.Intent.GetSettlementMode() == productcatalog.CreditThenInvoiceSettlementMode &&
-		run.NoFiatTransactionRequired
+	if !charge.Intent.GetCurrency().IsCustom() ||
+		charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		return false
+	}
+
+	fiatOverage, err := charge.ConvertCustomCurrencyOverageToFiat(run.Totals)
+	if err != nil {
+		return false
+	}
+
+	return fiatOverage.Amount.IsZero()
 }
 
 func getRunForLine(charge usagebased.Charge, lineID string) (usagebased.RealizationRun, error) {
