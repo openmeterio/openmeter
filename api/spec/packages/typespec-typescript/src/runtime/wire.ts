@@ -414,11 +414,11 @@ function selectVariant(
     // reference variant the only candidate and silently dropping every field
     // of an expanded resource. A nested union that cannot resolve (reference
     // data carries no discriminator) contributes nothing, which is what leaves
-    // the reference variant to win on its own merits. The gate's agreement
-    // check does not reach into a union variant, so a nested union's variants
-    // are not verified against the outer siblings they compete with — today
-    // they agree because both sides declare the shared keys through the same
-    // shared models.
+    // the reference variant to win on its own merits. The gate verifies a
+    // nested union's variants against the outer siblings they compete with, so
+    // the agreement guarantee above covers them too. It does not verify two
+    // nested unions against each other; no union in the spec declares two
+    // union-typed variants.
     const inner = unwrap(option)
     const candidate =
       def(inner)?.type === 'union' ? selectVariant(data, inner, dir) : option

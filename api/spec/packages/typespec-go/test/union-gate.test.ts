@@ -5,12 +5,14 @@ import { OpenAPITestLibrary } from '@typespec/openapi/testing'
 import { describe, expect, it } from 'vitest'
 import {
   conflictingVariantProperty,
+  nestedUnionModelVariants,
   variantGoName,
 } from '../dist/components/GoUnion.js'
 
 async function compileModels(code: string): Promise<{
   program: Program
   variants: (...names: string[]) => Model[]
+  union: (name: string) => Union
 }> {
   const host = await createTestHost({
     libraries: [HttpTestLibrary, OpenAPITestLibrary],
@@ -21,12 +23,13 @@ async function compileModels(code: string): Promise<{
     using TypeSpec.OpenAPI;
     ${code}
   `)
-  const models = runner.program
+  const namespace = runner.program
     .getGlobalNamespaceType()
-    .namespaces.get('Test')!.models
+    .namespaces.get('Test')!
   return {
     program: runner.program,
-    variants: (...names) => names.map((name) => models.get(name)!),
+    variants: (...names) => names.map((name) => namespace.models.get(name)!),
+    union: (name) => namespace.unions.get(name)!,
   }
 }
 
@@ -90,31 +93,87 @@ describe('non-discriminated union variant compatibility', () => {
   })
 })
 
-describe('union variant accessor naming', () => {
-  async function compileUnion(code: string): Promise<{
-    program: Program
-    union: (name: string) => Union
-  }> {
-    const host = await createTestHost({
-      libraries: [HttpTestLibrary, OpenAPITestLibrary],
-    })
-    const runner = await createTestRunner(host)
-    await runner.compile(`
-      using TypeSpec.Http;
-      using TypeSpec.OpenAPI;
-      ${code}
-    `)
-    const unions = runner.program
-      .getGlobalNamespaceType()
-      .namespaces.get('Test')!.unions
-    return {
-      program: runner.program,
-      union: (name) => unions.get(name)!,
-    }
+// The expandable-reference shape: `Invoice` (a discriminated union of its
+// concrete types) or a bare `InvoiceReference`. Both compete for the same
+// payload in the As* accessors, so the nested union's models have to agree with
+// the outer reference on every JSON key they share.
+const NESTED_UNION = `
+  @service namespace Test;
+
+  model InvoiceStandard {
+    type: "standard";
+    id: string;
+    amount: string;
   }
 
+  model InvoiceCredit {
+    type: "credit";
+    id: string;
+    amount: int32;
+  }
+
+  @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+  union Invoice {
+    standard: InvoiceStandard,
+    credit: InvoiceCredit,
+  }
+
+  model InvoiceReference {
+    id: string;
+  }
+
+  model StrictInvoiceReference {
+    id: int32;
+  }
+
+  union InvoiceOrReference {
+    Invoice,
+    InvoiceReference,
+  }
+`
+
+describe('nested union variant compatibility', () => {
+  it('collects the models a union-typed variant contributes', async () => {
+    const { union } = await compileModels(NESTED_UNION)
+
+    expect(
+      nestedUnionModelVariants(union('InvoiceOrReference')).map((m) => m.name),
+    ).toEqual(['InvoiceStandard', 'InvoiceCredit'])
+  })
+
+  it('reports a nested variant that disagrees with an outer sibling', async () => {
+    const { program, variants, union } = await compileModels(NESTED_UNION)
+
+    expect(
+      conflictingVariantProperty(
+        program,
+        variants('StrictInvoiceReference'),
+        nestedUnionModelVariants(union('InvoiceOrReference')),
+      ),
+    ).toBe(
+      '"id" (different types in StrictInvoiceReference and InvoiceStandard)',
+    )
+  })
+
+  // The nested union selects on its discriminator, so its own variants never
+  // have to be told apart by shape. Comparing them with each other would fail
+  // the build on unions that decode correctly.
+  it("ignores disagreements among the nested union's own variants", async () => {
+    const { program, variants, union } = await compileModels(NESTED_UNION)
+
+    expect(
+      conflictingVariantProperty(
+        program,
+        variants('InvoiceReference'),
+        nestedUnionModelVariants(union('InvoiceOrReference')),
+      ),
+    ).toBeUndefined()
+  })
+})
+
+describe('union variant accessor naming', () => {
   it('names a union-typed variant after the nested union, not the placeholder fallback', async () => {
-    const { program, union } = await compileUnion(`
+    const { program, union } = await compileModels(`
       @service namespace Test;
 
       model InvoiceStandard {

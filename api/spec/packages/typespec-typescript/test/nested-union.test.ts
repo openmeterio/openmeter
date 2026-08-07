@@ -3,11 +3,7 @@ import { z } from 'zod'
 import { fromWire, toWire } from '../src/runtime/wire.js'
 import { EmitterTester } from './emit.js'
 
-// The expandable-reference shape whose expanded side is itself a union: a
-// charge realization's `invoice` is either the full `Invoice` (a discriminated
-// union of its concrete types) or a bare `InvoiceReference`. The outer union is
-// therefore a union of a union and an object.
-const NESTED = `
+const spec = (types: string) => `
 import "@typespec/http";
 import "@typespec/openapi";
 
@@ -15,6 +11,31 @@ using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
 namespace Widgets {
+${types}
+
+  model Payload {
+    owner: OwnerOrRef;
+  }
+
+  interface WidgetOperations {
+    @post
+    @operationId("create-widget")
+    create(@body body: Payload): Payload;
+  }
+}
+
+@service(#{ title: "Test API" })
+namespace Api {
+  @route("/widgets")
+  interface WidgetEndpoints extends Widgets.WidgetOperations {}
+}
+`
+
+// The expandable-reference shape whose expanded side is itself a union: a
+// charge realization's `invoice` is either the full `Invoice` (a discriminated
+// union of its concrete types) or a bare `InvoiceReference`. The outer union is
+// therefore a union of a union and an object.
+const NESTED = spec(`
   model OwnerRef {
     id: string;
   }
@@ -34,24 +55,64 @@ namespace Widgets {
     owner: Owner,
     ref: OwnerRef,
   }
+`)
 
-  model Payload {
-    owner: OwnerOrRef;
+// The nested union's variant disagrees with the OUTER reference variant on `id`.
+// Both compete in the same key-coverage pick, so the mapper's choice would decide
+// how `id` maps — exactly what the gate exists to prevent.
+const NESTED_CONFLICT = spec(`
+  model OwnerRef {
+    id: string;
   }
 
-  interface WidgetOperations {
-    @post
-    @operationId("create-widget")
-    create(@body body: Payload): Payload;
+  model StandardOwner {
+    type: "standard";
+    id: int32;
+    display_name: string;
   }
-}
 
-@service(#{ title: "Test API" })
-namespace Api {
-  @route("/widgets")
-  interface WidgetEndpoints extends Widgets.WidgetOperations {}
-}
-`
+  @discriminated(#{ discriminatorPropertyName: "type", envelope: "none" })
+  union Owner {
+    standard: StandardOwner,
+  }
+
+  union OwnerOrRef {
+    owner: Owner,
+    ref: OwnerRef,
+  }
+`)
+
+// The nested union's own variants disagree on `amount`, and neither disagrees
+// with the outer reference. Legal: the nested union dispatches on its
+// discriminator, so it never has to tell the two apart by shape.
+const NESTED_SIBLINGS_DIFFER = spec(`
+  model OwnerRef {
+    id: string;
+  }
+
+  model StandardOwner {
+    type: "standard";
+    id: string;
+    amount: string;
+  }
+
+  model CreditOwner {
+    type: "credit";
+    id: string;
+    amount: int32;
+  }
+
+  @discriminated(#{ discriminatorPropertyName: "type", envelope: "none" })
+  union Owner {
+    standard: StandardOwner,
+    credit: CreditOwner,
+  }
+
+  union OwnerOrRef {
+    owner: Owner,
+    ref: OwnerRef,
+  }
+`)
 
 const ownerRef = z.object({ id: z.string() })
 const owner = z.discriminatedUnion('type', [
@@ -102,5 +163,18 @@ describe('non-discriminated union with a union variant', () => {
 
     expect(fromWire(wire, payload)).toEqual(wire)
     expect(toWire(wire, payload)).toEqual(wire)
+  })
+
+  it('fails the build when a nested variant disagrees with an outer sibling', async () => {
+    await expect(
+      EmitterTester.compileAndDiagnose(NESTED_CONFLICT),
+    ).rejects.toThrow(/'id' has a different type in OwnerRef and StandardOwner/)
+  })
+
+  it('allows the nested union to disagree with itself on a non-discriminator key', async () => {
+    const [, diagnostics] = await EmitterTester.compileAndDiagnose(
+      NESTED_SIBLINGS_DIFFER,
+    )
+    expect(diagnostics.filter((d) => d.severity === 'error')).toEqual([])
   })
 })
