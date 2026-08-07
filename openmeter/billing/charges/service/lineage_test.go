@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -274,7 +275,7 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillRe
 	})
 	s.Require().NoError(err)
 
-	_, err = adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencyx.Code(currency.USD))
+	_, err = adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencies.NewCurrencyReference(currencyx.Code(currency.USD)))
 	s.Error(err)
 	s.ErrorContains(err, "must be called in a transaction")
 }
@@ -296,7 +297,7 @@ func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillWo
 	})
 	s.Require().NoError(err)
 
-	lineages, err := adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencyx.Code(currency.USD))
+	lineages, err := adapter.LockAdvanceLineagesForBackfill(ctx, ns, "customer-id", currencies.NewCurrencyReference(currencyx.Code(currency.USD)))
 	s.NoError(err)
 	s.Empty(lineages)
 }

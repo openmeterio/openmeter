@@ -15,7 +15,6 @@ import (
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerbreakagerecorddb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
-	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -1150,7 +1149,7 @@ func (e *creditPurchaseHandlerTestEnv) requireAccountSourceSpendBucketAmounts(t 
 func (e *creditPurchaseHandlerTestEnv) requireTransactionGroupEntriesSourceCharge(t *testing.T, groupID string, sourceChargeID string) {
 	t.Helper()
 
-	entries := e.transactionGroupEntries(t, groupID)
+	entries := e.TransactionGroupEntries(t, groupID)
 	require.NotEmpty(t, entries)
 
 	expectedIdentityKey, _ := ledger.EntryIdentityParts{
@@ -1163,42 +1162,6 @@ func (e *creditPurchaseHandlerTestEnv) requireTransactionGroupEntriesSourceCharg
 		require.Nil(t, entry.SpendChargeID)
 		require.Equal(t, string(expectedIdentityKey), entry.IdentityKey)
 	}
-}
-
-func (e *creditPurchaseHandlerTestEnv) transactionGroupEntries(t *testing.T, groupID string) []*entdb.LedgerEntry {
-	t.Helper()
-
-	ledgerTransactions, err := e.DB.LedgerTransaction.Query().
-		Where(
-			ledgertransactiondb.Namespace(e.Namespace),
-			ledgertransactiondb.GroupID(groupID),
-		).
-		Order(
-			ledgertransactiondb.ByCreatedAt(),
-			ledgertransactiondb.ByID(),
-		).
-		All(t.Context())
-	require.NoError(t, err)
-	require.NotEmpty(t, ledgerTransactions)
-
-	transactionIDs := make([]string, 0, len(ledgerTransactions))
-	for _, transaction := range ledgerTransactions {
-		transactionIDs = append(transactionIDs, transaction.ID)
-	}
-
-	entries, err := e.DB.LedgerEntry.Query().
-		Where(
-			ledgerentrydb.Namespace(e.Namespace),
-			ledgerentrydb.TransactionIDIn(transactionIDs...),
-		).
-		Order(
-			ledgerentrydb.ByCreatedAt(),
-			ledgerentrydb.ByID(),
-		).
-		All(t.Context())
-	require.NoError(t, err)
-
-	return entries
 }
 
 func sourceChargeBucketKey(sourceChargeID *string) string {

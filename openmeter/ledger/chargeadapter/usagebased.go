@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // usageBasedHandler maps usage-based credit lifecycle events to ledger transaction templates.
@@ -105,9 +105,6 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 	}
 
 	intent := input.Charge.Intent
-	if intent.GetCurrency().IsCustom() {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", meta.ErrCustomCurrencyNotSupported)
-	}
 
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
@@ -116,13 +113,14 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", err)
 	}
 
-	receivableReplenishment := alpacadecimal.Zero
-	if input.Run.InvoiceUsage != nil {
-		receivableReplenishment = input.Run.InvoiceUsage.Totals.Total
+	invoiceCurrency, err := input.Charge.GetInvoiceCurrency()
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get invoice currency: %w", err)
 	}
 
-	if receivableReplenishment.IsZero() {
-		return ledgertransaction.GroupReference{}, nil
+	costBasis, err := resolveInvoiceCostBasis(input.Charge)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", err)
 	}
 
 	customerID := customer.CustomerID{
@@ -130,6 +128,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 		ID:        intent.GetCustomerID(),
 	}
 	annotations := chargeAnnotationsForUsageBasedCharge(input.Charge)
+	paymentIdentity := invoicePaymentIdentity(input.Charge.ID, intent.GetCurrency())
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -139,11 +138,12 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 			Namespace:  input.Charge.Namespace,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:            input.EventAt,
-			Amount:        receivableReplenishment,
-			Currency:      intent.GetCurrency().Reference(),
-			CostBasis:     invoiceCostBasis,
-			SpendChargeID: &input.Charge.ID,
+			At:             input.EventAt,
+			Amount:         input.FiatAmount,
+			Currency:       currencies.NewCurrencyReference(currencyx.Code(invoiceCurrency)),
+			CostBasis:      costBasis,
+			SourceChargeID: paymentIdentity.SourceChargeID,
+			SpendChargeID:  paymentIdentity.SpendChargeID,
 		},
 	)
 	if err != nil {
@@ -170,35 +170,34 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 	}, nil
 }
 
+// OnCustomCurrencyOverageAccrued books uncovered custom-currency overage as a
+// credit purchase immediately consumed by the same charge: it purchases the
+// uncovered custom amount at the charge's persisted cost basis, consumes it
+// through the identical route so it never becomes spendable customer balance,
+// and converts the resulting custom-currency receivable into the
+// already-agreed, rounded fiat receivable the invoice will collect. This
+// keeps native amount, cost basis, and fiat provenance on the accrued leg
+// while the invoice and payment lifecycle stay entirely in fiat.
 func (h *usageBasedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, input usagebased.OnCustomCurrencyOverageAccruedInput) (usagebased.OnCustomCurrencyOverageAccruedResult, error) {
 	if err := input.Validate(); err != nil {
 		return usagebased.OnCustomCurrencyOverageAccruedResult{}, err
 	}
 
-	// TODO[implement]: Book the fiat overage in the customer's outstanding account.
-	return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("implement OnCustomCurrencyOverageAccrued: %w", meta.ErrCustomCurrencyNotSupported)
-}
+	fiatOverage, err := input.Charge.ConvertCustomCurrencyOverageToFiat(input.Run.Totals)
+	if err != nil {
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("convert custom currency overage to fiat: %w", err)
+	}
 
-func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
-	if err := input.Validate(); err != nil {
-		return ledgertransaction.GroupReference{}, err
+	costBasis, err := input.GetCostBasis()
+	if err != nil {
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("get cost basis: %w", err)
 	}
 
 	intent := input.Charge.Intent
-	if intent.GetCurrency().IsCustom() {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", meta.ErrCustomCurrencyNotSupported)
-	}
-
-	if err := validateSettlementMode(
-		intent.GetSettlementMode(),
-		productcatalog.CreditThenInvoiceSettlementMode,
-	); err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)
-	}
-
-	if input.Run.InvoiceUsage == nil || !input.Run.InvoiceUsage.Totals.Total.IsPositive() {
-		return ledgertransaction.GroupReference{}, nil
-	}
+	taxConfig := intent.GetTaxConfig()
+	customCurrency := input.CustomCurrency().Reference()
+	fiatCode := currencyx.Code(fiatOverage.Currency.GetFiatCode())
+	customAmount := input.GetCustomCurrencyAmountAccrued()
 
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
@@ -213,12 +212,111 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 			CustomerID: customerID,
 			Namespace:  input.Charge.Namespace,
 		},
+		// Purchase the uncovered custom amount at the charge's persisted cost basis.
+		transactions.IssueCustomerReceivableTemplate{
+			At:                input.Run.ServicePeriodTo,
+			Amount:            customAmount,
+			Currency:          customCurrency,
+			CostBasisCurrency: &fiatCode,
+			CostBasis:         &costBasis,
+			SourceChargeID:    &input.Charge.ID,
+		},
+		// Immediately consume the purchase through the same charge, so it never
+		// becomes spendable customer balance.
+		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
+			At:                input.Run.ServicePeriodTo,
+			Amount:            customAmount,
+			Currency:          customCurrency,
+			TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
+			TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
+			CostBasisCurrency: &fiatCode,
+			CostBasis:         &costBasis,
+			SourceChargeID:    &input.Charge.ID,
+			SpendChargeID:     &input.Charge.ID,
+		},
+		// Convert the purchase-backed custom receivable into the already-agreed,
+		// rounded fiat receivable the invoice will collect.
+		transactions.ConvertCurrencyTemplate{
+			At:             input.Run.ServicePeriodTo,
+			SourceAmount:   fiatOverage.Amount,
+			TargetAmount:   customAmount,
+			CostBasis:      costBasis,
+			SourceCurrency: currencies.NewCurrencyReference(fiatCode),
+			TargetCurrency: customCurrency,
+		},
+	)
+	if err != nil {
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	for i, txInput := range inputs {
+		if txInput != nil {
+			inputs[i] = transactions.WithAnnotations(txInput, annotations)
+		}
+	}
+
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		input.Charge.Namespace,
+		annotations,
+		inputs...,
+	))
+	if err != nil {
+		return usagebased.OnCustomCurrencyOverageAccruedResult{}, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return usagebased.OnCustomCurrencyOverageAccruedResult{
+		TransactionGroup: ledgertransaction.GroupReference{
+			TransactionGroupID: transactionGroup.ID().ID,
+		},
+		TotalFiatAmount: fiatOverage.Amount,
+	}, nil
+}
+
+func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebased.OnPaymentSettledInput) (ledgertransaction.GroupReference, error) {
+	if err := input.Validate(); err != nil {
+		return ledgertransaction.GroupReference{}, err
+	}
+
+	intent := input.Charge.Intent
+
+	if err := validateSettlementMode(
+		intent.GetSettlementMode(),
+		productcatalog.CreditThenInvoiceSettlementMode,
+	); err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)
+	}
+
+	invoiceCurrency, err := input.Charge.GetInvoiceCurrency()
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("get invoice currency: %w", err)
+	}
+
+	costBasis, err := resolveInvoiceCostBasis(input.Charge)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)
+	}
+
+	customerID := customer.CustomerID{
+		Namespace: input.Charge.Namespace,
+		ID:        intent.GetCustomerID(),
+	}
+	annotations := chargeAnnotationsForUsageBasedCharge(input.Charge)
+	paymentIdentity := invoicePaymentIdentity(input.Charge.ID, intent.GetCurrency())
+
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		h.deps,
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  input.Charge.Namespace,
+		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:            input.EventAt,
-			Amount:        input.Run.InvoiceUsage.Totals.Total,
-			Currency:      intent.GetCurrency().Reference(),
-			CostBasis:     invoiceCostBasis,
-			SpendChargeID: &input.Charge.ID,
+			At:             input.EventAt,
+			Amount:         input.FiatAmount,
+			Currency:       currencies.NewCurrencyReference(currencyx.Code(invoiceCurrency)),
+			CostBasis:      costBasis,
+			SourceChargeID: paymentIdentity.SourceChargeID,
+			SpendChargeID:  paymentIdentity.SpendChargeID,
 		},
 	)
 	if err != nil {

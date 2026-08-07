@@ -6,13 +6,19 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -26,6 +32,7 @@ type AdvanceChargesTestSuite struct {
 }
 
 func (s *AdvanceChargesTestSuite) SetupSuite() {
+	s.UseRealRecognizer = true
 	s.BaseSuite.SetupSuite()
 }
 
@@ -235,4 +242,138 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUs
 	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(usageBasedCharge.Status))
 	s.NotNil(usageBasedCharge.State.AdvanceAfter)
 	s.True(servicePeriod.To.Equal(*usageBasedCharge.State.AdvanceAfter))
+}
+
+// usageBasedIntentServicePeriod is the fixed service period newUsageBasedIntent bakes
+// into every intent it builds.
+var usageBasedIntentServicePeriod = timeutil.ClosedPeriod{
+	From: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+	To:   time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
+}
+
+// TestAdvanceChargesCustomCurrencyCreditThenInvoiceRecognitionIsOmittedNotFailed proves
+// that advancing a custom-currency credit_then_invoice charge reaches the real
+// (non-noop) recognizer without its native custom currency ever being passed
+// to it. Before the fix this call failed and rolled back the whole
+// AdvanceCharges transaction, because the recognizer explicitly rejects
+// custom currency. See TestCollectEarningsRecognitionCurrencies for why the
+// custom currency is omitted rather than substituted with the invoice fiat
+// currency.
+func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditThenInvoiceRecognitionIsOmittedNotFailed() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-advance-custom-cti")
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	customCurrency := s.createTestCustomCurrency(ctx, ns)
+	featureMeters := s.createFeatureMeters(ctx, ns, "custom-cti-feature")
+
+	clock.FreezeTime(usageBasedIntentServicePeriod.From)
+	defer clock.UnFreeze()
+
+	costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+		FiatCurrency: s.newFiatCurrency("USD"),
+		Rate:         alpacadecimal.NewFromFloat(0.25),
+	})
+
+	_, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
+		Namespace: ns,
+		Intents: []usagebased.Intent{
+			s.newUsageBasedIntent(cust.ID, customCurrency, defaults.InvoicingTaxCodeID, "custom-cti", "custom-cti-feature", productcatalog.CreditThenInvoiceSettlementMode, &costBasisIntent),
+		},
+		FeatureMeters: featureMeters,
+	})
+	s.Require().NoError(err)
+
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(advancedCharges, 1)
+}
+
+// TestAdvanceChargesCustomCurrencyCreditOnlyRecognitionIsDeferredNotFailed documents
+// the deliberately deferred boundary: a custom-currency credit_only charge has
+// no invoice/fiat side and no accounting design yet for recognizing native
+// custom-currency consumption as revenue. Creating and advancing it must keep
+// succeeding - as it already does in production, per
+// TestFlatFeeCreditOnlyWithCustomCurrency and TestUsageBasedCreditOnlyWithCustomCurrency
+// in invoicable_test.go - rather than erroring or inventing a fiat currency
+// for it.
+func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditOnlyRecognitionIsDeferredNotFailed() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-advance-custom-credit-only")
+	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	customCurrency := s.createTestCustomCurrency(ctx, ns)
+	featureMeters := s.createFeatureMeters(ctx, ns, "custom-credit-only-feature")
+
+	clock.FreezeTime(usageBasedIntentServicePeriod.From)
+	defer clock.UnFreeze()
+
+	_, err := s.Charges.usageBasedService.Create(ctx, usagebased.CreateInput{
+		Namespace: ns,
+		Intents: []usagebased.Intent{
+			s.newUsageBasedIntent(cust.ID, customCurrency, defaults.InvoicingTaxCodeID, "custom-credit-only", "custom-credit-only-feature", productcatalog.CreditOnlySettlementMode, nil),
+		},
+		FeatureMeters: featureMeters,
+	})
+	s.Require().NoError(err)
+
+	clock.SetTime(usageBasedIntentServicePeriod.To.Add(time.Second))
+
+	_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.Require().NoError(err)
+}
+
+// TestCollectEarningsRecognitionCurrencies proves the exact currency-selection
+// contract: a fiat charge contributes its own currency; a custom-currency
+// charge is always omitted, regardless of settlement mode. Recognizing
+// credit_then_invoice in its invoice fiat currency instead would be a silent
+// no-op - credit_then_invoice's covered usage creates real, recognizable
+// lineage in the native custom currency via the same allocation path
+// credit_only uses, and that lineage would never be found under the fiat
+// currency, while the overage itself never creates lineage at all (it books
+// straight to receivable/accrued). This test would fail loudly (by returning
+// the invoice fiat currency, or the raw custom currency) if that mistake were
+// reintroduced.
+func TestCollectEarningsRecognitionCurrencies(t *testing.T) {
+	usd := currenciestestutils.NewFiatCurrency(t, "USD")
+	custom := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
+
+	costBasisIntent := costbasis.NewIntent(costbasis.ManualIntent{
+		FiatCurrency: lo.Must(currencyx.NewFiatCurrency("EUR")),
+		Rate:         alpacadecimal.NewFromFloat(0.25),
+	})
+
+	newUsageBasedCharge := func(currency currencies.Currency, settlementMode productcatalog.SettlementMode, costBasis *costbasis.Intent) charges.Charge {
+		return charges.NewCharge(usagebased.Charge{
+			ChargeBase: usagebased.ChargeBase{
+				Intent: usagebased.Intent{
+					Intent:         meta.Intent{Currency: currency},
+					FeatureKey:     "feature",
+					SettlementMode: settlementMode,
+					CostBasis:      costBasis,
+				}.AsOverridableIntent(),
+			},
+		})
+	}
+
+	result, err := collectEarningsRecognitionCurrencies(charges.Charges{
+		newUsageBasedCharge(usd, productcatalog.CreditThenInvoiceSettlementMode, nil),
+		newUsageBasedCharge(custom, productcatalog.CreditOnlySettlementMode, nil),
+		newUsageBasedCharge(custom, productcatalog.CreditThenInvoiceSettlementMode, &costBasisIntent),
+	})
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, currencyx.Code("USD"), result[0].GetCode())
 }

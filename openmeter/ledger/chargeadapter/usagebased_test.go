@@ -1,6 +1,7 @@
 package chargeadapter_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -439,6 +440,11 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 			requireLedgerBookedAtEqual(t, eventTime, bookedAt)
 			requireLedgerBookedAtNotEqual(t, charge.Intent.GetEffectiveInvoiceAt(), bookedAt)
 		}
+		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
+		}
 	})
 
 	t.Run("zero fiat amount is rejected", func(t *testing.T) {
@@ -518,6 +524,11 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, eventTime, bookedAt)
 			requireLedgerBookedAtNotEqual(t, settledCharge.Intent.GetEffectiveInvoiceAt(), bookedAt)
+		}
+		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, settledCharge.ID, strings.TrimSpace(*entry.SpendChargeID))
 		}
 	})
 

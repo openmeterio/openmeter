@@ -1,6 +1,7 @@
 package chargeadapter_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -525,6 +526,11 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
 		}
+		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
+		}
 	})
 
 	t.Run("credit_then_invoice mixed FBO and receivable only authorizes receivable", func(t *testing.T) {
@@ -654,6 +660,11 @@ func TestOnFlatFeePaymentSettled(t *testing.T) {
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
 			require.False(t, bookedAt.UTC().Equal(charge.Intent.GetEffectiveInvoiceAt().UTC()))
+		}
+		for _, entry := range env.TransactionGroupEntries(t, ref.TransactionGroupID) {
+			require.Nil(t, entry.SourceChargeID)
+			require.NotNil(t, entry.SpendChargeID)
+			require.Equal(t, charge.ID, strings.TrimSpace(*entry.SpendChargeID))
 		}
 	})
 
@@ -1208,6 +1219,29 @@ func (e *flatFeeHandlerTestEnv) transactionBookedAtTimes(t *testing.T, groupID s
 	out := make([]time.Time, 0, len(transactions))
 	for _, tx := range transactions {
 		out = append(out, tx.BookedAt)
+	}
+
+	return out
+}
+
+func (e *flatFeeHandlerTestEnv) transactionAnnotations(t *testing.T, groupID string) []models.Annotations {
+	t.Helper()
+
+	transactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+
+	out := make([]models.Annotations, 0, len(transactions))
+	for _, tx := range transactions {
+		out = append(out, tx.Annotations)
 	}
 
 	return out

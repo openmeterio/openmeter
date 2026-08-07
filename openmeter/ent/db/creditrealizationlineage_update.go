@@ -116,6 +116,9 @@ func (_u *CreditRealizationLineageUpdate) sqlSave(ctx context.Context) (_node in
 			}
 		}
 	}
+	if _u.mutation.CustomCurrencyIDCleared() {
+		_spec.ClearField(creditrealizationlineage.FieldCustomCurrencyID, field.TypeString)
+	}
 	if _u.mutation.AdvanceFeaturesCleared() {
 		_spec.ClearField(creditrealizationlineage.FieldAdvanceFeatures, field.TypeOther)
 	}
@@ -301,6 +304,9 @@ func (_u *CreditRealizationLineageUpdateOne) sqlSave(ctx context.Context) (_node
 				ps[i](selector)
 			}
 		}
+	}
+	if _u.mutation.CustomCurrencyIDCleared() {
+		_spec.ClearField(creditrealizationlineage.FieldCustomCurrencyID, field.TypeString)
 	}
 	if _u.mutation.AdvanceFeaturesCleared() {
 		_spec.ClearField(creditrealizationlineage.FieldAdvanceFeatures, field.TypeOther)
