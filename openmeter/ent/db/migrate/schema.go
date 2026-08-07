@@ -6213,7 +6213,7 @@ func init() {
 		"cost_basis_schema_level_settlement_fields": "schema_level = 1 OR (settlement_type IS NOT NULL AND ((settlement_type = 'external' AND initial_payment_settlement_status IS NOT NULL) OR (settlement_type IN ('invoice', 'promotional') AND initial_payment_settlement_status IS NULL)))",
 		"currency_not_empty":                        "currency IS NULL OR currency <> ''",
 		"currency_reference":                        "(currency IS NULL) <> (custom_currency_id IS NULL)",
-		"fiat_cost_basis_positive":                  "fiat_cost_basis IS NULL OR fiat_cost_basis > 0",
+		"fiat_cost_basis_positive":                  "fiat_cost_basis IS NULL OR (fiat_cost_basis <> 'NaN'::numeric AND fiat_cost_basis > 0)",
 		"initial_payment_settlement_status":         "initial_payment_settlement_status IS NULL OR initial_payment_settlement_status IN ('created', 'authorized', 'settled')",
 		"schema_level":                              "schema_level IN (1, 2)",
 		"settlement_type":                           "settlement_type IS NULL OR settlement_type IN ('invoice', 'external', 'promotional')",
