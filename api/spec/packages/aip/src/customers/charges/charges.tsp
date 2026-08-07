@@ -173,10 +173,8 @@ enum ChargeRealizationType {
  *
  * Values:
  *
- * - `regular`: Regular is a regular flat fee, that is based on the usage or a
- *   subscription.
- * - `commitment`: Commitment is a flat fee that is based on a commitment such as
- *   minimum spend.
+ * - `regular`: A regular charge line, based on usage or subscription pricing.
+ * - `commitment`: A commitment-derived line, such as minimum spend.
  */
 @friendlyName("BillingChargeRealizationDetailedLineCategory")
 @summary("Charge realization detailed line category")
@@ -199,7 +197,7 @@ model ChargeRealizationDetailedLineCreditApplied {
   amount: Shared.Numeric;
 
   /**
-   * Optional human-readable description of the credit allocation.
+   * Human-readable description of the credit allocation.
    */
   @visibility(Lifecycle.Read)
   @summary("Description")
@@ -375,9 +373,8 @@ model ChargeRealizationDetailedLineUsageBased {
 /**
  * A realization run of a charge.
  *
- * Realizations are always sorted by `service_period.from`. `totals` and
- * `detailed_lines` are only populated with the `realization.totals` and
- * `realization.detailed_lines` expands, respectively, since computing them
+ * `totals` and `detailed_lines` are only populated with the `realization.totals`
+ * and `realization.detailed_lines` expands, respectively, since computing them
  * requires re-deriving the run's rated breakdown. `invoice` is an ID reference
  * unless the `realization.invoice` expand is used, which resolves it to the full
  * invoice.
@@ -385,6 +382,14 @@ model ChargeRealizationDetailedLineUsageBased {
 @friendlyName("BillingChargeRealization")
 @summary("Charge realization")
 model ChargeRealization {
+  /**
+   * The ID of the realization run. Not present on `outstanding` entries, which are
+   * projections rather than persisted runs.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("ID")
+  id?: string;
+
   /**
    * The ID of the invoice line this realization was booked to, when the realization
    * has been invoiced.
@@ -600,10 +605,8 @@ model ChargeFlatFee {
 
   /**
    * The feature associated with the charge, when applicable.
-   *
-   * For more details use the `feature` expand.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read)
   @summary("Feature")
   feature?: Shared.ExpandableResourceReference<Features.Feature>;
 
@@ -663,8 +666,8 @@ model ChargeTotals {
   /**
    * The realtime amount of the charge, i.e. the whole usage rated at the charge's
    * price for its full service period, ignoring what has already been booked to a
-   * realization. This differs from `charge.outstanding.totals`, which only covers
-   * the portion not yet booked.
+   * realization. This differs from the `totals` of a realization with type
+   * `outstanding`, which only cover the portion not yet booked.
    *
    * Requires the `real_time_usage` expand.
    */
@@ -690,10 +693,8 @@ model ChargeUsageBased {
 
   /**
    * The feature associated with the charge.
-   *
-   * For more details use the `feature` expand.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read)
   @summary("Feature")
   feature: Shared.ExpandableResourceReference<Features.Feature>;
 
@@ -802,7 +803,17 @@ union CreateCharge {
 @withVisibility(Lifecycle.Create)
 @friendlyName("CreateChargeFlatFeeRequest")
 model CreateChargeFlatFee {
-  ...OmitProperties<ChargeFlatFee, "full_service_period" | "billing_period">;
+  ...OmitProperties<
+    ChargeFlatFee,
+    "full_service_period" | "billing_period" | "feature"
+  >;
+
+  /**
+   * A reference to the feature associated with the charge, when applicable.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Feature")
+  feature?: Shared.ResourceReference<Features.Feature>;
 
   /**
    * The full, unprorated service period of the charge.
@@ -826,7 +837,17 @@ model CreateChargeFlatFee {
 @withVisibility(Lifecycle.Create)
 @friendlyName("CreateChargeUsageBasedRequest")
 model CreateChargeUsageBased {
-  ...OmitProperties<ChargeUsageBased, "full_service_period" | "billing_period">;
+  ...OmitProperties<
+    ChargeUsageBased,
+    "full_service_period" | "billing_period" | "feature"
+  >;
+
+  /**
+   * A reference to the feature associated with the charge.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Feature")
+  feature: Shared.ResourceReference<Features.Feature>;
 
   /**
    * The full, unprorated service period of the charge.

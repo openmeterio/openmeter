@@ -54,9 +54,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		return api.BillingChargeFlatFee{}, fmt.Errorf("setting flat fee price union: %w", err)
 	}
 
-	feature, err := convertFeatureToReference(featureOrReference{
-		ref: convertFeatureIDToReference(source.State.FeatureID),
-	})
+	feature, err := convertFeatureIDToReference(source.State.FeatureID)
 	if err != nil {
 		return api.BillingChargeFlatFee{}, err
 	}
@@ -68,7 +66,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 
 	subscription, err := convertSubscriptionToReference(source.ChargeBase.Intent.GetSubscription())
 	if err != nil {
-		return api.BillingChargeFlatFee{}, fmt.Errorf("converting subscription reference: %w", err)
+		return api.BillingChargeFlatFee{}, err
 	}
 
 	return api.BillingChargeFlatFee{
@@ -91,15 +89,18 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		PaymentTerm:            ConvertPaymentTermToAPI(intent.PaymentTerm),
 		Price:                  price,
 		ProrationConfiguration: ConvertProRatingConfigToAPI(intent.ProRating),
-		ServicePeriod:          ConvertClosedPeriodToAPI(intent.ServicePeriod),
-		SettlementMode:         ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
-		Status:                 ConvertChargeStatusToAPI(meta.ChargeStatus(source.Status)),
-		Subscription:           subscription,
-		SystemIntent:           toAPIBillingChargeFlatFeeSystemIntent(source.ChargeBase.Intent),
-		TaxConfig:              convertTaxCodeConfigToAPI(intent.TaxConfig),
-		Type:                   api.BillingChargeFlatFeeTypeFlatFee,
-		UniqueReferenceId:      source.ChargeBase.Intent.GetUniqueReferenceID(),
-		UpdatedAt:              source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
+		// Realization mapping lands in a follow-up PR; the empty slice keeps the
+		// required contract field from serializing as null until then.
+		Realizations:      []api.BillingChargeRealization{},
+		ServicePeriod:     ConvertClosedPeriodToAPI(intent.ServicePeriod),
+		SettlementMode:    ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
+		Status:            ConvertChargeStatusToAPI(meta.ChargeStatus(source.Status)),
+		Subscription:      subscription,
+		SystemIntent:      toAPIBillingChargeFlatFeeSystemIntent(source.ChargeBase.Intent),
+		TaxConfig:         convertTaxCodeConfigToAPI(intent.TaxConfig),
+		Type:              api.BillingChargeFlatFeeTypeFlatFee,
+		UniqueReferenceId: source.ChargeBase.Intent.GetUniqueReferenceID(),
+		UpdatedAt:         source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 	}, nil
 }
 
@@ -122,9 +123,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		return api.BillingChargeUsageBased{}, fmt.Errorf("converting system intent: %w", err)
 	}
 
-	feature, err := convertFeatureToReference(featureOrReference{
-		ref: convertFeatureIDToReference(&source.State.FeatureID),
-	})
+	feature, err := convertFeatureIDToReference(&source.State.FeatureID)
 	if err != nil {
 		return api.BillingChargeUsageBased{}, err
 	}
@@ -136,7 +135,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 
 	subscription, err := convertSubscriptionToReference(source.ChargeBase.Intent.GetSubscription())
 	if err != nil {
-		return api.BillingChargeUsageBased{}, fmt.Errorf("converting subscription reference: %w", err)
+		return api.BillingChargeUsageBased{}, err
 	}
 
 	return api.BillingChargeUsageBased{
@@ -156,16 +155,19 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		LifecycleController: ConvertLifecycleControllerToAPI(intent.ManagedBy, WithManualOverride(source.ChargeBase.Intent.HasOverrideLayer())),
 		Name:                intent.Name,
 		Price:               price,
-		ServicePeriod:       ConvertClosedPeriodToAPI(intent.ServicePeriod),
-		SettlementMode:      ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
-		Status:              lo.FromPtr(status),
-		Subscription:        subscription,
-		SystemIntent:        systemIntent,
-		TaxConfig:           convertTaxCodeConfigToAPI(intent.TaxConfig),
-		Totals:              convertUsageBasedChargeTotals(source),
-		Type:                api.BillingChargeUsageBasedTypeUsageBased,
-		UniqueReferenceId:   source.ChargeBase.Intent.GetUniqueReferenceID(),
-		UpdatedAt:           source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
+		// Realization mapping lands in a follow-up PR; the empty slice keeps the
+		// required contract field from serializing as null until then.
+		Realizations:      []api.BillingChargeRealization{},
+		ServicePeriod:     ConvertClosedPeriodToAPI(intent.ServicePeriod),
+		SettlementMode:    ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
+		Status:            lo.FromPtr(status),
+		Subscription:      subscription,
+		SystemIntent:      systemIntent,
+		TaxConfig:         convertTaxCodeConfigToAPI(intent.TaxConfig),
+		Totals:            convertUsageBasedChargeTotals(source),
+		Type:              api.BillingChargeUsageBasedTypeUsageBased,
+		UniqueReferenceId: source.ChargeBase.Intent.GetUniqueReferenceID(),
+		UpdatedAt:         source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 	}, nil
 }
 
@@ -218,34 +220,20 @@ func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableInten
 	}, nil
 }
 
-type featureOrReference struct {
-	feature *api.Feature
-	ref     *api.FeatureReference
-}
-
-func convertFeatureToReference(source featureOrReference) (*api.FeatureOrReference, error) {
-	var feature api.FeatureOrReference
-	if source.feature != nil {
-		if err := feature.FromFeature(*source.feature); err != nil {
-			return nil, fmt.Errorf("feature mapping failed: %w", err)
-		}
-	} else if source.ref != nil {
-		if err := feature.FromFeatureReference(*source.ref); err != nil {
-			return nil, fmt.Errorf("feature mapping failed: %w", err)
-		}
-	} else {
-		return nil, errors.New("only one must be set, either ref or feature")
-	}
-	return &feature, nil
-}
-
-func convertFeatureIDToReference(id *string) *api.FeatureReference {
+// convertFeatureIDToReference builds the feature union's reference branch from an
+// optional feature ID; nil means the charge has no feature (legal for flat fees).
+// The full-feature branch arrives with the `feature` expand wiring.
+func convertFeatureIDToReference(id *string) (*api.FeatureOrReference, error) {
 	if id == nil {
-		return nil
+		return nil, nil
 	}
-	return &api.FeatureReference{
-		Id: *id,
+
+	var feature api.FeatureOrReference
+	if err := feature.FromFeatureReference(api.FeatureReference{Id: *id}); err != nil {
+		return nil, fmt.Errorf("converting feature reference: %w", err)
 	}
+
+	return &feature, nil
 }
 
 // convertSubscriptionToReference converts a nullable SubscriptionReference pointer to the API type.
@@ -622,11 +610,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 
 	var featureID *string
 	if flatFee.Feature != nil {
-		featureRef, err := flatFee.Feature.AsFeatureReference()
-		if err != nil {
-			return zero, fmt.Errorf("invalid feature reference: %w", err)
-		}
-		featureID = &featureRef.Id
+		featureID = &flatFee.Feature.Id
 	}
 
 	return billingcharges.CreateCustomerChargeInput{
@@ -698,11 +682,6 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		return zero, fmt.Errorf("invalid price: %w", err)
 	}
 
-	featureRef, err := usageBasedFee.Feature.AsFeatureReference()
-	if err != nil {
-		return zero, fmt.Errorf("invalid feature reference: %w", err)
-	}
-
 	return billingcharges.CreateCustomerChargeInput{
 		Namespace:         namespace,
 		CustomerID:        customerID,
@@ -723,7 +702,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 				Price:     *price,
 				Discounts: discounts,
 			},
-			FeatureID:      featureRef.Id,
+			FeatureID:      usageBasedFee.Feature.Id,
 			SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
 		},
 	}, nil

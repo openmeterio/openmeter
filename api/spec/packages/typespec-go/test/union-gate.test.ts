@@ -1,9 +1,12 @@
-import type { Model, Program } from '@typespec/compiler'
+import type { Model, Program, Union } from '@typespec/compiler'
 import { createTestHost, createTestRunner } from '@typespec/compiler/testing'
 import { HttpTestLibrary } from '@typespec/http/testing'
 import { OpenAPITestLibrary } from '@typespec/openapi/testing'
 import { describe, expect, it } from 'vitest'
-import { conflictingVariantProperty } from '../dist/components/GoUnion.js'
+import {
+  conflictingVariantProperty,
+  variantGoName,
+} from '../dist/components/GoUnion.js'
 
 async function compileModels(code: string): Promise<{
   program: Program
@@ -84,5 +87,59 @@ describe('non-discriminated union variant compatibility', () => {
     expect(
       conflictingVariantProperty(program, variants('Owner', 'OwnerRef')),
     ).toBe('"owner_id" (different types in Owner and OwnerRef)')
+  })
+})
+
+describe('union variant accessor naming', () => {
+  async function compileUnion(code: string): Promise<{
+    program: Program
+    union: (name: string) => Union
+  }> {
+    const host = await createTestHost({
+      libraries: [HttpTestLibrary, OpenAPITestLibrary],
+    })
+    const runner = await createTestRunner(host)
+    await runner.compile(`
+      using TypeSpec.Http;
+      using TypeSpec.OpenAPI;
+      ${code}
+    `)
+    const unions = runner.program
+      .getGlobalNamespaceType()
+      .namespaces.get('Test')!.unions
+    return {
+      program: runner.program,
+      union: (name) => unions.get(name)!,
+    }
+  }
+
+  it('names a union-typed variant after the nested union, not the placeholder fallback', async () => {
+    const { program, union } = await compileUnion(`
+      @service namespace Test;
+
+      model InvoiceStandard {
+        type: "standard";
+        id: string;
+      }
+
+      @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+      union Invoice {
+        standard: InvoiceStandard,
+      }
+
+      model InvoiceReference {
+        id: string;
+      }
+
+      union InvoiceOrReference {
+        Invoice,
+        InvoiceReference,
+      }
+    `)
+
+    const names = [...union('InvoiceOrReference').variants.values()].map(
+      (variant) => variantGoName(program, 'InvoiceOrReference', variant),
+    )
+    expect(names).toEqual(['Invoice', 'InvoiceReference'])
   })
 })

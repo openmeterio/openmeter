@@ -74,10 +74,7 @@ export function GoUnion({ program, union, name, mode, doc }: GoUnionProps) {
       {
         variant,
         type: variant.type,
-        name:
-          variant.type.kind === 'Model' && typeof mapped === 'string'
-            ? mapped
-            : variantAccessorName(program, name, variant),
+        name: variantGoName(program, name, variant, mode),
         goType: mapped,
         discriminatorValue:
           variant.type.kind === 'Model'
@@ -335,6 +332,29 @@ function variantProperties(
     }
   }
   return properties
+}
+
+/**
+ * The Go name a union member's accessors carry (AsX / FromX / XFromY). A variant
+ * whose type is a named model or a named union uses that type's mapped Go name —
+ * a nested union variant (`Invoice` inside `InvoiceOrReference`) must not fall
+ * through to the anonymous-variant fallback, which would emit a placeholder like
+ * `AsVariantName` into the published SDK surface.
+ */
+export function variantGoName(
+  program: Program,
+  unionName: string,
+  variant: UnionVariant,
+  mode?: 'input' | 'output',
+): string {
+  const mapped = goType(program, variant.type, { mode }).type
+  if (
+    (variant.type.kind === 'Model' || variant.type.kind === 'Union') &&
+    typeof mapped === 'string'
+  ) {
+    return mapped
+  }
+  return variantAccessorName(program, unionName, variant)
 }
 
 export function variantAccessorName(

@@ -688,8 +688,14 @@ func requireFlatFeeChargeIntentMatchesLine(t *testing.T, charges map[string]invo
 	assert.Equal(t, line.Description, charge.Description)
 	assert.Equal(t, "USD", charge.Currency)
 	assert.Equal(t, flatInvoiceLineAmount(t, line), charge.AmountAfterProration.Amount)
-	// TODO fix when feature expand will work by using charge.Feature.AsFeature().Key
-	// assert.Equal(t, lo.FromPtr(line.FeatureKey), lo.FromPtr(charge.Feature.AsFeature()))
+	// TODO restore feature key equality via charge.Feature.AsFeature().Key once the
+	// `feature` expand is wired; until then the charge carries an id-only reference.
+	if lo.FromPtr(line.FeatureKey) != "" {
+		require.NotNil(t, charge.Feature, "charge %q should reference its feature", line.Name)
+		featureRef, err := charge.Feature.AsFeatureReference()
+		require.NoError(t, err)
+		assert.NotEmpty(t, featureRef.ID)
+	}
 	assert.Equal(t, line.InvoiceAt, charge.InvoiceAt)
 	assert.Equal(t, line.Period.From, charge.ServicePeriod.From, "service period from")
 	assert.Equal(t, line.Period.To, charge.ServicePeriod.To, "service period to")

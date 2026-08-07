@@ -45,18 +45,18 @@ model ListCustomerChargesParamsFilter {
   /**
    * Filter charges by the start of their service period.
    *
-   * Combine with `service_period_to` to match charges whose service period overlaps
-   * a given window: `filter[service_period_to][gte]=<from>` together with
-   * `filter[service_period_from][lt]=<to>` returns charges whose service period
-   * intersects `[from, to)`.
+   * Combine with `service_period_to` to match charges whose service period falls
+   * within a given window: `filter[service_period_from][gte]=<from>` together with
+   * `filter[service_period_to][lte]=<to>` returns charges whose service period lies
+   * within `[from, to)`.
    */
   service_period_from?: Common.DateTimeFieldFilter;
 
   /**
    * Filter charges by the end of their service period.
    *
-   * See `service_period_from` for how to express a service-period overlap query
-   * using both fields together.
+   * See `service_period_from` for how to express a service-period window query using
+   * both fields together.
    */
   service_period_to?: Common.DateTimeFieldFilter;
 }
@@ -99,9 +99,8 @@ namespace Charges {
        * To filter charges by feature, use `filter[feature_id][oeq]=<id>,<id>` or
        * `filter[feature_key][oeq]=<key>,<key>`.
        *
-       * To filter charges whose service period overlaps a window `[from, to)`, combine
-       * `filter[service_period_to][gte]=<from>` with
-       * `filter[service_period_from][lt]=<to>`.
+       * See the `service_period_from` filter field for expressing a service-period
+       * window query.
        */
       @query(#{ style: "deepObject", explode: true })
       filter?: ListCustomerChargesParamsFilter,
@@ -109,17 +108,7 @@ namespace Charges {
       /**
        * Expand full objects for referenced entities.
        *
-       * Supported values are:
-       *
-       * - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage`
-       *   and the `totals.realtime` fields.
-       * - `customer`: Expand the charge's customer to the complete entity.
-       * - `feature`: Expand the charge's feature to the complete entity.
-       * - `subscription`: Expand the charge's subscription to the complete entity.
-       * - `realization.invoice`: Expand each realization's invoice to the complete
-       *   entity.
-       * - `realization.totals`: Expand each realization run's `totals`.
-       * - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.
+       * See `BillingChargesExpand` for the supported values and what each one populates.
        */
       @query(#{ explode: false })
       expand?: ChargesExpand[],
