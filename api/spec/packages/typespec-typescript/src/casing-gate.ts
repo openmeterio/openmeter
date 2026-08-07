@@ -199,31 +199,86 @@ export function assertCasingDerivable(
  * on (`BillingCustomerReference` is `BillingCustomer` minus its extra fields).
  * Two different types under one key is the case the mapper cannot absorb: the
  * key would map differently depending on the pick.
+ *
+ * A variant that is itself a union competes in the same pick: the mapper resolves
+ * the nested union first, then scores the winner against the outer variants (see
+ * `selectVariant` in the wire runtime). So the nested union's models are checked
+ * against the outer ones too — read-only, never merged into the comparison map.
+ * A nested DISCRIMINATED union's variants legitimately disagree with each other
+ * on non-discriminator keys, because that union dispatches on its discriminator
+ * and never has to guess; merging them would fail the build on shapes that map
+ * correctly. Nested-vs-nested (two union variants under one union) is therefore
+ * not checked; no such shape exists in the spec today.
  */
 function conflictingVariantProperty(
   program: Program,
   union: Union,
 ): string | undefined {
-  const tk = $(program)
   const byKey = new Map<string, { type: Type; variant: string }>()
+  for (const { model, name } of objectVariants(program, union)) {
+    for (const [key, prop] of effectiveShape(program, model)) {
+      const seen = byKey.get(key)
+      if (!seen) {
+        byKey.set(key, { type: prop.type, variant: name })
+        continue
+      }
+      if (seen.type !== prop.type) {
+        return `'${key}' has a different type in ${seen.variant} and ${name}`
+      }
+    }
+  }
+
+  for (const { model, name } of nestedObjectVariants(program, union)) {
+    for (const [key, prop] of effectiveShape(program, model)) {
+      const seen = byKey.get(key)
+      if (seen && seen.type !== prop.type) {
+        return `'${key}' has a different type in ${seen.variant} and ${name}`
+      }
+    }
+  }
+  return undefined
+}
+
+/** A union's directly declared object variants, named for the build error. */
+function objectVariants(
+  program: Program,
+  union: Union,
+): Array<{ model: Model; name: string }> {
+  const tk = $(program)
+  const variants: Array<{ model: Model; name: string }> = []
   for (const variant of union.variants.values()) {
     const model = variant.type
     if (model.kind !== 'Model' || tk.array.is(model) || tk.record.is(model)) {
       continue
     }
-    const variantName = model.name || String(variant.name)
-    for (const [key, prop] of effectiveShape(program, model)) {
-      const seen = byKey.get(key)
-      if (!seen) {
-        byKey.set(key, { type: prop.type, variant: variantName })
-        continue
-      }
-      if (seen.type !== prop.type) {
-        return `'${key}' has a different type in ${seen.variant} and ${variantName}`
-      }
-    }
+    variants.push({ model, name: model.name || String(variant.name) })
   }
-  return undefined
+  return variants
+}
+
+/**
+ * The object variants reachable through a union's union-typed variants, at any
+ * nesting depth. Cycle-guarded, so a self-referential union contributes each of
+ * its models once instead of recursing forever.
+ */
+function nestedObjectVariants(
+  program: Program,
+  union: Union,
+  seen = new Set<Union>(),
+): Array<{ model: Model; name: string }> {
+  const variants: Array<{ model: Model; name: string }> = []
+  for (const variant of union.variants.values()) {
+    const nested = variant.type
+    if (nested.kind !== 'Union' || seen.has(nested)) {
+      continue
+    }
+    seen.add(nested)
+    variants.push(
+      ...objectVariants(program, nested),
+      ...nestedObjectVariants(program, nested, seen),
+    )
+  }
+  return variants
 }
 
 /**

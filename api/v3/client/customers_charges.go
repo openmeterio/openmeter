@@ -33,15 +33,17 @@ type ChargeFilter struct {
 	FeatureKey *StringExactFilter
 	// Filter charges by the start of their service period.
 	//
-	// Combine with `service_period_to` to match charges whose service period overlaps
-	// a given window: `filter[service_period_to][gte]=<from>` together with
-	// `filter[service_period_from][lt]=<to>` returns charges whose service period
-	// intersects `[from, to)`.
+	// Combine with `service_period_to` to match charges whose service period falls
+	// within a given window: `filter[service_period_from][gte]=<from>` together with
+	// `filter[service_period_to][lte]=<to>` returns charges whose service period lies
+	// within `[from, to)`.
 	ServicePeriodFrom *DateTimeFilter
 	// Filter charges by the end of their service period.
 	//
-	// See `service_period_from` for how to express a service-period overlap query
-	// using both fields together.
+	// Combine with `service_period_from` to match charges whose service period falls
+	// within a given window: `filter[service_period_from][gte]=<from>` together with
+	// `filter[service_period_to][lte]=<to>` returns charges whose service period lies
+	// within `[from, to)`.
 	ServicePeriodTo *DateTimeFilter
 }
 

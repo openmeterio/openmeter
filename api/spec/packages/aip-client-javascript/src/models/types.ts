@@ -699,7 +699,7 @@ export interface InvoiceUsageQuantityDetail {
 export interface ChargeRealizationDetailedLineCreditApplied {
   /** The monetary amount credited. */
   amount: string
-  /** Optional human-readable description of the credit allocation. */
+  /** Human-readable description of the credit allocation. */
   description?: string
   /** The ID of the credit realization (allocation) this credit was applied from. */
   creditRealizationId: string
@@ -2454,8 +2454,8 @@ export interface ChargeTotals {
   /**
    * The realtime amount of the charge, i.e. the whole usage rated at the charge's
    * price for its full service period, ignoring what has already been booked to a
-   * realization. This differs from `charge.outstanding.totals`, which only covers
-   * the portion not yet booked.
+   * realization. This differs from the `totals` of a realization with type
+   * `outstanding`, which only cover the portion not yet booked.
    *
    * Requires the `real_time_usage` expand.
    */
@@ -2857,17 +2857,19 @@ export interface ListChargesParamsFilter {
   /**
    * Filter charges by the start of their service period.
    *
-   * Combine with `service_period_to` to match charges whose service period overlaps
-   * a given window: `filter[service_period_to][gte]=<from>` together with
-   * `filter[service_period_from][lt]=<to>` returns charges whose service period
-   * intersects `[from, to)`.
+   * Combine with `service_period_to` to match charges whose service period falls
+   * within a given window: `filter[service_period_from][gte]=<from>` together with
+   * `filter[service_period_to][lte]=<to>` returns charges whose service period lies
+   * within `[from, to)`.
    */
   servicePeriodFrom?: DateTimeFieldFilter
   /**
    * Filter charges by the end of their service period.
    *
-   * See `service_period_from` for how to express a service-period overlap query
-   * using both fields together.
+   * Combine with `service_period_from` to match charges whose service period falls
+   * within a given window: `filter[service_period_from][gte]=<from>` together with
+   * `filter[service_period_to][lte]=<to>` returns charges whose service period lies
+   * within `[from, to)`.
    */
   servicePeriodTo?: DateTimeFieldFilter
 }
@@ -3766,6 +3768,51 @@ export interface CreditGrant {
   status: 'pending' | 'active' | 'expired' | 'voided'
 }
 
+/** Flat fee charge create request. */
+export interface CreateChargeFlatFeeRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** The type of the charge. */
+  type: 'flat_fee'
+  /** The currency of the charge. */
+  currency: string
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** Payment term of the flat fee charge. */
+  paymentTerm: PricePaymentTerm
+  /** The discounts applied to the charge. */
+  discounts?: ChargeFlatFeeDiscounts
+  /** The proration configuration of the charge. */
+  prorationConfiguration: RateCardProrationConfiguration
+  /** The amount before proration of the charge. */
+  amountBeforeProration: CurrencyAmount
+  /** A reference to the feature associated with the charge, when applicable. */
+  feature?: FeatureReference
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod?: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod?: ClosedPeriod
+}
+
 /** Tax settings for a billing workflow. */
 export interface WorkflowTaxSettings {
   /**
@@ -4490,6 +4537,47 @@ export interface ChargeUsageBasedSystemIntent {
   deletedAt?: Date
 }
 
+/** Usage-based charge create request. */
+export interface CreateChargeUsageBasedRequest {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** The type of the charge. */
+  type: 'usage_based'
+  /** The currency of the charge. */
+  currency: string
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoiceAt: Date
+  /** The effective service period covered by the charge. */
+  servicePeriod: ClosedPeriod
+  /** Unique reference ID of the charge. */
+  uniqueReferenceId?: string
+  /** Settlement mode of the charge. */
+  settlementMode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  taxConfig?: TaxConfig
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /** The price of the charge. */
+  price: Price
+  /** A reference to the feature associated with the charge. */
+  feature: FeatureReference
+  /** The full, unprorated service period of the charge. */
+  fullServicePeriod?: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billingPeriod?: ClosedPeriod
+}
+
 /** A rate card defines the pricing and entitlement of a feature or service. */
 export interface RateCard {
   /**
@@ -4834,100 +4922,6 @@ export interface UpsertAddonRequest {
   instanceType: 'single' | 'multiple'
   /** The rate cards of the add-on. */
   rateCards: RateCard[]
-}
-
-/** Flat fee charge create request. */
-export interface CreateChargeFlatFeeRequest {
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** The type of the charge. */
-  type: 'flat_fee'
-  /** The currency of the charge. */
-  currency: string
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: Date
-  /** The effective service period covered by the charge. */
-  servicePeriod: ClosedPeriod
-  /** Unique reference ID of the charge. */
-  uniqueReferenceId?: string
-  /** Settlement mode of the charge. */
-  settlementMode: 'credit_then_invoice' | 'credit_only'
-  /** Tax configuration of the charge. */
-  taxConfig?: TaxConfig
-  /** Payment term of the flat fee charge. */
-  paymentTerm: PricePaymentTerm
-  /** The discounts applied to the charge. */
-  discounts?: ChargeFlatFeeDiscounts
-  /**
-   * The feature associated with the charge, when applicable.
-   *
-   * For more details use the `feature` expand.
-   */
-  feature?: FeatureOrReference
-  /** The proration configuration of the charge. */
-  prorationConfiguration: RateCardProrationConfiguration
-  /** The amount before proration of the charge. */
-  amountBeforeProration: CurrencyAmount
-  /** The full, unprorated service period of the charge. */
-  fullServicePeriod?: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billingPeriod?: ClosedPeriod
-}
-
-/** Usage-based charge create request. */
-export interface CreateChargeUsageBasedRequest {
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** The type of the charge. */
-  type: 'usage_based'
-  /** The currency of the charge. */
-  currency: string
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: Date
-  /** The effective service period covered by the charge. */
-  servicePeriod: ClosedPeriod
-  /** Unique reference ID of the charge. */
-  uniqueReferenceId?: string
-  /** Settlement mode of the charge. */
-  settlementMode: 'credit_then_invoice' | 'credit_only'
-  /** Tax configuration of the charge. */
-  taxConfig?: TaxConfig
-  /** Discounts applied to the usage-based charge. */
-  discounts?: RateCardDiscounts
-  /**
-   * The feature associated with the charge.
-   *
-   * For more details use the `feature` expand.
-   */
-  feature: FeatureOrReference
-  /** The price of the charge. */
-  price: Price
-  /** The full, unprorated service period of the charge. */
-  fullServicePeriod?: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billingPeriod?: ClosedPeriod
 }
 
 /**
@@ -5400,14 +5394,18 @@ export interface InvoicePagePaginatedResponse {
 /**
  * A realization run of a charge.
  *
- * Realizations are always sorted by `service_period.from`. `totals` and
- * `detailed_lines` are only populated with the `realization.totals` and
- * `realization.detailed_lines` expands, respectively, since computing them
+ * `totals` and `detailed_lines` are only populated with the `realization.totals`
+ * and `realization.detailed_lines` expands, respectively, since computing them
  * requires re-deriving the run's rated breakdown. `invoice` is an ID reference
  * unless the `realization.invoice` expand is used, which resolves it to the full
  * invoice.
  */
 export interface ChargeRealization {
+  /**
+   * The ID of the realization run. Not present on `outstanding` entries, which are
+   * projections rather than persisted runs.
+   */
+  id?: string
   /**
    * The ID of the invoice line this realization was booked to, when the realization
    * has been invoiced.
@@ -5513,11 +5511,7 @@ export interface ChargeFlatFee {
   paymentTerm: PricePaymentTerm
   /** The discounts applied to the charge. */
   discounts?: ChargeFlatFeeDiscounts
-  /**
-   * The feature associated with the charge, when applicable.
-   *
-   * For more details use the `feature` expand.
-   */
+  /** The feature associated with the charge, when applicable. */
   feature?: FeatureOrReference
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
@@ -5604,11 +5598,7 @@ export interface ChargeUsageBased {
   realizations: ChargeRealization[]
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
-  /**
-   * The feature associated with the charge.
-   *
-   * For more details use the `feature` expand.
-   */
+  /** The feature associated with the charge. */
   feature: FeatureOrReference
   /** Aggregated booked and realtime totals for the charge. */
   totals: ChargeTotals
@@ -5793,6 +5783,10 @@ export type App = AppStripe | AppSandbox | AppExternalInvoicing
 /** Feature or reference. */
 export type FeatureOrReference = Feature | FeatureReference
 
+/** Customer charge. */
+export type CreateChargeRequest =
+  CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequest
+
 /**
  * A top-level line item on an invoice.
  *
@@ -5801,10 +5795,6 @@ export type FeatureOrReference = Feature | FeatureReference
  * present.
  */
 export type InvoiceLine = InvoiceStandardLine
-
-/** Customer charge. */
-export type CreateChargeRequest =
-  CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequest
 
 /**
  * A top-level line item on an invoice.
@@ -7389,14 +7379,18 @@ export interface InvoicePagePaginatedResponseInput {
 /**
  * A realization run of a charge.
  *
- * Realizations are always sorted by `service_period.from`. `totals` and
- * `detailed_lines` are only populated with the `realization.totals` and
- * `realization.detailed_lines` expands, respectively, since computing them
+ * `totals` and `detailed_lines` are only populated with the `realization.totals`
+ * and `realization.detailed_lines` expands, respectively, since computing them
  * requires re-deriving the run's rated breakdown. `invoice` is an ID reference
  * unless the `realization.invoice` expand is used, which resolves it to the full
  * invoice.
  */
 export interface ChargeRealizationInput {
+  /**
+   * The ID of the realization run. Not present on `outstanding` entries, which are
+   * projections rather than persisted runs.
+   */
+  id?: string
   /**
    * The ID of the invoice line this realization was booked to, when the realization
    * has been invoiced.
@@ -7502,11 +7496,7 @@ export interface ChargeFlatFeeInput {
   paymentTerm: PricePaymentTerm
   /** The discounts applied to the charge. */
   discounts?: ChargeFlatFeeDiscounts
-  /**
-   * The feature associated with the charge, when applicable.
-   *
-   * For more details use the `feature` expand.
-   */
+  /** The feature associated with the charge, when applicable. */
   feature?: FeatureOrReference
   /** The proration configuration of the charge. */
   prorationConfiguration: RateCardProrationConfiguration
@@ -7593,11 +7583,7 @@ export interface ChargeUsageBasedInput {
   realizations: ChargeRealizationInput[]
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
-  /**
-   * The feature associated with the charge.
-   *
-   * For more details use the `feature` expand.
-   */
+  /** The feature associated with the charge. */
   feature: FeatureOrReference
   /** Aggregated booked and realtime totals for the charge. */
   totals: ChargeTotals

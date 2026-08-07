@@ -1384,9 +1384,8 @@ paths:
             To filter charges by feature, use `filter[feature_id][oeq]=<id>,<id>` or
             `filter[feature_key][oeq]=<key>,<key>`.
 
-            To filter charges whose service period overlaps a window `[from, to)`, combine
-            `filter[service_period_to][gte]=<from>` with
-            `filter[service_period_from][lt]=<to>`.
+            See the `service_period_from` filter field for expressing a service-period
+            window query.
           schema:
             $ref: '#/components/schemas/ListChargesParamsFilter'
           style: deepObject
@@ -4921,11 +4920,9 @@ components:
         feature:
           allOf:
             - $ref: '#/components/schemas/FeatureOrReference'
-          description: |-
-            The feature associated with the charge, when applicable.
-
-            For more details use the `feature` expand.
+          description: The feature associated with the charge, when applicable.
           title: Feature
+          readOnly: true
         proration_configuration:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
@@ -5062,6 +5059,13 @@ components:
         - service_period
         - usage
       properties:
+        id:
+          type: string
+          description: |-
+            The ID of the realization run. Not present on `outstanding` entries, which are
+            projections rather than persisted runs.
+          title: ID
+          readOnly: true
         line_id:
           type: string
           description: |-
@@ -5124,9 +5128,8 @@ components:
       description: |-
         A realization run of a charge.
 
-        Realizations are always sorted by `service_period.from`. `totals` and
-        `detailed_lines` are only populated with the `realization.totals` and
-        `realization.detailed_lines` expands, respectively, since computing them
+        `totals` and `detailed_lines` are only populated with the `realization.totals`
+        and `realization.detailed_lines` expands, respectively, since computing them
         requires re-deriving the run's rated breakdown. `invoice` is an ID reference
         unless the `realization.invoice` expand is used, which resolves it to the full
         invoice.
@@ -5200,10 +5203,8 @@ components:
 
         Values:
 
-        - `regular`: Regular is a regular flat fee, that is based on the usage or a
-        subscription.
-        - `commitment`: Commitment is a flat fee that is based on a commitment such as
-        minimum spend.
+        - `regular`: A regular charge line, based on usage or subscription pricing.
+        - `commitment`: A commitment-derived line, such as minimum spend.
       title: Charge realization detailed line category
     BillingChargeRealizationDetailedLineCreditApplied:
       type: object
@@ -5219,7 +5220,7 @@ components:
           readOnly: true
         description:
           type: string
-          description: Optional human-readable description of the credit allocation.
+          description: Human-readable description of the credit allocation.
           title: Description
           readOnly: true
         credit_realization_id:
@@ -5497,8 +5498,8 @@ components:
           description: |-
             The realtime amount of the charge, i.e. the whole usage rated at the charge's
             price for its full service period, ignoring what has already been booked to a
-            realization. This differs from `charge.outstanding.totals`, which only covers
-            the portion not yet booked.
+            realization. This differs from the `totals` of a realization with type
+            `outstanding`, which only cover the portion not yet booked.
 
             Requires the `real_time_usage` expand.
           title: Realtime totals
@@ -5671,11 +5672,9 @@ components:
         feature:
           allOf:
             - $ref: '#/components/schemas/FeatureOrReference'
-          description: |-
-            The feature associated with the charge.
-
-            For more details use the `feature` expand.
+          description: The feature associated with the charge.
           title: Feature
+          readOnly: true
         totals:
           allOf:
             - $ref: '#/components/schemas/BillingChargeTotals'
@@ -9825,14 +9824,6 @@ components:
             - $ref: '#/components/schemas/BillingChargeFlatFeeDiscounts'
           description: The discounts applied to the charge.
           title: Discounts
-        feature:
-          allOf:
-            - $ref: '#/components/schemas/FeatureOrReference'
-          description: |-
-            The feature associated with the charge, when applicable.
-
-            For more details use the `feature` expand.
-          title: Feature
         proration_configuration:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
@@ -9843,6 +9834,11 @@ components:
             - $ref: '#/components/schemas/CurrencyAmount'
           description: The amount before proration of the charge.
           title: Amount before proration
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: A reference to the feature associated with the charge, when applicable.
+          title: Feature
         full_service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
@@ -9876,8 +9872,8 @@ components:
         - invoice_at
         - service_period
         - settlement_mode
-        - feature
         - price
+        - feature
       properties:
         name:
           type: string
@@ -9936,19 +9932,16 @@ components:
             - $ref: '#/components/schemas/BillingRateCardDiscounts'
           description: Discounts applied to the usage-based charge.
           title: Discounts
-        feature:
-          allOf:
-            - $ref: '#/components/schemas/FeatureOrReference'
-          description: |-
-            The feature associated with the charge.
-
-            For more details use the `feature` expand.
-          title: Feature
         price:
           allOf:
             - $ref: '#/components/schemas/BillingPrice'
           description: The price of the charge.
           title: Price
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReference'
+          description: A reference to the feature associated with the charge.
+          title: Feature
         full_service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
@@ -11447,18 +11440,20 @@ components:
           description: |-
             Filter charges by the start of their service period.
 
-            Combine with `service_period_to` to match charges whose service period overlaps
-            a given window: `filter[service_period_to][gte]=<from>` together with
-            `filter[service_period_from][lt]=<to>` returns charges whose service period
-            intersects `[from, to)`.
+            Combine with `service_period_to` to match charges whose service period falls
+            within a given window: `filter[service_period_from][gte]=<from>` together with
+            `filter[service_period_to][lte]=<to>` returns charges whose service period lies
+            within `[from, to)`.
         service_period_to:
           allOf:
             - $ref: '#/components/schemas/DateTimeFieldFilter'
           description: |-
             Filter charges by the end of their service period.
 
-            See `service_period_from` for how to express a service-period overlap query
-            using both fields together.
+            Combine with `service_period_from` to match charges whose service period falls
+            within a given window: `filter[service_period_from][gte]=<from>` together with
+            `filter[service_period_to][lte]=<to>` returns charges whose service period lies
+            within `[from, to)`.
       additionalProperties: false
       description: Filter options for listing charges.
     ListCostBasesParamsFilter:

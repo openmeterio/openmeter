@@ -206,9 +206,8 @@ export interface ListCustomerChargesQuery {
    * To filter charges by feature, use `filter[feature_id][oeq]=<id>,<id>` or
    * `filter[feature_key][oeq]=<key>,<key>`.
    *
-   * To filter charges whose service period overlaps a window `[from, to)`, combine
-   * `filter[service_period_to][gte]=<from>` with
-   * `filter[service_period_from][lt]=<to>`.
+   * See the `service_period_from` filter field for expressing a service-period
+   * window query.
    */
   filter?: ListChargesParamsFilter
   /**

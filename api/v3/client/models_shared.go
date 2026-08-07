@@ -250,34 +250,6 @@ type Feature struct {
 	UnitCost *FeatureUnitCost `json:"unit_cost,omitempty"`
 }
 
-// A capability or billable dimension offered by a provider.
-type FeatureInput struct {
-	ID string `json:"id"`
-	// Display name of the resource.
-	//
-	// Between 1 and 256 characters.
-	Name string `json:"name"`
-	// Optional description of the resource.
-	//
-	// Maximum 1024 characters.
-	Description *string            `json:"description,omitempty"`
-	Labels      *map[string]string `json:"labels,omitempty"`
-	// An ISO-8601 timestamp representation of entity creation date.
-	CreatedAt time.Time `json:"created_at"`
-	// An ISO-8601 timestamp representation of entity last update date.
-	UpdatedAt time.Time `json:"updated_at"`
-	// An ISO-8601 timestamp representation of entity deletion date.
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	Key       string     `json:"key"`
-	// The meter that the feature is associated with and based on which usage is
-	// calculated. If not specified, the feature is static.
-	Meter *FeatureMeterReferenceInput `json:"meter,omitempty"`
-	// Optional per-unit cost configuration. Use "manual" for a fixed per-unit cost, or
-	// "llm" to look up cost from the LLM cost database based on meter group-by
-	// properties.
-	UnitCost *FeatureUnitCost `json:"unit_cost,omitempty"`
-}
-
 // Token type for LLM cost lookup.
 type FeatureLLMTokenType string
 

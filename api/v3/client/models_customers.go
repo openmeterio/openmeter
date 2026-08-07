@@ -615,8 +615,6 @@ type ChargeFlatFee struct {
 	// The discounts applied to the charge.
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge, when applicable.
-	//
-	// For more details use the `feature` expand.
 	Feature *FeatureOrReference `json:"feature,omitempty"`
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
@@ -680,13 +678,15 @@ type ChargePagePaginatedResponse struct {
 
 // A realization run of a charge.
 //
-// Realizations are always sorted by `service_period.from`. `totals` and
-// `detailed_lines` are only populated with the `realization.totals` and
-// `realization.detailed_lines` expands, respectively, since computing them
+// `totals` and `detailed_lines` are only populated with the `realization.totals`
+// and `realization.detailed_lines` expands, respectively, since computing them
 // requires re-deriving the run's rated breakdown. `invoice` is an ID reference
 // unless the `realization.invoice` expand is used, which resolves it to the full
 // invoice.
 type ChargeRealization struct {
+	// The ID of the realization run. Not present on `outstanding` entries, which are
+	// projections rather than persisted runs.
+	ID *string `json:"id,omitempty"`
 	// The ID of the invoice line this realization was booked to, when the realization
 	// has been invoiced.
 	LineID *string `json:"line_id,omitempty"`
@@ -818,10 +818,8 @@ func ChargeRealizationDetailedLineFromChargeRealizationDetailedLineUsageBased(va
 //
 // Values:
 //
-// - `regular`: Regular is a regular flat fee, that is based on the usage or a
-// subscription.
-// - `commitment`: Commitment is a flat fee that is based on a commitment such as
-// minimum spend.
+// - `regular`: A regular charge line, based on usage or subscription pricing.
+// - `commitment`: A commitment-derived line, such as minimum spend.
 type ChargeRealizationDetailedLineCategory string
 
 const (
@@ -842,7 +840,7 @@ func (value ChargeRealizationDetailedLineCategory) Valid() bool {
 type ChargeRealizationDetailedLineCreditApplied struct {
 	// The monetary amount credited.
 	Amount Numeric `json:"amount"`
-	// Optional human-readable description of the credit allocation.
+	// Human-readable description of the credit allocation.
 	Description *string `json:"description,omitempty"`
 	// The ID of the credit realization (allocation) this credit was applied from.
 	CreditRealizationID string `json:"credit_realization_id"`
@@ -993,8 +991,8 @@ type ChargeTotals struct {
 	Booked Totals `json:"booked"`
 	// The realtime amount of the charge, i.e. the whole usage rated at the charge's
 	// price for its full service period, ignoring what has already been booked to a
-	// realization. This differs from `charge.outstanding.totals`, which only covers
-	// the portion not yet booked.
+	// realization. This differs from the `totals` of a realization with type
+	// `outstanding`, which only cover the portion not yet booked.
 	//
 	// Requires the `real_time_usage` expand.
 	Realtime *Totals `json:"realtime,omitempty"`
@@ -1082,8 +1080,6 @@ type ChargeUsageBased struct {
 	// Discounts applied to the usage-based charge.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
 	// The feature associated with the charge.
-	//
-	// For more details use the `feature` expand.
 	Feature FeatureOrReference `json:"feature"`
 	// Aggregated booked and realtime totals for the charge.
 	Totals ChargeTotals `json:"totals"`
@@ -1193,14 +1189,12 @@ type CreateChargeFlatFeeRequest struct {
 	PaymentTerm PricePaymentTerm `json:"payment_term"`
 	// The discounts applied to the charge.
 	Discounts *ChargeFlatFeeDiscounts `json:"discounts,omitempty"`
-	// The feature associated with the charge, when applicable.
-	//
-	// For more details use the `feature` expand.
-	Feature *FeatureOrReferenceInput `json:"feature,omitempty"`
 	// The proration configuration of the charge.
 	ProrationConfiguration RateCardProrationConfiguration `json:"proration_configuration"`
 	// The amount before proration of the charge.
 	AmountBeforeProration CurrencyAmount `json:"amount_before_proration"`
+	// A reference to the feature associated with the charge, when applicable.
+	Feature *FeatureReference `json:"feature,omitempty"`
 	// The full, unprorated service period of the charge.
 	FullServicePeriod *ClosedPeriod `json:"full_service_period,omitempty"`
 	// The billing period the charge belongs to.
@@ -1315,12 +1309,10 @@ type CreateChargeUsageBasedRequest struct {
 	TaxConfig *TaxConfig `json:"tax_config,omitempty"`
 	// Discounts applied to the usage-based charge.
 	Discounts *RateCardDiscounts `json:"discounts,omitempty"`
-	// The feature associated with the charge.
-	//
-	// For more details use the `feature` expand.
-	Feature FeatureOrReferenceInput `json:"feature"`
 	// The price of the charge.
 	Price Price `json:"price"`
+	// A reference to the feature associated with the charge.
+	Feature FeatureReference `json:"feature"`
 	// The full, unprorated service period of the charge.
 	FullServicePeriod *ClosedPeriod `json:"full_service_period,omitempty"`
 	// The billing period the charge belongs to.
@@ -1939,65 +1931,6 @@ func FeatureOrReferenceFromFeatureReference(value FeatureReference) (FeatureOrRe
 	return result, nil
 }
 
-// Feature or reference.
-//
-// FeatureOrReferenceInput is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the FeatureOrReferenceInputFrom* constructors.
-type FeatureOrReferenceInput struct {
-	raw json.RawMessage
-}
-
-func (u *FeatureOrReferenceInput) UnmarshalJSON(data []byte) error {
-	u.raw = append([]byte(nil), data...)
-	return nil
-}
-
-func (u FeatureOrReferenceInput) MarshalJSON() ([]byte, error) {
-	if len(u.raw) == 0 {
-		return []byte("null"), nil
-	}
-	return append([]byte(nil), u.raw...), nil
-}
-
-func (u FeatureOrReferenceInput) AsFeatureInput() (*FeatureInput, error) {
-	var value FeatureInput
-	if err := json.Unmarshal(u.raw, &value); err != nil {
-		return nil, err
-	}
-	return &value, nil
-}
-
-func FeatureOrReferenceInputFromFeatureInput(value FeatureInput) (FeatureOrReferenceInput, error) {
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return FeatureOrReferenceInput{}, err
-	}
-	var result FeatureOrReferenceInput
-	if err := result.UnmarshalJSON(raw); err != nil {
-		return FeatureOrReferenceInput{}, err
-	}
-	return result, nil
-}
-
-func (u FeatureOrReferenceInput) AsFeatureReference() (*FeatureReference, error) {
-	var value FeatureReference
-	if err := json.Unmarshal(u.raw, &value); err != nil {
-		return nil, err
-	}
-	return &value, nil
-}
-
-func FeatureOrReferenceInputFromFeatureReference(value FeatureReference) (FeatureOrReferenceInput, error) {
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return FeatureOrReferenceInput{}, err
-	}
-	var result FeatureOrReferenceInput
-	if err := result.UnmarshalJSON(raw); err != nil {
-		return FeatureOrReferenceInput{}, err
-	}
-	return result, nil
-}
-
 // Invoice or reference.
 //
 // InvoiceOrReference is a JSON-preserving tagged union: its zero value marshals as JSON null, and values must be built with the InvoiceOrReferenceFrom* constructors.
@@ -2017,7 +1950,7 @@ func (u InvoiceOrReference) MarshalJSON() ([]byte, error) {
 	return append([]byte(nil), u.raw...), nil
 }
 
-func (u InvoiceOrReference) AsVariantName() (*Invoice, error) {
+func (u InvoiceOrReference) AsInvoice() (*Invoice, error) {
 	var value Invoice
 	if err := json.Unmarshal(u.raw, &value); err != nil {
 		return nil, err
@@ -2025,7 +1958,7 @@ func (u InvoiceOrReference) AsVariantName() (*Invoice, error) {
 	return &value, nil
 }
 
-func InvoiceOrReferenceFromVariantName(value Invoice) (InvoiceOrReference, error) {
+func InvoiceOrReferenceFromInvoice(value Invoice) (InvoiceOrReference, error) {
 	raw, err := json.Marshal(value)
 	if err != nil {
 		return InvoiceOrReference{}, err
