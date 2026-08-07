@@ -248,7 +248,7 @@ func (f IntentMutableFields) Validate() error {
 		}
 	}
 
-	if f.ExpiresAt != nil && !f.ExpiresAt.After(f.CalculateEffectiveAt()) {
+	if f.EffectiveAt != nil && f.ExpiresAt != nil && !f.ExpiresAt.After(*f.EffectiveAt) {
 		errs = append(errs, fmt.Errorf("expires at must be after effective at"))
 	}
 

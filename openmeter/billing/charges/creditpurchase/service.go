@@ -66,5 +66,9 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("intent: %w", err))
 	}
 
+	if i.Intent.EffectiveAt == nil && i.Intent.ExpiresAt != nil && !i.Intent.ExpiresAt.After(i.Intent.CalculateEffectiveAt()) {
+		errs = append(errs, errors.New("intent: expires at must be after effective at"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
