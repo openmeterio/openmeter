@@ -33,8 +33,9 @@ type FlatFeeService interface {
 	// AdvanceCharge drives one charge through its lifecycle. Invoice-backed
 	// changes are emitted as invoice patches for the billing boundary to consume.
 	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
-	// TriggerPatch applies an explicit base/override target patch and then
-	// reconciles invoice artifacts from the effective flat-fee intent.
+	// TriggerPatch applies an explicit base/override target patch, reconciles
+	// invoice artifacts from the effective flat-fee intent, and returns the
+	// stable lifecycle state when synchronous advancement is available.
 	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[Charge], error)
 }
 

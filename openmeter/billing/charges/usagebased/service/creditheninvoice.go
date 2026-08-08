@@ -73,8 +73,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			usagebased.StatusActive,
 			statelessx.BoolFn(s.IsInsideServicePeriod),
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverride), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
@@ -94,8 +96,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			meta.TriggerInvoiceCreated,
 			usagebased.StatusActiveRealizationStarted,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverride), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
@@ -114,8 +118,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			meta.TriggerNext,
 			usagebased.StatusActiveRealizationWaitingForCollection,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
@@ -126,8 +132,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			meta.TriggerCollectionCompleted,
 			usagebased.StatusActiveRealizationProcessing,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
@@ -143,8 +151,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			meta.TriggerInvoiceIssued,
 			usagebased.StatusActiveRealizationIssuing,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
@@ -155,8 +165,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			meta.TriggerNext,
 			usagebased.StatusActiveRealizationCompleted,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		// Extend is rejected while invoice-issued callbacks own this state.
 		// Subscription sync can retry after billing advances the charge.
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
@@ -172,8 +184,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			meta.TriggerNext,
 			s.resolveStateAfterRealizationCompleted,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod)).
@@ -184,8 +198,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			meta.TriggerNext,
 			s.resolveStateAfterRealizationCompleted,
 		).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		// Extend is rejected because this branch still has its own next
 		// transition to payment settlement. Subscription sync can retry.
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
@@ -200,23 +216,37 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActiveAwaitingPaymentSettlement).
 		Permit(meta.TriggerNext, usagebased.StatusFinal, statelessx.BoolFn(s.AreAllRealizationRunsSettled)).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod))
 
 	s.Configure(usagebased.StatusFinal).
+		Permit(meta.TriggerClearOverride, usagebased.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.UnsupportedClearOverrideOperation), statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.ShrinkToRealizedPeriod))
 
 	s.Configure(usagebased.StatusDeleted).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		Permit(meta.TriggerClearOverride, usagebased.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverrideFromDeletedBase), statelessx.BoolFn(s.IsBaseIntentDeleted)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerShrinkToRealizedPeriod, statelessx.WithParameters(s.UnsupportedShrinkToRealizedPeriodOperation))
+
+	s.Configure(usagebased.StatusActiveClearOverride).
+		PermitDynamic(meta.TriggerNext, s.ResolveStateAfterClearOverride).
+		OnActive(s.ActiveClearOverride)
+
+	s.Configure(usagebased.StatusDeletedClearOverride).
+		Permit(meta.TriggerNext, usagebased.StatusDeleted).
+		OnActive(s.ClearDeletedChargeOverride)
 }
 
 func (s *CreditThenInvoiceStateMachine) resolveStateAfterRealizationCompleted(_ context.Context, _ ...any) (stateless.State, error) {
@@ -291,6 +321,56 @@ func (s *CreditThenInvoiceStateMachine) SetOverride(ctx context.Context, patch u
 	return s.AdvanceAfterServicePeriodTo(ctx)
 }
 
+func (s *CreditThenInvoiceStateMachine) ClearOverride(ctx context.Context, _ meta.PatchClearOverride) error {
+	return s.ActiveClearOverride(ctx)
+}
+
+func (s *CreditThenInvoiceStateMachine) ActiveClearOverride(ctx context.Context) error {
+	if s.Charge.State.CurrentRealizationRunID != nil || len(s.Charge.Realizations.WithoutVoidedBillingHistory()) > 0 {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("cannot clear override for usage-based charge %s after realization has started", s.Charge.ID),
+		)
+	}
+
+	if err := s.clearOverrideIntent(ctx); err != nil {
+		return err
+	}
+
+	if s.Charge.Intent.GetBaseIntent().IntentDeletedAt != nil {
+		return fmt.Errorf("clearing usage-based override unexpectedly restored a deleted base intent")
+	}
+
+	if err := s.updateGatheringLineForEffectiveIntent(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) ResolveStateAfterClearOverride(_ context.Context, _ ...any) (stateless.State, error) {
+	if clock.Now().Before(s.Charge.Intent.GetEffectiveServicePeriod().From) {
+		return usagebased.StatusCreated, nil
+	}
+
+	return usagebased.StatusActive, nil
+}
+
+func (s *CreditThenInvoiceStateMachine) ClearDeletedChargeOverride(ctx context.Context) error {
+	if err := s.clearOverrideIntent(ctx); err != nil {
+		return err
+	}
+
+	if s.Charge.Intent.GetDeletedAt() == nil {
+		return fmt.Errorf("clearing usage-based override did not restore a deleted base intent")
+	}
+
+	if err := s.reconcileDeletedCharge(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // updateGatheringLineForEffectiveIntent keeps the pre-realization invoice
 // placeholder aligned with the charge's currently effective mutable intent.
 func (s *CreditThenInvoiceStateMachine) updateGatheringLineForEffectiveIntent() error {
@@ -331,7 +411,14 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 	}
 
 	s.Charge.Status = usagebased.StatusDeleted
+	if err := s.reconcileDeletedCharge(ctx); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) reconcileDeletedCharge(ctx context.Context) error {
 	patches := invoiceupdater.Patches{
 		invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID),
 	}
@@ -363,7 +450,7 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 	}
 
 	if err := s.RefetchCharge(ctx); err != nil {
-		return fmt.Errorf("get charge: %w", err)
+		return fmt.Errorf("refetch deleted charge: %w", err)
 	}
 
 	return nil
