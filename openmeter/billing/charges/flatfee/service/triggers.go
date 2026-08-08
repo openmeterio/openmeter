@@ -24,7 +24,20 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		return stateMachine.AdvanceUntilStateStable(ctx)
+		canAdvance, err := stateMachine.CanFire(ctx, meta.TriggerNext)
+		if err != nil {
+			return nil, err
+		}
+		if !canAdvance {
+			return nil, nil
+		}
+
+		if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
+			return nil, err
+		}
+
+		updatedCharge := stateMachine.GetCharge()
+		return &updatedCharge, nil
 	})
 }
 
