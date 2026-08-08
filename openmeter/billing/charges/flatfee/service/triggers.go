@@ -24,7 +24,20 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		return stateMachine.AdvanceUntilStateStable(ctx)
+		canAdvance, err := stateMachine.CanFire(ctx, meta.TriggerNext)
+		if err != nil {
+			return nil, err
+		}
+		if !canAdvance {
+			return nil, nil
+		}
+
+		if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
+			return nil, err
+		}
+
+		updatedCharge := stateMachine.GetCharge()
+		return &updatedCharge, nil
 	})
 }
 
@@ -65,13 +78,13 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		err = stateMachine.FireAndActivate(ctx, patch.Trigger(), patch)
+		invoicePatches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, patch.Trigger(), patch)
 		if err != nil {
 			return nil, err
 		}
 
 		charge = stateMachine.GetCharge()
-		result.InvoicePatches = stateMachine.DrainInvoicePatches()
+		result.InvoicePatches = invoicePatches
 
 		return &charge, nil
 	})
