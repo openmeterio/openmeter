@@ -89,6 +89,15 @@ when an active override hides it.
 - Charge creation resolves every supplied feature reference before persistence.
   Usage-based features require a meter; flat-fee features are optional and may
   be meterless.
+- Charge state machines do not expose invoice patches through a separate peek
+  or drain operation. A caller must choose an invoice-aware
+  `*UntilInvoicePatchesOrStable` operation, which stops at the first invoice
+  effect boundary and transfers ownership of the returned patches, or a
+  no-invoice-patches `*UntilStable` operation.
+- The no-invoice-patches operations fail if a transition produces invoice
+  patches. This makes forgetting to retrieve and apply invoice effects an
+  explicit error instead of silently losing them while advancing lifecycle
+  state.
 - `UpdateCharge` persists the concrete base row. Expanded realizations are read
   model state and are written through dedicated adapter operations.
 - Persisted charge discounts have stable correlation IDs allocated at their
