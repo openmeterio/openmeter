@@ -20,6 +20,7 @@ type CustomerChargeAPIService interface {
 	CreateCustomerCharge(ctx context.Context, input CreateCustomerChargeInput) (Charge, error)
 	DeleteCustomerCharge(ctx context.Context, input DeleteCustomerChargeInput) error
 	SetCustomerChargeOverride(ctx context.Context, input SetCustomerChargeOverrideInput) (Charge, error)
+	ClearCustomerChargeOverride(ctx context.Context, input ClearCustomerChargeOverrideInput) (Charge, error)
 }
 
 type CreditPurchaseFacadeService interface {
@@ -167,6 +168,32 @@ func (i SetCustomerChargeOverrideInput) Validate() error {
 		if err := i.UsageBased.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("usage based intent mutable fields: %w", err))
 		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ClearCustomerChargeOverrideInput removes the manual override layer from a
+// flat-fee or usage-based charge and makes its base intent effective again.
+type ClearCustomerChargeOverrideInput struct {
+	Namespace  string
+	CustomerID string
+	ChargeID   string
+}
+
+func (i ClearCustomerChargeOverrideInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CustomerID == "" {
+		errs = append(errs, errors.New("customer ID is required"))
+	}
+
+	if i.ChargeID == "" {
+		errs = append(errs, errors.New("charge ID is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

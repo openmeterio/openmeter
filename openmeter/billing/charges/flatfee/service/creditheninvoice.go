@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -88,6 +89,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		Permit(meta.TriggerAttachInvoiceLine, flatfee.StatusActiveRealizationProcessing).
 		OnActive(s.AdvanceAfterInvoiceAt)
 
@@ -102,6 +105,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		OnActive(statelessx.AllOf(
 			s.ResolveDynamicCostBasis,
 			s.AdvanceAfterServicePeriodTo,
@@ -114,6 +119,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.StartRealization))
 
 	s.Configure(flatfee.StatusActiveRealizationWaitingForCollection).
@@ -122,7 +129,9 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
-		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride))
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted)))
 
 	s.Configure(flatfee.StatusActiveRealizationProcessing).
 		Permit(
@@ -136,6 +145,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		OnEntryFrom(meta.TriggerAttachInvoiceLine, statelessx.WithParameters(s.AttachInvoiceLine))
 
 	s.Configure(flatfee.StatusActiveRealizationIssuing).
@@ -145,6 +156,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.AccrueInvoiceUsage))
 
 	// Zero-fiat-amount overages bypass invoice issuance. This state seals the
@@ -157,6 +170,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		OnActive(s.FinalizeZeroFiatAmountOverageRun)
 
 	s.Configure(flatfee.StatusActiveRealizationCompleted).
@@ -165,7 +180,9 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
-		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation))
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted)))
 
 	s.Configure(flatfee.StatusActiveAwaitingPaymentSettlement).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
@@ -173,7 +190,13 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
-		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride))
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted)))
+
+	s.Configure(flatfee.StatusActiveClearOverride).
+		PermitDynamic(meta.TriggerNext, s.ResolveStateAfterClearOverride).
+		OnActive(s.ActiveClearOverride)
 
 	s.Configure(flatfee.StatusFinal).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
@@ -181,13 +204,21 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
 		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusDeletedClearOverride, statelessx.BoolFn(s.IsBaseIntentDeleted)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
 		OnActive(s.ClearAdvanceAfter)
 
 	s.Configure(flatfee.StatusDeleted).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
-		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation))
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
+		Permit(meta.TriggerClearOverride, flatfee.StatusActiveClearOverride, statelessx.BoolFn(statelessx.Not(s.IsBaseIntentDeleted))).
+		InternalTransition(meta.TriggerClearOverride, statelessx.WithParameters(s.ClearOverrideFromDeletedBase), statelessx.BoolFn(s.IsBaseIntentDeleted))
+
+	s.Configure(flatfee.StatusDeletedClearOverride).
+		Permit(meta.TriggerNext, flatfee.StatusDeleted).
+		OnActive(s.ClearDeletedChargeOverride)
 }
 
 func (s *CreditThenInvoiceStateMachine) SetOverride(ctx context.Context, patch flatfee.PatchSetOverride) error {
@@ -210,6 +241,100 @@ func (s *CreditThenInvoiceStateMachine) SetOverride(ctx context.Context, patch f
 	})
 }
 
+func (s *CreditThenInvoiceStateMachine) ActiveClearOverride(ctx context.Context) error {
+	if !s.Charge.Intent.HasOverrideLayer() {
+		return nil
+	}
+
+	if err := s.cancelCurrentRealization(ctx); err != nil {
+		return err
+	}
+
+	cleared, err := s.clearOverrideIntent(ctx)
+	if err != nil {
+		return err
+	}
+	if !cleared {
+		return nil
+	}
+	if s.Charge.Intent.GetDeletedAt() != nil {
+		return fmt.Errorf("clearing flat-fee override unexpectedly restored a deleted base intent")
+	}
+
+	amountAfterProration, err := s.Charge.Intent.CalculateAmountAfterProration()
+	if err != nil {
+		return fmt.Errorf("calculating amount after proration: %w", err)
+	}
+
+	s.Charge.State.AmountAfterProration = amountAfterProration
+	if amountAfterProration.IsZero() {
+		s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
+		return nil
+	}
+
+	gatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
+		Charge:    s.Charge,
+		InvoiceAt: s.Charge.Intent.GetEffectiveInvoiceAt(),
+	})
+	if err != nil {
+		return fmt.Errorf("creating gathering line after clearing override: %w", err)
+	}
+
+	s.AddInvoicePatch(invoiceupdater.NewUpsertGatheringLineByChargeIDPatch(s.Charge.ID, gatheringLine))
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) cancelCurrentRealization(ctx context.Context) error {
+	currentRun := s.Charge.Realizations.CurrentRun
+	if currentRun == nil {
+		return nil
+	}
+
+	if currentRun.LineID != nil && currentRun.InvoiceID != nil {
+		s.AddInvoicePatch(invoiceupdater.NewDeleteLinePatch(
+			billing.LineID{Namespace: s.Charge.Namespace, ID: *currentRun.LineID},
+			*currentRun.InvoiceID,
+		))
+	}
+
+	if err := s.Adapter.DetachCurrentRun(ctx, s.Charge.GetChargeID()); err != nil {
+		return fmt.Errorf("detach current realization: %w", err)
+	}
+
+	s.Charge.Realizations.PriorRuns = append(s.Charge.Realizations.PriorRuns, *currentRun)
+	s.Charge.Realizations.CurrentRun = nil
+
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) ResolveStateAfterClearOverride(_ context.Context, _ ...any) (stateless.State, error) {
+	if s.Charge.State.AmountAfterProration.IsZero() {
+		return flatfee.StatusFinal, nil
+	}
+
+	if s.IsAfterInvoiceAt() {
+		return flatfee.StatusActive, nil
+	}
+
+	return flatfee.StatusCreated, nil
+}
+
+func (s *CreditThenInvoiceStateMachine) ClearDeletedChargeOverride(ctx context.Context) error {
+	cleared, err := s.clearOverrideIntent(ctx)
+	if err != nil {
+		return err
+	}
+	if !cleared {
+		return nil
+	}
+
+	if s.Charge.Intent.GetDeletedAt() == nil {
+		return fmt.Errorf("clearing flat-fee override did not restore a deleted base intent")
+	}
+
+	return s.reconcileDeletedCharge(ctx)
+}
+
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
 	deletedAt := lo.ToPtr(clock.Now())
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
@@ -227,36 +352,26 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 	}
 
 	s.Charge.Status = flatfee.StatusDeleted
-
-	patches := invoiceupdater.Patches{
-		invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID),
-	}
-	currentRun := s.Charge.Realizations.CurrentRun
-	if currentRun != nil && currentRun.LineID != nil && currentRun.InvoiceID != nil {
-		patches = append(patches, invoiceupdater.NewDeleteLinePatch(
-			billing.LineID{
-				Namespace: s.Charge.Namespace,
-				ID:        *currentRun.LineID,
-			},
-			*currentRun.InvoiceID,
-		))
-
-		if err := s.Adapter.DetachCurrentRun(ctx, s.Charge.GetChargeID()); err != nil {
-			return fmt.Errorf("detach current run before deleting charge: %w", err)
-		}
-
-		s.Charge.Realizations.PriorRuns = append(s.Charge.Realizations.PriorRuns, *currentRun)
-		s.Charge.Realizations.CurrentRun = nil
+	if err := s.reconcileDeletedCharge(ctx); err != nil {
+		return err
 	}
 
-	s.AddInvoicePatch(patches...)
+	return nil
+}
+
+func (s *CreditThenInvoiceStateMachine) reconcileDeletedCharge(ctx context.Context) error {
+	s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
+
+	if err := s.cancelCurrentRealization(ctx); err != nil {
+		return err
+	}
 
 	if err := s.Adapter.DeleteCharge(ctx, s.Charge); err != nil {
 		return fmt.Errorf("delete charge: %w", err)
 	}
 
 	if err := s.RefetchCharge(ctx); err != nil {
-		return fmt.Errorf("get charge: %w", err)
+		return fmt.Errorf("refetch deleted charge: %w", err)
 	}
 
 	return nil

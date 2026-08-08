@@ -69,6 +69,13 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 	var result meta.TriggerPatchResult[usagebased.Charge]
 
 	charge, err := s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {
+		if patch.Op() == meta.PatchTypeClearOverride && !charge.Intent.HasOverrideLayer() {
+			// Clearing an absent override is intentionally idempotent. Return while
+			// holding the charge lock without activating a lifecycle state machine:
+			// a terminal charge may not otherwise accept the clear trigger.
+			return &charge, nil
+		}
+
 		chargeWithUpdatedBase, err := applyBaseIntentPatchForOverriddenCharge(charge, patch)
 		if err != nil {
 			return nil, err
