@@ -246,9 +246,9 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		}
 
 		// Becoming active after the service period starts is not an invoice lifecycle event, so we
-		// still rely on the generic TriggerNext/AdvanceUntilStateStable flow before invoice-created
+		// still rely on the generic TriggerNext/AdvanceUntilStable flow before invoice-created
 		// lifecycle transitions take over.
-		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+		if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
 			return nil, fmt.Errorf("advancing usage based charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
@@ -258,16 +258,12 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			}
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
+		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
 			LineID:        stdLine.ID,
 			InvoiceID:     input.Invoice.ID,
 			ServicePeriod: stdLine.Period,
 		}); err != nil {
 			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, stateMachine.GetCharge().ID, err)
-		}
-
-		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing usage based charge[%s] after %s: %w", stateMachine.GetCharge().ID, meta.TriggerInvoiceCreated, err)
 		}
 
 		charge := stateMachine.GetCharge()
@@ -317,12 +313,8 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 			continue
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerCollectionCompleted); err != nil {
+		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerCollectionCompleted); err != nil {
 			return nil, fmt.Errorf("triggering collection_completed for charge[%s]: %w", stateMachine.GetCharge().ID, err)
-		}
-
-		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing usage based charge[%s] after collection_completed: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		charge := stateMachine.GetCharge()
@@ -513,7 +505,7 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, standardInvoi
 		return nil, fmt.Errorf("new state machine for usage-based charge[%s]: %w", charge.ID, err)
 	}
 
-	if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+	if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
 		return nil, fmt.Errorf("advancing usage-based charge[%s]: %w", charge.ID, err)
 	}
 
@@ -523,16 +515,12 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, standardInvoi
 		}
 	}
 
-	if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
+	if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
 		LineID:        standardLine.ID,
 		InvoiceID:     standardInvoice.ID,
 		ServicePeriod: standardLine.Period,
 	}); err != nil {
 		return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, charge.ID, err)
-	}
-
-	if patches := stateMachine.DrainInvoicePatches(); len(patches) > 0 {
-		return nil, fmt.Errorf("line[%s]: expected no invoice patches while attaching manually created usage-based charge[%s], got %v", sourceLine.GetID(), charge.ID, patches)
 	}
 
 	charge = stateMachine.GetCharge()
@@ -752,11 +740,12 @@ func (e *LineEngine) applyChargePatchForInvoiceLineEditViaAPI(ctx context.Contex
 		return usagebased.Charge{}, nil, fmt.Errorf("new state machine for usage based charge[%s]: %w", charge.ID, err)
 	}
 
-	if err := stateMachine.FireAndActivate(ctx, patch.Trigger(), patch); err != nil {
+	invoicePatches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, patch.Trigger(), patch)
+	if err != nil {
 		return usagebased.Charge{}, nil, fmt.Errorf("triggering %s for charge[%s]: %w", patch.Trigger(), charge.ID, err)
 	}
 
-	return stateMachine.GetCharge(), stateMachine.DrainInvoicePatches(), nil
+	return stateMachine.GetCharge(), invoicePatches, nil
 }
 
 func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
@@ -1002,7 +991,6 @@ func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoic
 				Invoice: input.Invoice,
 			}
 		},
-		AdvanceUntilStateStable: true,
 	})
 }
 
@@ -1031,10 +1019,9 @@ func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPayme
 }
 
 type fireLineTriggerInput struct {
-	Lines                   billing.StandardLines
-	Trigger                 meta.Trigger
-	InputFn                 func(*billing.StandardLine) models.Validator
-	AdvanceUntilStateStable bool
+	Lines   billing.StandardLines
+	Trigger meta.Trigger
+	InputFn func(*billing.StandardLine) models.Validator
 }
 
 func (i fireLineTriggerInput) Validate() error {
@@ -1079,14 +1066,8 @@ func (e *LineEngine) fireLineTrigger(ctx context.Context, input fireLineTriggerI
 			)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, input.Trigger, input.InputFn(stdLine)); err != nil {
+		if err := stateMachine.FireAndAdvanceUntilStable(ctx, input.Trigger, input.InputFn(stdLine)); err != nil {
 			return fmt.Errorf("triggering %s for charge[%s]: %w", input.Trigger, stateMachine.GetCharge().ID, err)
-		}
-
-		if input.AdvanceUntilStateStable {
-			if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-				return fmt.Errorf("advancing usage based charge[%s] after %s: %w", stateMachine.GetCharge().ID, input.Trigger, err)
-			}
 		}
 	}
 

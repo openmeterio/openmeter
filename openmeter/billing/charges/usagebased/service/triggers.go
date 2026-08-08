@@ -95,12 +95,13 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, patch.Trigger(), patch); err != nil {
+		invoicePatches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, patch.Trigger(), patch)
+		if err != nil {
 			return nil, err
 		}
 
 		charge = stateMachine.GetCharge()
-		result.InvoicePatches = stateMachine.DrainInvoicePatches()
+		result.InvoicePatches = invoicePatches
 
 		return &charge, nil
 	})

@@ -100,7 +100,7 @@ func (e *LineEngine) recordPaymentSettled(ctx context.Context, stateMachine Stat
 		return fmt.Errorf("new state machine: %w", err)
 	}
 
-	if _, err := advancementStateMachine.AdvanceUntilStateStable(ctx); err != nil {
+	if err := advancementStateMachine.AdvanceUntilStable(ctx); err != nil {
 		return fmt.Errorf("advancing charge[%s] after payment settlement: %w", charge.ID, err)
 	}
 

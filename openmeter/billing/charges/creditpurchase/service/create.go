@@ -40,14 +40,11 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("new promotional state machine: %w", err)
 			}
 
-			advancedCharge, err := stateMachine.AdvanceUntilStateStable(ctx)
-			if err != nil {
+			if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
 				return creditpurchase.ChargeWithGatheringLine{}, fmt.Errorf("advance promotional state machine: %w", err)
 			}
 
-			if advancedCharge != nil {
-				charge = *advancedCharge
-			}
+			charge = stateMachine.GetCharge()
 		case creditpurchase.SettlementTypeInvoice:
 			// noop, as we will transition to active state when the invoice is created, as
 			// - invocing based charges are driven by the invoice state machine
