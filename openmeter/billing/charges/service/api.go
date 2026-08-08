@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -68,4 +69,49 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 	}
 
 	return created[0], nil
+}
+
+func (s *service) DeleteCustomerCharge(ctx context.Context, input charges.DeleteCustomerChargeInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	if err := s.validateNamespaceLockdown(input.Namespace); err != nil {
+		return err
+	}
+
+	policy, err := resolveDeletePolicy(input.PaymentAdjustment)
+	if err != nil {
+		return err
+	}
+
+	patch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Policy:       policy,
+	})
+	if err != nil {
+		return fmt.Errorf("creating charge delete patch: %w", err)
+	}
+
+	return s.ApplyPatches(ctx, charges.ApplyPatchesInput{
+		CustomerID: customer.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
+		PatchesByChargeID: map[string]charges.Patch{
+			input.ChargeID: patch,
+		},
+	})
+}
+
+func resolveDeletePolicy(adjustment charges.PaymentAdjustment) (meta.PatchDeletePolicy, error) {
+	switch adjustment {
+	case charges.PaymentAdjustmentNone:
+		return meta.PatchDeletePolicy{
+			CreditRefundPolicy:  meta.CreditRefundPolicyIgnore,
+			InvoiceRefundPolicy: meta.InvoiceRefundPolicyIgnore,
+		}, nil
+	default:
+		return meta.PatchDeletePolicy{}, fmt.Errorf("unsupported payment adjustment: %s", adjustment)
+	}
 }

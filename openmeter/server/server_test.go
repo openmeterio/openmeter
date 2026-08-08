@@ -886,6 +886,10 @@ func (n NoopChargeService) CreateCustomerCharge(_ context.Context, _ billingchar
 	return billingcharges.Charge{}, nil
 }
 
+func (n NoopChargeService) DeleteCustomerCharge(_ context.Context, _ billingcharges.DeleteCustomerChargeInput) error {
+	return nil
+}
+
 func (n NoopChargeService) GetCurrentTotals(_ context.Context, _ usagebased.GetCurrentTotalsInput) (usagebased.GetCurrentTotalsResult, error) {
 	return usagebased.GetCurrentTotalsResult{}, nil
 }
