@@ -32,6 +32,9 @@
 
 - Name string enum constants `<Type><Value>`, for example
   `InvoiceStatusDraft`.
+- Prefer methods when behavior is intrinsic to an existing domain type. Use
+  freestanding functions when an operation has
+  no natural receiver.
 - Do not extract trivial or single-use helpers unless the name captures
   non-obvious domain intent. Inline pass-through wrappers.
 - Do not hide type switching, validation, persistence mapping, or meaningful

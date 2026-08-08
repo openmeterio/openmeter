@@ -76,11 +76,7 @@ func (m *connector) startOfMeasurementSnapshot(ctx context.Context, owner models
 		return balance.Snapshot{}, err
 	}
 
-	return balance.Snapshot{
-		At:       startOfMeasurement,
-		Balances: balance.NewStartingMap(grants, startOfMeasurement),
-		Overage:  0.0, // There cannot be overage at the start of measurement
-	}, nil
+	return balance.NewStartingSnapshot(grants, startOfMeasurement), nil
 }
 
 func (m *connector) runEngineInSpan(ctx context.Context, eng engine.Engine, runParams engine.RunParams) (engine.RunResult, error) {

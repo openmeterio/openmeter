@@ -5,13 +5,16 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // reset rolls over the grants and burns down the overage if needed.
 // It returns the new snapshot of the balances at the start of the next period.
-func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior grant.ResetBehavior, at time.Time) (balance.Snapshot, error) {
+func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior grant.ResetBehavior, at time.Time) (balance.Snapshot, GrantBurnDownHistorySegment, error) {
 	// Let's build a grantMap from our grants for easier lookup
 	grantMap := make(map[string]grant.Grant)
 	for _, g := range grants {
@@ -25,7 +28,7 @@ func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior gra
 		grant, ok := grantMap[grantID]
 		// Inconsistency check, should never happen
 		if !ok {
-			return balance.Snapshot{}, fmt.Errorf("grant %s not found", grantID)
+			return balance.Snapshot{}, GrantBurnDownHistorySegment{}, fmt.Errorf("grant %s not found", grantID)
 		}
 
 		// grants might become inactive at the reset time, in which case they're irrelevant for the next period
@@ -44,14 +47,51 @@ func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior gra
 
 	prioritizedGrants := slices.Clone(grants)
 	if err := PrioritizeGrants(prioritizedGrants); err != nil {
-		return balance.Snapshot{}, fmt.Errorf("failed to prioritize grants: %w", err)
+		return balance.Snapshot{}, GrantBurnDownHistorySegment{}, fmt.Errorf("failed to prioritize grants: %w", err)
 	}
 
-	rolledOver, _, startingOverage = e.burnDownGrants(rolledOver, prioritizedGrants, startingOverage)
+	balances := rolledOver
+	overage := startingOverage
+	var grantUsages GrantUsages
+	if startingOverage != 0 {
+		balances, grantUsages, overage = e.burnDownGrants(rolledOver, prioritizedGrants, startingOverage)
+	}
 
-	return balance.Snapshot{
-		At:       at,
-		Balances: rolledOver,
-		Overage:  startingOverage,
-	}, nil
+	unitConfig := snap.UnitConfig
+	if unitConfig != nil {
+		unitConfig = lo.ToPtr(unitConfig.Clone())
+	}
+
+	// The reset snapshot is the point-in-time balance after grant balance
+	// rollover and preserved overage burn.
+	resetSnapshot := balance.Snapshot{
+		At:         at,
+		Balances:   balances,
+		Overage:    overage,
+		UnitConfig: unitConfig,
+		Usage: balance.SnapshottedUsage{
+			Since: at,
+			Usage: 0,
+		},
+		UsageSnapshot: &balance.UsageSnapshot{
+			Usage:           0,
+			TotalGrantUsage: grantUsages.Sum().InexactFloat64(),
+		},
+	}
+
+	// The rollover segment captures the instantaneous transition from rolled-over
+	// balances to the reset snapshot.
+	rolloverSegment := GrantBurnDownHistorySegment{
+		ClosedPeriod:   timeutil.ClosedPeriod{From: at, To: at},
+		BalanceAtStart: rolledOver,
+		TerminationReasons: SegmentTerminationReason{
+			Rollover: true,
+		},
+		TotalUsage:     0,
+		OverageAtStart: startingOverage,
+		Overage:        overage,
+		GrantUsages:    grantUsages,
+	}
+
+	return resetSnapshot, rolloverSegment, nil
 }

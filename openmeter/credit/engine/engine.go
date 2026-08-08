@@ -4,9 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -39,7 +36,7 @@ func (p RunParams) Clone() RunParams {
 		Meter:            p.Meter,
 		Grants:           grants,
 		Until:            p.Until,
-		StartingSnapshot: p.StartingSnapshot,
+		StartingSnapshot: p.StartingSnapshot.Clone(),
 		ResetBehavior:    p.ResetBehavior,
 		Resets:           resets,
 	}
@@ -54,16 +51,6 @@ type RunResult struct {
 	History GrantBurnDownHistory
 	// RunParams used to produce the result.
 	RunParams RunParams
-}
-
-// TotalAvailableGrantAmountAtLastPeriod is the total grant amount available in the run period:
-// grant-covered usage plus remaining balances still available at the end.
-func (r RunResult) TotalAvailableGrantAmountAtLastPeriod() float64 {
-	lastUsagePeriodHistory, _ := lo.Last(r.History.ChunkByResets())
-
-	return lastUsagePeriodHistory.TotalGrantUsage().
-		Add(alpacadecimal.NewFromFloat(r.Snapshot.Balance())).
-		InexactFloat64()
 }
 
 type Engine interface {

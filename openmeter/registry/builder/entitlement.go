@@ -63,9 +63,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 	transactionManager := enttx.NewCreator(opts.DatabaseClient)
 
 	balanceSnapshotService := balance.NewSnapshotService(balance.SnapshotServiceConfig{
-		OwnerConnector:     entitlementOwnerConnector,
-		StreamingConnector: opts.StreamingConnector,
-		Repo:               balanceSnashotDBAdapter,
+		Repo: balanceSnashotDBAdapter,
 	})
 
 	creditConnector := credit.NewCreditConnector(
