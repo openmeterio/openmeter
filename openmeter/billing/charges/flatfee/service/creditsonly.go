@@ -45,6 +45,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(flatfee.StatusCreated).
 		Permit(meta.TriggerNext, flatfee.StatusActive, statelessx.BoolFn(s.IsAfterInvoiceAt)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -54,6 +55,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(flatfee.StatusActive).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsAfterBookedAt)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -62,6 +64,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 
 	s.Configure(flatfee.StatusFinal).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -70,6 +73,9 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 				s.ClearAdvanceAfter,
 			),
 		)
+
+	s.Configure(flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation))
 }
 
 func (s *CreditsOnlyStateMachine) IsAfterBookedAt() bool {
@@ -85,6 +91,24 @@ func (s *CreditsOnlyStateMachine) AdvanceAfterBookedAt(ctx context.Context) erro
 		s.Charge.Intent.GetEffectiveServicePeriod(),
 	)))
 	return nil
+}
+
+func (s *CreditsOnlyStateMachine) SetOverride(ctx context.Context, patch flatfee.PatchSetOverride) error {
+	if err := s.setOverrideIntent(ctx, patch); err != nil {
+		return err
+	}
+
+	ratingResult, err := s.rateEffectiveIntent()
+	if err != nil {
+		return err
+	}
+	s.Charge.State.AmountAfterProration = ratingResult.Intent.AmountAfterProration
+
+	if s.Charge.Realizations.CurrentRun == nil {
+		return nil
+	}
+
+	return s.reconcileCurrentRunCredits(ctx, ratingResult)
 }
 
 func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {

@@ -76,6 +76,19 @@ Effective deletion and base-intent deletion are therefore different query
 concepts. Subscription reconciliation must be able to find a base intent even
 when an active override hides it.
 
+### Customer charge override updates
+
+Setting a customer charge override replaces the complete mutable override
+snapshot while preserving the immutable base intent. Repeated sets update the
+same layer; overrides never stack. Deletion state is not part of this operation
+and remains owned by customer charge deletion.
+
+Flat-fee override updates reuse normal rerating and invoice reconciliation.
+Credit-only usage-based updates void and rebuild mutable realization history.
+Invoice-backed usage-based updates are supported before realization starts;
+after that point they are rejected until historical usage rerating and invoice
+correction semantics are defined.
+
 ### Customer charge deletion payment adjustment
 
 The customer charge API facade requires a payment adjustment when deleting a

@@ -52,6 +52,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			statelessx.BoolFn(s.IsInsideServicePeriod),
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(argAsPeriodPatch[meta.PatchExtend](s.patchCreatedChargePeriod))).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(argAsPeriodPatch[meta.PatchShrink](s.patchCreatedChargePeriod))).
 		OnActive(
@@ -65,6 +66,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			statelessx.BoolFn(s.IsAfterServicePeriod),
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -80,6 +82,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusActiveRealizationWaitingForCollection,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
@@ -93,6 +96,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			s.IsAfterCollectionPeriod,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		// TODO: Transition to a failed state if the collection period end is not set
@@ -104,6 +108,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusActiveRealizationCompleted,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
 		OnActive(
 			s.FinalizeRealizationRun,
 		)
@@ -114,19 +119,40 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusFinal,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
 
 	s.Configure(usagebased.StatusFinal).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(s.ClearAdvanceAfter)
+
+	s.Configure(usagebased.StatusDeleted).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation))
 }
 
 func (s *CreditsOnlyStateMachine) ClearAdvanceAfter(ctx context.Context) error {
 	s.Charge.State.AdvanceAfter = nil
 	return nil
+}
+
+func (s *CreditsOnlyStateMachine) SetOverride(ctx context.Context, patch usagebased.PatchSetOverride) error {
+	if err := s.setOverrideIntent(ctx, patch); err != nil {
+		return err
+	}
+
+	if s.Charge.Status == usagebased.StatusCreated {
+		return s.AdvanceAfterServicePeriodFrom(ctx)
+	}
+
+	if err := s.voidAllRuns(ctx); err != nil {
+		return err
+	}
+
+	return s.persistActivePeriodPatch(ctx)
 }
 
 func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
