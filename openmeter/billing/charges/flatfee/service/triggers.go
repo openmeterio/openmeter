@@ -69,6 +69,12 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 	var result meta.TriggerPatchResult[flatfee.Charge]
 
 	charge, err := s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
+		if patch.Op() == meta.PatchTypeClearOverride && !charge.Intent.HasOverrideLayer() {
+			// Clear is retry-safe: with no override row the effective intent is
+			// already the base, so state-machine activation would add no value.
+			return &charge, nil
+		}
+
 		chargeWithUpdatedBase, err := applyBaseIntentPatchForOverriddenCharge(charge, patch)
 		if err != nil {
 			return nil, err

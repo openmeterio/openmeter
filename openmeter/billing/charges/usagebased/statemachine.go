@@ -14,7 +14,8 @@ const (
 	StatusCreated Status = Status(meta.ChargeStatusCreated)
 
 	// Active status and substates
-	StatusActive Status = Status(meta.ChargeStatusActive)
+	StatusActive              Status = Status(meta.ChargeStatusActive)
+	StatusActiveClearOverride Status = "active.clear_override"
 
 	StatusActiveRealizationStarted                        Status = "active.realization.started"
 	StatusActiveRealizationWaitingForCollection           Status = "active.realization.waiting_for_collection"
@@ -24,8 +25,9 @@ const (
 	StatusActiveRealizationCompleted                      Status = "active.realization.completed"
 	StatusActiveAwaitingPaymentSettlement                 Status = "active.awaiting_payment_settlement"
 
-	StatusFinal   Status = Status(meta.ChargeStatusFinal)
-	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
+	StatusFinal                Status = Status(meta.ChargeStatusFinal)
+	StatusDeleted              Status = Status(meta.ChargeStatusDeleted)
+	StatusDeletedClearOverride Status = "deleted.clear_override"
 )
 
 // mutableRealizationStatuses are states where the current realization can still
@@ -45,6 +47,7 @@ func (Status) Values() []string {
 	return []string{
 		string(StatusCreated),
 		string(StatusActive),
+		string(StatusActiveClearOverride),
 		string(StatusActiveRealizationStarted),
 		string(StatusActiveRealizationWaitingForCollection),
 		string(StatusActiveRealizationProcessing),
@@ -54,6 +57,7 @@ func (Status) Values() []string {
 		string(StatusActiveAwaitingPaymentSettlement),
 		string(StatusFinal),
 		string(StatusDeleted),
+		string(StatusDeletedClearOverride),
 	}
 }
 
