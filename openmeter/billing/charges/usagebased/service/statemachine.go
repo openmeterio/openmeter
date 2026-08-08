@@ -178,6 +178,31 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 	return nil
 }
 
+// setOverrideIntent replaces the complete mutable override snapshot while
+// preserving the charge's base intent.
+func (s *stateMachine) setOverrideIntent(ctx context.Context, patch usagebased.PatchSetOverride) error {
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
+	if err != nil {
+		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	fields := patch.GetIntentMutableFields()
+	if err := s.mutateIntentLayer(ctx, target, func(current *usagebased.IntentMutableFields) error {
+		*current = fields
+		return nil
+	}); err != nil {
+		return fmt.Errorf("setting usage-based override intent: %w", err)
+	}
+
+	return nil
+}
+
+func (s *stateMachine) UnsupportedSetOverrideOperation(_ context.Context, _ usagebased.PatchSetOverride) error {
+	return models.NewGenericPreConditionFailedError(
+		fmt.Errorf("cannot set override for usage-based charge in status %s; retry after billing advances", s.Charge.Status),
+	)
+}
+
 // rejectHiddenIntentTarget prevents lifecycle state machines from processing a
 // hidden source intent. When an override layer exists, the override is the
 // active customer-facing charge: it owns status transitions, realization runs,

@@ -10,6 +10,7 @@ var (
 	TriggerCollectionCompleted    Trigger = "collection_completed"
 	TriggerInvoiceIssued          Trigger = "invoice_issued"
 	TriggerLineManualEdit         Trigger = "line_manual_edit"
+	TriggerSetOverride            Trigger = "set_override"
 	TriggerShrinkToRealizedPeriod Trigger = "shrink_to_realized_period"
 	TriggerAttachInvoiceLine      Trigger = "attach_invoice_line"
 )

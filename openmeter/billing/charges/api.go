@@ -19,6 +19,7 @@ import (
 type CustomerChargeAPIService interface {
 	CreateCustomerCharge(ctx context.Context, input CreateCustomerChargeInput) (Charge, error)
 	DeleteCustomerCharge(ctx context.Context, input DeleteCustomerChargeInput) error
+	SetCustomerChargeOverride(ctx context.Context, input SetCustomerChargeOverrideInput) (Charge, error)
 }
 
 type CreditPurchaseFacadeService interface {
@@ -113,6 +114,59 @@ func (i DeleteCustomerChargeInput) Validate() error {
 
 	if err := i.PaymentAdjustment.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("payment adjustment: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// SetCustomerChargeOverrideInput replaces the complete mutable override layer
+// of a flat-fee or usage-based charge. The immutable base intent is preserved.
+type SetCustomerChargeOverrideInput struct {
+	Namespace  string
+	CustomerID string
+	ChargeID   string
+
+	FlatFee    *flatfee.IntentMutableFields
+	UsageBased *usagebased.IntentMutableFields
+}
+
+func (i SetCustomerChargeOverrideInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CustomerID == "" {
+		errs = append(errs, errors.New("customer ID is required"))
+	}
+
+	if i.ChargeID == "" {
+		errs = append(errs, errors.New("charge ID is required"))
+	}
+
+	if (i.FlatFee == nil) == (i.UsageBased == nil) {
+		errs = append(errs, errors.New("exactly one charge type is required"))
+	}
+
+	if i.FlatFee != nil {
+		if i.FlatFee.IntentDeletedAt != nil {
+			errs = append(errs, errors.New("flat fee intent deleted at cannot be set by an override update"))
+		}
+
+		if err := i.FlatFee.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("flat fee intent mutable fields: %w", err))
+		}
+	}
+
+	if i.UsageBased != nil {
+		if i.UsageBased.IntentDeletedAt != nil {
+			errs = append(errs, errors.New("usage based intent deleted at cannot be set by an override update"))
+		}
+
+		if err := i.UsageBased.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("usage based intent mutable fields: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

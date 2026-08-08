@@ -19,6 +19,7 @@ const (
 	PatchTypeExtend                 PatchType = "extend"
 	PatchTypeShrink                 PatchType = "shrink"
 	PatchTypeDelete                 PatchType = "delete"
+	PatchTypeSetOverride            PatchType = "set_override"
 	PatchTypeLineManualEdit         PatchType = "line_manual_edit"
 	PatchTypeShrinkToRealizedPeriod PatchType = "shrink_to_realized_period"
 )
