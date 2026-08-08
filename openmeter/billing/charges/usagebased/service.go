@@ -32,8 +32,9 @@ type UsageBasedService interface {
 	// AdvanceCharge drives one usage-based charge. Realization runs store
 	// cumulative usage snapshots; billing-line quantities are mapped separately.
 	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
-	// TriggerPatch applies an explicit base/override target patch and then
-	// reconciles invoice artifacts from the effective usage-based intent.
+	// TriggerPatch applies an explicit base/override target patch, reconciles
+	// invoice artifacts from the effective usage-based intent, and returns the
+	// stable lifecycle state when synchronous advancement is available.
 	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[Charge], error)
 	// GetCurrentTotals calculates the current customer-facing totals from the
 	// effective intent and non-voided realization history.

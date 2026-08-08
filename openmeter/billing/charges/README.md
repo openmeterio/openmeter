@@ -76,6 +76,59 @@ Effective deletion and base-intent deletion are therefore different query
 concepts. Subscription reconciliation must be able to find a base intent even
 when an active override hides it.
 
+### Customer charge override updates
+
+Setting a customer charge override replaces the complete mutable override
+snapshot while preserving the immutable base intent. Repeated sets update the
+same layer; overrides never stack. Deletion state is not part of this operation
+and remains owned by customer charge deletion.
+
+Clearing a customer charge override removes that manual layer and restores the
+latest reconciled base intent as effective. The operation is distinct from
+charge deletion: it does not create or change an intent deletion marker. If the
+restored base is live, lifecycle reconciliation can pass through the transient
+`active.clear_override` detailed state, which owns any required reset before
+dynamically selecting the restored `created`, `active`, or `final` lifecycle
+state. Invoice-backed flat fees use this reset state for every live-base clear.
+If the base was already deleted while hidden by a live override, clearing
+instead passes through the transient `deleted.clear_override` state. That state
+owns the same settlement-specific cleanup as system deletion and then
+immediately advances to the usual `deleted` state. Both transient states
+complete synchronously. The base deletion timestamp is preserved, and the
+system reconciliation deletion policy applies; clearing does not introduce a
+new customer payment adjustment choice.
+
+For invoice-backed flat fees, clearing an override that restores a live base
+cancels the current realization line, including when it belongs to an immutable
+issued or settled invoice, then detaches that run into audit history and starts
+fresh billing work for the restored base. Existing prior runs remain untouched.
+Billing may create a credit note for the deleted line; when it cannot, it records
+unsupported correction history rather than blocking restoration.
+
+Flat-fee override updates reuse normal rerating and invoice reconciliation.
+Credit-only usage-based updates void and rebuild mutable realization history.
+Invoice-backed usage-based updates are supported before realization starts;
+after that point they are rejected until historical usage rerating and invoice
+correction semantics are defined.
+
+### Customer charge deletion payment adjustment
+
+The customer charge API facade requires a payment adjustment when deleting a
+flat-fee or usage-based charge. The facade owns this customer-facing choice and
+maps it to the more detailed internal deletion policies used by charge state
+machines.
+
+`none` requests no compensating adjustment for economic effects already
+realized by the charge. It maps to ignoring both credit and invoice refunds:
+credit-only realizations are not corrected, and payment authorization,
+settlement, payment intents, and external collection state are not refunded or
+otherwise adjusted.
+
+Payment adjustment is separate from invoice lifecycle reconciliation. Deleting
+a charge still removes its gathering or mutable invoice lines. Immutable
+invoice and payment history is preserved; unsupported drift is recorded as an
+invoice validation issue.
+
 ## Lifecycle and persistence invariants
 
 - Each concrete state machine is the authority for reachable detailed states.

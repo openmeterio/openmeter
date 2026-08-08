@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -68,4 +69,173 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 	}
 
 	return created[0], nil
+}
+
+func (s *service) DeleteCustomerCharge(ctx context.Context, input charges.DeleteCustomerChargeInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	if err := s.validateNamespaceLockdown(input.Namespace); err != nil {
+		return err
+	}
+
+	policy, err := resolveDeletePolicy(input.PaymentAdjustment)
+	if err != nil {
+		return err
+	}
+
+	patch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Policy:       policy,
+	})
+	if err != nil {
+		return fmt.Errorf("creating charge delete patch: %w", err)
+	}
+
+	return s.ApplyPatches(ctx, charges.ApplyPatchesInput{
+		CustomerID: customer.CustomerID{
+			Namespace: input.Namespace,
+			ID:        input.CustomerID,
+		},
+		PatchesByChargeID: map[string]charges.Patch{
+			input.ChargeID: patch,
+		},
+	})
+}
+
+func resolveDeletePolicy(adjustment charges.PaymentAdjustment) (meta.PatchDeletePolicy, error) {
+	switch adjustment {
+	case charges.PaymentAdjustmentNone:
+		return meta.PatchDeletePolicy{
+			CreditRefundPolicy:  meta.CreditRefundPolicyIgnore,
+			InvoiceRefundPolicy: meta.InvoiceRefundPolicyIgnore,
+		}, nil
+	default:
+		return meta.PatchDeletePolicy{}, fmt.Errorf("unsupported payment adjustment: %s", adjustment)
+	}
+}
+
+func (s *service) SetCustomerChargeOverride(ctx context.Context, input charges.SetCustomerChargeOverrideInput) (charges.Charge, error) {
+	if err := input.Validate(); err != nil {
+		return charges.Charge{}, err
+	}
+
+	if err := s.validateNamespaceLockdown(input.Namespace); err != nil {
+		return charges.Charge{}, err
+	}
+
+	chargeID := meta.ChargeID{
+		Namespace: input.Namespace,
+		ID:        input.ChargeID,
+	}
+
+	existing, err := s.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
+	if err != nil {
+		return charges.Charge{}, err
+	}
+
+	customerID, err := existing.GetCustomerID()
+	if err != nil {
+		return charges.Charge{}, fmt.Errorf("getting charge customer: %w", err)
+	}
+
+	if customerID.ID != input.CustomerID {
+		return charges.Charge{}, fmt.Errorf("charge %s is not owned by customer %s", input.ChargeID, input.CustomerID)
+	}
+
+	var patch charges.Patch
+	switch existing.Type() {
+	case meta.ChargeTypeFlatFee:
+		if input.FlatFee == nil {
+			return charges.Charge{}, models.NewGenericValidationError(fmt.Errorf("flat fee override fields are required for flat fee charge %s", input.ChargeID))
+		}
+
+		patch, err = meta.NewPatchSetOverride(flatfee.NewPatchSetOverrideInput{
+			ChangeSource:        billing.ChangeSourceAPIRequest,
+			IntentMutableFields: *input.FlatFee,
+		})
+	case meta.ChargeTypeUsageBased:
+		if input.UsageBased == nil {
+			return charges.Charge{}, models.NewGenericValidationError(fmt.Errorf("usage based override fields are required for usage based charge %s", input.ChargeID))
+		}
+
+		patch, err = meta.NewPatchSetOverride(usagebased.NewPatchSetOverrideInput{
+			ChangeSource:        billing.ChangeSourceAPIRequest,
+			IntentMutableFields: *input.UsageBased,
+		})
+	case meta.ChargeTypeCreditPurchase:
+		return charges.Charge{}, models.NewGenericValidationError(fmt.Errorf("setting overrides for credit purchase charges is not supported"))
+	default:
+		return charges.Charge{}, fmt.Errorf("unsupported charge type: %s", existing.Type())
+	}
+	if err != nil {
+		return charges.Charge{}, fmt.Errorf("creating charge override patch: %w", err)
+	}
+
+	if err := s.ApplyPatches(ctx, charges.ApplyPatchesInput{
+		CustomerID: customerID,
+		PatchesByChargeID: map[string]charges.Patch{
+			input.ChargeID: patch,
+		},
+	}); err != nil {
+		return charges.Charge{}, err
+	}
+
+	return s.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
+}
+
+func (s *service) ClearCustomerChargeOverride(ctx context.Context, input charges.ClearCustomerChargeOverrideInput) (charges.Charge, error) {
+	if err := input.Validate(); err != nil {
+		return charges.Charge{}, err
+	}
+
+	if err := s.validateNamespaceLockdown(input.Namespace); err != nil {
+		return charges.Charge{}, err
+	}
+
+	chargeID := meta.ChargeID{
+		Namespace: input.Namespace,
+		ID:        input.ChargeID,
+	}
+
+	existing, err := s.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
+	if err != nil {
+		return charges.Charge{}, err
+	}
+
+	customerID, err := existing.GetCustomerID()
+	if err != nil {
+		return charges.Charge{}, fmt.Errorf("getting charge customer: %w", err)
+	}
+
+	if customerID.ID != input.CustomerID {
+		return charges.Charge{}, fmt.Errorf("charge %s is not owned by customer %s", input.ChargeID, input.CustomerID)
+	}
+
+	switch existing.Type() {
+	case meta.ChargeTypeFlatFee, meta.ChargeTypeUsageBased:
+	case meta.ChargeTypeCreditPurchase:
+		return charges.Charge{}, models.NewGenericValidationError(fmt.Errorf("clearing overrides for credit purchase charges is not supported"))
+	default:
+		return charges.Charge{}, fmt.Errorf("unsupported charge type: %s", existing.Type())
+	}
+
+	patch, err := meta.NewPatchClearOverride(meta.NewPatchClearOverrideInput{
+		ChangeSource: billing.ChangeSourceAPIRequest,
+	})
+	if err != nil {
+		return charges.Charge{}, fmt.Errorf("creating charge clear override patch: %w", err)
+	}
+
+	if err := s.ApplyPatches(ctx, charges.ApplyPatchesInput{
+		CustomerID: customerID,
+		PatchesByChargeID: map[string]charges.Patch{
+			input.ChargeID: patch,
+		},
+	}); err != nil {
+		return charges.Charge{}, err
+	}
+
+	return s.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
 }

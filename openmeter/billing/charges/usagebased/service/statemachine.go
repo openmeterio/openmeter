@@ -178,6 +178,74 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 	return nil
 }
 
+// setOverrideIntent replaces the complete mutable override snapshot while
+// preserving the charge's base intent.
+func (s *stateMachine) setOverrideIntent(ctx context.Context, patch usagebased.PatchSetOverride) error {
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
+	if err != nil {
+		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	fields := patch.GetIntentMutableFields()
+	if err := s.mutateIntentLayer(ctx, target, func(current *usagebased.IntentMutableFields) error {
+		*current = fields
+		return nil
+	}); err != nil {
+		return fmt.Errorf("setting usage-based override intent: %w", err)
+	}
+
+	return nil
+}
+
+func (s *stateMachine) UnsupportedSetOverrideOperation(_ context.Context, _ usagebased.PatchSetOverride) error {
+	return models.NewGenericPreConditionFailedError(
+		fmt.Errorf("cannot set override for usage-based charge in status %s; retry after billing advances", s.Charge.Status),
+	)
+}
+
+// clearOverrideIntent removes the effective override layer so the current base
+// intent becomes customer-facing again. State-machine transitions own
+// reconciling the restored intent's lifecycle, including deletion.
+func (s *stateMachine) clearOverrideIntent(ctx context.Context) error {
+	if !s.Charge.Intent.HasOverrideLayer() {
+		return fmt.Errorf("clearing usage-based override intent: override intent is required")
+	}
+
+	base, err := s.Adapter.DeleteChargeOverride(ctx, s.Charge.ChargeBase)
+	if err != nil {
+		return fmt.Errorf("deleting usage-based override intent: %w", err)
+	}
+
+	s.Charge.ChargeBase = base
+
+	return nil
+}
+
+func (s *stateMachine) IsBaseIntentDeleted() bool {
+	return s.Charge.Intent.GetBaseIntent().IntentDeletedAt != nil
+}
+
+// ClearOverrideFromDeletedBase removes a redundant override from a charge whose
+// source intent and lifecycle are already deleted. Deletion reconciliation has
+// already completed, so it must not be repeated.
+func (s *stateMachine) ClearOverrideFromDeletedBase(ctx context.Context, _ meta.PatchClearOverride) error {
+	if err := s.clearOverrideIntent(ctx); err != nil {
+		return err
+	}
+
+	if s.Charge.Intent.GetDeletedAt() == nil {
+		return fmt.Errorf("clearing usage-based override did not restore the deleted base intent")
+	}
+
+	return nil
+}
+
+func (s *stateMachine) UnsupportedClearOverrideOperation(_ context.Context, _ meta.PatchClearOverride) error {
+	return models.NewGenericPreConditionFailedError(
+		fmt.Errorf("cannot clear override for usage-based charge in status %s; retry after billing advances", s.Charge.Status),
+	)
+}
+
 // rejectHiddenIntentTarget prevents lifecycle state machines from processing a
 // hidden source intent. When an override layer exists, the override is the
 // active customer-facing charge: it owns status transitions, realization runs,

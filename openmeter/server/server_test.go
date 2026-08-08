@@ -886,6 +886,18 @@ func (n NoopChargeService) CreateCustomerCharge(_ context.Context, _ billingchar
 	return billingcharges.Charge{}, nil
 }
 
+func (n NoopChargeService) DeleteCustomerCharge(_ context.Context, _ billingcharges.DeleteCustomerChargeInput) error {
+	return nil
+}
+
+func (n NoopChargeService) SetCustomerChargeOverride(_ context.Context, _ billingcharges.SetCustomerChargeOverrideInput) (billingcharges.Charge, error) {
+	return billingcharges.Charge{}, nil
+}
+
+func (n NoopChargeService) ClearCustomerChargeOverride(_ context.Context, _ billingcharges.ClearCustomerChargeOverrideInput) (billingcharges.Charge, error) {
+	return billingcharges.Charge{}, nil
+}
+
 func (n NoopChargeService) GetCurrentTotals(_ context.Context, _ usagebased.GetCurrentTotalsInput) (usagebased.GetCurrentTotalsResult, error) {
 	return usagebased.GetCurrentTotalsResult{}, nil
 }
