@@ -18,6 +18,53 @@ import (
 
 var _ billing.InvoiceSplitLineGroupAdapter = (*adapter)(nil)
 
+func (a *adapter) GetSplitLineGroupsForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error) {
+	if err := in.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]billing.SplitLineHierarchy, error) {
+		dbGroups, err := tx.db.BillingInvoiceSplitLineGroup.Query().
+			Where(billinginvoicesplitlinegroup.Namespace(in.Namespace)).
+			Where(billinginvoicesplitlinegroup.SubscriptionID(in.SubscriptionID)).
+			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+				tx.expandLineItems(q)
+				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
+					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
+				})
+			}).
+			Where(billinginvoicesplitlinegroup.DeletedAtIsNil()).
+			All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching split line groups: %w", err)
+		}
+
+		groups, err := slicesx.MapWithErr(dbGroups, func(dbGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineHierarchy, error) {
+			group, err := tx.mapSplitLineGroupFromDB(dbGroup)
+			if err != nil {
+				return billing.SplitLineHierarchy{}, err
+			}
+
+			lines, err := tx.mapSplitLineHierarchyLinesFromDB(ctx, dbGroup.Edges.BillingInvoiceLines)
+			if err != nil {
+				return billing.SplitLineHierarchy{}, err
+			}
+
+			return billing.SplitLineHierarchy{
+				Group: group,
+				Lines: lines,
+			}, nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("mapping split line groups: %w", err)
+		}
+
+		return groups, nil
+	})
+}
+
 func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.CreateSplitLineGroupAdapterInput) (billing.SplitLineGroup, error) {
 	if err := input.Validate(); err != nil {
 		return billing.SplitLineGroup{}, billing.ValidationError{

@@ -46,14 +46,6 @@ type CustomerOverrideService interface {
 }
 
 type InvoiceLineService interface {
-	// GetLinesForSubscription returns the lines or hierarchies required for subscription sync.
-	//
-	// It does not include any deleted lines or hierarchy unless the deleted line is manually edited.
-	//
-	// This logic prevents reusing old entities that might have dirty state, but the manually edited lines are
-	// included so that subscription sync can understand the user intent that they don't want to invoice
-	// that line.
-	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
 	// the invoice is used as contextual information to the call.
 	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*StandardLine, error)
@@ -73,6 +65,8 @@ type LineEngineService interface {
 type SplitLineGroupService interface {
 	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
 	UpdateSplitLineGroup(ctx context.Context, input UpdateSplitLineGroupInput) (SplitLineGroup, error)
+	// GetSplitLineGroupsForSubscription returns the active split-line hierarchies required for subscription sync.
+	GetSplitLineGroupsForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]SplitLineHierarchy, error)
 }
 
 type InvoiceService interface {
@@ -107,6 +101,9 @@ type InvoiceService interface {
 }
 
 type StandardInvoiceService interface {
+	// GetStandardLinesForSubscription returns standard lines required for subscription sync.
+	// Deleted lines are excluded unless they are manually managed, preserving explicit user intent during reconciliation.
+	GetStandardLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (StandardLines, error)
 	// UpdateStandardInvoice updates a standard invoice as a whole
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceInput) (StandardInvoice, error)
 	// GetStandardInvoiceById gets a standard invoice by its ID
@@ -122,6 +119,9 @@ type StandardInvoiceService interface {
 }
 
 type GatheringInvoiceService interface {
+	// GetGatheringLinesForSubscription returns gathering lines required for subscription sync.
+	// Deleted lines are excluded unless they are manually managed, preserving explicit user intent during reconciliation.
+	GetGatheringLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) (GatheringLines, error)
 	// CreatePendingInvoiceLines creates pending invoice lines for a customer, if the lines are zero valued, the response is nil
 	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
 

@@ -8,6 +8,18 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
+func (s *Service) GetSplitLineGroupsForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.SplitLineHierarchy, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]billing.SplitLineHierarchy, error) {
+		return s.adapter.GetSplitLineGroupsForSubscription(ctx, input)
+	})
+}
+
 func (s *Service) DeleteSplitLineGroup(ctx context.Context, input billing.DeleteSplitLineGroupInput) error {
 	if err := input.Validate(); err != nil {
 		return billing.ValidationError{

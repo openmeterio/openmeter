@@ -2,6 +2,7 @@ package billingadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
@@ -24,6 +26,86 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func (a *adapter) GetGatheringLinesForSubscription(ctx context.Context, in billing.GetLinesForSubscriptionInput) (billing.GatheringLines, error) {
+	if err := in.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GatheringLines, error) {
+		query := tx.db.BillingInvoiceLine.Query().
+			Where(billinginvoiceline.Namespace(in.Namespace)).
+			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
+			Where(billinginvoiceline.ParentLineIDIsNil()). // Split-line children are loaded through their hierarchy instead of as independent subscription items.
+			Where(billinginvoiceline.HasBillingInvoiceWith(
+				billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering),
+			)).
+			Where(
+				billinginvoiceline.Or(
+					billinginvoiceline.DeletedAtIsNil(),
+					billinginvoiceline.And(
+						billinginvoiceline.DeletedAtNotNil(),
+						billinginvoiceline.ManagedByEQ(billing.ManuallyManagedLine),
+					),
+				),
+			).
+			WithBillingInvoice()
+
+		if !in.IncludeChargeManaged {
+			query = query.Where(billinginvoiceline.ChargeIDIsNil())
+		}
+
+		query = tx.expandLineItems(query)
+
+		dbLines, err := query.All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("fetching gathering lines: %w", err)
+		}
+
+		if err := errors.Join(
+			lo.Map(dbLines, func(line *db.BillingInvoiceLine, _ int) error {
+				if line.Edges.BillingInvoice == nil {
+					return fmt.Errorf("billing invoice not found for line [id=%s]", line.ID)
+				}
+
+				return nil
+			})...,
+		); err != nil {
+			return nil, err
+		}
+
+		invoiceSchemaLevelByID, err := tx.getSchemaLevelPerInvoice(ctx, customer.CustomerID{
+			Namespace: in.Namespace,
+			ID:        in.CustomerID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("getting schema level per invoice: %w", err)
+		}
+
+		dbLinesByInvoiceID := lo.GroupBy(dbLines, func(line *db.BillingInvoiceLine) string {
+			return line.Edges.BillingInvoice.ID
+		})
+
+		gatheringLines := make(billing.GatheringLines, 0, len(dbLines))
+		for invoiceID, dbLinesForInvoice := range dbLinesByInvoiceID {
+			schemaLevel, found := invoiceSchemaLevelByID[invoiceID]
+			if !found {
+				return nil, fmt.Errorf("schema level not found for invoice [id=%s]", invoiceID)
+			}
+
+			mappedLines, err := tx.mapGatheringInvoiceLinesFromDB(schemaLevel, dbLinesForInvoice)
+			if err != nil {
+				return nil, fmt.Errorf("mapping gathering lines: %w", err)
+			}
+
+			gatheringLines = append(gatheringLines, mappedLines...)
+		}
+
+		return gatheringLines, nil
+	})
+}
 
 func (a *adapter) HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID billing.InvoiceID, lineIDs []string) error {
 	if err := invoiceID.Validate(); err != nil {
