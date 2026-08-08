@@ -86,6 +86,15 @@ when an active override hides it.
   complete, not merely that rating or line creation finished.
 - Lifecycle entry points run in database transactions. Flat-fee and usage-based
   advancement and patching also take charge-scoped locks.
+- Charge state machines do not expose invoice patches through a separate peek
+  or drain operation. A caller must choose an invoice-aware
+  `*UntilInvoicePatchesOrStable` operation, which stops at the first invoice
+  effect boundary and transfers ownership of the returned patches, or a
+  no-invoice-patches `*UntilStable` operation.
+- The no-invoice-patches operations fail if a transition produces invoice
+  patches. This makes forgetting to retrieve and apply invoice effects an
+  explicit error instead of silently losing them while advancing lifecycle
+  state.
 - `UpdateCharge` persists the concrete base row. Expanded realizations are read
   model state and are written through dedicated adapter operations.
 - Ledger effects and the realization or payment facts that reference them are
