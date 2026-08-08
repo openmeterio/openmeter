@@ -128,7 +128,7 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 			profile.Workflow.Payment = &sendInvoice
 		})
 		_, err = c.Customers.Billing.Update(t.Context(), customer.ID, v3sdk.UpsertCustomerBillingDataRequest{
-			BillingProfile: &v3sdk.ProfileReference{ID: profile.ID},
+			BillingProfile: v3sdk.NullableValue(v3sdk.ProfileReference{ID: profile.ID}),
 		})
 		c.requireStatus(http.StatusOK, err)
 

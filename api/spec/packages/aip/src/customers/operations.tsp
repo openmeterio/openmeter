@@ -116,7 +116,7 @@ namespace Billing {
     @summary("Update customer billing data")
     upsert(
       @path customerId: Shared.ULID,
-      @body body: Shared.UpsertRequest<CustomerBillingData>,
+      @body body: CustomerBillingDataUpsertRequest,
     ):
       | Shared.UpsertResponse<CustomerBillingData>
       | Common.Gone
@@ -129,7 +129,7 @@ namespace Billing {
     @summary("Update customer billing app data")
     upsertAppData(
       @path customerId: Shared.ULID,
-      @body body: Shared.UpsertRequest<Apps.AppCustomerData>,
+      @body body: Shared.UpsertNullableRequest<Apps.AppCustomerData>,
     ):
       | Shared.UpsertResponse<Apps.AppCustomerData>
       | Common.Gone

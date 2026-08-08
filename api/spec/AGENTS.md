@@ -812,6 +812,17 @@ check` (typecheck + these tests) alongside `test:sdk:coverage`, and the
   `github.com/oapi-codegen/nullable`, not `*Nullable[T]`. Optional nullable
   fields rely on `omitempty` for the unspecified state while still preserving
   explicit `null` and concrete values on marshal/unmarshal.
+- PUT replacement convention: v3 upserts replace the stored state — a provided
+  value replaces, an omitted optional field unsets/removes, and an explicit
+  `null` is equivalent to omission. `Shared.UpsertNullableRequest<T>` rewrites
+  every optional property of `T` to `field?: T | null` via the
+  `@withNullableOptionalProperties` decorator (`packages/aip/lib/decorators.js`)
+  so SDK clients can state removal explicitly; hand-write a dedicated
+  `@friendlyName("Upsert...Request")` model with per-field `| null` when only
+  some fields are nullable (precedent: `UpsertCustomerBillingDataRequest`).
+  Container objects and read models stay non-nullable. Partial (merge)
+  updates belong on PATCH operations (precedent: feature `unit_cost`). Adopt
+  per resource as endpoints are touched.
 - Optional maps and slices in request input models emit as pointers
   (`*map[...]...`, `*[]...`) so callers can distinguish omission from an explicit
   empty object/array. Keep this input-only through the projection rules above
