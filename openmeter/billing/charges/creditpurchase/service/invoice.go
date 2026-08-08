@@ -188,21 +188,12 @@ func (s *service) handleInvoiceLifecycleTrigger(ctx context.Context, input Handl
 		return creditpurchase.Charge{}, err
 	}
 
-	if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+	if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("reconcile invoice credit purchase state: %w", err)
 	}
 
-	if err := stateMachine.FireAndActivate(ctx, input.Trigger, input.LineWithHeader); err != nil {
+	if err := stateMachine.FireAndAdvanceUntilStable(ctx, input.Trigger, input.LineWithHeader); err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("fire invoice lifecycle trigger %s: %w", input.Trigger, err)
-	}
-
-	advancedCharge, err := stateMachine.AdvanceUntilStateStable(ctx)
-	if err != nil {
-		return creditpurchase.Charge{}, fmt.Errorf("advance invoice credit purchase after %s: %w", input.Trigger, err)
-	}
-
-	if advancedCharge != nil {
-		return *advancedCharge, nil
 	}
 
 	return stateMachine.GetCharge(), nil

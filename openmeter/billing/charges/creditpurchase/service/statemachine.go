@@ -82,20 +82,3 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 
 	return out, nil
 }
-
-func (s *stateMachine) FireAndAdvanceUntilStateStable(ctx context.Context, trigger meta.Trigger) (creditpurchase.Charge, error) {
-	if err := s.FireAndActivate(ctx, trigger); err != nil {
-		return creditpurchase.Charge{}, err
-	}
-
-	advancedCharge, err := s.AdvanceUntilStateStable(ctx)
-	if err != nil {
-		return creditpurchase.Charge{}, err
-	}
-
-	if advancedCharge != nil {
-		return *advancedCharge, nil
-	}
-
-	return s.GetCharge(), nil
-}

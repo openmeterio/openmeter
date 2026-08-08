@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -28,12 +26,11 @@ func (s *service) onExternalCreditPurchase(ctx context.Context, charge creditpur
 		return creditpurchase.Charge{}, fmt.Errorf("new external state machine: %w", err)
 	}
 
-	advancedCharge, err := stateMachine.AdvanceUntilStateStable(ctx)
-	if err != nil {
+	if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("advance external state machine: %w", err)
 	}
 
-	charge = lo.FromPtrOr(advancedCharge, charge)
+	charge = stateMachine.GetCharge()
 
 	if trigger == "" {
 		return charge, nil
@@ -156,11 +153,15 @@ func (s *service) newExternalCreditPurchaseStateMachine(charge creditpurchase.Ch
 }
 
 func (s *ExternalCreditPurchaseStateMachine) handleExternalPaymentLifecycleTrigger(ctx context.Context, trigger meta.Trigger) (creditpurchase.Charge, error) {
-	if _, err := s.AdvanceUntilStateStable(ctx); err != nil {
+	if err := s.AdvanceUntilStable(ctx); err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("advance external state machine: %w", err)
 	}
 
-	return s.FireAndAdvanceUntilStateStable(ctx, trigger)
+	if err := s.FireAndAdvanceUntilStable(ctx, trigger); err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	return s.GetCharge(), nil
 }
 
 func (s *service) HandleExternalPaymentAuthorized(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
