@@ -87,6 +87,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		Permit(meta.TriggerAttachInvoiceLine, flatfee.StatusActiveRealizationProcessing).
 		OnActive(s.AdvanceAfterInvoiceAt)
 
@@ -100,6 +101,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		OnActive(statelessx.AllOf(
 			s.ResolveDynamicCostBasis,
 			s.AdvanceAfterServicePeriodTo,
@@ -111,6 +113,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.StartRealization))
 
 	s.Configure(flatfee.StatusActiveRealizationWaitingForCollection).
@@ -118,7 +121,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit))
+		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride))
 
 	s.Configure(flatfee.StatusActiveRealizationProcessing).
 		Permit(
@@ -131,6 +135,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		OnEntryFrom(meta.TriggerAttachInvoiceLine, statelessx.WithParameters(s.AttachInvoiceLine))
 
 	s.Configure(flatfee.StatusActiveRealizationIssuing).
@@ -139,6 +144,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.AccrueInvoiceUsage))
 
 	// Zero-fiat-amount overages bypass invoice issuance. This state seals the
@@ -150,6 +156,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation)).
 		OnActive(s.FinalizeZeroFiatAmountOverageRun)
 
 	s.Configure(flatfee.StatusActiveRealizationCompleted).
@@ -157,26 +164,50 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
-		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation))
+		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation))
 
 	s.Configure(flatfee.StatusActiveAwaitingPaymentSettlement).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit))
+		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride))
 
 	s.Configure(flatfee.StatusFinal).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.SetOverride)).
 		OnActive(s.ClearAdvanceAfter)
 
 	s.Configure(flatfee.StatusDeleted).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
-		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation))
+		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.UnsupportedLineManualEditOperation)).
+		InternalTransition(meta.TriggerSetOverride, statelessx.WithParameters(s.UnsupportedSetOverrideOperation))
+}
+
+func (s *CreditThenInvoiceStateMachine) SetOverride(ctx context.Context, patch flatfee.PatchSetOverride) error {
+	oldAmountAfterProration := s.Charge.State.AmountAfterProration
+
+	if err := s.setOverrideIntent(ctx, patch); err != nil {
+		return err
+	}
+
+	amountAfterProration, err := s.Charge.Intent.CalculateAmountAfterProration()
+	if err != nil {
+		return fmt.Errorf("calculating amount after proration: %w", err)
+	}
+
+	return s.reconcileInvoicingState(ctx, reconcileInvoicingStateInput{
+		Op:                      meta.PatchTypeSetOverride,
+		Intent:                  s.Charge.Intent,
+		OldAmountAfterProration: oldAmountAfterProration,
+		NewAmountAfterProration: amountAfterProration,
+	})
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {

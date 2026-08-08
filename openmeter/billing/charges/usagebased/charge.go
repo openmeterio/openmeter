@@ -667,6 +667,10 @@ func (f IntentMutableFields) Clone() IntentMutableFields {
 	return out
 }
 
+func (f IntentMutableFields) GetIntentDeletedAt() *time.Time {
+	return f.IntentDeletedAt
+}
+
 func (f IntentMutableFields) Validate() error {
 	var errs []error
 
