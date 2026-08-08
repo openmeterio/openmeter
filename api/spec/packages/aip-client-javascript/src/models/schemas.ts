@@ -3227,10 +3227,19 @@ export const appCustomerData = z
 
 export const upsertAppCustomerDataRequest = z
   .object({
-    stripe: appCustomerDataStripe.optional(),
-    externalInvoicing: appCustomerDataExternalInvoicing.optional(),
+    stripe: appCustomerDataStripe
+      .nullable()
+      .optional()
+      .describe('Used if the customer has a linked Stripe app.'),
+    externalInvoicing: appCustomerDataExternalInvoicing
+      .nullable()
+      .optional()
+      .describe('Used if the customer has a linked external invoicing app.'),
   })
-  .describe('AppCustomerData upsert request.')
+
+  .describe(
+    'AppCustomerData upsert request. The request replaces the stored state: omitted optional fields are unset, and an explicit `null` is equivalent to omission.',
+  )
 
 export const creditAdjustment = z
   .object({
@@ -4254,10 +4263,19 @@ export const customerData = z
 
 export const upsertCustomerBillingDataRequest = z
   .object({
-    billingProfile: profileReference.optional(),
-    appData: appCustomerData.optional(),
+    billingProfile: profileReference
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile override to pin for the customer. Omit or set to `null` to remove the override so the default billing profile applies.',
+      ),
+    appData: upsertAppCustomerDataRequest.optional(),
   })
-  .describe('CustomerBillingData upsert request.')
+
+  .describe(
+    "Billing customer data upsert request. The request replaces the customer's billing data: omitting an optional field removes its current value, and nullable fields treat an explicit `null` the same as omission.",
+  )
 
 export const creditBalances = z
   .object({
@@ -10093,10 +10111,19 @@ export const appCustomerDataWire = z
 
 export const upsertAppCustomerDataRequestWire = z
   .strictObject({
-    stripe: appCustomerDataStripeWire.optional(),
-    external_invoicing: appCustomerDataExternalInvoicingWire.optional(),
+    stripe: appCustomerDataStripeWire
+      .nullable()
+      .optional()
+      .describe('Used if the customer has a linked Stripe app.'),
+    external_invoicing: appCustomerDataExternalInvoicingWire
+      .nullable()
+      .optional()
+      .describe('Used if the customer has a linked external invoicing app.'),
   })
-  .describe('AppCustomerData upsert request.')
+
+  .describe(
+    'AppCustomerData upsert request. The request replaces the stored state: omitted optional fields are unset, and an explicit `null` is equivalent to omission.',
+  )
 
 export const creditAdjustmentWire = z
   .strictObject({
@@ -11122,10 +11149,19 @@ export const customerDataWire = z
 
 export const upsertCustomerBillingDataRequestWire = z
   .strictObject({
-    billing_profile: profileReferenceWire.optional(),
-    app_data: appCustomerDataWire.optional(),
+    billing_profile: profileReferenceWire
+      .nullable()
+      .optional()
+
+      .describe(
+        'The billing profile override to pin for the customer. Omit or set to `null` to remove the override so the default billing profile applies.',
+      ),
+    app_data: upsertAppCustomerDataRequestWire.optional(),
   })
-  .describe('CustomerBillingData upsert request.')
+
+  .describe(
+    "Billing customer data upsert request. The request replaces the customer's billing data: omitting an optional field removes its current value, and nullable fields treat an explicit `null` the same as omission.",
+  )
 
 export const creditBalancesWire = z
   .strictObject({

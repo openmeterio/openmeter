@@ -2297,12 +2297,12 @@ export interface AppCustomerData {
   externalInvoicing?: AppCustomerDataExternalInvoicing
 }
 
-/** AppCustomerData upsert request. */
+/** AppCustomerData upsert request. The request replaces the stored state: omitted optional fields are unset, and an explicit `null` is equivalent to omission. */
 export interface UpsertAppCustomerDataRequest {
   /** Used if the customer has a linked Stripe app. */
-  stripe?: AppCustomerDataStripe
+  stripe?: AppCustomerDataStripe | null
   /** Used if the customer has a linked external invoicing app. */
-  externalInvoicing?: AppCustomerDataExternalInvoicing
+  externalInvoicing?: AppCustomerDataExternalInvoicing | null
 }
 
 /**
@@ -3419,16 +3419,27 @@ export interface CustomerData {
   appData?: AppCustomerData
 }
 
-/** CustomerBillingData upsert request. */
+/**
+ * Billing customer data upsert request.
+ *
+ * The request replaces the customer's billing data: omitting an optional field
+ * removes its current value, and nullable fields treat an explicit `null` the
+ * same as omission.
+ */
 export interface UpsertCustomerBillingDataRequest {
   /**
-   * The billing profile for the customer.
+   * The billing profile override to pin for the customer.
    *
-   * If not provided, the default billing profile will be used.
+   * Omit or set to `null` to remove the override so the default billing profile
+   * applies.
    */
-  billingProfile?: ProfileReference
-  /** App customer data. */
-  appData?: AppCustomerData
+  billingProfile?: ProfileReference | null
+  /**
+   * App customer data for the app of the effective billing profile.
+   *
+   * Omitted app data is deleted.
+   */
+  appData?: UpsertAppCustomerDataRequest
 }
 
 /** The balances of the credits of a customer. */
