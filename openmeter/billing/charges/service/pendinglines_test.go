@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -144,13 +145,36 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	s.Require().NotNil(result.Lines[1].RateCardDiscounts.Percentage)
 	s.Equal(flatFeeIntent.PercentageDiscounts.CorrelationID, result.Lines[1].RateCardDiscounts.Percentage.CorrelationID)
 
-	// Given the pending usage line was created without an internal discount correlation ID.
+	// Given the persisted gathering line carries a stale discount snapshot.
+	staleGatheringDiscounts := result.Lines[0].RateCardDiscounts.Clone()
+	staleGatheringDiscounts.Usage.CorrelationID = "stale-gathering-discount"
+	persistedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: result.Invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+	})
+	s.NoError(err)
+	persistedUsageLine, found := lo.Find(persistedInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+		return line.Engine == billing.LineEngineTypeChargeUsageBased
+	})
+	s.Require().True(found)
+	encodedStaleGatheringDiscounts, err := json.Marshal(staleGatheringDiscounts)
+	s.NoError(err)
+	updateResult, err := s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_invoice_lines SET ratecard_discounts = $1 WHERE id = $2`,
+		string(encodedStaleGatheringDiscounts),
+		persistedUsageLine.ID,
+	)
+	s.NoError(err)
+	updatedRows, err := updateResult.RowsAffected()
+	s.NoError(err)
+	s.Equal(int64(1), updatedRows)
+
 	// When billing collects the charge-backed usage line into a standard invoice.
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: cust.GetID(),
 		AsOf:     lo.ToPtr(servicePeriod.To),
 	})
-	// Then charge rating can reuse the persisted discount identity while generating detailed lines.
+	// Then the standard line uses the effective charge discount identity while generating detailed lines.
 	s.NoError(err)
 	s.Require().Len(invoices, 1)
 	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)

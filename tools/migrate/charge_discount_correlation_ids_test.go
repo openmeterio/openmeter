@@ -2,6 +2,7 @@ package migrate_test
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,6 +11,7 @@ import (
 )
 
 const chargeDiscountCorrelationIDMigration = "20260809152600_backfill_charge_discount_correlation_ids.up.sql"
+const persistedChargeDiscountCorrelationIDMigration = "20260809172658_backfill_persisted_charge_discount_correlation_ids.up.sql"
 
 func TestBackfillChargeDiscountCorrelationIDs(t *testing.T) {
 	up := readMigration(t, chargeDiscountCorrelationIDMigration)
@@ -40,6 +42,39 @@ func TestBackfillChargeDiscountCorrelationIDs(t *testing.T) {
 	_, err = conn.ExecContext(t.Context(), up)
 	require.NoError(t, err)
 	require.Equal(t, afterFirstRun, readGatheringLineDiscounts(t, conn))
+}
+
+func TestBackfillPersistedChargeDiscountCorrelationIDs(t *testing.T) {
+	up := readMigration(t, persistedChargeDiscountCorrelationIDMigration)
+
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
+	defer testDB.PGDriver.Close()
+
+	conn, err := testDB.PGDriver.DB().Conn(t.Context())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	createPersistedChargeDiscountCorrelationIDMigrationFixtures(t, conn)
+
+	_, err = conn.ExecContext(t.Context(), up)
+	require.NoError(t, err)
+
+	for _, table := range []string{"charge_usage_based", "charge_usage_based_overrides"} {
+		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "missing", "percentage")
+		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "missing", "usage")
+		assertPersistedChargeDiscountCorrelationID(t, conn, table, "existing", "percentage", "existing-percentage")
+		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "existing", "usage")
+	}
+
+	for _, table := range []string{"charge_flat_fees", "charge_flat_fee_overrides"} {
+		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "missing", "percentage")
+		assertPersistedChargeDiscountCorrelationID(t, conn, table, "existing", "percentage", "existing-percentage")
+	}
+
+	afterFirstRun := readPersistedChargeDiscounts(t, conn)
+	_, err = conn.ExecContext(t.Context(), up)
+	require.NoError(t, err)
+	require.Equal(t, afterFirstRun, readPersistedChargeDiscounts(t, conn))
 }
 
 func createChargeDiscountCorrelationIDMigrationFixtures(t *testing.T, conn *sql.Conn) {
@@ -106,6 +141,57 @@ func createChargeDiscountCorrelationIDMigrationFixtures(t *testing.T, conn *sql.
 	require.NoError(t, err)
 }
 
+func createPersistedChargeDiscountCorrelationIDMigrationFixtures(t *testing.T, conn *sql.Conn) {
+	t.Helper()
+
+	_, err := conn.ExecContext(t.Context(), `
+		CREATE SEQUENCE migration_test_ulid_sequence;
+		CREATE FUNCTION om_func_generate_ulid()
+		RETURNS text
+		AS $$
+			SELECT 'generated-' || nextval('migration_test_ulid_sequence')::text
+		$$
+		LANGUAGE sql
+		VOLATILE;
+
+		CREATE TEMP TABLE charge_usage_based (
+			id text PRIMARY KEY,
+			discounts jsonb NULL,
+			updated_at timestamptz NOT NULL DEFAULT '2026-08-01T00:00:00Z'
+		);
+		CREATE TEMP TABLE charge_usage_based_overrides (
+			id text PRIMARY KEY,
+			discounts jsonb NOT NULL
+		);
+		CREATE TEMP TABLE charge_flat_fees (
+			id text PRIMARY KEY,
+			discounts jsonb NULL,
+			updated_at timestamptz NOT NULL DEFAULT '2026-08-01T00:00:00Z'
+		);
+		CREATE TEMP TABLE charge_flat_fee_overrides (
+			id text PRIMARY KEY,
+			discounts jsonb NULL
+		);
+
+		INSERT INTO charge_usage_based (id, discounts) VALUES
+			('missing', '{"percentage":{"percentage":10},"usage":{"quantity":"5"}}'),
+			('existing', '{"percentage":{"percentage":15,"correlationID":"existing-percentage"},"usage":{"quantity":"3","correlationID":""}}'),
+			('none', NULL);
+		INSERT INTO charge_usage_based_overrides (id, discounts) VALUES
+			('missing', '{"percentage":{"percentage":10},"usage":{"quantity":"5"}}'),
+			('existing', '{"percentage":{"percentage":15,"correlationID":"existing-percentage"},"usage":{"quantity":"3","correlationID":""}}');
+		INSERT INTO charge_flat_fees (id, discounts) VALUES
+			('missing', '{"percentage":{"percentage":10}}'),
+			('existing', '{"percentage":{"percentage":15,"correlationID":"existing-percentage"}}'),
+			('none', NULL);
+		INSERT INTO charge_flat_fee_overrides (id, discounts) VALUES
+			('missing', '{"percentage":{"percentage":10}}'),
+			('existing', '{"percentage":{"percentage":15,"correlationID":"existing-percentage"}}'),
+			('none', NULL);
+	`)
+	require.NoError(t, err)
+}
+
 func assertGatheringLineDiscountCorrelationID(t *testing.T, conn *sql.Conn, id, discountType, expected string) {
 	t.Helper()
 
@@ -134,6 +220,32 @@ func assertGeneratedGatheringLineDiscountCorrelationID(t *testing.T, conn *sql.C
 	return actual
 }
 
+func assertPersistedChargeDiscountCorrelationID(t *testing.T, conn *sql.Conn, table, id, discountType, expected string) {
+	t.Helper()
+
+	var actual string
+	err := conn.QueryRowContext(t.Context(),
+		fmt.Sprintf(`SELECT discounts #>> ARRAY[$1, 'correlationID'] FROM %s WHERE id = $2`, table),
+		discountType,
+		id,
+	).Scan(&actual)
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+}
+
+func assertGeneratedPersistedChargeDiscountCorrelationID(t *testing.T, conn *sql.Conn, table, id, discountType string) {
+	t.Helper()
+
+	var actual string
+	err := conn.QueryRowContext(t.Context(),
+		fmt.Sprintf(`SELECT discounts #>> ARRAY[$1, 'correlationID'] FROM %s WHERE id = $2`, table),
+		discountType,
+		id,
+	).Scan(&actual)
+	require.NoError(t, err)
+	require.Contains(t, actual, "generated-")
+}
+
 func readUntouchedDiscounts(t *testing.T, conn *sql.Conn) map[string]string {
 	t.Helper()
 
@@ -160,6 +272,24 @@ func readGatheringLineDiscounts(t *testing.T, conn *sql.Conn) map[string]string 
 	rows, err := conn.QueryContext(t.Context(), `
 		SELECT id, COALESCE(ratecard_discounts::text, 'null')
 		FROM billing_gathering_invoice_lines
+	`)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	return scanDiscounts(t, rows)
+}
+
+func readPersistedChargeDiscounts(t *testing.T, conn *sql.Conn) map[string]string {
+	t.Helper()
+
+	rows, err := conn.QueryContext(t.Context(), `
+		SELECT 'usage:' || id, COALESCE(discounts::text, 'null') FROM charge_usage_based
+		UNION ALL
+		SELECT 'usage-override:' || id, COALESCE(discounts::text, 'null') FROM charge_usage_based_overrides
+		UNION ALL
+		SELECT 'flat-fee:' || id, COALESCE(discounts::text, 'null') FROM charge_flat_fees
+		UNION ALL
+		SELECT 'flat-fee-override:' || id, COALESCE(discounts::text, 'null') FROM charge_flat_fee_overrides
 	`)
 	require.NoError(t, err)
 	defer rows.Close()
