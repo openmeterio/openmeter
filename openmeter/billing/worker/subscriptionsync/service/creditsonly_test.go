@@ -790,8 +790,8 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 	//
 	// Then:
 	// - the current usage based charge is shrunk in place to the cancellation boundary
-	// - the remaining charge stays created and scheduled from the service-period start
-	// - no realization is created before the next advancement
+	// - synchronization advances the remaining charge through its final realization
+	// - usage before the cancellation boundary is allocated and collection is scheduled
 	// - the future usage based charge is deleted
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -963,10 +963,16 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 
 		afterShrinkCharge, err := afterShrinkChargeRes.AsUsageBasedCharge()
 		s.NoError(err)
-		s.Equal(usagebased.StatusCreated, afterShrinkCharge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, afterShrinkCharge.Status)
 		s.Require().NotNil(afterShrinkCharge.State.AdvanceAfter)
-		s.True(afterShrinkCharge.State.AdvanceAfter.Equal(s.mustParseTime("2024-02-01T00:00:00Z")))
-		s.Empty(afterShrinkCharge.Realizations)
+		s.True(afterShrinkCharge.State.AdvanceAfter.Equal(cancelAt.Add(usagebased.InternalCollectionPeriod)))
+		s.Require().Len(afterShrinkCharge.Realizations, 1)
+		finalRun := afterShrinkCharge.Realizations[0]
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalRun.Type)
+		s.Equal(cancelAt, finalRun.StoredAtLT)
+		s.Equal(cancelAt, finalRun.ServicePeriodTo)
+		s.Equal(alpacadecimal.NewFromInt(8), finalRun.MeteredQuantity)
+		s.Equal(alpacadecimal.NewFromInt(8), finalRun.CreditsAllocated.Sum())
 
 		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
 			ChargeID: chargesmeta.ChargeID{
