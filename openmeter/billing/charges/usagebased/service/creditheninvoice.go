@@ -271,6 +271,7 @@ func (s *CreditThenInvoiceStateMachine) HasTerminalCompletedRealizationWithoutCu
 
 func (s *CreditThenInvoiceStateMachine) SetOverride(ctx context.Context, patch usagebased.PatchSetOverride) error {
 	if s.Charge.State.CurrentRealizationRunID != nil || len(s.Charge.Realizations.WithoutVoidedBillingHistory()) > 0 {
+		// TODO: enable this once we have corrections and credit notes implemented.
 		return models.NewGenericPreConditionFailedError(
 			fmt.Errorf("cannot set override for usage-based charge %s after realization has started", s.Charge.ID),
 		)
