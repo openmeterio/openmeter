@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -9,7 +10,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -20,6 +23,11 @@ import (
 )
 
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeBackedGatheringLines() {
+	defer s.FlatFeeTestHandler.Reset()
+	s.FlatFeeTestHandler.onAllocateCredits = func(context.Context, flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
+		return nil, nil
+	}
+
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-create-pending-lines")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -145,9 +153,11 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	s.Require().NotNil(result.Lines[1].RateCardDiscounts.Percentage)
 	s.Equal(flatFeeIntent.PercentageDiscounts.CorrelationID, result.Lines[1].RateCardDiscounts.Percentage.CorrelationID)
 
-	// Given the persisted gathering line carries a stale discount snapshot.
-	staleGatheringDiscounts := result.Lines[0].RateCardDiscounts.Clone()
-	staleGatheringDiscounts.Usage.CorrelationID = "stale-gathering-discount"
+	// Given the persisted gathering lines carry stale discount snapshots.
+	staleUsageGatheringDiscounts := result.Lines[0].RateCardDiscounts.Clone()
+	staleUsageGatheringDiscounts.Usage.CorrelationID = "stale-gathering-usage-discount"
+	staleFlatFeeGatheringDiscounts := result.Lines[1].RateCardDiscounts.Clone()
+	staleFlatFeeGatheringDiscounts.Percentage.CorrelationID = "stale-gathering-percentage-discount"
 	persistedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 		Invoice: result.Invoice.GetInvoiceID(),
 		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
@@ -157,15 +167,30 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 		return line.Engine == billing.LineEngineTypeChargeUsageBased
 	})
 	s.Require().True(found)
-	encodedStaleGatheringDiscounts, err := json.Marshal(staleGatheringDiscounts)
+	persistedFlatFeeLine, found := lo.Find(persistedInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+		return line.Engine == billing.LineEngineTypeChargeFlatFee
+	})
+	s.Require().True(found)
+	encodedStaleUsageGatheringDiscounts, err := json.Marshal(staleUsageGatheringDiscounts)
 	s.NoError(err)
 	updateResult, err := s.TestDB.PGDriver.DB().ExecContext(ctx,
 		`UPDATE billing_invoice_lines SET ratecard_discounts = $1 WHERE id = $2`,
-		string(encodedStaleGatheringDiscounts),
+		string(encodedStaleUsageGatheringDiscounts),
 		persistedUsageLine.ID,
 	)
 	s.NoError(err)
 	updatedRows, err := updateResult.RowsAffected()
+	s.NoError(err)
+	s.Equal(int64(1), updatedRows)
+	encodedStaleFlatFeeGatheringDiscounts, err := json.Marshal(staleFlatFeeGatheringDiscounts)
+	s.NoError(err)
+	updateResult, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_invoice_lines SET ratecard_discounts = $1 WHERE id = $2`,
+		string(encodedStaleFlatFeeGatheringDiscounts),
+		persistedFlatFeeLine.ID,
+	)
+	s.NoError(err)
+	updatedRows, err = updateResult.RowsAffected()
 	s.NoError(err)
 	s.Equal(int64(1), updatedRows)
 
@@ -181,6 +206,20 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	invoicedUsageLine := invoices[0].Lines.OrEmpty()[0]
 	s.Require().NotNil(invoicedUsageLine.RateCardDiscounts.Usage)
 	s.Equal(usageBasedIntent.Discounts.Usage.CorrelationID, invoicedUsageLine.RateCardDiscounts.Usage.CorrelationID)
+
+	// When billing reaches the flat-fee line's invoice time and collects it.
+	clock.FreezeTime(flatLine.InvoiceAt)
+	invoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(flatLine.InvoiceAt),
+	})
+	// Then the standard line uses the effective charge discount identity instead of the stale snapshot.
+	s.NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+	invoicedFlatFeeLine := invoices[0].Lines.OrEmpty()[0]
+	s.Require().NotNil(invoicedFlatFeeLine.RateCardDiscounts.Percentage)
+	s.Equal(flatFeeIntent.PercentageDiscounts.CorrelationID, invoicedFlatFeeLine.RateCardDiscounts.Percentage.CorrelationID)
 }
 
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreatedChargesOnFailure() {

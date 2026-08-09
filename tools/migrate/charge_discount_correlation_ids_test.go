@@ -10,8 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 )
 
-const chargeDiscountCorrelationIDMigration = "20260809152600_backfill_charge_discount_correlation_ids.up.sql"
-const persistedChargeDiscountCorrelationIDMigration = "20260809172658_backfill_persisted_charge_discount_correlation_ids.up.sql"
+const (
+	chargeDiscountCorrelationIDMigration          = "20260809152600_backfill_charge_discount_correlation_ids.up.sql"
+	persistedChargeDiscountCorrelationIDMigration = "20260809172658_backfill_persisted_charge_discount_correlation_ids.up.sql"
+)
 
 func TestBackfillChargeDiscountCorrelationIDs(t *testing.T) {
 	up := readMigration(t, chargeDiscountCorrelationIDMigration)
@@ -62,12 +64,15 @@ func TestBackfillPersistedChargeDiscountCorrelationIDs(t *testing.T) {
 	for _, table := range []string{"charge_usage_based", "charge_usage_based_overrides"} {
 		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "missing", "percentage")
 		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "missing", "usage")
+		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "json-null", "percentage")
+		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "json-null", "usage")
 		assertPersistedChargeDiscountCorrelationID(t, conn, table, "existing", "percentage", "existing-percentage")
 		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "existing", "usage")
 	}
 
 	for _, table := range []string{"charge_flat_fees", "charge_flat_fee_overrides"} {
 		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "missing", "percentage")
+		assertGeneratedPersistedChargeDiscountCorrelationID(t, conn, table, "json-null", "percentage")
 		assertPersistedChargeDiscountCorrelationID(t, conn, table, "existing", "percentage", "existing-percentage")
 	}
 
@@ -175,17 +180,21 @@ func createPersistedChargeDiscountCorrelationIDMigrationFixtures(t *testing.T, c
 
 		INSERT INTO charge_usage_based (id, discounts) VALUES
 			('missing', '{"percentage":{"percentage":10},"usage":{"quantity":"5"}}'),
+			('json-null', '{"percentage":{"percentage":12,"correlationID":null},"usage":{"quantity":"2","correlationID":null}}'),
 			('existing', '{"percentage":{"percentage":15,"correlationID":"existing-percentage"},"usage":{"quantity":"3","correlationID":""}}'),
 			('none', NULL);
 		INSERT INTO charge_usage_based_overrides (id, discounts) VALUES
 			('missing', '{"percentage":{"percentage":10},"usage":{"quantity":"5"}}'),
+			('json-null', '{"percentage":{"percentage":12,"correlationID":null},"usage":{"quantity":"2","correlationID":null}}'),
 			('existing', '{"percentage":{"percentage":15,"correlationID":"existing-percentage"},"usage":{"quantity":"3","correlationID":""}}');
 		INSERT INTO charge_flat_fees (id, discounts) VALUES
 			('missing', '{"percentage":{"percentage":10}}'),
+			('json-null', '{"percentage":{"percentage":12,"correlationID":null}}'),
 			('existing', '{"percentage":{"percentage":15,"correlationID":"existing-percentage"}}'),
 			('none', NULL);
 		INSERT INTO charge_flat_fee_overrides (id, discounts) VALUES
 			('missing', '{"percentage":{"percentage":10}}'),
+			('json-null', '{"percentage":{"percentage":12,"correlationID":null}}'),
 			('existing', '{"percentage":{"percentage":15,"correlationID":"existing-percentage"}}'),
 			('none', NULL);
 	`)
