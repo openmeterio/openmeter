@@ -95,3 +95,23 @@ func TestDiscountsValidateForPrice(t *testing.T) {
 		})
 	}
 }
+
+func TestDiscountsUpsertCorrelationIDs(t *testing.T) {
+	discounts := Discounts{
+		Percentage: &PercentageDiscount{
+			PercentageDiscount: productcatalog.PercentageDiscount{Percentage: models.NewPercentage(50)},
+			CorrelationID:      "existing-percentage-discount",
+		},
+		Usage: &UsageDiscount{
+			UsageDiscount: productcatalog.UsageDiscount{Quantity: alpacadecimal.NewFromInt(1)},
+		},
+	}
+
+	first := discounts.UpsertCorrelationIDs()
+	retried := first.UpsertCorrelationIDs()
+
+	require.Equal(t, "existing-percentage-discount", first.Percentage.CorrelationID)
+	require.NotEmpty(t, first.Usage.CorrelationID)
+	require.Equal(t, first, retried)
+	require.Empty(t, discounts.Usage.CorrelationID)
+}

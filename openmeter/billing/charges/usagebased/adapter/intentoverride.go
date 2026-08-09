@@ -130,6 +130,7 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 	}
 
 	normalized := override.Normalized()
+	normalized.Discounts = normalized.Discounts.UpsertCorrelationIDs()
 	if err := normalized.Validate(); err != nil {
 		return nil, fmt.Errorf("validating intent override: %w", err)
 	}
@@ -166,6 +167,7 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 	}
 
 	normalized := override.Normalized()
+	normalized.Discounts = normalized.Discounts.UpsertCorrelationIDs()
 	if err := normalized.Validate(); err != nil {
 		return nil, fmt.Errorf("validating intent override: %w", err)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,6 +36,8 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 	}
+	clock.FreezeTime(servicePeriod.To)
+	defer clock.UnFreeze()
 
 	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
 	featureKey := apiRequestsTotal.Feature.Key
@@ -68,7 +71,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	flatLine := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 		Namespace:     ns,
 		Period:        servicePeriod,
-		InvoiceAt:     servicePeriod.From,
+		InvoiceAt:     servicePeriod.To.Add(time.Hour),
 		ManagedBy:     billing.ManuallyManagedLine,
 		Name:          "manual flat",
 		Currency:      currencyx.FiatCode(USD),
@@ -119,6 +122,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	s.Equal(featureKey, usageBasedIntent.FeatureKey)
 	s.Require().NotNil(usageBasedIntent.Discounts.Usage)
 	s.Equal(float64(3), usageBasedIntent.Discounts.Usage.Quantity.InexactFloat64())
+	s.NotEmpty(usageBasedIntent.Discounts.Usage.CorrelationID)
+	s.Require().NotNil(result.Lines[0].RateCardDiscounts.Usage)
+	s.Equal(usageBasedIntent.Discounts.Usage.CorrelationID, result.Lines[0].RateCardDiscounts.Usage.CorrelationID)
 
 	flatCharge := s.mustGetChargeByID(meta.ChargeID{
 		Namespace: ns,
@@ -134,6 +140,23 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	s.Equal(float64(10), flatFeeIntent.AmountBeforeProration.InexactFloat64())
 	s.Require().NotNil(flatFeeIntent.PercentageDiscounts)
 	s.Equal(float64(10), flatFeeIntent.PercentageDiscounts.Percentage.InexactFloat64())
+	s.NotEmpty(flatFeeIntent.PercentageDiscounts.CorrelationID)
+	s.Require().NotNil(result.Lines[1].RateCardDiscounts.Percentage)
+	s.Equal(flatFeeIntent.PercentageDiscounts.CorrelationID, result.Lines[1].RateCardDiscounts.Percentage.CorrelationID)
+
+	// Given the pending usage line was created without an internal discount correlation ID.
+	// When billing collects the charge-backed usage line into a standard invoice.
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     lo.ToPtr(servicePeriod.To),
+	})
+	// Then charge rating can reuse the persisted discount identity while generating detailed lines.
+	s.NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+	invoicedUsageLine := invoices[0].Lines.OrEmpty()[0]
+	s.Require().NotNil(invoicedUsageLine.RateCardDiscounts.Usage)
+	s.Equal(usageBasedIntent.Discounts.Usage.CorrelationID, invoicedUsageLine.RateCardDiscounts.Usage.CorrelationID)
 }
 
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreatedChargesOnFailure() {

@@ -141,14 +141,24 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 // mutateIntentLayer mutates the requested intent layer, creating a new override
 // layer first when the target is override and the charge has no override yet.
 func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.ChangeTarget, editFn func(*usagebased.IntentMutableFields) error) error {
+	editWithDiscountCorrelationIDs := func(fields *usagebased.IntentMutableFields) error {
+		if err := editFn(fields); err != nil {
+			return err
+		}
+
+		fields.Discounts = fields.Discounts.UpsertCorrelationIDs()
+
+		return nil
+	}
+
 	switch target {
 	case meta.ChangeTargetBase:
-		if err := s.Charge.Intent.Mutate(meta.ChangeTargetBase, editFn); err != nil {
+		if err := s.Charge.Intent.Mutate(meta.ChangeTargetBase, editWithDiscountCorrelationIDs); err != nil {
 			return fmt.Errorf("mutating base intent: %w", err)
 		}
 	case meta.ChangeTargetOverride:
 		if s.Charge.Intent.HasOverrideLayer() {
-			if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, editFn); err != nil {
+			if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, editWithDiscountCorrelationIDs); err != nil {
 				return fmt.Errorf("mutating override intent: %w", err)
 			}
 
@@ -156,7 +166,7 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 		}
 
 		overrideFields := s.Charge.Intent.GetEffectiveIntent().IntentMutableFields
-		if err := editFn(&overrideFields); err != nil {
+		if err := editWithDiscountCorrelationIDs(&overrideFields); err != nil {
 			return err
 		}
 
