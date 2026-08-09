@@ -209,6 +209,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 
 	// When billing reaches the flat-fee line's invoice time and collects it.
 	clock.FreezeTime(flatLine.InvoiceAt)
+	defer clock.UnFreeze()
 	invoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: cust.GetID(),
 		AsOf:     lo.ToPtr(flatLine.InvoiceAt),
