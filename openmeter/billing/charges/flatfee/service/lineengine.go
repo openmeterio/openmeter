@@ -40,6 +40,10 @@ func (e *LineEngine) SplitGatheringLine(context.Context, billing.SplitGatheringL
 }
 
 func (e *LineEngine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
 	stdLines, err := slicesx.MapWithErr(input.GatheringLines, func(gatheringLine billing.GatheringLine) (*billing.StandardLine, error) {
 		stdLine, err := gatheringLine.AsNewStandardLine(input.Invoice.ID)
 		if err != nil {
@@ -50,6 +54,25 @@ func (e *LineEngine) BuildStandardInvoiceLines(ctx context.Context, input billin
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	chargesByID, err := e.getChargesForStandardLineEvent(ctx, billing.StandardLineEventInput{
+		Invoice: input.Invoice,
+		Lines:   stdLines,
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, stdLine := range stdLines {
+		charge, ok := chargesByID[*stdLine.ChargeID]
+		if !ok {
+			return nil, fmt.Errorf("flat fee charge[%s] not found for gathering line[%s]", *stdLine.ChargeID, stdLine.ID)
+		}
+
+		stdLine.RateCardDiscounts = billing.Discounts{
+			Percentage: charge.Intent.GetEffectiveIntent().PercentageDiscounts.CloneOrNil(),
+		}
 	}
 
 	return stdLines, nil
