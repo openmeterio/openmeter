@@ -93,12 +93,81 @@ func TestApplyInvocableChargePatchesBatchesEachInvoiceEffectRound(t *testing.T) 
 	require.Zero(t, secondCharge.advanceCalls)
 }
 
+func TestApplyInvocableChargePatchesRejectsContinuationWithoutInvoiceEffectBoundary(t *testing.T) {
+	// given
+	// - A patched charge reports that it can continue without producing invoice effects.
+	// when:
+	// - The root charge service applies the patch.
+	// then:
+	// - The impossible continuation is rejected before charge advancement resumes.
+	charge := &scriptedInvocableCharge{
+		chargeID: meta.ChargeID{Namespace: "ns", ID: "charge"},
+		triggerResult: TriggerPatchResult{
+			CanAdvance: true,
+		},
+	}
+
+	svc := service{}
+	err := svc.applyInvocableChargePatches(
+		t.Context(),
+		customer.CustomerID{Namespace: "ns", ID: "customer"},
+		map[string]InvocableCharge{
+			charge.chargeID.ID: charge,
+		},
+		map[string]charges.Patch{
+			charge.chargeID.ID: meta.PatchDelete{},
+		},
+	)
+
+	require.ErrorContains(t, err, "can advance without an invoice-effect boundary")
+	require.Equal(t, 1, charge.triggerCalls)
+	require.Zero(t, charge.advanceCalls)
+}
+
+func TestAdvanceChargesAndApplyInvoicePatchesRejectsTheoreticalInvoiceEffectLoop(t *testing.T) {
+	// given
+	// - A charge keeps emitting an invoice effect and requesting another continuation.
+	// when:
+	// - The root charge service resumes it after each invoice-effect batch.
+	// then:
+	// - The theoretical loop is bounded before it can hold the transaction indefinitely.
+	invoicePatch := invoiceupdater.NewDeleteGatheringLineByChargeIDPatch("charge")
+	repeatedAdvanceResult := TriggerPatchResult{
+		InvoicePatches: invoiceupdater.Patches{invoicePatch},
+		CanAdvance:     true,
+	}
+	charge := &scriptedInvocableCharge{
+		chargeID:              meta.ChargeID{Namespace: "ns", ID: "charge"},
+		repeatedAdvanceResult: &repeatedAdvanceResult,
+	}
+	svc := service{
+		invoiceUpdater: recordingInvoiceUpdater{
+			apply: func(context.Context, customer.CustomerID, invoiceupdater.Patches) error {
+				return nil
+			},
+		},
+	}
+
+	_, err := svc.advanceChargesAndApplyInvoicePatches(
+		t.Context(),
+		customer.CustomerID{Namespace: "ns", ID: "customer"},
+		map[string]InvocableCharge{
+			charge.chargeID.ID: charge,
+		},
+		invoiceupdater.Patches{invoicePatch},
+	)
+
+	require.ErrorContains(t, err, "exceeded 100 invoice-effect rounds")
+	require.Equal(t, maxInvoiceEffectRounds, charge.advanceCalls)
+}
+
 type scriptedInvocableCharge struct {
-	chargeID       meta.ChargeID
-	triggerResult  TriggerPatchResult
-	advanceResults []TriggerPatchResult
-	triggerCalls   int
-	advanceCalls   int
+	chargeID              meta.ChargeID
+	triggerResult         TriggerPatchResult
+	advanceResults        []TriggerPatchResult
+	repeatedAdvanceResult *TriggerPatchResult
+	triggerCalls          int
+	advanceCalls          int
 }
 
 func (c *scriptedInvocableCharge) GetChargeID() meta.ChargeID {
@@ -111,6 +180,11 @@ func (c *scriptedInvocableCharge) TriggerPatch(context.Context, meta.Patch) (Tri
 }
 
 func (c *scriptedInvocableCharge) AdvanceCharge(context.Context) (TriggerPatchResult, error) {
+	if c.repeatedAdvanceResult != nil {
+		c.advanceCalls++
+		return *c.repeatedAdvanceResult, nil
+	}
+
 	result := c.advanceResults[c.advanceCalls]
 	c.advanceCalls++
 	return result, nil

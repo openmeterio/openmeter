@@ -217,7 +217,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) FireAndAdvanceUntilInvoicePatchesOrStabl
 		return nil, fmt.Errorf("fire trigger %v: %w", trigger, err)
 	}
 
-	patches, err := m.advanceUntilInvoicePatchesOrStable(ctx)
+	patches, err := m.AdvanceUntilInvoicePatchesOrStable(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("advance after trigger %v: %w", trigger, err)
 	}
@@ -230,10 +230,6 @@ func (m *Machine[CHARGE, BASE, STATUS]) FireAndAdvanceUntilInvoicePatchesOrStabl
 // are removed from the machine and must be settled before the charge is
 // advanced again.
 func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilInvoicePatchesOrStable(ctx context.Context) (invoiceupdater.Patches, error) {
-	return m.advanceUntilInvoicePatchesOrStable(ctx)
-}
-
-func (m *Machine[CHARGE, BASE, STATUS]) advanceUntilInvoicePatchesOrStable(ctx context.Context) (invoiceupdater.Patches, error) {
 	for {
 		if len(m.invoicePatches) > 0 {
 			return m.drainInvoicePatches(), nil
@@ -273,7 +269,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) FireAndAdvanceUntilStable(ctx context.Co
 // rejected because callers that own them must use
 // AdvanceUntilInvoicePatchesOrStable.
 func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilStable(ctx context.Context) error {
-	patches, err := m.advanceUntilInvoicePatchesOrStable(ctx)
+	patches, err := m.AdvanceUntilInvoicePatchesOrStable(ctx)
 	if err != nil {
 		return err
 	}

@@ -2,15 +2,19 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 type chargesByTypeResult struct {
@@ -65,7 +69,15 @@ type InvocableCharge interface {
 	AdvanceCharge(ctx context.Context) (TriggerPatchResult, error)
 }
 
-type TriggerPatchResult = meta.TriggerPatchResult[charges.Charge]
+type TriggerPatchResult meta.TriggerPatchResult[charges.Charge]
+
+func (r TriggerPatchResult) requireInvoicePatchesIfAdvanceable() error {
+	if r.CanAdvance && len(r.InvoicePatches) == 0 {
+		return errors.New("can advance without an invoice-effect boundary")
+	}
+
+	return nil
+}
 
 func mapTriggerPatchResult[T flatfee.Charge | usagebased.Charge](res meta.TriggerPatchResult[T]) TriggerPatchResult {
 	result := TriggerPatchResult{
@@ -139,6 +151,8 @@ var _ InvocableCharge = (*usageBasedInvocableCharge)(nil)
 type usageBasedInvocableCharge struct {
 	chargeID          meta.ChargeID
 	usageBasedService usagebased.Service
+	customerOverride  mo.Option[billing.CustomerOverrideWithDetails]
+	featureMeters     mo.Option[feature.FeatureMeters]
 }
 
 func (c *usageBasedInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Patch) (TriggerPatchResult, error) {
@@ -151,7 +165,11 @@ func (c *usageBasedInvocableCharge) TriggerPatch(ctx context.Context, patch meta
 }
 
 func (c *usageBasedInvocableCharge) AdvanceCharge(ctx context.Context) (TriggerPatchResult, error) {
-	res, err := c.usageBasedService.AdvanceCharge(ctx, usagebased.AdvanceChargeInput{ChargeID: c.chargeID})
+	res, err := c.usageBasedService.AdvanceCharge(ctx, usagebased.AdvanceChargeInput{
+		ChargeID:         c.chargeID,
+		CustomerOverride: c.customerOverride,
+		FeatureMeters:    c.featureMeters,
+	})
 	if err != nil {
 		return TriggerPatchResult{}, err
 	}

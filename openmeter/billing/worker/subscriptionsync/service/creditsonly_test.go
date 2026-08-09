@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -971,8 +972,8 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalRun.Type)
 		s.Equal(cancelAt, finalRun.StoredAtLT)
 		s.Equal(cancelAt, finalRun.ServicePeriodTo)
-		s.Equal(alpacadecimal.NewFromInt(8), finalRun.MeteredQuantity)
-		s.Equal(alpacadecimal.NewFromInt(8), finalRun.CreditsAllocated.Sum())
+		require.Equal(s.T(), float64(8), finalRun.MeteredQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(8), finalRun.CreditsAllocated.Sum().InexactFloat64())
 
 		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
 			ChargeID: chargesmeta.ChargeID{

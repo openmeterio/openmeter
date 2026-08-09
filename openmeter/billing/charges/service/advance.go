@@ -60,6 +60,9 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			}
 
 			mappedResult := mapTriggerPatchResult(result)
+			if err := mappedResult.requireInvoicePatchesIfAdvanceable(); err != nil {
+				return nil, fmt.Errorf("flat fee charge %s: %w", charge.ID, err)
+			}
 			if mappedResult.Charge != nil {
 				advancedChargesByID[charge.ID] = *mappedResult.Charge
 				advancedChargeIDs = append(advancedChargeIDs, charge.ID)
@@ -67,9 +70,6 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			invoicePatches = append(invoicePatches, mappedResult.InvoicePatches...)
 
 			if mappedResult.CanAdvance {
-				if len(mappedResult.InvoicePatches) == 0 {
-					return nil, fmt.Errorf("flat fee charge %s can advance without an invoice-effect boundary", charge.ID)
-				}
 				pendingAdvancement[charge.ID] = &flatFeeInvocableCharge{
 					chargeID:       charge.GetChargeID(),
 					flatFeeService: s.flatFeeService,
@@ -105,6 +105,9 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 				}
 
 				mappedResult := mapTriggerPatchResult(result)
+				if err := mappedResult.requireInvoicePatchesIfAdvanceable(); err != nil {
+					return nil, fmt.Errorf("usage based charge %s: %w", charge.ID, err)
+				}
 				if mappedResult.Charge != nil {
 					advancedChargesByID[charge.ID] = *mappedResult.Charge
 					advancedChargeIDs = append(advancedChargeIDs, charge.ID)
@@ -112,12 +115,11 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 				invoicePatches = append(invoicePatches, mappedResult.InvoicePatches...)
 
 				if mappedResult.CanAdvance {
-					if len(mappedResult.InvoicePatches) == 0 {
-						return nil, fmt.Errorf("usage based charge %s can advance without an invoice-effect boundary", charge.ID)
-					}
 					pendingAdvancement[charge.ID] = &usageBasedInvocableCharge{
 						chargeID:          charge.GetChargeID(),
 						usageBasedService: s.usageBasedService,
+						customerOverride:  mo.Some(customerOverride),
+						featureMeters:     mo.Some(featureMeters),
 					}
 				}
 			}

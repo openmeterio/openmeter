@@ -12,6 +12,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
+// maxInvoiceEffectRounds is a theoretical safety guard against a future
+// lifecycle loop that continually emits invoice effects while holding the
+// customer transaction open.
+const maxInvoiceEffectRounds = 100
+
 func (s *service) ApplyPatches(ctx context.Context, input charges.ApplyPatchesInput) error {
 	if input.CustomerID.Namespace != "" && len(input.Creates) > 0 {
 		intentsWithDefaults, err := s.applyDefaultTaxCodes(ctx, input.CustomerID.Namespace, input.Creates)
@@ -97,12 +102,12 @@ func (s *service) applyInvocableChargePatches(
 		if err != nil {
 			return err
 		}
+		if err := result.requireInvoicePatchesIfAdvanceable(); err != nil {
+			return fmt.Errorf("charge %s: %w", chargeID, err)
+		}
 
 		invoicePatches = append(invoicePatches, result.InvoicePatches...)
 		if result.CanAdvance {
-			if len(result.InvoicePatches) == 0 {
-				return fmt.Errorf("charge %s can advance without an invoice-effect boundary", chargeID)
-			}
 			pendingAdvancement[chargeID] = invocableCharge
 		}
 	}
@@ -122,7 +127,13 @@ func (s *service) advanceChargesAndApplyInvoicePatches(
 ) (map[string]TriggerPatchResult, error) {
 	latestResults := make(map[string]TriggerPatchResult, len(pendingAdvancement))
 
+	rounds := 0
 	for len(invoicePatches) > 0 {
+		rounds++
+		if rounds > maxInvoiceEffectRounds {
+			return nil, fmt.Errorf("charge advancement exceeded %d invoice-effect rounds for customer %s", maxInvoiceEffectRounds, customerID.ID)
+		}
+
 		if err := s.invoiceUpdater.ApplyPatches(ctx, customerID, invoicePatches); err != nil {
 			return nil, fmt.Errorf("applying invoice patches: %w", err)
 		}
@@ -137,13 +148,13 @@ func (s *service) advanceChargesAndApplyInvoicePatches(
 			if err != nil {
 				return nil, fmt.Errorf("advancing charge %s after invoice patches: %w", chargeID, err)
 			}
+			if err := result.requireInvoicePatchesIfAdvanceable(); err != nil {
+				return nil, fmt.Errorf("charge %s: %w", chargeID, err)
+			}
 			latestResults[chargeID] = result
 
 			invoicePatches = append(invoicePatches, result.InvoicePatches...)
 			if result.CanAdvance {
-				if len(result.InvoicePatches) == 0 {
-					return nil, fmt.Errorf("charge %s can advance without an invoice-effect boundary", chargeID)
-				}
 				nextPendingAdvancement[chargeID] = invocableCharge
 			}
 		}
