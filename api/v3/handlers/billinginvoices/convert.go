@@ -702,7 +702,7 @@ func mergeStandardInvoiceLinesFromAPI(inv *billing.StandardInvoice, lines *[]api
 // standardLineFromAPI builds a new top-level standard line from an update request line that
 // has no matching existing line (empty or unrecognized ID).
 func standardLineFromAPI(line api.UpdateInvoiceStandardLine, inv *billing.StandardInvoice) (*billing.StandardLine, error) {
-	price, taxConfig, featureKey, discounts, err := mapRateCardFromAPI(line.RateCard)
+	price, taxConfig, featureKey, desiredDiscounts, err := mapRateCardFromAPI(line.RateCard)
 	if err != nil {
 		return nil, fmt.Errorf("mapping rate card: %w", err)
 	}
@@ -736,7 +736,7 @@ func standardLineFromAPI(line api.UpdateInvoiceStandardLine, inv *billing.Standa
 			InvoiceAt: clock.Now().Truncate(streaming.MinimumWindowSizeDuration),
 
 			TaxConfig:         taxConfig,
-			RateCardDiscounts: discounts,
+			RateCardDiscounts: billing.DiscountsFromProductCatalog(desiredDiscounts),
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price:      price,
@@ -748,7 +748,7 @@ func standardLineFromAPI(line api.UpdateInvoiceStandardLine, inv *billing.Standa
 // mergeStandardLineFromAPI applies the editable fields of an update request line onto an
 // existing top-level standard line, matched by ID.
 func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInvoiceStandardLine) (*billing.StandardLine, error) {
-	price, taxConfig, featureKey, discounts, err := mapRateCardFromAPI(line.RateCard)
+	price, taxConfig, featureKey, desiredDiscounts, err := mapRateCardFromAPI(line.RateCard)
 	if err != nil {
 		return nil, fmt.Errorf("mapping rate card: %w", err)
 	}
@@ -766,7 +766,7 @@ func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInv
 	existing.Period.To = line.ServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration)
 
 	existing.TaxConfig = taxConfig
-	existing.RateCardDiscounts = discounts
+	existing.RateCardDiscounts = existing.RateCardDiscounts.ReplaceFromProductCatalog(desiredDiscounts)
 	if existing.UsageBased == nil {
 		return nil, fmt.Errorf("existing line %s has no usage-based pricing", existing.ID)
 	}
@@ -779,20 +779,20 @@ func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInv
 // mapRateCardFromAPI maps an update request's rate card onto its domain price, tax config,
 // feature key, and discounts. Feature key requiredness relative to the price type is enforced
 // by billing.UsageBasedLine.Validate downstream, not here.
-func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price, *billing.TaxConfig, string, billing.Discounts, error) {
+func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price, *billing.TaxConfig, string, productcatalog.Discounts, error) {
 	price, err := plans.FromAPIBillingPrice(api.BillingPrice(rc.Price), nil)
 	if err != nil {
-		return nil, nil, "", billing.Discounts{}, fmt.Errorf("mapping price: %w", err)
+		return nil, nil, "", productcatalog.Discounts{}, fmt.Errorf("mapping price: %w", err)
 	}
 
-	var discounts billing.Discounts
+	var discounts productcatalog.Discounts
 	if rc.Discounts != nil {
 		pcDiscounts, err := plans.FromAPIBillingRateCardDiscounts(api.BillingRateCardDiscounts(*rc.Discounts))
 		if err != nil {
-			return nil, nil, "", billing.Discounts{}, fmt.Errorf("mapping discounts: %w", err)
+			return nil, nil, "", productcatalog.Discounts{}, fmt.Errorf("mapping discounts: %w", err)
 		}
 
-		discounts = billing.DiscountsFromProductCatalog(pcDiscounts).UpsertCorrelationIDs()
+		discounts = pcDiscounts
 	}
 
 	taxConfig := billing.FromProductCatalog(addons.FromAPIBillingRateCardTaxConfig(fromAPIUpdateRateCardTaxConfig(rc.TaxConfig)))
