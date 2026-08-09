@@ -29,6 +29,34 @@ type PercentageDiscount struct {
 	CorrelationID string `json:"correlationID"`
 }
 
+func (d PercentageDiscount) Validate() error {
+	var errs []error
+
+	if err := d.PercentageDiscount.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if d.CorrelationID == "" {
+		errs = append(errs, errors.New("correlation ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (d PercentageDiscount) ValidateForPrice(price *productcatalog.Price) error {
+	var errs []error
+
+	if err := d.PercentageDiscount.ValidateForPrice(price); err != nil {
+		errs = append(errs, err)
+	}
+
+	if d.CorrelationID == "" {
+		errs = append(errs, errors.New("correlation ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 func (d PercentageDiscount) Clone() PercentageDiscount {
 	return PercentageDiscount{
 		PercentageDiscount: d.PercentageDiscount.Clone(),
@@ -76,6 +104,34 @@ type UsageDiscount struct {
 	productcatalog.UsageDiscount `json:",inline"`
 
 	CorrelationID string `json:"correlationID"`
+}
+
+func (d UsageDiscount) Validate() error {
+	var errs []error
+
+	if err := d.UsageDiscount.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if d.CorrelationID == "" {
+		errs = append(errs, errors.New("correlation ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (d UsageDiscount) ValidateForPrice(price *productcatalog.Price) error {
+	var errs []error
+
+	if err := d.UsageDiscount.ValidateForPrice(price); err != nil {
+		errs = append(errs, err)
+	}
+
+	if d.CorrelationID == "" {
+		errs = append(errs, errors.New("correlation ID is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ discountType[UsageDiscount] = (*UsageDiscount)(nil)
@@ -188,12 +244,49 @@ func (d Discounts) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// PercentageDiscountFromProductCatalog turns unowned commercial configuration
+// into a billing-owned discount with a correlation ID.
+func PercentageDiscountFromProductCatalog(discount *productcatalog.PercentageDiscount) *PercentageDiscount {
+	if discount == nil {
+		return nil
+	}
+
+	return (&PercentageDiscount{
+		PercentageDiscount: discount.Clone(),
+	}).UpsertCorrelationID()
+}
+
+// UsageDiscountFromProductCatalog turns unowned commercial configuration into
+// a billing-owned discount with a correlation ID.
+func UsageDiscountFromProductCatalog(discount *productcatalog.UsageDiscount) *UsageDiscount {
+	if discount == nil {
+		return nil
+	}
+
+	return (&UsageDiscount{
+		UsageDiscount: discount.Clone(),
+	}).UpsertCorrelationID()
+}
+
 func DiscountsFromProductCatalog(discounts productcatalog.Discounts) Discounts {
+	return Discounts{
+		Percentage: PercentageDiscountFromProductCatalog(discounts.Percentage),
+		Usage:      UsageDiscountFromProductCatalog(discounts.Usage),
+	}
+}
+
+// ReplaceFromProductCatalog applies unowned commercial discount configuration to
+// an existing billing-owned value. Existing discount kinds preserve their
+// correlation IDs; newly introduced kinds receive new IDs.
+func (d Discounts) ReplaceFromProductCatalog(discounts productcatalog.Discounts) Discounts {
 	out := Discounts{}
 
 	if discounts.Percentage != nil {
 		out.Percentage = &PercentageDiscount{
 			PercentageDiscount: discounts.Percentage.Clone(),
+		}
+		if d.Percentage != nil {
+			out.Percentage.CorrelationID = d.Percentage.CorrelationID
 		}
 	}
 
@@ -201,6 +294,23 @@ func DiscountsFromProductCatalog(discounts productcatalog.Discounts) Discounts {
 		out.Usage = &UsageDiscount{
 			UsageDiscount: discounts.Usage.Clone(),
 		}
+		if d.Usage != nil {
+			out.Usage.CorrelationID = d.Usage.CorrelationID
+		}
+	}
+
+	return out.UpsertCorrelationIDs()
+}
+
+func (d Discounts) ToProductCatalog() productcatalog.Discounts {
+	out := productcatalog.Discounts{}
+
+	if d.Percentage != nil {
+		out.Percentage = lo.ToPtr(d.Percentage.PercentageDiscount.Clone())
+	}
+
+	if d.Usage != nil {
+		out.Usage = lo.ToPtr(d.Usage.UsageDiscount.Clone())
 	}
 
 	return out

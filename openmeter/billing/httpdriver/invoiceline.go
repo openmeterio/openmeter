@@ -193,7 +193,7 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 
 			InvoiceAt:         line.InvoiceAt,
 			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
-			RateCardDiscounts: rateCardParsed.Discounts,
+			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price:      rateCardParsed.Price,
@@ -236,7 +236,7 @@ func mapCreateGatheringLineToEntity(line api.InvoicePendingLineCreate, ns string
 
 			InvoiceAt:         line.InvoiceAt,
 			TaxConfig:         rateCardParsed.TaxConfig,
-			RateCardDiscounts: rateCardParsed.Discounts,
+			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
 			Price:             lo.FromPtr(rateCardParsed.Price),
 			FeatureKey:        rateCardParsed.FeatureKey,
 		},
@@ -667,7 +667,7 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Standar
 
 			InvoiceAt:         line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
-			RateCardDiscounts: rateCardParsed.Discounts,
+			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price:                        rateCardParsed.Price,
@@ -711,7 +711,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate,
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
 			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
-			RateCardDiscounts: rateCardParsed.Discounts,
+			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price:      rateCardParsed.Price,
@@ -759,7 +759,7 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
 			TaxConfig:         rateCardParsed.TaxConfig,
-			RateCardDiscounts: rateCardParsed.Discounts,
+			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
 			Price:             lo.FromPtr(rateCardParsed.Price),
 			FeatureKey:        rateCardParsed.FeatureKey,
 		},
@@ -790,7 +790,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.TaxConfig = billing.FromProductCatalog(rateCardParsed.TaxConfig)
 	existing.UsageBased.Price = rateCardParsed.Price
 	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
-	existing.RateCardDiscounts = rateCardParsed.Discounts
+	existing.RateCardDiscounts = existing.RateCardDiscounts.ReplaceFromProductCatalog(rateCardParsed.Discounts)
 
 	return existing, nil
 }
@@ -825,7 +825,7 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	existing.TaxConfig = rateCardParsed.TaxConfig
 	existing.Price = lo.FromPtr(rateCardParsed.Price)
 	existing.FeatureKey = rateCardParsed.FeatureKey
-	existing.RateCardDiscounts = rateCardParsed.Discounts
+	existing.RateCardDiscounts = existing.RateCardDiscounts.ReplaceFromProductCatalog(rateCardParsed.Discounts)
 
 	return existing, nil
 }
