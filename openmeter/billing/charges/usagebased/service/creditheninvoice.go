@@ -328,6 +328,7 @@ func (s *CreditThenInvoiceStateMachine) ClearOverride(ctx context.Context, _ met
 
 func (s *CreditThenInvoiceStateMachine) ActiveClearOverride(ctx context.Context) error {
 	if s.Charge.State.CurrentRealizationRunID != nil || len(s.Charge.Realizations.WithoutVoidedBillingHistory()) > 0 {
+		// TODO: enable this once we have corrections and credit notes implemented.
 		return models.NewGenericPreConditionFailedError(
 			fmt.Errorf("cannot clear override for usage-based charge %s after realization has started", s.Charge.ID),
 		)

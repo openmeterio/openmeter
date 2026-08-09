@@ -778,13 +778,13 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 	})
 }
 
-func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverrideSurvivesSubscriptionCancellation() {
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverrideCanBeClearedAfterSubscriptionCancellation() {
 	// given
 	// - Subscription sync owns a future credit-only usage charge whose customer has set a complete override.
 	// when:
-	// - The subscription is canceled mid-period and sync shrinks the hidden source intent.
+	// - The subscription is canceled mid-period, sync shrinks the hidden source intent, and the override is cleared.
 	// then:
-	// - The source period follows the subscription while the customer-facing override remains unchanged.
+	// - The override survives reconciliation until Clear exposes the latest shortened base.
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
@@ -798,6 +798,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverr
 	var overrideFields usagebased.IntentMutableFields
 
 	s.Run("given a subscription-owned charge with a customer override", func() {
+		// The streaming mock treats a meter without any registered events as
+		// missing, while production meters can validly have zero usage.
+		s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 0, setupAt)
+
 		unitPrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 			Amount: alpacadecimal.NewFromFloat(1),
 		})
@@ -879,6 +883,28 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverr
 		s.Equal(cancelAt, charge.Intent.GetBaseIntent().ServicePeriod.To)
 		s.Equal(overrideFields, *charge.Intent.GetOverrideLayerMutableFields())
 		s.Equal(overrideFields, charge.Intent.GetEffectiveIntent().IntentMutableFields)
+	})
+
+	s.Run("when clearing the override after reconciliation", func() {
+		result, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   chargeID.ID,
+		})
+		s.NoError(err)
+		charge, err := result.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
+	})
+
+	s.Run("then the latest reconciled base becomes effective", func() {
+		result, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
+		s.NoError(err)
+		charge, err := result.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Nil(charge.Intent.GetOverrideLayerMutableFields())
+		s.Equal(cancelAt, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Equal(charge.Intent.GetBaseIntent().IntentMutableFields, charge.Intent.GetEffectiveIntent().IntentMutableFields)
 	})
 }
 

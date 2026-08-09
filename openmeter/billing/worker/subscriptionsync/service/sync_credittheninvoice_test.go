@@ -3730,6 +3730,48 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 			TaxConfig:   productcatalog.TaxCodeConfigFrom(baseTaxConfig),
 		}, updatedIntent)
 	})
+
+	s.Run("clearing after cancellation exposes the reconciled base", func() {
+		// given
+		// - Subscription cancellation has shortened the hidden base while the manual override remains effective.
+		// when:
+		// - The customer clears the override.
+		// then:
+		// - The charge and gathering line expose the shortened subscription-owned base.
+		s.Require().NotNil(updatedLine.ChargeID)
+		chargeID := *updatedLine.ChargeID
+		_, err := s.Charges.ClearCustomerChargeOverride(ctx, charges.ClearCustomerChargeOverrideInput{
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+			ChargeID:   chargeID,
+		})
+		s.NoError(err)
+
+		chargeResult, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: chargesmeta.ChargeID{
+			Namespace: s.Namespace,
+			ID:        chargeID,
+		}})
+		s.NoError(err)
+		charge, err := chargeResult.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatfee.StatusActive, charge.Status)
+		s.Nil(charge.Intent.GetOverrideLayerMutableFields())
+		cancelAt := s.mustParseTime("2024-01-15T00:00:00Z")
+		s.Equal(cancelAt, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Equal(float64(5), charge.Intent.GetEffectiveIntent().AmountBeforeProration.InexactFloat64())
+
+		gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		invoiceLine, found := lo.Find(gatheringInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.ChargeID != nil && *line.ChargeID == chargeID
+		})
+		s.True(found, "restored base gathering line should be found")
+		s.Equal(cancelAt, invoiceLine.ServicePeriod.To)
+		s.Equal(cancelAt, invoiceLine.InvoiceAt)
+		price, err := invoiceLine.Price.AsFlat()
+		s.NoError(err)
+		s.Equal(charge.State.AmountAfterProration.InexactFloat64(), price.Amount.InexactFloat64())
+		s.Equal(productcatalog.InArrearsPaymentTerm, price.PaymentTerm)
+	})
 }
 
 func (s *CreditThenInvoiceTestSuite) TestGatheringManualCreateSync() {
