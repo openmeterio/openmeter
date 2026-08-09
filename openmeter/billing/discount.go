@@ -44,6 +44,9 @@ func (d *PercentageDiscount) CloneOrNil() *PercentageDiscount {
 	return lo.ToPtr(d.Clone())
 }
 
+// UpsertCorrelationID returns a copy with a correlation ID allocated when it is missing.
+// Persisted charge discounts use the ID to preserve detailed-line lineage across realizations.
+// Existing IDs are preserved, and a nil discount remains nil.
 func (d *PercentageDiscount) UpsertCorrelationID() *PercentageDiscount {
 	if d == nil {
 		return nil
@@ -96,6 +99,9 @@ func (d UsageDiscount) Equal(other UsageDiscount) bool {
 	return true
 }
 
+// UpsertCorrelationID returns a copy with a correlation ID allocated when it is missing.
+// Persisted charge discounts use the ID to preserve detailed-line lineage across realizations.
+// Existing IDs are preserved, and a nil discount remains nil.
 func (d *UsageDiscount) UpsertCorrelationID() *UsageDiscount {
 	if d == nil {
 		return nil
@@ -200,6 +206,8 @@ func DiscountsFromProductCatalog(discounts productcatalog.Discounts) Discounts {
 	return out
 }
 
+// UpsertCorrelationIDs returns a copy with correlation IDs allocated for all present discounts.
+// It preserves existing IDs and leaves the receiver unchanged.
 func (d Discounts) UpsertCorrelationIDs() Discounts {
 	d.Percentage = d.Percentage.UpsertCorrelationID()
 	d.Usage = d.Usage.UpsertCorrelationID()

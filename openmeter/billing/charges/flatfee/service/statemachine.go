@@ -97,19 +97,18 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 // mutateIntentLayer mutates the requested intent layer, creating a new override
 // layer first when the target is override and the charge has no override yet.
 func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.ChangeTarget, editFn func(*flatfee.IntentMutableFields)) error {
-	editWithDiscountCorrelationID := func(fields *flatfee.IntentMutableFields) {
-		editFn(fields)
-		fields.PercentageDiscounts = fields.PercentageDiscounts.UpsertCorrelationID()
-	}
-
 	switch target {
 	case meta.ChangeTargetBase:
-		if err := s.Charge.Intent.Mutate(meta.ChangeTargetBase, editWithDiscountCorrelationID); err != nil {
+		if err := s.Charge.Intent.Mutate(meta.ChangeTargetBase, func(fields *flatfee.IntentMutableFields) {
+			mutateFlatFeeIntentFields(fields, editFn)
+		}); err != nil {
 			return fmt.Errorf("mutating base intent: %w", err)
 		}
 	case meta.ChangeTargetOverride:
 		if s.Charge.Intent.HasOverrideLayer() {
-			if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, editWithDiscountCorrelationID); err != nil {
+			if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, func(fields *flatfee.IntentMutableFields) {
+				mutateFlatFeeIntentFields(fields, editFn)
+			}); err != nil {
 				return fmt.Errorf("mutating override intent: %w", err)
 			}
 
@@ -118,7 +117,7 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 
 		effectiveIntent := s.Charge.Intent.GetEffectiveIntent()
 		overrideFields := effectiveIntent.IntentMutableFields
-		editWithDiscountCorrelationID(&overrideFields)
+		mutateFlatFeeIntentFields(&overrideFields, editFn)
 		overrideFields = overrideFields.Normalized(effectiveIntent.Currency)
 		if err := overrideFields.Validate(); err != nil {
 			return fmt.Errorf("validating override intent: %w", err)
@@ -135,6 +134,11 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 	}
 
 	return nil
+}
+
+func mutateFlatFeeIntentFields(fields *flatfee.IntentMutableFields, editFn func(*flatfee.IntentMutableFields)) {
+	editFn(fields)
+	fields.PercentageDiscounts = fields.PercentageDiscounts.UpsertCorrelationID()
 }
 
 // rejectHiddenIntentTarget prevents lifecycle state machines from processing a

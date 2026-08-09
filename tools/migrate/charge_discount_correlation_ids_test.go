@@ -23,32 +23,23 @@ func TestBackfillChargeDiscountCorrelationIDs(t *testing.T) {
 
 	createChargeDiscountCorrelationIDMigrationFixtures(t, conn)
 
+	untouchedBefore := readUntouchedDiscounts(t, conn)
+
 	_, err = conn.ExecContext(t.Context(), up)
 	require.NoError(t, err)
 
-	assertDiscountCorrelationID(t, conn, "charge_usage_based", "usage-line", "percentage", "gathering-percentage")
-	assertDiscountCorrelationID(t, conn, "charge_usage_based", "usage-line", "usage", "gathering-usage")
-	assertDiscountCorrelationID(t, conn, "charge_usage_based", "usage-existing", "percentage", "existing-percentage")
-	assertDiscountCorrelationID(t, conn, "charge_usage_based", "usage-existing", "usage", "existing-usage")
-	assertGeneratedDiscountCorrelationID(t, conn, "charge_usage_based", "usage-generated", "usage")
+	percentageID := assertGeneratedGatheringLineDiscountCorrelationID(t, conn, "charge-both", "percentage")
+	usageID := assertGeneratedGatheringLineDiscountCorrelationID(t, conn, "charge-both", "usage")
+	require.NotEqual(t, percentageID, usageID)
 
-	assertDiscountCorrelationID(t, conn, "charge_usage_based_overrides", "usage-override", "percentage", "gathering-percentage")
-	assertDiscountCorrelationID(t, conn, "charge_usage_based_overrides", "usage-override", "usage", "override-existing-usage")
-	assertGeneratedDiscountCorrelationID(t, conn, "charge_usage_based_overrides", "usage-generated-override", "usage")
+	assertGatheringLineDiscountCorrelationID(t, conn, "charge-existing", "percentage", "existing-percentage")
+	assertGeneratedGatheringLineDiscountCorrelationID(t, conn, "charge-existing", "usage")
+	require.Equal(t, untouchedBefore, readUntouchedDiscounts(t, conn))
 
-	assertDiscountCorrelationID(t, conn, "charge_flat_fees", "flat-line", "percentage", "standard-percentage")
-	assertDiscountCorrelationID(t, conn, "charge_flat_fees", "flat-existing", "percentage", "existing-flat-percentage")
-	assertGeneratedDiscountCorrelationID(t, conn, "charge_flat_fee_overrides", "flat-generated-override", "percentage")
-
-	var nullDiscounts bool
-	err = conn.QueryRowContext(t.Context(), `SELECT discounts IS NULL FROM charge_flat_fees WHERE id = 'flat-without-discount'`).Scan(&nullDiscounts)
-	require.NoError(t, err)
-	require.True(t, nullDiscounts)
-
-	beforeRetry := readChargeDiscounts(t, conn)
+	afterFirstRun := readGatheringLineDiscounts(t, conn)
 	_, err = conn.ExecContext(t.Context(), up)
 	require.NoError(t, err)
-	require.Equal(t, beforeRetry, readChargeDiscounts(t, conn))
+	require.Equal(t, afterFirstRun, readGatheringLineDiscounts(t, conn))
 }
 
 func createChargeDiscountCorrelationIDMigrationFixtures(t *testing.T, conn *sql.Conn) {
@@ -68,94 +59,59 @@ func createChargeDiscountCorrelationIDMigrationFixtures(t *testing.T, conn *sql.
 			id text PRIMARY KEY,
 			charge_id text NULL,
 			ratecard_discounts jsonb NULL,
-			updated_at timestamptz NOT NULL,
+			updated_at timestamptz NOT NULL DEFAULT '2026-08-01T00:00:00Z',
 			deleted_at timestamptz NULL
 		);
 		CREATE TEMP TABLE billing_invoice_lines (
 			id text PRIMARY KEY,
 			charge_id text NULL,
 			ratecard_discounts jsonb NULL,
-			updated_at timestamptz NOT NULL,
 			deleted_at timestamptz NULL
 		);
 		CREATE TEMP TABLE charge_usage_based (
 			id text PRIMARY KEY,
-			discounts jsonb NULL,
-			updated_at timestamptz NOT NULL
-		);
-		CREATE TEMP TABLE charge_usage_based_overrides (
-			id text PRIMARY KEY,
-			charge_id text NOT NULL,
-			discounts jsonb NULL
-		);
-		CREATE TEMP TABLE charge_flat_fees (
-			id text PRIMARY KEY,
-			discounts jsonb NULL,
-			updated_at timestamptz NOT NULL
-		);
-		CREATE TEMP TABLE charge_flat_fee_overrides (
-			id text PRIMARY KEY,
-			charge_id text NOT NULL,
 			discounts jsonb NULL
 		);
 
-		INSERT INTO billing_gathering_invoice_lines (id, charge_id, ratecard_discounts, updated_at, deleted_at) VALUES
-			('usage-gathering', 'usage-line', '{
-				"percentage":{"percentage":10,"correlationID":"gathering-percentage"},
-				"usage":{"quantity":"5","correlationID":"gathering-usage"}
-			}', '2026-08-01T00:00:00Z', NULL),
-			('flat-deleted-gathering', 'flat-line', '{
-				"percentage":{"percentage":20,"correlationID":"deleted-gathering-percentage"}
-			}', '2026-08-03T00:00:00Z', '2026-08-03T01:00:00Z');
-
-		INSERT INTO billing_invoice_lines (id, charge_id, ratecard_discounts, updated_at, deleted_at) VALUES
-			('usage-standard', 'usage-line', '{
-				"percentage":{"percentage":10,"correlationID":"standard-percentage"},
-				"usage":{"quantity":"5","correlationID":"standard-usage"}
-			}', '2026-08-02T00:00:00Z', NULL),
-			('flat-standard', 'flat-line', '{
-				"percentage":{"percentage":20,"correlationID":"standard-percentage"}
-			}', '2026-08-02T00:00:00Z', NULL);
-
-		INSERT INTO charge_usage_based (id, discounts, updated_at) VALUES
-			('usage-line', '{
+		INSERT INTO billing_gathering_invoice_lines (id, charge_id, ratecard_discounts, deleted_at) VALUES
+			('charge-both', 'charge-1', '{
 				"percentage":{"percentage":10},
 				"usage":{"quantity":"5","correlationID":""}
-			}', '2026-08-01T00:00:00Z'),
-			('usage-existing', '{
+			}', NULL),
+			('charge-existing', 'charge-2', '{
 				"percentage":{"percentage":15,"correlationID":"existing-percentage"},
-				"usage":{"quantity":"3","correlationID":"existing-usage"}
-			}', '2026-08-01T00:00:00Z'),
-			('usage-generated', '{
-				"usage":{"quantity":"8"}
-			}', '2026-08-01T00:00:00Z');
+				"usage":{"quantity":"3"}
+			}', NULL),
+			('not-charge-backed', NULL, '{
+				"percentage":{"percentage":20},
+				"usage":{"quantity":"7"}
+			}', NULL),
+			('deleted-charge-backed', 'charge-3', '{
+				"percentage":{"percentage":25}
+			}', '2026-08-03T01:00:00Z'),
+			('without-discounts', 'charge-4', NULL, NULL);
 
-		INSERT INTO charge_usage_based_overrides (id, charge_id, discounts) VALUES
-			('usage-override', 'usage-line', '{
-				"percentage":{"percentage":25},
-				"usage":{"quantity":"7","correlationID":"override-existing-usage"}
-			}'),
-			('usage-generated-override', 'usage-generated', '{
-				"usage":{"quantity":"9","correlationID":""}
+		INSERT INTO billing_invoice_lines (id, charge_id, ratecard_discounts, deleted_at) VALUES
+			('standard-charge-backed', 'charge-1', '{
+				"percentage":{"percentage":10},
+				"usage":{"quantity":"5"}
+			}', NULL);
+
+		INSERT INTO charge_usage_based (id, discounts) VALUES
+			('charge-1', '{
+				"percentage":{"percentage":10},
+				"usage":{"quantity":"5"}
 			}');
-
-		INSERT INTO charge_flat_fees (id, discounts, updated_at) VALUES
-			('flat-line', '{"percentage":{"percentage":20}}', '2026-08-01T00:00:00Z'),
-			('flat-existing', '{"percentage":{"percentage":30,"correlationID":"existing-flat-percentage"}}', '2026-08-01T00:00:00Z'),
-			('flat-without-discount', NULL, '2026-08-01T00:00:00Z');
-
-		INSERT INTO charge_flat_fee_overrides (id, charge_id, discounts) VALUES
-			('flat-generated-override', 'flat-without-discount', '{"percentage":{"percentage":40,"correlationID":""}}');
 	`)
 	require.NoError(t, err)
 }
 
-func assertDiscountCorrelationID(t *testing.T, conn *sql.Conn, table, id, discountType, expected string) {
+func assertGatheringLineDiscountCorrelationID(t *testing.T, conn *sql.Conn, id, discountType, expected string) {
 	t.Helper()
 
 	var actual string
 	err := conn.QueryRowContext(t.Context(),
-		`SELECT discounts #>> ARRAY[$1, 'correlationID'] FROM `+table+` WHERE id = $2`,
+		`SELECT ratecard_discounts #>> ARRAY[$1, 'correlationID'] FROM billing_gathering_invoice_lines WHERE id = $2`,
 		discountType,
 		id,
 	).Scan(&actual)
@@ -163,34 +119,56 @@ func assertDiscountCorrelationID(t *testing.T, conn *sql.Conn, table, id, discou
 	require.Equal(t, expected, actual)
 }
 
-func assertGeneratedDiscountCorrelationID(t *testing.T, conn *sql.Conn, table, id, discountType string) {
+func assertGeneratedGatheringLineDiscountCorrelationID(t *testing.T, conn *sql.Conn, id, discountType string) string {
 	t.Helper()
 
 	var actual string
 	err := conn.QueryRowContext(t.Context(),
-		`SELECT discounts #>> ARRAY[$1, 'correlationID'] FROM `+table+` WHERE id = $2`,
+		`SELECT ratecard_discounts #>> ARRAY[$1, 'correlationID'] FROM billing_gathering_invoice_lines WHERE id = $2`,
 		discountType,
 		id,
 	).Scan(&actual)
 	require.NoError(t, err)
-	require.NotEmpty(t, actual)
 	require.Contains(t, actual, "generated-")
+
+	return actual
 }
 
-func readChargeDiscounts(t *testing.T, conn *sql.Conn) map[string]string {
+func readUntouchedDiscounts(t *testing.T, conn *sql.Conn) map[string]string {
 	t.Helper()
 
 	rows, err := conn.QueryContext(t.Context(), `
-		SELECT 'usage:' || id, COALESCE(discounts::text, 'null') FROM charge_usage_based
+		SELECT 'gathering:' || id, COALESCE(ratecard_discounts::text, 'null')
+		FROM billing_gathering_invoice_lines
+		WHERE charge_id IS NULL OR deleted_at IS NOT NULL OR ratecard_discounts IS NULL
 		UNION ALL
-		SELECT 'usage_override:' || id, COALESCE(discounts::text, 'null') FROM charge_usage_based_overrides
+		SELECT 'standard:' || id, COALESCE(ratecard_discounts::text, 'null')
+		FROM billing_invoice_lines
 		UNION ALL
-		SELECT 'flat:' || id, COALESCE(discounts::text, 'null') FROM charge_flat_fees
-		UNION ALL
-		SELECT 'flat_override:' || id, COALESCE(discounts::text, 'null') FROM charge_flat_fee_overrides
+		SELECT 'charge:' || id, COALESCE(discounts::text, 'null')
+		FROM charge_usage_based
 	`)
 	require.NoError(t, err)
 	defer rows.Close()
+
+	return scanDiscounts(t, rows)
+}
+
+func readGatheringLineDiscounts(t *testing.T, conn *sql.Conn) map[string]string {
+	t.Helper()
+
+	rows, err := conn.QueryContext(t.Context(), `
+		SELECT id, COALESCE(ratecard_discounts::text, 'null')
+		FROM billing_gathering_invoice_lines
+	`)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	return scanDiscounts(t, rows)
+}
+
+func scanDiscounts(t *testing.T, rows *sql.Rows) map[string]string {
+	t.Helper()
 
 	result := map[string]string{}
 	for rows.Next() {
