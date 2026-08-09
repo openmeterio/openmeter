@@ -46,6 +46,9 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 
 		var discounts *billing.Discounts
 		if intent.PercentageDiscounts != nil {
+			// Note: this is just a defensive mechanism to ensure that if the DB has invalid entities (e.g. ones missing the correlation ID),
+			// we backfill the correlation ID.
+			intent.PercentageDiscounts = intent.PercentageDiscounts.UpsertCorrelationID()
 			discounts = &billing.Discounts{Percentage: intent.PercentageDiscounts}
 		}
 
@@ -420,6 +423,7 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intentWithStatus flatfee.I
 
 	var discounts *billing.Discounts
 	if intent.PercentageDiscounts != nil {
+		intent.PercentageDiscounts = intent.PercentageDiscounts.UpsertCorrelationID()
 		discounts = &billing.Discounts{Percentage: intent.PercentageDiscounts}
 	}
 

@@ -88,6 +88,9 @@ when an active override hides it.
   advancement and patching also take charge-scoped locks.
 - `UpdateCharge` persists the concrete base row. Expanded realizations are read
   model state and are written through dedicated adapter operations.
+- Persisted charge discounts have stable correlation IDs allocated at their
+  write boundary. Rerating, invoice projection, and correction reuse those IDs
+  so discount child references preserve lineage across realization runs.
 - Ledger effects and the realization or payment facts that reference them are
   written under the lifecycle transaction. Retry safety comes from persisted
   lifecycle facts checked before handlers run, not from the

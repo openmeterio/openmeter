@@ -35,6 +35,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 		// Let's create all the flat fee charges in bulk
 		intentsWithStatus, err := slicesx.MapWithErr(input.Intents, func(intent flatfee.Intent) (flatfee.IntentWithInitialStatus, error) {
 			chargeIntent := intent.Normalized()
+			chargeIntent.PercentageDiscounts = chargeIntent.PercentageDiscounts.UpsertCorrelationID()
 
 			var resolvedCostBasis *costbasis.State
 			if chargeIntent.CostBasis != nil {

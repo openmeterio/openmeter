@@ -32,6 +32,7 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 		now := clock.Now().UTC()
 		createIntents, err := slicesx.MapWithErr(input.Intents, func(intent usagebased.Intent) (usagebased.CreateIntent, error) {
 			chargeIntent := intent.Normalized()
+			chargeIntent.Discounts = chargeIntent.Discounts.UpsertCorrelationIDs()
 
 			var resolvedCostBasis *costbasis.State
 			if chargeIntent.CostBasis != nil {

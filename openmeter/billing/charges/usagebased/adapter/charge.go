@@ -37,6 +37,9 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 		}
 
 		baseIntent := charge.Intent.GetBaseIntent()
+		// Note: this is just a defensive mechanism to ensure that if the DB has invalid entities (e.g. ones missing the correlation ID),
+		// we backfill the correlation ID.
+		baseIntent.Discounts = baseIntent.Discounts.UpsertCorrelationIDs()
 
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
@@ -402,6 +405,7 @@ func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *
 
 func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
 	baseIntent := intent.Intent.GetBaseIntent()
+	baseIntent.Discounts = baseIntent.Discounts.UpsertCorrelationIDs()
 
 	create := a.db.ChargeUsageBased.Create().
 		SetNillableDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).

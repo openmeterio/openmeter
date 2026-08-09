@@ -44,6 +44,22 @@ func (d *PercentageDiscount) CloneOrNil() *PercentageDiscount {
 	return lo.ToPtr(d.Clone())
 }
 
+// UpsertCorrelationID returns a copy with a correlation ID allocated when it is missing.
+// Persisted charge discounts use the ID to preserve detailed-line lineage across realizations.
+// Existing IDs are preserved, and a nil discount remains nil.
+func (d *PercentageDiscount) UpsertCorrelationID() *PercentageDiscount {
+	if d == nil {
+		return nil
+	}
+
+	out := d.Clone()
+	if out.CorrelationID == "" {
+		out.CorrelationID = ulid.Make().String()
+	}
+
+	return &out
+}
+
 func (d PercentageDiscount) Equal(other PercentageDiscount) bool {
 	if d.PercentageDiscount.Hash() != other.PercentageDiscount.Hash() {
 		return false
@@ -81,6 +97,22 @@ func (d UsageDiscount) Equal(other UsageDiscount) bool {
 	}
 
 	return true
+}
+
+// UpsertCorrelationID returns a copy with a correlation ID allocated when it is missing.
+// Persisted charge discounts use the ID to preserve detailed-line lineage across realizations.
+// Existing IDs are preserved, and a nil discount remains nil.
+func (d *UsageDiscount) UpsertCorrelationID() *UsageDiscount {
+	if d == nil {
+		return nil
+	}
+
+	out := d.Clone()
+	if out.CorrelationID == "" {
+		out.CorrelationID = ulid.Make().String()
+	}
+
+	return &out
 }
 
 var _ models.Clonable[Discounts] = (*Discounts)(nil)
@@ -174,22 +206,13 @@ func DiscountsFromProductCatalog(discounts productcatalog.Discounts) Discounts {
 	return out
 }
 
+// UpsertCorrelationIDs returns a copy with correlation IDs allocated for all present discounts.
+// It preserves existing IDs and leaves the receiver unchanged.
 func (d Discounts) UpsertCorrelationIDs() Discounts {
-	out := d.Clone()
+	d.Percentage = d.Percentage.UpsertCorrelationID()
+	d.Usage = d.Usage.UpsertCorrelationID()
 
-	if out.Percentage != nil {
-		if out.Percentage.CorrelationID == "" {
-			out.Percentage.CorrelationID = ulid.Make().String()
-		}
-	}
-
-	if out.Usage != nil {
-		if out.Usage.CorrelationID == "" {
-			out.Usage.CorrelationID = ulid.Make().String()
-		}
-	}
-
-	return out
+	return d
 }
 
 // DiscountReason type
