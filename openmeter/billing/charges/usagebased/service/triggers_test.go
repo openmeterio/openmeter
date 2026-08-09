@@ -4,14 +4,75 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func TestGetStateMachineConfigUsesAuthoritativeFeatureMeters(t *testing.T) {
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 7, 8, 8, 45, 3, 0, time.UTC),
+		To:   time.Date(2026, 8, 8, 8, 45, 3, 0, time.UTC),
+	}
+	charge := usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+			Intent:          newUsageBasedIntentForCreditThenInvoiceTest(t, servicePeriod),
+			Status:          usagebased.StatusCreated,
+		},
+	}
+
+	t.Run("when the supplied collection contains the charge feature", func(t *testing.T) {
+		// given:
+		// - Advancement receives an authoritative feature-meter collection containing the charge feature.
+		// when:
+		// - The state-machine configuration resolves the charge feature.
+		// then:
+		// - It uses the supplied snapshot without consulting the feature service.
+		featureMeter := feature.FeatureMeter{
+			Feature: feature.Feature{
+				ID:  "feature-id",
+				Key: "feature-key",
+			},
+			Meter: &meter.Meter{},
+		}
+		featureMeters := feature.FeatureMeterCollection{
+			ByKey: map[string]feature.FeatureMeter{
+				featureMeter.Feature.Key: featureMeter,
+			},
+		}
+
+		config, err := (&service{}).getStateMachineConfigForChargeWithHints(t.Context(), charge, usagebased.AdvanceChargeInput{
+			CustomerOverride: mo.Some(billing.CustomerOverrideWithDetails{}),
+			FeatureMeters:    mo.Some[feature.FeatureMeters](featureMeters),
+		})
+		require.NoError(t, err)
+		require.Equal(t, featureMeter, config.FeatureMeter)
+	})
+
+	t.Run("when the supplied collection omits the charge feature", func(t *testing.T) {
+		// given:
+		// - Advancement receives an authoritative feature-meter collection without the charge feature.
+		// when:
+		// - The state-machine configuration resolves the charge feature.
+		// then:
+		// - It returns the snapshot lookup error instead of falling back to the feature service.
+		_, err := (&service{}).getStateMachineConfigForChargeWithHints(t.Context(), charge, usagebased.AdvanceChargeInput{
+			CustomerOverride: mo.Some(billing.CustomerOverrideWithDetails{}),
+			FeatureMeters: mo.Some[feature.FeatureMeters](feature.FeatureMeterCollection{
+				ByKey: map[string]feature.FeatureMeter{},
+			}),
+		})
+		require.ErrorContains(t, err, "feature[feature-key] not found")
+	})
+}
 
 func TestApplyBaseIntentPatchForOverriddenChargeShrinksDeletedEffectiveCharge(t *testing.T) {
 	baseServicePeriod := timeutil.ClosedPeriod{

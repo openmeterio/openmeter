@@ -165,7 +165,6 @@ func TestUnsupportedExtendOperation(t *testing.T) {
 			require.Error(t, err)
 			require.True(t, models.IsGenericPreConditionFailedError(err))
 			require.ErrorContains(t, err, "cannot extend usage-based charge in status "+string(status))
-			require.Empty(t, machine.InvoicePatches())
 		})
 	}
 }
@@ -191,11 +190,11 @@ func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *te
 			require.NoError(t, err)
 			require.True(t, canFire)
 
-			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+			patches, err := machine.FireAndAdvanceUntilInvoicePatchesOrStable(t.Context(), patch.Trigger(), patch)
 			require.Error(t, err)
 			require.True(t, models.IsGenericPreConditionFailedError(err))
 			require.ErrorContains(t, err, "cannot extend usage-based charge in status "+string(status))
-			require.Empty(t, machine.InvoicePatches())
+			require.Empty(t, patches)
 			require.Equal(t, status, machine.GetCharge().Status)
 		})
 	}
@@ -225,7 +224,6 @@ func TestUnsupportedShrinkOperation(t *testing.T) {
 			require.Error(t, err)
 			require.True(t, models.IsGenericPreConditionFailedError(err))
 			require.ErrorContains(t, err, "cannot shrink usage-based charge in status "+string(status))
-			require.Empty(t, machine.InvoicePatches())
 		})
 	}
 }
@@ -252,11 +250,11 @@ func TestUnsupportedShrinkOperationIsConfiguredForImmutableBoundaries(t *testing
 			require.NoError(t, err)
 			require.True(t, canFire)
 
-			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+			patches, err := machine.FireAndAdvanceUntilInvoicePatchesOrStable(t.Context(), patch.Trigger(), patch)
 			require.Error(t, err)
 			require.True(t, models.IsGenericPreConditionFailedError(err))
 			require.ErrorContains(t, err, "cannot shrink usage-based charge in status "+string(status))
-			require.Empty(t, machine.InvoicePatches())
+			require.Empty(t, patches)
 			require.Equal(t, status, machine.GetCharge().Status)
 		})
 	}
@@ -292,13 +290,14 @@ func TestShrinkChargeKeepsCurrentRunStateWhenCurrentRunSurvivesShrink(t *testing
 
 	err := machine.ShrinkCharge(t.Context(), mustNewPatchShrink(t, newServicePeriodTo))
 	require.NoError(t, err)
+	patches, err := machine.AdvanceUntilInvoicePatchesOrStable(t.Context())
+	require.NoError(t, err)
 
 	charge := machine.GetCharge()
 	require.Equal(t, usagebased.StatusActiveRealizationProcessing, charge.Status)
 	require.Equal(t, currentRunID, *charge.State.CurrentRealizationRunID)
 	require.Equal(t, currentAdvanceAfter, *charge.State.AdvanceAfter)
 
-	patches := machine.InvoicePatches()
 	require.Len(t, patches, 1)
 	require.Equal(t, invoiceupdater.PatchOpUpsertGatheringLineByChargeID, patches[0].Op())
 
@@ -333,8 +332,9 @@ func TestExtendChargeDeletesPendingGatheringLineWhenRunsCoverExtendedPeriod(t *t
 
 	err := machine.ExtendCharge(t.Context(), mustNewPatchExtend(t, extendedServicePeriodTo))
 	require.NoError(t, err)
+	patches, err := machine.AdvanceUntilInvoicePatchesOrStable(t.Context())
+	require.NoError(t, err)
 
-	patches := machine.InvoicePatches()
 	require.Len(t, patches, 1)
 	require.Equal(t, invoiceupdater.PatchOpDeleteGatheringLineByChargeID, patches[0].Op())
 
@@ -371,13 +371,14 @@ func TestShrinkChargeMovesToAwaitingPaymentWhenKeptRunCoversNewEnd(t *testing.T)
 
 	err := machine.ShrinkCharge(t.Context(), mustNewPatchShrink(t, newServicePeriodTo))
 	require.NoError(t, err)
+	patches, err := machine.AdvanceUntilInvoicePatchesOrStable(t.Context())
+	require.NoError(t, err)
 
 	charge := machine.GetCharge()
 	require.Equal(t, usagebased.StatusActiveAwaitingPaymentSettlement, charge.Status)
 	require.Nil(t, charge.State.CurrentRealizationRunID)
 	require.Nil(t, charge.State.AdvanceAfter)
 
-	patches := machine.InvoicePatches()
 	require.Len(t, patches, 1)
 	require.Equal(t, invoiceupdater.PatchOpDeleteGatheringLineByChargeID, patches[0].Op())
 }
@@ -416,13 +417,14 @@ func TestShrinkChargeMovesToFinalWhenKeptRunCoversNewEndAndSettlementIsComplete(
 
 	err := machine.ShrinkCharge(t.Context(), mustNewPatchShrink(t, newServicePeriodTo))
 	require.NoError(t, err)
+	patches, err := machine.AdvanceUntilInvoicePatchesOrStable(t.Context())
+	require.NoError(t, err)
 
 	charge := machine.GetCharge()
 	require.Equal(t, usagebased.StatusFinal, charge.Status)
 	require.Nil(t, charge.State.CurrentRealizationRunID)
 	require.Nil(t, charge.State.AdvanceAfter)
 
-	patches := machine.InvoicePatches()
 	require.Len(t, patches, 1)
 	require.Equal(t, invoiceupdater.PatchOpDeleteGatheringLineByChargeID, patches[0].Op())
 }
@@ -457,6 +459,8 @@ func TestShrinkToRealizedPeriodFinalizesKeptPartialRunAndPreservesChargeState(t 
 
 	err := machine.ShrinkToRealizedPeriod(t.Context(), mustNewPatchShrinkToRealizedPeriod(t, newServicePeriodTo))
 	require.NoError(t, err)
+	patches, err := machine.AdvanceUntilInvoicePatchesOrStable(t.Context())
+	require.NoError(t, err)
 
 	charge = machine.GetCharge()
 	require.Equal(t, usagebased.StatusActive, charge.Status)
@@ -474,7 +478,6 @@ func TestShrinkToRealizedPeriodFinalizesKeptPartialRunAndPreservesChargeState(t 
 	require.Equal(t, usagebased.RealizationRunTypeFinalRealization, run.Type)
 	require.Equal(t, usagebased.RealizationRunTypePartialInvoice, run.InitialType)
 
-	patches := machine.InvoicePatches()
 	require.Len(t, patches, 1)
 	require.Equal(t, invoiceupdater.PatchOpDeleteGatheringLineByChargeID, patches[0].Op())
 }
@@ -538,6 +541,8 @@ func TestShrinkToRealizedPeriodFinalizesCurrentPartialRunAndPreservesChargeState
 
 	err := machine.ShrinkToRealizedPeriod(t.Context(), mustNewPatchShrinkToRealizedPeriod(t, newServicePeriodTo))
 	require.NoError(t, err)
+	patches, err := machine.AdvanceUntilInvoicePatchesOrStable(t.Context())
+	require.NoError(t, err)
 
 	charge = machine.GetCharge()
 	require.Equal(t, usagebased.StatusActiveRealizationProcessing, charge.Status)
@@ -554,7 +559,6 @@ func TestShrinkToRealizedPeriodFinalizesCurrentPartialRunAndPreservesChargeState
 	require.Equal(t, usagebased.RealizationRunTypeFinalRealization, run.Type)
 	require.Equal(t, usagebased.RealizationRunTypePartialInvoice, run.InitialType)
 
-	patches := machine.InvoicePatches()
 	require.Len(t, patches, 1)
 	require.Equal(t, invoiceupdater.PatchOpDeleteGatheringLineByChargeID, patches[0].Op())
 }

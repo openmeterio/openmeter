@@ -60,9 +60,25 @@ func chargesByType(in charges.Charges) (chargesByTypeResult, error) {
 type InvocableCharge interface {
 	GetChargeID() meta.ChargeID
 	TriggerPatch(ctx context.Context, patch meta.Patch) (TriggerPatchResult, error)
+	// AdvanceCharge reloads the concrete charge after its
+	// preceding invoice batch and resumes lifecycle continuation.
+	AdvanceCharge(ctx context.Context) (TriggerPatchResult, error)
 }
 
 type TriggerPatchResult = meta.TriggerPatchResult[charges.Charge]
+
+func mapTriggerPatchResult[T flatfee.Charge | usagebased.Charge](res meta.TriggerPatchResult[T]) TriggerPatchResult {
+	result := TriggerPatchResult{
+		InvoicePatches: res.InvoicePatches,
+		CanAdvance:     res.CanAdvance,
+	}
+
+	if res.Charge != nil {
+		result.Charge = lo.ToPtr(charges.NewCharge(*res.Charge))
+	}
+
+	return result
+}
 
 func (s *service) newInvocableCharges(si charges.ChargeSearchItems) (map[string]InvocableCharge, error) {
 	result := make(map[string]InvocableCharge, len(si))
@@ -102,14 +118,16 @@ func (c *flatFeeInvocableCharge) TriggerPatch(ctx context.Context, patch meta.Pa
 		return TriggerPatchResult{}, err
 	}
 
-	if res.Charge == nil {
-		return TriggerPatchResult{}, nil
+	return mapTriggerPatchResult(res), nil
+}
+
+func (c *flatFeeInvocableCharge) AdvanceCharge(ctx context.Context) (TriggerPatchResult, error) {
+	res, err := c.flatFeeService.AdvanceCharge(ctx, flatfee.AdvanceChargeInput{ChargeID: c.chargeID})
+	if err != nil {
+		return TriggerPatchResult{}, err
 	}
 
-	return TriggerPatchResult{
-		InvoicePatches: res.InvoicePatches,
-		Charge:         lo.ToPtr(charges.NewCharge(*res.Charge)),
-	}, nil
+	return mapTriggerPatchResult(res), nil
 }
 
 func (c *flatFeeInvocableCharge) GetChargeID() meta.ChargeID {
@@ -129,14 +147,16 @@ func (c *usageBasedInvocableCharge) TriggerPatch(ctx context.Context, patch meta
 		return TriggerPatchResult{}, err
 	}
 
-	if res.Charge == nil {
-		return TriggerPatchResult{}, nil
+	return mapTriggerPatchResult(res), nil
+}
+
+func (c *usageBasedInvocableCharge) AdvanceCharge(ctx context.Context) (TriggerPatchResult, error) {
+	res, err := c.usageBasedService.AdvanceCharge(ctx, usagebased.AdvanceChargeInput{ChargeID: c.chargeID})
+	if err != nil {
+		return TriggerPatchResult{}, err
 	}
 
-	return TriggerPatchResult{
-		InvoicePatches: res.InvoicePatches,
-		Charge:         lo.ToPtr(charges.NewCharge(*res.Charge)),
-	}, nil
+	return mapTriggerPatchResult(res), nil
 }
 
 func (c *usageBasedInvocableCharge) GetChargeID() meta.ChargeID {

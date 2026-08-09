@@ -71,7 +71,21 @@ func (s *service) applyPatches(ctx context.Context, customerID customer.Customer
 		return err
 	}
 
+	return s.applyInvocableChargePatches(ctx, customerID, invocableChargesByID, patchesByChargeID)
+}
+
+// applyInvocableChargePatches advances all affected charges in rounds so invoice
+// effects produced at the same lifecycle boundary remain one customer batch.
+// Charges that emit effects are reloaded and resumed only after that batch is
+// applied; charges that reach stability leave the next round.
+func (s *service) applyInvocableChargePatches(
+	ctx context.Context,
+	customerID customer.CustomerID,
+	invocableChargesByID map[string]InvocableCharge,
+	patchesByChargeID map[string]charges.Patch,
+) error {
 	var invoicePatches invoiceupdater.Patches
+	pendingAdvancement := make(map[string]InvocableCharge, len(patchesByChargeID))
 
 	for chargeID, patch := range patchesByChargeID {
 		invocableCharge, ok := invocableChargesByID[chargeID]
@@ -85,13 +99,57 @@ func (s *service) applyPatches(ctx context.Context, customerID customer.Customer
 		}
 
 		invoicePatches = append(invoicePatches, result.InvoicePatches...)
-	}
-
-	if len(invoicePatches) > 0 {
-		if err := s.invoiceUpdater.ApplyPatches(ctx, customerID, invoicePatches); err != nil {
-			return fmt.Errorf("applying invoice patches: %w", err)
+		if result.CanAdvance {
+			if len(result.InvoicePatches) == 0 {
+				return fmt.Errorf("charge %s can advance without an invoice-effect boundary", chargeID)
+			}
+			pendingAdvancement[chargeID] = invocableCharge
 		}
 	}
 
-	return nil
+	_, err := s.advanceChargesAndApplyInvoicePatches(ctx, customerID, pendingAdvancement, invoicePatches)
+	return err
+}
+
+// advanceChargesAndApplyInvoicePatches preserves customer-level invoice batches
+// while resuming only charges whose preceding effect boundary still permits
+// Next. The returned map contains the latest result for each resumed charge.
+func (s *service) advanceChargesAndApplyInvoicePatches(
+	ctx context.Context,
+	customerID customer.CustomerID,
+	pendingAdvancement map[string]InvocableCharge,
+	invoicePatches invoiceupdater.Patches,
+) (map[string]TriggerPatchResult, error) {
+	latestResults := make(map[string]TriggerPatchResult, len(pendingAdvancement))
+
+	for len(invoicePatches) > 0 {
+		if err := s.invoiceUpdater.ApplyPatches(ctx, customerID, invoicePatches); err != nil {
+			return nil, fmt.Errorf("applying invoice patches: %w", err)
+		}
+		if len(pendingAdvancement) == 0 {
+			return latestResults, nil
+		}
+
+		invoicePatches = nil
+		nextPendingAdvancement := make(map[string]InvocableCharge, len(pendingAdvancement))
+		for chargeID, invocableCharge := range pendingAdvancement {
+			result, err := invocableCharge.AdvanceCharge(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("advancing charge %s after invoice patches: %w", chargeID, err)
+			}
+			latestResults[chargeID] = result
+
+			invoicePatches = append(invoicePatches, result.InvoicePatches...)
+			if result.CanAdvance {
+				if len(result.InvoicePatches) == 0 {
+					return nil, fmt.Errorf("charge %s can advance without an invoice-effect boundary", chargeID)
+				}
+				nextPendingAdvancement[chargeID] = invocableCharge
+			}
+		}
+
+		pendingAdvancement = nextPendingAdvancement
+	}
+
+	return latestResults, nil
 }

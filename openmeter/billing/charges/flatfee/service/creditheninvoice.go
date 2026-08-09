@@ -643,7 +643,10 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	// history can be adjusted safely; while that is false, we update the
 	// charge intent/state but avoid creating replacement billable work for
 	// the already-invoiced period.
-	if !s.CreditNotesSupported {
+	// A finalized zero-fiat run has immutable billing history, but deleting its
+	// presentation line cannot require a credit note. Let the normal immutable
+	// path detach that run and create replacement billable work.
+	if !s.CreditNotesSupported && !s.IsCurrentRunZeroFiatAmountOverage() {
 		// Case 1: We are trying to shrink an immutable invoice, but credit notes are not supported yet.
 
 		// the immutable invoice cannot be corrected safely. Emit only the delete patch so the invoice

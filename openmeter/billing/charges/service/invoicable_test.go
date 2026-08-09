@@ -1316,7 +1316,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		// when:
 		// - the charge is shrunk to a positive TOKENS amount that rounds to zero USD
 		// then:
-		// - the same run and line remain, and the run records that no fiat transaction is required
+		// - the same run and line remain, and the zero-fiat run is finalized without payment
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
 			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     zeroFiatServicePeriodTo,
@@ -1352,7 +1352,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		})
 
 		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
-		s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+		s.Equal(flatfee.StatusFinal, charge.Status)
 		s.Equal(float64(0.001), charge.State.AmountAfterProration.InexactFloat64())
 		s.Require().NotNil(charge.Realizations.CurrentRun)
 		s.Equal(runID, charge.Realizations.CurrentRun.ID)
@@ -1361,7 +1361,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		s.Equal(zeroFiatServicePeriodTo, charge.Realizations.CurrentRun.ServicePeriod.To)
 		s.RequireTotals(billingtest.ExpectedTotals{Amount: 0.001, Total: 0.001}, charge.Realizations.CurrentRun.Totals)
 		s.True(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
-		s.False(charge.Realizations.CurrentRun.Immutable)
+		s.True(charge.Realizations.CurrentRun.Immutable)
 		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
 		s.Nil(charge.Realizations.CurrentRun.Payment)
 		s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID))
@@ -1369,13 +1369,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		s.Equal(3, allocationCallback.nrInvocations)
 	})
 
-	s.Run("extend the mutable realization to the full period", func() {
+	s.Run("extend the finalized zero-fiat realization to the full period", func() {
 		// given:
-		// - the mutable run and standard line represent a positive TOKENS overage that rounds to zero USD
+		// - the finalized run and standard line represent a positive TOKENS overage that rounds to zero USD
 		// when:
 		// - the charge is extended back to its full period
 		// then:
-		// - the same run and line return to 31 TOKENS and 15.50 USD
+		// - the zero-fiat line becomes history and replacement gathering work covers the full period
 		patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
 			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     servicePeriod.To,
@@ -1396,38 +1396,23 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 			Expand:  billing.StandardInvoiceExpandAll,
 		})
 		s.Require().NoError(err)
-		s.RequireTotals(billingtest.ExpectedTotals{Amount: 15.5, Total: 15.5}, reloadedInvoice.Totals)
-		s.Require().Len(reloadedInvoice.Lines.OrEmpty(), 1)
-		line := reloadedInvoice.Lines.GetByID(lineID.ID)
-		s.Require().NotNil(line)
-		s.Nil(line.DeletedAt)
-		s.Equal(servicePeriod, line.Period)
-		s.requireCustomCurrencyOverageLine(requireCustomCurrencyOverageLineInput{
-			line:               line,
-			expectTokenOverage: 31,
-			expectCostBasis:    0.5,
-			expectFiatTotals: billingtest.ExpectedTotals{
-				Amount: 15.5,
-				Total:  15.5,
-			},
-		})
+		s.RequireTotals(billingtest.ExpectedTotals{}, reloadedInvoice.Totals)
+		s.Empty(reloadedInvoice.Lines.OrEmpty())
 
 		charge := s.mustGetFlatFeeChargeByIDWithDetailedLines(chargeID)
-		s.Equal(flatfee.StatusActiveRealizationProcessing, charge.Status)
+		s.Equal(flatfee.StatusActive, charge.Status)
 		s.Equal(float64(31), charge.State.AmountAfterProration.InexactFloat64())
-		s.Require().NotNil(charge.Realizations.CurrentRun)
-		s.Equal(runID, charge.Realizations.CurrentRun.ID)
-		s.Require().NotNil(charge.Realizations.CurrentRun.LineID)
-		s.Equal(lineID.ID, *charge.Realizations.CurrentRun.LineID)
-		s.Equal(servicePeriod, charge.Realizations.CurrentRun.ServicePeriod)
-		s.RequireTotals(billingtest.ExpectedTotals{Amount: 31, Total: 31}, charge.Realizations.CurrentRun.Totals)
-		s.False(charge.Realizations.CurrentRun.NoFiatTransactionRequired)
-		s.False(charge.Realizations.CurrentRun.Immutable)
-		s.Nil(charge.Realizations.CurrentRun.AccruedUsage)
-		s.Nil(charge.Realizations.CurrentRun.Payment)
-		s.Empty(activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID))
-		s.Equal([]float64{31, 15, 0.001, 31}, allocationTargets)
-		s.Equal(4, allocationCallback.nrInvocations)
+		s.Nil(charge.Realizations.CurrentRun)
+		s.Require().Len(charge.Realizations.PriorRuns, 1)
+		s.Equal(runID, charge.Realizations.PriorRuns[0].ID)
+		s.True(charge.Realizations.PriorRuns[0].NoFiatTransactionRequired)
+		s.True(charge.Realizations.PriorRuns[0].Immutable)
+
+		gatheringLines := activeGatheringLinesForCharge(&s.BaseSuite, ns, customer.ID, chargeID.ID)
+		s.Require().Len(gatheringLines, 1)
+		s.Equal(servicePeriod, gatheringLines[0].ServicePeriod)
+		s.Equal([]float64{31, 15, 0.001}, allocationTargets)
+		s.Equal(3, allocationCallback.nrInvocations)
 	})
 }
 
@@ -1673,7 +1658,7 @@ func runFlatFeeCreditThenInvoiceImmutableProrationScenario(s *BaseSuite, expectR
 
 		if expectReplacementGatheringLine {
 			charge := mustGetFlatFeeChargeWithExpands(s, flatFeeChargeID, meta.Expands{meta.ExpandRealizations})
-			s.Equal(flatfee.StatusCreated, charge.Status)
+			s.Equal(flatfee.StatusActive, charge.Status)
 			s.Nil(charge.Realizations.CurrentRun)
 			s.Require().Len(activeGatheringLines, 1)
 			s.Equal(servicePeriod.From, activeGatheringLines[0].ServicePeriod.From)
