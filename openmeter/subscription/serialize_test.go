@@ -82,6 +82,9 @@ func TestSubscriptionItemSerialize(t *testing.T) {
 				"key2": "value2",
 			},
 		},
+		Annotations: models.Annotations{
+			"annotation-key": "annotation-value",
+		},
 		ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0)),
 		ActiveToOverrideRelativeToPhaseStart:   lo.ToPtr(datetime.NewISODuration(0, 0, 0, 2, 0, 0, 0)),
 		CadencedModel: models.CadencedModel{
@@ -94,43 +97,75 @@ func TestSubscriptionItemSerialize(t *testing.T) {
 		SubscriptionId: "subscription-id",
 		PhaseId:        "phase-id",
 		Key:            "item-key",
-		RateCard: &productcatalog.UsageBasedRateCard{
-			RateCardMeta: productcatalog.RateCardMeta{
-				Key:         "rate-card-key",
-				Name:        "rate-card-name",
-				Description: lo.ToPtr("rate-card-description"),
-				FeatureKey:  lo.ToPtr("feature-key"),
-				FeatureID:   lo.ToPtr("feature-id"),
-				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
-					IssueAfterReset: lo.ToPtr(100.0),
-				}),
-				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-					Amount: alpacadecimal.NewFromInt(100),
-				}),
+		EntitlementID:  lo.ToPtr("entitlement-id"),
+		Name:           "item-name",
+		Description:    lo.ToPtr("item-description"),
+	}
+
+	tests := []struct {
+		name     string
+		rateCard productcatalog.RateCard
+	}{
+		{
+			name: "usage-based",
+			rateCard: &productcatalog.UsageBasedRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:         "rate-card-key",
+					Name:        "rate-card-name",
+					Description: lo.ToPtr("rate-card-description"),
+					FeatureKey:  lo.ToPtr("feature-key"),
+					FeatureID:   lo.ToPtr("feature-id"),
+					EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.MeteredEntitlementTemplate{
+						IssueAfterReset: lo.ToPtr(100.0),
+					}),
+					Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(100),
+					}),
+				},
+				BillingCadence: datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0),
 			},
-			BillingCadence: datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0),
 		},
-		EntitlementID: lo.ToPtr("entitlement-id"),
-		Name:          "item-name",
-		Description:   lo.ToPtr("item-description"),
+		{
+			name: "flat-fee",
+			rateCard: &productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "flat-fee-rate-card-key",
+					Name: "flat-fee-rate-card-name",
+				},
+				BillingCadence: lo.ToPtr(datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)),
+			},
+		},
 	}
 
-	// Now let's marshal and unmarshal the subscription item
-	siBytes, err := json.MarshalIndent(si, "", "  ")
-	if err != nil {
-		t.Fatalf("failed to marshal subscription item: %v", err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			si.RateCard = test.rateCard
+
+			// Now let's marshal and unmarshal the subscription item
+			siBytes, err := json.MarshalIndent(si, "", "  ")
+			if err != nil {
+				t.Fatalf("failed to marshal subscription item: %v", err)
+			}
+
+			bt2 := bytes.Clone(siBytes)
+
+			var si2 subscription.SubscriptionItem
+			err = json.Unmarshal(bt2, &si2)
+			if err != nil {
+				t.Fatalf("failed to unmarshal subscription item: %v", err)
+			}
+
+			// Now let's compare the two
+			if !reflect.DeepEqual(si, si2) {
+				t.Fatalf("subscription item is not equal \n\ninput: %v\n\n serialized: \n%s\n\n unserialized: \n%v\n\n", si, string(bt2), si2)
+			}
+		})
 	}
+}
 
-	bt2 := bytes.Clone(siBytes)
-
-	var si2 subscription.SubscriptionItem
-	err = json.Unmarshal(bt2, &si2)
-	if err != nil {
-		t.Fatalf("failed to unmarshal subscription item: %v", err)
-	}
-
-	// Now let's compare the two
-	if !reflect.DeepEqual(si, si2) {
-		t.Fatalf("subscription item is not equal \n\ninput: %v\n\n serialized: \n%s\n\n unserialized: \n%v\n\n", si, string(bt2), si2)
+func TestSubscriptionItemDeserializeRejectsUnknownRateCardType(t *testing.T) {
+	var item subscription.SubscriptionItem
+	if err := json.Unmarshal([]byte(`{"rateCard":{"type":"unknown"}}`), &item); err == nil {
+		t.Fatal("expected unknown rate card type to fail deserialization")
 	}
 }

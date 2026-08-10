@@ -44,73 +44,52 @@ type SubscriptionItem struct {
 }
 
 func (i *SubscriptionItem) UnmarshalJSON(b []byte) error {
-	// First unmarshal the type information to determine which concrete type to use
-	var serdeTyp struct {
-		RateCard productcatalog.RateCardSerde `json:"rateCard"`
-	}
+	type itemAlias SubscriptionItem
 
-	if err := json.Unmarshal(b, &serdeTyp); err != nil {
-		return fmt.Errorf("failed to JSON deserialize SubscriptionItemSpec: %w", err)
-	}
-
-	// Create a temporary struct with the correct concrete type for RateCard
+	var item itemAlias
 	serde := struct {
-		models.NamespacedID  `json:",inline"`
-		models.ManagedModel  `json:",inline"`
-		models.MetadataModel `json:",inline"`
-
-		ActiveFromOverrideRelativeToPhaseStart *datetime.ISODuration `json:"activeFromOverrideRelativeToPhaseStart,omitempty"`
-		ActiveToOverrideRelativeToPhaseStart   *datetime.ISODuration `json:"activeToOverrideRelativeToPhaseStart,omitempty"`
-
-		models.CadencedModel `json:",inline"`
-
-		BillingBehaviorOverride BillingBehaviorOverride `json:"billingBehaviorOverride"`
-
-		SubscriptionId string `json:"subscriptionId"`
-		PhaseId        string `json:"phaseId"`
-		Key            string `json:"itemKey"`
-
-		RateCard productcatalog.RateCard `json:"rateCard"`
-
-		EntitlementID *string `json:"entitlementId,omitempty"`
-		Name          string  `json:"name"`
-		Description   *string `json:"description,omitempty"`
+		*itemAlias
+		RateCard json.RawMessage `json:"rateCard"`
 	}{
-		RateCard: i.RateCard,
+		itemAlias: &item,
 	}
 
-	// Set the concrete type based on the type field
-	switch serdeTyp.RateCard.Type {
-	case productcatalog.FlatFeeRateCardType:
-		serde.RateCard = &productcatalog.FlatFeeRateCard{}
-	case productcatalog.UsageBasedRateCardType:
-		serde.RateCard = &productcatalog.UsageBasedRateCard{}
-	default:
-		return fmt.Errorf("invalid RateCard type: %s", serdeTyp.RateCard.Type)
-	}
-
-	// Unmarshal the full object
 	if err := json.Unmarshal(b, &serde); err != nil {
 		return fmt.Errorf("failed to JSON deserialize SubscriptionItem: %w", err)
 	}
 
-	// Copy all fields from the temporary struct to the actual struct
-	i.NamespacedID = serde.NamespacedID
-	i.ManagedModel = serde.ManagedModel
-	i.MetadataModel = serde.MetadataModel
-	i.ActiveFromOverrideRelativeToPhaseStart = serde.ActiveFromOverrideRelativeToPhaseStart
-	i.ActiveToOverrideRelativeToPhaseStart = serde.ActiveToOverrideRelativeToPhaseStart
-	i.CadencedModel = serde.CadencedModel
-	i.BillingBehaviorOverride = serde.BillingBehaviorOverride
-	i.SubscriptionId = serde.SubscriptionId
-	i.PhaseId = serde.PhaseId
-	i.Key = serde.Key
-	i.RateCard = serde.RateCard
-	i.EntitlementID = serde.EntitlementID
-	i.Name = serde.Name
-	i.Description = serde.Description
+	rateCard, err := unmarshalSubscriptionItemRateCard(serde.RateCard)
+	if err != nil {
+		return err
+	}
+
+	item.RateCard = rateCard
+	*i = SubscriptionItem(item)
 
 	return nil
+}
+
+func unmarshalSubscriptionItemRateCard(data []byte) (productcatalog.RateCard, error) {
+	var serde productcatalog.RateCardSerde
+	if err := json.Unmarshal(data, &serde); err != nil {
+		return nil, fmt.Errorf("failed to JSON deserialize SubscriptionItem rate card type: %w", err)
+	}
+
+	var rateCard productcatalog.RateCard
+	switch serde.Type {
+	case productcatalog.FlatFeeRateCardType:
+		rateCard = &productcatalog.FlatFeeRateCard{}
+	case productcatalog.UsageBasedRateCardType:
+		rateCard = &productcatalog.UsageBasedRateCard{}
+	default:
+		return nil, fmt.Errorf("invalid RateCard type: %s", serde.Type)
+	}
+
+	if err := json.Unmarshal(data, rateCard); err != nil {
+		return nil, fmt.Errorf("failed to JSON deserialize SubscriptionItem rate card: %w", err)
+	}
+
+	return rateCard, nil
 }
 
 func (i SubscriptionItem) GetCadence(phaseCadence models.CadencedModel) models.CadencedModel {
