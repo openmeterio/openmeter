@@ -178,10 +178,21 @@ func invokeRegisteredHook[T any](ctx context.Context, event T, active *activeHoo
 }
 
 func (r *Registry[T]) sealAndGetRegistrations() []registration[T] {
+	r.mu.RLock()
+	if r.sealed {
+		registrations := r.registrations
+		r.mu.RUnlock()
+
+		return registrations
+	}
+	r.mu.RUnlock()
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.sealed = true
+	if !r.sealed {
+		r.sealed = true
+	}
 
 	return r.registrations
 }
