@@ -11,10 +11,12 @@ import (
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 type Storage interface {
 	BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error
+	HasEvent(ctx context.Context, message sinkmodels.SinkMessage) (bool, error)
 }
 
 type ClickHouseStorageConfig struct {
@@ -71,4 +73,38 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 	}
 
 	return nil
+}
+
+func (c *ClickHouseStorage) HasEvent(ctx context.Context, message sinkmodels.SinkMessage) (bool, error) {
+	if message.Serialized == nil {
+		return false, fmt.Errorf("failed to check event durability: message payload is missing")
+	}
+
+	if message.Namespace == "" {
+		return false, fmt.Errorf("failed to check event durability: namespace is missing")
+	}
+
+	if message.Serialized.Id == "" || message.Serialized.Source == "" {
+		return false, fmt.Errorf("failed to check event durability: id and source are required")
+	}
+
+	limit := 1
+	id := message.Serialized.Id
+	source := message.Serialized.Source
+
+	events, err := c.config.Streaming.ListEventsV2(ctx, streaming.ListEventsV2Params{
+		Namespace: message.Namespace,
+		Limit:     &limit,
+		ID: &filter.FilterString{
+			Eq: &id,
+		},
+		Source: &filter.FilterString{
+			Eq: &source,
+		},
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to check event durability: %w", err)
+	}
+
+	return len(events) > 0, nil
 }
