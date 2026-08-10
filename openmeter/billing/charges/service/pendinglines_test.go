@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	featurepkg "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -221,6 +223,162 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	invoicedFlatFeeLine := invoices[0].Lines.OrEmpty()[0]
 	s.Require().NotNil(invoicedFlatFeeLine.RateCardDiscounts.Percentage)
 	s.Equal(flatFeeIntent.PercentageDiscounts.CorrelationID, invoicedFlatFeeLine.RateCardDiscounts.Percentage.CorrelationID)
+}
+
+func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesResolvesRequiredFeatureMeters() {
+	// given:
+	// - usage pending lines whose feature dependencies are missing or meterless
+	// when:
+	// - each pending line is created through the billing service
+	// then:
+	// - validation rejects each request without creating a gathering invoice
+	testCases := []struct {
+		name               string
+		createFeature      bool
+		expectedErrorCheck func(error) bool
+		expectedError      string
+	}{
+		{
+			name:               "missing feature",
+			expectedErrorCheck: models.IsGenericNotFoundError,
+			expectedError:      "not found",
+		},
+		{
+			name:               "feature without meter",
+			createFeature:      true,
+			expectedErrorCheck: models.IsGenericValidationError,
+			expectedError:      "has no meter associated",
+		},
+	}
+
+	for _, testCase := range testCases {
+		s.Run(testCase.name, func() {
+			ctx := s.T().Context()
+			ns := s.GetUniqueNamespace("billing-create-pending-line-feature-meter")
+			cust := s.CreateTestCustomer(ns, "test-subject")
+			customInvoicing := s.SetupCustomInvoicing(ns)
+			_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID())
+
+			featureKey := "pending-line-feature"
+			if testCase.createFeature {
+				_, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
+					Namespace: ns,
+					Name:      featureKey,
+					Key:       featureKey,
+				})
+				s.Require().NoError(err)
+			}
+
+			servicePeriod := timeutil.ClosedPeriod{
+				From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+				To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+			}
+			line := billing.GatheringLine{
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+						Namespace: ns,
+						Name:      "manual usage",
+					}),
+					ManagedBy:     billing.ManuallyManagedLine,
+					Currency:      currencyx.FiatCode(USD),
+					ServicePeriod: servicePeriod,
+					InvoiceAt:     servicePeriod.To,
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(2),
+					})),
+					FeatureKey: featureKey,
+				},
+			}
+
+			result, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+				Customer: cust.GetID(),
+				Currency: currencyx.FiatCode(USD),
+				Lines:    []billing.GatheringLine{line},
+			})
+
+			s.Nil(result)
+			s.Require().Error(err)
+			var validationErr billing.ValidationError
+			s.True(errors.As(err, &validationErr), "expected billing validation error, got %T: %v", err, err)
+			s.True(testCase.expectedErrorCheck(err), "unexpected error type: %T: %v", err, err)
+			s.ErrorContains(err, testCase.expectedError)
+
+			listed, listErr := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+				Namespaces: []string{ns},
+				Customers:  []string{cust.ID},
+			})
+			s.Require().NoError(listErr)
+			s.Empty(listed.Items)
+		})
+	}
+}
+
+func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequiresFeatureMeter() {
+	// given:
+	// - a charge-backed usage pending line references a feature without a meter
+	// when:
+	// - the pending line is created through the charge service
+	// then:
+	// - validation rejects the request without creating a charge or gathering invoice
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charge-create-pending-line-feature-meter")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	featureKey := "pending-line-feature"
+	_, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      featureKey,
+		Key:       featureKey,
+	})
+	s.Require().NoError(err)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	line := billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace: ns,
+				Name:      "manual usage",
+			}),
+			ManagedBy:     billing.ManuallyManagedLine,
+			Engine:        billing.LineEngineTypeInvoice,
+			Currency:      currencyx.FiatCode(USD),
+			ServicePeriod: servicePeriod,
+			InvoiceAt:     servicePeriod.To,
+			Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(2),
+			})),
+			FeatureKey: featureKey,
+		},
+	}
+
+	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(USD),
+		Lines:    []billing.GatheringLine{line},
+	})
+
+	s.Nil(result)
+	s.Require().Error(err)
+	s.True(models.IsGenericValidationError(err), "expected validation error, got %T: %v", err, err)
+	s.ErrorContains(err, "has no meter associated")
+
+	listedCharges, listChargesErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
+	})
+	s.Require().NoError(listChargesErr)
+	s.Empty(listedCharges.Items)
+
+	listedInvoices, listInvoicesErr := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces: []string{ns},
+		Customers:  []string{cust.ID},
+	})
+	s.Require().NoError(listInvoicesErr)
+	s.Empty(listedInvoices.Items)
 }
 
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreatedChargesOnFailure() {

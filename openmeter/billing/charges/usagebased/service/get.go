@@ -15,9 +15,9 @@ import (
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -95,8 +95,11 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 	}
 
 	// Fetch all references featureMeters in bulk
-	referencedFeatureMeters := lo.Uniq(lo.Map(charges, func(charge usagebased.Charge, _ int) ref.IDOrKey {
-		return charge.GetFeatureKeyOrID()
+	referencedFeatureMeters := lo.Uniq(lo.Map(charges, func(charge usagebased.Charge, _ int) feature.FeatureMeterRef {
+		return feature.FeatureMeterRef{
+			IDOrKey:      charge.GetFeatureKeyOrID(),
+			RequireMeter: true,
+		}
 	}))
 
 	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, namespace, referencedFeatureMeters...)

@@ -211,16 +211,12 @@ func (c Charge) GetFeatureKeyOrID() ref.IDOrKey {
 }
 
 func (c Charge) ResolveFeatureMeter(featureMeters feature.FeatureMeters) (feature.FeatureMeter, error) {
-	const requireMeter = true
-
-	featureRef := c.GetFeatureKeyOrID()
-	if featureRef.ID != "" {
-		return featureMeters.GetByID(featureRef.ID, requireMeter)
-	}
-
-	featureMeter, err := featureMeters.Get(featureRef.Key, requireMeter)
+	featureMeter, err := featureMeters.Resolve(feature.FeatureMeterRef{
+		IDOrKey:      c.GetFeatureKeyOrID(),
+		RequireMeter: true,
+	})
 	if err != nil {
-		return feature.FeatureMeter{}, fmt.Errorf("get feature meter: %w", err)
+		return feature.FeatureMeter{}, fmt.Errorf("resolve feature meter: %w", err)
 	}
 
 	return featureMeter, nil
@@ -229,9 +225,12 @@ func (c Charge) ResolveFeatureMeter(featureMeters feature.FeatureMeters) (featur
 // GetFeatureKeysOrIDs returns the unique state-aware feature references for the charges.
 // Each charge contributes the ref returned by GetFeatureKeyOrID, so created charges use keys,
 // deleted charges prefer IDs and fall back to keys, and all other states use IDs.
-func (c Charges) GetFeatureKeysOrIDs() []ref.IDOrKey {
-	return lo.Uniq(lo.Map(c, func(charge Charge, _ int) ref.IDOrKey {
-		return charge.GetFeatureKeyOrID()
+func (c Charges) GetFeatureKeysOrIDs() []feature.FeatureMeterRef {
+	return lo.Uniq(lo.Map(c, func(charge Charge, _ int) feature.FeatureMeterRef {
+		return feature.FeatureMeterRef{
+			IDOrKey:      charge.GetFeatureKeyOrID(),
+			RequireMeter: true,
+		}
 	}))
 }
 

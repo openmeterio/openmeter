@@ -118,6 +118,7 @@ asynchronously; webhook delivery is not part of the invoice lifecycle.
   transaction and customer update lock
 - every invoice contains one fiat currency
 - a customer cannot have two active gathering invoices for the same currency
+- pending-line creation resolves every supplied feature; metered prices require the feature's meter
 - gathering-to-standard conversion preserves line IDs
 - line engines cannot silently change the identity or count of callback output
 - immutable invoice drift is recorded as validation issues rather than

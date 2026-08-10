@@ -152,8 +152,14 @@ func newTestEnv(t *testing.T) *testEnv {
 	featureMeters, err := featureService.ResolveFeatureMeters(
 		t.Context(),
 		base.Namespace,
-		ref.IDOrKey{Key: testFeatureKey},
-		ref.IDOrKey{ID: featureEntity.ID},
+		feature.FeatureMeterRef{
+			IDOrKey:      ref.IDOrKey{Key: testFeatureKey},
+			RequireMeter: true,
+		},
+		feature.FeatureMeterRef{
+			IDOrKey:      ref.IDOrKey{ID: featureEntity.ID},
+			RequireMeter: true,
+		},
 	)
 	require.NoError(t, err)
 

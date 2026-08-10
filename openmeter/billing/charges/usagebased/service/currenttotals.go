@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
@@ -38,7 +39,10 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get customer override: %w", err)
 	}
 
-	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, charge.GetFeatureKeyOrID())
+	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, feature.FeatureMeterRef{
+		IDOrKey:      charge.GetFeatureKeyOrID(),
+		RequireMeter: true,
+	})
 	if err != nil {
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("resolve feature meters: %w", err)
 	}

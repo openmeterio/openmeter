@@ -89,20 +89,44 @@ func TestResolveFeatureMeters(t *testing.T) {
 		require.Equal(t, "tokens", byArchivedID.Feature.Key)
 	})
 
-	t.Run("requested ids must all resolve", func(t *testing.T) {
+	t.Run("references must resolve", func(t *testing.T) {
+		// given:
+		// - a feature meter collection containing current and archived features
+		// when:
+		// - an existing and a missing feature ID are resolved
+		// then:
+		// - the existing ID resolves and the missing ID returns a not-found error
 		out := resolveFeatureMeters(features)
 
-		require.NoError(t, ensureFeatureIDsResolved([]ref.IDOrKey{
-			{ID: "feature-old"},
-			{ID: "feature-new"},
-		}, out))
+		_, existingErr := out.Resolve(FeatureMeterRef{
+			IDOrKey: ref.IDOrKey{ID: "feature-old"},
+		})
+		_, missingErr := out.Resolve(FeatureMeterRef{
+			IDOrKey: ref.IDOrKey{ID: "missing-feature"},
+		})
 
-		err := ensureFeatureIDsResolved([]ref.IDOrKey{
-			{ID: "feature-old"},
-			{ID: "missing-feature"},
-		}, out)
+		require.NoError(t, existingErr)
+		require.Error(t, missingErr)
+		require.True(t, models.IsGenericNotFoundError(missingErr))
+		require.ErrorContains(t, missingErr, "missing-feature")
+	})
+
+	t.Run("required meter rejects a meterless feature", func(t *testing.T) {
+		// given:
+		// - a resolved feature without an associated meter
+		// when:
+		// - the feature is resolved with a meter requirement
+		// then:
+		// - resolution returns a validation error
+		out := resolveFeatureMeters(features)
+
+		_, err := out.Resolve(FeatureMeterRef{
+			IDOrKey:      ref.IDOrKey{Key: "requests"},
+			RequireMeter: true,
+		})
+
 		require.Error(t, err)
-		require.True(t, models.IsGenericNotFoundError(err))
-		require.ErrorContains(t, err, "missing-feature")
+		require.True(t, models.IsGenericValidationError(err))
+		require.ErrorContains(t, err, "has no meter associated")
 	})
 }

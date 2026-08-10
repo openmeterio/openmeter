@@ -90,3 +90,48 @@ func TestGatheringLineUnitConfigSnapshotPropagation(t *testing.T) {
 		require.True(t, unitConfig.Equal(base.UnitConfig), "clone must not share the pointer with the original")
 	})
 }
+
+func TestGatheringLinesCollectFeatureMeterRefs(t *testing.T) {
+	// given:
+	// - flat, usage-based, and featureless gathering lines
+	// when:
+	// - their feature meter references are collected
+	// then:
+	// - only feature-backed lines are returned with price-specific meter requirements
+	featureKey := "api-requests"
+	lines := GatheringLines{
+		{
+			GatheringLineBase: GatheringLineBase{
+				FeatureKey: featureKey,
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      decimal.NewFromInt(1),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				})),
+			},
+		},
+		{
+			GatheringLineBase: GatheringLineBase{
+				FeatureKey: featureKey,
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: decimal.NewFromInt(1),
+				})),
+			},
+		},
+		{
+			GatheringLineBase: GatheringLineBase{
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      decimal.NewFromInt(1),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				})),
+			},
+		},
+	}
+
+	refs := lines.CollectFeatureMeterRefs()
+
+	require.Len(t, refs, 2)
+	require.Equal(t, featureKey, refs[0].IDOrKey.Key)
+	require.False(t, refs[0].RequireMeter)
+	require.Equal(t, featureKey, refs[1].IDOrKey.Key)
+	require.True(t, refs[1].RequireMeter)
+}

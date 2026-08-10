@@ -86,6 +86,9 @@ when an active override hides it.
   complete, not merely that rating or line creation finished.
 - Lifecycle entry points run in database transactions. Flat-fee and usage-based
   advancement and patching also take charge-scoped locks.
+- Charge creation resolves every supplied feature reference before persistence.
+  Usage-based features require a meter; flat-fee features are optional and may
+  be meterless.
 - `UpdateCharge` persists the concrete base row. Expanded realizations are read
   model state and are written through dedicated adapter operations.
 - Persisted charge discounts have stable correlation IDs allocated at their

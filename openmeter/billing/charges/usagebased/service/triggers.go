@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -211,7 +212,10 @@ func (s *service) getStateMachineConfigForCharge(ctx context.Context, charge usa
 	}
 
 	featureRef := charge.GetFeatureKeyOrID()
-	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, featureRef)
+	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, feature.FeatureMeterRef{
+		IDOrKey:      featureRef,
+		RequireMeter: true,
+	})
 	if err != nil {
 		return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)
 	}
