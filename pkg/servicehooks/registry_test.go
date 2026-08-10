@@ -140,8 +140,13 @@ func TestRegistryRejectsInvalidRegistration(t *testing.T) {
 
 func TestRegistrySealsExplicitlyOrOnFirstInvocation(t *testing.T) {
 	t.Run("explicit seal", func(t *testing.T) {
+		// Given an unsealed registry.
 		var registry Registry[struct{}]
+
+		// When it is explicitly sealed.
 		registry.Seal()
+
+		// Then its sealed state is observable and later registration is rejected.
 		if !registry.IsSealed() {
 			t.Fatal("expected registry to be sealed")
 		}
@@ -153,10 +158,15 @@ func TestRegistrySealsExplicitlyOrOnFirstInvocation(t *testing.T) {
 	})
 
 	t.Run("first invocation", func(t *testing.T) {
+		// Given an unsealed registry.
 		var registry Registry[struct{}]
+
+		// When it is invoked for the first time.
 		if err := registry.Invoke(t.Context(), struct{}{}); err != nil {
 			t.Fatalf("invoking empty registry: %v", err)
 		}
+
+		// Then invocation seals it and later registration is rejected.
 		if !registry.IsSealed() {
 			t.Fatal("expected registry to be sealed")
 		}
@@ -169,6 +179,7 @@ func TestRegistrySealsExplicitlyOrOnFirstInvocation(t *testing.T) {
 }
 
 func TestRegistryReportsCyclesByDefaultBeforeNestedHooksRun(t *testing.T) {
+	// Given a recursive hook using the default error policy and a tail hook.
 	var registry Registry[int]
 	var recursiveCalls int
 	var tailCalls int
@@ -189,7 +200,10 @@ func TestRegistryReportsCyclesByDefaultBeforeNestedHooksRun(t *testing.T) {
 		t.Fatalf("registering tail hook: %v", err)
 	}
 
+	// When the recursive hook re-invokes the registry.
 	err := registry.Invoke(t.Context(), 0)
+
+	// Then the cycle is reported before any nested or outer tail hook runs.
 	if !errors.Is(err, ErrCycleDetected) {
 		t.Fatalf("expected ErrCycleDetected, got %v", err)
 	}
@@ -210,6 +224,7 @@ func TestRegistryReportsCyclesByDefaultBeforeNestedHooksRun(t *testing.T) {
 }
 
 func TestRegistryCanSkipOnlyTheActiveRegistration(t *testing.T) {
+	// Given a recursive hook using the skip policy and a tail hook.
 	var registry Registry[int]
 	var recursiveCalls int
 	var tailCalls int
@@ -233,9 +248,13 @@ func TestRegistryCanSkipOnlyTheActiveRegistration(t *testing.T) {
 		t.Fatalf("registering tail hook: %v", err)
 	}
 
+	// When the recursive hook re-invokes the registry.
 	if err := registry.Invoke(t.Context(), 0); err != nil {
 		t.Fatalf("invoking hooks: %v", err)
 	}
+
+	// Then only the active recursive registration is skipped, so the tail hook
+	// runs once in the nested invocation and once in the outer invocation.
 	if recursiveCalls != 1 {
 		t.Errorf("unexpected recursive hook calls: got %d, expected 1", recursiveCalls)
 	}
