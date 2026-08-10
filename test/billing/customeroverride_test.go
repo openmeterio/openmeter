@@ -22,6 +22,74 @@ func TestCustomerOverride(t *testing.T) {
 	suite.Run(t, new(CustomerOverrideTestSuite))
 }
 
+func (s *CustomerOverrideTestSuite) TestUpsertRejectsCrossNamespaceReferences() {
+	// given:
+	// - customers and billing profiles in two namespaces
+	// when:
+	// - an override is created using a customer or profile from the other namespace
+	// then:
+	// - the foreign reference is reported as missing and no override is persisted
+	ctx := context.Background()
+	targetNamespace := s.GetUniqueNamespace("customer-override-target")
+	foreignNamespace := s.GetUniqueNamespace("customer-override-foreign")
+	targetCustomer := s.CreateTestCustomer(targetNamespace, "target")
+	foreignCustomer := s.CreateTestCustomer(foreignNamespace, "foreign")
+	targetProfile := s.ProvisionBillingProfile(ctx, targetNamespace, s.InstallSandboxApp(s.T(), targetNamespace).GetID())
+	foreignProfile := s.ProvisionBillingProfile(ctx, foreignNamespace, s.InstallSandboxApp(s.T(), foreignNamespace).GetID())
+
+	result, err := s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace: targetNamespace, CustomerID: targetCustomer.ID, ProfileID: foreignProfile.ID,
+	})
+	require.ErrorIs(s.T(), err, billing.ErrProfileNotFound)
+	require.Empty(s.T(), result)
+
+	result, err = s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace: targetNamespace, CustomerID: foreignCustomer.ID, ProfileID: targetProfile.ID,
+	})
+	require.True(s.T(), models.IsGenericNotFoundError(err))
+	require.Empty(s.T(), result)
+
+	for _, customerID := range []string{targetCustomer.ID, foreignCustomer.ID} {
+		override, err := s.BillingAdapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
+			Customer: customer.CustomerID{Namespace: targetNamespace, ID: customerID},
+		})
+		require.NoError(s.T(), err)
+		require.Nil(s.T(), override)
+	}
+}
+
+func (s *CustomerOverrideTestSuite) TestGetRejectsPersistedCrossNamespaceProfile() {
+	// given:
+	// - a deliberately corrupted override that references a profile in another namespace
+	// when:
+	// - the customer override is read
+	// then:
+	// - the foreign profile is not returned and the profile is reported as missing
+	ctx := context.Background()
+	customerNamespace := s.GetUniqueNamespace("customer-override-read-customer")
+	profileNamespace := s.GetUniqueNamespace("customer-override-read-profile")
+
+	customerEntity := s.CreateTestCustomer(customerNamespace, "customer")
+	foreignProfile := s.ProvisionBillingProfile(ctx, profileNamespace, s.InstallSandboxApp(s.T(), profileNamespace).GetID())
+
+	_, err := s.DBClient.BillingCustomerOverride.Create().
+		SetNamespace(customerNamespace).
+		SetCustomerID(customerEntity.ID).
+		SetBillingProfileID(foreignProfile.ID).
+		Save(ctx)
+	require.NoError(s.T(), err)
+
+	result, err := s.BillingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: customer.CustomerID{
+			Namespace: customerNamespace,
+			ID:        customerEntity.ID,
+		},
+	})
+
+	require.ErrorIs(s.T(), err, billing.ErrProfileNotFound)
+	require.Empty(s.T(), result)
+}
+
 func (s *CustomerOverrideTestSuite) TestFetchNonExistingCustomer() {
 	// Given we have a non-existing customer
 	nonExistingCustomerID := "non-existing-customer-id"

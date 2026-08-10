@@ -86,6 +86,7 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 
 		update := tx.db.BillingCustomerOverride.Update().
 			Where(billingcustomeroverride.CustomerID(input.CustomerID)).
+			Where(billingcustomeroverride.Namespace(input.Namespace)).
 			SetOrClearBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
 			SetOrClearCollectionAlignment(input.Collection.Alignment).
 			SetOrClearLineCollectionPeriod(input.Collection.Interval.ISOStringPtrOrNil()).
@@ -132,6 +133,7 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
 			WithTaxCode().
 			WithBillingProfile(func(bpq *db.BillingProfileQuery) {
+				bpq.Where(billingprofile.Namespace(input.Customer.Namespace))
 				bpq.WithWorkflowConfig(workflowConfigWithTaxCode)
 			})
 
@@ -165,7 +167,7 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 			dbCustomerOverride.Edges.BillingProfile = dbDefaultProfile
 		}
 
-		return mapCustomerOverrideFromDB(dbCustomerOverride)
+		return tx.mapCustomerOverrideFromDB(ctx, dbCustomerOverride)
 	})
 }
 
@@ -269,6 +271,7 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 				WithTaxCode()
 
 			overrideQuery.WithBillingProfile(func(profileQuery *db.BillingProfileQuery) {
+				profileQuery.Where(billingprofile.Namespace(input.Namespace))
 				profileQuery.WithWorkflowConfig(workflowConfigWithTaxCode)
 			})
 		})
@@ -288,7 +291,7 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 				}, nil
 			}
 
-			override, err := mapCustomerOverrideFromDB(dbCustomer.Edges.BillingCustomerOverride)
+			override, err := tx.mapCustomerOverrideFromDB(ctx, dbCustomer.Edges.BillingCustomerOverride)
 			if err != nil {
 				return billing.CustomerOverrideWithCustomerID{}, err
 			}
@@ -387,7 +390,21 @@ func (a *adapter) BulkAssignCustomersToProfile(ctx context.Context, input billin
 	})
 }
 
-func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing.CustomerOverride, error) {
+func (a *adapter) mapCustomerOverrideFromDB(ctx context.Context, dbOverride *db.BillingCustomerOverride) (*billing.CustomerOverride, error) {
+	if dbOverride.BillingProfileID != nil &&
+		(dbOverride.Edges.BillingProfile == nil || dbOverride.Edges.BillingProfile.Namespace != dbOverride.Namespace) {
+		a.logger.ErrorContext(ctx, "billing customer override profile namespace isolation violation",
+			"customer_override_id", dbOverride.ID,
+			"customer_id", dbOverride.CustomerID,
+			"expected_namespace", dbOverride.Namespace,
+			"billing_profile_id", *dbOverride.BillingProfileID,
+		)
+
+		return nil, billing.NotFoundError{
+			Err: fmt.Errorf("%w [id=%s]", billing.ErrProfileNotFound, *dbOverride.BillingProfileID),
+		}
+	}
+
 	collectionInterval, err := dbOverride.LineCollectionPeriod.ParsePtrOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse collection.interval: %w", err)
