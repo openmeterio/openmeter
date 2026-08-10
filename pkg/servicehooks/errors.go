@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	ErrContextRequired       = errors.New("context is required")
+	ErrContextRequired       = errors.New("service hook context is required")
 	ErrCycleDetected         = errors.New("service hook invocation cycle detected")
 	ErrCyclePolicyInvalid    = errors.New("service hook cycle policy is invalid")
 	ErrHookAlreadyRegistered = errors.New("service hook is already registered")
@@ -37,7 +37,7 @@ type InvocationError struct {
 }
 
 func (e InvocationError) Error() string {
-	return fmt.Sprintf("service hook failed [service.hook=%s]: %s", e.HookName, e.Err.Error())
+	return fmt.Sprintf("service hook failed [service.hook=%s]: %v", e.HookName, e.Err)
 }
 
 func (e InvocationError) Unwrap() error {
