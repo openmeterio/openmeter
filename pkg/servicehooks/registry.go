@@ -118,7 +118,11 @@ func (r *Registry[T]) IsSealed() bool {
 	return r.sealed
 }
 
-// Invoke calls registered hooks synchronously and stops at the first error.
+// Invoke seals the registry and calls hooks synchronously in registration
+// order, stopping on cancellation or the first hook error. Before a nested
+// invocation runs any hook, Invoke rejects an active CyclePolicyError
+// registration; CyclePolicySkip skips only the active registration.
+//
 // Hook callbacks run without holding the registry lock. Concurrent invocations
 // are allowed, so hook implementations must provide their own synchronization.
 func (r *Registry[T]) Invoke(ctx context.Context, event T) error {
