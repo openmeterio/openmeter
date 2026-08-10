@@ -1041,7 +1041,20 @@ var ValidateRateCardsHaveCompatibleUnitConfig = models.ValidatorFunc[RateCardWit
 	return nil
 })
 
-func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatureResolver) func(cards RateCards) error {
+type ValidateRateCardsWithFeaturesOptions struct {
+	IgnoreArchived bool
+}
+
+func ValidateRateCardsWithFeatures(
+	ctx context.Context,
+	resolver NamespacedFeatureResolver,
+	optionalOptions ...ValidateRateCardsWithFeaturesOptions,
+) func(cards RateCards) error {
+	options := ValidateRateCardsWithFeaturesOptions{}
+	if len(optionalOptions) > 0 {
+		options = optionalOptions[0]
+	}
+
 	return func(rateCards RateCards) error {
 		var errs []error
 
@@ -1073,8 +1086,10 @@ func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatu
 				continue
 			}
 
-			if feat.ArchivedAt != nil && clock.Now().UTC().After(feat.ArchivedAt.UTC()) {
-				errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardFeatureArchived))
+			if !options.IgnoreArchived {
+				if feat.ArchivedAt != nil && clock.Now().UTC().After(feat.ArchivedAt.UTC()) {
+					errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardFeatureArchived))
+				}
 			}
 
 			// Make sure that ratecard with UBP has metered feature

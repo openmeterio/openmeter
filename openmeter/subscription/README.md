@@ -118,9 +118,10 @@ and phase; do not persist a derived absolute end as independent source truth.
   you its end
 - item slice position is version identity, not quantity
 - subscription, spec, and expanded view must agree on shared top-level facts
-- every feature-bearing item in a new or updated spec must resolve to an active
-  feature in the subscription namespace; supplied feature IDs and keys must
-  identify the same feature
+- every feature-bearing item must resolve in the subscription namespace and
+  supplied feature IDs and keys must identify the same feature; create rejects
+  archived features, while update permits them so existing subscriptions remain
+  editable after a referenced feature is archived
 - newly materialized priced items snapshot their effective currency code; custom
   currencies also retain their managed currency ID, while legacy items may lack
   this snapshot

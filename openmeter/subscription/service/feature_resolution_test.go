@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestCreateResolvesFeatureOnlyItems(t *testing.T) {
@@ -108,6 +109,41 @@ func TestCreateResolvesFeatureOnlyItems(t *testing.T) {
 
 		// then: the conflicting identity is rejected
 		require.ErrorIs(t, err, productcatalog.ErrRateCardFeatureMismatch)
+	})
+
+	t.Run("rejects an archived feature", func(t *testing.T) {
+		// given: a feature-only subscription item referencing an archived feature
+		clock.FreezeTime(now)
+		defer clock.UnFreeze()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		features := deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+		customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		err := deps.FeatureConnector.ArchiveFeature(t.Context(), models.NamespacedID{
+			Namespace: features[0].Namespace,
+			ID:        features[0].ID,
+		})
+		require.NoError(t, err)
+
+		clock.FreezeTime(now.Add(time.Minute))
+		defer clock.UnFreeze()
+
+		spec, err := subscriptiontestutils.BuildTestSubscriptionSpec(t).
+			AddPhase(nil, newFeatureOnlyRateCard(t, subscriptiontestutils.ExampleFeatureKey, nil)).
+			Build()
+		require.NoError(t, err)
+		spec.CustomerId = customer.ID
+		spec.Plan = nil
+
+		// when: a new subscription validates the archived feature reference
+		_, err = deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+
+		// then: create keeps the strict product-catalog archival policy
+		require.ErrorIs(t, err, productcatalog.ErrRateCardFeatureArchived)
 	})
 }
 
@@ -226,6 +262,59 @@ func TestEditRunningResolvesFeatureOnlyItems(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, items, 1)
 		require.Equal(t, subscriptiontestutils.ExampleRateCard2.Key(), items[0].Key)
+	})
+
+	t.Run("allows editing a subscription whose feature was archived", func(t *testing.T) {
+		// given: a running feature-only subscription whose feature is archived after creation
+		clock.FreezeTime(now)
+		defer clock.UnFreeze()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		features := deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+		customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		spec, err := subscriptiontestutils.BuildTestSubscriptionSpec(t).
+			AddPhase(nil, newFeatureOnlyRateCard(t, subscriptiontestutils.ExampleFeatureKey, nil)).
+			Build()
+		require.NoError(t, err)
+		spec.CustomerId = customer.ID
+		spec.Plan = nil
+
+		sub, err := deps.SubscriptionService.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+		require.NoError(t, err)
+
+		_, err = dbDeps.DBClient.Feature.UpdateOneID(features[0].ID).
+			SetArchivedAt(now).
+			Save(t.Context())
+		require.NoError(t, err)
+
+		clock.FreezeTime(now.Add(time.Minute))
+		defer clock.UnFreeze()
+
+		// when: an unrelated featureless item is added to the subscription
+		view, err := deps.WorkflowService.EditRunning(t.Context(), sub.NamespacedID, []subscription.Patch{
+			patch.PatchAddItem{
+				PhaseKey: "test_phase_1",
+				ItemKey:  subscriptiontestutils.ExampleRateCard2.Key(),
+				CreateInput: subscription.SubscriptionItemSpec{
+					CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+						CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+							PhaseKey: "test_phase_1",
+							ItemKey:  subscriptiontestutils.ExampleRateCard2.Key(),
+							RateCard: subscriptiontestutils.ExampleRateCard2.Clone(),
+						},
+					},
+				},
+			},
+		}, immediate)
+
+		// then: update ignores archival state while retaining feature identity validation
+		require.NoError(t, err)
+		require.Contains(t, view.Phases[0].ItemsByKey, subscriptiontestutils.ExampleFeatureKey)
+		require.Contains(t, view.Phases[0].ItemsByKey, subscriptiontestutils.ExampleRateCard2.Key())
 	})
 }
 

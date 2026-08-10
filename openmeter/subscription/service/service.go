@@ -121,10 +121,6 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 		return def, err
 	}
 
-	if err := s.prepareSpecFeatures(ctx, namespace, &spec); err != nil {
-		return def, err
-	}
-
 	// Fetch the customer & validate the customer
 	cus, err := s.CustomerService.GetCustomer(ctx, customer.GetCustomerInput{
 		CustomerID: &customer.CustomerID{
@@ -220,10 +216,6 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 
 	var def subscription.Subscription
 	if err := s.prepareSpecCurrencies(ctx, subscriptionID.Namespace, &newSpec); err != nil {
-		return def, err
-	}
-
-	if err := s.prepareSpecFeatures(ctx, subscriptionID.Namespace, &newSpec); err != nil {
 		return def, err
 	}
 

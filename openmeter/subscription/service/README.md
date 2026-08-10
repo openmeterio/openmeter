@@ -54,6 +54,8 @@ annotations intended for correlation, not persisted child IDs.
   the user's patch sequence or decide command timing.
 - Feature references in create and update targets must resolve in the item
   namespace before persistence, whether or not the item creates an entitlement.
+  Create rejects archived features; update ignores archival state so later
+  feature lifecycle changes do not make an existing subscription uneditable.
 - Custom item currencies must be resolved by the service before persistence;
   the materializer verifies that their managed identity belongs to the item
   namespace without loading currency state itself.

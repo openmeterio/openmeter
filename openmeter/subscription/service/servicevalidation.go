@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -23,6 +24,10 @@ func (s *service) validateCreate(ctx context.Context, cust customer.Customer, sp
 	// 1. Valiate the spec
 	if err := spec.Validate(); err != nil {
 		return fmt.Errorf("spec is invalid: %w", err)
+	}
+
+	if err := s.validateSpecFeatures(ctx, cust.Namespace, spec); err != nil {
+		return fmt.Errorf("subscription item features are invalid: %w", err)
 	}
 
 	if err := validateSubscriptionUsesFiatOnly(spec); err != nil {
@@ -54,6 +59,15 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 
 	if err := validateSubscriptionUsesFiatOnly(newSpec); err != nil {
 		return err
+	}
+
+	if err := s.validateSpecFeatures(
+		ctx,
+		currentView.Subscription.Namespace,
+		newSpec,
+		productcatalog.ValidateRateCardsWithFeaturesOptions{IgnoreArchived: true},
+	); err != nil {
+		return fmt.Errorf("subscription item features are invalid: %w", err)
 	}
 
 	// Fetch the customer & validate the customer

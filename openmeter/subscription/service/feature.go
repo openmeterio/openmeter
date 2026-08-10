@@ -2,21 +2,20 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	productcatalogfeatureresolver "github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 )
 
-// prepareSpecFeatures resolves every subscription item feature before a create
-// or update so feature-only items receive the same validation as items that
-// schedule entitlements.
-func (s *service) prepareSpecFeatures(ctx context.Context, namespace string, spec *subscription.SubscriptionSpec) error {
-	if spec == nil {
-		return fmt.Errorf("subscription spec is required")
-	}
-
+// validateSpecFeatures applies product-catalog feature constraints to every
+// subscription item, including feature-only items that do not schedule an
+// entitlement.
+func (s *service) validateSpecFeatures(
+	ctx context.Context,
+	namespace string,
+	spec subscription.SubscriptionSpec,
+	options ...productcatalog.ValidateRateCardsWithFeaturesOptions,
+) error {
 	rateCards := make(productcatalog.RateCards, 0)
 	for _, phase := range spec.Phases {
 		if phase == nil {
@@ -34,14 +33,9 @@ func (s *service) prepareSpecFeatures(ctx context.Context, namespace string, spe
 		}
 	}
 
-	if err := productcatalogfeatureresolver.ResolveFeaturesForRateCards(
+	return productcatalog.ValidateRateCardsWithFeatures(
 		ctx,
-		s.featureResolver,
-		namespace,
-		&rateCards,
-	); err != nil {
-		return fmt.Errorf("resolving subscription item features: %w", err)
-	}
-
-	return nil
+		s.featureResolver.WithNamespace(namespace),
+		options...,
+	)(rateCards)
 }
