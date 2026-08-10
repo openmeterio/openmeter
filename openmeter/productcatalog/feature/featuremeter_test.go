@@ -129,4 +129,34 @@ func TestResolveFeatureMeters(t *testing.T) {
 		require.True(t, models.IsGenericValidationError(err))
 		require.ErrorContains(t, err, "has no meter associated")
 	})
+
+	t.Run("reference with ID and key is rejected", func(t *testing.T) {
+		// given:
+		// - a feature reference containing both an ID and a key
+		// when:
+		// - the malformed reference is resolved
+		// then:
+		// - resolution rejects the ambiguous reference
+		out := resolveFeatureMeters(features)
+
+		_, err := out.Resolve(FeatureMeterRef{
+			IDOrKey: ref.IDOrKey{ID: "feature-old", Key: "tokens"},
+		})
+
+		require.ErrorContains(t, err, "either key or ID, not both")
+	})
+
+	t.Run("reference without ID or key is rejected", func(t *testing.T) {
+		// given:
+		// - a feature reference containing neither an ID nor a key
+		// when:
+		// - the malformed reference is resolved
+		// then:
+		// - resolution rejects the empty reference
+		out := resolveFeatureMeters(features)
+
+		_, err := out.Resolve(FeatureMeterRef{})
+
+		require.ErrorContains(t, err, "either key or ID")
+	})
 }

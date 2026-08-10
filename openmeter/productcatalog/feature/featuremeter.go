@@ -155,16 +155,14 @@ func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace s
 	}
 
 	// Let's make sure that all the feature refs are available in the output.
-	missingRefErrs := models.NewNillableGenericValidationError(
-		errors.Join(lo.Map(featureRefs, func(featureRef FeatureMeterRef, _ int) error {
-			if _, err := out.Resolve(featureRef); err != nil {
-				return err
-			}
-			return nil
-		})...),
-	)
-	if missingRefErrs != nil {
-		return nil, missingRefErrs
+	featureRefErrs := errors.Join(lo.Map(featureRefs, func(featureRef FeatureMeterRef, _ int) error {
+		if _, err := out.Resolve(featureRef); err != nil {
+			return err
+		}
+		return nil
+	})...)
+	if featureRefErrs != nil {
+		return nil, featureRefErrs
 	}
 
 	return out, nil

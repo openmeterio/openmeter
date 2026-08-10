@@ -44,7 +44,7 @@ func (s *ChargeFeatureIDTestSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
 }
 
-func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndFlatFeeCharges() {
+func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndMeterlessFlatFeeCharges() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-id-create")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -54,11 +54,15 @@ func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndF
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	usageMeter := newTestMeter(ns, "usage-meter")
-	flatFeeMeter := newTestMeter(ns, "flat-fee-meter")
-	s.installMeters(ctx, usageMeter, flatFeeMeter)
+	s.installMeters(ctx, usageMeter)
 
 	usageFeature := s.createFeature(ctx, ns, "usage-feature", usageMeter.ID)
-	flatFeeFeature := s.createFeature(ctx, ns, "flat-fee-feature", flatFeeMeter.ID)
+	flatFeeFeature, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      "flat-fee-feature",
+		Key:       "flat-fee-feature",
+	})
+	s.Require().NoError(err)
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
@@ -449,6 +453,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 	s.Require().Error(err)
 	s.ErrorContains(err, "resolve create feature meter")
 	s.True(models.IsGenericNotFoundError(err), "expected not found error, got %v", err)
+	s.False(models.IsGenericValidationError(err), "not found error must not be wrapped as validation: %v", err)
 
 	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,
@@ -497,6 +502,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedWithUnresolvableFeatureKe
 
 	s.Require().Error(err)
 	s.True(models.IsGenericNotFoundError(err), "expected not found error, got %v", err)
+	s.False(models.IsGenericValidationError(err), "not found error must not be wrapped as validation: %v", err)
 
 	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:   ns,
