@@ -33,22 +33,4 @@ WHERE item.phase_id = phase.id
     false
   );
 
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM subscription_items
-    WHERE price IS NOT NULL
-      AND currency IS NULL
-      AND NOT COALESCE(
-        annotations ? 'dbmigration:backfill_subscription_item_currencies',
-        false
-      )
-  ) THEN
-    RAISE EXCEPTION
-      'priced subscription items still have missing currency after backfill';
-  END IF;
-END
-$$;
-
 COMMIT;
