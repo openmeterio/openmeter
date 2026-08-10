@@ -49,9 +49,10 @@ type CustomerService struct {
 }
 ```
 
-Embedding the registry promotes `Register` and `Invoke` onto the service. The
-application composition layer can therefore attach hooks directly to the
-service, while only the service's operations need to call `Invoke`.
+Embedding promotes the registry's complete method set, including `Register`,
+`Invoke`, `Seal`, and `IsSealed`. If invocation and sealing must remain private
+to the service, store the registry in an unexported field and expose an explicit
+`Register` wrapper instead.
 
 The registry is responsible for:
 
