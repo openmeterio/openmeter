@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -68,7 +67,7 @@ type FeatureConnector interface {
 	// ResolveFeatureMeters resolves the feature meters for a given namespace and feature refs.
 	// Keys always resolve to the latest available feature for that key.
 	// Explicit IDs are returned in the ID index, and also in the key index when they are the latest feature for that key.
-	ResolveFeatureMeters(ctx context.Context, namespace string, featureRefs ...ref.IDOrKey) (FeatureMeters, error)
+	ResolveFeatureMeters(ctx context.Context, namespace string, featureRefs ...FeatureMeterRef) (FeatureMeters, error)
 }
 
 type IncludeArchivedFeature bool

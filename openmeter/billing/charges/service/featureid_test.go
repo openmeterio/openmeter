@@ -44,7 +44,7 @@ func (s *ChargeFeatureIDTestSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
 }
 
-func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndFlatFeeCharges() {
+func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndMeterlessFlatFeeCharges() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-id-create")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -54,11 +54,15 @@ func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndF
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	usageMeter := newTestMeter(ns, "usage-meter")
-	flatFeeMeter := newTestMeter(ns, "flat-fee-meter")
-	s.installMeters(ctx, usageMeter, flatFeeMeter)
+	s.installMeters(ctx, usageMeter)
 
 	usageFeature := s.createFeature(ctx, ns, "usage-feature", usageMeter.ID)
-	flatFeeFeature := s.createFeature(ctx, ns, "flat-fee-feature", flatFeeMeter.ID)
+	flatFeeFeature, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      "flat-fee-feature",
+		Key:       "flat-fee-feature",
+	})
+	s.Require().NoError(err)
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
@@ -400,11 +404,16 @@ func (s *ChargeFeatureIDTestSuite) TestCreateCustomerChargeResolvesFeatureByID()
 	})
 }
 
-// TestCreateFlatFeeWithUnresolvableFeatureKeyReturnsError covers the key-only producers
-// (subscription sync, pending lines, invoice-line mappers) reaching the flat-fee create
-// path with a feature that no longer resolves. Those intents carry no feature ID, so the
-// failure branch must not reach for one.
+// TestCreateFlatFeeWithUnresolvableFeatureKeyReturnsError covers key-only producers
+// (subscription sync, pending lines, invoice-line mappers) reaching the shared charge
+// creation boundary with a feature that no longer resolves.
 func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyReturnsError() {
+	// given:
+	// - a flat-fee intent carrying only a feature key, for a feature that does not exist
+	// when:
+	// - the charge is created
+	// then:
+	// - creation returns a not-found error without persisting a charge
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-key-unresolvable")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -421,9 +430,6 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 	clock.SetTime(servicePeriod.From.Add(-time.Hour))
 	defer clock.UnFreeze()
 
-	// given:
-	// - a flat-fee intent carrying only a feature key, for a feature that does not exist
-	// when:
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
@@ -444,10 +450,202 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 		},
 	})
 
-	// then:
-	// - it surfaces as an error rather than panicking on a nil feature ID
 	s.Require().Error(err)
-	s.ErrorContains(err, "resolve flat fee feature")
+	s.ErrorContains(err, "resolve create feature meter")
+	s.True(models.IsGenericNotFoundError(err), "expected not found error, got %v", err)
+	s.False(models.IsGenericValidationError(err), "not found error must not be wrapped as validation: %v", err)
+
+	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
+	})
+	s.Require().NoError(listErr)
+	s.Empty(listed.Items)
+}
+
+func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedWithUnresolvableFeatureKeyReturnsError() {
+	// given:
+	// - a usage-based intent references a feature key that does not exist
+	// when:
+	// - the charge is created
+	// then:
+	// - creation returns a not-found error without persisting a charge
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-usage-feature-key-unresolvable")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "usage-feature-key-unresolvable")
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-06-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-07-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				}),
+				name:       "usage-missing-feature",
+				managedBy:  billing.ManuallyManagedLine,
+				featureKey: "this-usage-feature-does-not-exist",
+			}),
+		},
+	})
+
+	s.Require().Error(err)
+	s.True(models.IsGenericNotFoundError(err), "expected not found error, got %v", err)
+	s.False(models.IsGenericValidationError(err), "not found error must not be wrapped as validation: %v", err)
+
+	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
+	})
+	s.Require().NoError(listErr)
+	s.Empty(listed.Items)
+}
+
+func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBeforeCreatingAnyCharge() {
+	// given:
+	// - a valid flat-fee intent and a usage-based intent backed by a meterless feature
+	// when:
+	// - both charges are created in one request
+	// then:
+	// - validation rejects the whole request before either charge is persisted
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-usage-feature-meter-required")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "usage-feature-meter-required")
+	meterlessFeature, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      "meterless feature",
+		Key:       "meterless-feature",
+	})
+	s.Require().NoError(err)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-06-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-07-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	_, err = s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(10),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:      "valid-featureless-flat-fee",
+				managedBy: billing.ManuallyManagedLine,
+			}),
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				}),
+				name:       "usage-without-feature-meter",
+				managedBy:  billing.ManuallyManagedLine,
+				featureKey: meterlessFeature.Key,
+			}),
+		},
+	})
+
+	s.Require().Error(err)
+	s.True(models.IsGenericValidationError(err), "expected validation error, got %v", err)
+	s.ErrorContains(err, "has no meter associated")
+
+	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
+	})
+	s.Require().NoError(listErr)
+	s.Empty(listed.Items)
+}
+
+func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedMissingFeatureTakesPrecedenceOverMeterValidation() {
+	// given:
+	// - one usage-based intent references a missing feature and another a meterless feature
+	// when:
+	// - both charges are created in one request
+	// then:
+	// - the missing feature rejects the whole request as not-found before anything is persisted
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-usage-mixed-feature-errors")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "usage-mixed-feature-errors")
+	meterlessFeature, err := s.FeatureService.CreateFeature(ctx, featurepkg.CreateFeatureInputs{
+		Namespace: ns,
+		Name:      "meterless feature",
+		Key:       "meterless-feature",
+	})
+	s.Require().NoError(err)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-06-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-07-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	_, err = s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				}),
+				name:       "usage-missing-feature",
+				managedBy:  billing.ManuallyManagedLine,
+				featureKey: "this-usage-feature-does-not-exist",
+			}),
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(2),
+				}),
+				name:       "usage-without-feature-meter",
+				managedBy:  billing.ManuallyManagedLine,
+				featureKey: meterlessFeature.Key,
+			}),
+		},
+	})
+
+	s.Require().Error(err)
+	s.True(models.IsGenericNotFoundError(err), "expected not found error, got %v", err)
+	s.False(models.IsGenericValidationError(err), "not found error must take precedence over validation: %v", err)
+
+	listed, listErr := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:   ns,
+		CustomerIDs: []string{cust.ID},
+	})
+	s.Require().NoError(listErr)
+	s.Empty(listed.Items)
 }
 
 // TestCreateCustomerChargeByIDResolvesLatestFeatureVersion pins the version semantics of

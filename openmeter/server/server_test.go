@@ -1059,7 +1059,7 @@ func (n NoopFeatureConnector) ArchiveFeature(ctx context.Context, featureID mode
 	return nil
 }
 
-func (n NoopFeatureConnector) ResolveFeatureMeters(ctx context.Context, namespace string, featureRefs ...ref.IDOrKey) (feature.FeatureMeters, error) {
+func (n NoopFeatureConnector) ResolveFeatureMeters(ctx context.Context, namespace string, featureRefs ...feature.FeatureMeterRef) (feature.FeatureMeters, error) {
 	return feature.FeatureMeterCollection{}, nil
 }
 

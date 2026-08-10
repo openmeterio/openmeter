@@ -12,12 +12,14 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
@@ -273,6 +275,26 @@ func (l GatheringLines) Validate() error {
 			return nil
 		})...,
 	)
+}
+
+// CollectFeatureMeterRefs returns the feature dependencies that must resolve before
+// the lines can be persisted. Metered prices require a meter; flat prices may attach
+// a feature without one.
+func (l GatheringLines) CollectFeatureMeterRefs() []feature.FeatureMeterRef {
+	refs := make([]feature.FeatureMeterRef, 0, len(l))
+
+	for _, line := range l {
+		if line.FeatureKey == "" {
+			continue
+		}
+
+		refs = append(refs, feature.FeatureMeterRef{
+			IDOrKey:      ref.IDOrKey{Key: line.FeatureKey},
+			RequireMeter: line.Price.Type() != productcatalog.FlatPriceType,
+		})
+	}
+
+	return lo.Uniq(refs)
 }
 
 func (l GatheringLines) AsGenericLines() []GenericInvoiceLine {

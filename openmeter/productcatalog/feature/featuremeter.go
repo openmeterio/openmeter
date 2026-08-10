@@ -2,6 +2,7 @@ package feature
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -20,6 +21,7 @@ type FeatureMeter struct {
 type FeatureMeters interface {
 	Get(featureKey string, requireMeter bool) (FeatureMeter, error)
 	GetByID(featureID string, requireMeter bool) (FeatureMeter, error)
+	Resolve(ref FeatureMeterRef) (FeatureMeter, error)
 }
 
 type FeatureMeterCollection struct {
@@ -58,20 +60,25 @@ type FeatureMeterRef struct {
 	RequireMeter bool
 }
 
-func ResolveByRef(fm FeatureMeters, r FeatureMeterRef) (FeatureMeter, error) {
+func (f FeatureMeterCollection) Resolve(r FeatureMeterRef) (FeatureMeter, error) {
+	var featureMeter FeatureMeter
+	var err error
+
 	switch {
 	case r.IDOrKey.Key != "" && r.IDOrKey.ID != "":
 		return FeatureMeter{}, fmt.Errorf("feature reference must have either key or ID, not both")
 	case r.IDOrKey.Key != "":
-		return fm.Get(r.IDOrKey.Key, r.RequireMeter)
+		featureMeter, err = f.Get(r.IDOrKey.Key, r.RequireMeter)
 	case r.IDOrKey.ID != "":
-		return fm.GetByID(r.IDOrKey.ID, r.RequireMeter)
+		featureMeter, err = f.GetByID(r.IDOrKey.ID, r.RequireMeter)
 	default:
 		return FeatureMeter{}, fmt.Errorf("feature reference must have either key or ID")
 	}
+
+	return featureMeter, err
 }
 
-func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace string, featureRefs ...ref.IDOrKey) (FeatureMeters, error) {
+func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace string, featureRefs ...FeatureMeterRef) (FeatureMeters, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -83,9 +90,9 @@ func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace s
 		}, nil
 	}
 
-	featuresToResolve := lo.Uniq(lo.FlatMap(featureRefs, func(featureRef ref.IDOrKey, _ int) []string {
-		out := featureRef.GetKeys()
-		out = append(out, featureRef.GetIDs()...)
+	featuresToResolve := lo.Uniq(lo.FlatMap(featureRefs, func(featureRef FeatureMeterRef, _ int) []string {
+		out := featureRef.IDOrKey.GetKeys()
+		out = append(out, featureRef.IDOrKey.GetIDs()...)
 		return out
 	}))
 
@@ -100,9 +107,6 @@ func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace s
 	}
 
 	out := resolveFeatureMeters(features.Items)
-	if err := ensureFeatureIDsResolved(featureRefs, out); err != nil {
-		return nil, err
-	}
 
 	metersToResolve := lo.Uniq(
 		lo.Filter(
@@ -150,6 +154,27 @@ func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace s
 		}
 	}
 
+	// Let's make sure that all the feature refs are available in the output.
+	// Missing features take precedence over other validation failures so a mixed
+	// batch preserves the not-found error category at the API boundary.
+	var notFoundErrs, validationErrs []error
+	for _, featureRef := range featureRefs {
+		if _, err := out.Resolve(featureRef); err != nil {
+			if models.IsGenericNotFoundError(err) {
+				notFoundErrs = append(notFoundErrs, err)
+			} else {
+				validationErrs = append(validationErrs, err)
+			}
+		}
+	}
+
+	if err := errors.Join(notFoundErrs...); err != nil {
+		return nil, err
+	}
+	if err := errors.Join(validationErrs...); err != nil {
+		return nil, err
+	}
+
 	return out, nil
 }
 
@@ -172,18 +197,6 @@ func resolveFeatureMeters(features []Feature) FeatureMeterCollection {
 	}
 
 	return out
-}
-
-func ensureFeatureIDsResolved(featureRefs []ref.IDOrKey, resolved FeatureMeterCollection) error {
-	for _, featureID := range lo.Uniq(lo.FlatMap(featureRefs, func(featureRef ref.IDOrKey, _ int) []string {
-		return featureRef.GetIDs()
-	})) {
-		if _, ok := resolved.ByID[featureID]; !ok {
-			return models.NewGenericNotFoundError(fmt.Errorf("feature[%s] not found", featureID))
-		}
-	}
-
-	return nil
 }
 
 type lastEntityAccessor[T any] interface {

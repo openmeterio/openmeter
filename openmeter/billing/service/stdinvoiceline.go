@@ -55,6 +55,14 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 	}
 
+	featureMeterRefs := billing.GatheringLines(input.Lines).CollectFeatureMeterRefs()
+	_, err = s.featureService.ResolveFeatureMeters(ctx, input.Customer.Namespace, featureMeterRefs...)
+	if err != nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("resolving pending line feature meters: %w", err),
+		}
+	}
+
 	maxPeriodEnd := lo.FromPtr(cust.DeletedAt)
 	if !maxPeriodEnd.IsZero() {
 		var errs []error

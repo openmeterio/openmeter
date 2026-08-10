@@ -13,9 +13,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/ref"
 )
 
 type Charge struct {
@@ -463,8 +463,8 @@ func (i ChargeIntents) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i ChargeIntents) CollectFeatureRefs() ([]ref.IDOrKey, error) {
-	refs := make([]ref.IDOrKey, 0, len(i))
+func (i ChargeIntents) CollectFeatureMeterRefs() ([]feature.FeatureMeterRef, error) {
+	refs := make([]feature.FeatureMeterRef, 0, len(i))
 
 	for idx, ch := range i {
 		switch ch.Type() {
@@ -478,14 +478,20 @@ func (i ChargeIntents) CollectFeatureRefs() ([]ref.IDOrKey, error) {
 				return nil, fmt.Errorf("getting feature ref for flat fee intent[%d]: %w", idx, err)
 			}
 			if featureRef != nil {
-				refs = append(refs, *featureRef)
+				refs = append(refs, feature.FeatureMeterRef{
+					IDOrKey:      *featureRef,
+					RequireMeter: false,
+				})
 			}
 		case meta.ChargeTypeUsageBased:
 			usageBased, err := ch.AsUsageBasedIntent()
 			if err != nil {
 				return nil, fmt.Errorf("converting usage based intent[%d]: %w", idx, err)
 			}
-			refs = append(refs, usageBased.GetFeatureRef())
+			refs = append(refs, feature.FeatureMeterRef{
+				IDOrKey:      usageBased.GetFeatureRef(),
+				RequireMeter: true,
+			})
 		case meta.ChargeTypeCreditPurchase:
 			continue
 		default:

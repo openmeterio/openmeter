@@ -62,7 +62,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			}
 			var featureID *string
 			if featureRef != nil {
-				featureMeter, err := feature.ResolveByRef(input.FeatureMeters, feature.FeatureMeterRef{
+				featureMeter, err := input.FeatureMeters.Resolve(feature.FeatureMeterRef{
 					IDOrKey:      *featureRef,
 					RequireMeter: false,
 				})

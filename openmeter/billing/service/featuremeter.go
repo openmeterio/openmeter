@@ -21,8 +21,10 @@ func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, li
 		return nil, fmt.Errorf("getting referenced feature keys: %w", err)
 	}
 
-	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, namespace, lo.Map(keys, func(key string, _ int) ref.IDOrKey {
-		return ref.IDOrKey{Key: key}
+	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, namespace, lo.Map(keys, func(key string, _ int) feature.FeatureMeterRef {
+		return feature.FeatureMeterRef{
+			IDOrKey: ref.IDOrKey{Key: key},
+		}
 	})...)
 	if err != nil {
 		return nil, fmt.Errorf("resolving feature meters: %w", err)

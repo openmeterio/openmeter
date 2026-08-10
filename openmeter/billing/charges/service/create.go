@@ -156,12 +156,12 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			return nil, err
 		}
 
-		featureRefs, err := input.Intents.CollectFeatureRefs()
+		featureMeterRefs, err := input.Intents.CollectFeatureMeterRefs()
 		if err != nil {
-			return nil, fmt.Errorf("collecting feature refs: %w", err)
+			return nil, fmt.Errorf("collecting feature meter refs: %w", err)
 		}
 
-		createFeatureMeters, err := s.featureService.ResolveFeatureMeters(ctx, input.Namespace, featureRefs...)
+		createFeatureMeters, err := s.featureService.ResolveFeatureMeters(ctx, input.Namespace, featureMeterRefs...)
 		if err != nil {
 			return nil, fmt.Errorf("resolve create feature meters: %w", err)
 		}
