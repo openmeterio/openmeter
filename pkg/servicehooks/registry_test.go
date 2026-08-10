@@ -8,28 +8,18 @@ import (
 	"testing"
 )
 
-func TestRegistryInvokesHooksByPriorityAndRegistrationOrder(t *testing.T) {
+func TestRegistryInvokesHooksInRegistrationOrder(t *testing.T) {
 	var registry Registry[string]
 	var invoked []string
 
-	registrations := []struct {
-		name     string
-		priority Priority
-	}{
-		{name: "default-first", priority: PriorityDefault},
-		{name: "lowest", priority: PriorityLowest},
-		{name: "highest", priority: PriorityHighest},
-		{name: "default-second", priority: PriorityDefault},
-		{name: "high", priority: PriorityHigh},
-	}
+	registrations := []string{"first", "second", "third"}
 
-	for _, registration := range registrations {
-		name := registration.name
+	for _, name := range registrations {
 		err := registry.Register(name, HookFunc[string](func(_ context.Context, event string) error {
 			invoked = append(invoked, name+":"+event)
 
 			return nil
-		}), WithPriority(registration.priority))
+		}))
 		if err != nil {
 			t.Fatalf("registering hook %q: %v", name, err)
 		}
@@ -40,11 +30,9 @@ func TestRegistryInvokesHooksByPriorityAndRegistrationOrder(t *testing.T) {
 	}
 
 	expected := []string{
-		"highest:event",
-		"high:event",
-		"default-first:event",
-		"default-second:event",
-		"lowest:event",
+		"first:event",
+		"second:event",
+		"third:event",
 	}
 	if len(invoked) != len(expected) {
 		t.Fatalf("unexpected invocation count: got %d, expected %d", len(invoked), len(expected))
@@ -57,31 +45,6 @@ func TestRegistryInvokesHooksByPriorityAndRegistrationOrder(t *testing.T) {
 	}
 }
 
-func TestRegistryUsesDefaultPriority(t *testing.T) {
-	var registry Registry[struct{}]
-	boom := errors.New("boom")
-
-	if err := registry.Register("default", HookFunc[struct{}](func(context.Context, struct{}) error {
-		return boom
-	})); err != nil {
-		t.Fatalf("registering hook: %v", err)
-	}
-
-	err := registry.Invoke(t.Context(), struct{}{})
-	if !errors.Is(err, boom) {
-		t.Fatalf("expected hook error, got %v", err)
-	}
-
-	var invocationError InvocationError
-	if !errors.As(err, &invocationError) {
-		t.Fatalf("expected InvocationError, got %T", err)
-	}
-
-	if invocationError.Priority != PriorityDefault {
-		t.Errorf("unexpected priority: got %d, expected %d", invocationError.Priority, PriorityDefault)
-	}
-}
-
 func TestRegistryStopsAtFirstHookError(t *testing.T) {
 	var registry Registry[struct{}]
 	boom := errors.New("boom")
@@ -89,7 +52,7 @@ func TestRegistryStopsAtFirstHookError(t *testing.T) {
 
 	if err := registry.Register("first", HookFunc[struct{}](func(context.Context, struct{}) error {
 		return boom
-	}), WithPriority(PriorityHigh)); err != nil {
+	})); err != nil {
 		t.Fatalf("registering first hook: %v", err)
 	}
 
@@ -146,23 +109,6 @@ func TestRegistryRejectsInvalidRegistration(t *testing.T) {
 		err := registry.Register(" hook ", hook)
 		if !errors.Is(err, ErrHookAlreadyRegistered) {
 			t.Fatalf("expected ErrHookAlreadyRegistered, got %v", err)
-		}
-	})
-
-	t.Run("priority is in range", func(t *testing.T) {
-		for _, priority := range []Priority{-1, 101} {
-			var registry Registry[struct{}]
-			err := registry.Register(
-				"invalid-priority",
-				HookFunc[struct{}](func(context.Context, struct{}) error { return nil }),
-				WithPriority(priority),
-			)
-			if !errors.Is(err, ErrPriorityOutOfRange) {
-				t.Fatalf("expected ErrPriorityOutOfRange for %d, got %v", priority, err)
-			}
-			if !errors.Is(err, ErrRegisterOptionInvalid) {
-				t.Fatalf("expected ErrRegisterOptionInvalid for %d, got %v", priority, err)
-			}
 		}
 	})
 
@@ -231,7 +177,7 @@ func TestRegistryReportsCyclesByDefaultBeforeNestedHooksRun(t *testing.T) {
 		recursiveCalls++
 
 		return registry.Invoke(ctx, event+1)
-	}), WithPriority(PriorityHighest)); err != nil {
+	})); err != nil {
 		t.Fatalf("registering recursive hook: %v", err)
 	}
 
@@ -275,7 +221,7 @@ func TestRegistryCanSkipOnlyTheActiveRegistration(t *testing.T) {
 		}
 
 		return nil
-	}), WithPriority(PriorityHighest), WithCyclePolicy(CyclePolicySkip)); err != nil {
+	}), WithCyclePolicy(CyclePolicySkip)); err != nil {
 		t.Fatalf("registering recursive hook: %v", err)
 	}
 

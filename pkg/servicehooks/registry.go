@@ -1,10 +1,8 @@
 package servicehooks
 
 import (
-	"cmp"
 	"context"
 	"reflect"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,14 +31,13 @@ type hookToken struct {
 type registration[T any] struct {
 	name        string
 	hook        Hook[T]
-	priority    Priority
 	cyclePolicy CyclePolicy
 	token       *hookToken
 }
 
-// Registry invokes typed hooks in priority order. Its zero value is ready for
-// use. A registry is sealed explicitly with Seal or automatically by its first
-// invocation; registrations after sealing fail with ErrRegistrySealed.
+// Registry invokes typed hooks in registration order. Its zero value is ready
+// for use. A registry is sealed explicitly with Seal or automatically by its
+// first invocation; registrations after sealing fail with ErrRegistrySealed.
 //
 // Registry must not be copied after first use.
 type Registry[T any] struct {
@@ -56,9 +53,8 @@ func NewRegistry[T any]() *Registry[T] {
 	return &Registry[T]{}
 }
 
-// Register adds a named hook. Names must be unique within a registry. Hooks
-// with lower priorities run first; equal priorities preserve registration
-// order. PriorityDefault is used when WithPriority is absent.
+// Register appends a named hook to the invocation order. Names must be unique
+// within a registry.
 func (r *Registry[T]) Register(name string, hook Hook[T], options ...RegisterOption) error {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -99,13 +95,8 @@ func (r *Registry[T]) Register(name string, hook Hook[T], options ...RegisterOpt
 	r.registrations = append(r.registrations, registration[T]{
 		name:        name,
 		hook:        hook,
-		priority:    config.priority,
 		cyclePolicy: config.cyclePolicy,
 		token:       &hookToken{},
-	})
-
-	slices.SortStableFunc(r.registrations, func(a, b registration[T]) int {
-		return cmp.Compare(a.priority, b.priority)
 	})
 
 	return nil
@@ -149,7 +140,6 @@ func (r *Registry[T]) Invoke(ctx context.Context, event T) error {
 		if registered.cyclePolicy == CyclePolicyError {
 			return CycleError{
 				HookName: registered.name,
-				Priority: registered.priority,
 			}
 		}
 	}
@@ -166,7 +156,6 @@ func (r *Registry[T]) Invoke(ctx context.Context, event T) error {
 		if err := invokeRegisteredHook(ctx, event, active, registered); err != nil {
 			return InvocationError{
 				HookName: registered.name,
-				Priority: registered.priority,
 				Err:      err,
 			}
 		}

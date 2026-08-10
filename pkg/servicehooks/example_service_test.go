@@ -22,8 +22,9 @@ type exampleResource struct {
 	Name string
 }
 
-// lifecycleEvent is owned by the example service. The registry only orders
-// and dispatches it; the service defines the meaning of Before and After.
+// lifecycleEvent is owned by the example service. The registry only preserves
+// registration order and dispatches it; the service defines the meaning of
+// Before and After.
 type lifecycleEvent struct {
 	Operation lifecycleOperation
 	Before    *exampleResource
@@ -31,8 +32,9 @@ type lifecycleEvent struct {
 }
 
 type exampleService struct {
+	servicehooks.Registry[lifecycleEvent]
+
 	resources map[string]exampleResource
-	hooks     servicehooks.Registry[lifecycleEvent]
 }
 
 func newExampleService() *exampleService {
@@ -41,17 +43,13 @@ func newExampleService() *exampleService {
 	}
 }
 
-func (s *exampleService) RegisterHook(name string, hook servicehooks.Hook[lifecycleEvent], options ...servicehooks.RegisterOption) error {
-	return s.hooks.Register(name, hook, options...)
-}
-
 func (s *exampleService) Create(ctx context.Context, resource exampleResource) error {
 	if _, exists := s.resources[resource.ID]; exists {
 		return fmt.Errorf("resource %q already exists", resource.ID)
 	}
 
 	after := resource
-	if err := s.hooks.Invoke(ctx, lifecycleEvent{
+	if err := s.Invoke(ctx, lifecycleEvent{
 		Operation: lifecycleOperationCreate,
 		After:     &after,
 	}); err != nil {
@@ -71,7 +69,7 @@ func (s *exampleService) Update(ctx context.Context, resource exampleResource) e
 
 	before := current
 	after := resource
-	if err := s.hooks.Invoke(ctx, lifecycleEvent{
+	if err := s.Invoke(ctx, lifecycleEvent{
 		Operation: lifecycleOperationUpdate,
 		Before:    &before,
 		After:     &after,
@@ -91,7 +89,7 @@ func (s *exampleService) Delete(ctx context.Context, id string) error {
 	}
 
 	before := current
-	if err := s.hooks.Invoke(ctx, lifecycleEvent{
+	if err := s.Invoke(ctx, lifecycleEvent{
 		Operation: lifecycleOperationDelete,
 		Before:    &before,
 	}); err != nil {
@@ -109,18 +107,10 @@ func TestExampleServiceInvokesLifecycleHooksForEachOperation(t *testing.T) {
 	createdResource := exampleResource{ID: "resource-1", Name: "initial"}
 	updatedResource := exampleResource{ID: "resource-1", Name: "updated"}
 
-	// Register the observer first to demonstrate that priority, not registration
-	// order, determines when hooks with different priorities run.
-	err := service.RegisterHook("observe", servicehooks.HookFunc[lifecycleEvent](func(_ context.Context, event lifecycleEvent) error {
-		invocations = append(invocations, "observe:"+string(event.Operation))
-
-		return nil
-	}))
-	if err != nil {
-		t.Fatalf("registering observer hook: %v", err)
-	}
-
-	err = service.RegisterHook("validate-shape", servicehooks.HookFunc[lifecycleEvent](func(_ context.Context, event lifecycleEvent) error {
+	// Composition registers validation before observation because successful
+	// Register calls define invocation order. Registry embedding promotes
+	// Register directly onto the service.
+	err := service.Register("validate-shape", servicehooks.HookFunc[lifecycleEvent](func(_ context.Context, event lifecycleEvent) error {
 		switch event.Operation {
 		case lifecycleOperationCreate:
 			if event.Before != nil || event.After == nil {
@@ -150,9 +140,18 @@ func TestExampleServiceInvokesLifecycleHooksForEachOperation(t *testing.T) {
 		invocations = append(invocations, "validate:"+string(event.Operation))
 
 		return nil
-	}), servicehooks.WithPriority(servicehooks.PriorityHigh))
+	}))
 	if err != nil {
 		t.Fatalf("registering validation hook: %v", err)
+	}
+
+	err = service.Register("observe", servicehooks.HookFunc[lifecycleEvent](func(_ context.Context, event lifecycleEvent) error {
+		invocations = append(invocations, "observe:"+string(event.Operation))
+
+		return nil
+	}))
+	if err != nil {
+		t.Fatalf("registering observer hook: %v", err)
 	}
 
 	// Given a service whose hooks validate and observe every mutation.
@@ -168,8 +167,8 @@ func TestExampleServiceInvokesLifecycleHooksForEachOperation(t *testing.T) {
 		t.Fatalf("deleting resource: %v", err)
 	}
 
-	// Then every operation is delivered in priority order and the mutations are
-	// committed only after their lifecycle hooks succeed.
+	// Then every operation is delivered in registration order and the mutations
+	// are committed only after their lifecycle hooks succeed.
 	expectedInvocations := []string{
 		"validate:create",
 		"observe:create",
@@ -195,7 +194,7 @@ func TestExampleServiceDoesNotCommitMutationWhenLifecycleHookFails(t *testing.T)
 	service := newExampleService()
 	rejected := errors.New("resource name is required")
 
-	err := service.RegisterHook("require-name", servicehooks.HookFunc[lifecycleEvent](func(_ context.Context, event lifecycleEvent) error {
+	err := service.Register("require-name", servicehooks.HookFunc[lifecycleEvent](func(_ context.Context, event lifecycleEvent) error {
 		if event.After != nil && event.After.Name == "" {
 			return rejected
 		}

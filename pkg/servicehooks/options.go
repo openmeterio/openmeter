@@ -12,7 +12,7 @@ const (
 	CyclePolicyError CyclePolicy = iota
 
 	// CyclePolicySkip skips only the active registration. Other hooks in the
-	// nested invocation still run according to priority.
+	// nested invocation still run in registration order.
 	CyclePolicySkip
 )
 
@@ -26,32 +26,17 @@ func (p CyclePolicy) validate() error {
 }
 
 type registerConfig struct {
-	priority    Priority
 	cyclePolicy CyclePolicy
 }
 
 func defaultRegisterConfig() registerConfig {
 	return registerConfig{
-		priority:    PriorityDefault,
 		cyclePolicy: CyclePolicyError,
 	}
 }
 
 // RegisterOption configures one hook registration.
 type RegisterOption func(*registerConfig) error
-
-// WithPriority sets the registration priority. Lower values run first.
-func WithPriority(priority Priority) RegisterOption {
-	return func(config *registerConfig) error {
-		if err := priority.Validate(); err != nil {
-			return err
-		}
-
-		config.priority = priority
-
-		return nil
-	}
-}
 
 // WithCyclePolicy sets the behavior for a recursive invocation of this
 // registration. CyclePolicyError is used when this option is absent.

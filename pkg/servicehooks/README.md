@@ -20,12 +20,13 @@ rules remain owned by the entitlement domain.
 
 The same mechanism can support other synchronous lifecycle reactions,
 including producing system events and generating audit events. The registry
-only orders and invokes those hooks; it does not determine whether an event is
-transactionally valid or durable. System-event publication currently has a
-known problem where an event can be sent from a transaction which is later
-rolled back. Correctly coupling publication to commit, for example through an
-outbox or an after-commit mechanism, is outside the scope of service hooks and
-must be handled by the owning service and event infrastructure.
+only preserves registration order and invokes those hooks; it does not
+determine whether an event is transactionally valid or durable. System-event
+publication currently has a known problem where an event can be sent from a
+transaction which is later rolled back. Correctly coupling publication to
+commit, for example through an outbox or an after-commit mechanism, is outside
+the scope of service hooks and must be handled by the owning service and event
+infrastructure.
 
 ## Ownership and event boundaries
 
@@ -41,17 +42,25 @@ type CustomerLifecycleEvent struct {
     After     *customer.Customer
 }
 
-var hooks servicehooks.Registry[CustomerLifecycleEvent]
+type CustomerService struct {
+    servicehooks.Registry[CustomerLifecycleEvent]
+
+    repository customer.Repository
+}
 ```
+
+Embedding the registry promotes `Register` and `Invoke` onto the service. The
+application composition layer can therefore attach hooks directly to the
+service, while only the service's operations need to call `Invoke`.
 
 The registry is responsible for:
 
 - validating and storing named hook registrations;
-- ordering hooks by priority and registration order;
+- preserving the order of successful `Register` calls;
 - freezing registration before request processing;
 - invoking hooks synchronously with caller context propagation;
 - detecting recursive hook invocation in the causal context chain;
-- attaching hook identity and priority to returned errors.
+- attaching hook identity to returned errors.
 
 The owning service is responsible for:
 
@@ -86,10 +95,9 @@ type Hook[T any] interface {
 clarify domain intent:
 
 ```go
-err := hooks.Register(
+err := service.Register(
     "ledger-accounts",
     servicehooks.HookFunc[CustomerLifecycleEvent](provisionLedgerAccounts),
-    servicehooks.WithPriority(servicehooks.PriorityHigh),
 )
 ```
 
@@ -119,30 +127,44 @@ Hook implementations should not:
 - assume the registry provides rollback, retries, logging, or compensation;
 - perform irreversible external effects inside a transaction-bound registry;
 - call the same registry recursively without an explicit re-entry design;
-- assume equal-priority hooks run in parallel; invocation is sequential.
+- assume hooks run in parallel; invocation is sequential.
 
 The registry intentionally does not recover panics. A panic indicates a
 programming defect, while expected service failures must be returned as
 errors. The active cycle frame is still deactivated during panic unwinding.
 
-## Registration and priority
+## Registration and explicit ordering
 
 Every registration has a non-empty name that is unique within the registry.
 Names are normalized by trimming whitespace and are included in invocation and
 cycle errors.
 
-Priority is an integer from `0` through `100`; lower values run first. Named
-priorities are:
+Invocation order is exactly the order in which `Register` succeeds. The
+registry never sorts or otherwise reorders registrations. This keeps ordering
+visible at the composition root instead of distributing it across hook-owned
+priority values. In a Wire application, a composition provider should encode
+the required order in its `Register` calls; the order of declarations in a
+`wire.NewSet` is not itself the hook order.
 
-- `PriorityHighest` (`0`)
-- `PriorityHigh` (`25`)
-- `PriorityDefault` (`50`)
-- `PriorityLow` (`75`)
-- `PriorityLowest` (`100`)
+For example, validation can be made explicitly earlier than observation:
 
-Registrations without `WithPriority` use `PriorityDefault`. Hooks with equal
-priority retain registration order. Invocation is sequential even when hooks
-have equal priority, so fail-fast behavior remains deterministic.
+```go
+func registerCustomerHooks(
+    service *CustomerService,
+    entitlementValidation servicehooks.Hook[CustomerLifecycleEvent],
+    audit servicehooks.Hook[CustomerLifecycleEvent],
+) error {
+    if err := service.Register("entitlement-validation", entitlementValidation); err != nil {
+        return err
+    }
+
+    return service.Register("audit", audit)
+}
+```
+
+Invocation is sequential, so this explicit order also makes fail-fast behavior
+deterministic. Adding or moving a hook requires changing the composition code
+that owns the order.
 
 Registration is a startup phase. Calling `Seal`, or invoking the registry for
 the first time, makes the ordered registrations immutable. Later registration
@@ -163,7 +185,7 @@ must not be copied after first use.
 4. Inspect the causal context chain for active registrations.
 5. Reject an active `CyclePolicyError` registration before any nested hook
    runs.
-6. Traverse registrations in priority order, skipping only active
+6. Traverse registrations in registration order, skipping only active
    `CyclePolicySkip` registrations.
 7. Check cancellation before each hook.
 8. Invoke the hook with a derived context containing its active cycle frame.
@@ -180,8 +202,8 @@ Hook implementations remain responsible for their own synchronization.
 ## Failure behavior
 
 Invocation is synchronous and fail-fast. A hook error is returned as an
-`InvocationError` containing its name and priority while preserving
-`errors.Is` and `errors.As`. Hooks later in the ordered chain do not run.
+`InvocationError` containing its name while preserving `errors.Is` and
+`errors.As`. Hooks later in the ordered chain do not run.
 
 Cancellation is checked before dispatch and before each hook. The registry
 cannot stop a hook already running; that hook must observe the propagated
@@ -203,8 +225,9 @@ invocation, while `CyclePolicySkip` allows unrelated registrations to continue.
 The default `CyclePolicyError` rejects a nested invocation before any hook in
 that invocation runs and returns a `CycleError`. An intentionally idempotent
 hook can opt into `CyclePolicySkip` with `WithCyclePolicy`; only that active
-registration is skipped, while remaining hooks still run in priority order.
-The explicit option makes intentional cycle breaking visible at registration.
+registration is skipped, while remaining hooks still run in registration
+order. The explicit option makes intentional cycle breaking visible at
+registration.
 
 Cycle frames use an atomic running flag and are deactivated when a hook
 returns. A context retained beyond the callback therefore does not permanently
