@@ -98,7 +98,7 @@ func TestResolveFeatureMeters(t *testing.T) {
 		// - the existing ID resolves and the missing ID returns a not-found error
 		out := resolveFeatureMeters(features)
 
-		_, existingErr := out.Resolve(FeatureMeterRef{
+		existing, existingErr := out.Resolve(FeatureMeterRef{
 			IDOrKey: ref.IDOrKey{ID: "feature-old"},
 		})
 		_, missingErr := out.Resolve(FeatureMeterRef{
@@ -106,6 +106,7 @@ func TestResolveFeatureMeters(t *testing.T) {
 		})
 
 		require.NoError(t, existingErr)
+		require.Equal(t, "feature-old", existing.Feature.ID)
 		require.Error(t, missingErr)
 		require.True(t, models.IsGenericNotFoundError(missingErr))
 		require.ErrorContains(t, missingErr, "missing-feature")

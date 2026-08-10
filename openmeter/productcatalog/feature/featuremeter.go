@@ -155,14 +155,24 @@ func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace s
 	}
 
 	// Let's make sure that all the feature refs are available in the output.
-	featureRefErrs := errors.Join(lo.Map(featureRefs, func(featureRef FeatureMeterRef, _ int) error {
+	// Missing features take precedence over other validation failures so a mixed
+	// batch preserves the not-found error category at the API boundary.
+	var notFoundErrs, validationErrs []error
+	for _, featureRef := range featureRefs {
 		if _, err := out.Resolve(featureRef); err != nil {
-			return err
+			if models.IsGenericNotFoundError(err) {
+				notFoundErrs = append(notFoundErrs, err)
+			} else {
+				validationErrs = append(validationErrs, err)
+			}
 		}
-		return nil
-	})...)
-	if featureRefErrs != nil {
-		return nil, featureRefErrs
+	}
+
+	if err := errors.Join(notFoundErrs...); err != nil {
+		return nil, err
+	}
+	if err := errors.Join(validationErrs...); err != nil {
+		return nil, err
 	}
 
 	return out, nil
