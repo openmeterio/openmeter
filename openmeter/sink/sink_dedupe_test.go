@@ -92,6 +92,17 @@ func (d *countingDeduplicator) Close() error {
 	return nil
 }
 
+type unclassifiedDeduplicator struct {
+	*countingDeduplicator
+}
+
+func (d *unclassifiedDeduplicator) CheckUniqueBatch(_ context.Context, _ []dedupe.Item) (dedupe.CheckUniqueBatchResult, error) {
+	return dedupe.CheckUniqueBatchResult{
+		UniqueItems:           dedupe.ItemSet{},
+		AlreadyProcessedItems: dedupe.ItemSet{},
+	}, nil
+}
+
 type countingStorage struct {
 	durable        dedupe.ItemSet
 	hasEventsCalls int
@@ -207,6 +218,19 @@ func TestPlanFlushMessages_ExistingNotDurableReinsertsWithoutSet(t *testing.T) {
 	err = s.dedupeSet(t.Context(), plan.dedupeItemsToSet)
 	require.NoError(t, err)
 	require.Equal(t, 0, deduplicator.setCalls)
+}
+
+func TestPlanFlushMessages_RejectsUnclassifiedDedupeResult(t *testing.T) {
+	message := testSinkMessage("tenant-a", "evt-unclassified", "gateway")
+	deduplicator := &unclassifiedDeduplicator{
+		countingDeduplicator: newCountingDeduplicator(nil),
+	}
+	storage := newCountingStorage(nil)
+
+	s := newTestSink(deduplicator, storage)
+
+	_, err := s.planFlushMessages(t.Context(), []sinkmodels.SinkMessage{message})
+	require.ErrorContains(t, err, "dedupe result did not classify item")
 }
 
 func TestPlanFlushMessages_BatchesChecksAndSingleSetPipeline(t *testing.T) {

@@ -453,8 +453,9 @@ func (s *Sink) planFlushMessages(ctx context.Context, messages []sinkmodels.Sink
 			if !isDurable {
 				plan.messagesToInsert = append(plan.messagesToInsert, message)
 			}
+		default:
+			return flushMessagePlan{}, fmt.Errorf("dedupe result did not classify item %s", item.Key())
 		}
-		// else: unexpected classification, ignore to avoid false positives.
 	}
 
 	return plan, nil
