@@ -64,6 +64,11 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 		creditsApplied = nil
 	}
 
+	lineTaxCode, err := taxCodeFromInvoiceLineEdge(dbLine)
+	if err != nil {
+		return nil, fmt.Errorf("mapping tax code [line_id=%s]: %w", dbLine.ID, err)
+	}
+
 	invoiceLine := &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -100,7 +105,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			TaxConfig: backfillTaxConfigReferences(
 				lo.EmptyableToPtr(dbLine.TaxConfig),
 				dbLine.TaxBehavior,
-				taxCodeFromInvoiceLineEdge(dbLine),
+				lineTaxCode,
 			),
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 			CreditsApplied:    creditsApplied,
@@ -157,10 +162,6 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 	// TODO: Once we move into a separate table we can get rid of these assertions
 	if dbLine.ParentLineID == nil {
 		return billing.DetailedLine{}, fmt.Errorf("detailed line parent line ID is required [detailed_line_id=%s]", dbLine.ID)
-	}
-
-	if dbLine.Edges.FlatFeeLine == nil {
-		return billing.DetailedLine{}, fmt.Errorf("flat fee line config is missing [detailed_line_id=%s]", dbLine.ID)
 	}
 
 	creditsApplied := lo.FromPtr(dbLine.CreditsApplied)
@@ -297,16 +298,26 @@ func (a *adapter) mapStandardInvoiceLineAmountDiscountFromDB(dbDiscount *db.Bill
 	}, nil
 }
 
-func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) *taxcode.TaxCode {
+func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) (*taxcode.TaxCode, error) {
 	tc, err := dbLine.Edges.TaxCodeOrErr()
-	if err != nil || tc.Namespace != dbLine.Namespace {
-		return nil
+	if err != nil {
+		if dbLine.TaxCodeID == nil {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("resolving tax code [tax_code_id=%s]: %w", *dbLine.TaxCodeID, err)
 	}
+
+	if tc.Namespace != dbLine.Namespace {
+		return nil, fmt.Errorf("tax code namespace mismatch [line_namespace=%s,tax_code_id=%s,tax_code_namespace=%s]", dbLine.Namespace, tc.ID, tc.Namespace)
+	}
+
 	mapped, err := taxcodeadapter.MapTaxCodeFromEntity(tc)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("mapping tax code [tax_code_id=%s]: %w", tc.ID, err)
 	}
-	return &mapped
+
+	return &mapped, nil
 }
 
 // backfillTaxConfigReferences reconstructs the invoice-line TaxConfig read model from the

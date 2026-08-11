@@ -22,15 +22,17 @@ func TestTaxCodeFromInvoiceLineEdgeRejectsCrossNamespaceReference(t *testing.T) 
 	// when:
 	// - the tax code edge is mapped
 	// then:
-	// - the foreign tax code is not exposed
+	// - mapping fails instead of silently hiding the namespace violation
 	line := &db.BillingInvoiceLine{
 		Namespace: "target",
 		Edges: db.BillingInvoiceLineEdges{
-			TaxCode: &db.TaxCode{Namespace: "foreign"},
+			TaxCode: &db.TaxCode{ID: "tax-code", Namespace: "foreign"},
 		},
 	}
 
-	require.Nil(t, taxCodeFromInvoiceLineEdge(line))
+	mapped, err := taxCodeFromInvoiceLineEdge(line)
+	require.Nil(t, mapped)
+	require.EqualError(t, err, "tax code namespace mismatch [line_namespace=target,tax_code_id=tax-code,tax_code_namespace=foreign]")
 }
 
 type idDiff struct {

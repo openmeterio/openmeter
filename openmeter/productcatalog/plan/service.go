@@ -78,8 +78,8 @@ type ListPlansInput struct {
 	// Order is the order direction.
 	Order sortx.Order
 
-	// Namespace is the namespace to filter by.
-	Namespace string
+	// Namespaces is the list of namespaces to filter by.
+	Namespaces []string
 
 	// IDs is the list of IDs to filter by.
 	IDs []string
@@ -118,9 +118,6 @@ type ListPlansInput struct {
 
 func (i ListPlansInput) Validate() error {
 	var errs []error
-	if i.Namespace == "" {
-		errs = append(errs, productcatalog.ErrNamespaceEmpty)
-	}
 	if i.Key != nil {
 		if err := i.Key.Validate(); err != nil {
 			errs = append(errs, err)
