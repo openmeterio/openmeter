@@ -376,6 +376,23 @@ describe('wire walker edge cases', () => {
     expect(toWire([1, 2], z.array(z.number()))).toEqual([1, 2])
   })
 
+  it('preserves explicit null on tri-state upsert fields and keeps omitted fields off the wire', () => {
+    expect(
+      toWire({ appData: { stripe: null } }, schemas.updateCustomerBillingBody),
+    ).toEqual({ app_data: { stripe: null } })
+
+    expect(
+      toWire({ billingProfile: null }, schemas.updateCustomerBillingBody),
+    ).toEqual({ billing_profile: null })
+
+    expect(
+      toWire(
+        { externalInvoicing: { labels: { team: 'billing' } } },
+        schemas.updateCustomerBillingAppDataBody,
+      ),
+    ).toEqual({ external_invoicing: { labels: { team: 'billing' } } })
+  })
+
   it('recurses a record whose value is an array or union of models', () => {
     const arrModel = z.record(
       z.string(),

@@ -13074,17 +13074,21 @@ components:
       type: object
       properties:
         stripe:
+          type: object
           allOf:
             - $ref: '#/components/schemas/BillingAppCustomerDataStripe'
+          nullable: true
           description: Used if the customer has a linked Stripe app.
           title: Stripe
         external_invoicing:
+          type: object
           allOf:
             - $ref: '#/components/schemas/BillingAppCustomerDataExternalInvoicing'
+          nullable: true
           description: Used if the customer has a linked external invoicing app.
           title: External invoicing
       additionalProperties: false
-      description: AppCustomerData upsert request.
+      description: 'AppCustomerData upsert request. The request replaces the stored state: omitted optional fields are unset, and an explicit `null` is equivalent to omission.'
     UpsertBillingProfileRequest:
       type: object
       required:
@@ -13129,20 +13133,31 @@ components:
       type: object
       properties:
         billing_profile:
+          type: object
           allOf:
             - $ref: '#/components/schemas/BillingProfileReference'
+          nullable: true
           description: |-
-            The billing profile for the customer.
+            The billing profile override to pin for the customer.
 
-            If not provided, the default billing profile will be used.
+            Omit or set to `null` to remove the override so the default billing profile
+            applies.
           title: Billing profile
         app_data:
           allOf:
-            - $ref: '#/components/schemas/BillingAppCustomerData'
-          description: App customer data.
+            - $ref: '#/components/schemas/UpsertAppCustomerDataRequest'
+          description: |-
+            App customer data for the app of the effective billing profile.
+
+            Omitted app data is deleted.
           title: App customer data
       additionalProperties: false
-      description: CustomerBillingData upsert request.
+      description: |-
+        Billing customer data upsert request.
+
+        The request replaces the customer's billing data: omitting an optional field
+        removes its current value, and nullable fields treat an explicit `null` the
+        same as omission.
     UpsertCustomerRequest:
       type: object
       required:

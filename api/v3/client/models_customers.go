@@ -16,14 +16,6 @@ type AppCustomerData struct {
 	ExternalInvoicing *AppCustomerDataExternalInvoicing `json:"external_invoicing,omitempty"`
 }
 
-// App customer data.
-type AppCustomerDataInput struct {
-	// Used if the customer has a linked Stripe app.
-	Stripe *AppCustomerDataStripeInput `json:"stripe,omitempty"`
-	// Used if the customer has a linked external invoicing app.
-	ExternalInvoicing *AppCustomerDataExternalInvoicingInput `json:"external_invoicing,omitempty"`
-}
-
 // External invoicing customer data.
 type AppCustomerDataExternalInvoicing struct {
 	// Labels for this external invoicing integration on the customer.
@@ -1539,22 +1531,29 @@ type UpdateCreditGrantExternalSettlementRequest struct {
 	Status CreditPurchasePaymentSettlementStatus `json:"status"`
 }
 
-// AppCustomerData upsert request.
+// AppCustomerData upsert request. The request replaces the stored state: omitted optional fields are unset, and an explicit `null` is equivalent to omission.
 type UpsertAppCustomerDataRequest struct {
 	// Used if the customer has a linked Stripe app.
-	Stripe *AppCustomerDataStripeInput `json:"stripe,omitempty"`
+	Stripe Nullable[AppCustomerDataStripeInput] `json:"stripe,omitempty"`
 	// Used if the customer has a linked external invoicing app.
-	ExternalInvoicing *AppCustomerDataExternalInvoicingInput `json:"external_invoicing,omitempty"`
+	ExternalInvoicing Nullable[AppCustomerDataExternalInvoicingInput] `json:"external_invoicing,omitempty"`
 }
 
-// CustomerBillingData upsert request.
+// Billing customer data upsert request.
+//
+// The request replaces the customer's billing data: omitting an optional field
+// removes its current value, and nullable fields treat an explicit `null` the
+// same as omission.
 type UpsertCustomerBillingDataRequest struct {
-	// The billing profile for the customer.
+	// The billing profile override to pin for the customer.
 	//
-	// If not provided, the default billing profile will be used.
-	BillingProfile *ProfileReference `json:"billing_profile,omitempty"`
-	// App customer data.
-	AppData *AppCustomerDataInput `json:"app_data,omitempty"`
+	// Omit or set to `null` to remove the override so the default billing profile
+	// applies.
+	BillingProfile Nullable[ProfileReference] `json:"billing_profile,omitempty"`
+	// App customer data for the app of the effective billing profile.
+	//
+	// Omitted app data is deleted.
+	AppData *UpsertAppCustomerDataRequest `json:"app_data,omitempty"`
 }
 
 // Customer upsert request.
