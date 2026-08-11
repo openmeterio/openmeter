@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -401,6 +402,8 @@ func (a *adapter) DeleteGatheringInvoice(ctx context.Context, input billing.Dele
 
 func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand billing.GatheringInvoiceExpands, namespace string) *db.BillingInvoiceQuery {
 	return q.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+		q.Where(billinginvoiceline.Namespace(namespace))
+
 		if !expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
 			q = q.Where(billinginvoiceline.DeletedAtIsNil())
 		}
@@ -408,7 +411,9 @@ func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand 
 		q.
 			Where(billinginvoiceline.TypeEQ(billing.InvoiceLineAdapterTypeUsageBased)). // Only include usage based lines (there are some detailed lines existing for gathering invoices)
 			Where(billinginvoiceline.ParentLineIDIsNil()).                              // Only include top-level lines (there are some detailed lines existing for gathering invoices)
-			WithUsageBasedLine().
+			WithUsageBasedLine(func(q *db.BillingInvoiceUsageBasedLineConfigQuery) {
+				q.Where(billinginvoiceusagebasedlineconfig.Namespace(namespace))
+			}).
 			WithTaxCode(taxCodeInNamespace(namespace))
 	})
 }

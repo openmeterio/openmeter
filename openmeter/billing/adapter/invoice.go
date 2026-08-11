@@ -72,6 +72,8 @@ func (a *adapter) GetStandardInvoiceById(ctx context.Context, in billing.GetStan
 
 func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand billing.StandardInvoiceExpands, namespace string) *db.BillingInvoiceQuery {
 	return query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+		q.Where(billinginvoiceline.Namespace(namespace))
+
 		if !expand.Has(billing.StandardInvoiceExpandDeletedLines) {
 			q = q.Where(billinginvoiceline.DeletedAtIsNil())
 		}

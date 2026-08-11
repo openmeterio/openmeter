@@ -159,6 +159,10 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 		return billing.DetailedLine{}, fmt.Errorf("detailed line parent line ID is required [detailed_line_id=%s]", dbLine.ID)
 	}
 
+	if dbLine.Edges.FlatFeeLine == nil {
+		return billing.DetailedLine{}, fmt.Errorf("flat fee line config is missing [detailed_line_id=%s]", dbLine.ID)
+	}
+
 	creditsApplied := lo.FromPtr(dbLine.CreditsApplied)
 	if len(creditsApplied) == 0 {
 		creditsApplied = nil

@@ -36,12 +36,20 @@ func (i CreateAppStripeInput) Validate() error {
 		return errors.New("app type must be stripe")
 	}
 
+	if i.ID == nil {
+		return errors.New("app id is required")
+	}
+
 	if err := i.ID.Validate(); err != nil {
-		return errors.New("id cannot be empty if provided")
+		return fmt.Errorf("invalid app id: %w", err)
 	}
 
 	if err := i.CreateAppInput.Validate(); err != nil {
 		return fmt.Errorf("error validating create app input: %w", err)
+	}
+
+	if i.ID.Namespace != i.Namespace {
+		return errors.New("app id must be in the same namespace as the app")
 	}
 
 	if i.StripeAccountID == "" {
@@ -56,8 +64,12 @@ func (i CreateAppStripeInput) Validate() error {
 		return errors.New("masked api key is required")
 	}
 
-	if i.ID != nil && i.APIKey.Namespace != i.ID.Namespace {
-		return errors.New("api key must be in the same namespace as the app")
+	if i.APIKey.AppID != *i.ID {
+		return errors.New("api key secret must belong to the app")
+	}
+
+	if i.APIKey.Key != APIKeySecretKey {
+		return errors.New("api key secret has an invalid key")
 	}
 
 	if err := i.WebhookSecret.Validate(); err != nil {
@@ -68,8 +80,12 @@ func (i CreateAppStripeInput) Validate() error {
 		return errors.New("stripe webhook id is required")
 	}
 
-	if i.ID != nil && i.WebhookSecret.Namespace != i.ID.Namespace {
-		return errors.New("webhook secret must be in the same namespace as the app")
+	if i.WebhookSecret.AppID != *i.ID {
+		return errors.New("webhook secret must belong to the app")
+	}
+
+	if i.WebhookSecret.Key != WebhookSecretKey {
+		return errors.New("webhook secret has an invalid key")
 	}
 
 	return nil

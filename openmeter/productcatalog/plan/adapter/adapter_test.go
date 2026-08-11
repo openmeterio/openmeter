@@ -13,18 +13,312 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencytestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	addonratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	planratecarddb "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
+
+func TestListPlansRequiresNamespace(t *testing.T) {
+	// given:
+	// - a plan list input without a namespace
+	// when:
+	// - the input is validated
+	// then:
+	// - validation rejects the tenant-unscoped list
+	err := (plan.ListPlansInput{}).Validate()
+	require.Error(t, err)
+}
+
+func TestPlanReadScopesPhaseAndRateCardNamespaces(t *testing.T) {
+	// given:
+	// - plans whose phase or rate card is deliberately moved to another namespace
+	// when:
+	// - the plans are read through the get and list repository paths
+	// then:
+	// - the foreign child entities are omitted from the expanded plan graph
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+	foreignNamespace := pctestutils.NewTestNamespace(t)
+
+	phasePlan, err := env.PlanRepository.CreatePlan(t.Context(), pctestutils.NewTestPlan(
+		t,
+		namespace,
+		pctestutils.WithPlanKey("foreign-phase"),
+	))
+	require.NoError(t, err)
+	require.Len(t, phasePlan.Phases, 1)
+
+	_, err = env.Client.ExecContext(t.Context(),
+		`UPDATE plan_phases SET namespace = $1 WHERE id = $2`,
+		foreignNamespace,
+		phasePlan.Phases[0].ID,
+	)
+	require.NoError(t, err)
+
+	fetched, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+		NamespacedID: phasePlan.NamespacedID,
+	})
+	require.NoError(t, err)
+	require.Empty(t, fetched.Phases)
+
+	rateCardPlan, err := env.PlanRepository.CreatePlan(t.Context(), pctestutils.NewTestPlan(
+		t,
+		namespace,
+		pctestutils.WithPlanKey("foreign-rate-card"),
+	))
+	require.NoError(t, err)
+	require.Len(t, rateCardPlan.Phases, 1)
+	require.Len(t, rateCardPlan.Phases[0].RateCards, 1)
+
+	rateCardRow, err := env.Client.PlanRateCard.Query().
+		Where(planratecarddb.PhaseID(rateCardPlan.Phases[0].ID)).
+		Only(t.Context())
+	require.NoError(t, err)
+
+	_, err = env.Client.ExecContext(t.Context(),
+		`UPDATE plan_rate_cards SET namespace = $1 WHERE id = $2`,
+		foreignNamespace,
+		rateCardRow.ID,
+	)
+	require.NoError(t, err)
+
+	listed, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+		Namespace: namespace,
+		IDs:       []string{rateCardPlan.ID},
+	})
+	require.NoError(t, err)
+	require.Len(t, listed.Items, 1)
+	require.Len(t, listed.Items[0].Phases, 1)
+	require.Empty(t, listed.Items[0].Phases[0].RateCards)
+}
+
+func TestPlanReadScopesExpandedReferences(t *testing.T) {
+	// given:
+	// - a plan whose custom currency, rate-card feature, and tax code are moved to another namespace
+	// when:
+	// - the plan is read with custom-currency expansion enabled
+	// then:
+	// - none of the foreign referenced entities are hydrated into the plan graph
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+	foreignNamespace := pctestutils.NewTestNamespace(t)
+
+	custom, err := env.Currency.CreateCurrency(t.Context(), currencytestutils.NewCreateCurrencyInput(namespace, "CREDITS", "Credits", "cr"))
+	require.NoError(t, err)
+
+	feat, err := env.Feature.CreateFeature(t.Context(), pctestutils.NewTestFeature(t, namespace))
+	require.NoError(t, err)
+
+	taxCode, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "plan-read-tax-code",
+		Name:      "Plan read tax code",
+	})
+	require.NoError(t, err)
+
+	input := pctestutils.NewTestPlan(
+		t,
+		namespace,
+		pctestutils.WithPlanKey("foreign-expanded-references"),
+		func(t *testing.T, p *productcatalog.Plan) {
+			t.Helper()
+			p.Currency = custom.Reference()
+
+			rateCard := p.Phases[0].RateCards[0].(*productcatalog.FlatFeeRateCard)
+			rateCard.RateCardMeta.Key = feat.Key
+			rateCard.FeatureID = lo.ToPtr(feat.ID)
+			rateCard.FeatureKey = lo.ToPtr(feat.Key)
+			rateCard.EntitlementTemplate = productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{})
+			rateCard.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(taxCode.ID)}
+		},
+	)
+
+	created, err := env.PlanRepository.CreatePlan(t.Context(), input)
+	require.NoError(t, err)
+
+	_, err = env.Client.ExecContext(t.Context(),
+		`UPDATE plan_rate_cards SET feature_key = $1, currency = $2, custom_currency_id = $3 WHERE feature_id = $4`,
+		"stored-feature-key",
+		custom.GetCode().String(),
+		custom.ID,
+		feat.ID,
+	)
+	require.NoError(t, err)
+	_, err = env.Client.ExecContext(t.Context(),
+		`UPDATE custom_currencies SET namespace = $1 WHERE id = $2`,
+		foreignNamespace,
+		custom.ID,
+	)
+	require.NoError(t, err)
+	_, err = env.Client.ExecContext(t.Context(),
+		`UPDATE features SET namespace = $1 WHERE id = $2`,
+		foreignNamespace,
+		feat.ID,
+	)
+	require.NoError(t, err)
+	_, err = env.Client.ExecContext(t.Context(),
+		`UPDATE tax_codes SET namespace = $1 WHERE id = $2`,
+		foreignNamespace,
+		taxCode.ID,
+	)
+	require.NoError(t, err)
+
+	fetched, err := env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+		NamespacedID: created.NamespacedID,
+		Expand: plan.ExpandFields{
+			CustomCurrency: &currencies.CurrencyExpandOptions{},
+		},
+	})
+	require.NoError(t, err)
+	require.False(t, fetched.Currency.IsResolved())
+
+	rateCard := fetched.Phases[0].RateCards[0].AsMeta()
+	require.NotNil(t, rateCard.Currency)
+	require.False(t, rateCard.Currency.IsResolved())
+	require.Equal(t, "stored-feature-key", lo.FromPtr(rateCard.FeatureKey))
+	require.Nil(t, rateCard.TaxCode)
+}
+
+func TestPlanReadScopesExpandedAddonGraph(t *testing.T) {
+	// given:
+	// - a plan-add-on graph with one entity deliberately moved to another namespace
+	// when:
+	// - the plan is read with add-on expansion enabled
+	// then:
+	// - foreign assignments and children are omitted, while a missing required add-on is rejected
+	type fixture struct {
+		env              *pctestutils.TestEnv
+		namespace        string
+		foreignNamespace string
+		planID           string
+		addonID          string
+		assignmentID     string
+		rateCardID       string
+	}
+
+	newFixture := func(t *testing.T) fixture {
+		t.Helper()
+
+		env := pctestutils.NewTestEnv(t)
+		t.Cleanup(func() { env.Close(t) })
+
+		namespace := pctestutils.NewTestNamespace(t)
+		createdPlan, err := env.PlanRepository.CreatePlan(t.Context(), pctestutils.NewTestPlan(
+			t,
+			namespace,
+			pctestutils.WithPlanKey("expanded-addon-plan"),
+		))
+		require.NoError(t, err)
+
+		addonInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:  "addon-rate-card",
+				Name: "Addon rate card",
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      decimal.NewFromInt(1),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+			BillingCadence: &pctestutils.MonthPeriod,
+		})
+		createdAddon, err := env.AddonRepository.CreateAddon(t.Context(), addonInput)
+		require.NoError(t, err)
+
+		assignment, err := env.PlanAddonRepository.CreatePlanAddon(t.Context(), planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{Namespace: namespace},
+			PlanID:          createdPlan.ID,
+			AddonID:         createdAddon.ID,
+			FromPlanPhase:   createdPlan.Phases[0].Key,
+		})
+		require.NoError(t, err)
+
+		rateCard, err := env.Client.AddonRateCard.Query().
+			Where(addonratecarddb.AddonID(createdAddon.ID)).
+			Only(t.Context())
+		require.NoError(t, err)
+
+		return fixture{
+			env:              env,
+			namespace:        namespace,
+			foreignNamespace: pctestutils.NewTestNamespace(t),
+			planID:           createdPlan.ID,
+			addonID:          createdAddon.ID,
+			assignmentID:     assignment.ID,
+			rateCardID:       rateCard.ID,
+		}
+	}
+
+	getExpandedPlan := func(t *testing.T, f fixture) (*plan.Plan, error) {
+		t.Helper()
+
+		return f.env.PlanRepository.GetPlan(t.Context(), plan.GetPlanInput{
+			NamespacedID: models.NamespacedID{Namespace: f.namespace, ID: f.planID},
+			Expand:       plan.ExpandFields{PlanAddons: true},
+		})
+	}
+
+	t.Run("assignment", func(t *testing.T) {
+		f := newFixture(t)
+
+		_, err := f.env.Client.ExecContext(t.Context(),
+			`UPDATE plan_addons SET namespace = $1 WHERE id = $2`,
+			f.foreignNamespace,
+			f.assignmentID,
+		)
+		require.NoError(t, err)
+
+		fetched, err := getExpandedPlan(t, f)
+		require.NoError(t, err)
+		require.NotNil(t, fetched.Addons)
+		require.Empty(t, *fetched.Addons)
+	})
+
+	t.Run("addon", func(t *testing.T) {
+		f := newFixture(t)
+
+		_, err := f.env.Client.ExecContext(t.Context(),
+			`UPDATE addons SET namespace = $1 WHERE id = $2`,
+			f.foreignNamespace,
+			f.addonID,
+		)
+		require.NoError(t, err)
+
+		_, err = getExpandedPlan(t, f)
+		require.Error(t, err)
+	})
+
+	t.Run("addon rate card", func(t *testing.T) {
+		f := newFixture(t)
+
+		_, err := f.env.Client.ExecContext(t.Context(),
+			`UPDATE addon_rate_cards SET namespace = $1 WHERE id = $2`,
+			f.foreignNamespace,
+			f.rateCardID,
+		)
+		require.NoError(t, err)
+
+		fetched, err := getExpandedPlan(t, f)
+		require.NoError(t, err)
+		require.NotNil(t, fetched.Addons)
+		require.Len(t, *fetched.Addons, 1)
+		require.Empty(t, (*fetched.Addons)[0].RateCards)
+	})
+}
 
 func TestPostgresAdapter(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
@@ -350,7 +644,7 @@ func TestPostgresAdapter(t *testing.T) {
 			require.Equal(t, custom.ID, *planRow.CustomCurrencyID)
 
 			listed, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-				Namespaces: []string{namespace},
+				Namespace:  namespace,
 				Currencies: []string{custom.GetCode().String()},
 			})
 			require.NoError(t, err)
@@ -449,8 +743,8 @@ func TestPostgresAdapter(t *testing.T) {
 		t.Run("List", func(t *testing.T) {
 			t.Run("ById", func(t *testing.T) {
 				listPlanV1, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-					Namespaces: []string{namespace},
-					IDs:        []string{planV1.ID},
+					Namespace: namespace,
+					IDs:       []string{planV1.ID},
 				})
 				assert.NoErrorf(t, err, "listing plan by id must not fail")
 
@@ -461,8 +755,8 @@ func TestPostgresAdapter(t *testing.T) {
 
 			t.Run("ByKey", func(t *testing.T) {
 				listPlanV1, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-					Namespaces: []string{namespace},
-					Keys:       []string{planV1Input.Key},
+					Namespace: namespace,
+					Keys:      []string{planV1Input.Key},
 				})
 				assert.NoErrorf(t, err, "getting plan by key must not fail")
 
@@ -473,7 +767,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 			t.Run("ByKeyVersion", func(t *testing.T) {
 				listPlanV1, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-					Namespaces:  []string{namespace},
+					Namespace:   namespace,
 					KeyVersions: map[string][]int{planV1Input.Key: {1}},
 				})
 				assert.NoErrorf(t, err, "getting plan by key and version must not fail")
@@ -648,7 +942,7 @@ func TestListPlansExcludeUnitConfig(t *testing.T) {
 
 	t.Run("included when ExcludeUnitConfig is false", func(t *testing.T) {
 		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-			Namespaces: []string{namespace},
+			Namespace: namespace,
 		})
 		require.NoError(t, err, "listing plans must not fail")
 
@@ -659,7 +953,7 @@ func TestListPlansExcludeUnitConfig(t *testing.T) {
 
 	t.Run("excluded when ExcludeUnitConfig is true, TotalCount stays consistent", func(t *testing.T) {
 		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-			Namespaces:        []string{namespace},
+			Namespace:         namespace,
 			ExcludeUnitConfig: true,
 		})
 		require.NoError(t, err, "listing plans must not fail")
@@ -696,7 +990,7 @@ func TestListPlansExcludeUnrepresentableCurrencies(t *testing.T) {
 
 	t.Run("included when ExcludeUnrepresentableCurrencies is false", func(t *testing.T) {
 		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-			Namespaces: []string{namespace},
+			Namespace: namespace,
 		})
 		require.NoError(t, err, "listing plans must not fail")
 
@@ -707,7 +1001,7 @@ func TestListPlansExcludeUnrepresentableCurrencies(t *testing.T) {
 
 	t.Run("excluded when ExcludeUnrepresentableCurrencies is true, TotalCount stays consistent", func(t *testing.T) {
 		list, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
-			Namespaces:                       []string{namespace},
+			Namespace:                        namespace,
 			ExcludeUnrepresentableCurrencies: true,
 		})
 		require.NoError(t, err, "listing plans must not fail")
@@ -853,8 +1147,8 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo plan.Repos
 			clock.SetTime(tc.at)
 
 			list, err := repo.ListPlans(ctx, plan.ListPlansInput{
-				Namespaces: []string{ns},
-				Status:     tc.filter,
+				Namespace: ns,
+				Status:    tc.filter,
 			})
 			require.NoError(t, err, "listing plans must not fail")
 

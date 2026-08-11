@@ -148,6 +148,321 @@ func newDetailedLine(in newLineInput) billing.DetailedLine {
 	}
 }
 
+func (s *BillingAdapterTestSuite) TestInvoiceLineReadRejectsCrossNamespaceUsageConfig() {
+	// given:
+	// - an invoice line whose required usage config is deliberately moved to another namespace
+	// when:
+	// - the line is read through the billing adapter
+	// then:
+	// - the scoped expansion omits the foreign config and the required-edge check rejects the line
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("line-config-read")
+	invoice := s.setupInvoice(ctx, namespace)
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
+	}
+
+	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+		Namespace:   namespace,
+		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Lines: []*billing.StandardLine{newLine(newLineInput{
+			Namespace: namespace,
+			Period:    period,
+			Invoice:   invoice,
+			Name:      "cross-namespace config",
+		})},
+		InvoiceID: invoice.ID,
+	})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), lines, 1)
+	require.NotEmpty(s.T(), lines[0].UsageBased.ConfigID)
+
+	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_invoice_usage_based_line_configs SET namespace = $1 WHERE id = $2`,
+		s.GetUniqueNamespace("line-config-foreign"),
+		lines[0].UsageBased.ConfigID,
+	)
+	require.NoError(s.T(), err)
+
+	_, err = s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+		Namespace: namespace,
+		LineIDs:   []string{lines[0].ID},
+	})
+
+	require.Error(s.T(), err)
+	_, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+	})
+	require.Error(s.T(), err)
+}
+
+func (s *BillingAdapterTestSuite) TestInvoiceReadsFilterCrossNamespaceLineCollections() {
+	// given:
+	// - an invoice whose line is deliberately moved to another namespace
+	// when:
+	// - the invoice and gathering-invoice read paths expand their line collections
+	// then:
+	// - neither read path returns the foreign line
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("invoice-line-read")
+	invoice := s.setupInvoice(ctx, namespace)
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
+	}
+
+	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+		Namespace:   namespace,
+		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Lines: []*billing.StandardLine{newLine(newLineInput{
+			Namespace: namespace,
+			Period:    period,
+			Invoice:   invoice,
+			Name:      "cross-namespace line",
+		})},
+		InvoiceID: invoice.ID,
+	})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), lines, 1)
+
+	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_invoice_lines SET namespace = $1 WHERE id = $2`,
+		s.GetUniqueNamespace("invoice-line-foreign"),
+		lines[0].ID,
+	)
+	require.NoError(s.T(), err)
+
+	invoices, err := s.BillingAdapter.ListInvoices(ctx, billing.ListInvoicesAdapterInput{
+		Namespace: namespace,
+		IDs:       []string{invoice.ID},
+		Expand:    billing.InvoiceExpands{}.With(billing.InvoiceExpandLines),
+	})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), invoices.Items, 1)
+	listedGatheringInvoice, err := invoices.Items[0].AsGatheringInvoice()
+	require.NoError(s.T(), err)
+	require.Empty(s.T(), listedGatheringInvoice.Lines.OrEmpty())
+
+	gatheringInvoice, err := s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+	})
+	require.NoError(s.T(), err)
+	require.Empty(s.T(), gatheringInvoice.Lines.OrEmpty())
+}
+
+func (s *BillingAdapterTestSuite) TestSplitLineGroupReadScopesCrossNamespaceReferences() {
+	// given:
+	// - split-line hierarchies whose line or invoice is deliberately moved to another namespace
+	// when:
+	// - the hierarchy is read through the billing adapter
+	// then:
+	// - foreign lines are omitted and a missing required invoice edge rejects the line
+	ctx := s.T().Context()
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
+	}
+
+	createHierarchy := func(namespace string) (*billing.StandardInvoice, billing.SplitLineGroup, *billing.StandardLine) {
+		s.T().Helper()
+
+		invoice := s.setupInvoice(ctx, namespace)
+		group, err := s.BillingAdapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
+			Namespace: namespace,
+			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
+				Name:          "namespace isolation group",
+				ServicePeriod: period,
+			},
+			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromInt(1),
+			}),
+			Currency: currencyx.FiatCode(currency.USD),
+		})
+		require.NoError(s.T(), err)
+
+		line := newLine(newLineInput{
+			Namespace: namespace,
+			Period:    period,
+			Invoice:   invoice,
+			Name:      "namespace isolation line",
+		})
+		line.SplitLineGroupID = lo.ToPtr(group.ID)
+
+		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   namespace,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{line},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), lines, 1)
+
+		return invoice, group, lines[0]
+	}
+
+	s.Run("line", func() {
+		// given:
+		// - a split-line group whose line has a different namespace
+		// when:
+		// - the group hierarchy is read
+		// then:
+		// - the foreign line is omitted
+		namespace := s.GetUniqueNamespace("split-line-read")
+		_, group, line := createHierarchy(namespace)
+		_, err := s.TestDB.PGDriver.DB().ExecContext(ctx,
+			`UPDATE billing_invoice_lines SET namespace = $1 WHERE id = $2`,
+			s.GetUniqueNamespace("split-line-foreign"),
+			line.ID,
+		)
+		require.NoError(s.T(), err)
+
+		hierarchy, err := s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+			Namespace: namespace,
+			ID:        group.ID,
+		})
+
+		require.NoError(s.T(), err)
+		require.Empty(s.T(), hierarchy.Lines)
+	})
+
+	s.Run("invoice", func() {
+		// given:
+		// - a split-line group whose line points to an invoice in another namespace
+		// when:
+		// - the group hierarchy is read
+		// then:
+		// - the scoped invoice expansion leaves the required edge missing and the read fails
+		namespace := s.GetUniqueNamespace("split-invoice-read")
+		invoice, group, _ := createHierarchy(namespace)
+		_, err := s.TestDB.PGDriver.DB().ExecContext(ctx,
+			`UPDATE billing_invoices SET namespace = $1 WHERE id = $2`,
+			s.GetUniqueNamespace("split-invoice-foreign"),
+			invoice.ID,
+		)
+		require.NoError(s.T(), err)
+
+		_, err = s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+			Namespace: namespace,
+			ID:        group.ID,
+		})
+
+		require.Error(s.T(), err)
+	})
+}
+
+func (s *BillingAdapterTestSuite) TestInvoiceLineReadFiltersCrossNamespaceOptionalChildren() {
+	// given:
+	// - invoice lines with optional detailed-line data deliberately moved to another namespace
+	// when:
+	// - the lines are read through the billing adapter
+	// then:
+	// - the foreign optional children are not returned
+	ctx := s.T().Context()
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
+	}
+
+	createLine := func(namespace string) *billing.StandardLine {
+		s.T().Helper()
+
+		invoice := s.setupInvoice(ctx, namespace)
+		line := newLine(newLineInput{
+			Namespace: namespace,
+			Period:    period,
+			Invoice:   invoice,
+			Name:      "line with optional children",
+			DetailedLines: mo.Some([]newLineInput{{
+				Namespace:              namespace,
+				Period:                 period,
+				Invoice:                invoice,
+				Name:                   "detailed line",
+				ChildUniqueReferenceID: "detail",
+			}}),
+		})
+		line.DetailedLines[0].AmountDiscounts = billing.AmountLineDiscountsManaged{{
+			AmountLineDiscount: billing.AmountLineDiscount{
+				Amount: alpacadecimal.NewFromInt(10),
+				LineDiscountBase: billing.LineDiscountBase{
+					Description: lo.ToPtr("detail discount"),
+					Reason: billing.NewDiscountReasonFrom(productcatalog.PercentageDiscount{
+						Percentage: models.NewPercentage(10),
+					}),
+				},
+			},
+		}}
+
+		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   namespace,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{line},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), lines, 1)
+		require.Len(s.T(), lines[0].DetailedLines, 1)
+		require.Len(s.T(), lines[0].DetailedLines[0].AmountDiscounts, 1)
+
+		return lines[0]
+	}
+
+	s.Run("detailed line", func() {
+		// given:
+		// - a detailed line in another namespace
+		// when:
+		// - its parent invoice line is read
+		// then:
+		// - the foreign detailed line is omitted
+		namespace := s.GetUniqueNamespace("detail-read")
+		line := createLine(namespace)
+		_, err := s.TestDB.PGDriver.DB().ExecContext(ctx,
+			`UPDATE billing_standard_invoice_detailed_lines SET namespace = $1 WHERE id = $2`,
+			s.GetUniqueNamespace("detail-foreign"),
+			line.DetailedLines[0].ID,
+		)
+		require.NoError(s.T(), err)
+
+		lines, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: namespace,
+			LineIDs:   []string{line.ID},
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), lines, 1)
+		require.Empty(s.T(), lines[0].DetailedLines)
+	})
+
+	s.Run("detailed line discount", func() {
+		// given:
+		// - a detailed-line discount in another namespace
+		// when:
+		// - its parent invoice line is read
+		// then:
+		// - the foreign discount is omitted
+		namespace := s.GetUniqueNamespace("detail-discount-read")
+		line := createLine(namespace)
+		_, err := s.TestDB.PGDriver.DB().ExecContext(ctx,
+			`UPDATE billing_standard_invoice_detailed_line_amount_discounts SET namespace = $1 WHERE id = $2`,
+			s.GetUniqueNamespace("detail-discount-foreign"),
+			line.DetailedLines[0].AmountDiscounts[0].ID,
+		)
+		require.NoError(s.T(), err)
+
+		lines, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: namespace,
+			LineIDs:   []string{line.ID},
+		})
+
+		require.NoError(s.T(), err)
+		require.Len(s.T(), lines, 1)
+		require.Len(s.T(), lines[0].DetailedLines, 1)
+		require.Empty(s.T(), lines[0].DetailedLines[0].AmountDiscounts)
+	})
+}
+
 func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	ctx := context.Background()
 	ns := "ns-adapter-detailed-line"

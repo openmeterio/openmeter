@@ -93,6 +93,7 @@ func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagina
 			// Only list apps that has customer data for the given customer
 			if params.CustomerID != nil {
 				query = query.Where(appdb.HasCustomerAppsWith(
+					appcustomerdb.Namespace(params.Namespace),
 					appcustomerdb.CustomerID(params.CustomerID.ID),
 					appcustomerdb.DeletedAtIsNil(),
 				))

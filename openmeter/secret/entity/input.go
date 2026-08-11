@@ -51,9 +51,21 @@ func (i UpdateAppSecretInput) Validate() error {
 		return err
 	}
 
+	if i.AppID != i.SecretID.AppID {
+		return models.NewGenericValidationError(
+			errors.New("app id must match secret app id"),
+		)
+	}
+
 	if i.Key == "" {
 		return models.NewGenericValidationError(
 			errors.New("key is required"),
+		)
+	}
+
+	if i.Key != i.SecretID.Key {
+		return models.NewGenericValidationError(
+			errors.New("key must match secret key"),
 		)
 	}
 

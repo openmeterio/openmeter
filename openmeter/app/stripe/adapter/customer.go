@@ -10,6 +10,7 @@ import (
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	appstripedb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	appstripecustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -113,8 +114,20 @@ func (a *adapter) UpsertStripeCustomerData(ctx context.Context, input appstripe.
 
 	// Start transaction
 	_, err = entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (any, error) {
+		stripeAppExists, err := repo.db.AppStripe.Query().
+			Where(appstripedb.Namespace(input.AppID.Namespace)).
+			Where(appstripedb.ID(input.AppID.ID)).
+			Exist(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve stripe app: %w", err)
+		}
+
+		if !stripeAppExists {
+			return nil, app.NewAppNotFoundError(input.AppID)
+		}
+
 		// Make sure the customer has an app relationship
-		err := repo.appService.EnsureCustomer(ctx, app.EnsureCustomerInput{
+		err = repo.appService.EnsureCustomer(ctx, app.EnsureCustomerInput{
 			AppID:      input.AppID,
 			CustomerID: input.CustomerID,
 		})

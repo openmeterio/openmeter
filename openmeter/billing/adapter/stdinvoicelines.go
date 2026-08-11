@@ -643,17 +643,27 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 
 // expandLineItems is a helper function to expand the line items in the query, detailed lines are not included
 func (a *adapter) expandLineItems(q *db.BillingInvoiceLineQuery, namespace string) *db.BillingInvoiceLineQuery {
-	return q.WithFlatFeeLine().
-		WithUsageBasedLine().
+	return q.WithFlatFeeLine(func(q *db.BillingInvoiceFlatFeeLineConfigQuery) {
+		q.Where(billinginvoiceflatfeelineconfig.Namespace(namespace))
+	}).
+		WithUsageBasedLine(func(q *db.BillingInvoiceUsageBasedLineConfigQuery) {
+			q.Where(billinginvoiceusagebasedlineconfig.Namespace(namespace))
+		}).
 		WithTaxCode(taxCodeInNamespace(namespace)).
 		WithLineUsageDiscounts(
 			func(q *db.BillingInvoiceLineUsageDiscountQuery) {
-				q.Where(billinginvoicelineusagediscount.DeletedAtIsNil())
+				q.Where(
+					billinginvoicelineusagediscount.Namespace(namespace),
+					billinginvoicelineusagediscount.DeletedAtIsNil(),
+				)
 			},
 		).
 		WithLineAmountDiscounts(
 			func(q *db.BillingInvoiceLineDiscountQuery) {
-				q.Where(billinginvoicelinediscount.DeletedAtIsNil())
+				q.Where(
+					billinginvoicelinediscount.Namespace(namespace),
+					billinginvoicelinediscount.DeletedAtIsNil(),
+				)
 			},
 		)
 }
@@ -667,7 +677,10 @@ func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery
 		//
 		// If we want to reuse the deleted lines in ChildrenWithIDReuse, we must make sure that non-deleted lines are
 		// prioritized for reuse or we will end up with INSERT conflicts due to the child unique reference id uniqueness constraint.
-		bilq = bilq.Where(billinginvoiceline.DeletedAtIsNil())
+		bilq = bilq.Where(
+			billinginvoiceline.Namespace(namespace),
+			billinginvoiceline.DeletedAtIsNil(),
+		)
 
 		a.expandLineItems(bilq, namespace)
 	})
@@ -677,9 +690,15 @@ func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery
 		//
 		// If we want to reuse the deleted lines in ChildrenWithIDReuse, we must make sure that non-deleted lines are
 		// prioritized for reuse or we will end up with INSERT conflicts due to the child unique reference id uniqueness constraint.
-		bilq.Where(billingstandardinvoicedetailedline.DeletedAtIsNil()).
+		bilq.Where(
+			billingstandardinvoicedetailedline.Namespace(namespace),
+			billingstandardinvoicedetailedline.DeletedAtIsNil(),
+		).
 			WithAmountDiscounts(func(bilq *db.BillingStandardInvoiceDetailedLineAmountDiscountQuery) {
-				bilq.Where(billingstandardinvoicedetailedlineamountdiscount.DeletedAtIsNil())
+				bilq.Where(
+					billingstandardinvoicedetailedlineamountdiscount.Namespace(namespace),
+					billingstandardinvoicedetailedlineamountdiscount.DeletedAtIsNil(),
+				)
 			})
 	})
 
@@ -797,7 +816,9 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 					),
 				),
 			).
-			WithBillingInvoice()
+			WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
+				q.Where(billinginvoice.Namespace(in.Namespace))
+			})
 
 		if !in.IncludeChargeManaged {
 			query = query.Where(billinginvoiceline.ChargeIDIsNil())
@@ -868,12 +889,7 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 		dbGroups, err := tx.db.BillingInvoiceSplitLineGroup.Query().
 			Where(billinginvoicesplitlinegroup.Namespace(in.Namespace)).
 			Where(billinginvoicesplitlinegroup.SubscriptionID(in.SubscriptionID)).
-			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-				tx.expandLineItems(q, in.Namespace)
-				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode(in.Namespace))
-				})
-			}).
+			WithBillingInvoiceLines(tx.splitLineGroupLinesWithInvoice(in.Namespace)).
 			Where(billinginvoicesplitlinegroup.DeletedAtIsNil()).
 			All(ctx)
 		if err != nil {

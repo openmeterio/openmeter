@@ -9,6 +9,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -17,6 +19,17 @@ import (
 )
 
 var _ billing.InvoiceSplitLineGroupAdapter = (*adapter)(nil)
+
+func (a *adapter) splitLineGroupLinesWithInvoice(namespace string) func(*db.BillingInvoiceLineQuery) {
+	return func(q *db.BillingInvoiceLineQuery) {
+		q.Where(billinginvoiceline.Namespace(namespace))
+		a.expandLineItems(q, namespace)
+		q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
+			q.Where(billinginvoice.Namespace(namespace)).
+				WithBillingWorkflowConfig(workflowConfigWithTaxCode(namespace))
+		}) // TODO[later]: we can consider loading this in a separate query, might be more efficient
+	}
+}
 
 func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.CreateSplitLineGroupAdapterInput) (billing.SplitLineGroup, error) {
 	if err := input.Validate(); err != nil {
@@ -125,12 +138,7 @@ func (a *adapter) GetSplitLineGroup(ctx context.Context, input billing.GetSplitL
 				billinginvoicesplitlinegroup.Namespace(input.Namespace),
 				billinginvoicesplitlinegroup.ID(input.ID),
 			).
-			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-				a.expandLineItems(q, input.Namespace)
-				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode(input.Namespace))
-				})
-			}).
+			WithBillingInvoiceLines(tx.splitLineGroupLinesWithInvoice(input.Namespace)).
 			First(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -332,12 +340,7 @@ func (a *adapter) fetchAllSplitLineGroups(ctx context.Context, namespace string,
 			billinginvoicesplitlinegroup.Namespace(namespace),
 			billinginvoicesplitlinegroup.IDIn(splitLineGroupIDs...),
 		).
-		WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-			a.expandLineItems(q, namespace)
-			q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-				q.WithBillingWorkflowConfig(workflowConfigWithTaxCode(namespace))
-			}) // TODO[later]: we can consider loading this in a separate query, might be more efficient
-		})
+		WithBillingInvoiceLines(a.splitLineGroupLinesWithInvoice(namespace))
 
 	dbSplitLineGroups, err := query.All(ctx)
 	if err != nil {

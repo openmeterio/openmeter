@@ -52,8 +52,8 @@ func (h *handler) ListPlans() ListPlansHandler {
 			}
 
 			req := ListPlansRequest{
-				Namespaces: []string{ns},
-				Page:       page,
+				Namespace: ns,
+				Page:      page,
 			}
 
 			if params.Filter != nil {

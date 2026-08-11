@@ -39,6 +39,12 @@ func (i SecretID) Validate() error {
 		)
 	}
 
+	if i.Namespace != i.AppID.Namespace {
+		return models.NewGenericValidationError(
+			errors.New("secret and app must be in the same namespace"),
+		)
+	}
+
 	if i.Key == "" {
 		return models.NewGenericValidationError(
 			errors.New("secret key is required"),
