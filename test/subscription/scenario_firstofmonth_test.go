@@ -219,9 +219,9 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 
 	// 6th, let's check the invoice
 	invoices, err := tDeps.billingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{namespace},
-		Customers:  []string{c.ID},
-		Expand:     billing.GatheringInvoiceExpandAll,
+		Namespace: namespace,
+		Customers: []string{c.ID},
+		Expand:    billing.GatheringInvoiceExpandAll,
 	})
 
 	require.NoError(t, err)
@@ -420,7 +420,7 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 	require.NoError(t, tDeps.subscriptionSyncService.SyncByViewAndInvoiceCustomer(ctx, view, firstOfNextMonth))
 
 	invoices, err := tDeps.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces: []string{namespace},
+		Namespace:  namespace,
 		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &c.ID}},
 		Expand:     billing.InvoiceExpandAll,
 		Statuses:   []string{},

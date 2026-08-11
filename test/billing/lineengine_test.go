@@ -418,7 +418,7 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 	s.Require().NoError(err)
 
 	invoices, err := s.BillingService.ListInvoices(ctx, ombilling.ListInvoicesInput{
-		Namespaces:       []string{namespace},
+		Namespace:        namespace,
 		CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
 		ExtendedStatuses: []ombilling.StandardInvoiceStatus{ombilling.StandardInvoiceStatusGathering},
 		Expand: ombilling.InvoiceExpands{}.

@@ -28,7 +28,7 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 
 	adapterInput := billing.ListInvoicesAdapterInput{
 		Page:             input.Page,
-		Namespaces:       input.Namespaces,
+		Namespace:        input.Namespace,
 		IDs:              input.IDs,
 		CustomerID:       input.CustomerID,
 		Statuses:         input.Statuses,
@@ -991,9 +991,9 @@ func (s *Service) UpsertValidationIssues(ctx context.Context, input billing.Upse
 func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billing.RecalculateGatheringInvoicesInput) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		gatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{input.Namespace},
-			Customers:  []string{input.ID},
-			Expand:     billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+			Namespace: input.Namespace,
+			Customers: []string{input.ID},
+			Expand:    billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
 		})
 		if err != nil {
 			return fmt.Errorf("listing gathering invoices: %w", err)

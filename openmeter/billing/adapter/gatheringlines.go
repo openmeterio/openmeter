@@ -54,7 +54,9 @@ func (a *adapter) HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID
 			Where(billinginvoiceline.InvoiceID(invoiceID.ID)).
 			Where(billinginvoiceline.Namespace(invoiceID.Namespace)).
 			Where(billinginvoiceline.IDIn(lineIDs...)).
-			WithUsageBasedLine().
+			WithUsageBasedLine(func(q *db.BillingInvoiceUsageBasedLineConfigQuery) {
+				q.Where(billinginvoiceusagebasedlineconfig.Namespace(invoiceID.Namespace))
+			}).
 			All(ctx)
 		if err != nil {
 			return err
@@ -293,6 +295,11 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 		return billing.GatheringLine{}, fmt.Errorf("usage based line data is missing [line_id=%s]", dbLine.ID)
 	}
 
+	lineTaxCode, err := taxCodeFromInvoiceLineEdge(dbLine)
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("mapping tax code [line_id=%s]: %w", dbLine.ID, err)
+	}
+
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -327,7 +334,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 			TaxConfig: productcatalog.BackfillTaxConfig(
 				lo.EmptyableToPtr(dbLine.TaxConfig).ToProductCatalog(),
 				dbLine.TaxBehavior,
-				taxCodeFromInvoiceLineEdge(dbLine),
+				lineTaxCode,
 			),
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 

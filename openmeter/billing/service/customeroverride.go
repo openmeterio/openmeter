@@ -26,6 +26,20 @@ func (s *Service) UpsertCustomerOverride(ctx context.Context, input billing.Upse
 	}
 
 	adapterOverride, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.CustomerOverrideWithDetails, error) {
+		if _, err := s.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &customer.CustomerID{Namespace: input.Namespace, ID: input.CustomerID},
+		}); err != nil {
+			return def, fmt.Errorf("resolving customer for customer override: %w", err)
+		}
+
+		if input.ProfileID != "" {
+			if _, err := s.GetProfile(ctx, billing.GetProfileInput{
+				Profile: billing.ProfileID{Namespace: input.Namespace, ID: input.ProfileID},
+			}); err != nil {
+				return def, fmt.Errorf("resolving billing profile for customer override: %w", err)
+			}
+		}
+
 		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, input.Invoicing.DefaultTaxConfig); err != nil {
 			return def, err
 		}

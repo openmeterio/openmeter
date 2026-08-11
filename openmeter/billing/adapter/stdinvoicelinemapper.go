@@ -64,6 +64,11 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 		creditsApplied = nil
 	}
 
+	lineTaxCode, err := taxCodeFromInvoiceLineEdge(dbLine)
+	if err != nil {
+		return nil, fmt.Errorf("mapping tax code [line_id=%s]: %w", dbLine.ID, err)
+	}
+
 	invoiceLine := &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -100,7 +105,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			TaxConfig: backfillTaxConfigReferences(
 				lo.EmptyableToPtr(dbLine.TaxConfig),
 				dbLine.TaxBehavior,
-				taxCodeFromInvoiceLineEdge(dbLine),
+				lineTaxCode,
 			),
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 			CreditsApplied:    creditsApplied,
@@ -165,8 +170,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 	}
 
 	detailedLineBase := billing.DetailedLineBase{
-		InvoiceID:       dbLine.InvoiceID,
-		FeeLineConfigID: dbLine.Edges.FlatFeeLine.ID,
+		InvoiceID: dbLine.InvoiceID,
 		Base: stddetailedline.Base{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   dbLine.Namespace,
@@ -182,15 +186,18 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 				From: dbLine.PeriodStart.In(time.UTC),
 				To:   dbLine.PeriodEnd.In(time.UTC),
 			},
-			PerUnitAmount:  dbLine.Edges.FlatFeeLine.PerUnitAmount,
 			Quantity:       lo.FromPtr(dbLine.Quantity),
-			Category:       dbLine.Edges.FlatFeeLine.Category,
-			PaymentTerm:    dbLine.Edges.FlatFeeLine.PaymentTerm,
-			Index:          dbLine.Edges.FlatFeeLine.Index,
 			CreditsApplied: creditsApplied,
 			Totals:         totals.FromDB(dbLine),
 			ExternalIDs:    externalid.MapLineExternalIDFromDB(dbLine),
 		},
+	}
+	if dbLine.Edges.FlatFeeLine != nil {
+		detailedLineBase.FeeLineConfigID = dbLine.Edges.FlatFeeLine.ID
+		detailedLineBase.PerUnitAmount = dbLine.Edges.FlatFeeLine.PerUnitAmount
+		detailedLineBase.Category = dbLine.Edges.FlatFeeLine.Category
+		detailedLineBase.PaymentTerm = dbLine.Edges.FlatFeeLine.PaymentTerm
+		detailedLineBase.Index = dbLine.Edges.FlatFeeLine.Index
 	}
 
 	discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapStandardInvoiceLineAmountDiscountFromDB)
@@ -293,16 +300,26 @@ func (a *adapter) mapStandardInvoiceLineAmountDiscountFromDB(dbDiscount *db.Bill
 	}, nil
 }
 
-func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) *taxcode.TaxCode {
+func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) (*taxcode.TaxCode, error) {
 	tc, err := dbLine.Edges.TaxCodeOrErr()
 	if err != nil {
-		return nil
+		if dbLine.TaxCodeID == nil {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("resolving tax code [tax_code_id=%s]: %w", *dbLine.TaxCodeID, err)
 	}
+
+	if tc.Namespace != dbLine.Namespace {
+		return nil, fmt.Errorf("tax code namespace mismatch [line_namespace=%s,tax_code_id=%s,tax_code_namespace=%s]", dbLine.Namespace, tc.ID, tc.Namespace)
+	}
+
 	mapped, err := taxcodeadapter.MapTaxCodeFromEntity(tc)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("mapping tax code [tax_code_id=%s]: %w", tc.ID, err)
 	}
-	return &mapped
+
+	return &mapped, nil
 }
 
 // backfillTaxConfigReferences reconstructs the invoice-line TaxConfig read model from the

@@ -189,7 +189,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 			PageSize:   10,
 		},
 		Customers:      []string{customerProfile.Customer.ID},
-		Namespaces:     []string{customerProfile.Customer.Namespace},
+		Namespace:      customerProfile.Customer.Namespace,
 		Currencies:     []currencyx.FiatCode{currency},
 		OrderBy:        api.InvoiceOrderByCreatedAt,
 		Order:          sortx.OrderAsc,

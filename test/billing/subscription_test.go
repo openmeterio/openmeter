@@ -341,9 +341,9 @@ func (s *SubscriptionTestSuite) createCustomerWithSubscription(ctx context.Conte
 
 func (s *SubscriptionTestSuite) listGatheringLines(ctx context.Context, namespace string, customerID string) []billing.GatheringLine {
 	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{namespace},
-		Customers:  []string{customerID},
-		Expand:     billing.NewGatheringInvoiceExpands(billing.GatheringInvoiceExpandLines),
+		Namespace: namespace,
+		Customers: []string{customerID},
+		Expand:    billing.NewGatheringInvoiceExpands(billing.GatheringInvoiceExpandLines),
 	})
 	s.NoError(err)
 

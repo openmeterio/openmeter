@@ -10,12 +10,13 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
-	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -204,15 +205,10 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[billing.GatheringInvoice], error) {
 		query := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering))
-
-		if len(input.Namespaces) > 0 {
-			query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
-		}
-
-		if len(input.ExcludedNamespaces) > 0 {
-			query = query.Where(billinginvoice.NamespaceNotIn(input.ExcludedNamespaces...))
-		}
+			Where(
+				billinginvoice.Namespace(input.Namespace),
+				billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering),
+			)
 
 		if len(input.Customers) > 0 {
 			query = query.Where(billinginvoice.CustomerIDIn(input.Customers...))
@@ -228,10 +224,9 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 		}
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
-			query = a.expandGatheringInvoiceLines(query, input.Expand)
+			query = a.expandGatheringInvoiceLines(query, input.Expand, input.Namespace)
 		}
 
-		query = filter.ApplyToQuery(query, &input.CollectionAt, billinginvoice.FieldCollectionAt)
 		if len(input.IDs) > 0 {
 			query = query.Where(billinginvoice.IDIn(input.IDs...))
 		}
@@ -280,6 +275,81 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 		response.Items = result
 
 		return response, nil
+	})
+}
+
+func (a *adapter) ListCustomerIDsPendingCollection(ctx context.Context, input billing.ListCustomerIDsPendingCollectionInput) ([]customer.CustomerID, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{Err: err}
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]customer.CustomerID, error) {
+		query := tx.db.BillingInvoice.Query().
+			Where(
+				billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering),
+				billinginvoice.DeletedAtIsNil(),
+				billinginvoice.Or(
+					billinginvoice.CollectionAtLTE(input.AsOf),
+					billinginvoice.CollectionAtIsNil(),
+				),
+			)
+
+		if len(input.Namespaces) > 0 {
+			query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
+		}
+
+		if len(input.ExcludedNamespaces) > 0 {
+			query.Where(billinginvoice.NamespaceNotIn(input.ExcludedNamespaces...))
+		}
+
+		if len(input.InvoiceIDs) > 0 {
+			query.Where(billinginvoice.IDIn(input.InvoiceIDs...))
+		}
+
+		if len(input.CustomerIDs) > 0 {
+			query.Where(billinginvoice.CustomerIDIn(input.CustomerIDs...))
+		}
+
+		query.Order(
+			billinginvoice.ByNamespace(),
+			billinginvoice.ByCustomerID(),
+		)
+
+		type customerIDRow struct {
+			Namespace    string     `json:"namespace"`
+			InvoiceID    string     `json:"id"`
+			CustomerID   string     `json:"customer_id"`
+			CollectionAt *time.Time `json:"collection_at"`
+		}
+		var rows []customerIDRow
+
+		err := query.
+			Select(
+				billinginvoice.FieldNamespace,
+				billinginvoice.FieldID,
+				billinginvoice.FieldCustomerID,
+				billinginvoice.FieldCollectionAt,
+			).
+			Scan(ctx, &rows)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list customer IDs pending collection: %w", err)
+		}
+
+		nilCollectionAtInvoiceIDs := lo.FilterMap(rows, func(row customerIDRow, _ int) (string, bool) {
+			return row.InvoiceID, row.CollectionAt == nil
+		})
+		if len(nilCollectionAtInvoiceIDs) > 0 {
+			tx.logger.WarnContext(ctx, "gathering invoices have nil next collection at; this may indicate legacy or inconsistent state", "invoice_ids", nilCollectionAtInvoiceIDs)
+		}
+
+		customers := lo.Uniq(lo.Map(rows, func(row customerIDRow, _ int) customer.CustomerID {
+			return customer.CustomerID{
+				Namespace: row.Namespace,
+				ID:        row.CustomerID,
+			}
+		}))
+
+		return customers, nil
 	})
 }
 
@@ -342,8 +412,10 @@ func (a *adapter) DeleteGatheringInvoice(ctx context.Context, input billing.Dele
 	})
 }
 
-func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand billing.GatheringInvoiceExpands) *db.BillingInvoiceQuery {
+func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand billing.GatheringInvoiceExpands, namespace string) *db.BillingInvoiceQuery {
 	return q.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+		q.Where(billinginvoiceline.Namespace(namespace))
+
 		if !expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
 			q = q.Where(billinginvoiceline.DeletedAtIsNil())
 		}
@@ -351,8 +423,10 @@ func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand 
 		q.
 			Where(billinginvoiceline.TypeEQ(billing.InvoiceLineAdapterTypeUsageBased)). // Only include usage based lines (there are some detailed lines existing for gathering invoices)
 			Where(billinginvoiceline.ParentLineIDIsNil()).                              // Only include top-level lines (there are some detailed lines existing for gathering invoices)
-			WithUsageBasedLine().
-			WithTaxCode()
+			WithUsageBasedLine(func(q *db.BillingInvoiceUsageBasedLineConfigQuery) {
+				q.Where(billinginvoiceusagebasedlineconfig.Namespace(namespace))
+			}).
+			WithTaxCode(taxCodeInNamespace(namespace))
 	})
 }
 
@@ -367,7 +441,7 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 			Where(billinginvoice.Namespace(input.Invoice.Namespace))
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
-			query = a.expandGatheringInvoiceLines(query, input.Expand)
+			query = a.expandGatheringInvoiceLines(query, input.Expand, input.Invoice.Namespace)
 		}
 
 		invoice, err := query.Only(ctx)

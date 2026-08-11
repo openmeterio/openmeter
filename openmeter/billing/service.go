@@ -113,8 +113,8 @@ type StandardInvoiceService interface {
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 	// ListStandardInvoices lists standard invoices
 	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
-	// ListStandardInvoicesPendingAdvancement lists standard invoices due for automatic advancement.
-	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]StandardInvoice, error)
+	// ListStandardInvoicesPendingAdvancement lists standard invoice IDs due for automatic advancement.
+	ListStandardInvoicesPendingAdvancement(ctx context.Context, input ListStandardInvoicesPendingAdvancementInput) ([]InvoiceID, error)
 	// CreateStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
 	CreateStandardInvoiceFromGatheringLines(ctx context.Context, input CreateStandardInvoiceFromGatheringLinesInput) (*StandardInvoice, error)
 	// RegisterStandardInvoiceHooks registers hooks for standard invoice lifecycle events
@@ -126,6 +126,8 @@ type GatheringInvoiceService interface {
 	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
 
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
+	// ListCustomerIDsPendingCollection lists unique customers with gathering invoices due for automatic collection.
+	ListCustomerIDsPendingCollection(ctx context.Context, input ListCustomerIDsPendingCollectionInput) ([]customer.CustomerID, error)
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) (GatheringInvoice, error)
 	DeleteGatheringInvoice(ctx context.Context, input DeleteInvoiceInput) (GatheringInvoice, error)

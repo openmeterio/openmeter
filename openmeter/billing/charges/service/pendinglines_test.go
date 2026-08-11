@@ -304,8 +304,8 @@ func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesResolve
 			s.ErrorContains(err, testCase.expectedError)
 
 			listed, listErr := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-				Namespaces: []string{ns},
-				Customers:  []string{cust.ID},
+				Namespace: ns,
+				Customers: []string{cust.ID},
 			})
 			s.Require().NoError(listErr)
 			s.Empty(listed.Items)
@@ -374,8 +374,8 @@ func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequires
 	s.Empty(listedCharges.Items)
 
 	listedInvoices, listInvoicesErr := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{ns},
-		Customers:  []string{cust.ID},
+		Namespace: ns,
+		Customers: []string{cust.ID},
 	})
 	s.Require().NoError(listInvoicesErr)
 	s.Empty(listedInvoices.Items)
@@ -558,8 +558,8 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackParti
 	s.Empty(listedCharges.Items)
 
 	listedInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{ns},
-		Customers:  []string{cust.ID},
+		Namespace: ns,
+		Customers: []string{cust.ID},
 	})
 	s.NoError(err)
 	s.Empty(listedInvoices.Items)

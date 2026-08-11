@@ -790,9 +790,9 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_StandardInvoiceWaitsForLateE
 	expectedCollectionAt := lo.Must(time.Parse(time.RFC3339, "2025-06-16T12:00:00Z"))
 
 	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{namespace},
-		Customers:  []string{customerEntity.ID},
-		Expand:     billing.GatheringInvoiceExpandAll,
+		Namespace: namespace,
+		Customers: []string{customerEntity.ID},
+		Expand:    billing.GatheringInvoiceExpandAll,
 	})
 	s.NoError(err)
 	s.Len(invoices.Items, 1)

@@ -879,7 +879,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		s.NoError(invoiceID.Validate())
 
 		invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-			Namespaces: []string{ns},
+			Namespace: ns,
 		})
 
 		s.NoError(err)
@@ -1084,9 +1084,9 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 
 	s.Run("gathering_line_created", func() {
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-			Namespaces: []string{ns},
-			Customers:  []string{cust.ID},
-			Expand:     billing.GatheringInvoiceExpandAll,
+			Namespace: ns,
+			Customers: []string{cust.ID},
+			Expand:    billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(gatheringInvoices.Items, 1)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -22,6 +23,44 @@ type ProfileTestSuite struct {
 
 func TestProfile(t *testing.T) {
 	suite.Run(t, new(ProfileTestSuite))
+}
+
+func (s *ProfileTestSuite) TestGetRejectsCrossNamespaceWorkflowReferences() {
+	// given:
+	// - profiles whose workflow config or tax code is deliberately moved to another namespace
+	// when:
+	// - either profile is read
+	// then:
+	// - the foreign reference is not returned and is reported as missing
+	ctx := s.T().Context()
+	foreignNamespace := s.GetUniqueNamespace("profile-reference-foreign")
+
+	workflowNamespace := s.GetUniqueNamespace("profile-workflow-target")
+	workflowProfile := s.ProvisionBillingProfile(ctx, workflowNamespace, s.InstallSandboxApp(s.T(), workflowNamespace).GetID())
+	workflowProfileDB, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: workflowProfile.ProfileID()})
+	require.NoError(s.T(), err)
+	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx,
+		`UPDATE billing_workflow_configs SET namespace = $1 WHERE id = $2`,
+		foreignNamespace,
+		workflowProfileDB.WorkflowConfigID,
+	)
+	require.NoError(s.T(), err)
+
+	_, err = s.BillingService.GetProfile(ctx, billing.GetProfileInput{Profile: workflowProfile.ProfileID()})
+	require.True(s.T(), models.IsGenericNotFoundError(err))
+
+	taxNamespace := s.GetUniqueNamespace("profile-tax-target")
+	taxProfile := s.ProvisionBillingProfile(ctx, taxNamespace, s.InstallSandboxApp(s.T(), taxNamespace).GetID())
+	taxProfileDB, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: taxProfile.ProfileID()})
+	require.NoError(s.T(), err)
+	foreignTaxCode := s.ProvisionProviderDefaultTaxCode(ctx, foreignNamespace)
+	_, err = s.DBClient.BillingWorkflowConfig.UpdateOneID(taxProfileDB.WorkflowConfigID).
+		SetTaxCodeID(foreignTaxCode.ID).
+		Save(ctx)
+	require.NoError(s.T(), err)
+
+	_, err = s.BillingService.GetProfile(ctx, billing.GetProfileInput{Profile: taxProfile.ProfileID()})
+	require.True(s.T(), taxcode.IsTaxCodeNotFoundError(err))
 }
 
 // createProfileFixture creates a profile with the given default flag.

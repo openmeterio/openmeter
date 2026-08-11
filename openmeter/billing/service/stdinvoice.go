@@ -125,7 +125,7 @@ func (s *Service) ListStandardInvoices(ctx context.Context, input billing.ListSt
 
 	adapterInput := billing.ListInvoicesAdapterInput{
 		Page:               input.Page,
-		Namespaces:         input.Namespaces,
+		Namespace:          input.Namespace,
 		IDs:                input.IDs,
 		Statuses:           input.Statuses,
 		ExtendedStatuses:   input.ExtendedStatuses,
@@ -161,7 +161,7 @@ func (s *Service) ListStandardInvoices(ctx context.Context, input billing.ListSt
 	}, nil
 }
 
-func (s *Service) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.StandardInvoice, error) {
+func (s *Service) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.InvoiceID, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{Err: err}
 	}

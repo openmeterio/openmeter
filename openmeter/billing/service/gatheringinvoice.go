@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -26,6 +27,19 @@ func (s *Service) ListGatheringInvoices(ctx context.Context, input billing.ListG
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[billing.GatheringInvoice], error) {
 		return s.adapter.ListGatheringInvoices(ctx, input)
 	})
+}
+
+func (s *Service) ListCustomerIDsPendingCollection(ctx context.Context, input billing.ListCustomerIDsPendingCollectionInput) ([]customer.CustomerID, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{Err: err}
+	}
+
+	customers, err := s.adapter.ListCustomerIDsPendingCollection(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("listing customer IDs pending collection: %w", err)
+	}
+
+	return customers, nil
 }
 
 func (s *Service) DeleteGatheringInvoice(ctx context.Context, input billing.DeleteInvoiceInput) (billing.GatheringInvoice, error) {

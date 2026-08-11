@@ -249,7 +249,9 @@ func (a *adapter) GetWebhookSecret(ctx context.Context, input appstripe.GetWebho
 		// Get the stripe app
 		stripeApp, err := repo.db.AppStripe.
 			Query().
-			// We intentionally do not filter by namespace as the webhook payload is signed with the secret
+			// Webhooks intentionally bootstrap trust from the globally unique app ID.
+			// The app row supplies the namespace needed to resolve the signing secret;
+			// callers must verify the signature before trusting it for namespaced work.
 			Where(appstripedb.ID(input.AppID)).
 			Only(ctx)
 		if err != nil {

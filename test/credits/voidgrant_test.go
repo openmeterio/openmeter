@@ -744,8 +744,8 @@ func (s *VoidGrantTestSuite) setupInvoiceFundedVoidGrant(ctx context.Context, ns
 	s.Require().NotNil(grant.Realizations.CreditGrantRealization)
 
 	standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-		Namespaces: []string{ns},
-		Expand:     billing.StandardInvoiceExpandAll,
+		Namespace: ns,
+		Expand:    billing.StandardInvoiceExpandAll,
 	})
 	s.Require().NoError(err)
 	s.Require().Len(standardInvoices.Items, 1)

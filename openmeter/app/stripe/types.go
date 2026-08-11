@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	secretentity "github.com/openmeterio/openmeter/openmeter/secret/entity"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -32,47 +33,65 @@ type CreateAppStripeInput struct {
 }
 
 func (i CreateAppStripeInput) Validate() error {
+	var errs []error
+
 	if i.CreateAppInput.Type != app.AppTypeStripe {
-		return errors.New("app type must be stripe")
+		errs = append(errs, errors.New("app type must be stripe"))
 	}
 
-	if err := i.ID.Validate(); err != nil {
-		return errors.New("id cannot be empty if provided")
+	if i.ID == nil {
+		errs = append(errs, errors.New("app ID is required"))
+	} else {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("id: %w", err))
+		}
+
+		if i.ID.Namespace != i.Namespace {
+			errs = append(errs, errors.New("app ID namespace must match app namespace"))
+		}
 	}
 
 	if err := i.CreateAppInput.Validate(); err != nil {
-		return fmt.Errorf("error validating create app input: %w", err)
+		errs = append(errs, fmt.Errorf("app: %w", err))
 	}
 
 	if i.StripeAccountID == "" {
-		return errors.New("stripe account id is required")
+		errs = append(errs, errors.New("stripeAccountID is required"))
 	}
 
 	if err := i.APIKey.Validate(); err != nil {
-		return fmt.Errorf("error validating api key: %w", err)
+		errs = append(errs, fmt.Errorf("apiKey: %w", err))
 	}
 
 	if i.MaskedAPIKey == "" {
-		return errors.New("masked api key is required")
+		errs = append(errs, errors.New("maskedAPIKey is required"))
 	}
 
-	if i.ID != nil && i.APIKey.Namespace != i.ID.Namespace {
-		return errors.New("api key must be in the same namespace as the app")
+	if i.ID != nil && i.APIKey.AppID != *i.ID {
+		errs = append(errs, errors.New("apiKey app ID must match app ID"))
+	}
+
+	if i.APIKey.Key != APIKeySecretKey {
+		errs = append(errs, errors.New("apiKey has an invalid semantic key"))
 	}
 
 	if err := i.WebhookSecret.Validate(); err != nil {
-		return fmt.Errorf("error validating webhook secret: %w", err)
+		errs = append(errs, fmt.Errorf("webhookSecret: %w", err))
 	}
 
 	if i.StripeWebhookID == "" {
-		return errors.New("stripe webhook id is required")
+		errs = append(errs, errors.New("stripeWebhookID is required"))
 	}
 
-	if i.ID != nil && i.WebhookSecret.Namespace != i.ID.Namespace {
-		return errors.New("webhook secret must be in the same namespace as the app")
+	if i.ID != nil && i.WebhookSecret.AppID != *i.ID {
+		errs = append(errs, errors.New("webhookSecret app ID must match app ID"))
 	}
 
-	return nil
+	if i.WebhookSecret.Key != WebhookSecretKey {
+		errs = append(errs, errors.New("webhookSecret has an invalid semantic key"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetStripeAppDataInput struct {

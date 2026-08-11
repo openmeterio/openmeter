@@ -135,8 +135,8 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() 
 	s.NotNil(grant.Realizations.CreditGrantRealization)
 
 	standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-		Namespaces: []string{ns},
-		Expand:     billing.StandardInvoiceExpandAll,
+		Namespace: ns,
+		Expand:    billing.StandardInvoiceExpandAll,
 	})
 	s.Require().NoError(err)
 	s.Len(standardInvoices.Items, 1)
@@ -147,9 +147,9 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() 
 	s.Equal(grant.ID, *invoice.Lines.OrEmpty()[0].ChargeID)
 
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{ns},
-		Customers:  []string{cust.ID},
-		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
+		Namespace: ns,
+		Customers: []string{cust.ID},
+		Expand:    []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.Require().NoError(err)
 	s.Len(gatheringInvoices.Items, 0)
@@ -186,9 +186,9 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 	s.Nil(grant.Realizations.InvoiceSettlement)
 
 	gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-		Namespaces: []string{ns},
-		Customers:  []string{cust.ID},
-		Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
+		Namespace: ns,
+		Customers: []string{cust.ID},
+		Expand:    []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	s.Require().NoError(err)
 	s.Len(gatheringInvoices.Items, 0)
@@ -498,8 +498,8 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigTo
 	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
 
 	standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-		Namespaces: []string{ns},
-		Expand:     billing.StandardInvoiceExpandAll,
+		Namespace: ns,
+		Expand:    billing.StandardInvoiceExpandAll,
 	})
 	s.Require().NoError(err)
 	s.Require().Len(standardInvoices.Items, 1)
@@ -556,8 +556,8 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCr
 	s.Require().NoError(err)
 
 	standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-		Namespaces: []string{ns},
-		Expand:     billing.StandardInvoiceExpandAll,
+		Namespace: ns,
+		Expand:    billing.StandardInvoiceExpandAll,
 	})
 	s.Require().NoError(err)
 	s.Require().Len(standardInvoices.Items, 1)

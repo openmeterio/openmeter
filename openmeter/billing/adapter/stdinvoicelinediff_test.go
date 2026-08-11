@@ -10,10 +10,30 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func TestTaxCodeFromInvoiceLineEdgeRejectsCrossNamespaceReference(t *testing.T) {
+	// given:
+	// - an invoice line whose eagerly loaded tax code belongs to another namespace
+	// when:
+	// - the tax code edge is mapped
+	// then:
+	// - mapping fails instead of silently hiding the namespace violation
+	line := &db.BillingInvoiceLine{
+		Namespace: "target",
+		Edges: db.BillingInvoiceLineEdges{
+			TaxCode: &db.TaxCode{ID: "tax-code", Namespace: "foreign"},
+		},
+	}
+
+	mapped, err := taxCodeFromInvoiceLineEdge(line)
+	require.Nil(t, mapped)
+	require.EqualError(t, err, "tax code namespace mismatch [line_namespace=target,tax_code_id=tax-code,tax_code_namespace=foreign]")
+}
 
 type idDiff struct {
 	ToCreate []string

@@ -22,7 +22,7 @@ func (s *BaseSuite) assertGatheringPreview(input assertGatheringPreviewInput) bi
 	s.T().Helper()
 
 	invoices, err := s.BillingService.ListInvoices(s.T().Context(), billing.ListInvoicesInput{
-		Namespaces:       []string{input.Namespace},
+		Namespace:        input.Namespace,
 		CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &input.CustomerID}},
 		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 		Expand: billing.InvoiceExpands{}.

@@ -31,21 +31,21 @@ func init() {
 var ListCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List gathering invoices which can be collected",
+		Short: "List customers with gathering invoices ready for collection",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			invoices, err := internal.App.BillingCollector.ListCollectableInvoices(cmd.Context(),
-				billingworkercollect.ListCollectableInvoicesInput{
-					Namespaces:   namespaces,
-					InvoiceIDs:   invoiceIDs,
-					Customers:    customerIDs,
-					CollectionAt: time.Now(),
+			customers, err := internal.App.BillingCollector.ListCustomersToCollect(cmd.Context(),
+				billingworkercollect.ListCustomersToCollectInput{
+					Namespaces:  namespaces,
+					InvoiceIDs:  invoiceIDs,
+					CustomerIDs: customerIDs,
+					AsOf:        time.Now(),
 				})
 			if err != nil {
 				return err
 			}
 
-			for _, invoice := range invoices {
-				fmt.Printf("Namespace: %s ID: %s CollectAt: %s\n", invoice.Namespace, invoice.ID, invoice.NextCollectionAt)
+			for _, customer := range customers {
+				fmt.Printf("Namespace: %s Customer: %s\n", customer.Namespace, customer.ID)
 			}
 
 			return nil

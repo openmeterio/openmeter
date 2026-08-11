@@ -65,7 +65,7 @@ func (s *StripeInvoiceTestSuite) TestInvoiceFundedCreditGrantRequiresStripeCusto
 	s.True(models.IsGenericPreConditionFailedError(err))
 
 	invoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
-		Namespaces: []string{ns},
+		Namespace: ns,
 	})
 	s.NoError(err)
 	s.Empty(invoices.Items)

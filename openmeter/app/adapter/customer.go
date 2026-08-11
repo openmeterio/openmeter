@@ -9,7 +9,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -81,8 +83,34 @@ func (a *adapter) EnsureCustomer(ctx context.Context, input app.EnsureCustomerIn
 			ctx,
 			a,
 			func(ctx context.Context, repo *adapter) (any, error) {
+				appExists, err := repo.db.App.Query().
+					Where(appdb.Namespace(input.AppID.Namespace)).
+					Where(appdb.ID(input.AppID.ID)).
+					Exist(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve app: %w", err)
+				}
+
+				if !appExists {
+					return nil, app.NewAppNotFoundError(input.AppID)
+				}
+
+				customerExists, err := repo.db.Customer.Query().
+					Where(customerdb.Namespace(input.CustomerID.Namespace)).
+					Where(customerdb.ID(input.CustomerID.ID)).
+					Exist(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve customer: %w", err)
+				}
+
+				if !customerExists {
+					return nil, models.NewGenericNotFoundError(
+						fmt.Errorf("customer with id %s not found in %s namespace", input.CustomerID.ID, input.CustomerID.Namespace),
+					)
+				}
+
 				// Upsert customer data for the app
-				err := repo.db.AppCustomer.
+				err = repo.db.AppCustomer.
 					Create().
 					SetNamespace(input.AppID.Namespace).
 					SetAppID(input.AppID.ID).
