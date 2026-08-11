@@ -243,6 +243,7 @@ func (h *usageBasedHandler) OnCustomCurrencyOverageAccrued(ctx context.Context, 
 			CostBasis:      costBasis,
 			SourceCurrency: currencies.NewCurrencyReference(fiatCode),
 			TargetCurrency: customCurrency,
+			SourceChargeID: &input.Charge.ID,
 		},
 	)
 	if err != nil {

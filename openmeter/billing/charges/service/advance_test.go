@@ -251,15 +251,10 @@ var usageBasedIntentServicePeriod = timeutil.ClosedPeriod{
 	To:   time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
 }
 
-// TestAdvanceChargesCustomCurrencyCreditThenInvoiceRecognitionIsOmittedNotFailed proves
-// that advancing a custom-currency credit_then_invoice charge reaches the real
-// (non-noop) recognizer without its native custom currency ever being passed
-// to it. Before the fix this call failed and rolled back the whole
-// AdvanceCharges transaction, because the recognizer explicitly rejects
-// custom currency. See TestCollectEarningsRecognitionCurrencies for why the
-// custom currency is omitted rather than substituted with the invoice fiat
-// currency.
-func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditThenInvoiceRecognitionIsOmittedNotFailed() {
+// TestAdvanceChargesCustomCurrencyCreditThenInvoiceRecognitionDoesNotFail proves
+// the native custom currency can pass through the real recognizer. Covered
+// credit-backed usage is eligible; invoice-backed overage remains deferred.
+func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditThenInvoiceRecognitionDoesNotFail() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-custom-cti")
 	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -295,15 +290,10 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditThenInvo
 	s.Require().Len(advancedCharges, 1)
 }
 
-// TestAdvanceChargesCustomCurrencyCreditOnlyRecognitionIsDeferredNotFailed documents
-// the deliberately deferred boundary: a custom-currency credit_only charge has
-// no invoice/fiat side and no accounting design yet for recognizing native
-// custom-currency consumption as revenue. Creating and advancing it must keep
-// succeeding - as it already does in production, per
-// TestFlatFeeCreditOnlyWithCustomCurrency and TestUsageBasedCreditOnlyWithCustomCurrency
-// in invoicable_test.go - rather than erroring or inventing a fiat currency
-// for it.
-func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditOnlyRecognitionIsDeferredNotFailed() {
+// TestAdvanceChargesCustomCurrencyCreditOnlyRecognitionDoesNotFail proves the
+// native custom currency can pass through the real recognizer for credit-only
+// charges too.
+func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditOnlyRecognitionDoesNotFail() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-advance-custom-credit-only")
 	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -335,17 +325,8 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesCustomCurrencyCreditOnlyReco
 	s.Require().NoError(err)
 }
 
-// TestCollectEarningsRecognitionCurrencies proves the exact currency-selection
-// contract: a fiat charge contributes its own currency; a custom-currency
-// charge is always omitted, regardless of settlement mode. Recognizing
-// credit_then_invoice in its invoice fiat currency instead would be a silent
-// no-op - credit_then_invoice's covered usage creates real, recognizable
-// lineage in the native custom currency via the same allocation path
-// credit_only uses, and that lineage would never be found under the fiat
-// currency, while the overage itself never creates lineage at all (it books
-// straight to receivable/accrued). This test would fail loudly (by returning
-// the invoice fiat currency, or the raw custom currency) if that mistake were
-// reintroduced.
+// TestCollectEarningsRecognitionCurrencies proves each unique native charge
+// currency is recognized once, independent of settlement mode.
 func TestCollectEarningsRecognitionCurrencies(t *testing.T) {
 	usd := currenciestestutils.NewFiatCurrency(t, "USD")
 	custom := currenciestestutils.NewCustomCurrency(t, "ACME", 2)
@@ -374,6 +355,7 @@ func TestCollectEarningsRecognitionCurrencies(t *testing.T) {
 		newUsageBasedCharge(custom, productcatalog.CreditThenInvoiceSettlementMode, &costBasisIntent),
 	})
 	require.NoError(t, err)
-	require.Len(t, result, 1)
+	require.Len(t, result, 2)
 	require.Equal(t, currencyx.Code("USD"), result[0].GetCode())
+	require.Equal(t, custom.Reference(), result[1].Reference())
 }

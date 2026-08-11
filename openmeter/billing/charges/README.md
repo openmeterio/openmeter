@@ -313,18 +313,13 @@ Ledger-backed charge adapters implement this boundary directly:
   or contaminate each other's lineage. The mechanism itself - advance,
   backfill, earnings-recognized segment transitions - is currency agnostic
   and applies to custom currencies the same way it does to fiat.
-- `AdvanceCharges` recognizes earnings in the currency each charge actually
-  settles in: fiat charges recognize in their own currency, and custom
-  `credit_then_invoice` charges recognize in their resolved invoice fiat
-  currency (the recognizer never sees the native custom currency for them).
-  Custom `credit_only` has no invoice-fiat side and no accounting design yet
-  for recognizing native custom-currency consumption as revenue, so it is
-  omitted from recognition entirely rather than erroring or being mapped to
-  an invented currency; this is a deliberate, currently-open boundary, not an
-  oversight.
+- `AdvanceCharges` recognizes eligible credit-backed lineage in each charge's
+  native currency, for both fiat and custom currencies. Recognition only
+  consumes accrued buckets with distinct source-credit and spend-charge
+  provenance. Invoice-backed accrued value - including the immediate
+  same-charge purchase used to model custom-currency overage - remains accrued
+  until invoice revenue recognition is supported.
 
-Known limitation: converting the uncovered custom-currency overage can round
-to a zero fiat amount. The charge layer does not yet delete the resulting
-empty overage invoice line in every case (see the skipped cases in
-`usagebased_test.go`'s custom-currency lifecycle table); until that lands,
-zero-fiat-overage handling is incomplete, not implemented.
+If converting an uncovered custom-currency overage rounds to zero fiat, the
+charge layer omits the empty line during preview and collection. The ledger and
+payment lifecycle are bypassed because there is no fiat receivable to settle.

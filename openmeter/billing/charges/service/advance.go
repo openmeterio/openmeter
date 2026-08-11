@@ -158,21 +158,9 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 	return advancedCharges, nil
 }
 
-// collectEarningsRecognitionCurrencies resolves the currency each advanced
-// charge should recognize earnings in. Fiat charges recognize in their own
-// currency.
-//
-// Custom-currency charges are omitted regardless of settlement mode. Their
-// only recognizable (credit-backed) lineage is created by the shared
-// allocation path in the native custom currency - identically for
-// credit_only and credit_then_invoice, since both allocate covered usage the
-// same way. Recognizing in the invoice fiat currency instead would be a
-// silent no-op: credit_then_invoice never creates fiat-denominated lineage
-// for the overage (it books straight to receivable/accrued, bypassing
-// lineage entirely), so searching in fiat would find nothing while the real,
-// recognizable native-currency lineage goes unrecognized. Recognizing
-// native custom-currency consumption as revenue directly has no accounting
-// design yet, so it stays omitted rather than erroring or being substituted.
+// collectEarningsRecognitionCurrencies resolves the native currency of every
+// advanced charge. Credit-backed lineage and its accrued balance use that same
+// currency for both fiat and custom-currency charges.
 func collectEarningsRecognitionCurrencies(chargeList charges.Charges) ([]currencies.Currency, error) {
 	out := make([]currencies.Currency, 0, len(chargeList))
 
@@ -180,10 +168,6 @@ func collectEarningsRecognitionCurrencies(chargeList charges.Charges) ([]currenc
 		chargeCurrency, err := c.GetCurrency()
 		if err != nil {
 			return nil, fmt.Errorf("get currency: %w", err)
-		}
-
-		if chargeCurrency.IsCustom() {
-			continue
 		}
 
 		out = append(out, chargeCurrency)

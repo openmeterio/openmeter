@@ -55,8 +55,9 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 	// The purchase is immediately and fully consumed by the same charge: no
 	// spendable custom-currency FBO balance and no open custom receivable survive.
 	fboSubAccount := env.FBOSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)
+	customReceivableSubAccount := env.ReceivableSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)
 	require.Equal(t, 0.0, env.sumBalance(t, fboSubAccount).InexactFloat64())
-	require.Equal(t, 0.0, env.sumBalance(t, env.ReceivableSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, 0.0, env.sumBalance(t, customReceivableSubAccount).InexactFloat64())
 
 	// The consumed amount is accrued natively, preserving cost basis and fiat provenance.
 	accruedSubAccount := env.AccruedSubAccountForCurrency(t, customCurrencyIdentity, &settlementCurrency, &costBasis, lo.ToPtr(testChargeTaxCodeID))
@@ -112,6 +113,15 @@ func TestOnFlatFeeCustomCurrencyOverageAccrued(t *testing.T) {
 	require.Equal(t, charge.ID, strings.TrimSpace(*accruedEntries[0].SourceChargeID))
 	require.NotNil(t, accruedEntries[0].SpendChargeID)
 	require.Equal(t, charge.ID, strings.TrimSpace(*accruedEntries[0].SpendChargeID))
+
+	// Issuance and FX close the same source-attributed custom receivable bucket.
+	customReceivableEntries := env.EntriesForSubAccount(entries, customReceivableSubAccount)
+	require.Len(t, customReceivableEntries, 2)
+	for _, entry := range customReceivableEntries {
+		require.NotNil(t, entry.SourceChargeID)
+		require.Equal(t, charge.ID, strings.TrimSpace(*entry.SourceChargeID))
+		require.Nil(t, entry.SpendChargeID)
+	}
 }
 
 // TestOnFlatFeeCustomCurrencyOverageAccrued_RejectsNonPositiveFiatOutcomes

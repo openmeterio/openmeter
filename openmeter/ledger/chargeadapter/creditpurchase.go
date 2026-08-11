@@ -112,6 +112,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 			SourceCurrency: currencies.NewCurrencyReference(settlementCurrency),
 			TargetCurrency: charge.Intent.Currency.Reference(),
 			Features:       featureFilters,
+			SourceChargeID: &charge.ID,
 		})
 	}
 	templates = append(templates, transactions.AuthorizeCustomerReceivablePaymentTemplate{
