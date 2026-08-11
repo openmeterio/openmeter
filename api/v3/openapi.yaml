@@ -1739,6 +1739,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VoidCreditGrantRequest'
+      x-internal: true
+      x-private: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:

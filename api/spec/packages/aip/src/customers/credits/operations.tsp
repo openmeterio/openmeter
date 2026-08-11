@@ -118,10 +118,12 @@ namespace Credits.Grants {
      * voided; voiding a pending, expired, or fully consumed grant returns a conflict.
      * Retrying a successful void is an idempotent success.
      */
-    @extension(Shared.UnstableExtension, true)
     @post
     @operationId("void-credit-grant")
     @summary("Void credit grant")
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.PrivateExtension, true)
+    @extension(Shared.InternalExtension, true)
     voidGrant(
       @path customerId: Shared.ULID,
       @path creditGrantId: Shared.ULID,
