@@ -137,10 +137,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 	}
 	phases := phasePlan.phases
 
-	err = PrioritizeGrants(grants)
-	if err != nil {
-		return RunResult{}, fmt.Errorf("failed to prioritize grants: %w", err)
-	}
+	PrioritizeGrants(grants)
 
 	// Only respect balances that we know the grants of, otherwise we cannot guarantee
 	// that the output balance is correct for said grants.
@@ -178,10 +175,7 @@ func (e *engine) runBetweenResets(ctx context.Context, params inbetweenRunParams
 	for _, phase := range phases {
 		// reprioritize grants if needed
 		if rePrioritize {
-			err = PrioritizeGrants(grants)
-			if err != nil {
-				return RunResult{}, fmt.Errorf("failed to prioritize grants: %w", err)
-			}
+			PrioritizeGrants(grants)
 			rePrioritize = false
 		}
 

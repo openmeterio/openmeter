@@ -43,9 +43,7 @@ func (e *engine) reset(grants []grant.Grant, snap balance.Snapshot, behavior gra
 	}
 
 	prioritizedGrants := slices.Clone(grants)
-	if err := PrioritizeGrants(prioritizedGrants); err != nil {
-		return balance.Snapshot{}, fmt.Errorf("failed to prioritize grants: %w", err)
-	}
+	PrioritizeGrants(prioritizedGrants)
 
 	rolledOver, _, startingOverage = e.burnDownGrants(rolledOver, prioritizedGrants, startingOverage)
 

@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"cmp"
 	"slices"
 	"sort"
 	"strings"
@@ -167,63 +168,37 @@ func (e *engine) filterRelevantGrants(grants []grant.Grant, bm balance.Map, peri
 	return relevant
 }
 
-// The correct order to burn down grants is:
-// 1. Grants with higher priority are burned down first
-// 2. Grants with earlier expiration date are burned down first
-// 3. For a deterministic order, we sort by our general cursor which is created_at + id
-//
-// TODO: figure out if this needs to return an error or not
-func PrioritizeGrants(grants []grant.Grant) error {
-	if len(grants) == 0 {
-		// we don't do a thing, return early
-		// return fmt.Errorf("no grants to prioritize")
-		return nil
+// PrioritizeGrants orders grants in place by burn-down precedence.
+// Lower priority numbers, earlier expirations, and earlier creation cursors burn down first.
+func PrioritizeGrants(grants []grant.Grant) {
+	slices.SortStableFunc(grants, compareGrantsByBurnDownOrder)
+}
+
+func compareGrantsByBurnDownOrder(i, j grant.Grant) int {
+	if priorityOrder := cmp.Compare(i.Priority, j.Priority); priorityOrder != 0 {
+		return priorityOrder
 	}
 
-	// 3. As a tie breaker, we use our general cursor which is created_at then id
-	slices.SortStableFunc(grants, func(i, j grant.Grant) int {
-		switch {
-		case i.CreatedAt.Before(j.CreatedAt):
-			return -1
-		case i.CreatedAt.After(j.CreatedAt):
-			return 1
-		default:
-			return strings.Compare(i.ID, j.ID)
+	iExpiration := i.GetExpiration()
+	jExpiration := j.GetExpiration()
+
+	if iExpiration == nil && jExpiration != nil {
+		return 1
+	}
+
+	if iExpiration != nil && jExpiration == nil {
+		return -1
+	}
+
+	if iExpiration != nil && jExpiration != nil {
+		if expirationOrder := cmp.Compare(iExpiration.Unix(), jExpiration.Unix()); expirationOrder != 0 {
+			return expirationOrder
 		}
-	})
+	}
 
-	// 2. Grants with earlier expiration date are burned down first
-	slices.SortStableFunc(grants, func(i, j grant.Grant) int {
-		exp1 := i.GetExpiration()
-		exp2 := j.GetExpiration()
+	if creationOrder := i.CreatedAt.Compare(j.CreatedAt); creationOrder != 0 {
+		return creationOrder
+	}
 
-		switch {
-		// If both have no expiration, we keep the order
-		case exp1 == nil && exp2 == nil:
-			return 0
-		// If the second has an expiration, we put it first
-		case exp1 == nil && exp2 != nil:
-			return 1
-		// If the first has an expiration, we put it first
-		case exp2 == nil && exp1 != nil:
-			return -1
-		}
-
-		// Otherwise we compare the expiration dates
-		switch u1, u2 := exp1.Unix(), exp2.Unix(); {
-		case u1 < u2:
-			return -1
-		case u1 > u2:
-			return 1
-		default:
-			return 0
-		}
-	})
-
-	// 1. Order grant balances by priority
-	sort.SliceStable(grants, func(i, j int) bool {
-		return grants[i].Priority < grants[j].Priority
-	})
-
-	return nil
+	return strings.Compare(i.ID, j.ID)
 }
