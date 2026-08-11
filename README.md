@@ -69,25 +69,37 @@ example sends one `request` event and queries its metered value.
 <summary><strong>Bash (curl)</strong></summary>
 
 ```sh
-curl -sS -o /dev/null -w '%{http_code}\n' \
-  -X POST http://localhost:48888/api/v1/events \
-  -H 'Content-Type: application/cloudevents+json' \
-  --data-raw '{
-    "specversion": "1.0",
-    "type": "request",
-    "id": "readme-curl-1",
-    "source": "readme",
-    "subject": "readme-curl",
-    "data": { "method": "GET", "route": "/hello" }
-  }'
+(
+  status=$(curl -sS -o /dev/null -w '%{http_code}' \
+    -X POST http://localhost:48888/api/v1/events \
+    -H 'Content-Type: application/cloudevents+json' \
+    --data-raw '{
+      "specversion": "1.0",
+      "type": "request",
+      "id": "readme-curl-1",
+      "source": "readme",
+      "subject": "readme-curl",
+      "data": { "method": "GET", "route": "/hello" }
+    }') || exit 1
 
-response=
-for attempt in 1 2 3 4 5 6 7 8 9 10; do
-  response=$(curl -fsS 'http://localhost:48888/api/v1/meters/api_requests_total/query?subject=readme-curl')
-  printf '%s' "$response" | grep -q '"value":1' && break
-  sleep 1
-done
-printf '%s\n' "$response"
+  if [ "$status" != 204 ]; then
+    printf 'event ingestion failed (HTTP %s)\n' "$status" >&2
+    exit 1
+  fi
+  printf '%s\n' "$status"
+
+  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    response=$(curl -fsS 'http://localhost:48888/api/v1/meters/api_requests_total/query?subject=readme-curl') || exit 1
+    if printf '%s' "$response" | grep -Eq '"value"[[:space:]]*:[[:space:]]*1[[:space:]]*[,}]'; then
+      printf '%s\n' "$response"
+      exit 0
+    fi
+    sleep 1
+  done
+
+  printf '%s\n' 'usage was not processed in time' >&2
+  exit 1
+)
 ```
 
 </details>
