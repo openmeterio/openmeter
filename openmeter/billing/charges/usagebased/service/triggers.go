@@ -38,7 +38,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 
 		invoicePatches, err := stateMachine.AdvanceUntilInvoicePatchesOrStable(ctx)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error advance the invoice patches: %w", err)
 		}
 		canAdvance, err = stateMachine.CanFire(ctx, meta.TriggerNext)
 		if err != nil {
