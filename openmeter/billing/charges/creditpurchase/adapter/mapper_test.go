@@ -31,7 +31,7 @@ func TestFromDBCostBasis(t *testing.T) {
 		require.ErrorContains(t, err, "fiat cost basis is required")
 	})
 
-	t.Run("dedicated fiat materializes resolved state at charge creation", func(t *testing.T) {
+	t.Run("dedicated fiat materializes resolved state", func(t *testing.T) {
 		mapped, err := fromDBCostBasis(&db.ChargeCreditPurchase{
 			SettlementType: &invoiceSettlementType,
 			FiatCostBasis:  &rate,
@@ -39,10 +39,9 @@ func TestFromDBCostBasis(t *testing.T) {
 		}, currenciestestutils.NewFiatCurrency(t, "USD"))
 		require.NoError(t, err)
 		require.NotNil(t, mapped.CostBasis)
-		require.Equal(t, &costbasis.State{
-			CostBasis:  rate,
-			ResolvedAt: createdAt,
-		}, mapped.ResolvedCostBasis)
+		require.NotNil(t, mapped.ResolvedCostBasis)
+		require.Equal(t, rate, mapped.ResolvedCostBasis.CostBasis)
+		require.False(t, mapped.ResolvedCostBasis.ResolvedAt.IsZero())
 	})
 
 	t.Run("dedicated custom currency maps persisted state", func(t *testing.T) {

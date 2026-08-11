@@ -200,10 +200,10 @@ but credit purchases reject it until their lifecycle can resolve the rate
 before monetary realization.
 
 Persisted credit purchases read settlement and cost basis only from their
-dedicated fields. Fiat purchases reconstruct resolved state from their scalar
-rate and immutable creation time; custom-currency purchases reference durable
-shared cost-basis state. The legacy settlement JSON column is deprecated and
-ignored.
+dedicated fields. Fiat purchases persist their scalar rate on the charge row;
+custom-currency purchases reference durable shared cost-basis state. Resolution
+time and charge creation time are not a validation invariant. The legacy
+settlement JSON column is deprecated and ignored.
 
 A credit grant, payment authorization, and payment settlement are separate
 durable facts. A later state cannot be inferred from the presence of an earlier

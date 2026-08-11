@@ -82,9 +82,6 @@ func (c ChargeBase) validateCostBasis() error {
 		if !c.State.ResolvedCostBasis.CostBasis.Equal(fiatCostBasis.Rate) {
 			return errors.New("fiat resolved cost basis must match the intent rate")
 		}
-		if !c.State.ResolvedCostBasis.ResolvedAt.Equal(c.CreatedAt) {
-			return errors.New("fiat resolved cost-basis time must match charge creation time")
-		}
 	}
 
 	return nil

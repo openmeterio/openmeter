@@ -66,7 +66,6 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseResolvesPinnedCostBas
 	s.Equal(float64(0.25), created.Charge.State.ResolvedCostBasis.CostBasis.InexactFloat64())
 	s.Equal(pinnedCostBasis.ID, lo.FromPtr(created.Charge.State.ResolvedCostBasis.CostBasisID))
 	s.Equal(now.Truncate(time.Microsecond), created.Charge.State.ResolvedCostBasis.ResolvedAt.Truncate(time.Microsecond))
-	s.Equal(created.Charge.CreatedAt.Truncate(time.Microsecond), created.Charge.State.ResolvedCostBasis.ResolvedAt.Truncate(time.Microsecond))
 
 	s.Require().NotNil(created.GatheringLineToCreate)
 	s.Equal(currencyx.FiatCode(currency.USD), created.GatheringLineToCreate.Currency)

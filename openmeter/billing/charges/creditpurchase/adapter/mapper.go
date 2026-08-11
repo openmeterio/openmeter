@@ -132,7 +132,9 @@ func fromDBCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.C
 		return mappedCostBasis{
 			CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: *dbEntity.FiatCostBasis})),
 			ResolvedCostBasis: &costbasis.State{
-				CostBasis:  *dbEntity.FiatCostBasis,
+				CostBasis: *dbEntity.FiatCostBasis,
+				// CreatedAt is the only persisted timestamp available when
+				// reconstructing fiat cost-basis state - it's an acceptable fallback.
 				ResolvedAt: dbEntity.CreatedAt.In(time.UTC),
 			},
 		}, nil

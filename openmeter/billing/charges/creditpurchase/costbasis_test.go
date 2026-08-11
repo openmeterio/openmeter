@@ -172,6 +172,15 @@ func TestChargeBaseValidateCostBasis(t *testing.T) {
 			State:           validState,
 		}).validateCostBasis())
 
+		resolvedLater := validState
+		resolvedLater.ResolvedCostBasis = lo.ToPtr(*validState.ResolvedCostBasis)
+		resolvedLater.ResolvedCostBasis.ResolvedAt = createdAt.Add(time.Second)
+		require.NoError(t, (ChargeBase{
+			ManagedResource: meta.ManagedResource{ManagedModel: models.ManagedModel{CreatedAt: createdAt}},
+			Intent:          fiatIntent,
+			State:           resolvedLater,
+		}).validateCostBasis())
+
 		mismatchedRate := validState
 		mismatchedRate.ResolvedCostBasis = lo.ToPtr(*validState.ResolvedCostBasis)
 		mismatchedRate.ResolvedCostBasis.CostBasis = alpacadecimal.NewFromInt(1)

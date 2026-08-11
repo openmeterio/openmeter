@@ -855,7 +855,6 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		s.Require().NotNil(creditPurchaseCharge.State.ResolvedCostBasis)
 		s.Nil(creditPurchaseCharge.State.ResolvedCostBasis.CostBasisID)
 		s.Equal(float64(0.5), creditPurchaseCharge.State.ResolvedCostBasis.CostBasis.InexactFloat64())
-		s.Equal(creditPurchaseCharge.CreatedAt, creditPurchaseCharge.State.ResolvedCostBasis.ResolvedAt)
 		s.Nil(creditPurchaseCharge.Realizations.CreditGrantRealization)
 		s.Nil(creditPurchaseCharge.Realizations.InvoiceSettlement)
 	})
