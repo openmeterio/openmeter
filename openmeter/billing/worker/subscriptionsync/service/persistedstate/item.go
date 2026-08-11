@@ -190,35 +190,6 @@ func ItemAsSplitLineHierarchy(in Item) (*billing.SplitLineHierarchy, error) {
 	return hierarchyGetter.GetSplitLineHierarchy(), nil
 }
 
-func NewItemFromLineOrHierarchy(lineOrHierarchy billing.LineOrHierarchy) (Item, error) {
-	switch lineOrHierarchy.Type() {
-	case billing.LineOrHierarchyTypeLine:
-		line, err := lineOrHierarchy.AsGenericLine()
-		if err != nil {
-			return nil, fmt.Errorf("getting line: %w", err)
-		}
-
-		if line == nil {
-			return nil, fmt.Errorf("line is nil")
-		}
-
-		return newPersistedLine(line)
-	case billing.LineOrHierarchyTypeHierarchy:
-		hierarchy, err := lineOrHierarchy.AsHierarchy()
-		if err != nil {
-			return nil, fmt.Errorf("getting hierarchy: %w", err)
-		}
-
-		if hierarchy == nil {
-			return nil, fmt.Errorf("hierarchy is nil")
-		}
-
-		return newPersistedSplitLineHierarchy(hierarchy)
-	default:
-		return nil, fmt.Errorf("unsupported line or hierarchy type: %s", lineOrHierarchy.Type())
-	}
-}
-
 type persistedUsageBasedCharge struct {
 	charge     usagebased.Charge
 	baseIntent usagebased.Intent
