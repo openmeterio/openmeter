@@ -30,11 +30,13 @@ type FlatFeeService interface {
 	// UpdateSubscriptionItemID repairs subscription ownership metadata on the
 	// base intent; it must not rewrite an active customer-facing override layer.
 	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
-	// AdvanceCharge drives one charge through its lifecycle. Invoice-backed
-	// changes are emitted as invoice patches for the billing boundary to consume.
-	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
-	// TriggerPatch applies an explicit base/override target patch and then
-	// reconciles invoice artifacts from the effective flat-fee intent.
+	// AdvanceCharge drives one charge until invoice patches are emitted or its
+	// lifecycle becomes stable. Callers must apply returned invoice patches
+	// before resuming when CanAdvance is true.
+	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (meta.TriggerPatchResult[Charge], error)
+	// TriggerPatch applies an explicit base/override target patch and advances
+	// until invoice patches are emitted or the lifecycle becomes stable. Callers
+	// that apply returned invoice patches must resume with AdvanceCharge.
 	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[Charge], error)
 }
 

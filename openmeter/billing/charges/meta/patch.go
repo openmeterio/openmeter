@@ -73,6 +73,10 @@ type Patch interface {
 type TriggerPatchResult[T any] struct {
 	Charge         *T
 	InvoicePatches invoiceupdater.Patches
+	// CanAdvance reports whether TriggerNext is available at the returned
+	// invoice-effect boundary. Returned invoice patches must be applied before
+	// lifecycle advancement resumes.
+	CanAdvance bool
 }
 
 // PatchAction adapts a generic Patch action to a concrete patch action when

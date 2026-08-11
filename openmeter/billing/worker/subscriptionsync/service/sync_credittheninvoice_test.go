@@ -1155,7 +1155,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncNonBillableAmount
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeFlatFee,
-			Status: string(flatfee.StatusCreated),
+			Status: string(flatfee.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(5),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -1519,7 +1519,7 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncBillableAmountPro
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeFlatFee,
-			Status: string(flatfee.StatusCreated),
+			Status: string(flatfee.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromFloat(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,
@@ -5285,7 +5285,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 		}, chargesmeta.Expands{chargesmeta.ExpandRealizations, chargesmeta.ExpandDetailedLines})
 
 		s.Equal(*createdLine.ChargeID, manualCharge.ID)
-		s.Equal(usagebased.StatusActiveRealizationStarted, manualCharge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, manualCharge.Status)
 		s.Equal(billing.ManuallyManagedLine, manualCharge.Intent.GetBaseIntent().ManagedBy)
 		s.False(manualCharge.Intent.HasOverrideLayer(), "manual charge override layer")
 		s.Nil(manualCharge.Intent.GetSubscription())
@@ -6231,7 +6231,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusCreated),
+			Status: string(usagebased.StatusActive),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			}),

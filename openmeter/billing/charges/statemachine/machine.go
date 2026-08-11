@@ -4,13 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/qmuntal/stateless"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/pkg/models"
+)
+
+var (
+	ErrUnsupportedOperation    = models.NewGenericPreConditionFailedError(errors.New("unsupported operation"))
+	ErrUnhandledInvoicePatches = errors.New("unhandled invoice patches")
 )
 
 type Status interface {
@@ -37,12 +42,33 @@ type Config[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] st
 }
 
 type StateMachine[CHARGE any] interface {
-	AdvanceUntilStateStable(ctx context.Context) (*CHARGE, error)
+	// AdvanceUntilInvoicePatchesOrStable fires lifecycle continuation
+	// transitions until the machine emits invoice patches or has no next
+	// transition. Returned patches are removed from the machine; the caller must
+	// settle them before advancing a freshly loaded charge again.
+	AdvanceUntilInvoicePatchesOrStable(ctx context.Context) (invoiceupdater.Patches, error)
+	// AdvanceUntilStable fires lifecycle continuation transitions until the
+	// machine has no next transition. It fails with ErrUnhandledInvoicePatches
+	// when a transition emits invoice patches instead of advancing past them.
+	AdvanceUntilStable(ctx context.Context) error
+	// CanFire reports whether the trigger is permitted from the current charge
+	// state without mutating or persisting the charge.
 	CanFire(ctx context.Context, trigger meta.Trigger) (bool, error)
-	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error
+	// FireAndAdvanceUntilInvoicePatchesOrStable validates and fires the explicit
+	// trigger, persists the resulting charge state, then fires continuation
+	// transitions until invoice patches are emitted or the machine has no next
+	// transition. Returned patches are removed from the machine; the caller must
+	// settle them before advancing a freshly loaded charge again.
+	FireAndAdvanceUntilInvoicePatchesOrStable(ctx context.Context, trigger meta.Trigger, args ...models.Validator) (invoiceupdater.Patches, error)
+	// FireAndAdvanceUntilStable validates and fires the explicit trigger, then
+	// advances until the machine has no next transition. It fails with
+	// ErrUnhandledInvoicePatches rather than advancing past emitted patches.
+	FireAndAdvanceUntilStable(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error
+	// GetCharge returns the machine's current in-memory charge, including state
+	// and base values returned by persistence during completed transitions.
 	GetCharge() CHARGE
-	InvoicePatches() invoiceupdater.Patches
-	DrainInvoicePatches() invoiceupdater.Patches
+	// RefetchCharge replaces the current in-memory charge with its latest
+	// persisted representation.
 	RefetchCharge(ctx context.Context) error
 }
 
@@ -109,11 +135,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) GetCharge() CHARGE {
 	return m.Charge
 }
 
-func (m *Machine[CHARGE, BASE, STATUS]) InvoicePatches() invoiceupdater.Patches {
-	return slices.Clone(m.invoicePatches)
-}
-
-func (m *Machine[CHARGE, BASE, STATUS]) DrainInvoicePatches() invoiceupdater.Patches {
+func (m *Machine[CHARGE, BASE, STATUS]) drainInvoicePatches() invoiceupdater.Patches {
 	patches := m.invoicePatches
 	m.invoicePatches = nil
 	return patches
@@ -123,21 +145,35 @@ func (m *Machine[CHARGE, BASE, STATUS]) AddInvoicePatch(patches ...invoiceupdate
 	m.invoicePatches = append(m.invoicePatches, patches...)
 }
 
-var ErrUnsupportedOperation = models.NewGenericPreConditionFailedError(fmt.Errorf("unsupported operation"))
-
-func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error {
-	fireArgs := make([]any, 0, len(args))
-	for _, arg := range args {
-		if arg == nil {
-			return fmt.Errorf("trigger %s argument: argument is required", trigger)
-		}
-
-		if err := arg.Validate(); err != nil {
-			return fmt.Errorf("trigger %s argument: %w", trigger, err)
-		}
-
-		fireArgs = append(fireArgs, arg)
+func (m *Machine[CHARGE, BASE, STATUS]) fireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error {
+	if len(m.invoicePatches) > 0 {
+		return fmt.Errorf("%w: cannot fire trigger %v with %d pending invoice patches", ErrUnhandledInvoicePatches, trigger, len(m.invoicePatches))
 	}
+
+	var validationErrors []error
+	if trigger == nil {
+		validationErrors = append(validationErrors, errors.New("trigger is required"))
+	}
+
+	validationErrors = append(validationErrors, lo.Map(args, func(argument models.Validator, index int) error {
+		if argument == nil {
+			return fmt.Errorf("arguments[%d]: argument is required", index)
+		}
+
+		if err := argument.Validate(); err != nil {
+			return fmt.Errorf("arguments[%d]: %w", index, err)
+		}
+
+		return nil
+	})...)
+
+	if err := models.NewNillableGenericValidationError(errors.Join(validationErrors...)); err != nil {
+		return fmt.Errorf("trigger %v input: %w", trigger, err)
+	}
+
+	fireArgs := lo.Map(args, func(argument models.Validator, _ int) any {
+		return argument
+	})
 
 	canFire, err := m.CanFire(ctx, trigger)
 	if err != nil {
@@ -172,32 +208,76 @@ func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, tri
 	return nil
 }
 
-func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilStateStable(ctx context.Context) (*CHARGE, error) {
-	var advanced bool
+// FireAndAdvanceUntilInvoicePatchesOrStable applies an explicit lifecycle
+// trigger and continues through next transitions until invoice patches are
+// emitted or the machine becomes stable. Returned patches are removed from the
+// machine and must be settled before the charge is advanced again.
+func (m *Machine[CHARGE, BASE, STATUS]) FireAndAdvanceUntilInvoicePatchesOrStable(ctx context.Context, trigger meta.Trigger, args ...models.Validator) (invoiceupdater.Patches, error) {
+	if err := m.fireAndActivate(ctx, trigger, args...); err != nil {
+		return nil, fmt.Errorf("fire trigger %v: %w", trigger, err)
+	}
 
+	patches, err := m.AdvanceUntilInvoicePatchesOrStable(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("advance after trigger %v: %w", trigger, err)
+	}
+
+	return patches, nil
+}
+
+// AdvanceUntilInvoicePatchesOrStable continues through next transitions until
+// invoice patches are emitted or the machine becomes stable. Returned patches
+// are removed from the machine and must be settled before the charge is
+// advanced again.
+func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilInvoicePatchesOrStable(ctx context.Context) (invoiceupdater.Patches, error) {
 	for {
+		if len(m.invoicePatches) > 0 {
+			return m.drainInvoicePatches(), nil
+		}
+
 		canFire, err := m.CanFire(ctx, meta.TriggerNext)
 		if err != nil {
 			return nil, err
 		}
-
 		if !canFire {
-			if !advanced {
-				return nil, nil
-			}
-
-			charge := m.Charge
-			return &charge, nil
+			return nil, nil
 		}
 
 		currentStatus := m.Charge.GetStatus()
-
-		if err := m.FireAndActivate(ctx, meta.TriggerNext); err != nil {
+		if err := m.fireAndActivate(ctx, meta.TriggerNext); err != nil {
 			return nil, fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", currentStatus, err)
 		}
-
-		advanced = true
 	}
+}
+
+// FireAndAdvanceUntilStable applies an explicit lifecycle trigger and advances
+// until the machine is stable. Invoice patches are rejected because callers
+// that own them must use FireAndAdvanceUntilInvoicePatchesOrStable.
+func (m *Machine[CHARGE, BASE, STATUS]) FireAndAdvanceUntilStable(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error {
+	patches, err := m.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, trigger, args...)
+	if err != nil {
+		return err
+	}
+	if len(patches) > 0 {
+		return fmt.Errorf("%w: trigger %v produced %d invoice patches", ErrUnhandledInvoicePatches, trigger, len(patches))
+	}
+
+	return nil
+}
+
+// AdvanceUntilStable advances until the machine is stable. Invoice patches are
+// rejected because callers that own them must use
+// AdvanceUntilInvoicePatchesOrStable.
+func (m *Machine[CHARGE, BASE, STATUS]) AdvanceUntilStable(ctx context.Context) error {
+	patches, err := m.AdvanceUntilInvoicePatchesOrStable(ctx)
+	if err != nil {
+		return err
+	}
+	if len(patches) > 0 {
+		return fmt.Errorf("%w: transition produced %d invoice patches", ErrUnhandledInvoicePatches, len(patches))
+	}
+
+	return nil
 }
 
 func (m *Machine[CHARGE, BASE, STATUS]) RefetchCharge(ctx context.Context) error {

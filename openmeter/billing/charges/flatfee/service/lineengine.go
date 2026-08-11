@@ -153,19 +153,15 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return nil, err
 		}
 
-		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+		if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
 			return nil, fmt.Errorf("advancing flat fee charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceCreated, billing.StandardLineWithInvoiceHeader{
+		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceCreated, billing.StandardLineWithInvoiceHeader{
 			Line:    stdLine,
 			Invoice: input.Invoice,
 		}); err != nil {
 			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, stateMachine.GetCharge().ID, err)
-		}
-
-		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing flat fee charge[%s] after %s: %w", stateMachine.GetCharge().ID, meta.TriggerInvoiceCreated, err)
 		}
 
 		charge := stateMachine.GetCharge()
@@ -214,12 +210,8 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 			continue
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerCollectionCompleted); err != nil {
+		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerCollectionCompleted); err != nil {
 			return nil, fmt.Errorf("triggering collection_completed for charge[%s]: %w", stateMachine.GetCharge().ID, err)
-		}
-
-		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing flat fee charge[%s] after collection_completed: %w", stateMachine.GetCharge().ID, err)
 		}
 
 		charge := stateMachine.GetCharge()
@@ -305,11 +297,11 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 			return nil, fmt.Errorf("creating flat-fee line manual edit patch for line[%s]: %w", override.ExistingLine.GetID(), err)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerLineManualEdit, lineManualEditPatch); err != nil {
+		patches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, meta.TriggerLineManualEdit, lineManualEditPatch)
+		if err != nil {
 			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerLineManualEdit, charge.ID, err)
 		}
 
-		patches := stateMachine.DrainInvoicePatches()
 		var targetLine billing.GenericInvoiceLine
 		switch override.ExistingLine.AsInvoiceLine().Type() {
 		case billing.InvoiceLineTypeStandard:
@@ -408,11 +400,12 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("creating flat fee line[%s] manual delete patch: %w", line.GetID(), err)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerDelete, deletePatch); err != nil {
+		patches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, meta.TriggerDelete, deletePatch)
+		if err != nil {
 			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerDelete, charge.ID, err)
 		}
 
-		if err := e.handleManualDeleteInvoicePatches(ctx, input.Invoice, line, *chargeID, stateMachine.DrainInvoicePatches()); err != nil {
+		if err := e.handleManualDeleteInvoicePatches(ctx, input.Invoice, line, *chargeID, patches); err != nil {
 			return billing.OnMutableInvoiceUpdateResult{}, err
 		}
 	}
@@ -640,14 +633,14 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, invoice billi
 	// TODO: reject cost-basis-backed charges in manual line attachment. This
 	// path bypasses StatusActive, which owns cost-basis resolution, so accepting
 	// it would create an invoice-backed charge without the required resolved value.
-	if err := stateMachine.FireAndActivate(ctx, meta.TriggerAttachInvoiceLine, billing.StandardLineWithInvoiceHeader{
+	patches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, meta.TriggerAttachInvoiceLine, billing.StandardLineWithInvoiceHeader{
 		Line:    &standardLine,
 		Invoice: standardInvoice,
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerAttachInvoiceLine, charge.ID, err)
 	}
 
-	patches := stateMachine.DrainInvoicePatches()
 	updatePatch, err := patches.RequireSingularLineUpdatePatchForTarget(sourceLine)
 	if err != nil {
 		return nil, fmt.Errorf("line[%s]: validating attach update patch target: %w", sourceLine.GetID(), err)
@@ -961,15 +954,11 @@ func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoic
 			return err
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceIssued, billing.StandardLineWithInvoiceHeader{
+		if err := stateMachine.FireAndAdvanceUntilStable(ctx, meta.TriggerInvoiceIssued, billing.StandardLineWithInvoiceHeader{
 			Line:    stdLine,
 			Invoice: input.Invoice,
 		}); err != nil {
 			return fmt.Errorf("triggering invoice_issued for charge[%s]: %w", stateMachine.GetCharge().ID, err)
-		}
-
-		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return fmt.Errorf("advancing flat fee charge[%s] after invoice_issued: %w", stateMachine.GetCharge().ID, err)
 		}
 	}
 
@@ -1020,7 +1009,7 @@ func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPayme
 			return fmt.Errorf("refetching flat fee charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+		if err := stateMachine.AdvanceUntilStable(ctx); err != nil {
 			return fmt.Errorf("advancing flat fee charge[%s] after payment settlement: %w", stateMachine.GetCharge().ID, err)
 		}
 	}

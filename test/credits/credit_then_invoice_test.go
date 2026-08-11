@@ -2142,7 +2142,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		// when:
 		// - the service period is extended back to the full non-zero period
 		// then:
-		// - the charge returns to created with a pending gathering line and a due advance timestamp
+		// - the gathering line is restored and the charge continues to active
 		patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
 			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     servicePeriod.To,
@@ -2158,7 +2158,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 			},
 		}))
 
-		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
+		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusActive)
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(1), charge.State.AmountAfterProration, "extended amount should become non-zero")
 		s.Require().NotNil(charge.State.AdvanceAfter)
 		s.True(servicePeriod.To.Equal(*charge.State.AdvanceAfter))
@@ -2173,19 +2173,19 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
-	s.Run("when charges advance after the non-zero extension", func() {
+	s.Run("when scheduled advancement runs after the completed extension", func() {
 		// given:
-		// - the non-zero charge is created again and invoice_at has passed
+		// - patch application has already advanced the restored charge to active
 		// when:
-		// - charge advancement runs
+		// - scheduled charge advancement runs at invoice_at
 		// then:
-		// - the charge becomes active and waits for normal invoice-line lifecycle callbacks
+		// - no further lifecycle transition is available until an invoice-line callback
 		clock.FreezeTime(servicePeriod.To)
 		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 			Customer: cust.GetID(),
 		})
 		s.NoError(err)
-		s.Len(advancedCharges, 1)
+		s.Empty(advancedCharges)
 
 		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusActive)
 		s.Require().NotNil(charge.State.AdvanceAfter)

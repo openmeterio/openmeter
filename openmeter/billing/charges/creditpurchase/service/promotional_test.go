@@ -35,7 +35,7 @@ func TestPromotionalCreditPurchaseStateMachineAdvancesCreatedChargeToFinal(t *te
 		creditpurchase.StatusCreated,
 	)
 
-	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
+	advancedCharge, err := advancePromotionalChargeUntilStable(t, stateMachine)
 
 	require.NoError(t, err)
 	require.NotNil(t, advancedCharge)
@@ -63,7 +63,7 @@ func TestPromotionalCreditPurchaseStateMachineAdvancesActiveChargeToFinal(t *tes
 		creditpurchase.StatusActive,
 	)
 
-	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
+	advancedCharge, err := advancePromotionalChargeUntilStable(t, stateMachine)
 
 	require.NoError(t, err)
 	require.NotNil(t, advancedCharge)
@@ -103,7 +103,7 @@ func TestPromotionalCreditPurchaseStateMachineRejectsExistingCreditGrant(t *test
 	})
 	require.NoError(t, err)
 
-	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
+	advancedCharge, err := advancePromotionalChargeUntilStable(t, stateMachine)
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "promotional credit grant already realized")
@@ -134,7 +134,7 @@ func TestPromotionalCreditPurchaseStateMachineReturnsNilForFinalCharge(t *testin
 	})
 	require.NoError(t, err)
 
-	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
+	advancedCharge, err := advancePromotionalChargeUntilStable(t, stateMachine)
 
 	require.NoError(t, err)
 	require.Nil(t, advancedCharge)
@@ -192,6 +192,20 @@ func TestPromotionalCreditPurchaseStateMachineRejectsMissingService(t *testing.T
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "service is required")
+}
+
+func advancePromotionalChargeUntilStable(t *testing.T, stateMachine *PromotionalCreditpurchaseStateMachine) (*creditpurchase.Charge, error) {
+	canAdvance, err := stateMachine.CanFire(t.Context(), meta.TriggerNext)
+	if err != nil || !canAdvance {
+		return nil, err
+	}
+
+	if err := stateMachine.AdvanceUntilStable(t.Context()); err != nil {
+		return nil, err
+	}
+
+	charge := stateMachine.GetCharge()
+	return &charge, nil
 }
 
 func newPromotionalStateMachineTestMachine(

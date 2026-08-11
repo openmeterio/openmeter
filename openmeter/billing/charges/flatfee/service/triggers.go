@@ -13,19 +13,48 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceChargeInput) (*flatfee.Charge, error) {
+func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceChargeInput) (meta.TriggerPatchResult[flatfee.Charge], error) {
 	if err := input.Validate(); err != nil {
-		return nil, fmt.Errorf("validate: %w", err)
+		return meta.TriggerPatchResult[flatfee.Charge]{}, fmt.Errorf("validate: %w", err)
 	}
 
-	return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
+	var result meta.TriggerPatchResult[flatfee.Charge]
+	charge, err := s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
 		stateMachine, err := s.newStateMachineForCharge(charge)
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		return stateMachine.AdvanceUntilStateStable(ctx)
+		canAdvance, err := stateMachine.CanFire(ctx, meta.TriggerNext)
+		if err != nil {
+			return nil, err
+		}
+		if !canAdvance {
+			return nil, nil
+		}
+
+		invoicePatches, err := stateMachine.AdvanceUntilInvoicePatchesOrStable(ctx)
+		if err != nil {
+			return nil, err
+		}
+		canAdvance, err = stateMachine.CanFire(ctx, meta.TriggerNext)
+		if err != nil {
+			return nil, fmt.Errorf("check next transition: %w", err)
+		}
+
+		charge = stateMachine.GetCharge()
+		result.InvoicePatches = invoicePatches
+		result.CanAdvance = canAdvance
+
+		return &charge, nil
 	})
+	if err != nil {
+		return meta.TriggerPatchResult[flatfee.Charge]{}, err
+	}
+
+	result.Charge = charge
+
+	return result, nil
 }
 
 func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[flatfee.Charge], error) {
@@ -65,13 +94,18 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		err = stateMachine.FireAndActivate(ctx, patch.Trigger(), patch)
+		invoicePatches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, patch.Trigger(), patch)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to advance charge: %w", err)
+		}
+		canAdvance, err := stateMachine.CanFire(ctx, meta.TriggerNext)
+		if err != nil {
+			return nil, fmt.Errorf("check next transition: %w", err)
 		}
 
 		charge = stateMachine.GetCharge()
-		result.InvoicePatches = stateMachine.DrainInvoicePatches()
+		result.InvoicePatches = invoicePatches
+		result.CanAdvance = canAdvance
 
 		return &charge, nil
 	})

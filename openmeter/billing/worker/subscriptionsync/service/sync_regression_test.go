@@ -128,6 +128,11 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 					},
 				})
 
+				if tc.chargeType == chargesmeta.ChargeTypeUsageBased {
+					s.Require().NotNil(s.APIRequestsTotalFeature.MeterSlug)
+					s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 0, start)
+				}
+
 				s.Require().NoError(s.Service.SyncByView(ctx, subsView, start.Add(time.Minute)))
 				chargePage, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 					Namespace:       subsView.Subscription.Namespace,

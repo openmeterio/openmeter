@@ -590,9 +590,9 @@ func (e *testEnv) advanceFlatFeeCharge(t *testing.T, charge flatfee.Charge) flat
 		ChargeID: charge.GetChargeID(),
 	})
 	require.NoError(t, err)
-	require.NotNil(t, advancedCharge)
+	require.NotNil(t, advancedCharge.Charge)
 
-	return *advancedCharge
+	return *advancedCharge.Charge
 }
 
 func (e *testEnv) createPendingInvoiceCreditGrant(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features ...string) creditpurchase.Charge {

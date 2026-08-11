@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
@@ -103,11 +104,11 @@ func newTestMachine(
 	return machine
 }
 
-func TestMachine_FireAndActivateUpdatesStatus(t *testing.T) {
+func TestMachine_FireAndAdvanceUntilStableUpdatesStatus(t *testing.T) {
 	// Given:
 	// a machine in created state with a next transition to active.
 	// When:
-	// FireAndActivate is called with the next trigger.
+	// FireAndAdvanceUntilStable is called with the next trigger.
 	// Then:
 	// the machine updates the in-memory charge status to active and persists the updated base.
 	var updateCalls int
@@ -125,7 +126,7 @@ func TestMachine_FireAndActivateUpdatesStatus(t *testing.T) {
 
 	machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
 
-	err := machine.FireAndActivate(t.Context(), meta.TriggerNext)
+	err := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerNext)
 
 	require.NoError(t, err)
 	require.Equal(t, fakeStatusActive, machine.GetCharge().GetStatus())
@@ -133,11 +134,11 @@ func TestMachine_FireAndActivateUpdatesStatus(t *testing.T) {
 	require.Equal(t, 1, updateCalls)
 }
 
-func TestMachine_FireAndActivateReturnsUnsupportedOperationWhenTriggerCannotFire(t *testing.T) {
+func TestMachine_FireAndAdvanceUntilStableReturnsUnsupportedOperationWhenTriggerCannotFire(t *testing.T) {
 	// Given:
 	// a machine in created state without a next transition.
 	// When:
-	// FireAndActivate is called with the next trigger.
+	// FireAndAdvanceUntilStable is called with the next trigger.
 	// Then:
 	// the machine returns an unsupported-operation error that includes the trigger, status, and charge id.
 	machine := newTestMachine(
@@ -147,7 +148,7 @@ func TestMachine_FireAndActivateReturnsUnsupportedOperationWhenTriggerCannotFire
 		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
 	)
 
-	err := machine.FireAndActivate(t.Context(), meta.TriggerNext)
+	err := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerNext)
 
 	require.Error(t, err)
 	require.ErrorIs(t, err, ErrUnsupportedOperation)
@@ -156,11 +157,11 @@ func TestMachine_FireAndActivateReturnsUnsupportedOperationWhenTriggerCannotFire
 	require.ErrorContains(t, err, "charge-1")
 }
 
-func TestMachine_FireAndActivateValidatesTriggerArguments(t *testing.T) {
+func TestMachine_FireAndAdvanceUntilStableValidatesTriggerArguments(t *testing.T) {
 	// Given:
 	// a machine with a transition and an invalid trigger argument.
 	// When:
-	// FireAndActivate is called.
+	// FireAndAdvanceUntilStable is called.
 	// Then:
 	// it returns the argument validation error before firing or persisting.
 	validationErr := errors.New("invalid trigger argument")
@@ -178,7 +179,7 @@ func TestMachine_FireAndActivateValidatesTriggerArguments(t *testing.T) {
 
 	machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
 
-	err := machine.FireAndActivate(t.Context(), meta.TriggerNext, fakeTriggerArg{err: validationErr})
+	err := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerNext, fakeTriggerArg{err: validationErr})
 
 	require.ErrorIs(t, err, validationErr)
 	require.ErrorContains(t, err, fmt.Sprint(meta.TriggerNext))
@@ -186,13 +187,13 @@ func TestMachine_FireAndActivateValidatesTriggerArguments(t *testing.T) {
 	require.Zero(t, updateCalls)
 }
 
-func TestMachine_AdvanceUntilStateStableReturnsNilWhenAlreadyStable(t *testing.T) {
+func TestMachine_AdvanceUntilStableDoesNothingWhenAlreadyStable(t *testing.T) {
 	// Given:
 	// a machine already in a stable state with no next transition.
 	// When:
-	// AdvanceUntilStateStable is called.
+	// AdvanceUntilStable is called.
 	// Then:
-	// it returns nil and does not persist the base.
+	// it succeeds without persisting the base.
 	var updateCalls int
 
 	machine := newTestMachine(
@@ -205,20 +206,344 @@ func TestMachine_AdvanceUntilStateStableReturnsNilWhenAlreadyStable(t *testing.T
 		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
 	)
 
-	charge, err := machine.AdvanceUntilStateStable(t.Context())
+	err := machine.AdvanceUntilStable(t.Context())
 
 	require.NoError(t, err)
-	require.Nil(t, charge)
 	require.Zero(t, updateCalls)
 }
 
-func TestMachine_AdvanceUntilStateStableWalksTransitionsAndPersistsReturnedBase(t *testing.T) {
+func TestMachine_FireAndAdvanceUntilStable(t *testing.T) {
+	t.Run("advances when no invoice patches are emitted", func(t *testing.T) {
+		// Given:
+		// - an explicit invoice-created trigger enters active
+		// - active can advance to final without emitting invoice effects
+		// When:
+		// - FireAndAdvanceUntilStable is called
+		// Then:
+		// - the machine reaches final
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerInvoiceCreated, fakeStatusActive)
+		machine.Configure(fakeStatusActive).Permit(meta.TriggerNext, fakeStatusFinal)
+
+		err := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerInvoiceCreated)
+
+		require.NoError(t, err)
+		require.Equal(t, fakeStatusFinal, machine.GetCharge().GetStatus())
+	})
+
+	t.Run("rejects unhandled invoice effects", func(t *testing.T) {
+		// Given:
+		// - an explicit invoice-created trigger enters active and emits an invoice effect
+		// - active can otherwise advance to final
+		// When:
+		// - FireAndAdvanceUntilStable is called
+		// Then:
+		// - it reports the unhandled patch and does not fire next
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerInvoiceCreated, fakeStatusActive)
+		machine.Configure(fakeStatusActive).Permit(meta.TriggerNext, fakeStatusFinal).OnActive(func(ctx context.Context) error {
+			machine.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch("charge-1"))
+			return nil
+		})
+
+		err := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerInvoiceCreated)
+
+		require.ErrorIs(t, err, ErrUnhandledInvoicePatches)
+		require.Equal(t, fakeStatusActive, machine.GetCharge().GetStatus())
+	})
+}
+
+func TestMachine_FireAndAdvanceUntilInvoicePatchesOrStable(t *testing.T) {
+	t.Run("stops after the explicit trigger emits invoice patches", func(t *testing.T) {
+		// Given:
+		// - invoice-created enters active and emits an invoice patch
+		// - active could otherwise continue to final
+		// When:
+		// - the explicit trigger is fired and advanced toward an invoice boundary
+		// Then:
+		// - the patch is returned before the next transition fires
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerInvoiceCreated, fakeStatusActive)
+		machine.Configure(fakeStatusActive).Permit(meta.TriggerNext, fakeStatusFinal).OnActive(func(ctx context.Context) error {
+			machine.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch("charge-1"))
+			return nil
+		})
+
+		patches, err := machine.FireAndAdvanceUntilInvoicePatchesOrStable(t.Context(), meta.TriggerInvoiceCreated)
+
+		require.NoError(t, err)
+		require.Len(t, patches, 1)
+		require.Empty(t, machine.invoicePatches)
+		require.Equal(t, fakeStatusActive, machine.GetCharge().GetStatus())
+	})
+
+	t.Run("advances through transitions without invoice patches", func(t *testing.T) {
+		// Given:
+		// - invoice-created enters active without invoice effects
+		// - the following transition to final emits an invoice patch
+		// When:
+		// - the explicit trigger is fired and advanced toward an invoice boundary
+		// Then:
+		// - the machine reaches final and returns its patch
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerInvoiceCreated, fakeStatusActive)
+		machine.Configure(fakeStatusActive).Permit(meta.TriggerNext, fakeStatusFinal)
+		machine.Configure(fakeStatusFinal).OnActive(func(ctx context.Context) error {
+			machine.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch("charge-1"))
+			return nil
+		})
+
+		patches, err := machine.FireAndAdvanceUntilInvoicePatchesOrStable(t.Context(), meta.TriggerInvoiceCreated)
+
+		require.NoError(t, err)
+		require.Len(t, patches, 1)
+		require.Equal(t, fakeStatusFinal, machine.GetCharge().GetStatus())
+	})
+
+	t.Run("returns empty when the machine becomes stable", func(t *testing.T) {
+		// Given:
+		// - invoice-created enters an active state without invoice effects or a next transition
+		// When:
+		// - the explicit trigger is fired and advanced toward an invoice boundary
+		// Then:
+		// - the machine becomes stable and returns no patches
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerInvoiceCreated, fakeStatusActive)
+
+		patches, err := machine.FireAndAdvanceUntilInvoicePatchesOrStable(t.Context(), meta.TriggerInvoiceCreated)
+
+		require.NoError(t, err)
+		require.Empty(t, patches)
+		require.Equal(t, fakeStatusActive, machine.GetCharge().GetStatus())
+	})
+
+	t.Run("rejects a trigger while invoice patches are pending", func(t *testing.T) {
+		// Given:
+		// - a machine in created state has a pending invoice patch
+		// - invoice-created would otherwise transition it to active
+		// When:
+		// - an invoice-aware trigger is fired
+		// Then:
+		// - the trigger is rejected before the transition can mutate the charge
+		var updateCalls int
+
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) {
+				updateCalls++
+				return base, nil
+			},
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerInvoiceCreated, fakeStatusActive)
+		machine.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch("charge-1"))
+
+		_, err := machine.FireAndAdvanceUntilInvoicePatchesOrStable(t.Context(), meta.TriggerInvoiceCreated)
+
+		require.ErrorIs(t, err, ErrUnhandledInvoicePatches)
+		require.Equal(t, fakeStatusCreated, machine.GetCharge().GetStatus())
+		require.Equal(t, 1, len(machine.invoicePatches))
+		require.Zero(t, updateCalls)
+	})
+}
+
+func TestMachine_AdvanceUntilInvoicePatchesOrStable(t *testing.T) {
+	// Given:
+	// - active can continue to final and emits an invoice patch there
+	// When:
+	// - advancement resumes toward the next invoice boundary
+	// Then:
+	// - it returns the final-state patch
+	machine := newTestMachine(
+		t,
+		newFakeCharge(fakeStatusActive),
+		func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+	)
+	machine.Configure(fakeStatusActive).Permit(meta.TriggerNext, fakeStatusFinal)
+	machine.Configure(fakeStatusFinal).OnActive(func(ctx context.Context) error {
+		machine.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch("charge-1"))
+		return nil
+	})
+
+	patches, err := machine.AdvanceUntilInvoicePatchesOrStable(t.Context())
+
+	require.NoError(t, err)
+	require.Len(t, patches, 1)
+	require.Equal(t, fakeStatusFinal, machine.GetCharge().GetStatus())
+
+	t.Run("returns pending invoice patches before advancing", func(t *testing.T) {
+		// Given:
+		// - a machine already has a pending invoice patch and can advance
+		// When:
+		// - AdvanceUntilInvoicePatchesOrStable is called
+		// Then:
+		// - it returns the pending patch without firing a transition
+		var updateCalls int
+
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) {
+				updateCalls++
+				return base, nil
+			},
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
+		machine.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch("charge-1"))
+
+		patches, err := machine.AdvanceUntilInvoicePatchesOrStable(t.Context())
+
+		require.NoError(t, err)
+		require.Len(t, patches, 1)
+		require.Equal(t, fakeStatusCreated, machine.GetCharge().GetStatus())
+		require.Zero(t, updateCalls)
+	})
+
+	t.Run("returns invoice patches before evaluating next", func(t *testing.T) {
+		// Given:
+		// - the charge can advance from created to active to final
+		// - entering active emits an invoice patch
+		// When:
+		// - AdvanceUntilInvoicePatchesOrStable is called
+		// Then:
+		// - it returns the patch without evaluating the transition to final
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
+		machine.Configure(fakeStatusActive).Permit(meta.TriggerNext, fakeStatusFinal)
+		machine.Configure(fakeStatusActive).OnActive(func(ctx context.Context) error {
+			machine.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch("charge-1"))
+			return nil
+		})
+
+		patches, err := machine.AdvanceUntilInvoicePatchesOrStable(t.Context())
+
+		require.NoError(t, err)
+		require.Len(t, patches, 1)
+		require.Equal(t, fakeStatusActive, machine.GetCharge().GetStatus())
+	})
+}
+
+func TestMachine_AdvanceUntilStable(t *testing.T) {
+	t.Run("advances when no invoice patches are emitted", func(t *testing.T) {
+		// Given:
+		// - a charge can advance from created to active without emitting invoice effects
+		// When:
+		// - AdvanceUntilStable is called
+		// Then:
+		// - the transition completes successfully
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) { return base, nil },
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
+
+		err := machine.AdvanceUntilStable(t.Context())
+
+		require.NoError(t, err)
+		require.Equal(t, fakeStatusActive, machine.GetCharge().GetStatus())
+	})
+
+	t.Run("rejects invoice patches", func(t *testing.T) {
+		// Given:
+		// - a continuation transition emits an invoice patch
+		// When:
+		// - AdvanceUntilStable is called
+		// Then:
+		// - it reports the unhandled patch and leaves the following transition unevaluated
+		var updateCalls int
+
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) {
+				updateCalls++
+				return base, nil
+			},
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
+		machine.Configure(fakeStatusActive).OnActive(func(ctx context.Context) error {
+			machine.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch("charge-1"))
+			return nil
+		})
+
+		err := machine.AdvanceUntilStable(t.Context())
+
+		require.ErrorIs(t, err, ErrUnhandledInvoicePatches)
+		require.Equal(t, fakeStatusActive, machine.GetCharge().GetStatus())
+		require.Equal(t, 1, updateCalls)
+	})
+
+	t.Run("advances through an empty lifecycle boundary", func(t *testing.T) {
+		// Given:
+		// - a charge that can advance without emitting invoice effects
+		// When:
+		// - AdvanceUntilStable is called
+		// Then:
+		// - the machine advances normally
+		var updateCalls int
+
+		machine := newTestMachine(
+			t,
+			newFakeCharge(fakeStatusCreated),
+			func(ctx context.Context, base fakeBase) (fakeBase, error) {
+				updateCalls++
+				return base, nil
+			},
+			func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+		)
+		machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
+
+		err := machine.AdvanceUntilStable(t.Context())
+
+		require.NoError(t, err)
+		require.Equal(t, fakeStatusActive, machine.GetCharge().GetStatus())
+		require.Equal(t, 1, updateCalls)
+	})
+}
+
+func TestMachine_AdvanceUntilStableWalksTransitionsAndPersistsReturnedBase(t *testing.T) {
 	// Given:
 	// a machine that can advance from created to active to final.
 	// When:
-	// AdvanceUntilStateStable is called.
+	// AdvanceUntilStable is called.
 	// Then:
-	// it walks all next transitions and the returned charge contains the persisted base returned by UpdateBase.
+	// it walks all next transitions and the machine contains the persisted base returned by UpdateBase.
 	var updateCalls int
 
 	machine := newTestMachine(
@@ -235,22 +560,22 @@ func TestMachine_AdvanceUntilStateStableWalksTransitionsAndPersistsReturnedBase(
 	machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
 	machine.Configure(fakeStatusActive).Permit(meta.TriggerNext, fakeStatusFinal)
 
-	charge, err := machine.AdvanceUntilStateStable(t.Context())
+	err := machine.AdvanceUntilStable(t.Context())
+	charge := machine.GetCharge()
 
 	require.NoError(t, err)
-	require.NotNil(t, charge)
 	require.Equal(t, fakeStatusFinal, charge.GetStatus())
 	require.Equal(t, 2, charge.GetBase().Revision)
 	require.Equal(t, 2, updateCalls)
 }
 
-func TestMachine_AdvanceUntilStateStablePersistsPostActivationBase(t *testing.T) {
+func TestMachine_AdvanceUntilStablePersistsPostActivationBase(t *testing.T) {
 	// Given:
 	// a machine whose activation logic mutates the in-memory base before persistence.
 	// When:
-	// AdvanceUntilStateStable is called.
+	// AdvanceUntilStable is called.
 	// Then:
-	// UpdateBase receives the post-activation base and the returned charge contains the persisted result.
+	// UpdateBase receives the post-activation base and the machine contains the persisted result.
 	var observedBase fakeBase
 
 	machine := newTestMachine(
@@ -271,19 +596,19 @@ func TestMachine_AdvanceUntilStateStablePersistsPostActivationBase(t *testing.T)
 		return nil
 	})
 
-	charge, err := machine.AdvanceUntilStateStable(t.Context())
+	err := machine.AdvanceUntilStable(t.Context())
+	charge := machine.GetCharge()
 
 	require.NoError(t, err)
-	require.NotNil(t, charge)
 	require.Equal(t, 7, observedBase.Revision)
 	require.Equal(t, 8, charge.GetBase().Revision)
 }
 
-func TestMachine_FireAndActivatePropagatesActivationErrors(t *testing.T) {
+func TestMachine_FireAndAdvanceUntilStablePropagatesActivationErrors(t *testing.T) {
 	// Given:
 	// a machine whose activation callback fails after a valid transition fires.
 	// When:
-	// FireAndActivate is called.
+	// FireAndAdvanceUntilStable is called.
 	// Then:
 	// the activation error is returned to the caller.
 	activationErr := errors.New("activation failed")
@@ -301,16 +626,16 @@ func TestMachine_FireAndActivatePropagatesActivationErrors(t *testing.T) {
 		return activationErr
 	})
 
-	err := machine.FireAndActivate(t.Context(), meta.TriggerNext)
+	err := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerNext)
 
 	require.ErrorIs(t, err, activationErr)
 }
 
-func TestMachine_FireAndActivateDoesNotPersistWhenActivationFails(t *testing.T) {
+func TestMachine_FireAndAdvanceUntilStableDoesNotPersistWhenActivationFails(t *testing.T) {
 	// Given:
 	// a machine whose activation callback fails.
 	// When:
-	// FireAndActivate is called.
+	// FireAndAdvanceUntilStable is called.
 	// Then:
 	// it returns the activation error without persisting the base.
 	activationErr := errors.New("activation failed")
@@ -332,17 +657,17 @@ func TestMachine_FireAndActivateDoesNotPersistWhenActivationFails(t *testing.T) 
 		return activationErr
 	})
 
-	err := machine.FireAndActivate(t.Context(), meta.TriggerNext)
+	err := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerNext)
 
 	require.ErrorIs(t, err, activationErr)
 	require.Zero(t, updateCalls)
 }
 
-func TestMachine_FireAndActivateFailsFastOnInvalidTargetStatus(t *testing.T) {
+func TestMachine_FireAndAdvanceUntilStableFailsFastOnInvalidTargetStatus(t *testing.T) {
 	// Given:
 	// a machine with a transition targeting an invalid status value.
 	// When:
-	// FireAndActivate is called.
+	// FireAndAdvanceUntilStable is called.
 	// Then:
 	// it fails before any persistence logic is involved.
 	machine := newTestMachine(
@@ -357,7 +682,7 @@ func TestMachine_FireAndActivateFailsFastOnInvalidTargetStatus(t *testing.T) {
 
 	machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatus("broken"))
 
-	err := machine.FireAndActivate(t.Context(), meta.TriggerNext)
+	err := machine.FireAndAdvanceUntilStable(t.Context(), meta.TriggerNext)
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "invalid status")
@@ -390,11 +715,11 @@ func TestMachine_RefetchChargeReplacesTheInMemoryCharge(t *testing.T) {
 	require.Equal(t, "refetched", machine.GetCharge().Marker)
 }
 
-func TestMachine_AdvanceUntilStateStablePropagatesPersistenceErrors(t *testing.T) {
+func TestMachine_AdvanceUntilStablePropagatesPersistenceErrors(t *testing.T) {
 	// Given:
 	// a machine that can advance but fails while persisting the updated base.
 	// When:
-	// AdvanceUntilStateStable is called.
+	// AdvanceUntilStable is called.
 	// Then:
 	// it returns the wrapped persistence error and stops advancing.
 	persistErr := errors.New("persist failed")
@@ -410,9 +735,8 @@ func TestMachine_AdvanceUntilStateStablePropagatesPersistenceErrors(t *testing.T
 
 	machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
 
-	charge, err := machine.AdvanceUntilStateStable(t.Context())
+	err := machine.AdvanceUntilStable(t.Context())
 
-	require.Nil(t, charge)
 	require.ErrorIs(t, err, persistErr)
 	require.ErrorContains(t, err, "persist charge")
 }

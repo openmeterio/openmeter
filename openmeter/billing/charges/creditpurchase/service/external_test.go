@@ -114,7 +114,7 @@ func TestExternalCreditPurchaseStateMachineAuthorizationUsesRealizationDuplicate
 	})
 	require.NoError(t, err)
 
-	err = stateMachine.FireAndActivate(t.Context(), billing.TriggerAuthorized)
+	err = stateMachine.FireAndAdvanceUntilStable(t.Context(), billing.TriggerAuthorized)
 
 	require.Error(t, err)
 	require.ErrorIs(t, err, payment.ErrPaymentAlreadyAuthorized)

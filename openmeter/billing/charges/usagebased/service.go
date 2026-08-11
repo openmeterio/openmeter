@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/mo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
@@ -29,11 +31,13 @@ type UsageBasedService interface {
 	// UpdateSubscriptionItemID repairs subscription ownership metadata on the
 	// base intent; it must not rewrite an active customer-facing override layer.
 	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
-	// AdvanceCharge drives one usage-based charge. Realization runs store
-	// cumulative usage snapshots; billing-line quantities are mapped separately.
-	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
-	// TriggerPatch applies an explicit base/override target patch and then
-	// reconciles invoice artifacts from the effective usage-based intent.
+	// AdvanceCharge drives one charge until invoice patches are emitted or its
+	// lifecycle becomes stable. Callers must apply returned invoice patches
+	// before resuming when CanAdvance is true.
+	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (meta.TriggerPatchResult[Charge], error)
+	// TriggerPatch applies an explicit base/override target patch and advances
+	// until invoice patches are emitted or the lifecycle becomes stable. Callers
+	// that apply returned invoice patches must resume with AdvanceCharge.
 	TriggerPatch(ctx context.Context, charge meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[Charge], error)
 	// GetCurrentTotals calculates the current customer-facing totals from the
 	// effective intent and non-voided realization history.
@@ -139,9 +143,15 @@ func (i GetByIDsInput) Validate() error {
 }
 
 type AdvanceChargeInput struct {
-	ChargeID         meta.ChargeID
-	CustomerOverride billing.CustomerOverrideWithDetails
-	FeatureMeters    feature.FeatureMeters
+	ChargeID meta.ChargeID
+	// CustomerOverride is an authoritative optional resolution hint. None lets
+	// the service resolve the current customer override; Some uses only the
+	// supplied snapshot.
+	CustomerOverride mo.Option[billing.CustomerOverrideWithDetails]
+	// FeatureMeters is an authoritative optional resolution hint. None lets the
+	// service resolve the required feature meter; Some resolves exclusively from
+	// the supplied collection and returns an error when the feature is absent.
+	FeatureMeters mo.Option[feature.FeatureMeters]
 }
 
 func (i AdvanceChargeInput) Validate() error {
@@ -150,16 +160,18 @@ func (i AdvanceChargeInput) Validate() error {
 		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
 
-	if i.CustomerOverride.Customer == nil {
-		errs = append(errs, errors.New("expanded customer is required"))
+	if customerOverride, ok := i.CustomerOverride.Get(); ok {
+		if customerOverride.Customer == nil {
+			errs = append(errs, errors.New("expanded customer is required"))
+		}
+
+		if err := customerOverride.MergedProfile.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("merged profile is required: %w", err))
+		}
 	}
 
-	if err := i.CustomerOverride.MergedProfile.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("merged profile is required: %w", err))
-	}
-
-	if i.FeatureMeters == nil {
-		errs = append(errs, errors.New("feature meters are required"))
+	if featureMeters, ok := i.FeatureMeters.Get(); ok && featureMeters == nil {
+		errs = append(errs, errors.New("feature meters cannot be nil when provided"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

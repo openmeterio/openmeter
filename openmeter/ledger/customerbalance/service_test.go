@@ -402,11 +402,11 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 		ChargeID: charge.GetChargeID(),
 	})
 	require.NoError(t, err)
-	require.NotNil(t, advancedCharge)
-	require.Equal(t, flatfee.StatusActive, advancedCharge.Status)
-	require.NotNil(t, advancedCharge.State.AdvanceAfter)
-	require.True(t, servicePeriod.From.Equal(*advancedCharge.State.AdvanceAfter))
-	require.Nil(t, advancedCharge.Realizations.CurrentRun)
+	require.NotNil(t, advancedCharge.Charge)
+	require.Equal(t, flatfee.StatusActive, advancedCharge.Charge.Status)
+	require.NotNil(t, advancedCharge.Charge.State.AdvanceAfter)
+	require.True(t, servicePeriod.From.Equal(*advancedCharge.Charge.State.AdvanceAfter))
+	require.Nil(t, advancedCharge.Charge.Realizations.CurrentRun)
 
 	// then:
 	// - after advancement, the active charge still impacts live balance
@@ -417,12 +417,12 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 		ChargeID: charge.GetChargeID(),
 	})
 	require.NoError(t, err)
-	require.NotNil(t, advancedCharge)
-	require.Equal(t, flatfee.StatusFinal, advancedCharge.Status)
-	require.Nil(t, advancedCharge.State.AdvanceAfter)
-	require.NotNil(t, advancedCharge.Realizations.CurrentRun)
-	require.Len(t, advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
-	require.Equal(t, float64(30), advancedCharge.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
+	require.NotNil(t, advancedCharge.Charge)
+	require.Equal(t, flatfee.StatusFinal, advancedCharge.Charge.Status)
+	require.Nil(t, advancedCharge.Charge.State.AdvanceAfter)
+	require.NotNil(t, advancedCharge.Charge.Realizations.CurrentRun)
+	require.Len(t, advancedCharge.Charge.Realizations.CurrentRun.CreditRealizations, 1)
+	require.Equal(t, float64(30), advancedCharge.Charge.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
 
 	// then:
 	// - once booked_at is current, the ledger allocation carries the balance

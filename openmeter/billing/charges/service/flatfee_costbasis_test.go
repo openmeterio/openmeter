@@ -301,18 +301,18 @@ func (s *FlatFeeCostBasisCreateSuite) TestDynamicCostBasisResolvesWhenChargeBeco
 		ChargeID: created[0].Charge.GetChargeID(),
 	})
 	s.Require().NoError(err)
-	s.Require().NotNil(advanced)
-	s.Require().Equal(flatfee.StatusActive, advanced.Status)
-	s.Require().Equal(created[0].Charge.State.CostBasisID, advanced.State.CostBasisID)
-	s.Require().NotNil(advanced.State.ResolvedCostBasis)
-	s.Require().Equal(first.ID, *advanced.State.ResolvedCostBasis.CostBasisID)
-	s.Require().Equal(first.Rate.InexactFloat64(), advanced.State.ResolvedCostBasis.CostBasis.InexactFloat64())
-	s.Require().Equal(servicePeriodFrom, advanced.State.ResolvedCostBasis.ResolvedAt)
+	s.Require().NotNil(advanced.Charge)
+	s.Require().Equal(flatfee.StatusActive, advanced.Charge.Status)
+	s.Require().Equal(created[0].Charge.State.CostBasisID, advanced.Charge.State.CostBasisID)
+	s.Require().NotNil(advanced.Charge.State.ResolvedCostBasis)
+	s.Require().Equal(first.ID, *advanced.Charge.State.ResolvedCostBasis.CostBasisID)
+	s.Require().Equal(first.Rate.InexactFloat64(), advanced.Charge.State.ResolvedCostBasis.CostBasis.InexactFloat64())
+	s.Require().Equal(servicePeriodFrom, advanced.Charge.State.ResolvedCostBasis.ResolvedAt)
 
 	reloaded, err := s.mustGetChargeByID(created[0].Charge.GetChargeID()).AsFlatFeeCharge()
 	s.Require().NoError(err)
-	s.Require().Equal(advanced.State.CostBasisID, reloaded.State.CostBasisID)
-	s.Require().Equal(advanced.State.ResolvedCostBasis, reloaded.State.ResolvedCostBasis)
+	s.Require().Equal(advanced.Charge.State.CostBasisID, reloaded.State.CostBasisID)
+	s.Require().Equal(advanced.Charge.State.ResolvedCostBasis, reloaded.State.ResolvedCostBasis)
 }
 
 func (s *FlatFeeCostBasisCreateSuite) TestPinnedCostBasisMustMatchCurrencyAndFiatCurrency() {

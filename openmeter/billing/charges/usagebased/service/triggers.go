@@ -16,33 +16,48 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceChargeInput) (*usagebased.Charge, error) {
+func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceChargeInput) (meta.TriggerPatchResult[usagebased.Charge], error) {
 	if err := input.Validate(); err != nil {
-		return nil, fmt.Errorf("validate: %w", err)
+		return meta.TriggerPatchResult[usagebased.Charge]{}, fmt.Errorf("validate: %w", err)
 	}
 
-	return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {
-		featureMeter, err := charge.ResolveFeatureMeter(input.FeatureMeters)
-		if err != nil {
-			return nil, fmt.Errorf("get feature meter: %w", err)
-		}
-
-		stateMachine, err := s.newStateMachine(StateMachineConfig{
-			Charge:             charge,
-			Adapter:            s.adapter,
-			Rater:              s.rater,
-			Runs:               s.runs,
-			CustomerOverride:   input.CustomerOverride,
-			FeatureMeter:       featureMeter,
-			CurrencyCalculator: charge.Intent.GetCurrency(),
-			CostBasisResolver:  s.costbasisResolver,
-		})
+	var result meta.TriggerPatchResult[usagebased.Charge]
+	charge, err := s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {
+		stateMachine, err := s.newStateMachineForChargeWithHints(ctx, charge, input)
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		return stateMachine.AdvanceUntilStateStable(ctx)
+		canAdvance, err := stateMachine.CanFire(ctx, meta.TriggerNext)
+		if err != nil {
+			return nil, fmt.Errorf("charge state trigger failed with: %w", err)
+		}
+		if !canAdvance {
+			return nil, nil
+		}
+
+		invoicePatches, err := stateMachine.AdvanceUntilInvoicePatchesOrStable(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error advance the invoice patches: %w", err)
+		}
+		canAdvance, err = stateMachine.CanFire(ctx, meta.TriggerNext)
+		if err != nil {
+			return nil, fmt.Errorf("check next transition: %w", err)
+		}
+
+		charge = stateMachine.GetCharge()
+		result.InvoicePatches = invoicePatches
+		result.CanAdvance = canAdvance
+
+		return &charge, nil
 	})
+	if err != nil {
+		return meta.TriggerPatchResult[usagebased.Charge]{}, err
+	}
+
+	result.Charge = charge
+
+	return result, nil
 }
 
 func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patch meta.Patch) (meta.TriggerPatchResult[usagebased.Charge], error) {
@@ -82,12 +97,18 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, patch.Trigger(), patch); err != nil {
+		invoicePatches, err := stateMachine.FireAndAdvanceUntilInvoicePatchesOrStable(ctx, patch.Trigger(), patch)
+		if err != nil {
 			return nil, err
+		}
+		canAdvance, err := stateMachine.CanFire(ctx, meta.TriggerNext)
+		if err != nil {
+			return nil, fmt.Errorf("check next transition: %w", err)
 		}
 
 		charge = stateMachine.GetCharge()
-		result.InvoicePatches = stateMachine.DrainInvoicePatches()
+		result.InvoicePatches = invoicePatches
+		result.CanAdvance = canAdvance
 
 		return &charge, nil
 	})
@@ -181,7 +202,11 @@ func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, erro
 }
 
 func (s *service) newStateMachineForCharge(ctx context.Context, charge usagebased.Charge) (StateMachine, error) {
-	stateMachineConfig, err := s.getStateMachineConfigForCharge(ctx, charge)
+	return s.newStateMachineForChargeWithHints(ctx, charge, usagebased.AdvanceChargeInput{})
+}
+
+func (s *service) newStateMachineForChargeWithHints(ctx context.Context, charge usagebased.Charge, hints usagebased.AdvanceChargeInput) (StateMachine, error) {
+	stateMachineConfig, err := s.getStateMachineConfigForChargeWithHints(ctx, charge, hints)
 	if err != nil {
 		return nil, fmt.Errorf("get state machine config: %w", err)
 	}
@@ -194,30 +219,43 @@ func (s *service) newStateMachineForCharge(ctx context.Context, charge usagebase
 	return stateMachine, nil
 }
 
-// getStateMachineConfigForCharge gets the state machine config for a charge.
-//
-// TODO[later]: This is something we can get from the callsite as we are doing a lot of unnecessary fetching here.
+// getStateMachineConfigForCharge resolves omitted state-machine dependencies
+// from their owning services.
 func (s *service) getStateMachineConfigForCharge(ctx context.Context, charge usagebased.Charge) (StateMachineConfig, error) {
-	customerOverride, err := s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-		Customer: customer.CustomerID{
-			Namespace: charge.Namespace,
-			ID:        charge.Intent.GetCustomerID(),
-		},
-		Expand: billing.CustomerOverrideExpand{
-			Customer: true,
-		},
-	})
-	if err != nil {
-		return StateMachineConfig{}, fmt.Errorf("get customer override: %w", err)
+	return s.getStateMachineConfigForChargeWithHints(ctx, charge, usagebased.AdvanceChargeInput{})
+}
+
+// getStateMachineConfigForChargeWithHints resolves omitted state-machine dependencies
+// while treating supplied advancement hints as authoritative snapshots.
+func (s *service) getStateMachineConfigForChargeWithHints(ctx context.Context, charge usagebased.Charge, hints usagebased.AdvanceChargeInput) (StateMachineConfig, error) {
+	customerOverride, hasCustomerOverrideHint := hints.CustomerOverride.Get()
+	if !hasCustomerOverrideHint {
+		var err error
+		customerOverride, err = s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: customer.CustomerID{
+				Namespace: charge.Namespace,
+				ID:        charge.Intent.GetCustomerID(),
+			},
+			Expand: billing.CustomerOverrideExpand{
+				Customer: true,
+			},
+		})
+		if err != nil {
+			return StateMachineConfig{}, fmt.Errorf("get customer override: %w", err)
+		}
 	}
 
-	featureRef := charge.GetFeatureKeyOrID()
-	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, feature.FeatureMeterRef{
-		IDOrKey:      featureRef,
-		RequireMeter: true,
-	})
-	if err != nil {
-		return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)
+	featureMeters, hasFeatureMetersHint := hints.FeatureMeters.Get()
+	if !hasFeatureMetersHint {
+		featureRef := charge.GetFeatureKeyOrID()
+		var err error
+		featureMeters, err = s.featureService.ResolveFeatureMeters(ctx, charge.Namespace, feature.FeatureMeterRef{
+			IDOrKey:      featureRef,
+			RequireMeter: true,
+		})
+		if err != nil {
+			return StateMachineConfig{}, fmt.Errorf("resolve feature meters: %w", err)
+		}
 	}
 
 	featureMeter, err := charge.ResolveFeatureMeter(featureMeters)

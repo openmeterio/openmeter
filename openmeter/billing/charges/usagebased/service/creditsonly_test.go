@@ -18,6 +18,7 @@ import (
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -79,6 +80,9 @@ func TestCreditsOnlyPeriodPatchWhileCreatedUpdatesIntentAndKeepsCreatedSchedule(
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			clock.FreezeTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
+			defer clock.UnFreeze()
+
 			// given:
 			// - a created credit-only usage-based charge before realization
 			// when:
@@ -98,7 +102,7 @@ func TestCreditsOnlyPeriodPatchWhileCreatedUpdatesIntentAndKeepsCreatedSchedule(
 			})
 
 			patch := tc.new(t, tc.to)
-			err := machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+			err := machine.FireAndAdvanceUntilStable(t.Context(), patch.Trigger(), patch)
 			require.NoError(t, err)
 
 			charge := machine.GetCharge()
@@ -117,6 +121,9 @@ func TestCreditsOnlyExtendWhileFinalRealizationInProgressVoidsCurrentRunAndMoves
 		usagebased.StatusActiveRealizationWaitingForCollection,
 	} {
 		t.Run(string(status), func(t *testing.T) {
+			clock.FreezeTime(time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC))
+			defer clock.UnFreeze()
+
 			// given:
 			// - a credit-only usage-based charge with final realization in progress
 			// when:
@@ -147,7 +154,7 @@ func TestCreditsOnlyExtendWhileFinalRealizationInProgressVoidsCurrentRunAndMoves
 			})
 
 			patch := mustNewPatchExtend(t, extendedServicePeriodTo)
-			err := machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+			err := machine.FireAndAdvanceUntilStable(t.Context(), patch.Trigger(), patch)
 			require.NoError(t, err)
 
 			charge := machine.GetCharge()
@@ -165,6 +172,9 @@ func TestCreditsOnlyExtendWhileFinalRealizationInProgressVoidsCurrentRunAndMoves
 }
 
 func TestCreditsOnlyShrinkWhileCompletedVoidsRunBeyondNewEndAndMovesActive(t *testing.T) {
+	clock.FreezeTime(time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -187,7 +197,7 @@ func TestCreditsOnlyShrinkWhileCompletedVoidsRunBeyondNewEndAndMovesActive(t *te
 	})
 
 	patch := mustNewPatchShrink(t, newServicePeriodTo)
-	err := machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+	err := machine.FireAndAdvanceUntilStable(t.Context(), patch.Trigger(), patch)
 	require.NoError(t, err)
 
 	charge := machine.GetCharge()
@@ -203,6 +213,9 @@ func TestCreditsOnlyShrinkWhileCompletedVoidsRunBeyondNewEndAndMovesActive(t *te
 }
 
 func TestCreditsOnlyExtendWhileCompletedVoidsRunAndMovesActive(t *testing.T) {
+	clock.FreezeTime(time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC))
+	defer clock.UnFreeze()
+
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -225,7 +238,7 @@ func TestCreditsOnlyExtendWhileCompletedVoidsRunAndMovesActive(t *testing.T) {
 	})
 
 	patch := mustNewPatchExtend(t, extendedServicePeriodTo)
-	err := machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+	err := machine.FireAndAdvanceUntilStable(t.Context(), patch.Trigger(), patch)
 	require.NoError(t, err)
 
 	charge := machine.GetCharge()
