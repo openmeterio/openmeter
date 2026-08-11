@@ -2,6 +2,7 @@ package secretentity
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -43,39 +44,33 @@ type UpdateAppSecretInput struct {
 }
 
 func (i UpdateAppSecretInput) Validate() error {
+	var errs []error
+
 	if err := i.AppID.Validate(); err != nil {
-		return err
+		errs = append(errs, fmt.Errorf("appID: %w", err))
 	}
 
 	if err := i.SecretID.Validate(); err != nil {
-		return err
+		errs = append(errs, fmt.Errorf("secretID: %w", err))
 	}
 
 	if i.AppID != i.SecretID.AppID {
-		return models.NewGenericValidationError(
-			errors.New("app id must match secret app id"),
-		)
+		errs = append(errs, errors.New("appID must match secretID appID"))
 	}
 
 	if i.Key == "" {
-		return models.NewGenericValidationError(
-			errors.New("key is required"),
-		)
+		errs = append(errs, errors.New("key is required"))
 	}
 
 	if i.Key != i.SecretID.Key {
-		return models.NewGenericValidationError(
-			errors.New("key must match secret key"),
-		)
+		errs = append(errs, errors.New("key must match secretID key"))
 	}
 
 	if i.Value == "" {
-		return models.NewGenericValidationError(
-			errors.New("value is required"),
-		)
+		errs = append(errs, errors.New("value is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetAppSecretInput = SecretID

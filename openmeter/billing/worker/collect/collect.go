@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type InvoiceCollector struct {
@@ -37,7 +38,7 @@ func (i ListCustomersToCollectInput) Validate() error {
 		errs = append(errs, fmt.Errorf("asOf time must not be zero"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (a *InvoiceCollector) ListCustomersToCollect(ctx context.Context, params ListCustomersToCollectInput) ([]customer.CustomerID, error) {

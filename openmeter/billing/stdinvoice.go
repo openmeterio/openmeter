@@ -1205,7 +1205,7 @@ func (i ListStandardInvoicesInput) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ListStandardInvoicesResponse = pagination.Result[StandardInvoice]

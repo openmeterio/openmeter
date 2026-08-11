@@ -1020,7 +1020,7 @@ func (i ListGatheringInvoicesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("expand: %w", err))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // ListCustomerIDsPendingCollectionInput configures retrieval of customers
@@ -1036,11 +1036,13 @@ type ListCustomerIDsPendingCollectionInput struct {
 var _ models.Validator = (*ListCustomerIDsPendingCollectionInput)(nil)
 
 func (i ListCustomerIDsPendingCollectionInput) Validate() error {
+	var errs []error
+
 	if i.AsOf.IsZero() {
-		return models.NewGenericValidationError(errors.New("asOf time must not be zero"))
+		errs = append(errs, errors.New("asOf time must not be zero"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func NewFlatFeeGatheringLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) GatheringLine {

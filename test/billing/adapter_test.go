@@ -190,12 +190,12 @@ func (s *BillingAdapterTestSuite) TestInvoiceLineReadRejectsCrossNamespaceUsageC
 		LineIDs:   []string{lines[0].ID},
 	})
 
-	require.Error(s.T(), err)
+	require.ErrorContains(s.T(), err, "manual usage based line is missing")
 	_, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 		Invoice: invoice.GetInvoiceID(),
 		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
 	})
-	require.Error(s.T(), err)
+	require.ErrorContains(s.T(), err, "usage based line data is missing")
 }
 
 func (s *BillingAdapterTestSuite) TestInvoiceReadsFilterCrossNamespaceLineCollections() {
@@ -349,7 +349,7 @@ func (s *BillingAdapterTestSuite) TestSplitLineGroupReadScopesCrossNamespaceRefe
 			ID:        group.ID,
 		})
 
-		require.Error(s.T(), err)
+		require.ErrorContains(s.T(), err, "billing invoice must be expanded")
 	})
 }
 

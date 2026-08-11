@@ -32,7 +32,7 @@ func (s *ProfileTestSuite) TestGetRejectsCrossNamespaceWorkflowReferences() {
 	// - either profile is read
 	// then:
 	// - the foreign reference is not returned and is reported as missing
-	ctx := context.Background()
+	ctx := s.T().Context()
 	foreignNamespace := s.GetUniqueNamespace("profile-reference-foreign")
 
 	workflowNamespace := s.GetUniqueNamespace("profile-workflow-target")

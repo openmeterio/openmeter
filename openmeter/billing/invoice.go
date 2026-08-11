@@ -357,7 +357,7 @@ func (i ListInvoicesInput) Validate() error {
 		outErr = append(outErr, fmt.Errorf("expand: %w", err))
 	}
 
-	return errors.Join(outErr...)
+	return models.NewNillableGenericValidationError(errors.Join(outErr...))
 }
 
 type ListInvoicesAdapterInput struct {
@@ -457,7 +457,7 @@ func (i ListInvoicesAdapterInput) Validate() error {
 		}
 	}
 
-	return errors.Join(outErr...)
+	return models.NewNillableGenericValidationError(errors.Join(outErr...))
 }
 
 type ListInvoicesResponse = pagination.Result[Invoice]

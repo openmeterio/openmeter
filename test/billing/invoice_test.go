@@ -3949,7 +3949,7 @@ func (s *InvoicingTestSuite) TestListPendingAdvancementDoesNotResolveWorkflowRef
 	// - pending advancement candidates are listed
 	// then:
 	// - the invoice identity is returned without resolving its workflow or tax code
-	ctx := context.Background()
+	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("pending-advancement")
 	s.ProvisionBillingProfile(ctx, namespace, s.InstallSandboxApp(s.T(), namespace).GetID())
 	customerEntity := s.CreateTestCustomer(namespace, "test-customer")

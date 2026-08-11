@@ -30,7 +30,7 @@ func (s *CustomerOverrideTestSuite) TestUpsertRejectsCrossNamespaceReferences() 
 	// - an override is created using a customer or profile from the other namespace
 	// then:
 	// - the foreign reference is reported as missing and no override is persisted
-	ctx := context.Background()
+	ctx := s.T().Context()
 	targetNamespace := s.GetUniqueNamespace("customer-override-target")
 	foreignNamespace := s.GetUniqueNamespace("customer-override-foreign")
 	targetCustomer := s.CreateTestCustomer(targetNamespace, "target")
@@ -66,7 +66,7 @@ func (s *CustomerOverrideTestSuite) TestGetRejectsPersistedCrossNamespaceProfile
 	// - the customer override is read
 	// then:
 	// - the foreign profile is not returned and the profile is reported as missing
-	ctx := context.Background()
+	ctx := s.T().Context()
 	customerNamespace := s.GetUniqueNamespace("customer-override-read-customer")
 	profileNamespace := s.GetUniqueNamespace("customer-override-read-profile")
 
@@ -98,7 +98,7 @@ func (s *CustomerOverrideTestSuite) TestGetRejectsPersistedCrossNamespaceTaxCode
 	// - the customer override is read
 	// then:
 	// - the foreign tax code is not returned and is reported as missing
-	ctx := context.Background()
+	ctx := s.T().Context()
 	customerNamespace := s.GetUniqueNamespace("customer-override-tax-customer")
 	taxNamespace := s.GetUniqueNamespace("customer-override-tax-code")
 	customerEntity := s.CreateTestCustomer(customerNamespace, "customer")
@@ -126,7 +126,7 @@ func (s *CustomerOverrideTestSuite) TestBulkAssignValidatesReferencesAndDeduplic
 	// - bulk assignment receives invalid references or a duplicated valid customer
 	// then:
 	// - invalid references write nothing and the valid customer is assigned once
-	ctx := context.Background()
+	ctx := s.T().Context()
 	targetNamespace := s.GetUniqueNamespace("customer-override-bulk-target")
 	foreignNamespace := s.GetUniqueNamespace("customer-override-bulk-foreign")
 	targetCustomer := s.CreateTestCustomer(targetNamespace, "target")
@@ -166,6 +166,7 @@ func (s *CustomerOverrideTestSuite) TestBulkAssignValidatesReferencesAndDeduplic
 		Customer: targetCustomer.GetID(),
 	})
 	require.NoError(s.T(), err)
+	require.NotNil(s.T(), override)
 	require.Equal(s.T(), targetProfile.ID, override.Profile.ID)
 }
 

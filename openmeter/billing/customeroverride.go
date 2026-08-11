@@ -361,22 +361,24 @@ type BulkAssignCustomersToProfileInput struct {
 }
 
 func (b BulkAssignCustomersToProfileInput) Validate() error {
+	var errs []error
+
 	if err := b.ProfileID.Validate(); err != nil {
-		return fmt.Errorf("invalid billing profile: %w", err)
+		errs = append(errs, fmt.Errorf("profileID: %w", err))
 	}
 
 	if len(b.CustomerIDs) == 0 {
-		return errors.New("customer ids are required")
+		errs = append(errs, errors.New("customerIDs are required"))
 	}
 
 	for i, customerID := range b.CustomerIDs {
 		if err := customerID.Validate(); err != nil {
-			return fmt.Errorf("invalid customer id[%d]: %w", i, err)
+			errs = append(errs, fmt.Errorf("customerIDs[%d]: %w", i, err))
 		}
 		if customerID.Namespace != b.ProfileID.Namespace {
-			return fmt.Errorf("customer id[%d] namespace does not match billing profile namespace", i)
+			errs = append(errs, fmt.Errorf("customerIDs[%d] namespace does not match profileID namespace", i))
 		}
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
