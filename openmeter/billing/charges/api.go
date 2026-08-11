@@ -15,10 +15,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// CustomerChargeAPIService resolves API-facing references before constructing
-// complete charge intents for the core charge creation flow.
+// CustomerChargeAPIService is the API-facing facade for customer-scoped charge operations.
 type CustomerChargeAPIService interface {
 	CreateCustomerCharge(ctx context.Context, input CreateCustomerChargeInput) (Charge, error)
+	DeleteCustomerCharge(ctx context.Context, input DeleteCustomerChargeInput) error
 }
 
 type CreditPurchaseFacadeService interface {
@@ -65,6 +65,54 @@ func (i CreateCustomerChargeInput) Validate() error {
 
 	if (i.FlatFee == nil) == (i.UsageBased == nil) {
 		errs = append(errs, errors.New("exactly one charge type is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type DeleteCustomerChargeInput struct {
+	Namespace  string
+	CustomerID string
+	ChargeID   string
+
+	// PaymentAdjustment is required so callers explicitly select how deletion
+	// compensates already-realized economic effects.
+	PaymentAdjustment PaymentAdjustment
+}
+
+type PaymentAdjustment string
+
+const (
+	// PaymentAdjustmentNone requests no compensating payment adjustment. Charge
+	// deletion still performs its normal invoice lifecycle reconciliation.
+	PaymentAdjustmentNone PaymentAdjustment = "none"
+)
+
+func (a PaymentAdjustment) Validate() error {
+	if a != PaymentAdjustmentNone {
+		return models.NewGenericValidationError(fmt.Errorf("invalid payment adjustment: %s", a))
+	}
+
+	return nil
+}
+
+func (i DeleteCustomerChargeInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CustomerID == "" {
+		errs = append(errs, errors.New("customer ID is required"))
+	}
+
+	if i.ChargeID == "" {
+		errs = append(errs, errors.New("charge ID is required"))
+	}
+
+	if err := i.PaymentAdjustment.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("payment adjustment: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
