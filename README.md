@@ -38,7 +38,6 @@ already use.
 | --- | --- |
 | **What is it best for?** | Products with usage-based or hybrid pricing, prepaid credits, or usage limits that need one source of truth for consumption. |
 | **What is it not?** | A bundled operator UI, payment processor, tax engine, or general-purpose accounting system. If you only need fixed recurring subscriptions, a direct payment-provider integration is usually simpler. |
-| **Who enforces access?** | OpenMeter calculates balances and access decisions; your application acts on the result. |
 | **How mature is it?** | Releases are beta and can include breaking changes. The [OpenMeter metering engine](https://openmeter.io/) has run in production for years and processed billions of usage events. Review [releases](https://github.com/openmeterio/openmeter/releases) and [migration guides](docs/migration-guides) when upgrading. |
 
 ## What OpenMeter provides
