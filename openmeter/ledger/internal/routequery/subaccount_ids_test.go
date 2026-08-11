@@ -1,4 +1,4 @@
-package adapter
+package routequery
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-func TestExpiredRecordRouteQuerySQL(t *testing.T) {
+func TestSubAccountIDsByRouteSQL(t *testing.T) {
 	tests := []struct {
 		name     string
 		route    ledger.RouteFilter
@@ -30,6 +30,15 @@ func TestExpiredRecordRouteQuerySQL(t *testing.T) {
 				"USD",
 				pq.StringArray{"feature-a", "feature-b"},
 			},
+		},
+		{
+			name: "unrestricted exact route",
+			route: ledger.RouteFilter{
+				Currency: currencies.NewCurrencyReference(currencyx.Code("USD")),
+				Features: mo.Some[[]string](nil),
+			},
+			wantSQL:  `SELECT "lsa"."id" FROM "ledger_sub_accounts" AS "lsa" JOIN "ledger_sub_account_routes" AS "lsar" ON "lsa"."route_id" = "lsar"."id" WHERE "lsar"."currency" = $1 AND "lsar"."features" IS NULL`,
+			wantArgs: []any{"USD"},
 		},
 		{
 			name: "match feature route",
@@ -55,9 +64,9 @@ func TestExpiredRecordRouteQuerySQL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			query, err := newExpiredRecordRouteQuery(tt.route)
+			query, err := NewSubAccountIDsByRoute(tt.route)
 			require.NoError(t, err)
-			gotSQL, gotArgs := query.SQL()
+			gotSQL, gotArgs := query.sql()
 
 			require.Equal(t, tt.wantSQL, gotSQL)
 			require.Equal(t, tt.wantArgs, gotArgs)
