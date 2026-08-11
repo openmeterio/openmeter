@@ -93,7 +93,7 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 		allVersions, err := s.adapter.ListPlans(ctx, plan.ListPlansInput{
 			OrderBy:        plan.OrderByVersion,
 			Order:          plan.OrderAsc,
-			Namespaces:     []string{params.Namespace},
+			Namespace:      params.Namespace,
 			Keys:           []string{params.Key},
 			IncludeDeleted: true,
 		})
@@ -705,7 +705,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		allVersions, err := s.adapter.ListPlans(ctx, plan.ListPlansInput{
 			OrderBy:        plan.OrderByVersion,
 			Order:          plan.OrderAsc,
-			Namespaces:     []string{params.Namespace},
+			Namespace:      params.Namespace,
 			IDs:            []string{params.ID},
 			Keys:           []string{params.Key},
 			IncludeDeleted: true,

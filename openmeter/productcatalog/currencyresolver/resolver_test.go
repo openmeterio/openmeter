@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -29,6 +30,45 @@ func TestResolver(t *testing.T) {
 
 	t.Run("Addon", func(t *testing.T) {
 		testResolveCurrenciesForAddon(t, fixture)
+	})
+}
+
+func TestRejectsPreResolvedForeignCurrency(t *testing.T) {
+	// given:
+	// - a fully resolved custom currency whose namespace differs from the resolver namespace
+	// when:
+	// - it is used as a direct or rate-card currency reference
+	// then:
+	// - resolution rejects the foreign managed currency instead of trusting the hydrated value
+	fixture := newResolverFixture(t)
+
+	foreign := fixture.credits
+	foreign.Namespace = currenciestestutils.NewTestNamespace(t)
+	foreign.CostBasis = lo.ToPtr([]currencies.CostBasis{})
+	foreignReference := foreign.Reference()
+	require.True(t, foreignReference.IsCostBasisResolved())
+
+	t.Run("direct reference", func(t *testing.T) {
+		reference := foreignReference.Clone()
+
+		err := currencyresolver.ResolveCurrency(t.Context(), fixture.resolver, &reference)
+
+		require.ErrorIs(t, err, productcatalog.ErrCurrencyNotFound)
+	})
+
+	t.Run("plan rate card", func(t *testing.T) {
+		reference := foreignReference.Clone()
+		p := &productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{Currency: currencies.NewCurrencyReference("USD")},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "default"},
+				RateCards: productcatalog.RateCards{newRateCard("base", &reference)},
+			}},
+		}
+
+		err := currencyresolver.ResolveCurrenciesForPlan(t.Context(), fixture.resolver, p)
+
+		require.ErrorIs(t, err, productcatalog.ErrCurrencyNotFound)
 	})
 }
 
