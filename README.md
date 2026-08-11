@@ -9,9 +9,9 @@
 **Meter usage. Enforce access. Bill customers. Keep the stack yours.**
 
 OpenMeter is open-source monetization infrastructure built for AI, API, and
-usage-based products. It turns high-volume events into real-time usage,
-calculates the entitlements your application enforces, and manages credits,
-pricing, subscriptions, and invoices.
+usage-based products. It turns high-volume events into real-time usage, powers
+access enforcement, and handles usage-based billing from pricing and
+subscriptions through credits and invoices.
 
 API-first and composable, it can own the path from raw usage to invoice—or only
 the parts your stack is missing—and work with the payment and tax providers you
