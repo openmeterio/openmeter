@@ -82,6 +82,7 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 		Handler:     creditPurchaseHandler,
 		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
+		Currencies:  s.CurrencyService,
 	})
 	s.Require().NoError(err)
 

@@ -15,6 +15,7 @@ import (
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
@@ -203,6 +204,12 @@ func newExternalStateMachineTestChargeWithInput(t *testing.T, input externalStat
 			},
 			Intent: intent,
 			Status: input.status,
+			State: creditpurchase.State{
+				ResolvedCostBasis: &chargecostbasis.State{
+					CostBasis:  input.costBasis,
+					ResolvedAt: period.From,
+				},
+			},
 		},
 	}
 }

@@ -129,7 +129,13 @@ func fromDBCostBasis(dbEntity *entdb.ChargeCreditPurchase, currency currencies.C
 			return mappedCostBasis{}, errors.New("fiat credit purchase contains custom-currency cost-basis state")
 		}
 
-		return mappedCostBasis{CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: *dbEntity.FiatCostBasis}))}, nil
+		return mappedCostBasis{
+			CostBasis: lo.ToPtr(creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: *dbEntity.FiatCostBasis})),
+			ResolvedCostBasis: &costbasis.State{
+				CostBasis:  *dbEntity.FiatCostBasis,
+				ResolvedAt: dbEntity.CreatedAt.In(time.UTC),
+			},
+		}, nil
 	}
 
 	if dbEntity.FiatCostBasis != nil {

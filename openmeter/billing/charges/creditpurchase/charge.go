@@ -67,16 +67,24 @@ func (c ChargeBase) validateCostBasis() error {
 		return errors.New("persisted payment-backed credit purchase requires a cost basis")
 	}
 
-	if !c.Intent.Currency.IsCustom() {
-		if c.State.ResolvedCostBasis != nil {
-			return errors.New("fiat credit purchase cannot have custom-currency cost-basis state")
-		}
-
-		return nil
+	if c.State.ResolvedCostBasis == nil {
+		return errors.New("payment-backed credit purchase requires resolved cost-basis state")
 	}
 
-	if c.State.ResolvedCostBasis == nil {
-		return errors.New("custom-currency credit purchase requires resolved cost-basis state")
+	if !c.Intent.Currency.IsCustom() {
+		fiatCostBasis, err := c.Intent.CostBasis.AsFiat()
+		if err != nil {
+			return fmt.Errorf("getting fiat cost basis: %w", err)
+		}
+		if c.State.ResolvedCostBasis.CostBasisID != nil {
+			return errors.New("fiat resolved cost basis cannot reference a currency cost basis")
+		}
+		if !c.State.ResolvedCostBasis.CostBasis.Equal(fiatCostBasis.Rate) {
+			return errors.New("fiat resolved cost basis must match the intent rate")
+		}
+		if !c.State.ResolvedCostBasis.ResolvedAt.Equal(c.CreatedAt) {
+			return errors.New("fiat resolved cost-basis time must match charge creation time")
+		}
 	}
 
 	return nil
@@ -308,8 +316,9 @@ type State struct {
 	// ledger void flow; the breakage records stay the accounting source of truth.
 	VoidedAt *time.Time `json:"voidedAt,omitempty"`
 
-	// ResolvedCostBasis applies only to custom-currency credit purchases. Fiat
-	// cost basis is immutable intent stored on the charge row.
+	// ResolvedCostBasis is required for every payment-backed credit purchase.
+	// Fiat state is reconstructed from immutable charge-row fields, while custom
+	// currency state is persisted on the shared cost-basis child.
 	ResolvedCostBasis *chargecostbasis.State `json:"resolvedCostBasis,omitempty"`
 }
 

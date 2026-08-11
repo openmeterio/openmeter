@@ -9,6 +9,8 @@ import (
 	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 )
 
 type Config struct {
@@ -16,6 +18,7 @@ type Config struct {
 	Handler     creditpurchase.Handler
 	Lineage     lineage.Service
 	MetaAdapter meta.Adapter
+	Currencies  currencies.Service
 }
 
 func (c Config) Validate() error {
@@ -37,6 +40,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("meta adapter cannot be null"))
 	}
 
+	if c.Currencies == nil {
+		errs = append(errs, errors.New("currencies service cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -54,12 +61,20 @@ func New(config Config) (creditpurchase.Service, error) {
 		return nil, fmt.Errorf("realizations: %w", err)
 	}
 
+	costbasisResolver, err := costbasis.NewResolver(costbasis.ResolverConfig{
+		Currencies: config.Currencies,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("cost basis resolver: %w", err)
+	}
+
 	return &service{
-		adapter:      config.Adapter,
-		handler:      config.Handler,
-		lineage:      config.Lineage,
-		metaAdapter:  config.MetaAdapter,
-		realizations: realizations,
+		adapter:           config.Adapter,
+		handler:           config.Handler,
+		lineage:           config.Lineage,
+		metaAdapter:       config.MetaAdapter,
+		realizations:      realizations,
+		costbasisResolver: costbasisResolver,
 	}, nil
 }
 
@@ -69,6 +84,8 @@ type service struct {
 	handler      creditpurchase.Handler
 	lineage      lineage.Service
 	realizations *creditpurchaserealizations.Service
+
+	costbasisResolver costbasis.Resolver
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {

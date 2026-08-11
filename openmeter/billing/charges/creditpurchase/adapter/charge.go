@@ -62,7 +62,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 	})
 }
 
-func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInput) (creditpurchase.Charge, error) {
+func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChargeInput) (creditpurchase.Charge, error) {
 	if err := in.Validate(); err != nil {
 		return creditpurchase.Charge{}, err
 	}
@@ -146,7 +146,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateInpu
 
 type applyCostBasisInput struct {
 	Create *db.ChargeCreditPurchaseCreate
-	Charge creditpurchase.CreateInput
+	Charge creditpurchase.CreateChargeInput
 }
 
 var _ models.Validator = (*applyCostBasisInput)(nil)
@@ -185,10 +185,6 @@ func (a *adapter) applyCostBasis(ctx context.Context, in applyCostBasisInput) (*
 		if err != nil {
 			return nil, fmt.Errorf("getting custom-currency cost basis: %w", err)
 		}
-		if customCostBasis.Kind() != costbasis.ModeManual {
-			return nil, errors.New("custom-currency cost basis requires resolver integration")
-		}
-
 		costBasisCreate, err := costbasis.Create(a.db.ChargeCreditPurchaseCostBasis.Create(), costbasis.CreateInput{
 			NamespacedID: models.NamespacedID{
 				Namespace: in.Charge.Namespace,
@@ -196,6 +192,7 @@ func (a *adapter) applyCostBasis(ctx context.Context, in applyCostBasisInput) (*
 			},
 			CurrencyID: in.Charge.Intent.Currency.ID,
 			Intent:     customCostBasis,
+			State:      in.Charge.ResolvedCostBasis,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("building custom-currency cost basis: %w", err)

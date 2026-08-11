@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -271,6 +272,36 @@ func (c CostBasis) AsCustomCurrency() (chargecostbasis.Intent, error) {
 	return c.customCurrency.Clone(), nil
 }
 
+func (c CostBasis) GetFiatCurrency(purchaseCurrency currencies.Currency) (*currencyx.FiatCurrency, error) {
+	switch c.Type() {
+	case CostBasisTypeFiat:
+		if purchaseCurrency.IsCustom() {
+			return nil, errors.New("fiat cost basis requires a fiat purchase currency")
+		}
+
+		fiatCurrency, err := currencyx.NewFiatCurrency(purchaseCurrency.GetCode())
+		if err != nil {
+			return nil, fmt.Errorf("mapping purchase currency to fiat currency: %w", err)
+		}
+
+		return fiatCurrency, nil
+	case CostBasisTypeCustomCurrency:
+		intent, err := c.AsCustomCurrency()
+		if err != nil {
+			return nil, err
+		}
+
+		fiatCurrency, err := intent.GetFiatCurrency()
+		if err != nil {
+			return nil, fmt.Errorf("getting custom-currency fiat currency: %w", err)
+		}
+
+		return fiatCurrency, nil
+	default:
+		return nil, fmt.Errorf("unsupported credit purchase cost basis type: %s", c.Type())
+	}
+}
+
 type ResolvedCostBasis struct {
 	FiatCurrency *currencyx.FiatCurrency
 	Rate         alpacadecimal.Decimal
@@ -308,46 +339,19 @@ func (c ChargeBase) GetResolvedCostBasis() (ResolvedCostBasis, error) {
 	if c.Intent.CostBasis == nil {
 		return ResolvedCostBasis{}, errors.New("cost basis is required")
 	}
-
-	switch c.Intent.CostBasis.Type() {
-	case CostBasisTypeFiat:
-		costBasis, err := c.Intent.CostBasis.AsFiat()
-		if err != nil {
-			return ResolvedCostBasis{}, err
-		}
-
-		fiatCurrency, err := currencyx.NewFiatCurrency(c.Intent.Currency.GetCode())
-		if err != nil {
-			return ResolvedCostBasis{}, fmt.Errorf("mapping credit currency to fiat currency: %w", err)
-		}
-
-		resolved := ResolvedCostBasis{
-			FiatCurrency: fiatCurrency,
-			Rate:         costBasis.Rate,
-		}
-
-		return resolved, resolved.Validate()
-	case CostBasisTypeCustomCurrency:
-		intent, err := c.Intent.CostBasis.AsCustomCurrency()
-		if err != nil {
-			return ResolvedCostBasis{}, err
-		}
-
-		fiatCurrency, err := intent.GetFiatCurrency()
-		if err != nil {
-			return ResolvedCostBasis{}, fmt.Errorf("getting custom-currency fiat currency: %w", err)
-		}
-		if c.State.ResolvedCostBasis == nil {
-			return ResolvedCostBasis{}, errors.New("custom-currency cost basis is unresolved")
-		}
-
-		resolved := ResolvedCostBasis{
-			FiatCurrency: fiatCurrency,
-			Rate:         c.State.ResolvedCostBasis.CostBasis,
-		}
-
-		return resolved, resolved.Validate()
-	default:
-		return ResolvedCostBasis{}, fmt.Errorf("unsupported credit purchase cost basis type: %s", c.Intent.CostBasis.Type())
+	if c.State.ResolvedCostBasis == nil {
+		return ResolvedCostBasis{}, errors.New("cost basis is unresolved")
 	}
+
+	fiatCurrency, err := c.Intent.CostBasis.GetFiatCurrency(c.Intent.Currency)
+	if err != nil {
+		return ResolvedCostBasis{}, fmt.Errorf("getting fiat currency: %w", err)
+	}
+
+	resolved := ResolvedCostBasis{
+		FiatCurrency: fiatCurrency,
+		Rate:         c.State.ResolvedCostBasis.CostBasis,
+	}
+
+	return resolved, resolved.Validate()
 }

@@ -177,6 +177,7 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchaseWithCustomCurrenc
 			Handler:     s.CreditPurchaseTestHandler,
 			Lineage:     lineageMock,
 			MetaAdapter: s.MetaAdapter,
+			Currencies:  s.CurrencyService,
 		})
 		s.Require().NoError(err)
 
@@ -265,6 +266,7 @@ func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseWithCustomCurrency() 
 		Handler:     s.CreditPurchaseTestHandler,
 		Lineage:     s.LineageService,
 		MetaAdapter: s.MetaAdapter,
+		Currencies:  s.CurrencyService,
 	})
 	s.Require().NoError(err)
 
@@ -850,6 +852,10 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
 		s.NoError(err)
 		s.Equal(creditpurchase.StatusCreated, creditPurchaseCharge.Status)
+		s.Require().NotNil(creditPurchaseCharge.State.ResolvedCostBasis)
+		s.Nil(creditPurchaseCharge.State.ResolvedCostBasis.CostBasisID)
+		s.Equal(float64(0.5), creditPurchaseCharge.State.ResolvedCostBasis.CostBasis.InexactFloat64())
+		s.Equal(creditPurchaseCharge.CreatedAt, creditPurchaseCharge.State.ResolvedCostBasis.ResolvedAt)
 		s.Nil(creditPurchaseCharge.Realizations.CreditGrantRealization)
 		s.Nil(creditPurchaseCharge.Realizations.InvoiceSettlement)
 	})

@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -21,9 +22,22 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) {
 		input.Intent = input.Intent.Normalized()
+		resolvedAt := clock.Now().UTC()
+
+		resolvedCostBasis, err := s.resolveInitialCostBasis(ctx, resolveInitialCostBasisInput{
+			Currency:   input.Intent.Currency,
+			CostBasis:  input.Intent.CostBasis,
+			ResolvedAt: resolvedAt,
+		})
+		if err != nil {
+			return creditpurchase.ChargeWithGatheringLine{}, err
+		}
 
 		// Let's create the credit purchase charge
-		charge, err := s.adapter.CreateCharge(ctx, input)
+		charge, err := s.adapter.CreateCharge(ctx, creditpurchase.CreateChargeInput{
+			CreateInput:       input,
+			ResolvedCostBasis: resolvedCostBasis,
+		})
 		if err != nil {
 			return creditpurchase.ChargeWithGatheringLine{}, err
 		}

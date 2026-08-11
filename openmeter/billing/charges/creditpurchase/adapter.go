@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -26,13 +27,75 @@ type Adapter interface {
 }
 
 type ChargeAdapter interface {
-	CreateCharge(ctx context.Context, in CreateInput) (Charge, error)
+	CreateCharge(ctx context.Context, in CreateChargeInput) (Charge, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
 	MarkVoided(ctx context.Context, input MarkVoidedAdapterInput) (ChargeBase, error)
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
 	ListFundedCreditActivities(ctx context.Context, input ListFundedCreditActivitiesInput) (ListFundedCreditActivitiesResult, error)
+}
+
+type CreateChargeInput struct {
+	CreateInput
+
+	ResolvedCostBasis *costbasis.State
+}
+
+var _ models.Validator = (*CreateChargeInput)(nil)
+
+func (i CreateChargeInput) Validate() error {
+	var errs []error
+
+	if err := i.CreateInput.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.ResolvedCostBasis != nil {
+		if err := i.ResolvedCostBasis.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resolved cost basis: %w", err))
+		}
+	}
+
+	dynamicCostBasis := false
+	if i.Intent.CostBasis != nil && i.Intent.CostBasis.Type() == CostBasisTypeCustomCurrency {
+		customCostBasis, err := i.Intent.CostBasis.AsCustomCurrency()
+		if err == nil {
+			dynamicCostBasis = customCostBasis.Kind() == costbasis.ModeDynamic
+		}
+	}
+
+	switch i.Intent.Settlement.Type() {
+	case SettlementTypePromotional:
+		if i.ResolvedCostBasis != nil {
+			errs = append(errs, errors.New("promotional credit purchase cannot have resolved cost-basis state"))
+		}
+	case SettlementTypeInvoice, SettlementTypeExternal:
+		if dynamicCostBasis {
+			// TODO: Support dynamic cost basis once credit-purchase lifecycle
+			// resolution can pin the rate before the first monetary realization.
+			errs = append(errs, errors.New("dynamic cost basis is not supported for credit purchases"))
+		} else if i.ResolvedCostBasis == nil {
+			errs = append(errs, errors.New("payment-backed credit purchase requires resolved cost-basis state"))
+		}
+	}
+
+	if i.ResolvedCostBasis != nil && i.Intent.CostBasis != nil && i.Intent.CostBasis.Type() == CostBasisTypeFiat {
+		fiatCostBasis, err := i.Intent.CostBasis.AsFiat()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("fiat cost basis: %w", err))
+		} else {
+			if i.ResolvedCostBasis.CostBasisID != nil {
+				errs = append(errs, errors.New("fiat resolved cost basis cannot reference a currency cost basis"))
+			}
+
+			if !i.ResolvedCostBasis.CostBasis.Equal(fiatCostBasis.Rate) {
+				errs = append(errs, errors.New("fiat resolved cost basis must match the intent rate"))
+			}
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type ExternalPaymentAdapter interface {

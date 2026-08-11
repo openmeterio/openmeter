@@ -10,9 +10,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	chargecostbasis "github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -146,6 +148,46 @@ func TestCreateInputValidateRejectsExpiryWithoutEffectiveAt(t *testing.T) {
 			require.ErrorContains(t, err, "expires at must be after effective at")
 		})
 	}
+}
+
+func TestCreateChargeInputValidateRejectsDynamicCostBasis(t *testing.T) {
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC),
+	}
+	fiatCurrency, err := currencyx.NewFiatCurrency("USD")
+	require.NoError(t, err)
+
+	input := CreateChargeInput{CreateInput: CreateInput{
+		Namespace: "test",
+		Intent: Intent{
+			Intent: meta.Intent{
+				ManagedBy:  billing.ManuallyManagedLine,
+				CustomerID: "customer-1",
+				Currency:   currenciestestutils.NewCustomCurrency(t, "TOKENS", 2),
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: "tax-code-1",
+				},
+			},
+			IntentMutableFields: IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "dynamic credit purchase",
+					ServicePeriod:     period,
+					FullServicePeriod: period,
+					BillingPeriod:     period,
+				},
+				CreditAmount: alpacadecimal.NewFromInt(1),
+				Settlement:   NewInvoiceSettlement(),
+			},
+			CostBasis: lo.ToPtr(NewCostBasis(chargecostbasis.NewIntent(chargecostbasis.DynamicIntent{
+				FiatCurrency: fiatCurrency,
+			}))),
+		},
+	}}
+
+	err = input.Validate()
+	require.ErrorContains(t, err, "dynamic cost basis is not supported for credit purchases")
+	require.NotContains(t, err.Error(), "requires resolved cost-basis state")
 }
 
 func TestFeatureFiltersNormalize(t *testing.T) {

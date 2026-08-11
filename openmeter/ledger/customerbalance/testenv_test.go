@@ -326,6 +326,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		Handler:     creditPurchaseHandler,
 		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
+		Currencies:  currencyService,
 	})
 	require.NoError(t, err)
 

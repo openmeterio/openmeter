@@ -178,6 +178,7 @@ func (s *BaseSuite) SetupSuite() {
 		Handler:     s.CreditPurchaseTestHandler,
 		Lineage:     lineageService,
 		MetaAdapter: metaAdapter,
+		Currencies:  currencyService,
 	})
 	s.NoError(err)
 
