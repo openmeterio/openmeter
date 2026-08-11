@@ -310,32 +310,44 @@ func (a *adapter) ListCustomerIDsPendingCollection(ctx context.Context, input bi
 			query.Where(billinginvoice.CustomerIDIn(input.CustomerIDs...))
 		}
 
-		query.
-			Unique(true).
-			Order(
-				billinginvoice.ByNamespace(),
-				billinginvoice.ByCustomerID(),
-			)
+		query.Order(
+			billinginvoice.ByNamespace(),
+			billinginvoice.ByCustomerID(),
+		)
 
 		type customerIDRow struct {
-			Namespace  string `json:"namespace"`
-			CustomerID string `json:"customer_id"`
+			Namespace    string     `json:"namespace"`
+			InvoiceID    string     `json:"id"`
+			CustomerID   string     `json:"customer_id"`
+			CollectionAt *time.Time `json:"collection_at"`
 		}
 		var rows []customerIDRow
 
 		err := query.
-			Select(billinginvoice.FieldNamespace, billinginvoice.FieldCustomerID).
+			Select(
+				billinginvoice.FieldNamespace,
+				billinginvoice.FieldID,
+				billinginvoice.FieldCustomerID,
+				billinginvoice.FieldCollectionAt,
+			).
 			Scan(ctx, &rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list customer IDs pending collection: %w", err)
 		}
 
-		customers := lo.Map(rows, func(row customerIDRow, _ int) customer.CustomerID {
+		nilCollectionAtInvoiceIDs := lo.FilterMap(rows, func(row customerIDRow, _ int) (string, bool) {
+			return row.InvoiceID, row.CollectionAt == nil
+		})
+		if len(nilCollectionAtInvoiceIDs) > 0 {
+			tx.logger.WarnContext(ctx, "gathering invoices have nil next collection at; this may indicate legacy or inconsistent state", "invoice_ids", nilCollectionAtInvoiceIDs)
+		}
+
+		customers := lo.Uniq(lo.Map(rows, func(row customerIDRow, _ int) customer.CustomerID {
 			return customer.CustomerID{
 				Namespace: row.Namespace,
 				ID:        row.CustomerID,
 			}
-		})
+		}))
 
 		return customers, nil
 	})
